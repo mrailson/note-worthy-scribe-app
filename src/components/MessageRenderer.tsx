@@ -217,12 +217,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleClinicalVerify = async () => {
+    console.log('Starting clinical verification...');
     try {
       setIsVerifying(true);
       
       // Import supabase client
       const { supabase } = await import('@/integrations/supabase/client');
       
+      console.log('Calling clinical-verification function...');
       const { data, error } = await supabase.functions.invoke('clinical-verification', {
         body: {
           originalPrompt: 'Manual verification request',
@@ -230,6 +232,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           messageId: message.id
         }
       });
+
+      console.log('Clinical verification response:', { data, error });
 
       if (error) {
         console.error('Clinical verification error:', error);
@@ -242,10 +246,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       }
 
       if (!data) {
+        console.error('No verification data received');
         toast.error('No verification data received');
         return;
       }
 
+      console.log('Setting verification data and opening modal...');
       setVerificationData(data);
       setIsVerificationModalOpen(true);
       toast.success('Clinical verification completed');
@@ -253,6 +259,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       console.error('Clinical verification failed:', error);
       toast.error('Clinical verification failed');
     } finally {
+      console.log('Finishing clinical verification, setting isVerifying to false');
       setIsVerifying(false);
     }
   };
