@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3 } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -28,6 +28,7 @@ import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
+import { AITestModal } from '@/components/AITestModal';
 
 
 const AI4GPService = () => {
@@ -45,6 +46,7 @@ const AI4GPService = () => {
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
   const [showVerificationChart, setShowVerificationChart] = useState(false);
+  const [showAITestModal, setShowAITestModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
@@ -239,6 +241,10 @@ const AI4GPService = () => {
                           <BarChart3 className="w-4 h-4 mr-2" />
                           AI Model Chart
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowAITestModal(true)}>
+                          <TestTube className="w-4 h-4 mr-2" />
+                          AI Model Tester
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -337,6 +343,7 @@ const AI4GPService = () => {
                           setShowAllQuickActions={setShowAllQuickActions}
                           setInput={setInput}
                           selectedRole={selectedRole}
+                          onOpenAITestModal={() => setShowAITestModal(true)}
                         />
                       </div>
                     </div>
@@ -476,6 +483,12 @@ const AI4GPService = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Test Modal */}
+      <AITestModal 
+        open={showAITestModal} 
+        onOpenChange={setShowAITestModal} 
+      />
     </>
   );
 };

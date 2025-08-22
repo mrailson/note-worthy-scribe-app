@@ -11,13 +11,15 @@ interface QuickActionsPanelProps {
   setShowAllQuickActions: (show: boolean) => void;
   setInput: (input: string) => void;
   selectedRole?: 'gp' | 'practice-manager';
+  onOpenAITestModal?: () => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   showAllQuickActions,
   setShowAllQuickActions,
   setInput,
-  selectedRole = 'gp'
+  selectedRole = 'gp',
+  onOpenAITestModal
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
@@ -101,7 +103,11 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
             
             const handleClick = () => {
               if (action.action === 'open-ai-test-modal') {
-                setIsAITestModalOpen(true);
+                if (onOpenAITestModal) {
+                  onOpenAITestModal();
+                } else {
+                  setIsAITestModalOpen(true);
+                }
               } else {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
