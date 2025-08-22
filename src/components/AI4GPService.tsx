@@ -59,6 +59,8 @@ const AI4GPService = () => {
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
+    useOpenAI,
+    setUseOpenAI,
     handleSend,
     handleNewSearch,
     handleQuickResponse
@@ -170,6 +172,17 @@ const AI4GPService = () => {
                   </CardTitle>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
+                    {/* Settings Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSettings(true)}
+                      className="px-2 sm:px-3"
+                    >
+                      <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">Settings</span>
+                    </Button>
+                    
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -401,6 +414,8 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}
         onShowResponseMetricsChange={setShowResponseMetrics}
+        useOpenAI={useOpenAI}
+        onUseOpenAIChange={setUseOpenAI}
       />
 
       {/* Quick Image Modal */}

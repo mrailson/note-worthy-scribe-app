@@ -2,9 +2,10 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Bot, Clock } from 'lucide-react';
+import { Brain, Bot, Clock, Zap } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -17,6 +18,8 @@ interface SettingsModalProps {
   onModelChange: (model: string) => void;
   showResponseMetrics: boolean;
   onShowResponseMetricsChange: (enabled: boolean) => void;
+  useOpenAI: boolean;
+  onUseOpenAIChange: (enabled: boolean) => void;
 }
 
 const AI_MODELS = [
@@ -57,7 +60,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   selectedModel,
   onModelChange,
   showResponseMetrics,
-  onShowResponseMetricsChange
+  onShowResponseMetricsChange,
+  useOpenAI,
+  onUseOpenAIChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
 
@@ -72,6 +77,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* OpenAI Toggle */}
+          <Card className="border-primary/20 bg-gradient-to-r from-background to-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="h-4 w-4 text-primary" />
+                Use OpenAI Models
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="use-openai" className="text-sm font-medium">
+                    OpenAI Integration
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Switch to OpenAI's powerful models for enhanced performance
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {useOpenAI ? 'OpenAI' : 'Default'}
+                  </span>
+                  <Switch
+                    id="use-openai"
+                    checked={useOpenAI}
+                    onCheckedChange={onUseOpenAIChange}
+                  />
+                </div>
+              </div>
+              
+              {useOpenAI && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="text-sm font-medium text-primary">✨ OpenAI Active</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Using advanced OpenAI models for superior AI responses
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* AI Model Selection */}
           <Card>
             <CardHeader>

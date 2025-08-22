@@ -15,6 +15,7 @@ export const useAI4GPService = () => {
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('grok-beta');
+  const [useOpenAI, setUseOpenAI] = useState(false);
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
@@ -121,6 +122,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
     if (!input.trim() && uploadedFiles.length === 0) return;
     
+    // Use appropriate model based on useOpenAI setting
+    const modelToUse = useOpenAI ? 'gpt-4-turbo' : selectedModel;
+    
     // Enhance the message content when files are attached
     let messageContent = input;
     if (uploadedFiles.length > 0 && input.trim()) {
@@ -150,7 +154,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       role: 'assistant',
       content: '',
       timestamp: new Date(),
-      model: selectedModel,
+      model: modelToUse,
       isStreaming: true
     };
 
@@ -181,7 +185,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       const requestBody = {
         messages: messagesForAPI,
-        model: selectedModel,
+        model: modelToUse,
         systemPrompt: systemPrompt,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
         verificationLevel: verificationLevel
@@ -343,7 +347,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } finally {
       setIsLoading(false);
     }
-  }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel]);
+  }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel, useOpenAI]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length < 2) return; // Need at least user + assistant message
@@ -407,6 +411,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
           setSelectedModel(preferences.selectedModel ?? 'grok-beta');
+          setUseOpenAI(preferences.useOpenAI ?? false);
         }
       } catch (error) {
         console.error('Error loading user settings:', error);
@@ -425,7 +430,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         sessionMemory,
         verificationLevel,
         showResponseMetrics,
-        selectedModel
+        selectedModel,
+        useOpenAI
       };
 
       await supabase
@@ -440,14 +446,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel]);
+  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI]);
 
   // Save settings when they change
   useEffect(() => {
     if (user) {
       saveUserSettings();
     }
-  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, saveUserSettings]);
+  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -647,6 +653,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
+    useOpenAI,
+    setUseOpenAI,
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,
