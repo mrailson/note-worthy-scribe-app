@@ -977,6 +977,34 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       throw new Error(`OpenAI API quota exceeded (429): ${error}`);
     }
     
+    // Check for unsupported model - fallback to GPT-4o
+    if (initial.status === 404 || error.includes('model') || error.includes('not found')) {
+      console.log('GPT-5 not available, falling back to GPT-4o');
+      const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 4000,
+          temperature: 0.7,
+          tools,
+          tool_choice: "auto",
+          messages: gptMessages
+        })
+      });
+      
+      if (!fallbackResponse.ok) {
+        const fallbackError = await fallbackResponse.text();
+        throw new Error(`OpenAI API fallback error: ${fallbackResponse.status} - ${fallbackError}`);
+      }
+      
+      const fallbackData = await fallbackResponse.json();
+      return fallbackData.choices[0].message.content;
+    }
+    
     throw new Error(`OpenAI API error: ${initial.status}`);
   }
 
@@ -1031,6 +1059,32 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
           if (!final.ok) {
             const error = await final.text();
             console.error('OpenAI final API error:', error);
+            
+            // Fallback to GPT-4o if GPT-5 fails
+            if (error.includes('model') || error.includes('not found')) {
+              const fallbackFinal = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o',
+                  max_tokens: 4000,
+                  temperature: 0.7,
+                  tools,
+                  messages: gptMessages
+                })
+              });
+              
+              if (!fallbackFinal.ok) {
+                throw new Error(`OpenAI API fallback error: ${fallbackFinal.status}`);
+              }
+              
+              const fallbackFinalData = await fallbackFinal.json();
+              return fallbackFinalData.choices[0].message.content;
+            }
+            
             throw new Error(`OpenAI API error: ${final.status}`);
           }
 
@@ -1377,6 +1431,19 @@ serve(async (req) => {
   try {
     const { messages, model, systemPrompt, files, verificationLevel }: RequestBody = await req.json();
 
+    // Check API key availability
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    const GROK_API_KEY = Deno.env.get('GROK_API_KEY'); 
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    
+    console.log('API Keys status:', {
+      openai: OPENAI_API_KEY ? 'Set' : 'Missing',
+      anthropic: ANTHROPIC_API_KEY ? 'Set' : 'Missing',
+      grok: GROK_API_KEY ? 'Set' : 'Missing',
+      gemini: GEMINI_API_KEY ? 'Set' : 'Missing'
+    });
+
     console.log(`Processing request with model: ${model || 'undefined'}`);
     console.log(`Messages count: ${messages?.length || 0}`);
     console.log('SystemPrompt:', systemPrompt ? 'Present' : 'Missing');
@@ -1460,13 +1527,17 @@ serve(async (req) => {
       }
     }
 
-    const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
     // Model routing with proper mapping
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
-      // Use GPT-5 function for GPT-5 models
-      response = await callGPT5(processedMessages, finalSystemPrompt, files);
+      // Use GPT-5 function for GPT-5 models with fallback
+      try {
+        response = await callGPT5(processedMessages, finalSystemPrompt, files);
+      } catch (error) {
+        console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
+        response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+      }
     } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
       // Use GPT-4 Turbo for legacy models
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
@@ -1477,9 +1548,9 @@ serve(async (req) => {
     } else if (selectedModel === 'gemini-1.5-flash') {
       response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
     } else {
-      // Fallback to GPT-5 for any unsupported model
-      console.log(`Unsupported model ${selectedModel}, falling back to GPT-5`);
-      response = await callGPT5(processedMessages, finalSystemPrompt, files);
+      // Fallback to GPT-4 Turbo for any unsupported model
+      console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
+      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     }
 
     return new Response(
