@@ -225,14 +225,42 @@ export const LiveTranscript = ({
     };
   }, [user?.id, isMedicalCorrectionsLoaded]);
 
+  // Filter out system messages (silence detection, etc.)
+  const filterSystemMessages = (text: string): string => {
+    if (!text) return text;
+    
+    // Remove silence detection and system messages
+    let filtered = text
+      .replace(/\[silence detected\]/gi, '')
+      .replace(/\[no audio detected\]/gi, '')
+      .replace(/\[quiet period detected\]/gi, '')
+      .replace(/\[pause detected\]/gi, '')
+      .replace(/\[audio stopped\]/gi, '')
+      .replace(/\[listening\.\.\.\]/gi, '')
+      .replace(/\[waiting for audio\]/gi, '')
+      .replace(/\[no speech detected\]/gi, '')
+      .replace(/\[audio pause\]/gi, '')
+      .replace(/\[silence\]/gi, '')
+      .replace(/\[quiet\]/gi, '')
+      .replace(/\[no sound\]/gi, '')
+      .replace(/\[audio gap\]/gi, '')
+      .replace(/\[recording paused\]/gi, '')
+      .replace(/\[system message\]/gi, '')
+      // Clean up extra spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return filtered;
+  };
+
   // Update live transcript text when transcript prop changes (RAW TRANSCRIPT ONLY)
   useEffect(() => {
     if (transcript && transcript.trim()) {
-      let processedTranscript = transcript;
+      let processedTranscript = filterSystemMessages(transcript);
       
       // Apply medical term corrections if loaded
       if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
-        processedTranscript = medicalTermCorrector.applyCorrections(transcript);
+        processedTranscript = medicalTermCorrector.applyCorrections(processedTranscript);
       }
       
       console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');

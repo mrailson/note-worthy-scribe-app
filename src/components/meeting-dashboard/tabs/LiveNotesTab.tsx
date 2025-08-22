@@ -84,11 +84,39 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
     }
   ]);
 
+  // Filter out system messages (silence detection, etc.)
+  const filterSystemMessages = (text: string): string => {
+    if (!text) return text;
+    
+    // Remove silence detection and system messages
+    let filtered = text
+      .replace(/\[silence detected\]/gi, '')
+      .replace(/\[no audio detected\]/gi, '')
+      .replace(/\[quiet period detected\]/gi, '')
+      .replace(/\[pause detected\]/gi, '')
+      .replace(/\[audio stopped\]/gi, '')
+      .replace(/\[listening\.\.\.\]/gi, '')
+      .replace(/\[waiting for audio\]/gi, '')
+      .replace(/\[no speech detected\]/gi, '')
+      .replace(/\[audio pause\]/gi, '')
+      .replace(/\[silence\]/gi, '')
+      .replace(/\[quiet\]/gi, '')
+      .replace(/\[no sound\]/gi, '')
+      .replace(/\[audio gap\]/gi, '')
+      .replace(/\[recording paused\]/gi, '')
+      .replace(/\[system message\]/gi, '')
+      // Clean up extra spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return filtered;
+  };
+
   // Generate processed versions of transcript
   useEffect(() => {
     if (!meetingData.transcript) return;
 
-    const raw = meetingData.transcript;
+    const raw = filterSystemMessages(meetingData.transcript);
     
     // Simulate cleaned transcript (basic corrections)
     const cleaned = raw
@@ -130,7 +158,7 @@ NEXT STEPS:
 
     setTranscriptLevels(prev => prev.map(level => {
       switch (level.id) {
-        case "raw": return { ...level, content: raw };
+        case "raw": return { ...level, content: filterSystemMessages(meetingData.transcript || "") };
         case "cleaned": return { ...level, content: cleaned };
         case "processed": return { ...level, content: processed };
         case "final": return { ...level, content: liveNotes || structured };
