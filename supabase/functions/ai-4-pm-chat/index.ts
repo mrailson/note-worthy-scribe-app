@@ -1429,7 +1429,14 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, model, systemPrompt, files, verificationLevel }: RequestBody = await req.json();
+    console.log('🚀 AI-4-PM-Chat function started');
+    console.log('📝 Request method:', req.method);
+    console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
+    
+    const requestBody = await req.json();
+    console.log('📝 Request body keys:', Object.keys(requestBody));
+    
+    const { messages, model, systemPrompt, files, verificationLevel }: RequestBody = requestBody;
 
     // Check API key availability
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -1609,7 +1616,11 @@ I'll be back online once the API quota is restored. Thank you for your patience.
     }
 
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        response: `Error: ${errorMessage}`,
+        error: errorMessage,
+        success: false 
+      }),
       {
         status: 500,
         headers: { 
