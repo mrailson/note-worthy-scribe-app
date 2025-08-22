@@ -387,15 +387,25 @@ Format as JSON: {
     // Execute all verifications in parallel with overall timeout
     try {
       console.log('Running parallel AI verifications...');
-      const results = await Promise.allSettled(verificationPromises);
+      console.log(`Total verification promises created: ${verificationPromises.length}`);
       
-      results.forEach(result => {
+      const aiStartTime = Date.now();
+      const results = await Promise.allSettled(verificationPromises);
+      const aiEndTime = Date.now();
+      
+      console.log(`AI verifications took: ${aiEndTime - aiStartTime}ms`);
+      
+      results.forEach((result, index) => {
         if (result.status === 'fulfilled' && result.value) {
+          console.log(`AI verification ${index} succeeded:`, result.value.model);
           llmConsensus.push(result.value);
+        } else {
+          console.error(`AI verification ${index} failed:`, result.status === 'rejected' ? result.reason : 'No result');
         }
       });
       
       console.log(`Completed ${llmConsensus.length} AI verifications`);
+      console.log('LLM models used:', llmConsensus.map(llm => llm.model));
     } catch (error) {
       console.error('Error in parallel verifications:', error);
     }
