@@ -202,8 +202,12 @@ serve(async (req) => {
       // This ensures the image has the alpha channel required by OpenAI
       console.log('Converting image to RGBA format...');
       const processedImageBlob = await convertToRGBAFormat(imageBuffer);
+      console.log(`Processed image blob size: ${processedImageBlob.size} bytes, type: ${processedImageBlob.type}`);
       
       editFormData.append('image', processedImageBlob, 'image.png');
+      
+      console.log('Making request to OpenAI edit API...');
+      console.log(`Edit request: prompt="${prompt}", size=${editSize}`);
 
       const editResponse = await fetch(endpoint, {
         method: 'POST',
@@ -212,6 +216,8 @@ serve(async (req) => {
         },
         body: editFormData
       });
+      
+      console.log(`OpenAI edit response status: ${editResponse.status}`);
 
       if (!editResponse.ok) {
         const errorText = await editResponse.text();
