@@ -168,6 +168,9 @@ serve(async (req) => {
     if (mode === 'edit' && imageUrl) {
       // Use the edit endpoint for image editing
       endpoint = 'https://api.openai.com/v1/images/edits';
+      console.log('=== STARTING IMAGE EDIT PROCESS ===');
+      console.log(`Edit mode activated with imageUrl: ${imageUrl}`);
+      console.log(`Original prompt: "${prompt}"`);
       
       // OpenAI edit API only supports square images: 256x256, 512x512, 1024x1024
       let editSize = size;
@@ -175,18 +178,22 @@ serve(async (req) => {
         console.log(`Size ${size} not supported for edit mode, defaulting to 1024x1024`);
         editSize = '1024x1024';
       }
+      console.log(`Using edit size: ${editSize}`);
       
       // For edits, we need to send as form data
       const editFormData = new FormData();
       editFormData.append('model', 'dall-e-2'); // dall-e-2 supports edits
       editFormData.append('prompt', prompt);
       editFormData.append('size', editSize);
+      console.log('Form data prepared for OpenAI edit API');
       
       // Download the image and convert it to proper format for OpenAI edit API
+      console.log(`=== DOWNLOADING IMAGE ===`);
       console.log(`Downloading reference image from: ${imageUrl}`);
       const imageResponse = await fetch(imageUrl);
       
       if (!imageResponse.ok) {
+        console.error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
         throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
       }
       
@@ -195,19 +202,33 @@ serve(async (req) => {
       
       // Validate image size (OpenAI has limits)
       if (imageBuffer.byteLength > 4 * 1024 * 1024) { // 4MB limit
+        console.error('Image too large for OpenAI API');
         throw new Error('Image file is too large. Please use an image smaller than 4MB.');
       }
       
       // Convert image to RGBA format using Canvas API
-      // This ensures the image has the alpha channel required by OpenAI
+      console.log('=== STARTING RGBA CONVERSION ===');
       console.log('Converting image to RGBA format...');
-      const processedImageBlob = await convertToRGBAFormat(imageBuffer);
-      console.log(`Processed image blob size: ${processedImageBlob.size} bytes, type: ${processedImageBlob.type}`);
+      let processedImageBlob;
+      try {
+        processedImageBlob = await convertToRGBAFormat(imageBuffer);
+        console.log(`✅ RGBA conversion successful: ${processedImageBlob.size} bytes, type: ${processedImageBlob.type}`);
+      } catch (conversionError) {
+        console.error('❌ RGBA conversion failed:', conversionError);
+        throw new Error(`Image conversion failed: ${conversionError.message}`);
+      }
       
       editFormData.append('image', processedImageBlob, 'image.png');
+      console.log('Image attached to form data');
       
-      console.log('Making request to OpenAI edit API...');
-      console.log(`Edit request: prompt="${prompt}", size=${editSize}`);
+      console.log('=== CALLING OPENAI EDIT API ===');
+      console.log(`Making request to OpenAI edit API...`);
+      console.log(`Edit request details:`);
+      console.log(`- Endpoint: ${endpoint}`);
+      console.log(`- Prompt: "${prompt}"`);
+      console.log(`- Size: ${editSize}`);
+      console.log(`- Model: dall-e-2`);
+      console.log(`- Image size: ${processedImageBlob.size} bytes`);
 
       const editResponse = await fetch(endpoint, {
         method: 'POST',
@@ -217,18 +238,20 @@ serve(async (req) => {
         body: editFormData
       });
       
-      console.log(`OpenAI edit response status: ${editResponse.status}`);
+      console.log(`OpenAI edit response received with status: ${editResponse.status}`);
 
       if (!editResponse.ok) {
         const errorText = await editResponse.text();
-        console.error('OpenAI edit error:', errorText);
+        console.error('❌ OpenAI edit API error:', editResponse.status, errorText);
         
         // Parse error for better user messaging
         let userFriendlyError = 'Image editing failed. ';
         try {
           const errorData = JSON.parse(errorText);
+          console.log('Parsed OpenAI error:', errorData);
           if (errorData.error?.message) {
             const message = errorData.error.message;
+            console.log('OpenAI error message:', message);
             if (message.includes('RGBA') || message.includes('format')) {
               userFriendlyError += 'The image format is not compatible. Please try with a PNG image that has transparency support.';
             } else if (message.includes('size') || message.includes('dimensions')) {
@@ -238,6 +261,7 @@ serve(async (req) => {
             }
           }
         } catch (parseError) {
+          console.error('Failed to parse OpenAI error:', parseError);
           userFriendlyError += 'Please try again with a different image or contact support if the issue persists.';
         }
         
@@ -248,15 +272,21 @@ serve(async (req) => {
       }
 
       const editData = await editResponse.json();
+      console.log('✅ OpenAI edit response received successfully');
+      console.log('Edit response data structure:', Object.keys(editData));
+      
       const imageData = editData.data?.[0]?.url;
+      console.log('Extracted image URL:', imageData ? 'Present' : 'Missing');
 
       if (!imageData) {
+        console.error('❌ No image URL in OpenAI response:', editData);
         return new Response(
           JSON.stringify({ error: 'No image returned from OpenAI' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
         );
       }
 
+      console.log('=== IMAGE EDIT COMPLETED SUCCESSFULLY ===');
       return new Response(
         JSON.stringify({ 
           success: true, 
