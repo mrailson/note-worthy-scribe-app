@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AITestModal } from '@/components/AITestModal';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -20,6 +21,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
+  const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -91,51 +93,63 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {visibleActions.map((action, index) => {
-          const IconComponent = action.icon;
-          
-          const handleClick = () => {
-            setInput(enhancePromptWithPracticeInfo(action.prompt));
-          };
+    <>
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {visibleActions.map((action, index) => {
+            const IconComponent = action.icon;
+            
+            const handleClick = () => {
+              if (action.action === 'open-ai-test-modal') {
+                setIsAITestModalOpen(true);
+              } else {
+                setInput(enhancePromptWithPracticeInfo(action.prompt));
+              }
+            };
 
-          return (
-            <Button
-              key={index}
-              variant="outline"
-              size="sm"
-              className="justify-start text-left h-auto py-2 px-3"
-              onClick={handleClick}
-            >
-              <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span className="truncate">{action.label}</span>
-            </Button>
-          );
-        })}
+            return (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                className="justify-start text-left h-auto py-2 px-3"
+                onClick={handleClick}
+              >
+                <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="truncate">{action.label}</span>
+              </Button>
+            );
+          })}
+        </div>
+        
+        {/* Don't show expand button on mobile, and only show if there are more actions than visible */}
+        {!isMobile && currentActions.length > maxVisibleActions && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAllQuickActions(!showAllQuickActions)}
+            className="w-full"
+          >
+            {showAllQuickActions ? (
+              <>
+                <Minus className="w-4 h-4 mr-2" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Show More ({currentActions.length - maxVisibleActions} more)
+              </>
+            )}
+          </Button>
+        )}
       </div>
-      
-      {/* Don't show expand button on mobile, and only show if there are more actions than visible */}
-      {!isMobile && currentActions.length > maxVisibleActions && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowAllQuickActions(!showAllQuickActions)}
-          className="w-full"
-        >
-          {showAllQuickActions ? (
-            <>
-              <Minus className="w-4 h-4 mr-2" />
-              Show Less
-            </>
-          ) : (
-            <>
-              <Plus className="w-4 h-4 mr-2" />
-              Show More ({currentActions.length - maxVisibleActions} more)
-            </>
-          )}
-        </Button>
-      )}
-    </div>
+
+      {/* AI Test Modal */}
+      <AITestModal 
+        open={isAITestModalOpen} 
+        onOpenChange={setIsAITestModalOpen} 
+      />
+    </>
   );
 };

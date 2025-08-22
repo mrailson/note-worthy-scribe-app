@@ -1,4 +1,4 @@
-import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic } from 'lucide-react';
+import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -96,6 +96,13 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
   },
+  {
+    label: 'AI Model Tester',
+    icon: TestTube,
+    prompt: '',
+    requiresFile: false,
+    action: 'open-ai-test-modal'
+  },
 ];
 
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
@@ -172,5 +179,12 @@ OUTPUTS with headings; plain English; short and expanded versions for A & B; sig
     icon: NotebookPen,
     prompt: `${pmSafetyPreamble} Summarise the attached/pasted transcript into: (1) executive summary, (2) decisions, (3) actions with owner/due date, (4) risks/issues log. Keep neutral, no hallucinations; mark any unclear sections for review.`,
     requiresFile: true
+  },
+  {
+    label: 'AI Model Tester',
+    icon: TestTube,
+    prompt: '',
+    requiresFile: false,
+    action: 'open-ai-test-modal'
   }
 ];
