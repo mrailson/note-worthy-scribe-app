@@ -216,18 +216,25 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
     const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
     const grokApiKey = Deno.env.get('GROK_API_KEY');
     
-    console.log('Available API keys:', {
+    const availableKeys = {
       openai: !!openaiApiKey,
       claude: !!claudeApiKey,
       google: !!googleApiKey,
       grok: !!grokApiKey
-    });
+    };
+    
+    console.log('Available API keys:', availableKeys);
+    
+    if (!openaiApiKey && !claudeApiKey && !googleApiKey && !grokApiKey) {
+      throw new Error('No AI service API keys available for verification');
+    }
 
     // Parallel AI service verification
     const verificationPromises: Promise<LLMConsensusData | null>[] = [];
 
     // OpenAI GPT verification
     if (openaiApiKey) {
+      console.log('Adding OpenAI verification to queue');
       verificationPromises.push(
         Promise.race([
           fetch('https://api.openai.com/v1/chat/completions', {
@@ -252,6 +259,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
           if (response.ok) {
             const data = await response.json();
             const result = JSON.parse(data.choices[0].message.content);
+            console.log('OpenAI verification successful');
             
             return {
               model: 'gpt-4o-mini',
@@ -261,16 +269,20 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
               concerns: result.concerns || []
             };
           }
+          console.error('OpenAI verification failed with status:', response.status);
           return null;
         }).catch(error => {
-          console.error('OpenAI verification failed:', error);
+          console.error('OpenAI verification failed:', error.message);
           return null;
         })
       );
+    } else {
+      console.log('OpenAI API key not available');
     }
 
     // Claude verification
     if (claudeApiKey) {
+      console.log('Adding Claude verification to queue');
       verificationPromises.push(
         Promise.race([
           fetch('https://api.anthropic.com/v1/messages', {
@@ -294,6 +306,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
           if (response.ok) {
             const data = await response.json();
             const result = JSON.parse(data.content[0].text);
+            console.log('Claude verification successful');
             
             return {
               model: 'claude-3-5-haiku',
@@ -303,16 +316,20 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
               concerns: result.concerns || []
             };
           }
+          console.error('Claude verification failed with status:', response.status);
           return null;
         }).catch(error => {
-          console.error('Claude verification failed:', error);
+          console.error('Claude verification failed:', error.message);
           return null;
         })
       );
+    } else {
+      console.log('Claude API key not available');
     }
 
     // Google Gemini verification
     if (googleApiKey) {
+      console.log('Adding Google Gemini verification to queue');
       verificationPromises.push(
         Promise.race([
           fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${googleApiKey}`, {
@@ -338,6 +355,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
           if (response.ok) {
             const data = await response.json();
             const result = JSON.parse(data.candidates[0].content.parts[0].text);
+            console.log('Google Gemini verification successful');
             
             return {
               model: 'gemini-1.5-flash',
@@ -347,16 +365,20 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
               concerns: result.concerns || []
             };
           }
+          console.error('Google Gemini verification failed with status:', response.status);
           return null;
         }).catch(error => {
-          console.error('Gemini verification failed:', error);
+          console.error('Google Gemini verification failed:', error.message);
           return null;
         })
       );
+    } else {
+      console.log('Google API key not available');
     }
 
     // Grok verification
     if (grokApiKey) {
+      console.log('Adding Grok verification to queue');
       verificationPromises.push(
         Promise.race([
           fetch('https://api.x.ai/v1/chat/completions', {
@@ -381,6 +403,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
           if (response.ok) {
             const data = await response.json();
             const result = JSON.parse(data.choices[0].message.content);
+            console.log('Grok verification successful');
             
             return {
               model: 'grok-beta',
@@ -390,12 +413,15 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
               concerns: result.concerns || []
             };
           }
+          console.error('Grok verification failed with status:', response.status);
           return null;
         }).catch(error => {
-          console.error('Grok verification failed:', error);
+          console.error('Grok verification failed:', error.message);
           return null;
         })
       );
+    } else {
+      console.log('Grok API key not available');
     }
 
     // Execute all verifications in parallel with overall timeout
