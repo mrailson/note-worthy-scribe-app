@@ -67,7 +67,9 @@ const AI4GPService = () => {
     setShowAIService,
     handleSend,
     handleNewSearch,
-    handleQuickResponse
+    handleQuickResponse,
+    isClinical,
+    setIsClinical
   } = useAI4GPService();
 
   const { practiceContext } = usePracticeContext();
