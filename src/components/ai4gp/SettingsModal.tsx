@@ -128,32 +128,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const startTime = Date.now();
       
       try {
-        const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+        console.log(`Testing ${model}...`);
+        
+        const { data, error } = await supabase.functions.invoke('ai-api-test', {
           body: {
-            messages: [{ role: 'user', content: testPrompt }],
             model: model,
-            systemPrompt: 'You are a helpful AI assistant. Respond concisely to the user\'s question.'
+            prompt: testPrompt
           }
         });
 
         const responseTime = Date.now() - startTime;
         
         if (error) {
+          console.error(`Error testing ${model}:`, error);
           throw error;
         }
+
+        if (!data.success) {
+          throw new Error(data.error || 'API test failed');
+        }
+
+        console.log(`${model} test successful:`, data);
 
         setTestResults(prev => prev.map(result => 
           result.model === model 
             ? { 
                 ...result, 
                 status: 'success', 
-                responseTime, 
-                response: data?.response || data?.content || 'No response received'
+                responseTime: data.responseTime || responseTime, 
+                response: data.response || 'Test successful'
               }
             : result
         ));
       } catch (error: any) {
         const responseTime = Date.now() - startTime;
+        console.error(`${model} test failed:`, error);
+        
         setTestResults(prev => prev.map(result => 
           result.model === model 
             ? { 
