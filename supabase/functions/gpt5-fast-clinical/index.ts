@@ -62,13 +62,23 @@ serve(async (req) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 65000);
 
-    const requestBody = {
+    // Determine if this is a newer model that needs different parameters
+    const isNewerModel = model.startsWith('gpt-5') || model.startsWith('o3') || model.startsWith('o4');
+    
+    const requestBody: any = {
       model: model,
       messages: chatMessages,
       stream: true,
-      max_tokens: 450,
-      temperature: 0.2
     };
+    
+    // Use correct parameter names based on model
+    if (isNewerModel) {
+      requestBody.max_completion_tokens = 450; // Newer models use this
+      // Don't include temperature - newer models don't support it
+    } else {
+      requestBody.max_tokens = 450; // Legacy models use this
+      requestBody.temperature = 0.2;
+    }
     
     console.log('Making OpenAI API call...');
     console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
