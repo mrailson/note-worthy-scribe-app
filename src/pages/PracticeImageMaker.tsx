@@ -490,17 +490,52 @@ const PracticeImageMaker = () => {
         formData.append('mode', 'generation');
       }
 
-      const { data, error } = await supabase.functions.invoke('runware-image-generation', {
-        body: {
-          prompt: editMode ? prompt : (useTextOverlay && currentQuickPick ? 
-            assemblePrompt() + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout." :
-            assemblePrompt() + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words."
-          ),
-          mode: editMode ? 'edit' : 'generation',
-          size: validApiSize,
-          quality: 'high',
-          referenceImage: editMode && editPhoto ? editPhoto : null
+      // Create FormData for the runware-image-generation function
+      const requestFormData = new FormData();
+      
+      if (editMode && editPhoto) {
+        // Photo editing mode - convert to PNG if needed
+        let imageToUpload = editPhoto;
+        
+        // Always convert all images to PNG with RGBA format for compatibility
+        console.log(`Converting ${editPhoto.type} to PNG with RGBA support for compatibility`);
+        toast.info('Converting image to PNG format with transparency support...');
+        try {
+          imageToUpload = await convertImageToPNG(editPhoto);
+        } catch (error) {
+          console.error('Image conversion failed:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          toast.error(`Image conversion failed: ${errorMessage}`);
+          setIsGenerating(false);
+          return;
         }
+        
+        requestFormData.append('prompt', prompt);
+        requestFormData.append('image', imageToUpload);
+        requestFormData.append('mode', 'edit');
+        requestFormData.append('size', validApiSize);
+        requestFormData.append('quality', 'high');
+      } else {
+        // Normal generation mode
+        const finalPrompt = assemblePrompt();
+        
+        // For overlay mode with quick picks, generate layout-only image
+        let enhancedPrompt;
+        if (useTextOverlay && currentQuickPick) {
+          enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout.";
+        } else {
+          // Add instruction for exact text usage to prevent lorem ipsum
+          enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
+        }
+        
+        requestFormData.append('prompt', enhancedPrompt);
+        requestFormData.append('size', validApiSize);
+        requestFormData.append('quality', 'high');
+        requestFormData.append('mode', 'generation');
+      }
+
+      const { data, error } = await supabase.functions.invoke('runware-image-generation', {
+        body: requestFormData
       });
 
       if (error) {

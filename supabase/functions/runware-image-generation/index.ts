@@ -41,7 +41,12 @@ serve(async (req) => {
       );
     }
 
-    const { prompt, mode, size = '1024x1024', quality = 'high', referenceImage } = await req.json();
+    const formData = await req.formData();
+    const prompt = formData.get('prompt')?.toString();
+    const mode = formData.get('mode')?.toString() || 'generation';
+    const size = formData.get('size')?.toString() || '1024x1024';
+    const quality = formData.get('quality')?.toString() || 'high';
+    const referenceImageFile = formData.get('image') as File | null;
 
     if (!prompt) {
       return new Response(
@@ -50,7 +55,55 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating image with Runware - prompt: ${prompt}, mode: ${mode || 'generation'}`);
+    console.log(`Generating image with Runware - prompt: ${prompt}, mode: ${mode}, hasReferenceImage: ${!!referenceImageFile}`);
+
+    // Initialize Supabase client for image uploads
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    let referenceImageUrl: string | null = null;
+
+    // Upload reference image to Supabase storage if provided
+    if (referenceImageFile && referenceImageFile.size > 0) {
+      console.log(`Uploading reference image: ${referenceImageFile.name}, size: ${referenceImageFile.size} bytes`);
+      
+      const fileBytes = await referenceImageFile.arrayBuffer();
+      const filename = `refs/${crypto.randomUUID()}-${referenceImageFile.name}`;
+
+      const { error: uploadError } = await supabase
+        .storage
+        .from('reference-images')
+        .upload(filename, fileBytes, {
+          contentType: referenceImageFile.type || 'image/png',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return new Response(
+          JSON.stringify({ error: `Upload failed: ${uploadError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // Get signed URL for the uploaded image
+      const { data: signedData, error: signedError } = await supabase
+        .storage
+        .from('reference-images')
+        .createSignedUrl(filename, 600); // 10 minutes
+
+      if (signedError) {
+        console.error('Signed URL error:', signedError);
+        return new Response(
+          JSON.stringify({ error: `Failed to create signed URL: ${signedError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      referenceImageUrl = signedData.signedUrl;
+      console.log('Reference image uploaded and signed URL created');
+    }
 
     // Parse dimensions from size string
     const [width, height] = size.split('x').map(Number);
@@ -58,23 +111,36 @@ serve(async (req) => {
     // Create task UUID for this request
     const taskUUID = crypto.randomUUID();
 
-    // Prepare the enhanced prompt based on mode
+    // Prepare the enhanced prompt based on mode and reference image
     let enhancedPrompt = prompt;
-    if (mode === 'edit') {
-      if (referenceImage) {
-        enhancedPrompt = `Transform the image style: ${prompt}. Create a new artistic interpretation that applies this transformation while maintaining visual coherence and quality.`;
-      } else {
-        enhancedPrompt = `Create an image with this style or transformation: ${prompt}`;
-      }
+    if (mode === 'edit' && referenceImageUrl) {
+      enhancedPrompt = `Apply this transformation to the uploaded reference image: ${prompt}. Maintain the main subject and composition while applying the requested style changes.`;
+    } else if (mode === 'edit') {
+      enhancedPrompt = `Create an image with this style or transformation: ${prompt}`;
     }
 
-    // Prepare Runware API request
-    const runwareRequests = [
-      {
-        taskType: "authentication",
-        apiKey: runwareApiKey
-      } as RunwareAuthRequest,
-      {
+    // Prepare Runware API request - use different taskType if we have a reference image
+    let imageRequest: any;
+    
+    if (referenceImageUrl && mode === 'edit') {
+      // Use image-to-image generation for reference-based editing
+      imageRequest = {
+        taskType: "imageInference", // Runware's image-to-image task
+        taskUUID,
+        positivePrompt: enhancedPrompt,
+        inputImage: referenceImageUrl, // Use the reference image
+        model: "runware:100@1",
+        width: width || 1024,
+        height: height || 1024,
+        numberResults: 1,
+        outputFormat: "WEBP",
+        CFGScale: 7, // Higher for better adherence to prompt
+        scheduler: "FlowMatchEulerDiscreteScheduler",
+        strength: 0.7 // Controls how much to transform the input image
+      };
+    } else {
+      // Standard text-to-image generation
+      imageRequest = {
         taskType: "imageInference",
         taskUUID,
         positivePrompt: enhancedPrompt,
@@ -86,7 +152,16 @@ serve(async (req) => {
         CFGScale: 1,
         scheduler: "FlowMatchEulerDiscreteScheduler",
         strength: 0.8
-      } as RunwareImageRequest
+      };
+    }
+
+    // Prepare Runware API request
+    const runwareRequests = [
+      {
+        taskType: "authentication",
+        apiKey: runwareApiKey
+      } as RunwareAuthRequest,
+      imageRequest
     ];
 
     console.log('Making request to Runware API...');
