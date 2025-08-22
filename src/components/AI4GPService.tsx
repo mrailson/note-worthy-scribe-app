@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -23,6 +23,7 @@ import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
+import PracticeImageMaker from '@/pages/PracticeImageMaker';
 
 
 const AI4GPService = () => {
@@ -36,6 +37,7 @@ const AI4GPService = () => {
   
   const [showNews, setShowNews] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
+  const [showImageService, setShowImageService] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
@@ -194,6 +196,10 @@ const AI4GPService = () => {
                           <ImageIcon className="w-4 h-4 mr-2" />
                           Images
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowImageService(!showImageService)}>
+                          <Palette className="w-4 h-4 mr-2" />
+                          Image Service
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -234,8 +240,24 @@ const AI4GPService = () => {
                 </div>
               )}
 
-              {/* Main Chat Content - Only show when Image Creation is not active */}
-              {!showImageCreate && (
+              {/* Image Service Display */}
+              {showImageService && (
+                <div className="flex-1 overflow-y-auto p-4 bg-background">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-lg">Practice Image Maker</h4>
+                    <button
+                      onClick={() => setShowImageService(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <PracticeImageMaker />
+                </div>
+              )}
+
+              {/* Main Chat Content - Only show when services are not active */}
+              {!showImageCreate && !showImageService && (
                 <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
                   {messages.length === 0 ? (
                     /* Welcome Screen - Compact, mobile-optimized */
@@ -296,7 +318,7 @@ const AI4GPService = () => {
                   )}
                   
                   {/* Input Area at Bottom */}
-                  {!showNews && !showAIChat && !showSettings && (
+                  {!showNews && !showAIChat && !showSettings && !showImageService && (
                     <div className="border-t bg-background">
                       <InputArea
                         ref={inputRef}
