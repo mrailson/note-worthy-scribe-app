@@ -1619,7 +1619,7 @@ export default function Settings() {
                           <Headphones className="h-4 w-4 text-muted-foreground mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Phone Support</p>
-                            <p className="text-xs text-muted-foreground">+44 (0) 800 NOTEWELL</p>
+                            <p className="text-xs text-muted-foreground">+44 (0) 7740 812180</p>
                             <p className="text-xs text-muted-foreground">Mon-Fri 8am-6pm</p>
                           </div>
                         </div>
