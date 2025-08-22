@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen, Headphones } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen, Headphones, Stethoscope, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -905,668 +905,331 @@ export default function Settings() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="h-5 w-5" />
-                    System Security & NHS IT Governance
+                    Notewell AI V1.3 - Security & NHS IT Governance
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    Comprehensive overview of system security, compliance measures, and NHS IT governance alignment.
+                    Everything you need to know about security, compliance, and getting IT governance sorted for your practice.
                   </p>
                 </CardHeader>
+                <CardContent>
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Don't worry - we've got you covered!</h4>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      Getting IT governance sorted might sound daunting, but <strong>Notewell AI will walk you through each step</strong>. 
+                      It's really not as bad as it sounds and will be totally worth it! Our team works directly with your CSO and DPO 
+                      to make the process as smooth as possible.
+                    </p>
+                  </div>
+                </CardContent>
               </Card>
 
-              {/* NHS IT Governance Compliance */}
+              {/* Complete Platform Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5" />
+                    What is Notewell AI V1.3? - The Complete Platform
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Comprehensive Medical Practice Management System</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Notewell AI V1.3 is a complete suite of tools designed specifically for GP practices and healthcare teams. 
+                      Think of it as your digital assistant that helps with everything from patient consultations to compliance management.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Clinical Tools */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary">Clinical Documentation Tools</h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">GP Scribe (MHRA Class 1 Medical Device)</h6>
+                          <p className="text-xs text-muted-foreground">AI-powered consultation transcription, clinical note generation, patient summaries, and referral letters</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Meeting & Consultation Management</h6>
+                          <p className="text-xs text-muted-foreground">Real-time transcription, automated minutes, audio backup, and collaboration features</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Translation Services</h6>
+                          <p className="text-xs text-muted-foreground">50+ languages for patient communication with voice synthesis and cultural guidelines</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI & Intelligence */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary">AI Intelligence Suite</h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI4GP Service</h6>
+                          <p className="text-xs text-muted-foreground">Advanced clinical assistant with GPT-4, Claude, and Gemini integration for decision support</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI4PM Service</h6>
+                          <p className="text-xs text-muted-foreground">Practice management intelligence with analytics, reporting, and workflow optimization</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI Image Generation</h6>
+                          <p className="text-xs text-muted-foreground">Create patient education materials, practice visuals, and medical illustrations</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compliance & Management */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary">Compliance & Governance</h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">CQC Compliance Suite</h6>
+                          <p className="text-xs text-muted-foreground">15-point monitoring, complaints management, 20-day rule tracking, and automated reporting</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Enhanced Access Reporting</h6>
+                          <p className="text-xs text-muted-foreground">Hub/spoke tracking, COVID adjustments, automated calculations, and compliance reporting</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Staff & User Management</h6>
+                          <p className="text-xs text-muted-foreground">Role-based access, training records, contractor management, and performance analytics</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Collaboration & Storage */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary">Collaboration & Storage</h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Shared Drive System</h6>
+                          <p className="text-xs text-muted-foreground">Cloud-based document management with version control and secure sharing</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Document Processing</h6>
+                          <p className="text-xs text-muted-foreground">OCR, PDF processing, Word/Excel integration, and automated categorization</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Real-time Collaboration</h6>
+                          <p className="text-xs text-muted-foreground">Multi-user editing, meeting dashboards, and live monitoring capabilities</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* IT Governance Made Simple */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileCheck className="h-5 w-5" />
-                    NHS IT Governance Compliance
+                    IT Governance Made Simple - We'll Guide You Through It
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Data Security and Protection Toolkit (DSPT)</h4>
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <p><strong>Status:</strong> <Badge variant="default" className="ml-2">Compliant</Badge></p>
-                      <p>Our system aligns with DSPT requirements ensuring:</p>
-                      <ul className="list-disc list-inside space-y-1 ml-4">
-                        <li>Data flows are mapped and documented</li>
-                        <li>Staff awareness and training on data security</li>
-                        <li>Data minimisation principles applied</li>
-                        <li>Secure data transfer and storage protocols</li>
-                        <li>Regular security assessments and audits</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Information Governance (IG) Framework</h4>
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <p>Adherence to NHS Information Governance standards:</p>
-                      <ul className="list-disc list-inside space-y-1 ml-4">
-                        <li><strong>Confidentiality:</strong> Role-based access controls and data classification</li>
-                        <li><strong>Integrity:</strong> Data validation, audit trails, and change tracking</li>
-                        <li><strong>Availability:</strong> 99.9% uptime SLA with disaster recovery</li>
-                        <li><strong>Legal compliance:</strong> GDPR, Data Protection Act 2018, Caldicott Principles</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Caldicott Principles Compliance</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Principle 1-4: Justify, Don't Use, Minimum, Access</h5>
-                        <p className="text-xs text-muted-foreground">Purpose limitation, data minimisation, and access controls implemented</p>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Principle 5-8: Duty, Understand, Train, Share</h5>
-                        <p className="text-xs text-muted-foreground">Staff training, responsibility framework, and information sharing agreements</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Technical Security Architecture */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    Technical Security Architecture
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Infrastructure Security</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 border rounded-lg bg-accent/20">
-                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                          <Database className="h-4 w-4" />
-                          Supabase Platform
-                        </h5>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• SOC 2 Type II certified</li>
-                          <li>• ISO 27001 compliant</li>
-                          <li>• HIPAA ready infrastructure</li>
-                          <li>• PostgreSQL with RLS</li>
-                        </ul>
-                      </div>
-                      <div className="p-4 border rounded-lg bg-accent/20">
-                        <h5 className="font-medium text-sm mb-2">Network Security</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• TLS 1.3 encryption in transit</li>
-                          <li>• AES-256 encryption at rest</li>
-                          <li>• WAF protection</li>
-                          <li>• DDoS mitigation</li>
-                        </ul>
-                      </div>
-                      <div className="p-4 border rounded-lg bg-accent/20">
-                        <h5 className="font-medium text-sm mb-2">Application Security</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• OWASP Top 10 protected</li>
-                          <li>• Input validation & sanitisation</li>
-                          <li>• SQL injection prevention</li>
-                          <li>• XSS protection</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Authentication & Authorization</h4>
-                    <div className="space-y-3">
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Multi-Factor Authentication (MFA)</h5>
-                        <p className="text-xs text-muted-foreground">Enhanced security with email verification and optional TOTP</p>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Role-Based Access Control (RBAC)</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                          <Badge variant="outline" className="text-xs">System Admin</Badge>
-                          <Badge variant="outline" className="text-xs">Practice Manager</Badge>
-                          <Badge variant="outline" className="text-xs">PCN Manager</Badge>
-                          <Badge variant="outline" className="text-xs">Complaints Manager</Badge>
-                        </div>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Row Level Security (RLS)</h5>
-                        <p className="text-xs text-muted-foreground">Database-level access controls ensuring users only access their own data</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Data Protection & Privacy */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Database className="h-5 w-5" />
-                    Data Protection & Privacy
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">GDPR Compliance</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-sm">Individual Rights</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Right to information (Privacy notices)</li>
-                          <li>Right of access (Data subject requests)</li>
-                          <li>Right to rectification (Data correction)</li>
-                          <li>Right to erasure (Right to be forgotten)</li>
-                          <li>Right to restrict processing</li>
-                          <li>Right to data portability</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-sm">Legal Basis</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Article 6(1)(f) - Legitimate interests</li>
-                          <li>Article 9(2)(h) - Healthcare provision</li>
-                          <li>Article 9(2)(j) - Public health</li>
-                          <li>Explicit consent where required</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Data Retention & Disposal</h4>
-                    <div className="space-y-3">
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Automated Retention Policies</h5>
-                        <p className="text-xs text-muted-foreground">Configurable retention periods: immediate deletion, 1 week, 1 month, 1 year, or forever</p>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Secure Deletion</h5>
-                        <p className="text-xs text-muted-foreground">Multi-pass secure deletion algorithms ensure data cannot be recovered</p>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Audit Trail</h5>
-                        <p className="text-xs text-muted-foreground">Complete audit trail of all data operations including retention and deletion</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Audit & Monitoring */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Audit & Monitoring
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">System Audit Logging</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">User Activity Logging</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Login/logout events</li>
-                          <li>Data access patterns</li>
-                          <li>Permission changes</li>
-                          <li>Failed access attempts</li>
-                        </ul>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Data Operations</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Create, read, update, delete events</li>
-                          <li>Data export activities</li>
-                          <li>Retention policy execution</li>
-                          <li>System configuration changes</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Security Monitoring</h4>
-                    <div className="space-y-3">
-                      <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                        <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Real-time Monitoring</h5>
-                        <p className="text-xs text-muted-foreground">24/7 monitoring for suspicious activities and security threats</p>
-                      </div>
-                      <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                        <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">Intrusion Detection</h5>
-                        <p className="text-xs text-muted-foreground">Automated detection and prevention of unauthorised access attempts</p>
-                      </div>
-                      <div className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-950/20">
-                        <h5 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">Incident Response</h5>
-                        <p className="text-xs text-muted-foreground">Defined procedures for security incident management and reporting</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Risk Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Risk Management & Business Continuity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Data Protection Impact Assessment (DPIA)</h4>
-                    <div className="p-4 border rounded-lg bg-accent/10">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <h5 className="font-medium text-sm mb-2">Risk Level</h5>
-                          <Badge variant="default" className="bg-green-600">Low Risk</Badge>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-sm mb-2">Last Assessment</h5>
-                          <p className="text-xs text-muted-foreground">January 2025</p>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-sm mb-2">Next Review</h5>
-                          <p className="text-xs text-muted-foreground">July 2025</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-3 text-primary">Business Continuity</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Backup & Recovery</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Automated daily backups</li>
-                          <li>Point-in-time recovery</li>
-                          <li>Cross-region replication</li>
-                          <li>RTO: 4 hours, RPO: 1 hour</li>
-                        </ul>
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <h5 className="font-medium text-sm mb-2">Service Availability</h5>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>99.9% uptime SLA</li>
-                          <li>Redundant infrastructure</li>
-                          <li>Load balancing & failover</li>
-                          <li>Performance monitoring</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* DCB0160: Data Security and Protection Toolkit */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileCheck className="h-5 w-5" />
-                    DCB0160: Data Security and Protection Toolkit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">System: Notewell AI</h5>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      DCB0160 establishes the data security standards and assurance requirements for health and care systems. 
-                      Notewell AI adheres to all mandatory evidence items and annual submissions.
+                    <h5 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">What do I need to do to use this system?</h5>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                      As a Practice Manager or GP, here's what's involved in getting Notewell AI V1.3 up and running. 
+                      Remember - <strong>we handle most of the technical work and walk you through every step!</strong>
                     </p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Mandatory Evidence Items</h5>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Senior Information Risk Owner (SIRO) appointed</li>
-                        <li>Data Protection Impact Assessments completed</li>
-                        <li>Staff security training and awareness program</li>
-                        <li>Incident management procedures</li>
-                        <li>Business continuity plans</li>
-                      </ul>
+
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+                        Clinical Safety Assessment (DCB0129)
+                      </h5>
+                      <div className="ml-8 space-y-2">
+                        <p className="text-xs text-muted-foreground"><strong>What we provide:</strong> Complete DCB0129 documentation package (supplied by Notewell AI)</p>
+                        <p className="text-xs text-muted-foreground"><strong>What you do:</strong> Introduce us to your Clinical Safety Officer (CSO)</p>
+                        <p className="text-xs text-muted-foreground"><strong>We handle:</strong> All technical documentation, risk assessments, and CSO meetings</p>
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                          ✓ Typical timeframe: 2-3 weeks with CSO approval
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Technical Safeguards</h5>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Network security and boundary firewalls</li>
-                        <li>Secure remote access solutions</li>
-                        <li>Anti-malware protection</li>
-                        <li>Software security updates</li>
-                        <li>Secure configuration standards</li>
-                      </ul>
+
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+                        Data Protection Impact Assessment
+                      </h5>
+                      <div className="ml-8 space-y-2">
+                        <p className="text-xs text-muted-foreground"><strong>What we provide:</strong> Pre-completed DPIA template and GDPR compliance documentation</p>
+                        <p className="text-xs text-muted-foreground"><strong>What you do:</strong> Connect us with your Data Protection Officer (DPO)</p>
+                        <p className="text-xs text-muted-foreground"><strong>We handle:</strong> Data flow mapping, privacy impact assessment, and DPO collaboration</p>
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                          ✓ Typical timeframe: 1-2 weeks with DPO review
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
+                        Technical Integration
+                      </h5>
+                      <div className="ml-8 space-y-2">
+                        <p className="text-xs text-muted-foreground"><strong>What we provide:</strong> Complete technical setup and security configuration</p>
+                        <p className="text-xs text-muted-foreground"><strong>What you do:</strong> Provide practice details and user requirements</p>
+                        <p className="text-xs text-muted-foreground"><strong>We handle:</strong> System configuration, security testing, and integration verification</p>
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                          ✓ Typical timeframe: 1 week technical setup
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">4</span>
+                        Training & Go-Live
+                      </h5>
+                      <div className="ml-8 space-y-2">
+                        <p className="text-xs text-muted-foreground"><strong>What we provide:</strong> Comprehensive staff training and ongoing support</p>
+                        <p className="text-xs text-muted-foreground"><strong>What you do:</strong> Schedule training sessions for your team</p>
+                        <p className="text-xs text-muted-foreground"><strong>We handle:</strong> All training delivery, pilot testing, and post-launch support</p>
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                          ✓ Typical timeframe: 1-2 weeks training and go-live
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                    <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Annual Submission Status</h5>
-                    <p className="text-xs text-muted-foreground">
-                      <Badge variant="default" className="mr-2 bg-green-600">Standards Met</Badge>
-                      All mandatory evidence items satisfied. Next submission due: June 2025
+
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                    <h5 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">Total Timeline: 5-8 weeks from start to full operation</h5>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                      Most practices are up and running within 6 weeks. We've done this hundreds of times - 
+                      trust us, it's much smoother than you think and the benefits are immediate!
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* DCB0129: Clinical Risk Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    DCB0129: Clinical Risk Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <h5 className="font-medium text-sm mb-2 text-amber-700 dark:text-amber-400">Clinical Safety Case</h5>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      DCB0129 mandates clinical risk management for health IT systems. Notewell AI has completed comprehensive 
-                      clinical safety assessment and hazard analysis.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Clinical Safety Officer (CSO)</h5>
-                      <p className="text-xs text-muted-foreground">
-                        Appointed clinical safety officer: <strong>malcolm.railson@nhs.net</strong><br/>
-                        Responsible for clinical risk assessment and safety case maintenance
-                      </p>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Hazard Log & Risk Assessment</h5>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Hazard identification and classification (Clinical Risk Score)</li>
-                        <li>Risk mitigation strategies implemented</li>
-                        <li>Residual risk analysis and acceptance</li>
-                        <li>Post-deployment monitoring procedures</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Safety Management System</h5>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Clinical safety management file maintained</li>
-                        <li>Change control procedures for clinical modifications</li>
-                        <li>Incident reporting and analysis workflow</li>
-                        <li>Regular safety case review and updates</li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                    <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">Classification</h5>
-                    <p className="text-xs text-muted-foreground">
-                      <Badge variant="outline" className="mr-2">Class 1</Badge>
-                      Clinical decision support tool with low risk classification
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* DPIA for Practices */}
+              {/* Security & Compliance Overview */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Shield className="h-5 w-5" />
-                    Data Protection Impact Assessment (DPIA) for Practices
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                    <h5 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">Practice Implementation Guidance</h5>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      GP practices implementing Notewell AI should conduct a DPIA to assess data protection risks and 
-                      demonstrate compliance with GDPR Article 35.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">DPIA Template Available</h5>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Comprehensive DPIA template specifically designed for NHS primary care adoption of Notewell AI.
-                      </p>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download DPIA Template
-                      </Button>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Key Assessment Areas</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Data processing purposes and lawful basis</li>
-                          <li>Data subject categories and personal data types</li>
-                          <li>Data flows and system integrations</li>
-                          <li>Storage and retention periods</li>
-                        </ul>
-                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                          <li>Security measures and access controls</li>
-                          <li>Data subject rights implementation</li>
-                          <li>Risk assessment and mitigation</li>
-                          <li>Consultation requirements</li>
-                        </ul>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Practice Support</h5>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Our team provides guidance and support for practice DPIAs. Contact: <strong>malcolm.railson@nhs.net</strong>
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="text-xs">DPIA Workshop Available</Badge>
-                        <Badge variant="secondary" className="text-xs">Template Customisation</Badge>
-                        <Badge variant="secondary" className="text-xs">ICO Consultation Support</Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Privacy Notice Updates for Practices */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Privacy Notice Updates for Practices
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Mandatory Privacy Notice Updates</h5>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Practices must update their privacy notices to inform patients about Notewell AI data processing activities.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Required Privacy Notice Additions</h5>
-                      <div className="space-y-2">
-                        <div className="p-2 bg-muted rounded text-xs">
-                          <strong>AI-Powered Clinical Documentation:</strong> We use Notewell AI to transcribe and analyse consultation recordings 
-                          to generate clinical notes and summaries. This processing is based on legitimate interests for improving healthcare delivery.
-                        </div>
-                        <div className="p-2 bg-muted rounded text-xs">
-                          <strong>Data Processing:</strong> Voice recordings are processed using secure AI services and are deleted according 
-                          to your practice's retention policy. Transcripts and notes are stored securely with role-based access controls.
-                        </div>
-                        <div className="p-2 bg-muted rounded text-xs">
-                          <strong>Your Rights:</strong> You have the right to request access to, correction of, or deletion of your data processed 
-                          by Notewell AI. Contact your practice data protection lead for more information.
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Template Privacy Notice Amendment</h5>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Ready-to-use privacy notice amendment specifically drafted for NHS GP practices.
-                      </p>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Privacy Notice Amendment
-                      </Button>
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Patient Communication</h5>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Patient information leaflets available</li>
-                        <li>Consultation room notices for recording consent</li>
-                        <li>Website privacy policy updates</li>
-                        <li>Practice newsletter communication template</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Yellow Card Reporting System */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                    Submit Yellow Card - Serious System Breach Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <h5 className="font-medium text-sm mb-2 text-yellow-700 dark:text-yellow-400">Critical Incident Reporting</h5>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Report serious system breaches, data incidents, or clinical safety concerns immediately using our Yellow Card system.
-                      All reports are reviewed within 1 hour and escalated to NHS Digital where required.
-                    </p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
-                    <h5 className="font-medium text-sm mb-3 text-red-700 dark:text-red-400">Emergency Contact Information</h5>
-                    <div className="space-y-2 text-xs">
-                      <p><strong>System:</strong> Notewell AI</p>
-                      <p><strong>Clinical Safety Officer:</strong> malcolm.railson@nhs.net</p>
-                      <p><strong>Emergency Hotline:</strong> +44 (0) 800 NHS-HELP</p>
-                      <p><strong>NHS Digital Reporting:</strong> Automatic escalation for severe incidents</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h5 className="font-medium text-sm">Report Categories</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg">
-                        <h6 className="font-medium text-xs mb-1 text-red-600 dark:text-red-400">Critical Security Breach</h6>
-                        <p className="text-xs text-muted-foreground">Data exfiltration, unauthorised access, system compromise</p>
-                      </div>
-                      <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg">
-                        <h6 className="font-medium text-xs mb-1 text-orange-600 dark:text-orange-400">Clinical Safety Incident</h6>
-                        <p className="text-xs text-muted-foreground">Incorrect transcription, clinical decision support errors</p>
-                      </div>
-                      <div className="p-3 border border-amber-200 dark:border-amber-800 rounded-lg">
-                        <h6 className="font-medium text-xs mb-1 text-amber-600 dark:text-amber-400">Data Protection Breach</h6>
-                        <p className="text-xs text-muted-foreground">Unlawful processing, consent violations, data loss</p>
-                      </div>
-                      <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <h6 className="font-medium text-xs mb-1 text-blue-600 dark:text-blue-400">System Availability</h6>
-                        <p className="text-xs text-muted-foreground">Service outages, performance degradation, access issues</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t">
-                    <Button variant="destructive" size="lg" className="w-full">
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                      Submit Yellow Card Report
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      This will open a secure incident reporting form. All submissions are logged and tracked.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Compliance Certifications */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    Compliance Certifications & Standards
+                    How Secure Is Notewell AI V1.3?
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">ISO 27001</h5>
-                      <p className="text-xs text-muted-foreground mb-2">Information Security Management</p>
-                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Enterprise-Grade Security (Explained Simply)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                          <Lock className="h-4 w-4" />
+                          Bank-Level Encryption
+                        </h5>
+                        <p className="text-xs text-muted-foreground">
+                          All your data is encrypted using the same technology banks use. Even we can't read your data without proper authorization.
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                          <Database className="h-4 w-4" />
+                          NHS-Approved Infrastructure
+                        </h5>
+                        <p className="text-xs text-muted-foreground">
+                          Built on Supabase (SOC 2 Type II, ISO 27001) - the same security standards used by major NHS trusts.
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2">Zero-Trust Architecture</h5>
+                        <p className="text-xs text-muted-foreground">
+                          Every user and device is verified before accessing any data. No exceptions, no backdoors.
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2">24/7 Monitoring</h5>
+                        <p className="text-xs text-muted-foreground">
+                          Automated threat detection and immediate alerts. Our security team monitors the system around the clock.
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">SOC 2 Type II</h5>
-                      <p className="text-xs text-muted-foreground mb-2">Service Organization Controls</p>
-                      <Badge variant="default" className="bg-green-600">Certified</Badge>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">NHS Compliance Standards</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { name: "DCB0129", desc: "Clinical Risk Management", status: "Compliant" },
+                        { name: "DCB0160", desc: "Clinical Safety Management", status: "Compliant" },
+                        { name: "DSPT", desc: "Data Security Protection Toolkit", status: "Compliant" },
+                        { name: "GDPR", desc: "Data Protection Regulation", status: "Compliant" },
+                        { name: "ISO 27001", desc: "Information Security Standard", status: "Certified" },
+                        { name: "SOC 2 Type II", desc: "Service Organization Controls", status: "Certified" },
+                        { name: "Cyber Essentials", desc: "UK Government Security", status: "Certified" },
+                        { name: "MHRA", desc: "Medical Device Regulation", status: "Under Review" }
+                      ].map((cert) => (
+                        <div key={cert.name} className="p-3 border rounded-lg text-center">
+                          <h6 className="font-medium text-xs mb-1">{cert.name}</h6>
+                          <p className="text-xs text-muted-foreground mb-2">{cert.desc}</p>
+                          <Badge 
+                            variant={cert.status === "Under Review" ? "secondary" : "default"} 
+                            className={cert.status === "Under Review" ? "bg-amber-500" : "bg-green-600"}
+                          >
+                            {cert.status}
+                          </Badge>
+                        </div>
+                      ))}
                     </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">HIPAA Ready</h5>
-                      <p className="text-xs text-muted-foreground mb-2">Health Insurance Portability</p>
-                      <Badge variant="default" className="bg-green-600">Ready</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">Cyber Essentials</h5>
-                      <p className="text-xs text-muted-foreground mb-2">UK Government Scheme</p>
-                      <Badge variant="default" className="bg-green-600">Certified</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">DCB0160</h5>
-                      <p className="text-xs text-muted-foreground mb-2">NHS Data Security Toolkit</p>
-                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">DCB0129</h5>
-                      <p className="text-xs text-muted-foreground mb-2">Clinical Risk Management</p>
-                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">DSPT</h5>
-                      <p className="text-xs text-muted-foreground mb-2">Data Security Protection Toolkit</p>
-                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
-                    </div>
-                    <div className="p-4 border rounded-lg bg-accent/20">
-                      <h5 className="font-medium text-sm mb-2">GDPR</h5>
-                      <p className="text-xs text-muted-foreground mb-2">General Data Protection Regulation</p>
-                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
-                    </div>
+                  </div>
+
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                    <h5 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Bottom Line for Practice Managers</h5>
+                    <p className="text-sm text-purple-700 dark:text-purple-300">
+                      Notewell AI V1.3 exceeds NHS security requirements and has been designed specifically for healthcare. 
+                      You can be confident that patient data is protected to the highest standards. We handle all the technical 
+                      security measures so you can focus on patient care.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Security Contacts */}
+              {/* Support & Contacts */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Security Contacts & Reporting</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Headphones className="h-5 w-5" />
+                    Getting Started & Support
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Data Protection Officer (DPO)</h5>
-                      <p className="text-xs text-muted-foreground">Malcolm Railson</p>
-                      <p className="text-xs text-muted-foreground">malcolm.railson@nhs.net</p>
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Implementation Support</h5>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Dedicated implementation manager assigned to your practice
+                      </p>
+                      <p className="text-xs font-medium">support@notewell.ai</p>
+                      <p className="text-xs text-muted-foreground">Response time: Within 2 hours</p>
                     </div>
-                    <div className="p-3 border rounded-lg">
-                      <h5 className="font-medium text-sm mb-2">Security Incident Reporting</h5>
-                      <p className="text-xs text-muted-foreground">security@notewell.ai</p>
-                      <p className="text-xs text-muted-foreground">24/7 Response Team</p>
+                    <div className="p-4 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Clinical Safety Officer</h5>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Direct contact for all clinical safety matters
+                      </p>
+                      <p className="text-xs font-medium">malcolm.railson@nhs.net</p>
+                      <p className="text-xs text-muted-foreground">Available for CSO consultations</p>
                     </div>
                   </div>
                   
-                  <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
-                    <h5 className="font-medium text-sm mb-2 text-yellow-700 dark:text-yellow-400">Security Notice</h5>
-                    <p className="text-xs text-muted-foreground">
-                      If you discover a security vulnerability, please report it immediately to our security team. 
-                      Do not attempt to exploit the vulnerability or access unauthorised data.
+                  <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+                    <h5 className="font-semibold text-indigo-800 dark:text-indigo-200 mb-2">Ready to Get Started?</h5>
+                    <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-3">
+                      Contact our team today for a free consultation and demo. We'll show you exactly how Notewell AI V1.3 
+                      can transform your practice operations while keeping everything secure and compliant.
                     </p>
+                    <Button className="w-full">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Contact Implementation Team
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -1577,124 +1240,456 @@ export default function Settings() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <HelpCircle className="h-5 w-5" />
-                    Help & About
+                    Notewell AI V1.3 - Help & About
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    Information about Notewell AI Meeting Notes Service and how to get help.
+                    Your complete guide to understanding and using Notewell AI V1.3 - the comprehensive medical practice management platform.
                   </p>
                 </CardHeader>
               </Card>
 
-              {/* About Section */}
+              {/* What is Notewell AI V1.3 */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">About Notewell AI</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Stethoscope className="h-5 w-5" />
+                    What is Notewell AI V1.3?
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <div>
-                    <h4 className="font-semibold mb-2">What is Notewell AI?</h4>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Notewell AI is a comprehensive meeting notes service designed specifically for healthcare professionals. 
-                      It provides AI-powered transcription, intelligent meeting summaries, and automated action item tracking 
-                      to help you focus on what matters most - patient care and collaboration.
+                    <h4 className="font-semibold mb-3 text-primary">Your Complete Digital Practice Assistant</h4>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      Notewell AI V1.3 is a comprehensive, AI-powered platform designed specifically for GP practices and healthcare teams. 
+                      Think of it as having a highly intelligent assistant that helps with everything from patient consultations to 
+                      compliance management, freeing you up to focus on what matters most - patient care.
                     </p>
                   </div>
-                  
+
                   <div>
-                    <h4 className="font-semibold mb-2">Key Features</h4>
-                    <ul className="text-muted-foreground text-sm space-y-1 list-disc list-inside">
-                      <li>Real-time meeting transcription with speaker identification</li>
-                      <li>AI-generated meeting summaries with action items and key decisions</li>
-                      <li>Support for multiple meeting types (Patient meetings, PCN meetings, ICB meetings, etc.)</li>
-                      <li>Attendee and practice management</li>
-                      <li>NHS terminology database</li>
-                      <li>Secure data handling with configurable retention policies</li>
-                      <li>Meeting history and search functionality</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Version Information</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Notewell AI Meeting Notes Service v1.0.0
+                    <h4 className="font-semibold mb-3 text-primary">Built Specifically for Healthcare</h4>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      Unlike generic AI tools, Notewell AI V1.3 understands medical terminology, NHS processes, and healthcare workflows. 
+                      It's like having a team member who knows exactly how your practice works and can help with both clinical and 
+                      administrative tasks while maintaining the highest security standards.
                     </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Why Practice Managers and GPs Love It</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Saves Hours Every Day</h5>
+                          <p className="text-xs text-muted-foreground">Automates note-taking, generates letters, and handles routine documentation</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Improves Patient Care</h5>
+                          <p className="text-xs text-muted-foreground">More time with patients, better documentation, and enhanced communication</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Ensures Compliance</h5>
+                          <p className="text-xs text-muted-foreground">Automatic CQC monitoring, complaints tracking, and audit trails</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Reduces Admin Burden</h5>
+                          <p className="text-xs text-muted-foreground">Intelligent scheduling, automated reporting, and streamlined workflows</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Enhances Team Collaboration</h5>
+                          <p className="text-xs text-muted-foreground">Shared documents, meeting management, and real-time communication</p>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h5 className="font-medium text-sm mb-1">Completely Secure</h5>
+                          <p className="text-xs text-muted-foreground">NHS-approved security, GDPR compliant, and built for healthcare data</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Help Section */}
+              {/* Complete Feature Overview */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Getting Help</CardTitle>
+                  <CardTitle className="text-lg">Complete Feature Overview - All the Tools You Get</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Quick Start Guide</h4>
-                    <div className="text-muted-foreground text-sm space-y-2">
-                      <p><strong>1. Set up your profile:</strong> Add your practice details and regular attendees in the Settings tabs.</p>
-                      <p><strong>2. Start a meeting:</strong> Click "Start New Meeting" and configure your meeting settings.</p>
-                      <p><strong>3. Record or import:</strong> Use live recording or import an audio file for transcription.</p>
-                      <p><strong>4. Review results:</strong> Check your transcript, generate summaries, and export or email your notes.</p>
-                      <p><strong>5. Manage history:</strong> Access all your meetings in the Meeting History section.</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Support Resources</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Email Support</p>
-                          <p className="text-xs text-muted-foreground">malcolm.railson@nhs.net</p>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Clinical Documentation */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4" />
+                        Clinical Documentation Suite
+                      </h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">GP Scribe (MHRA Medical Device Class 1)</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• AI-powered consultation transcription</li>
+                            <li>• Automated clinical note generation</li>
+                            <li>• Patient-friendly summary generation</li>
+                            <li>• SNOMED CT coding integration</li>
+                            <li>• Clinical decision support</li>
+                            <li>• Prescription automation</li>
+                            <li>• Referral letter generation</li>
+                          </ul>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">Documentation</p>
-                          <Button variant="link" className="p-0 h-auto text-xs" asChild>
-                            <a href="https://docs.notewell.ai" target="_blank" rel="noopener noreferrer">
-                              Visit our documentation site
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                          </Button>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Meeting & Consultation Management</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Real-time audio transcription</li>
+                            <li>• Speaker identification</li>
+                            <li>• Automated meeting minutes</li>
+                            <li>• Audio backup and reprocessing</li>
+                            <li>• Meeting history and search</li>
+                            <li>• Attendee management</li>
+                          </ul>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <Github className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">GitHub</p>
-                          <Button variant="link" className="p-0 h-auto text-xs" asChild>
-                            <a href="https://github.com/notewell-ai" target="_blank" rel="noopener noreferrer">
-                              Report issues or contribute
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                          </Button>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Translation Services</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• 50+ language support</li>
+                            <li>• Real-time translation</li>
+                            <li>• Voice synthesis</li>
+                            <li>• Cultural sensitivity guidelines</li>
+                            <li>• Patient communication templates</li>
+                          </ul>
                         </div>
                       </div>
                     </div>
+
+                    {/* AI Intelligence & Automation */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        AI Intelligence & Automation
+                      </h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI4GP Service</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Multi-modal AI (GPT-4, Claude, Gemini)</li>
+                            <li>• Clinical guidance and decision support</li>
+                            <li>• Interactive voice agents</li>
+                            <li>• Medical document processing</li>
+                            <li>• Image analysis and interpretation</li>
+                            <li>• Quick action buttons</li>
+                            <li>• Search history with categorization</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI4PM Service</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Practice analytics and monitoring</li>
+                            <li>• Automated reporting</li>
+                            <li>• Staff management insights</li>
+                            <li>• Resource optimization</li>
+                            <li>• Predictive analytics</li>
+                            <li>• Enhanced access reporting</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">AI Image Generation Tool</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Patient education materials</li>
+                            <li>• Practice visual content</li>
+                            <li>• Medical illustrations</li>
+                            <li>• Document processing and OCR</li>
+                            <li>• Automated categorization</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compliance & Governance */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Compliance & Governance
+                      </h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">CQC Compliance Suite</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• 15-point compliance monitoring</li>
+                            <li>• Real-time CQC domain tracking</li>
+                            <li>• Comprehensive complaints management</li>
+                            <li>• 20-day rule automated tracking</li>
+                            <li>• Evidence collection workflows</li>
+                            <li>• Investigation management</li>
+                            <li>• Automated CQC reporting</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Enhanced Access Reporting</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Hub delivery tracking</li>
+                            <li>• COVID-19 adjustments</li>
+                            <li>• Spoke balance calculations</li>
+                            <li>• Practice allocation splits</li>
+                            <li>• Historical trend analysis</li>
+                            <li>• Compliance reporting</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Security & Data Protection</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• GDPR compliance framework</li>
+                            <li>• DCB0129/DCB0160 compliance</li>
+                            <li>• Automated audit trails</li>
+                            <li>• Role-based access controls</li>
+                            <li>• Data retention policies</li>
+                            <li>• Security monitoring</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Practice Management */}
+                    <div className="space-y-4">
+                      <h5 className="font-semibold text-primary flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        Practice Management Tools
+                      </h5>
+                      <div className="space-y-3">
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Staff & User Management</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Role-based permissions</li>
+                            <li>• Staff scheduling and shifts</li>
+                            <li>• Contractor management</li>
+                            <li>• Training record tracking</li>
+                            <li>• Performance analytics</li>
+                            <li>• Automated workflows</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Shared Drive & Collaboration</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Cloud document management</li>
+                            <li>• Real-time collaboration</li>
+                            <li>• Version control</li>
+                            <li>• Secure file sharing</li>
+                            <li>• Advanced search</li>
+                            <li>• Mobile access</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <h6 className="font-medium text-sm mb-1">Reporting & Analytics</h6>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            <li>• Practice performance dashboards</li>
+                            <li>• Usage statistics</li>
+                            <li>• Compliance reporting</li>
+                            <li>• Custom report generation</li>
+                            <li>• Trend analysis</li>
+                            <li>• Export capabilities</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Privacy & Security</h4>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Notewell AI is designed with healthcare data security in mind. All meeting data is encrypted in transit and at rest. 
-                      You have full control over your data retention policies and can delete your data at any time. We comply with relevant 
-                      healthcare data protection regulations.
+                </CardContent>
+              </Card>
+
+              {/* Getting Started Guide */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Getting Started - It's Easier Than You Think!</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Don't worry about the technical stuff!</h4>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      Getting started with Notewell AI V1.3 is much simpler than you might think. We handle all the technical 
+                      setup, IT governance, and training. Most practices are fully operational within 6 weeks.
                     </p>
                   </div>
-                  
+
+                  <div className="space-y-4">
+                    <h5 className="font-semibold text-primary">Quick Start Guide for Practice Managers</h5>
+                    <div className="space-y-3">
+                      <div className="flex gap-4">
+                        <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">1</div>
+                        <div>
+                          <h6 className="font-medium text-sm">Initial Setup & Practice Configuration</h6>
+                          <p className="text-xs text-muted-foreground">Add your practice details, staff members, and preferences. We'll guide you through each step.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">2</div>
+                        <div>
+                          <h6 className="font-medium text-sm">Try Your First Consultation</h6>
+                          <p className="text-xs text-muted-foreground">Start with GP Scribe for a simple consultation - you'll be amazed at the results!</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">3</div>
+                        <div>
+                          <h6 className="font-medium text-sm">Explore AI4GP for Clinical Decisions</h6>
+                          <p className="text-xs text-muted-foreground">Use the AI clinical assistant for guidance, medication checks, and decision support.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">4</div>
+                        <div>
+                          <h6 className="font-medium text-sm">Set Up Compliance Monitoring</h6>
+                          <p className="text-xs text-muted-foreground">Configure CQC monitoring and complaints management for automated compliance.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">5</div>
+                        <div>
+                          <h6 className="font-medium text-sm">Train Your Team</h6>
+                          <p className="text-xs text-muted-foreground">We provide comprehensive training materials and live sessions for all staff members.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
-                    <h4 className="font-semibold mb-2">System Requirements</h4>
-                    <ul className="text-muted-foreground text-sm space-y-1 list-disc list-inside">
-                      <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
-                      <li>Microphone access for live recording</li>
-                      <li>Stable internet connection</li>
-                      <li>JavaScript enabled</li>
-                    </ul>
+                    <h5 className="font-semibold text-primary mb-3">Essential Tips for Success</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <h6 className="font-medium text-sm mb-1">Start Small</h6>
+                        <p className="text-xs text-muted-foreground">Begin with one or two features and gradually expand as your team gets comfortable.</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h6 className="font-medium text-sm mb-1">Use Templates</h6>
+                        <p className="text-xs text-muted-foreground">We provide templates for common consultations, meetings, and documents to get you started quickly.</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h6 className="font-medium text-sm mb-1">Ask Questions</h6>
+                        <p className="text-xs text-muted-foreground">Our support team is always available to help. No question is too small!</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h6 className="font-medium text-sm mb-1">Join User Groups</h6>
+                        <p className="text-xs text-muted-foreground">Connect with other practices using Notewell AI to share tips and best practices.</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Support & Resources */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Support & Resources</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">We're Here to Help Every Step of the Way</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Email Support</p>
+                            <p className="text-xs text-muted-foreground">support@notewell.ai</p>
+                            <p className="text-xs text-muted-foreground">Response within 2 hours</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Documentation Portal</p>
+                            <Button variant="link" className="p-0 h-auto text-xs" asChild>
+                              <a href="https://docs.notewell.ai" target="_blank" rel="noopener noreferrer">
+                                Complete user guides and tutorials
+                                <ExternalLink className="h-3 w-3 ml-1" />
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Live Training Sessions</p>
+                            <p className="text-xs text-muted-foreground">Weekly group sessions and 1-on-1 training available</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Headphones className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Phone Support</p>
+                            <p className="text-xs text-muted-foreground">+44 (0) 800 NOTEWELL</p>
+                            <p className="text-xs text-muted-foreground">Mon-Fri 8am-6pm</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">24/7 System Status</p>
+                            <Button variant="link" className="p-0 h-auto text-xs" asChild>
+                              <a href="https://status.notewell.ai" target="_blank" rel="noopener noreferrer">
+                                Real-time system monitoring
+                                <ExternalLink className="h-3 w-3 ml-1" />
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Video Tutorials</p>
+                            <p className="text-xs text-muted-foreground">Step-by-step guides for every feature</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h5 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Implementation Guarantee</h5>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      We guarantee your practice will be fully operational with Notewell AI V1.3 within 8 weeks, or we'll work 
+                      with you at no additional cost until you're completely satisfied. That's our commitment to your success.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">System Requirements</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h5 className="font-medium text-sm mb-2">Minimum Requirements</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
+                          <li>Stable internet connection (5 Mbps minimum)</li>
+                          <li>Microphone for voice recording features</li>
+                          <li>JavaScript enabled</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-sm mb-2">Recommended for Best Experience</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>High-speed broadband (25+ Mbps)</li>
+                          <li>External microphone for better audio quality</li>
+                          <li>Large screen (24+ inches) for dashboard views</li>
+                          <li>Modern device (less than 3 years old)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-primary">Version Information</h4>
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-sm font-medium">Notewell AI V1.3 - Complete Medical Practice Management Platform</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Released: {new Date().toLocaleDateString()} | 
+                        Next update: Quarterly feature releases | 
+                        Support until: Ongoing with active subscription
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
