@@ -284,6 +284,59 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     return shiftTemplates.filter(st => st.day_of_week === dayOfWeek);
   };
 
+  // Check if Enhanced Access requirements are met for a specific day
+  const isEnhancedAccessRequirementMet = (day: Date, shifts: any[]) => {
+    const dayOfWeek = getDay(day);
+    const isSaturday = dayOfWeek === 6;
+    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Mon-Fri
+    const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+    
+    // Exclude bank holidays or shut days
+    if (isBankHoliday || dayOfWeek === 0) return false;
+    
+    if (isWeekday) {
+      // Mon-Fri: Need GP booked between 18:30-20:00
+      return shifts.some(shift => {
+        const shiftAssignments = assignments.filter(a => 
+          a.shift_template_id === shift.id && 
+          a.assignment_date === format(day, 'yyyy-MM-dd') &&
+          a.status !== 'cancelled_late_notice'
+        );
+        
+        // Check if shift is 18:30-20:00 and has GP assigned
+        const isEveningShift = shift.start_time === '18:30:00' && shift.end_time === '20:30:00';
+        const hasGP = shiftAssignments.some(assignment => 
+          assignment.staff_member.role === 'GP'
+        );
+        
+        return isEveningShift && hasGP;
+      });
+    } else if (isSaturday) {
+      // Saturday: Need both GP AND Receptionist booked
+      const hasGP = shifts.some(shift => {
+        const shiftAssignments = assignments.filter(a => 
+          a.shift_template_id === shift.id && 
+          a.assignment_date === format(day, 'yyyy-MM-dd') &&
+          a.status !== 'cancelled_late_notice'
+        );
+        return shiftAssignments.some(assignment => assignment.staff_member.role === 'GP');
+      });
+      
+      const hasReceptionist = shifts.some(shift => {
+        const shiftAssignments = assignments.filter(a => 
+          a.shift_template_id === shift.id && 
+          a.assignment_date === format(day, 'yyyy-MM-dd') &&
+          a.status !== 'cancelled_late_notice'
+        );
+        return shiftAssignments.some(assignment => assignment.staff_member.role === 'Receptionist');
+      });
+      
+      return hasGP && hasReceptionist;
+    }
+    
+    return false;
+  };
+
   const openAssignDialog = (shift: ShiftTemplate, date: Date) => {
     setSelectedShift(shift);
     setSelectedDate(date);
@@ -522,23 +575,25 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                     return shiftAssignments.length > 0;
                   });
 
+                  const enhancedAccessMet = !isClosedDay && isEnhancedAccessRequirementMet(day, shifts);
+
                   return (
-                    <div 
-                      key={day.toISOString()} 
-                      className={`p-2 border rounded text-center cursor-pointer hover:bg-muted/20 ${
-                        isDetailedView ? 'min-h-[140px]' : 'min-h-[60px]'
-                       } ${
-                         isClosedDay 
-                           ? "border-border/50 bg-muted/30"
-                           : hasCancelledShifts
-                           ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
-                           : allAssigned 
-                           ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                           : hasAssignments
-                           ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                           : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                       }`}
-                     >
+                     <div 
+                       key={day.toISOString()} 
+                       className={`p-2 border rounded text-center cursor-pointer hover:bg-muted/20 ${
+                         isDetailedView ? 'min-h-[140px]' : 'min-h-[60px]'
+                        } ${
+                          isClosedDay 
+                            ? "border-border/50 bg-muted/30"
+                            : hasCancelledShifts
+                            ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
+                            : allAssigned || enhancedAccessMet
+                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                            : hasAssignments
+                            ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                            : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                        }`}
+                      >
                        <div className="text-sm font-medium">{format(day, "d")}</div>
                        {isClosedDay ? (
                          <div className="text-xs text-muted-foreground mt-1">
@@ -671,23 +726,26 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                       <p className="text-xs text-muted-foreground">{formatShortDateWithOrdinal(day)}</p>
                     </div>
                     
-                    {shifts.map((shift) => {
-                      const shiftAssignments = getAssignmentsForDay(day, shift);
-                      const hasAssignments = shiftAssignments.length > 0;
-                      const availableStaff = getAvailableStaff(shift.required_role, day, shift);
-                      const canAddMore = availableStaff.length > 0;
-                      
-                       return (
-                         <div 
-                           key={shift.id}
-                           className={`p-2 rounded border text-xs space-y-1 ${
-                             hasAssignments 
-                               ? shiftAssignments.some(a => a.status === 'cancelled_late_notice')
-                                 ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
-                                 : "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                           }`}
-                         >
+                     {shifts.map((shift) => {
+                       const shiftAssignments = getAssignmentsForDay(day, shift);
+                       const hasAssignments = shiftAssignments.length > 0;
+                       const availableStaff = getAvailableStaff(shift.required_role, day, shift);
+                       const canAddMore = availableStaff.length > 0;
+                       const enhancedAccessMet = isEnhancedAccessRequirementMet(day, [shift]);
+                       
+                        return (
+                          <div 
+                            key={shift.id}
+                            className={`p-2 rounded border text-xs space-y-1 ${
+                              hasAssignments 
+                                ? shiftAssignments.some(a => a.status === 'cancelled_late_notice')
+                                  ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
+                                  : enhancedAccessMet || hasAssignments
+                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                                  : "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                                : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                            }`}
+                          >
                           <div className="font-medium">{shift.name}</div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
