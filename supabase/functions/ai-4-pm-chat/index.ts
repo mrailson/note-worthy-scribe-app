@@ -1115,10 +1115,24 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
           const finalResponse = finalData.choices[0]?.message?.content;
           console.log('Final response length:', finalResponse?.length || 0);
           console.log('Final response preview:', finalResponse?.substring(0, 100) + '...');
-          return finalResponse || 'No response received from GPT-5';
+          
+          if (!finalResponse || finalResponse.trim() === '') {
+            console.error('ERROR: GPT-5 returned empty response after tool call');
+            // Fallback to the original response if the final response is empty
+            return choice.message.content || "I apologize, but I encountered an issue generating a comprehensive response after searching for the latest information. Let me provide what I can without real-time data.";
+          }
+          
+          return finalResponse;
           
         } catch (searchError) {
           console.error('Tavily search error:', searchError);
+          console.log('Falling back to non-real-time response for query:', args.q);
+          
+          // For medical queries, provide a helpful fallback
+          if (args.q && (args.q.toLowerCase().includes('bnf') || args.q.toLowerCase().includes('metformin') || args.q.toLowerCase().includes('drug') || args.q.toLowerCase().includes('dosing'))) {
+            return choice.message.content || "I can provide general information about this medication, though I cannot access the very latest BNF updates at this moment. For the most current prescribing information, please refer to the latest BNF or consult the online version at bnf.nice.org.uk.";
+          }
+          
           return choice.message.content || "Sorry, I encountered an error while searching for the latest information. Please try again or ask your question without requiring real-time data.";
         }
       }
