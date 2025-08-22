@@ -11,6 +11,13 @@ export interface QuickAction {
 }
 
 export const quickActions: QuickAction[] = [
+  {
+    label: 'AI Model Tester',
+    icon: TestTube,
+    prompt: '',
+    requiresFile: false,
+    action: 'open-ai-test-modal'
+  },
   { 
     label: 'NICE Guidance Finder', 
     icon: BookOpen, 
@@ -96,6 +103,11 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
   },
+];
+
+const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
+
+export const practiceManagerQuickActions: QuickAction[] = [
   {
     label: 'AI Model Tester',
     icon: TestTube,
@@ -103,11 +115,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     requiresFile: false,
     action: 'open-ai-test-modal'
   },
-];
-
-const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
-
-export const practiceManagerQuickActions: QuickAction[] = [
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
@@ -180,11 +187,4 @@ OUTPUTS with headings; plain English; short and expanded versions for A & B; sig
     prompt: `${pmSafetyPreamble} Summarise the attached/pasted transcript into: (1) executive summary, (2) decisions, (3) actions with owner/due date, (4) risks/issues log. Keep neutral, no hallucinations; mark any unclear sections for review.`,
     requiresFile: true
   },
-  {
-    label: 'AI Model Tester',
-    icon: TestTube,
-    prompt: '',
-    requiresFile: false,
-    action: 'open-ai-test-modal'
-  }
 ];
