@@ -20,6 +20,11 @@ export const useAI4GPService = () => {
   const [showAIService, setShowAIService] = useState(false);
   const [isClinical, setIsClinical] = useState(false);
 
+  // Update isClinical when verificationLevel changes
+  useEffect(() => {
+    setIsClinical(verificationLevel === 'latest' || verificationLevel === 'maximum');
+  }, [verificationLevel]);
+
   // Clinical verification function
   const performClinicalVerification = useCallback(async (messageId: string, originalPrompt: string, aiResponse: string) => {
     console.log('🩺 Starting clinical verification for:', messageId);
