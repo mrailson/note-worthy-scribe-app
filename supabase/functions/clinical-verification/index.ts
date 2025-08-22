@@ -319,7 +319,7 @@ Format as JSON: {
       : 50;
 
     const sourceQuality = verificationSources.length >= 2 ? 20 : 10;
-    const confidenceScore = Math.min(100, Math.max(0, avgAgreement + sourceQuality));
+    const confidenceScore = Math.min(95, Math.max(0, avgAgreement + sourceQuality));
 
     // Determine risk level
     const highRiskConcerns = llmConsensus.some(llm => 
