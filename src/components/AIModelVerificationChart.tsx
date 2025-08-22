@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter } from 'recharts';
-import { CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Clock, PlayCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AIModelData {
   model: string;
@@ -16,6 +19,7 @@ interface AIModelData {
 }
 
 export const AIModelVerificationChart: React.FC = () => {
+  const [isRunningBatchTest, setIsRunningBatchTest] = useState(false);
   // Data extracted from edge function logs
   const modelData: AIModelData[] = [
     {
@@ -93,16 +97,60 @@ export const AIModelVerificationChart: React.FC = () => {
     status: model.status
   }));
 
+  const handleRunBatchTest = async () => {
+    setIsRunningBatchTest(true);
+    toast.info('Starting batch clinical verification tests...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('clinical-verification-batch-test');
+      
+      if (error) {
+        console.error('Batch test error:', error);
+        toast.error('Failed to run batch tests: ' + error.message);
+      } else {
+        console.log('Batch test results:', data);
+        toast.success(`Batch testing completed! ${data.summary?.completedTests}/${data.summary?.totalTests} tests successful`);
+      }
+    } catch (error) {
+      console.error('Error running batch tests:', error);
+      toast.error('Error running batch tests');
+    } finally {
+      setIsRunningBatchTest(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            📊 AI Model Verification Performance Analysis
-          </CardTitle>
-          <CardDescription>
-            Comparison of AI models using BNF Metformin verification task
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                📊 AI Model Verification Performance Analysis
+              </CardTitle>
+              <CardDescription>
+                Comparison of AI models using BNF Metformin verification task
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleRunBatchTest}
+              disabled={isRunningBatchTest}
+              variant="outline"
+              size="sm"
+            >
+              {isRunningBatchTest ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Running Tests...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Run 5 More Tests
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

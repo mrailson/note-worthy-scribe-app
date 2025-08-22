@@ -244,6 +244,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clinical_verification_tests: {
+        Row: {
+          batch_id: string
+          completed_tests: number
+          created_at: string
+          failed_tests: number
+          id: string
+          test_results: Json
+          total_tests: number
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          completed_tests: number
+          created_at?: string
+          failed_tests: number
+          id?: string
+          test_results: Json
+          total_tests: number
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          completed_tests?: number
+          created_at?: string
+          failed_tests?: number
+          id?: string
+          test_results?: Json
+          total_tests?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_files: {
         Row: {
           communication_id: string
