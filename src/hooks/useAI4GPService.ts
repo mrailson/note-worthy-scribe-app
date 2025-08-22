@@ -22,6 +22,10 @@ export const useAI4GPService = () => {
 
   // Clinical verification function
   const performClinicalVerification = useCallback(async (messageId: string, originalPrompt: string, aiResponse: string) => {
+    console.log('🩺 Starting clinical verification for:', messageId);
+    console.log('📝 Original prompt:', originalPrompt.substring(0, 100) + '...');
+    console.log('🤖 AI response:', aiResponse.substring(0, 100) + '...');
+    
     try {
       const { data, error } = await supabase.functions.invoke('clinical-verification', {
         body: {
@@ -32,13 +36,14 @@ export const useAI4GPService = () => {
       });
 
       if (error) {
-        console.error('Clinical verification error:', error);
+        console.error('❌ Clinical verification error:', error);
         return null;
       }
 
+      console.log('✅ Clinical verification completed:', data);
       return data;
     } catch (error) {
-      console.error('Clinical verification failed:', error);
+      console.error('❌ Clinical verification failed:', error);
       return null;
     }
   }, []);
@@ -283,7 +288,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               };
 
               // Perform clinical verification if this was a clinical query
+              console.log('🔍 Checking clinical verification conditions:', { isClinical, userIsClinical: userMessage.isClinical });
               if (isClinical && userMessage.isClinical) {
+                console.log('✅ Clinical verification conditions met, starting verification...');
                 setTimeout(async () => {
                   const verificationData = await performClinicalVerification(
                     assistantMessageId,
@@ -291,14 +298,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     responseContent
                   );
 
+                  console.log('📊 Verification data received:', verificationData);
                   if (verificationData) {
+                    console.log('💾 Adding verification data to message...');
                     setMessages(prev => prev.map(msg => 
                       msg.id === assistantMessageId 
                         ? { ...msg, clinicalVerification: verificationData }
                         : msg
                     ));
+                  } else {
+                    console.log('❌ No verification data to add');
                   }
                 }, 500); // Delay to allow UI to settle
+              } else {
+                console.log('❌ Clinical verification skipped - conditions not met');
               }
               
               setMessages(prev => prev.map(msg => 

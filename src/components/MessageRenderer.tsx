@@ -631,29 +631,33 @@ Please fetch these and retry. No corrections made."`;
           
   {/* Clinical verification badge */}
           {message.role === 'assistant' && message.clinicalVerification && (
-            <div className="mt-3 pt-2 border-t border-border/20">
-              <div className="flex items-center gap-2">
-                <Stethoscope className="w-3 h-3 text-blue-600" />
-                <button
-                  onClick={() => setIsVerificationModalOpen(true)}
-                  className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
-                    getConfidenceColor(message.clinicalVerification.confidenceScore)
-                  }`}
-                  title="Click to view detailed verification report"
-                >
-                  <div className="flex items-center gap-1">
-                    {getConfidenceIcon(message.clinicalVerification.confidenceScore)}
-                    <span>{message.clinicalVerification.confidenceScore}% Clinical Confidence</span>
-                  </div>
-                </button>
-                <Badge variant={
-                  message.clinicalVerification.riskLevel === 'high' ? 'destructive' :
-                  message.clinicalVerification.riskLevel === 'medium' ? 'secondary' : 'default'
-                } className="text-xs">
-                  {message.clinicalVerification.riskLevel.toUpperCase()} RISK
-                </Badge>
+            <>
+              {console.log('🏥 Rendering clinical verification badge for message:', message.id)}
+              {console.log('📊 Clinical verification data:', message.clinicalVerification)}
+              <div className="mt-3 pt-2 border-t border-border/20">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="w-3 h-3 text-blue-600" />
+                  <button
+                    onClick={() => setIsVerificationModalOpen(true)}
+                    className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
+                      getConfidenceColor(message.clinicalVerification.confidenceScore)
+                    }`}
+                    title="Click to view detailed verification report"
+                  >
+                    <div className="flex items-center gap-1">
+                      {getConfidenceIcon(message.clinicalVerification.confidenceScore)}
+                      <span>{message.clinicalVerification.confidenceScore}% Clinical Confidence</span>
+                    </div>
+                  </button>
+                  <Badge variant={
+                    message.clinicalVerification.riskLevel === 'high' ? 'destructive' :
+                    message.clinicalVerification.riskLevel === 'medium' ? 'secondary' : 'default'
+                  } className="text-xs">
+                    {message.clinicalVerification.riskLevel.toUpperCase()} RISK
+                  </Badge>
+                </div>
               </div>
-            </div>
+            </>
           )}
           
           {/* Response metrics for assistant messages */}
