@@ -680,18 +680,6 @@ const PracticeImageMaker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card/50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-foreground">Practice Image Maker</h1>
-            <div className="text-sm text-muted-foreground">
-              Designed for NHS GP practices • UK-only content • No patient identifiers
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="container mx-auto p-6">
         
@@ -804,104 +792,6 @@ const PracticeImageMaker = () => {
           {/* Left Column - Prompt Composer */}
           <div className="space-y-6">
             
-            {/* Brand Kit */}
-            <Card>
-              <Collapsible open={brandKitOpen} onOpenChange={setBrandKitOpen}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Palette className="h-5 w-5" />
-                        <CardTitle className="text-lg">Brand Kit</CardTitle>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${brandKitOpen ? 'rotate-180' : ''}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="practice-name">Practice Name</Label>
-                        <Input
-                          id="practice-name"
-                          value={practiceName}
-                          onChange={(e) => setPracticeName(e.target.value)}
-                          placeholder="Enter practice name"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="primary-colour">Primary Colour</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="primary-colour"
-                            type="color"
-                            value={primaryColour}
-                            onChange={(e) => setPrimaryColour(e.target.value)}
-                            className="w-12 h-10 p-1"
-                          />
-                          <Input
-                            value={primaryColour}
-                            onChange={(e) => setPrimaryColour(e.target.value)}
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="secondary-colour">Secondary Colour</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="secondary-colour"
-                          type="color"
-                          value={secondaryColour}
-                          onChange={(e) => setSecondaryColour(e.target.value)}
-                          className="w-12 h-10 p-1"
-                        />
-                        <Input
-                          value={secondaryColour}
-                          onChange={(e) => setSecondaryColour(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label>Logo Upload (Optional)</Label>
-                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                        <input
-                          type="file"
-                          accept=".png,.svg,.jpg,.jpeg"
-                          onChange={(e) => setLogo(e.target.files?.[0] || null)}
-                          className="hidden"
-                          id="logo-upload"
-                        />
-                        <label htmlFor="logo-upload" className="cursor-pointer">
-                          <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
-                            {logo ? logo.name : "Click to upload PNG/SVG"}
-                          </p>
-                          <p className="text-xs text-muted-foreground/70 mt-1">
-                            We'll keep it subtle and accessible
-                          </p>
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="apply-brand"
-                        checked={applyBrand}
-                        onCheckedChange={setApplyBrand}
-                      />
-                      <Label htmlFor="apply-brand">Apply brand to all images</Label>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-
             {/* Photo Editing Mode */}
             <Card>
               <CardHeader>
@@ -1345,6 +1235,104 @@ const PracticeImageMaker = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Brand Kit */}
+            <Card>
+              <Collapsible open={brandKitOpen} onOpenChange={setBrandKitOpen}>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Palette className="h-5 w-5" />
+                        <CardTitle className="text-lg">Brand Kit</CardTitle>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${brandKitOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="practice-name">Practice Name</Label>
+                        <Input
+                          id="practice-name"
+                          value={practiceName}
+                          onChange={(e) => setPracticeName(e.target.value)}
+                          placeholder="Enter practice name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="primary-colour">Primary Colour</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="primary-colour"
+                            type="color"
+                            value={primaryColour}
+                            onChange={(e) => setPrimaryColour(e.target.value)}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            value={primaryColour}
+                            onChange={(e) => setPrimaryColour(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="secondary-colour">Secondary Colour</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="secondary-colour"
+                          type="color"
+                          value={secondaryColour}
+                          onChange={(e) => setSecondaryColour(e.target.value)}
+                          className="w-12 h-10 p-1"
+                        />
+                        <Input
+                          value={secondaryColour}
+                          onChange={(e) => setSecondaryColour(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label>Logo Upload (Optional)</Label>
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                        <input
+                          type="file"
+                          accept=".png,.svg,.jpg,.jpeg"
+                          onChange={(e) => setLogo(e.target.files?.[0] || null)}
+                          className="hidden"
+                          id="logo-upload"
+                        />
+                        <label htmlFor="logo-upload" className="cursor-pointer">
+                          <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            {logo ? logo.name : "Click to upload PNG/SVG"}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-1">
+                            We'll keep it subtle and accessible
+                          </p>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="apply-brand"
+                        checked={applyBrand}
+                        onCheckedChange={setApplyBrand}
+                      />
+                      <Label htmlFor="apply-brand">Apply brand to all images</Label>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
           </div>
         </div>
       </div>
