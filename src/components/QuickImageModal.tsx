@@ -28,7 +28,8 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
   const [quickPrompt, setQuickPrompt] = useState("");
   const [quickModalImage, setQuickModalImage] = useState<string | null>(null);
   const [isQuickGenerating, setIsQuickGenerating] = useState(false);
-  const [useRunware, setUseRunware] = useState(true);
+  // Default to OpenAI (useRunware = false)
+  const useRunware = false;
   
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -227,20 +228,13 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
               )}
             </div>
             
-            <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-md">
-              <Switch
-                id="quick-service-toggle"
-                checked={useRunware}
-                onCheckedChange={setUseRunware}
-              />
-              <Label htmlFor="quick-service-toggle" className="flex items-center gap-2">
-                <span className={useRunware ? 'font-medium' : 'text-muted-foreground'}>
-                  {useRunware ? 'Runware (Fast)' : 'OpenAI GPT (Creative)'}
-                </span>
-              </Label>
+            <div className="text-center p-4 bg-muted/30 rounded-md">
+              <p className="text-sm text-muted-foreground">
+                Powered by <span className="font-medium">OpenAI GPT</span> - Creative & Fast
+              </p>
             </div>
             
-            <Button 
+            <Button
               onClick={handleQuickGenerate}
               disabled={isQuickGenerating || !quickPrompt.trim()}
               className="w-full"
