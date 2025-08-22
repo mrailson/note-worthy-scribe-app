@@ -377,7 +377,7 @@ const AI4GPService = () => {
         </div>
       </div>
 
-      {/* Mobile Floating Input */}
+      {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
       {isMobile && !showNews && !showAIChat && !showSettings && !showImageService && (
         <FloatingMobileInput
           ref={inputRef}
@@ -391,6 +391,7 @@ const AI4GPService = () => {
           setIsClinical={setIsClinical}
         />
       )}
+
 
 
       {/* Expanded Message Dialog */}
