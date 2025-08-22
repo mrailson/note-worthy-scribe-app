@@ -1248,7 +1248,7 @@ const EnhancedAccess = () => {
                       <TabsContent value="funding" className="space-y-4">
                         <Tabs defaultValue="june-2025" className="w-full">
                           <TabsList className="grid w-full grid-cols-2 mb-4">
-                            <TabsTrigger value="june-2025">June 2025 Practice Splits</TabsTrigger>
+                            <TabsTrigger value="june-2025">July 2025 Practice Splits</TabsTrigger>
                             <TabsTrigger value="q1-25-26">April 2025 - June 2025 (Q1 25/26)</TabsTrigger>
                           </TabsList>
                           
