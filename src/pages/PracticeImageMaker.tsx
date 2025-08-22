@@ -232,6 +232,9 @@ const PracticeImageMaker = () => {
   const [editMode, setEditMode] = useState(false);
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+  
+  // Service Selection State
+  const [useRunware, setUseRunware] = useState(true); // true = Runware, false = OpenAI GPT
 
   const handleEditPhotoUpload = (file: File | null) => {
     if (file) {
@@ -534,8 +537,21 @@ const PracticeImageMaker = () => {
         requestFormData.append('mode', 'generation');
       }
 
-      const { data, error } = await supabase.functions.invoke('runware-image-generation', {
-        body: requestFormData
+      // Choose service based on toggle
+      let serviceName, requestBody;
+      
+      if (useRunware) {
+        // Use Runware service
+        serviceName = 'runware-image-generation';
+        requestBody = requestFormData;
+      } else {
+        // Use OpenAI service - convert FormData back to regular FormData for OpenAI
+        serviceName = 'advanced-image-generation';
+        requestBody = formData; // Use the original formData that was prepared for OpenAI
+      }
+
+      const { data, error } = await supabase.functions.invoke(serviceName, {
+        body: requestBody
       });
 
       if (error) {
@@ -563,7 +579,8 @@ const PracticeImageMaker = () => {
         };
         
         setImageHistory(prev => [newResult, ...prev].slice(0, 12));
-        toast.success(editMode ? "Photo edited successfully!" : "Image generated successfully!");
+        const serviceName = useRunware ? "Runware" : "OpenAI GPT";
+        toast.success(editMode ? `Photo edited successfully with ${serviceName}!` : `Image generated successfully with ${serviceName}!`);
       } else {
         throw new Error(data.error || "Failed to generate image");
       }
@@ -952,10 +969,33 @@ const PracticeImageMaker = () => {
                        />
                        <Label htmlFor="transparent-bg">Transparent background</Label>
                      </div>
+                    </div>
+                  </div>
+
+                 {/* Service Selection */}
+                 <div className="space-y-3 p-4 border rounded-md bg-muted/30">
+                   <Label className="text-sm font-medium">AI Service</Label>
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center space-x-3">
+                       <span className={`text-sm ${!useRunware ? 'font-medium' : 'text-muted-foreground'}`}>
+                         OpenAI GPT
+                       </span>
+                       <Switch
+                         id="service-toggle"
+                         checked={useRunware}
+                         onCheckedChange={setUseRunware}
+                       />
+                       <span className={`text-sm ${useRunware ? 'font-medium' : 'text-muted-foreground'}`}>
+                         Runware
+                       </span>
+                     </div>
+                     <Badge variant={useRunware ? "default" : "secondary"} className="text-xs">
+                       {useRunware ? "Faster, Better Image Editing" : "More Creative Text Generation"}
+                     </Badge>
                    </div>
                  </div>
 
-                <Button 
+                <Button
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim() || (editMode && !editPhoto)}
                   className="w-full"
