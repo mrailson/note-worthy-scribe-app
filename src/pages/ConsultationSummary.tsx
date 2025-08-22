@@ -1315,7 +1315,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
   return (
     <div className="min-h-screen bg-gradient-background">
       <NotewellAIAnimation isVisible={isGeneratingNotes} />
-      <Header onNewMeeting={() => navigate('/')} />
+      <Header />
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
         
         {/* Header - Mobile Optimized */}
