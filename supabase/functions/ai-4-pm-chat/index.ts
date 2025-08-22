@@ -101,7 +101,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
   systemPrompt: string;
   files?: UploadedFile[];
   verificationLevel?: string;
@@ -1536,6 +1536,9 @@ serve(async (req) => {
 
     // Create final system prompt by combining enhanced prompt with source context
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
+
+    // Initialize response variable
+    let response: string;
 
     // Model routing with proper mapping
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
