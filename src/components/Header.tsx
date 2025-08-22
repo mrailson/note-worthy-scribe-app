@@ -19,7 +19,6 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { ConsultationSummaryPreview } from "@/components/ConsultationSummaryPreview";
-import { QuickImageModal } from "@/components/QuickImageModal";
 interface HeaderProps {
   onNewMeeting?: () => void;
 }
@@ -30,7 +29,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showQuickImageModal, setShowQuickImageModal] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -154,30 +152,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        AI 4 PM Assistant
                      </DropdownMenuItem>
                     )}
-                    {/* Image Service Submenu */}  
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                        <Palette className="h-4 w-4 mr-2" />
-                        Image Service
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/ai4gp')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          AI4GP Service
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setShowQuickImageModal(true)}
-                          className="cursor-pointer py-3"
-                        >
-                          <Zap className="h-4 w-4 mr-2" />
-                          Quick Image
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                     {hasModuleAccess('enhanced_access') && (
+                      {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
                         className="cursor-pointer py-3"
@@ -381,20 +356,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
                          )}
-                         {/* Image Service options for mobile */}
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                               <Sparkles className="h-4 w-4 mr-2" />
-                               AI4GP Service
-                             </Button>
-                           </DrawerClose>
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => setShowQuickImageModal(true)}>
-                               <Zap className="h-4 w-4 mr-2" />
-                               Quick Image
-                             </Button>
-                           </DrawerClose>
-                         {hasModuleAccess('enhanced_access') && (
+                          {hasModuleAccess('enhanced_access') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
                               <Clock className="h-4 w-4 mr-2" />
@@ -496,12 +458,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
       <UserProfileModal 
         open={showProfileModal} 
         onOpenChange={setShowProfileModal} 
-      />
-      
-      {/* Quick Image Modal */}
-      <QuickImageModal 
-        open={showQuickImageModal} 
-        onOpenChange={setShowQuickImageModal} 
       />
     </header>
   );
