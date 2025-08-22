@@ -83,12 +83,11 @@ const EnhancedAccess = () => {
     const isSeptember2025 = format(date, 'MMMM yyyy') === 'September 2025';
     const isOctober2025 = format(date, 'MMMM yyyy') === 'October 2025';
     
-    // Set specific hub hours for September 2025, or add extra hours for October 2025
+    // Set specific hub hours for September 2025 and October 2025
     if (isSeptember2025) {
       hubHours = 120; // Set fixed 120 hours for September 2025
     } else if (isOctober2025) {
-      const extraHubHours = 60; // Covid Clinics
-      hubHours += extraHubHours;
+      hubHours = 164; // Set fixed 164 hours for October 2025 (+44 hours for Covid)
     }
     
     // Calculate spoke balance
@@ -1056,7 +1055,7 @@ const EnhancedAccess = () => {
                                               <span className="text-xs block text-green-500">Enhanced Hub Hours</span>
                                             )}
                                             {month.spokeData.isOctober2025 && (
-                                              <span className="text-xs block text-green-500">+60 Covid Clinics</span>
+                                              <span className="text-xs block text-green-500">+44 Covid Clinics</span>
                                             )}
                                           </div>
                                          <div className="text-sm text-green-600">Hub Delivery</div>
