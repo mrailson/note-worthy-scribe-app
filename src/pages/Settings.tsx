@@ -1207,7 +1207,7 @@ export default function Settings() {
                       <p className="text-xs text-muted-foreground mb-2">
                         Dedicated implementation manager assigned to your practice
                       </p>
-                      <p className="text-xs font-medium">support@notewell.ai</p>
+                      <p className="text-xs font-medium">malcolm.railson@nhs.net</p>
                       <p className="text-xs text-muted-foreground">Response time: Within 2 hours</p>
                     </div>
                     <div className="p-4 border rounded-lg">
@@ -1587,7 +1587,7 @@ export default function Settings() {
                           <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Email Support</p>
-                            <p className="text-xs text-muted-foreground">support@notewell.ai</p>
+                            <p className="text-xs text-muted-foreground">malcolm.railson@nhs.net</p>
                             <p className="text-xs text-muted-foreground">Response within 2 hours</p>
                           </div>
                         </div>
@@ -1688,6 +1688,24 @@ export default function Settings() {
                         Released: {new Date().toLocaleDateString()} | 
                         Next update: Quarterly feature releases | 
                         Support until: Ongoing with active subscription
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 text-primary">Built by Healthcare Professionals, for Healthcare Professionals</h4>
+                    <div className="p-3 border rounded-lg bg-accent/20">
+                      <p className="text-sm font-medium mb-2">Developed by a PCN Manager with Deep Healthcare IT Expertise</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Notewell AI V1.3 has been built by a PCN Manager with over 25 years as an IT Professional, 
+                        previously responsible for building and delivering IT systems used by tens of thousands of users across the world. 
+                        This unique combination of healthcare management experience and enterprise-level IT expertise ensures that every feature 
+                        is designed with real-world practice needs in mind, while maintaining the highest standards of security and reliability.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        <strong>Why this matters:</strong> Unlike generic software companies, we understand the daily challenges of running a practice, 
+                        the complexity of NHS IT governance requirements, and the critical importance of patient data security. Every decision in 
+                        Notewell AI reflects this deep understanding of both healthcare and technology.
                       </p>
                     </div>
                   </div>
