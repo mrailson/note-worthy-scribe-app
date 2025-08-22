@@ -78,6 +78,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [isCopyingPreviousWeek, setIsCopyingPreviousWeek] = useState(false);
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
   const [assignmentToRemove, setAssignmentToRemove] = useState<StaffAssignment | null>(null);
+  const [isRemoveUnassignedOpen, setIsRemoveUnassignedOpen] = useState(false);
+  const [isRemovingUnassigned, setIsRemovingUnassigned] = useState(false);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -381,6 +383,73 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     return hoursByRole;
   };
 
+  const handleRemoveUnassignedShifts = async () => {
+    setIsRemoveUnassignedOpen(true);
+  };
+
+  const confirmRemoveUnassignedShifts = async () => {
+    setIsRemovingUnassigned(true);
+    
+    try {
+      // Get all weekday shift templates (Monday-Friday = day_of_week 1-5)
+      const weekdayShifts = shiftTemplates.filter(shift => 
+        shift.day_of_week >= 1 && shift.day_of_week <= 5
+      );
+
+      // Check which shifts have no assignments
+      const unassignedShifts = [];
+      
+      for (const shift of weekdayShifts) {
+        const hasAssignments = assignments.some(assignment => 
+          assignment.shift_template_id === shift.id
+        );
+        
+        if (!hasAssignments) {
+          unassignedShifts.push(shift);
+        }
+      }
+
+      if (unassignedShifts.length === 0) {
+        toast.error('No unassigned weekday shifts found to remove');
+        return;
+      }
+
+      // Remove unassigned shift templates from database
+      const shiftIds = unassignedShifts.map(shift => shift.id);
+      
+      const { error } = await supabase
+        .from('shift_templates')
+        .update({ is_active: false })
+        .in('id', shiftIds);
+
+      if (error) throw error;
+
+      toast.success(`Removed ${unassignedShifts.length} unassigned weekday shifts`);
+      fetchShiftTemplates();
+      fetchAssignments();
+      onAssignmentChange();
+      setIsRemoveUnassignedOpen(false);
+    } catch (error) {
+      toast.error('Failed to remove unassigned shifts');
+      console.error('Error:', error);
+    } finally {
+      setIsRemovingUnassigned(false);
+    }
+  };
+
+  const getUnassignedWeekdayShiftsCount = () => {
+    const weekdayShifts = shiftTemplates.filter(shift => 
+      shift.day_of_week >= 1 && shift.day_of_week <= 5
+    );
+    
+    return weekdayShifts.filter(shift => {
+      const hasAssignments = assignments.some(assignment => 
+        assignment.shift_template_id === shift.id
+      );
+      return !hasAssignments;
+    }).length;
+  };
+
   const monthlyHours = calculateMonthlyHours();
 
   const handleCopyPreviousWeek = async () => {
@@ -479,18 +548,31 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                 : `Shift Assignments - Week of ${formatDateWithOrdinal(weekStart)}`
               }
             </CardTitle>
-            {!isMonthlyView && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyPreviousWeek}
-                disabled={isCopyingPreviousWeek}
-                className="flex items-center gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                {isCopyingPreviousWeek ? 'Copying...' : 'Copy Previous Week'}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!isMonthlyView && getUnassignedWeekdayShiftsCount() > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRemoveUnassignedShifts}
+                  className="flex items-center gap-2"
+                >
+                  <UserX className="h-4 w-4" />
+                  Remove Unassigned Weekday Shifts ({getUnassignedWeekdayShiftsCount()})
+                </Button>
+              )}
+              {!isMonthlyView && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPreviousWeek}
+                  disabled={isCopyingPreviousWeek}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  {isCopyingPreviousWeek ? 'Copying...' : 'Copy Previous Week'}
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -940,6 +1022,43 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Unassigned Shifts Dialog */}
+      <Dialog open={isRemoveUnassignedOpen} onOpenChange={setIsRemoveUnassignedOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Unassigned Weekday Shifts</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 rounded-lg">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                Are you sure you want to remove all unassigned shifts from Monday to Friday?
+              </p>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                <p><strong>Shifts to be removed:</strong> {getUnassignedWeekdayShiftsCount()} unassigned weekday shifts</p>
+                <p><strong>Days affected:</strong> Monday through Friday only</p>
+                <p><strong>Weekend shifts:</strong> Saturday and Sunday shifts will remain unchanged</p>
+              </div>
+              <p className="mt-2 text-sm text-red-700 dark:text-red-300 font-medium">
+                ⚠️ This action cannot be undone. Only shifts that have no staff assignments will be removed.
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsRemoveUnassignedOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmRemoveUnassignedShifts}
+                disabled={isRemovingUnassigned}
+              >
+                {isRemovingUnassigned ? 'Removing...' : 'Remove Unassigned Shifts'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
