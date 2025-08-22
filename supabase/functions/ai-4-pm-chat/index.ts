@@ -971,6 +971,12 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   if (!initial.ok) {
     const error = await initial.text();
     console.error('OpenAI API error:', error);
+    
+    // Check for quota exceeded error specifically
+    if (initial.status === 429 || error.includes('insufficient_quota')) {
+      throw new Error(`OpenAI API quota exceeded (429): ${error}`);
+    }
+    
     throw new Error(`OpenAI API error: ${initial.status}`);
   }
 
@@ -1311,6 +1317,43 @@ serve(async (req) => {
     let errorMessage = 'An unexpected error occurred';
     if (error instanceof Error) {
       errorMessage = error.message;
+    }
+
+    // Handle OpenAI quota exceeded error with helpful message
+    if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('insufficient_quota')) {
+      const quotaExceededResponse = `I apologize, but I'm currently experiencing API quota limitations. This means I've reached the usage limit for my primary AI service.
+
+**What this means:**
+- The OpenAI API quota has been exceeded
+- This is a temporary billing/usage limit issue
+- Your question is valid, but I cannot process it right now
+
+**Immediate solutions:**
+1. **Wait and retry** - Quotas typically reset monthly
+2. **Contact system administrator** - They can check billing and upgrade limits
+3. **Use alternative features** - Other parts of the system may still work
+
+**For clinical questions:**
+- Please consult official NHS guidance directly
+- Speak with colleagues or senior clinicians
+- Use established clinical decision support tools
+
+I'll be back online once the API quota is restored. Thank you for your patience.`;
+
+      return new Response(JSON.stringify({
+        content: quotaExceededResponse,
+        success: true,
+        quotaExceeded: true,
+        timeToFirstWords: 100,
+        apiResponseTime: 0,
+        model: 'fallback-system'
+      }), {
+        status: 200,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
+      });
     }
 
     return new Response(
