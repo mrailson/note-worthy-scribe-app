@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Shield, FileText, Database, Lock, Users, Activity, CheckCircle, Download } from "lucide-react";
+import { ChevronDown, Shield, FileText, Database, Lock, Users, Activity, CheckCircle, Download, Grid3X3, Stethoscope, Sparkles, MessageSquareWarning, Clock, FolderOpen, Mail, ImageIcon, Settings, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, BorderStyle, AlignmentType, WidthType } from "docx";
@@ -1379,11 +1379,12 @@ Approval Signatures Required:
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">System Overview</TabsTrigger>
+            <TabsTrigger value="features">All Features</TabsTrigger>
+            <TabsTrigger value="practice-guide">Practice Manager Guide</TabsTrigger>
             <TabsTrigger value="technical">Technical Controls</TabsTrigger>
-            <TabsTrigger value="governance">Governance</TabsTrigger>
-            <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="governance">Governance & Evidence</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -1504,6 +1505,519 @@ Approval Signatures Required:
             </div>
           </TabsContent>
 
+          <TabsContent value="features" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Grid3X3 className="h-5 w-5" />
+                  Complete System Features & Modules
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8">
+                  
+                  {/* Meeting & Recording Systems */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">Meeting & Recording Systems</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Meeting Notes & Recording
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Real-time audio transcription with multiple engine support</li>
+                          <li>• Automated meeting minutes generation</li>
+                          <li>• Speaker identification and role assignment</li>
+                          <li>• Live transcript display with speaker labels</li>
+                          <li>• Meeting export to PDF, Word, PowerPoint formats</li>
+                          <li>• Audio backup and reprocessing capabilities</li>
+                          <li>• Meeting sharing and collaboration features</li>
+                          <li>• Attendee management and templates</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Stethoscope className="h-4 w-4" />
+                          GP Scribe (Clinical Documentation)
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• AI-powered consultation transcription</li>
+                          <li>• Automated clinical note generation</li>
+                          <li>• Patient-friendly summary generation</li>
+                          <li>• SNOMED CT coding integration</li>
+                          <li>• Clinical decision support</li>
+                          <li>• Prescription and referral letter automation</li>
+                          <li>• Multi-language patient communication</li>
+                          <li>• Voice-to-text with medical terminology</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* AI Services */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">AI-Powered Services</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          AI4GP Service
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Clinical query assistance and guidance</li>
+                          <li>• Drug interaction checking</li>
+                          <li>• Differential diagnosis support</li>
+                          <li>• Guidelines and protocol lookup</li>
+                          <li>• Medical literature search</li>
+                          <li>• Clinical decision trees</li>
+                          <li>• Patient education material generation</li>
+                          <li>• Voice-activated AI consultation</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          AI4PM Service (Practice Management)
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Staff scheduling optimization</li>
+                          <li>• Resource allocation planning</li>
+                          <li>• Performance analytics and insights</li>
+                          <li>• Policy and procedure guidance</li>
+                          <li>• Training material generation</li>
+                          <li>• Quality improvement suggestions</li>
+                          <li>• Business intelligence dashboards</li>
+                          <li>• Automated reporting capabilities</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Compliance & Quality Systems */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">Compliance & Quality Management</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <MessageSquareWarning className="h-4 w-4" />
+                          NHS Complaints System
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Full NHS complaints procedure compliance</li>
+                          <li>• Automated 20-day tracking and alerts</li>
+                          <li>• Comprehensive audit trails</li>
+                          <li>• Investigation workflow management</li>
+                          <li>• Staff response coordination</li>
+                          <li>• Document management and evidence storage</li>
+                          <li>• Automated acknowledgment letters</li>
+                          <li>• CQC compliance reporting</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          CQC Compliance Suite
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Real-time compliance monitoring</li>
+                          <li>• Evidence collection and organization</li>
+                          <li>• Key Lines of Enquiry (KLOE) tracking</li>
+                          <li>• Inspection preparation tools</li>
+                          <li>• Quality improvement planning</li>
+                          <li>• Staff training compliance tracking</li>
+                          <li>• Policy management system</li>
+                          <li>• Regulatory change notifications</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Access & Workforce */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">Enhanced Access & Workforce Management</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Enhanced Access Management
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• PCN Enhanced Access scheduling</li>
+                          <li>• Hub and spoke service allocation</li>
+                          <li>• Staff rota management</li>
+                          <li>• Service delivery tracking</li>
+                          <li>• Financial reporting and analytics</li>
+                          <li>• Bank holiday management</li>
+                          <li>• Compliance monitoring (237.25 hours)</li>
+                          <li>• Practice funding distribution</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Staff & Contractor Management
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Comprehensive staff database</li>
+                          <li>• Skills and qualification tracking</li>
+                          <li>• Contractor CV processing and matching</li>
+                          <li>• Availability and booking systems</li>
+                          <li>• Performance monitoring</li>
+                          <li>• Training record management</li>
+                          <li>• Compliance certification tracking</li>
+                          <li>• Automated shift assignments</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Document & Communication Systems */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">Document & Communication Systems</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <FolderOpen className="h-4 w-4" />
+                          Shared Drive & Document Management
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Secure document storage and sharing</li>
+                          <li>• Version control and audit trails</li>
+                          <li>• Role-based access permissions</li>
+                          <li>• File type support (PDF, Word, Excel, Images)</li>
+                          <li>• Search and categorization</li>
+                          <li>• Backup and recovery systems</li>
+                          <li>• Integration with clinical workflows</li>
+                          <li>• Automated document classification</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Communication & Translation
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Multi-language translation services</li>
+                          <li>• Patient communication templates</li>
+                          <li>• Automated email generation</li>
+                          <li>• SMS patient notifications</li>
+                          <li>• Clinical letter generation</li>
+                          <li>• Referral letter automation</li>
+                          <li>• Patient-friendly summaries</li>
+                          <li>• Accessibility compliance (WCAG)</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Additional Tools & Features */}
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4 border-b pb-2">Additional Tools & Administration</h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          Image & Content Creation
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• AI-powered image generation</li>
+                          <li>• Practice poster creation</li>
+                          <li>• Patient education materials</li>
+                          <li>• Branding and templates</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Settings className="h-4 w-4" />
+                          System Administration
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• User role management</li>
+                          <li>• Practice configuration</li>
+                          <li>• Security settings</li>
+                          <li>• Backup and monitoring</li>
+                        </ul>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Activity className="h-4 w-4" />
+                          Analytics & Reporting
+                        </h4>
+                        <ul className="text-sm space-y-1 text-muted-foreground">
+                          <li>• Usage analytics</li>
+                          <li>• Performance dashboards</li>
+                          <li>• Compliance reporting</li>
+                          <li>• Custom report generation</li>
+                        </ul>
+                      </Card>
+                    </div>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="practice-guide" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Practice Manager Implementation Guide
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8">
+                  
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
+                    <h3 className="text-xl font-bold text-blue-800 mb-3">What Do I Need to Do to Use This System?</h3>
+                    <p className="text-blue-700 mb-4">
+                      As a Practice Manager, implementing NotewellAI requires coordination with key stakeholders 
+                      and completion of essential compliance steps. This guide outlines your responsibilities and the support available.
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card className="p-6 border-2 border-green-200 bg-green-50">
+                      <h4 className="font-bold text-green-800 mb-4 flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Step 1: Initial Assessment & Planning
+                      </h4>
+                      <ul className="space-y-2 text-green-700">
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 mt-1">•</span>
+                          <span><strong>Review current systems:</strong> Assess existing clinical and administrative workflows</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 mt-1">•</span>
+                          <span><strong>Identify integration points:</strong> Determine how NotewellAI will connect with your EPR system</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 mt-1">•</span>
+                          <span><strong>Resource planning:</strong> Allocate time for staff training and system setup</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 mt-1">•</span>
+                          <span><strong>Stakeholder engagement:</strong> Brief clinical staff and administrative team</span>
+                        </li>
+                      </ul>
+                    </Card>
+
+                    <Card className="p-6 border-2 border-orange-200 bg-orange-50">
+                      <h4 className="font-bold text-orange-800 mb-4 flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        Step 2: Compliance & Governance Setup
+                      </h4>
+                      <ul className="space-y-2 text-orange-700">
+                        <li className="flex items-start gap-2">
+                          <span className="text-orange-600 mt-1">•</span>
+                          <span><strong>Data Protection Impact Assessment:</strong> Complete DPIA with your DPO</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-orange-600 mt-1">•</span>
+                          <span><strong>Clinical safety documentation:</strong> Review DCB0129 compliance with CSO</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-orange-600 mt-1">•</span>
+                          <span><strong>Information governance:</strong> Update IG policies and procedures</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-orange-600 mt-1">•</span>
+                          <span><strong>Risk assessment:</strong> Document and mitigate identified risks</span>
+                        </li>
+                      </ul>
+                    </Card>
+                  </div>
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                    <h4 className="font-bold text-purple-800 mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      DCB0129 Clinical Safety Documentation - Supplied by NotewellAI
+                    </h4>
+                    <div className="text-purple-700 space-y-3">
+                      <p className="font-medium">
+                        <strong>Good News:</strong> NotewellAI provides comprehensive DCB0129 documentation package including:
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4 mt-4">
+                        <ul className="space-y-2">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Clinical Safety Case documentation</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Hazard Analysis and Risk Assessment</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Clinical Safety Management Plan</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Post-deployment monitoring procedures</span>
+                          </li>
+                        </ul>
+                        <ul className="space-y-2">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Change control documentation</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Clinical safety training materials</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Incident reporting procedures</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                            <span>Template forms and checklists</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div className="bg-purple-100 p-4 rounded-lg mt-4">
+                        <p className="font-medium text-purple-800">
+                          <strong>NotewellAI Commitment:</strong> We will work directly with your Clinical Safety Officer (CSO) 
+                          and Data Protection Officer (DPO) to ensure seamless compliance and system sign-off. Our clinical 
+                          safety team provides ongoing support throughout the implementation process.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card className="p-6 border-2 border-blue-200 bg-blue-50">
+                      <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Step 3: Team Coordination
+                      </h4>
+                      <div className="space-y-4 text-blue-700">
+                        <div>
+                          <h5 className="font-semibold mb-2">Key Stakeholders to Engage:</h5>
+                          <ul className="space-y-1 ml-4">
+                            <li>• <strong>Clinical Safety Officer (CSO):</strong> DCB0129 compliance review</li>
+                            <li>• <strong>Data Protection Officer (DPO):</strong> GDPR compliance assessment</li>
+                            <li>• <strong>IT Manager:</strong> Technical integration planning</li>
+                            <li>• <strong>Clinical Staff:</strong> Workflow training and feedback</li>
+                            <li>• <strong>Admin Team:</strong> System access and role assignment</li>
+                          </ul>
+                        </div>
+                        <div className="bg-blue-100 p-3 rounded">
+                          <p className="text-sm">
+                            <strong>NotewellAI Support:</strong> Our implementation team will schedule meetings 
+                            with each stakeholder to ensure smooth coordination and address any concerns.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card className="p-6 border-2 border-emerald-200 bg-emerald-50">
+                      <h4 className="font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        Step 4: System Configuration
+                      </h4>
+                      <div className="space-y-4 text-emerald-700">
+                        <div>
+                          <h5 className="font-semibold mb-2">Configuration Tasks:</h5>
+                          <ul className="space-y-1 ml-4">
+                            <li>• Set up practice details and user accounts</li>
+                            <li>• Configure role-based access controls</li>
+                            <li>• Customize templates and workflows</li>
+                            <li>• Import existing data (if applicable)</li>
+                            <li>• Test integrations and data flows</li>
+                          </ul>
+                        </div>
+                        <div className="bg-emerald-100 p-3 rounded">
+                          <p className="text-sm">
+                            <strong>Guided Setup:</strong> NotewellAI provides step-by-step configuration 
+                            assistance and can perform initial setup remotely with your approval.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+
+                  <Card className="p-6 border-2 border-red-200 bg-red-50">
+                    <h4 className="font-bold text-red-800 mb-4 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Critical Success Factors
+                    </h4>
+                    <div className="grid md:grid-cols-2 gap-6 text-red-700">
+                      <div>
+                        <h5 className="font-semibold mb-2">Must-Have Approvals:</h5>
+                        <ul className="space-y-1">
+                          <li>✓ CSO sign-off on clinical safety documentation</li>
+                          <li>✓ DPO approval of data protection measures</li>
+                          <li>✓ IT security team clearance</li>
+                          <li>✓ Practice principal/partnership approval</li>
+                          <li>✓ Staff training completion certificates</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h5 className="font-semibold mb-2">Timeline Expectations:</h5>
+                        <ul className="space-y-1">
+                          <li>• Initial assessment: 1-2 weeks</li>
+                          <li>• Compliance documentation: 2-3 weeks</li>
+                          <li>• System configuration: 1 week</li>
+                          <li>• Staff training: 1-2 weeks</li>
+                          <li>• Go-live and support: Ongoing</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-6">
+                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-green-600" />
+                      NotewellAI Implementation Support Promise
+                    </h4>
+                    <div className="space-y-3 text-gray-700">
+                      <p className="font-medium">
+                        We understand that implementing new clinical systems requires careful coordination and compliance. 
+                        NotewellAI is committed to making this process as smooth as possible for you and your team.
+                      </p>
+                      <div className="grid md:grid-cols-3 gap-4 mt-4">
+                        <div className="text-center p-3 bg-white rounded shadow-sm">
+                          <Shield className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                          <h5 className="font-semibold text-sm">Compliance First</h5>
+                          <p className="text-xs text-gray-600">Full DCB0129 & GDPR documentation provided</p>
+                        </div>
+                        <div className="text-center p-3 bg-white rounded shadow-sm">
+                          <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                          <h5 className="font-semibold text-sm">Expert Support</h5>
+                          <p className="text-xs text-gray-600">Direct access to clinical safety specialists</p>
+                        </div>
+                        <div className="text-center p-3 bg-white rounded shadow-sm">
+                          <CheckCircle className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                          <h5 className="font-semibold text-sm">Seamless Integration</h5>
+                          <p className="text-xs text-gray-600">Minimal disruption to existing workflows</p>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg border-l-4 border-green-500 mt-6">
+                        <p className="font-medium text-green-800 mb-2">Ready to Get Started?</p>
+                        <p className="text-sm text-gray-700">
+                          Contact our implementation team to schedule your initial consultation and receive your 
+                          personalized DCB0129 documentation package. We'll work with your CSO and DPO from day one 
+                          to ensure rapid, compliant deployment.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="technical" className="space-y-6">
             {[
               {
@@ -1594,44 +2108,44 @@ Approval Signatures Required:
             {[
               {
                 id: "dcb0129",
-                title: "DCB0129 Clinical Risk Management for Medical Devices",
+                title: "DCB0129 Clinical Risk Management - Supplied by NotewellAI",
                 icon: Shield,
                 items: [
                   {
-                    name: "Medical Device Classification",
-                    description: "NotewellAI classified as Class IIa Medical Device Software under MHRA guidance",
-                    evidence: "Clinical safety assessment confirms non-invasive monitoring and decision support functionality",
-                    compliance: "DCB0129 - Medical Device Regulation (MDR 2017/745)"
+                    name: "Complete Documentation Package Provided by NotewellAI",
+                    description: "NotewellAI supplies comprehensive DCB0129 clinical safety documentation, working directly with your CSO and DPO for seamless compliance",
+                    evidence: "Full clinical safety case, hazard analysis, risk assessment, and post-deployment monitoring procedures provided by NotewellAI clinical safety team",
+                    compliance: "NHS Digital DCB0129 - Fully Compliant with NotewellAI Support"
                   },
                   {
-                    name: "Clinical Risk Management File",
-                    description: "Comprehensive risk management process with hazard analysis and mitigation strategies",
-                    evidence: "Risk register with 47 identified hazards, all mitigated to acceptable levels (ALARP principle)",
+                    name: "Clinical Safety Case Documentation",
+                    description: "Comprehensive clinical risk management documentation prepared by qualified clinical safety experts",
+                    evidence: "Risk register with all identified hazards, mitigation strategies, and ALARP compliance. NotewellAI provides ongoing updates and maintenance",
                     compliance: "DCB0129 Section 4.2 - Clinical Risk Management Process"
                   },
                   {
-                    name: "Post-Market Clinical Follow-up",
-                    description: "Continuous monitoring of clinical performance and safety data",
-                    evidence: "Automated safety monitoring with monthly clinical safety reports and incident tracking",
+                    name: "Implementation Support with CSO/DPO Collaboration",
+                    description: "NotewellAI works directly with your Clinical Safety Officer and Data Protection Officer to ensure rapid sign-off",
+                    evidence: "Dedicated clinical safety specialist assigned to each implementation, with direct CSO/DPO liaison and documentation handover",
+                    compliance: "DCB0129 Clinical Governance Requirements"
+                  },
+                  {
+                    name: "Post-Market Clinical Monitoring",
+                    description: "Continuous safety monitoring with automated incident detection and reporting",
+                    evidence: "Real-time clinical safety monitoring dashboard with automated alerts and monthly safety reports provided by NotewellAI",
                     compliance: "DCB0129 Section 6 - Post-Market Surveillance"
                   },
                   {
-                    name: "Clinical Evaluation Report",
-                    description: "Evidence-based assessment of clinical safety and performance",
-                    evidence: "Clinical evaluation confirming net clinical benefit with systematic review of comparable devices",
-                    compliance: "DCB0129 Annex A - Clinical Evaluation Guidelines"
+                    name: "Change Control and Version Management",
+                    description: "Comprehensive change control process ensuring clinical safety throughout system updates",
+                    evidence: "Automated change impact assessment, clinical safety review for all updates, and version control documentation",
+                    compliance: "DCB0129 Change Control Requirements"
                   },
                   {
-                    name: "Unique Device Identification (UDI)",
-                    description: "Compliant device identification and traceability system",
-                    evidence: "UDI implementation with device database registration and labelling compliance",
-                    compliance: "MDR Article 27 - UDI System Requirements"
-                  },
-                  {
-                    name: "Quality Management System",
-                    description: "ISO 13485 compliant QMS for medical device development and maintenance",
-                    evidence: "Design controls, document management, and change control procedures implemented",
-                    compliance: "DCB0129 Section 3 - Quality Management System"
+                    name: "Training and Competency Documentation",
+                    description: "Complete training materials and competency frameworks for clinical staff",
+                    evidence: "Clinical safety training modules, competency assessments, and ongoing education programs provided by NotewellAI",
+                    compliance: "DCB0129 Training and Competency Requirements"
                   }
                 ]
               },
