@@ -490,11 +490,27 @@ const PracticeImageMaker = () => {
         formData.append('mode', 'generation');
       }
 
+      console.log('=== ABOUT TO CALL SUPABASE FUNCTION ===');
+      console.log('Edit Mode:', editMode);
+      console.log('FormData contents:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`- ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`- ${key}: ${value}`);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
         body: formData
       });
+      
+      console.log('=== SUPABASE FUNCTION CALL COMPLETED ===');
+      console.log('Response data:', data);
+      console.log('Response error:', error);
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to generate image');
       }
 
