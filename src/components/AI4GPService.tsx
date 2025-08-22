@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -24,6 +24,7 @@ import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
+import { QuickImageModal } from '@/components/QuickImageModal';
 
 
 const AI4GPService = () => {
@@ -38,6 +39,7 @@ const AI4GPService = () => {
   const [showNews, setShowNews] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
   const [showImageService, setShowImageService] = useState(false);
+  const [showQuickImageModal, setShowQuickImageModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
@@ -192,14 +194,22 @@ const AI4GPService = () => {
                           <Newspaper className="w-4 h-4 mr-2" />
                           GP News
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowImageCreate(!showImageCreate)}>
-                          <ImageIcon className="w-4 h-4 mr-2" />
-                          Images
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowImageService(!showImageService)}>
-                          <Palette className="w-4 h-4 mr-2" />
-                          Image Service
-                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Palette className="w-4 h-4 mr-2" />
+                            Image Service
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => setShowQuickImageModal(true)}>
+                              <Zap className="w-4 h-4 mr-2" />
+                              Quick Image
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setShowImageService(!showImageService)}>
+                              <Palette className="w-4 h-4 mr-2" />
+                              Practice Image Maker
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -391,6 +401,12 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}
         onShowResponseMetricsChange={setShowResponseMetrics}
+      />
+
+      {/* Quick Image Modal */}
+      <QuickImageModal 
+        open={showQuickImageModal} 
+        onOpenChange={setShowQuickImageModal} 
       />
     </>
   );
