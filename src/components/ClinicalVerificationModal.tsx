@@ -61,7 +61,7 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${getConfidenceColor(verificationData.confidenceScore)}`}>
                   {getConfidenceIcon(verificationData.confidenceScore)}
                   <span className="font-semibold">
-                    {verificationData.confidenceScore}% Confidence
+                    {Math.floor(verificationData.confidenceScore)}% Confidence
                   </span>
                 </div>
                 <Badge variant={getRiskBadgeVariant(verificationData.riskLevel)}>

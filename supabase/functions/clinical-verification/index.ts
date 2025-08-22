@@ -451,7 +451,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
     const verificationStatus = confidenceScore >= 85 ? 'verified' : confidenceScore < 60 ? 'flagged' : 'verified';
 
     const totalTime = Date.now() - startTime;
-    console.log('Clinical verification completed: ' + Math.round(confidenceScore) + '% confidence, ' + riskLevel + ' risk');
+    console.log('Clinical verification completed: ' + Math.floor(confidenceScore) + '% confidence, ' + riskLevel + ' risk');
     console.log(`Total verification time: ${totalTime}ms (Sources: ${sourceEndTime - sourceStartTime}ms, AI: ${aiEndTime - aiStartTime}ms)`);
 
     return new Response(JSON.stringify({

@@ -694,7 +694,7 @@ Please fetch these and retry. No corrections made."`;
                 >
                   <div className="flex items-center gap-1">
                     {getConfidenceIcon(message.clinicalVerification.confidenceScore)}
-                    <span>{message.clinicalVerification.confidenceScore}% Clinical Confidence</span>
+                    <span>{Math.floor(message.clinicalVerification.confidenceScore)}% Clinical Confidence</span>
                   </div>
                 </button>
                 <Badge variant={
