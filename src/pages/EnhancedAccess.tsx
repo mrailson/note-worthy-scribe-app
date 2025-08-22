@@ -291,28 +291,28 @@ const EnhancedAccess = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-3 sm:px-4 py-2">
+      <div className="container mx-auto px-3 sm:px-4 py-2 ios-scroll mobile-container safe-area-bottom">
         <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
-              <TabsTrigger value="overview" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1 touch-manipulation">
+              <TabsTrigger value="overview" className="min-h-[52px] text-xs sm:text-sm touch-manipulation active:scale-95">
                 <span className="hidden sm:inline">Overview</span>
                 <span className="sm:hidden">Home</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <TabsTrigger value="schedule" className="min-h-[52px] text-xs sm:text-sm touch-manipulation active:scale-95">
                 <span className="hidden sm:inline">Rota Management</span>
                 <span className="sm:hidden">Rota</span>
               </TabsTrigger>
-              <TabsTrigger value="staff" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <TabsTrigger value="staff" className="min-h-[52px] text-xs sm:text-sm touch-manipulation active:scale-95">
                 <span className="hidden sm:inline">Staff Management</span>
                 <span className="sm:hidden">Staff</span>
               </TabsTrigger>
-              <TabsTrigger value="holidays" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <TabsTrigger value="holidays" className="min-h-[52px] text-xs sm:text-sm touch-manipulation active:scale-95">
                 <span className="hidden lg:inline">Bank Holidays</span>
                 <span className="lg:hidden">Holidays</span>
               </TabsTrigger>
             <TabsTrigger 
               value="reports" 
-              className="min-h-[44px] text-xs sm:text-sm touch-manipulation"
+              className="min-h-[52px] text-xs sm:text-sm touch-manipulation active:scale-95"
               onClick={() => {
                 setTimeout(() => {
                   const headerHeight = 120; // Approximate height of header + page title
