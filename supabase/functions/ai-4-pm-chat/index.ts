@@ -1130,6 +1130,13 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   console.log('No tool calls made, returning direct response');
   console.log('Direct response length:', finalContent.length);
   console.log('Direct response preview:', finalContent.substring(0, 100) + '...');
+  
+  // Ensure we have a valid response before returning
+  if (!finalContent || finalContent.trim() === '' || finalContent === 'No response received') {
+    console.error('ERROR: GPT-5 returned empty or invalid response');
+    return 'I apologize, but I encountered an issue generating a response. Please try again.';
+  }
+  
   return finalContent;
 }
 
@@ -1566,41 +1573,55 @@ serve(async (req) => {
     // Create final system prompt by combining enhanced prompt with source context
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
 
-    // Initialize response variable
-    let response: string;
-    
-    console.log('About to route to model:', selectedModel);
+  // Initialize response variable
+  let response: string = '';
+  
+  console.log('About to route to model:', selectedModel);
 
-    // Model routing with proper mapping
-    if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
-      response = await callClaude(processedMessages, finalSystemPrompt, files);
-    } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
-      // Use GPT-5 function for GPT-5 models with fallback
-      try {
-        response = await callGPT5(processedMessages, finalSystemPrompt, files);
-      } catch (error) {
-        console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
+  // Model routing with proper mapping
+  if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
+    response = await callClaude(processedMessages, finalSystemPrompt, files);
+  } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
+    // Use GPT-5 function for GPT-5 models with fallback
+    try {
+      console.log('Calling GPT-5...');
+      response = await callGPT5(processedMessages, finalSystemPrompt, files);
+      console.log('GPT-5 response received:', !!response, 'Length:', response?.length || 0);
+      
+      // Ensure we have a valid response
+      if (!response || response.trim() === '') {
+        console.log('GPT-5 returned empty response, falling back to GPT-4 Turbo');
         response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
       }
-    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
-      // Use GPT-4 Turbo for legacy models
-      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
-    } else if (selectedModel === 'grok-beta') {
-      response = await callGrok(processedMessages, finalSystemPrompt, files);
-    } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
-      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
-    } else if (selectedModel === 'gemini-1.5-flash') {
-      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
-    } else {
-      // Fallback to GPT-4 Turbo for any unsupported model
-      console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
+    } catch (error) {
+      console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     }
-    
-    console.log('Model call completed successfully');
-    console.log('Response received:', !!response);
-    console.log('Response length:', response?.length || 0);
-    console.log('Response preview:', response?.substring(0, 200) + '...');
+  } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
+    // Use GPT-4 Turbo for legacy models
+    response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+  } else if (selectedModel === 'grok-beta') {
+    response = await callGrok(processedMessages, finalSystemPrompt, files);
+  } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
+    response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
+  } else if (selectedModel === 'gemini-1.5-flash') {
+    response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
+  } else {
+    // Fallback to GPT-4 Turbo for any unsupported model
+    console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
+    response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+  }
+  
+  console.log('Model call completed successfully');
+  console.log('Response received:', !!response);
+  console.log('Response length:', response?.length || 0);
+  console.log('Response preview:', response?.substring(0, 200) + '...');
+  
+  // Final validation before returning
+  if (!response || response.trim() === '') {
+    console.error('ERROR: Empty response from model, this should not happen');
+    response = 'I apologize, but I encountered an issue generating a response. Please try again.';
+  }
 
     return new Response(
       JSON.stringify({ response }),
