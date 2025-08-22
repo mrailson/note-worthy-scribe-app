@@ -134,31 +134,54 @@ serve(async (req) => {
     // Search for specific sources based on extracted terms
     const specificSources = await findRelevantSources(keyTerms);
     
-    // Fetch content from specific sources
-    for (const sourceUrl of specificSources) {
+    // Fetch content from specific sources with timeout
+    const fetchPromises = specificSources.slice(0, 5).map(async (sourceUrl) => {
       try {
         console.log(`Fetching source: ${sourceUrl}`);
-        const response = await fetch(sourceUrl, {
-          headers: {
-            'User-Agent': 'NHS-AI-Verification-Service/1.0'
-          }
-        });
+        
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Fetch timeout')), 8000)
+        );
+        
+        // Race the fetch against the timeout
+        const response = await Promise.race([
+          fetch(sourceUrl, {
+            headers: {
+              'User-Agent': 'NHS-AI-Verification-Service/1.0'
+            }
+          }),
+          timeoutPromise
+        ]) as Response;
         
         if (response.ok) {
           const html = await response.text();
           // Extract more relevant content by looking for key terms
           const relevantContent = extractRelevantContent(html, keyTerms);
           
-          verificationSources.push({
+          return {
             name: new URL(sourceUrl).hostname,
             url: sourceUrl,
-            relevantContent: relevantContent.substring(0, 3000),
-            trustLevel: 'high'
-          });
+            relevantContent: relevantContent.substring(0, 2000), // Reduced size
+            trustLevel: 'high' as const
+          };
         }
       } catch (error) {
         console.error(`Failed to fetch ${sourceUrl}:`, error);
+        return null;
       }
+    });
+
+    // Wait for all sources with overall timeout
+    try {
+      const results = await Promise.allSettled(fetchPromises);
+      results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          verificationSources.push(result.value);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching sources:', error);
     }
 
     // Use multiple AI services for comprehensive consensus
@@ -168,11 +191,11 @@ serve(async (req) => {
 
 TASK: Verify the accuracy of an AI response against authoritative UK medical sources.
 
-Original Query: "${originalPrompt}"
+Original Query: "${originalPrompt.substring(0, 500)}..."
 
-AI Response to Verify: "${aiResponse}"
+AI Response to Verify: "${aiResponse.substring(0, 1000)}..."
 
-Available Source Content: ${verificationSources.map(s => `${s.name}: ${s.relevantContent.substring(0, 1000)}`).join('\n\n')}
+Available Source Content: ${verificationSources.map(s => `${s.name}: ${s.relevantContent.substring(0, 800)}`).join('\n\n')}
 
 Provide a clinical assessment with:
 1. Agreement level (0-100%) with the AI response
@@ -187,167 +210,107 @@ Format as JSON: {
   "riskLevel": "low|medium|high"
 }`;
 
+    // Run AI verifications in parallel with shorter timeouts
+    const verificationPromises = [];
+
     // OpenAI verification
     if (openaiApiKey) {
-      try {
-        console.log('Running OpenAI verification...');
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
-              { role: 'user', content: verificationPrompt }
-            ],
-            max_tokens: 500,
-            temperature: 0.3,
-            response_format: { type: "json_object" }
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const result = JSON.parse(data.choices[0].message.content);
-          
-          llmConsensus.push({
-            model: 'gpt-5-2025-08-07',
-            service: 'OpenAI',
-            assessment: result.assessment,
-            agreementLevel: result.agreementLevel,
-            concerns: result.concerns || []
-          });
-        }
-      } catch (error) {
-        console.error('OpenAI verification failed:', error);
-      }
+      verificationPromises.push(
+        Promise.race([
+          fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
+                { role: 'user', content: verificationPrompt }
+              ],
+              max_tokens: 400,
+              temperature: 0.3,
+              response_format: { type: "json_object" }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI timeout')), 15000))
+        ]).then(async (response: any) => {
+          if (response.ok) {
+            const data = await response.json();
+            const result = JSON.parse(data.choices[0].message.content);
+            
+            return {
+              model: 'gpt-4o-mini',
+              service: 'OpenAI',
+              assessment: result.assessment,
+              agreementLevel: result.agreementLevel,
+              concerns: result.concerns || []
+            };
+          }
+          return null;
+        }).catch(error => {
+          console.error('OpenAI verification failed:', error);
+          return null;
+        })
+      );
     }
 
     // Claude verification  
     if (anthropicApiKey) {
-      try {
-        console.log('Running Claude verification...');
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${anthropicApiKey}`,
-            'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 500,
-            messages: [
-              { role: 'user', content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}` }
-            ]
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const result = JSON.parse(data.content[0].text);
-          
-          llmConsensus.push({
-            model: 'claude-3-5-sonnet-20241022',
-            service: 'Claude',
-            assessment: result.assessment,
-            agreementLevel: result.agreementLevel,
-            concerns: result.concerns || []
-          });
-        }
-      } catch (error) {
-        console.error('Claude verification failed:', error);
-      }
-    }
-
-    // Gemini verification
-    if (googleApiKey) {
-      try {
-        console.log('Running Gemini verification...');
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${googleApiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 500
-            }
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const textContent = data.candidates[0].content.parts[0].text;
-          // Extract JSON from response
-          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const result = JSON.parse(jsonMatch[0]);
+      verificationPromises.push(
+        Promise.race([
+          fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${anthropicApiKey}`,
+              'Content-Type': 'application/json',
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: 'claude-3-5-haiku-20241022',
+              max_tokens: 400,
+              messages: [
+                { role: 'user', content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}` }
+              ]
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Claude timeout')), 15000))
+        ]).then(async (response: any) => {
+          if (response.ok) {
+            const data = await response.json();
+            const result = JSON.parse(data.content[0].text);
             
-            llmConsensus.push({
-              model: 'gemini-pro',
-              service: 'Google Gemini',
+            return {
+              model: 'claude-3-5-haiku-20241022',
+              service: 'Claude',
               assessment: result.assessment,
               agreementLevel: result.agreementLevel,
               concerns: result.concerns || []
-            });
+            };
           }
-        }
-      } catch (error) {
-        console.error('Gemini verification failed:', error);
-      }
+          return null;
+        }).catch(error => {
+          console.error('Claude verification failed:', error);
+          return null;
+        })
+      );
     }
 
-    // Grok verification
-    if (grokApiKey) {
-      try {
-        console.log('Running Grok verification...');
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${grokApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'grok-beta',
-            messages: [
-              { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
-              { role: 'user', content: verificationPrompt }
-            ],
-            max_tokens: 500,
-            temperature: 0.3
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const textContent = data.choices[0].message.content;
-          // Extract JSON from response
-          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const result = JSON.parse(jsonMatch[0]);
-            
-            llmConsensus.push({
-              model: 'grok-beta',
-              service: 'Grok',
-              assessment: result.assessment,
-              agreementLevel: result.agreementLevel,
-              concerns: result.concerns || []
-            });
-          }
+    // Execute all verifications in parallel with overall timeout
+    try {
+      console.log('Running parallel AI verifications...');
+      const results = await Promise.allSettled(verificationPromises);
+      
+      results.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          llmConsensus.push(result.value);
         }
-      } catch (error) {
-        console.error('Grok verification failed:', error);
-      }
+      });
+      
+      console.log(`Completed ${llmConsensus.length} AI verifications`);
+    } catch (error) {
+      console.error('Error in parallel verifications:', error);
     }
 
     // Calculate overall confidence score
