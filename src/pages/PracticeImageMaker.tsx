@@ -27,7 +27,9 @@ import {
   Palette,
   ImageIcon,
   Settings,
-  Zap
+  Zap,
+  Mic,
+  MicOff
 } from "lucide-react";
 import { TextOverlayPoster } from "@/components/TextOverlayPoster";
 
@@ -245,6 +247,11 @@ const PracticeImageMaker = () => {
   const [quickPrompt, setQuickPrompt] = useState("");
   const [quickModalImage, setQuickModalImage] = useState<string | null>(null);
   const [isQuickGenerating, setIsQuickGenerating] = useState(false);
+  
+  // Voice Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
   const handleEditPhotoUpload = (file: File | null) => {
     if (file) {
@@ -644,6 +651,95 @@ const PracticeImageMaker = () => {
     }
   };
 
+  // Voice Recording Functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        await processAudioToText(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setAudioChunks(chunks);
+      
+      toast.success("Recording started - speak now!");
+    } catch (error: any) {
+      console.error("Error starting recording:", error);
+      toast.error("Failed to start recording. Please check microphone permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
+      toast.success("Recording stopped - processing...");
+    }
+  };
+
+  const processAudioToText = async (audioBlob: Blob) => {
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binaryString = '';
+      const chunkSize = 0x8000;
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      
+      const base64Audio = btoa(binaryString);
+      
+      // Send to Supabase edge function for transcription
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to transcribe audio');
+      }
+
+      if (data?.text) {
+        // Append transcribed text to existing prompt
+        setQuickPrompt(prev => prev ? `${prev} ${data.text}` : data.text);
+        toast.success("Voice transcription added!");
+      } else {
+        throw new Error('No transcription received');
+      }
+    } catch (error: any) {
+      console.error("Error processing audio:", error);
+      toast.error(error.message || "Failed to process audio");
+    }
+  };
+
   const handleDownloadPNG = () => {
     if (!currentImage) return;
     
@@ -685,7 +781,13 @@ const PracticeImageMaker = () => {
         
         {/* Quick Generate Button */}
         <div className="mb-6 text-center">
-          <Dialog open={quickModalOpen} onOpenChange={setQuickModalOpen}>
+          <Dialog open={quickModalOpen} onOpenChange={(open) => {
+            setQuickModalOpen(open);
+            // Stop recording if modal is closed while recording
+            if (!open && isRecording) {
+              stopRecording();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button size="lg" className="animate-fade-in">
                 <Zap className="mr-2 h-5 w-5" />
@@ -705,13 +807,40 @@ const PracticeImageMaker = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="quick-prompt">Describe your image</Label>
-                    <Textarea
-                      id="quick-prompt"
-                      value={quickPrompt}
-                      onChange={(e) => setQuickPrompt(e.target.value)}
-                      placeholder="A professional NHS poster about flu vaccinations with clean design..."
-                      className="min-h-[200px] resize-none"
-                    />
+                    <p className="text-xs text-muted-foreground">(The more descriptive, the better!)</p>
+                    <div className="relative">
+                      <Textarea
+                        id="quick-prompt"
+                        value={quickPrompt}
+                        onChange={(e) => setQuickPrompt(e.target.value)}
+                        placeholder="A professional NHS poster about flu vaccinations with clean design, bold text, blue color scheme..."
+                        className="min-h-[200px] resize-none pr-12"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isRecording ? "destructive" : "outline"}
+                        className="absolute bottom-2 right-2"
+                        onClick={isRecording ? stopRecording : startRecording}
+                        disabled={isQuickGenerating}
+                      >
+                        {isRecording ? (
+                          <>
+                            <MicOff className="h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {isRecording && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                        Recording... Click the mic to stop
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-md">
