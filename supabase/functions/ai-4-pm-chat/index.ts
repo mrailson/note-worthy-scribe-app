@@ -877,6 +877,9 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
   }
 
   console.log('Calling GPT-5 with web search tools...');
+  console.log('Messages count:', messages.length);
+  console.log('System prompt length:', systemPrompt.length);
+  console.log('Files count:', files?.length || 0);
 
   const today = new Date().toLocaleDateString('en-GB', {
     timeZone: 'Europe/London',
@@ -952,6 +955,14 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   });
 
   // First completion - check for tool calls
+  console.log('Making initial GPT-5 API call...');
+  console.log('Request body preview:', {
+    model: 'gpt-5-2025-08-07',
+    max_completion_tokens: 4000,
+    messageCount: gptMessages.length,
+    hasTools: true
+  });
+  
   const initial = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -971,6 +982,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   if (!initial.ok) {
     const error = await initial.text();
     console.error('OpenAI API error:', error);
+    console.error('API response status:', initial.status);
+    console.error('API response headers:', Object.fromEntries(initial.headers.entries()));
     
     // Check for quota exceeded error specifically
     if (initial.status === 429 || error.includes('insufficient_quota')) {
@@ -1009,6 +1022,15 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   }
 
   const initialData = await initial.json();
+  console.log('GPT-5 API response received successfully');
+  console.log('Response structure:', {
+    hasChoices: !!initialData.choices,
+    choicesLength: initialData.choices?.length,
+    hasMessage: !!initialData.choices?.[0]?.message,
+    hasToolCalls: !!initialData.choices?.[0]?.message?.tool_calls,
+    toolCallsCount: initialData.choices?.[0]?.message?.tool_calls?.length || 0
+  });
+  
   const choice = initialData.choices?.[0];
   const toolCalls = choice?.message?.tool_calls ?? [];
 
@@ -1578,11 +1600,20 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in ai-4-pm-chat function:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Request details:', { 
+      selectedModel, 
+      verificationLevel, 
+      messageCount: messages.length,
+      hasFiles: !!files?.length 
+    });
     
     let errorMessage = 'An unexpected error occurred';
     if (error instanceof Error) {
       errorMessage = error.message;
     }
+    
+    console.error('Final error message:', errorMessage);
 
     // Handle OpenAI quota exceeded error with helpful message
     if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('insufficient_quota')) {
