@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +26,8 @@ import {
   Copy,
   Palette,
   ImageIcon,
-  Settings
+  Settings,
+  Zap
 } from "lucide-react";
 import { TextOverlayPoster } from "@/components/TextOverlayPoster";
 
@@ -235,6 +237,14 @@ const PracticeImageMaker = () => {
   
   // Service Selection State
   const [useRunware, setUseRunware] = useState(true); // true = Runware, false = OpenAI GPT
+  
+  // UI State
+  const [createOwnOpen, setCreateOwnOpen] = useState(true);
+  const [quickPicksOpen, setQuickPicksOpen] = useState(false);
+  const [quickModalOpen, setQuickModalOpen] = useState(false);
+  const [quickPrompt, setQuickPrompt] = useState("");
+  const [quickModalImage, setQuickModalImage] = useState<string | null>(null);
+  const [isQuickGenerating, setIsQuickGenerating] = useState(false);
 
   const handleEditPhotoUpload = (file: File | null) => {
     if (file) {
@@ -592,6 +602,48 @@ const PracticeImageMaker = () => {
     }
   };
 
+  // Quick Modal Generation
+  const handleQuickGenerate = async () => {
+    if (!quickPrompt.trim()) {
+      toast.error("Please enter a prompt");
+      return;
+    }
+
+    setIsQuickGenerating(true);
+    setQuickModalImage(null);
+
+    try {
+      const serviceName = useRunware ? 'runware-image-generation' : 'advanced-image-generation';
+      const requestFormData = new FormData();
+      
+      requestFormData.append('prompt', quickPrompt);
+      requestFormData.append('size', '1024x1024');
+      requestFormData.append('quality', 'high');
+      requestFormData.append('mode', 'generation');
+
+      const { data, error } = await supabase.functions.invoke(serviceName, {
+        body: useRunware ? requestFormData : requestFormData
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to generate image');
+      }
+
+      if (data.success) {
+        setQuickModalImage(data.imageData);
+        const serviceName = useRunware ? "Runware" : "OpenAI GPT";
+        toast.success(`Quick image generated with ${serviceName}!`);
+      } else {
+        throw new Error(data.error || "Failed to generate image");
+      }
+    } catch (error: any) {
+      console.error("Error in quick generation:", error);
+      toast.error(error.message || "Failed to generate image");
+    } finally {
+      setIsQuickGenerating(false);
+    }
+  };
+
   const handleDownloadPNG = () => {
     if (!currentImage) return;
     
@@ -642,6 +694,111 @@ const PracticeImageMaker = () => {
 
       {/* Main Content */}
       <div className="container mx-auto p-6">
+        
+        {/* Quick Generate Button */}
+        <div className="mb-6 text-center">
+          <Dialog open={quickModalOpen} onOpenChange={setQuickModalOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="animate-fade-in">
+                <Zap className="mr-2 h-5 w-5" />
+                Quick Generate
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden p-0">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Quick Image Generator
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-[80vh]">
+                {/* Left Side - Input */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quick-prompt">Describe your image</Label>
+                    <Textarea
+                      id="quick-prompt"
+                      value={quickPrompt}
+                      onChange={(e) => setQuickPrompt(e.target.value)}
+                      placeholder="A professional NHS poster about flu vaccinations with clean design..."
+                      className="min-h-[200px] resize-none"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-md">
+                    <Switch
+                      id="quick-service-toggle"
+                      checked={useRunware}
+                      onCheckedChange={setUseRunware}
+                    />
+                    <Label htmlFor="quick-service-toggle" className="flex items-center gap-2">
+                      <span className={useRunware ? 'font-medium' : 'text-muted-foreground'}>
+                        {useRunware ? 'Runware (Fast)' : 'OpenAI GPT (Creative)'}
+                      </span>
+                    </Label>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleQuickGenerate}
+                    disabled={isQuickGenerating || !quickPrompt.trim()}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isQuickGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        Generate Image
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {/* Right Side - Output */}
+                <div className="flex flex-col">
+                  <Label className="mb-2">Generated Image</Label>
+                  <div className="flex-1 border-2 border-dashed border-muted rounded-lg flex items-center justify-center bg-muted/10">
+                    {quickModalImage ? (
+                      <div className="relative w-full h-full">
+                        <img 
+                          src={quickModalImage} 
+                          alt="Generated image"
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                        <div className="absolute bottom-4 right-4 space-x-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = quickModalImage;
+                              link.download = `quick-generated-${Date.now()}.png`;
+                              link.click();
+                            }}
+                          >
+                            <Download className="mr-1 h-3 w-3" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        <ImageIcon className="h-12 w-12 mx-auto mb-3" />
+                        <p>Your generated image will appear here</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Left Column - Prompt Composer */}
@@ -843,13 +1000,20 @@ const PracticeImageMaker = () => {
 
             {/* Create Your Own */}
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5" />
-                  <CardTitle>Create Your Own</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <Collapsible open={createOwnOpen} onOpenChange={setCreateOwnOpen}>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5" />
+                        <CardTitle>Create Your Own</CardTitle>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${createOwnOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="prompt">Describe what you need</Label>
                   <Textarea
@@ -1014,19 +1178,31 @@ const PracticeImageMaker = () => {
                   )}
                 </Button>
 
-                {/* Compliance Helper */}
-                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-                  <strong>Compliance reminder:</strong> Please do not include patient names, dates of birth, addresses, or NHS numbers.
-                </div>
-              </CardContent>
-            </Card>
+                 {/* Compliance Helper */}
+                 <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+                   <strong>Compliance reminder:</strong> Please do not include patient names, dates of birth, addresses, or NHS numbers.
+                 </div>
+               </CardContent>
+             </CollapsibleContent>
+           </Collapsible>
+         </Card>
 
-            {/* Quick-Picks */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick-Picks (Top 20)</CardTitle>
-              </CardHeader>
-              <CardContent>
+         {/* Quick-Picks */}
+         <Card>
+           <Collapsible open={quickPicksOpen} onOpenChange={setQuickPicksOpen}>
+             <CollapsibleTrigger className="w-full">
+               <CardHeader className="hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <Zap className="h-5 w-5" />
+                     <CardTitle>Quick-Picks (Top 20)</CardTitle>
+                   </div>
+                   <ChevronDown className={`h-4 w-4 transition-transform ${quickPicksOpen ? 'rotate-180' : ''}`} />
+                 </div>
+               </CardHeader>
+             </CollapsibleTrigger>
+             <CollapsibleContent>
+               <CardContent>
                 <div className="grid grid-cols-1 gap-2">
                   {QUICK_PICKS.map((quickPick, index) => (
                     <Button
@@ -1043,10 +1219,12 @@ const PracticeImageMaker = () => {
                       </div>
                     </Button>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                 </div>
+               </CardContent>
+             </CollapsibleContent>
+           </Collapsible>
+         </Card>
+       </div>
 
           {/* Right Column - Output & History */}
           <div className="space-y-6">
