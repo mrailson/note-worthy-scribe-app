@@ -1,7 +1,8 @@
 import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic, MicOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Send, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -15,6 +16,8 @@ interface InputAreaProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
   onSend: () => void;
   isLoading: boolean;
+  isClinical: boolean;
+  setIsClinical: (clinical: boolean) => void;
 }
 
 export interface InputAreaRef {
@@ -27,7 +30,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   uploadedFiles,
   setUploadedFiles,
   onSend,
-  isLoading
+  isLoading,
+  isClinical,
+  setIsClinical
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -76,6 +81,22 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
       />
+      
+      {/* Clinical Query Toggle */}
+      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Stethoscope className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium">Clinical Query</span>
+          <span className="text-xs text-muted-foreground">
+            (Enables multi-source verification)
+          </span>
+        </div>
+        <Switch
+          checked={isClinical}
+          onCheckedChange={setIsClinical}
+          disabled={isLoading}
+        />
+      </div>
       
       <div className="flex gap-2">
         <div className="flex-1 relative">

@@ -357,6 +357,8 @@ const AI4GPService = () => {
                         setUploadedFiles={setUploadedFiles}
                         onSend={handleSendWithContext}
                         isLoading={isLoading}
+                        isClinical={isClinical}
+                        setIsClinical={setIsClinical}
                       />
                     </div>
                   )}

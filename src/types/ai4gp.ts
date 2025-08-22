@@ -9,6 +9,33 @@ export interface Message {
   apiResponseTime?: number;
   model?: string;
   isStreaming?: boolean;
+  isClinical?: boolean;
+  clinicalVerification?: ClinicalVerificationData;
+}
+
+export interface ClinicalVerificationData {
+  confidenceScore: number; // 0-100
+  verificationSources: VerificationSource[];
+  llmConsensus: LLMConsensusData[];
+  verificationTimestamp: Date;
+  verificationStatus: 'pending' | 'verified' | 'flagged';
+  riskLevel: 'low' | 'medium' | 'high';
+  evidenceSummary?: string;
+}
+
+export interface VerificationSource {
+  name: string;
+  url: string;
+  lastUpdated?: string;
+  relevantContent: string;
+  trustLevel: 'high' | 'medium' | 'low';
+}
+
+export interface LLMConsensusData {
+  model: string;
+  assessment: string;
+  agreementLevel: number; // 0-100
+  concerns?: string[];
 }
 
 export interface UploadedFile {

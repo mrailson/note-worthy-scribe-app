@@ -18,6 +18,30 @@ export const useAI4GPService = () => {
   const [useOpenAI, setUseOpenAI] = useState(false);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
+  const [isClinical, setIsClinical] = useState(false);
+
+  // Clinical verification function
+  const performClinicalVerification = useCallback(async (messageId: string, originalPrompt: string, aiResponse: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('clinical-verification', {
+        body: {
+          originalPrompt,
+          aiResponse,
+          messageId
+        }
+      });
+
+      if (error) {
+        console.error('Clinical verification error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Clinical verification failed:', error);
+      return null;
+    }
+  }, []);
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
@@ -140,7 +164,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       role: 'user',
       content: messageContent,
       timestamp: new Date(),
-      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
+      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined,
+      isClinical: isClinical
     };
 
     const newMessages = [...messages, userMessage];
@@ -248,24 +273,45 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               const endTime = Date.now();
               const responseTime = endTime - startTime;
               
+              const finalAssistantMessage = {
+                ...assistantMessage,
+                content: responseContent,
+                isStreaming: false,
+                responseTime,
+                timeToFirstWords,
+                apiResponseTime
+              };
+
+              // Perform clinical verification if this was a clinical query
+              if (isClinical && userMessage.isClinical) {
+                setTimeout(async () => {
+                  const verificationData = await performClinicalVerification(
+                    assistantMessageId,
+                    userMessage.content,
+                    responseContent
+                  );
+
+                  if (verificationData) {
+                    setMessages(prev => prev.map(msg => 
+                      msg.id === assistantMessageId 
+                        ? { ...msg, clinicalVerification: verificationData }
+                        : msg
+                    ));
+                  }
+                }, 500); // Delay to allow UI to settle
+              }
+              
               setMessages(prev => prev.map(msg => 
                 msg.id === assistantMessageId 
-                  ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                  ? finalAssistantMessage
                   : msg
               ));
 
-              // Auto-save the search
-              setTimeout(async () => {
-                const finalMessages = [...newMessages, {
-                  ...assistantMessage,
-                  content: responseContent,
-                  isStreaming: false,
-                  responseTime,
-                  timeToFirstWords,
-                  apiResponseTime
-                }];
-                await saveSearchAutomatically(finalMessages);
-              }, 100);
+                 // Auto-save the search
+                setTimeout(async () => {
+                  const finalMessages = [...newMessages, finalAssistantMessage];
+                  await saveSearchAutomatically(finalMessages);
+                }, 100);
             }
           }
         };
@@ -668,6 +714,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,
-    handleQuickResponse
+    handleQuickResponse,
+    isClinical,
+    setIsClinical,
+    performClinicalVerification
   };
 };

@@ -22,13 +22,17 @@ import {
   Zap,
   GraduationCap,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  CheckCircle,
+  Stethoscope
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
+import { ClinicalVerificationModal } from '@/components/ClinicalVerificationModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 
 interface Message {
@@ -42,6 +46,8 @@ interface Message {
   apiResponseTime?: number;
   model?: string;
   isStreaming?: boolean;
+  isClinical?: boolean;
+  clinicalVerification?: any;
 }
 
 interface UploadedFile {
@@ -79,6 +85,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const { user } = useAuth();
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   
@@ -204,6 +211,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleEmailToOthers = () => {
     setIsEmailModalOpen(true);
+  };
+
+  const getConfidenceColor = (score: number) => {
+    if (score >= 85) return 'bg-green-100 text-green-800 border-green-300';
+    if (score >= 60) return 'bg-amber-100 text-amber-800 border-amber-300';
+    return 'bg-red-100 text-red-800 border-red-300';
+  };
+
+  const getConfidenceIcon = (score: number) => {
+    if (score >= 85) return <CheckCircle className="w-3 h-3" />;
+    if (score >= 60) return <Shield className="w-3 h-3" />;
+    return <AlertTriangle className="w-3 h-3" />;
   };
 
   const handleQuickPickAction = (action: string) => {
@@ -610,6 +629,33 @@ Please fetch these and retry. No corrections made."`;
             </div>
           )}
           
+  {/* Clinical verification badge */}
+          {message.role === 'assistant' && message.clinicalVerification && (
+            <div className="mt-3 pt-2 border-t border-border/20">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="w-3 h-3 text-blue-600" />
+                <button
+                  onClick={() => setIsVerificationModalOpen(true)}
+                  className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
+                    getConfidenceColor(message.clinicalVerification.confidenceScore)
+                  }`}
+                  title="Click to view detailed verification report"
+                >
+                  <div className="flex items-center gap-1">
+                    {getConfidenceIcon(message.clinicalVerification.confidenceScore)}
+                    <span>{message.clinicalVerification.confidenceScore}% Clinical Confidence</span>
+                  </div>
+                </button>
+                <Badge variant={
+                  message.clinicalVerification.riskLevel === 'high' ? 'destructive' :
+                  message.clinicalVerification.riskLevel === 'medium' ? 'secondary' : 'default'
+                } className="text-xs">
+                  {message.clinicalVerification.riskLevel.toUpperCase()} RISK
+                </Badge>
+              </div>
+            </div>
+          )}
+          
           {/* Response metrics for assistant messages */}
           {(showResponseMetrics || showRenderTimes || showAIService) && message.role === 'assistant' && (
             <div className="mt-2 pt-2 border-t border-border/20">
@@ -856,6 +902,15 @@ Please fetch these and retry. No corrections made."`;
         content={message.content}
         defaultSubject="AI Generated Content"
       />
+
+      {/* Clinical Verification Modal */}
+      {message.clinicalVerification && (
+        <ClinicalVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+          verificationData={message.clinicalVerification}
+        />
+      )}
     </div>
   );
 };
