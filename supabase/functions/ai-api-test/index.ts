@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -18,77 +17,98 @@ serve(async (req) => {
   }
 
   try {
-    const startTime = Date.now();
-    const { model, prompt }: TestRequest = await req.json();
+    console.log('🚀 AI API Test function started');
     
-    console.log(`Testing model: ${model} with prompt: ${prompt}`);
+    const requestBody = await req.json();
+    const { model, prompt }: TestRequest = requestBody;
     
-    // Check environment variables
+    console.log(`📝 Testing model: ${model}`);
+    console.log(`💬 Prompt: ${prompt.substring(0, 50)}...`);
+    
+    // Get API keys from environment
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     
-    console.log('Environment check:', {
-      openai: OPENAI_API_KEY ? `Present (${OPENAI_API_KEY.substring(0, 10)}...)` : 'Missing',
-      anthropic: ANTHROPIC_API_KEY ? `Present (${ANTHROPIC_API_KEY.substring(0, 10)}...)` : 'Missing',
-      grok: GROK_API_KEY ? `Present (${GROK_API_KEY.substring(0, 10)}...)` : 'Missing',
-      gemini: GEMINI_API_KEY ? `Present (${GEMINI_API_KEY.substring(0, 10)}...)` : 'Missing'
+    console.log('🔑 Environment variables check:', {
+      openai: OPENAI_API_KEY ? '✅ Present' : '❌ Missing',
+      anthropic: ANTHROPIC_API_KEY ? '✅ Present' : '❌ Missing',
+      grok: GROK_API_KEY ? '✅ Present' : '❌ Missing',
+      gemini: GEMINI_API_KEY ? '✅ Present' : '❌ Missing'
     });
 
+    const startTime = Date.now();
     let response: string;
-    let responseTime: number;
+    let modelUsed: string;
 
+    // Route to appropriate API
     switch (model) {
       case 'gpt-5-2025-08-07':
-        if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
-        response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY); // Use GPT-4o as GPT-5 might not be available
+        if (!OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not configured');
+        }
+        response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+        modelUsed = 'gpt-4o (fallback from gpt-5)';
         break;
         
       case 'claude-4-opus':
-        if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
+        if (!ANTHROPIC_API_KEY) {
+          throw new Error('Anthropic API key not configured');
+        }
         response = await testClaude(prompt, ANTHROPIC_API_KEY);
+        modelUsed = 'claude-3-5-sonnet-20241022';
         break;
         
       case 'gpt-4-turbo':
-        if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
+        if (!OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not configured');
+        }
         response = await testOpenAI(prompt, 'gpt-4-turbo', OPENAI_API_KEY);
+        modelUsed = 'gpt-4-turbo';
         break;
         
       case 'grok-beta':
-        if (!GROK_API_KEY) throw new Error('Grok API key not configured');
+        if (!GROK_API_KEY) {
+          throw new Error('Grok API key not configured');
+        }
         response = await testGrok(prompt, GROK_API_KEY);
+        modelUsed = 'grok-2-1212';
         break;
         
       case 'gemini-1.5-pro':
-        if (!GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+        if (!GEMINI_API_KEY) {
+          throw new Error('Gemini API key not configured');
+        }
         response = await testGemini(prompt, GEMINI_API_KEY);
+        modelUsed = 'gemini-1.5-pro-latest';
         break;
         
       default:
         throw new Error(`Unsupported model: ${model}`);
     }
 
-    responseTime = Date.now() - startTime;
+    const responseTime = Date.now() - startTime;
     
-    console.log(`${model} test completed in ${responseTime}ms`);
+    console.log(`✅ ${model} test completed successfully in ${responseTime}ms`);
     
     return new Response(JSON.stringify({
       success: true,
-      response: response,
+      response: response.trim(),
       responseTime: responseTime,
-      model: model
+      model: modelUsed,
+      requestedModel: model
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error(`API test error:`, error);
+    console.error('❌ API test error:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Unknown error occurred',
-      details: error.stack
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -97,7 +117,7 @@ serve(async (req) => {
 });
 
 async function testOpenAI(prompt: string, model: string, apiKey: string): Promise<string> {
-  console.log(`Testing OpenAI with model: ${model}`);
+  console.log(`🤖 Testing OpenAI with model: ${model}`);
   
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -108,7 +128,7 @@ async function testOpenAI(prompt: string, model: string, apiKey: string): Promis
     body: JSON.stringify({
       model: model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 100,
+      max_tokens: 150,
       temperature: 0.7
     }),
   });
@@ -124,7 +144,7 @@ async function testOpenAI(prompt: string, model: string, apiKey: string): Promis
 }
 
 async function testClaude(prompt: string, apiKey: string): Promise<string> {
-  console.log('Testing Claude API');
+  console.log('🧠 Testing Claude API');
   
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -135,7 +155,7 @@ async function testClaude(prompt: string, apiKey: string): Promise<string> {
     },
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 100,
+      max_tokens: 150,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -151,7 +171,7 @@ async function testClaude(prompt: string, apiKey: string): Promise<string> {
 }
 
 async function testGrok(prompt: string, apiKey: string): Promise<string> {
-  console.log('Testing Grok API');
+  console.log('🚀 Testing Grok API');
   
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
@@ -162,7 +182,7 @@ async function testGrok(prompt: string, apiKey: string): Promise<string> {
     body: JSON.stringify({
       model: 'grok-2-1212',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 100,
+      max_tokens: 150,
       temperature: 0.7
     })
   });
@@ -178,7 +198,7 @@ async function testGrok(prompt: string, apiKey: string): Promise<string> {
 }
 
 async function testGemini(prompt: string, apiKey: string): Promise<string> {
-  console.log('Testing Gemini API');
+  console.log('💎 Testing Gemini API');
   
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`, {
     method: 'POST',
@@ -192,7 +212,7 @@ async function testGemini(prompt: string, apiKey: string): Promise<string> {
         }]
       }],
       generationConfig: {
-        maxOutputTokens: 100,
+        maxOutputTokens: 150,
         temperature: 0.7
       }
     })
