@@ -18,7 +18,7 @@ export const quickActions: QuickAction[] = [
     requiresFile: false 
   },
   { 
-    label: 'BNF Drug Lookup', 
+    label: 'BNF Drug Lookup - Metformin', 
     icon: Shield, 
     prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name`,
     requiresFile: false 
