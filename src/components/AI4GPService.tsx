@@ -27,7 +27,6 @@ import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
-import { MobileDebug } from '@/components/MobileDebug';
 
 
 const AI4GPService = () => {
@@ -121,7 +120,6 @@ const AI4GPService = () => {
 
   return (
     <>
-      <MobileDebug />
       <div 
         className="flex-1 flex flex-col bg-background relative h-full overflow-hidden" 
         data-component="ai4gp-service"
