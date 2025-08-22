@@ -462,17 +462,26 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   // Load user settings on component mount
   useEffect(() => {
     const loadUserSettings = async () => {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
+        console.log('Loading AI4GP settings for user:', user.id);
         const { data, error } = await supabase
           .from('user_settings')
           .select('setting_key, setting_value')
           .eq('user_id', user.id)
           .eq('setting_key', 'ai4gp_preferences');
 
+        if (error) {
+          console.error('Error loading user settings:', error);
+          return;
+        }
+
         if (data && data.length > 0) {
           const preferences = data[0].setting_value as any;
+          console.log('Loaded AI4GP preferences:', preferences);
+          
+          // Set defaults first, then override with saved values
           setSessionMemory(preferences.sessionMemory ?? true);
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
@@ -480,18 +489,27 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
+          
+          console.log('AI4GP settings loaded successfully');
+        } else {
+          console.log('No saved AI4GP preferences found, using defaults');
         }
       } catch (error) {
         console.error('Error loading user settings:', error);
       }
     };
 
-    loadUserSettings();
-  }, [user]);
+    // Add a small delay to ensure user is fully authenticated
+    if (user?.id) {
+      setTimeout(() => {
+        loadUserSettings();
+      }, 100);
+    }
+  }, [user?.id]);
 
   // Save user settings when they change
   const saveUserSettings = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
     try {
       const preferences = {
@@ -504,7 +522,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         showAIService
       };
 
-      await supabase
+      console.log('Saving AI4GP preferences:', preferences);
+      
+      const { error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: user.id,
@@ -513,15 +533,25 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         }, {
           onConflict: 'user_id,setting_key'
         });
+
+      if (error) {
+        console.error('Error saving user settings:', error);
+      } else {
+        console.log('AI4GP settings saved successfully');
+      }
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService]);
 
-  // Save settings when they change
+  // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
-    if (user) {
-      saveUserSettings();
+    if (user?.id) {
+      const timeoutId = setTimeout(() => {
+        saveUserSettings();
+      }, 500); // Debounce saves by 500ms
+
+      return () => clearTimeout(timeoutId);
     }
   }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, saveUserSettings]);
 
