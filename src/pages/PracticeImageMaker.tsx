@@ -326,6 +326,40 @@ const PracticeImageMaker = () => {
     return finalPrompt;
   };
 
+  // Helper function to convert image to PNG format
+  const convertImageToPNG = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw image to canvas
+        ctx?.drawImage(img, 0, 0);
+        
+        // Convert to PNG blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            // Create new File object with PNG format
+            const pngFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.png'), {
+              type: 'image/png',
+              lastModified: Date.now()
+            });
+            resolve(pngFile);
+          } else {
+            reject(new Error('Failed to convert image to PNG'));
+          }
+        }, 'image/png', 1.0);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleGenerate = async () => {
     // Check for PHI patterns
     const phiPatterns = /\b(name|dob|nhs\s?number|address)\b/i;
@@ -372,9 +406,25 @@ const PracticeImageMaker = () => {
       const formData = new FormData();
       
       if (editMode && editPhoto) {
-        // Photo editing mode
+        // Photo editing mode - convert to PNG if needed
+        let imageToUpload = editPhoto;
+        
+        // Convert JPEG/JPG to PNG for OpenAI compatibility
+        if (editPhoto.type === 'image/jpeg' || editPhoto.type === 'image/jpg') {
+          console.log('Converting JPEG to PNG for OpenAI compatibility');
+          toast.info('Converting image to PNG format...');
+          try {
+            imageToUpload = await convertImageToPNG(editPhoto);
+          } catch (error) {
+            console.error('Image conversion failed:', error);
+            toast.error('Failed to convert image. Please try with a PNG file.');
+            setIsGenerating(false);
+            return;
+          }
+        }
+        
         formData.append('prompt', prompt);
-        formData.append('image', editPhoto);
+        formData.append('image', imageToUpload);
         formData.append('mode', 'edit');
         formData.append('size', validApiSize);
         formData.append('quality', 'high');
