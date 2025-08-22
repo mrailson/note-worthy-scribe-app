@@ -22,92 +22,97 @@ interface VerificationSource {
 
 interface LLMConsensusData {
   model: string;
-  service: string;
+  service?: string;
   assessment: string;
   agreementLevel: number;
   concerns?: string[];
 }
 
-// Helper function to extract medical terms from text
+// Extract medical terms and drug names from text
 function extractMedicalTerms(text: string): string[] {
-  const commonMedicalTerms = [
-    'metformin', 'insulin', 'statins', 'aspirin', 'paracetamol', 'ibuprofen', 
-    'antibiotics', 'blood pressure', 'diabetes', 'asthma', 'copd', 'heart disease',
-    'vaccination', 'covid', 'flu', 'pneumonia', 'hypertension', 'cholesterol',
-    'contraception', 'pregnancy', 'mental health', 'depression', 'anxiety'
+  const medicalPatterns = [
+    /\b[A-Z][a-z]+(?:ine|ol|ic|ide|ium|ate|ose)\b/g, // Drug suffixes
+    /\b(?:mg|mcg|ml|units?)\b/gi, // Dosage units
+    /\b(?:diabetes|hypertension|asthma|copd|heart|kidney|liver|cancer)\w*\b/gi, // Common conditions
+    /\b[A-Z][a-z]*(?:pril|sartan|statin|blockers?)\b/gi, // Drug classes
+    /\b(?:NHS|NICE|BNF|GMC|RCGP)\b/gi, // Medical authorities
   ];
   
-  const words = text.toLowerCase().split(/\s+/);
-  const foundTerms = words.filter(word => 
-    commonMedicalTerms.some(term => word.includes(term) || term.includes(word))
-  );
+  const terms = new Set<string>();
+  medicalPatterns.forEach(pattern => {
+    const matches = text.match(pattern) || [];
+    matches.forEach(match => terms.add(match.toLowerCase()));
+  });
   
-  // Also extract potential drug names (words ending in common drug suffixes)
-  const drugSuffixes = ['pril', 'olol', 'ine', 'ide', 'cin', 'max', 'tol'];
-  const potentialDrugs = words.filter(word => 
-    drugSuffixes.some(suffix => word.endsWith(suffix)) && word.length > 4
-  );
+  // Also extract capitalized words that might be drug names
+  const capitalizedWords = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
+  capitalizedWords.forEach(word => {
+    if (word.length > 3) terms.add(word.toLowerCase());
+  });
   
-  return [...new Set([...foundTerms, ...potentialDrugs])];
+  return Array.from(terms);
 }
 
-// Helper function to find relevant sources based on key terms
-async function findRelevantSources(keyTerms: string[]): Promise<string[]> {
-  const sources: string[] = [];
-  
-  // Base authoritative sources
-  sources.push(
+// Find relevant UK medical sources based on extracted terms
+function findRelevantSources(keyTerms: string[]): string[] {
+  const sources = [
     'https://www.nice.org.uk/guidance',
     'https://bnf.nice.org.uk/',
     'https://www.england.nhs.uk/'
+  ];
+  
+  // Add specific sources based on terms
+  const hasCardiac = keyTerms.some(term => 
+    ['heart', 'cardiac', 'hypertension', 'blood pressure', 'ace inhibitor'].includes(term)
+  );
+  const hasDiabetes = keyTerms.some(term => 
+    ['diabetes', 'metformin', 'insulin', 'glucose'].includes(term)
+  );
+  const hasRespiratory = keyTerms.some(term => 
+    ['asthma', 'copd', 'inhaler', 'respiratory'].includes(term)
   );
   
-  // Add specific sources based on key terms
-  for (const term of keyTerms) {
-    if (term.includes('metformin') || term.includes('diabetes')) {
-      sources.push(
-        'https://www.nhs.uk/medicines/metformin/',
-        'https://www.diabetes.org.uk/',
-        'https://www.nice.org.uk/guidance/ng28'
-      );
-    }
-    if (term.includes('statin') || term.includes('cholesterol')) {
-      sources.push(
-        'https://www.nhs.uk/conditions/high-cholesterol/',
-        'https://www.nice.org.uk/guidance/cg181'
-      );
-    }
-    if (term.includes('blood pressure') || term.includes('hypertension')) {
-      sources.push(
-        'https://www.nhs.uk/conditions/high-blood-pressure-hypertension/',
-        'https://www.nice.org.uk/guidance/ng136'
-      );
-    }
-    if (term.includes('vaccination') || term.includes('vaccine')) {
-      sources.push(
-        'https://www.nhs.uk/vaccinations/',
-        'https://www.gov.uk/government/collections/immunisation-against-infectious-disease-the-green-book'
-      );
-    }
+  if (hasCardiac) {
+    sources.push('https://www.bhf.org.uk/');
+  }
+  if (hasDiabetes) {
+    sources.push('https://www.nhs.uk/medicines/metformin/', 'https://www.diabetes.org.uk/');
+  }
+  if (hasRespiratory) {
+    sources.push('https://www.asthma.org.uk/');
   }
   
-  return [...new Set(sources)];
+  return sources.slice(0, 6); // Limit to 6 sources max
 }
 
-// Helper function to extract relevant content from HTML
+// Extract relevant content from HTML
 function extractRelevantContent(html: string, keyTerms: string[]): string {
-  // Simple content extraction - in a real implementation, you'd use a proper HTML parser
-  const textContent = html.replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  // Find paragraphs containing key terms
-  const paragraphs = textContent.split(/\.\s+/);
-  const relevantParagraphs = paragraphs.filter(paragraph => 
-    keyTerms.some(term => paragraph.toLowerCase().includes(term.toLowerCase()))
-  );
-  
-  return relevantParagraphs.slice(0, 10).join('. ') || textContent.substring(0, 2000);
+  try {
+    // Remove script and style tags
+    const cleanHtml = html.replace(/<script[\s\S]*?<\/script>/gi, '')
+                         .replace(/<style[\s\S]*?<\/style>/gi, '');
+    
+    // Extract text content
+    const textContent = cleanHtml.replace(/<[^>]*>/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+    
+    if (!textContent) return '';
+    
+    // Split into paragraphs
+    const paragraphs = textContent.split(/\.\s+/).filter(p => p.length > 30);
+    
+    // Find paragraphs containing key terms
+    const relevantParagraphs = paragraphs.filter(paragraph => {
+      const lowerParagraph = paragraph.toLowerCase();
+      return keyTerms.some(term => lowerParagraph.includes(term.toLowerCase()));
+    });
+    
+    return relevantParagraphs.slice(0, 10).join('. ') || textContent.substring(0, 2000);
+  } catch (error) {
+    console.error('Error extracting content:', error);
+    return '';
+  }
 }
 
 serve(async (req) => {
@@ -118,61 +123,52 @@ serve(async (req) => {
   try {
     const { originalPrompt, aiResponse, messageId }: VerificationRequest = await req.json();
 
-    console.log(`Clinical verification for message: ${messageId}`);
-
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
-    const grokApiKey = Deno.env.get('GROK_API_KEY');
-
-    // Smart source finding - extract key terms to find more relevant pages
-    const keyTerms = extractMedicalTerms(originalPrompt + ' ' + aiResponse);
+    console.log('Clinical verification for message:', messageId);
+    const startTime = Date.now();
+    
+    // Extract key medical terms from prompt and response
+    const keyTerms = extractMedicalTerms(originalPrompt + " " + aiResponse);
     console.log('Extracted key terms:', keyTerms);
 
+    // Find relevant authoritative sources
+    const sourceUrls = findRelevantSources(keyTerms);
+    console.log('Fetching sources:', sourceUrls);
+
+    // Fetch content from sources with timeout
+    const sourceStartTime = Date.now();
     const verificationSources: VerificationSource[] = [];
     
-    // Search for specific sources based on extracted terms
-    const specificSources = await findRelevantSources(keyTerms);
-    
-    // Fetch content from specific sources with timeout
-    const fetchPromises = specificSources.slice(0, 5).map(async (sourceUrl) => {
+    const fetchPromises = sourceUrls.map(async (url) => {
+      console.log('Fetching source:', url);
       try {
-        console.log(`Fetching source: ${sourceUrl}`);
-        
-        // Create a timeout promise
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Fetch timeout')), 8000)
-        );
-        
-        // Race the fetch against the timeout
         const response = await Promise.race([
-          fetch(sourceUrl, {
+          fetch(url, {
             headers: {
               'User-Agent': 'NHS-AI-Verification-Service/1.0'
             }
           }),
-          timeoutPromise
-        ]) as Response;
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Source timeout')), 8000))
+        ]);
         
-        if (response.ok) {
+        if (response && typeof response.text === 'function') {
           const html = await response.text();
-          // Extract more relevant content by looking for key terms
           const relevantContent = extractRelevantContent(html, keyTerms);
-          
           return {
-            name: new URL(sourceUrl).hostname,
-            url: sourceUrl,
-            relevantContent: relevantContent.substring(0, 2000), // Reduced size
-            trustLevel: 'high' as const
+            name: new URL(url).hostname.replace('www.', ''),
+            url,
+            relevantContent,
+            trustLevel: 'high' as const,
+            lastUpdated: new Date().toISOString()
           };
         }
+        return null;
       } catch (error) {
-        console.error(`Failed to fetch ${sourceUrl}:`, error);
+        console.error(`Failed to fetch ${url}:`, error);
         return null;
       }
     });
 
-    // Wait for all sources with overall timeout
+    // Wait for all sources with timeout
     try {
       const results = await Promise.allSettled(fetchPromises);
       results.forEach(result => {
@@ -184,36 +180,53 @@ serve(async (req) => {
       console.error('Error fetching sources:', error);
     }
 
+    const sourceEndTime = Date.now();
+    console.log(`Source fetching took: ${sourceEndTime - sourceStartTime}ms, got ${verificationSources.length} sources`);
+
     // Use multiple AI services for comprehensive consensus
     const llmConsensus: LLMConsensusData[] = [];
 
     const verificationPrompt = `You are a clinical verification expert for NHS primary care. 
 
-TASK: Verify the accuracy of an AI response against authoritative UK medical sources.
+Please verify this AI response against authoritative UK medical sources:
 
-Original Query: "${originalPrompt.substring(0, 500)}..."
+ORIGINAL QUESTION: ${originalPrompt}
 
-AI Response to Verify: "${aiResponse.substring(0, 1000)}..."
+AI RESPONSE TO VERIFY: ${aiResponse}
 
-Available Source Content: ${verificationSources.map(s => `${s.name}: ${s.relevantContent.substring(0, 800)}`).join('\n\n')}
+AUTHORITATIVE SOURCES:
+${verificationSources.map(source => `
+Source: ${source.name}
+URL: ${source.url}
+Content: ${source.relevantContent.substring(0, 800)}...
+`).join('\n')}
 
-Provide a clinical assessment with:
-1. Agreement level (0-100%) with the AI response
-2. Any clinical concerns or inaccuracies found
-3. Risk level assessment (low/medium/high)
-4. Brief justification
+Please provide your assessment as a JSON response with:
+{
+  "assessment": "Brief clinical assessment of the AI response accuracy based on the sources",
+  "agreementLevel": 85,
+  "concerns": ["List any clinical concerns or inaccuracies you identify"]
+}
 
-Format as JSON: {
-  "agreementLevel": number,
-  "assessment": "brief assessment",
-  "concerns": ["concern1", "concern2"],
-  "riskLevel": "low|medium|high"
-}`;
+Focus on clinical accuracy, safety, and alignment with UK primary care guidelines.`;
 
-    // Run AI verifications in parallel with shorter timeouts
-    const verificationPromises = [];
+    // Get API keys
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+    const grokApiKey = Deno.env.get('GROK_API_KEY');
+    
+    console.log('Available API keys:', {
+      openai: !!openaiApiKey,
+      claude: !!claudeApiKey,
+      google: !!googleApiKey,
+      grok: !!grokApiKey
+    });
 
-    // OpenAI verification
+    // Parallel AI service verification
+    const verificationPromises: Promise<LLMConsensusData | null>[] = [];
+
+    // OpenAI GPT verification
     if (openaiApiKey) {
       verificationPromises.push(
         Promise.race([
@@ -256,23 +269,24 @@ Format as JSON: {
       );
     }
 
-    // Claude verification  
-    if (anthropicApiKey) {
+    // Claude verification
+    if (claudeApiKey) {
       verificationPromises.push(
         Promise.race([
           fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${anthropicApiKey}`,
+              'x-api-key': claudeApiKey,
               'Content-Type': 'application/json',
               'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
               model: 'claude-3-5-haiku-20241022',
               max_tokens: 400,
-              messages: [
-                { role: 'user', content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}` }
-              ]
+              messages: [{
+                role: 'user',
+                content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
+              }]
             })
           }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Claude timeout')), 15000))
@@ -282,8 +296,8 @@ Format as JSON: {
             const result = JSON.parse(data.content[0].text);
             
             return {
-              model: 'claude-3-5-haiku-20241022',
-              service: 'Claude',
+              model: 'claude-3-5-haiku',
+              service: 'Anthropic',
               assessment: result.assessment,
               agreementLevel: result.agreementLevel,
               concerns: result.concerns || []
@@ -410,18 +424,20 @@ Format as JSON: {
       console.error('Error in parallel verifications:', error);
     }
 
-    // Calculate overall confidence score
+    // Calculate consensus
     const avgAgreement = llmConsensus.length > 0 
       ? llmConsensus.reduce((sum, llm) => sum + llm.agreementLevel, 0) / llmConsensus.length
-      : 50;
+      : 0;
 
-    const sourceQuality = verificationSources.length >= 2 ? 20 : 10;
-    const confidenceScore = Math.min(95, Math.max(0, avgAgreement + sourceQuality));
+    const confidenceScore = Math.min(95, avgAgreement * 0.9 + (verificationSources.length / 6) * 10);
 
-    // Determine risk level
-    const highRiskConcerns = llmConsensus.some(llm => 
-      llm.concerns?.some(concern => 
-        concern.toLowerCase().includes('dosage') || 
+    // Check for high-risk concerns
+    const allConcerns = llmConsensus.flatMap(llm => llm.concerns || []);
+    const highRiskConcerns = allConcerns.some(concern =>
+      concern && (
+        concern.toLowerCase().includes('dangerous') ||
+        concern.toLowerCase().includes('harmful') ||
+        concern.toLowerCase().includes('incorrect dosage') ||
         concern.toLowerCase().includes('contraindication') ||
         concern.toLowerCase().includes('urgent')
       )
@@ -430,30 +446,36 @@ Format as JSON: {
     const riskLevel = highRiskConcerns ? 'high' : confidenceScore < 60 ? 'medium' : 'low';
     const verificationStatus = confidenceScore >= 85 ? 'verified' : confidenceScore < 60 ? 'flagged' : 'verified';
 
-    const verificationResult = {
+    const totalTime = Date.now() - startTime;
+    console.log('Clinical verification completed: ' + Math.round(confidenceScore) + '% confidence, ' + riskLevel + ' risk');
+    console.log(`Total verification time: ${totalTime}ms (Sources: ${sourceEndTime - sourceStartTime}ms, AI: ${aiEndTime - aiStartTime}ms)`);
+
+    return new Response(JSON.stringify({
       confidenceScore,
       verificationSources,
       llmConsensus,
       verificationTimestamp: new Date(),
       verificationStatus,
       riskLevel,
-      evidenceSummary: `Verified against ${verificationSources.length} sources with ${llmConsensus.length} LLM assessments. Average agreement: ${avgAgreement.toFixed(1)}%`
-    };
-
-    console.log(`Clinical verification completed: ${confidenceScore}% confidence, ${riskLevel} risk`);
-
-    return new Response(JSON.stringify(verificationResult), {
+      evidenceSummary: verificationSources.length > 0 
+        ? `Verified against ${verificationSources.length} authoritative UK medical sources with ${llmConsensus.length} AI assessments`
+        : 'Limited source verification available',
+      timingBreakdown: {
+        totalTime: totalTime,
+        sourceTime: sourceEndTime - sourceStartTime,
+        aiTime: aiEndTime - aiStartTime,
+        sourcesFound: verificationSources.length,
+        aiServicesUsed: llmConsensus.length
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in clinical verification:', error);
-    
-    return new Response(JSON.stringify({
-      error: error.message || 'Clinical verification failed',
-      confidenceScore: 0,
-      verificationStatus: 'pending',
-      riskLevel: 'medium'
+    return new Response(JSON.stringify({ 
+      error: 'Clinical verification failed',
+      details: error.message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
