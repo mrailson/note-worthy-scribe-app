@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   Shield,
   CheckCircle,
-  Stethoscope
+  Stethoscope,
+  ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -86,6 +87,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showFullContent, setShowFullContent] = useState(true);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationData, setVerificationData] = useState(null);
   const { user } = useAuth();
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   
@@ -211,6 +214,38 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleEmailToOthers = () => {
     setIsEmailModalOpen(true);
+  };
+
+  const handleClinicalVerify = async () => {
+    try {
+      setIsVerifying(true);
+      
+      // Import supabase client
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('clinical-verification', {
+        body: {
+          originalPrompt: 'Manual verification request',
+          aiResponse: message.content,
+          messageId: message.id
+        }
+      });
+
+      if (error) {
+        console.error('Clinical verification error:', error);
+        toast.error('Failed to run clinical verification');
+        return;
+      }
+
+      setVerificationData(data);
+      setIsVerificationModalOpen(true);
+      toast.success('Clinical verification completed');
+    } catch (error) {
+      console.error('Clinical verification failed:', error);
+      toast.error('Clinical verification failed');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const getConfidenceColor = (score: number) => {
@@ -785,7 +820,21 @@ Please fetch these and retry. No corrections made."`;
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Export to PowerPoint button - removed since it's now in download dropdown */}
+                    {/* Clinical Verify button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClinicalVerify}
+                      disabled={isVerifying}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Run clinical verification"
+                    >
+                      {isVerifying ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
+                      ) : (
+                        <ShieldCheck className="h-3 w-3" />
+                      )}
+                    </Button>
 
                     {/* Copy button */}
                     <Button
@@ -904,11 +953,11 @@ Please fetch these and retry. No corrections made."`;
       />
 
       {/* Clinical Verification Modal */}
-      {message.clinicalVerification && (
+      {(message.clinicalVerification || verificationData) && (
         <ClinicalVerificationModal
           isOpen={isVerificationModalOpen}
           onClose={() => setIsVerificationModalOpen(false)}
-          verificationData={message.clinicalVerification}
+          verificationData={verificationData || message.clinicalVerification}
         />
       )}
     </div>
