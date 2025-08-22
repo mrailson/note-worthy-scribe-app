@@ -11,75 +11,9 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const grokApiKey = Deno.env.get('GROK_API_KEY');
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
+// Removed Tavily API key
 
-// Tavily search function with better error handling
-async function runTavilySearch(query: string, recencyDays: number = 180, siteLimit?: string[]): Promise<any> {
-  console.log('Starting Tavily search for query:', query);
-  
-  if (!tavilyApiKey) {
-    console.error('Tavily API key not configured');
-    throw new Error('Tavily API key not configured');
-  }
-
-  const searchParams = {
-    query,
-    search_depth: "advanced",
-    max_results: 8,
-    include_domains: siteLimit || [
-      "gov.uk",
-      "england.nhs.uk", 
-      "nhs.uk",
-      "nice.org.uk",
-      "bnf.nice.org.uk",
-      "ukhsa.gov.uk"
-    ],
-    days: recencyDays
-  };
-
-  console.log('Tavily search params:', JSON.stringify(searchParams, null, 2));
-
-  try {
-    const response = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tavilyApiKey}`
-      },
-      body: JSON.stringify(searchParams)
-    });
-
-    console.log('Tavily API response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Tavily API error response:', response.status, errorText);
-      throw new Error(`Tavily search failed: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Tavily search results count:', data.results?.length || 0);
-    console.log('Tavily raw response:', JSON.stringify(data, null, 2));
-    
-    const formattedResults = {
-      query: query,
-      results: data.results?.map((result: any) => ({
-        title: result.title,
-        url: result.url,
-        snippet: result.content || result.snippet,
-        publishedDate: result.published_date,
-        score: result.score
-      })) || [],
-      searchDate: new Date().toISOString()
-    };
-
-    console.log('Formatted search results:', JSON.stringify(formattedResults, null, 2));
-    return formattedResults;
-  } catch (error) {
-    console.error('Error in Tavily search:', error);
-    throw error;
-  }
-}
+// Removed Tavily search functionality to fix response errors
 
 interface Message {
   id: string;
@@ -892,12 +826,7 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
   const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
 Today is ${today} (Europe/London).
 
-If a question is time-sensitive (BNF/NICE updates, DHSC/NHSE policy, Wes Streeting announcements, ARRS, vaccination programmes),
-CALL tavily_search first with a recency window and an allow-list:
-["gov.uk","england.nhs.uk","nhs.uk","nice.org.uk","bnf.nice.org.uk","ukhsa.gov.uk"].
-
-Never write "I will search now" unless you actually call tavily_search.
-Always include dates + sources. If nothing recent is found, say what you searched.
+For time-sensitive questions about BNF/NICE updates, DHSC/NHSE policy, Wes Streeting announcements, ARRS, vaccination programmes, provide the best guidance you can from your training data and suggest users check the latest information at the relevant official sources (gov.uk, england.nhs.uk, nhs.uk, nice.org.uk, bnf.nice.org.uk, ukhsa.gov.uk).
 
 ${systemPrompt}
 
@@ -907,28 +836,6 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - DO NOT hallucinate or invent details not visible in the image
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
-
-  // Define the tavily_search tool
-  const tools = [{
-    type: "function",
-    function: {
-      name: "tavily_search",
-      description: "Search trusted UK health sources for recent items",
-      parameters: {
-        type: "object",
-        properties: {
-          q: { type: "string" },
-          recencyDays: { type: "integer", default: 180 },
-          siteLimit: {
-            type: "array",
-            items: { type: "string" },
-            description: "Allowed domains"
-          }
-        },
-        required: ["q"]
-      }
-    }
-  }];
 
   const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }
@@ -973,8 +880,6 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       model: 'gpt-5-2025-08-07',
       max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
       // Note: GPT-5 doesn't support temperature parameter
-      tools,
-      tool_choice: "auto",
       messages: gptMessages
     })
   });
@@ -1003,8 +908,6 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
           model: 'gpt-4o',
           max_tokens: 4000,
           temperature: 0.7,
-          tools,
-          tool_choice: "auto",
           messages: gptMessages
         })
       });
@@ -1032,120 +935,11 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   });
   
   const choice = initialData.choices?.[0];
-  const toolCalls = choice?.message?.tool_calls ?? [];
+  console.log('Initial completion result - GPT-5 response received successfully');
+  console.log('Response length:', choice?.message?.content?.length || 0);
 
-  console.log('Initial completion result:', JSON.stringify({
-    choices: initialData.choices?.length,
-    hasToolCalls: !!toolCalls.length,
-    toolCallDetails: toolCalls.map(tc => ({ name: tc.function?.name, args: tc.function?.arguments }))
-  }));
-  console.log('Tool calls detected:', toolCalls.length);
-
-  if (toolCalls.length > 0) {
-    // Handle tool calls
-    for (const call of toolCalls) {
-      if (call.function.name === "tavily_search") {
-        console.log('Executing tavily_search...');
-        const args = JSON.parse(call.function.arguments);
-        console.log('Search args:', args);
-        
-        try {
-          const searchResult = await runTavilySearch(args.q, args.recencyDays || 180, args.siteLimit);
-          console.log('Tavily search result:', searchResult);
-          
-          gptMessages.push(choice.message);
-          gptMessages.push({
-            tool_call_id: call.id,
-            role: "tool",
-            name: "tavily_search",
-            content: JSON.stringify(searchResult)
-          });
-
-          console.log('Tool call result added, making final completion...');
-          
-          const final = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-5-2025-08-07',
-              max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
-              // Note: GPT-5 doesn't support temperature parameter
-              tools,
-              messages: gptMessages
-            })
-          });
-
-          if (!final.ok) {
-            const error = await final.text();
-            console.error('OpenAI final API error:', error);
-            
-            // Fallback to GPT-4o if GPT-5 fails
-            if (error.includes('model') || error.includes('not found')) {
-              const fallbackFinal = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${openaiApiKey}`
-                },
-                body: JSON.stringify({
-                  model: 'gpt-4o',
-                  max_tokens: 4000,
-                  temperature: 0.7,
-                  tools,
-                  messages: gptMessages
-                })
-              });
-              
-              if (!fallbackFinal.ok) {
-                throw new Error(`OpenAI API fallback error: ${fallbackFinal.status}`);
-              }
-              
-              const fallbackFinalData = await fallbackFinal.json();
-              return fallbackFinalData.choices[0].message.content;
-            }
-            
-            throw new Error(`OpenAI API error: ${final.status}`);
-          }
-
-          const finalData = await final.json();
-          console.log('Final completion received');
-          const finalResponse = finalData.choices[0]?.message?.content;
-          console.log('Final response length:', finalResponse?.length || 0);
-          console.log('Final response preview:', finalResponse?.substring(0, 100) + '...');
-          
-          if (!finalResponse || finalResponse.trim() === '') {
-            console.error('ERROR: GPT-5 returned empty response after tool call');
-            // Fallback to the original response if the final response is empty
-            return choice.message.content || "I apologize, but I encountered an issue generating a comprehensive response after searching for the latest information. Let me provide what I can without real-time data.";
-          }
-          
-          return finalResponse;
-          
-        } catch (searchError) {
-          console.error('Tavily search error:', searchError);
-          console.log('Falling back to non-real-time response for query:', args.q);
-          
-          // For medical queries, provide a helpful fallback
-          if (args.q && (args.q.toLowerCase().includes('bnf') || args.q.toLowerCase().includes('metformin') || args.q.toLowerCase().includes('drug') || args.q.toLowerCase().includes('dosing'))) {
-            return choice.message.content || "I can provide general information about this medication, though I cannot access the very latest BNF updates at this moment. For the most current prescribing information, please refer to the latest BNF or consult the online version at bnf.nice.org.uk.";
-          }
-          
-          return choice.message.content || "Sorry, I encountered an error while searching for the latest information. Please try again or ask your question without requiring real-time data.";
-        }
-      }
-    }
-  }
-
-  // No tool calls or non-tavily tool calls
-  const finalContent = choice?.message?.content || 'No response received';
-  console.log('No tool calls made, returning direct response');
-  console.log('Direct response length:', finalContent.length);
-  console.log('Direct response preview:', finalContent.substring(0, 100) + '...');
-  
-  // Ensure we have a valid response before returning
+  // Return the direct response since we're not using tools anymore
+  return choice?.message?.content || 'No response received from GPT-5';
   if (!finalContent || finalContent.trim() === '' || finalContent === 'No response received') {
     console.error('ERROR: GPT-5 returned empty or invalid response');
     return 'I apologize, but I encountered an issue generating a response. Please try again.';
@@ -1189,27 +983,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
 
-  // Define the tavily_search tool
-  const tools = [{
-    type: "function",
-    function: {
-      name: "tavily_search",
-      description: "Search trusted UK health sources for recent items",
-      parameters: {
-        type: "object",
-        properties: {
-          q: { type: "string" },
-          recencyDays: { type: "integer", default: 180 },
-          siteLimit: {
-            type: "array",
-            items: { type: "string" },
-            description: "Allowed domains"
-          }
-        },
-        required: ["q"]
-      }
-    }
-  }];
+  // Removed tools - direct response only
 
   const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }
