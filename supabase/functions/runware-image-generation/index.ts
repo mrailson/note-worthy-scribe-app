@@ -123,20 +123,20 @@ serve(async (req) => {
     let imageRequest: any;
     
     if (referenceImageUrl && mode === 'edit') {
-      // Use image-to-image generation for reference-based editing
+      // Use imageToImage generation for reference-based editing
       imageRequest = {
-        taskType: "imageInference", // Runware's image-to-image task
+        taskType: "imageToImage", // Correct Runware task type for image-to-image
         taskUUID,
         positivePrompt: enhancedPrompt,
-        inputImage: referenceImageUrl, // Use the reference image
+        inputImageURL: referenceImageUrl, // Use the reference image URL
         model: "runware:100@1",
         width: width || 1024,
         height: height || 1024,
         numberResults: 1,
         outputFormat: "WEBP",
         CFGScale: 7, // Higher for better adherence to prompt
-        scheduler: "FlowMatchEulerDiscreteScheduler",
-        strength: 0.7 // Controls how much to transform the input image
+        steps: 8, // More steps for better quality in image-to-image
+        strength: 0.75 // Controls how much to transform the input image
       };
     } else {
       // Standard text-to-image generation
@@ -188,7 +188,10 @@ serve(async (req) => {
     console.log('Runware response:', data);
 
     // Find the image result in the response
-    const imageResult = data.data?.find((item: any) => item.taskType === 'imageInference' && item.taskUUID === taskUUID);
+    const imageResult = data.data?.find((item: any) => 
+      (item.taskType === 'imageInference' || item.taskType === 'imageToImage') && 
+      item.taskUUID === taskUUID
+    );
     
     if (!imageResult || !imageResult.imageURL) {
       console.error('No image result found in Runware response:', data);
