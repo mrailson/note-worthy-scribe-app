@@ -170,8 +170,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       return;
     }
     
+    console.log('🔄 Proceeding with send - creating user message...');
+    
     // Use appropriate model based on useOpenAI setting
     const modelToUse = useOpenAI ? 'gpt-5-2025-08-07' : selectedModel;
+    console.log('🤖 Model selection:', { useOpenAI, selectedModel, modelToUse });
     
     // Enhance the message content when files are attached
     let messageContent = input;
@@ -181,6 +184,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
     }
     
+    console.log('📝 Message content prepared:', { 
+      originalInput: input,
+      finalContent: messageContent.substring(0, 100) + '...',
+      hasFiles: uploadedFiles.length > 0 
+    });
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -189,6 +198,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined,
       isClinical: isClinical
     };
+    
+    console.log('👤 User message created:', { 
+      id: userMessage.id, 
+      contentLength: userMessage.content.length,
+      hasFiles: !!userMessage.files,
+      isClinical: userMessage.isClinical 
+    });
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
