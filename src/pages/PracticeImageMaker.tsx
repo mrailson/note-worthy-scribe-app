@@ -490,8 +490,17 @@ const PracticeImageMaker = () => {
         formData.append('mode', 'generation');
       }
 
-      const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
-        body: formData
+      const { data, error } = await supabase.functions.invoke('runware-image-generation', {
+        body: {
+          prompt: editMode ? prompt : (useTextOverlay && currentQuickPick ? 
+            assemblePrompt() + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout." :
+            assemblePrompt() + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words."
+          ),
+          mode: editMode ? 'edit' : 'generation',
+          size: validApiSize,
+          quality: 'high',
+          referenceImage: editMode && editPhoto ? editPhoto : null
+        }
       });
 
       if (error) {
