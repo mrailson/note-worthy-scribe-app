@@ -59,6 +59,11 @@ export const useAI4GPService = () => {
     onStream?: (chunk: string) => void
   ): Promise<string> => {
     try {
+      // Use stable model names instead of date-suffixed ones
+      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'gpt-5' :
+                         selectedModel === 'gpt-5-mini-2025-08-07' ? 'gpt-5-instant' :
+                         selectedModel;
+      
       const response = await fetch(
         `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/gpt5-fast-clinical`,
         {
@@ -66,10 +71,11 @@ export const useAI4GPService = () => {
           headers: {
             'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
             'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs',
           },
           body: JSON.stringify({
             messages,
-            model: 'gpt-5-mini-2025-08-07',
+            model: stableModel,
             systemPrompt
           })
         }
@@ -99,6 +105,10 @@ export const useAI4GPService = () => {
             
             try {
               const data = JSON.parse(payload);
+              
+              // Skip the meta message from the function
+              if (data._meta) continue;
+              
               const content = data.choices?.[0]?.delta?.content;
               if (content) {
                 fullResponse += content;
