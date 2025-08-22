@@ -730,6 +730,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     handleQuickResponse,
     isClinical,
     setIsClinical,
-    performClinicalVerification
+    performClinicalVerification,
+    saveUserSettings
   };
 };

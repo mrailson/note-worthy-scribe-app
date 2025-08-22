@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Bot, Clock, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SettingsModalProps {
   open: boolean;
@@ -24,11 +27,20 @@ interface SettingsModalProps {
   onShowAIServiceChange: (enabled: boolean) => void;
   useOpenAI: boolean;
   onUseOpenAIChange: (enabled: boolean) => void;
+  onSaveSettings?: () => void;
+}
+
+interface ApiTestResult {
+  model: string;
+  status: 'pending' | 'success' | 'error';
+  responseTime?: number;
+  response?: string;
+  error?: string;
 }
 
 const AI_MODELS = [
   {
-    id: 'gpt-5',
+    id: 'gpt-5-2025-08-07',
     name: 'GPT-5',
     provider: 'OpenAI',
     description: 'Most advanced reasoning and analysis'
@@ -41,7 +53,7 @@ const AI_MODELS = [
   },
   {
     id: 'gpt-4-turbo',
-    name: 'Recommended',
+    name: 'GPT-4 Turbo',
     provider: 'OpenAI',
     description: 'Fast and reliable for clinical tasks',
     recommended: true
@@ -51,6 +63,12 @@ const AI_MODELS = [
     name: 'Grok',
     provider: 'xAI',
     description: 'Real-time information and conversational AI'
+  },
+  {
+    id: 'gemini-1.5-pro',
+    name: 'Gemini Pro',
+    provider: 'Google',
+    description: 'Advanced language understanding'
   }
 ];
 
@@ -70,13 +88,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   showAIService,
   onShowAIServiceChange,
   useOpenAI,
-  onUseOpenAIChange
+  onUseOpenAIChange,
+  onSaveSettings
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
+  const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      if (onSaveSettings) {
+        await onSaveSettings();
+      }
+      toast.success('Settings saved successfully!');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const testApiServices = async () => {
+    setIsTesting(true);
+    const testPrompt = "What day is it today?";
+    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4-turbo', 'grok-beta', 'gemini-1.5-pro'];
+    
+    // Initialize test results
+    const initialResults: ApiTestResult[] = modelsToTest.map(model => ({
+      model,
+      status: 'pending'
+    }));
+    setTestResults(initialResults);
+
+    // Test each model
+    for (let i = 0; i < modelsToTest.length; i++) {
+      const model = modelsToTest[i];
+      const startTime = Date.now();
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+          body: {
+            messages: [{ role: 'user', content: testPrompt }],
+            model: model,
+            systemPrompt: 'You are a helpful AI assistant. Respond concisely to the user\'s question.'
+          }
+        });
+
+        const responseTime = Date.now() - startTime;
+        
+        if (error) {
+          throw error;
+        }
+
+        setTestResults(prev => prev.map(result => 
+          result.model === model 
+            ? { 
+                ...result, 
+                status: 'success', 
+                responseTime, 
+                response: data?.response || data?.content || 'No response received'
+              }
+            : result
+        ));
+      } catch (error: any) {
+        const responseTime = Date.now() - startTime;
+        setTestResults(prev => prev.map(result => 
+          result.model === model 
+            ? { 
+                ...result, 
+                status: 'error', 
+                responseTime, 
+                error: error.message || 'Unknown error'
+              }
+            : result
+        ));
+      }
+    }
+    
+    setIsTesting(false);
+  };
+
+  const getStatusIcon = (status: ApiTestResult['status']) => {
+    switch (status) {
+      case 'pending':
+        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-destructive" />;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
@@ -85,6 +192,79 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* API Testing Section */}
+          <Card className="border-amber-200 bg-gradient-to-r from-background to-amber-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TestTube className="h-4 w-4 text-amber-600" />
+                API Services Test
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    Test All API Services
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Verify all AI services are working with the prompt "What day is it today?"
+                  </p>
+                </div>
+                <Button 
+                  onClick={testApiServices}
+                  disabled={isTesting}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  {isTesting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4" />
+                  )}
+                  {isTesting ? 'Testing...' : 'Test APIs'}
+                </Button>
+              </div>
+              
+              {testResults.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Test Results:</Label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {testResults.map((result) => (
+                      <div key={result.model} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {getStatusIcon(result.status)}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-sm">
+                              {AI_MODELS.find(m => m.id === result.model)?.name || result.model}
+                            </div>
+                            {result.responseTime && (
+                              <div className="text-xs text-muted-foreground">
+                                {result.responseTime}ms
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground max-w-xs">
+                          {result.status === 'success' && result.response && (
+                            <div className="text-green-600 truncate">
+                              {result.response.substring(0, 50)}...
+                            </div>
+                          )}
+                          {result.status === 'error' && result.error && (
+                            <div className="text-destructive">
+                              {result.error}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* OpenAI Toggle */}
           <Card className="border-primary/20 bg-gradient-to-r from-background to-primary/5">
             <CardHeader>
@@ -283,6 +463,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          {/* Save Button */}
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="text-xs text-muted-foreground">
+              Settings are auto-saved when changed
+            </div>
+            <Button 
+              onClick={handleSaveSettings}
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSaving ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

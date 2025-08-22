@@ -69,7 +69,8 @@ const AI4GPService = () => {
     handleNewSearch,
     handleQuickResponse,
     isClinical,
-    setIsClinical
+    setIsClinical,
+    saveUserSettings
   } = useAI4GPService();
 
   const { practiceContext } = usePracticeContext();
@@ -430,6 +431,7 @@ const AI4GPService = () => {
         onShowAIServiceChange={setShowAIService}
         useOpenAI={useOpenAI}
         onUseOpenAIChange={setUseOpenAI}
+        onSaveSettings={saveUserSettings}
       />
 
       {/* Quick Image Modal */}
