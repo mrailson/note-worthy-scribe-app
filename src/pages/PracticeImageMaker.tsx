@@ -234,14 +234,28 @@ const PracticeImageMaker = () => {
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
 
   const handleEditPhotoUpload = (file: File | null) => {
-    setEditPhoto(file);
     if (file) {
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please upload a PNG, JPEG, or WebP image file');
+        return;
+      }
+      
+      // Validate file size (4MB limit for OpenAI)
+      if (file.size > 4 * 1024 * 1024) {
+        toast.error('Image file must be smaller than 4MB for editing');
+        return;
+      }
+      
+      setEditPhoto(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setEditPhotoPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     } else {
+      setEditPhoto(null);
       setEditPhotoPreview(null);
     }
   };
@@ -326,36 +340,59 @@ const PracticeImageMaker = () => {
     return finalPrompt;
   };
 
-  // Helper function to convert image to PNG format
+  // Helper function to convert image to PNG format with RGBA support
   const convertImageToPNG = async (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
+      // Validate file size (max 4MB)
+      if (file.size > 4 * 1024 * 1024) {
+        reject(new Error('Image file size must be under 4MB for editing'));
+        return;
+      }
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
       
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+      
       img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Draw image to canvas
-        ctx?.drawImage(img, 0, 0);
-        
-        // Convert to PNG blob
-        canvas.toBlob((blob) => {
-          if (blob) {
-            // Create new File object with PNG format
-            const pngFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.png'), {
-              type: 'image/png',
-              lastModified: Date.now()
-            });
-            resolve(pngFile);
-          } else {
-            reject(new Error('Failed to convert image to PNG'));
-          }
-        }, 'image/png', 1.0);
+        try {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Clear canvas with transparent background to ensure alpha channel
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Set composite operation to ensure alpha channel preservation
+          ctx.globalCompositeOperation = 'source-over';
+          
+          // Draw image to canvas (this preserves any existing alpha channel)
+          ctx.drawImage(img, 0, 0);
+          
+          // For images without alpha channel, we ensure the canvas has RGBA data
+          // The canvas automatically creates an alpha channel when we call toBlob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              // Create new File object with PNG format
+              const pngFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.png'), {
+                type: 'image/png',
+                lastModified: Date.now()
+              });
+              console.log(`Image converted to PNG: ${file.name} -> ${pngFile.name} (${blob.size} bytes)`);
+              resolve(pngFile);
+            } else {
+              reject(new Error('Failed to convert image to PNG'));
+            }
+          }, 'image/png', 1.0);
+        } catch (error) {
+          reject(new Error(`Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        }
       };
       
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error('Failed to load image for conversion'));
       img.src = URL.createObjectURL(file);
     });
   };
@@ -416,18 +453,17 @@ const PracticeImageMaker = () => {
         // Photo editing mode - convert to PNG if needed
         let imageToUpload = editPhoto;
         
-        // Convert JPEG/JPG to PNG for OpenAI compatibility
-        if (editPhoto.type === 'image/jpeg' || editPhoto.type === 'image/jpg') {
-          console.log('Converting JPEG to PNG for OpenAI compatibility');
-          toast.info('Converting image to PNG format...');
-          try {
-            imageToUpload = await convertImageToPNG(editPhoto);
-          } catch (error) {
-            console.error('Image conversion failed:', error);
-            toast.error('Failed to convert image. Please try with a PNG file.');
-            setIsGenerating(false);
-            return;
-          }
+        // Always convert all images to PNG with RGBA format for OpenAI compatibility
+        console.log(`Converting ${editPhoto.type} to PNG with RGBA support for OpenAI compatibility`);
+        toast.info('Converting image to PNG format with transparency support...');
+        try {
+          imageToUpload = await convertImageToPNG(editPhoto);
+        } catch (error) {
+          console.error('Image conversion failed:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          toast.error(`Image conversion failed: ${errorMessage}`);
+          setIsGenerating(false);
+          return;
         }
         
         formData.append('prompt', prompt);

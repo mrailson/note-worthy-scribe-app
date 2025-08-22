@@ -6,68 +6,78 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to convert image to RGBA format for OpenAI edit API
+// Function to convert image to RGBA format for OpenAI edit API using Canvas API
 async function convertToRGBAFormat(imageBuffer: ArrayBuffer): Promise<Blob> {
   try {
-    // Try to use imagescript for image processing in Deno
-    const { Image } = await import('https://deno.land/x/imagescript@1.2.15/mod.ts');
+    console.log(`Processing image buffer: ${imageBuffer.byteLength} bytes`);
     
-    // Decode the image
-    const image = await Image.decode(new Uint8Array(imageBuffer));
-    
-    // Ensure the image has an alpha channel
-    let rgbaImage = image;
-    if (image.bitmap.length === image.width * image.height * 3) {
-      // RGB format - need to add alpha channel
-      console.log('Converting RGB to RGBA format');
-      const rgbaData = new Uint8Array(image.width * image.height * 4);
-      
-      for (let i = 0, j = 0; i < image.bitmap.length; i += 3, j += 4) {
-        rgbaData[j] = image.bitmap[i];     // R
-        rgbaData[j + 1] = image.bitmap[i + 1]; // G
-        rgbaData[j + 2] = image.bitmap[i + 2]; // B
-        rgbaData[j + 3] = 255; // A (fully opaque)
-      }
-      
-      // Create new image with RGBA data
-      rgbaImage = new Image(image.width, image.height);
-      rgbaImage.bitmap = rgbaData;
-    }
-    
-    // Encode as PNG (which preserves alpha channel)
-    const pngBuffer = await rgbaImage.encode();
-    console.log(`Image converted to RGBA PNG format: ${pngBuffer.length} bytes`);
-    
-    return new Blob([pngBuffer], { type: 'image/png' });
-    
-  } catch (imagescriptError) {
-    console.log('ImageScript not available, trying simpler approach:', imagescriptError.message);
-    
-    // Fallback approach - check PNG format and add basic validation
+    // Create image data from buffer using Canvas API available in Deno
     const uint8Array = new Uint8Array(imageBuffer);
+    
+    // Basic format validation
     const isPNG = uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && 
                   uint8Array[2] === 0x4E && uint8Array[3] === 0x47;
+    const isJPEG = uint8Array[0] === 0xFF && uint8Array[1] === 0xD8;
+    const isWebP = uint8Array[8] === 0x57 && uint8Array[9] === 0x45 && 
+                   uint8Array[10] === 0x42 && uint8Array[11] === 0x50;
     
-    if (!isPNG) {
-      throw new Error('Image must be in PNG format for editing. Please convert your image to PNG format first.');
+    if (!isPNG && !isJPEG && !isWebP) {
+      throw new Error('Unsupported image format. Please use PNG, JPEG, or WebP.');
     }
     
-    // For PNG files, check if they have an alpha channel by examining the color type
-    // PNG color type is at byte 25 (0x19)
-    if (uint8Array.length > 25) {
-      const colorType = uint8Array[25];
-      // Color types 4 and 6 have alpha channels
-      const hasAlpha = colorType === 4 || colorType === 6;
-      
-      if (!hasAlpha) {
-        console.log('PNG image does not have alpha channel, this may cause OpenAI API issues');
-        // We could try to add an alpha channel here, but it's complex without image processing library
-        throw new Error('Image must have transparency support (RGBA format) for editing. Please use an image editor to add an alpha channel.');
+    console.log(`Detected format: ${isPNG ? 'PNG' : isJPEG ? 'JPEG' : 'WebP'}`);
+    
+    // Convert buffer to blob for Image constructor
+    const imageBlob = new Blob([uint8Array]);
+    
+    // Create ImageBitmap from the blob using Deno's Canvas API
+    const imageBitmap = await createImageBitmap(imageBlob);
+    
+    console.log(`Image dimensions: ${imageBitmap.width}x${imageBitmap.height}`);
+    
+    // Create an OffscreenCanvas to process the image
+    const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error('Failed to get 2D canvas context');
+    }
+    
+    // Clear canvas with transparent background to ensure RGBA format
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the image bitmap to canvas (this ensures RGBA format)
+    ctx.drawImage(imageBitmap, 0, 0);
+    
+    // Convert canvas to PNG blob (PNG format always supports RGBA)
+    const blob = await canvas.convertToBlob({ 
+      type: 'image/png',
+      quality: 1.0 
+    });
+    
+    console.log(`Image converted to RGBA PNG: ${blob.size} bytes`);
+    
+    // Clean up resources
+    imageBitmap.close();
+    
+    return blob;
+    
+  } catch (error) {
+    console.error('RGBA conversion failed:', error);
+    
+    // Enhanced error messaging for common issues
+    if (error instanceof Error) {
+      if (error.message.includes('createImageBitmap')) {
+        throw new Error('Invalid image file. Please ensure the image is not corrupted and try again.');
+      } else if (error.message.includes('OffscreenCanvas')) {
+        throw new Error('Canvas processing failed. This may be a temporary issue - please try again.');
+      } else if (error.message.includes('convertToBlob')) {
+        throw new Error('Image processing failed. The image may be too large or corrupted.');
       }
     }
     
-    console.log(`PNG image appears to have alpha channel support`);
-    return new Blob([imageBuffer], { type: 'image/png' });
+    // Re-throw with original error message if no specific handling
+    throw new Error(`Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -173,13 +183,24 @@ serve(async (req) => {
       editFormData.append('size', editSize);
       
       // Download the image and convert it to proper format for OpenAI edit API
+      console.log(`Downloading reference image from: ${imageUrl}`);
       const imageResponse = await fetch(imageUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
       
-      console.log(`Downloaded image: size=${imageBuffer.byteLength} bytes`);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
+      }
+      
+      const imageBuffer = await imageResponse.arrayBuffer();
+      console.log(`Downloaded image: type=${imageResponse.headers.get('content-type')}, size=${imageBuffer.byteLength} bytes`);
+      
+      // Validate image size (OpenAI has limits)
+      if (imageBuffer.byteLength > 4 * 1024 * 1024) { // 4MB limit
+        throw new Error('Image file is too large. Please use an image smaller than 4MB.');
+      }
       
       // Convert image to RGBA format using Canvas API
       // This ensures the image has the alpha channel required by OpenAI
+      console.log('Converting image to RGBA format...');
       const processedImageBlob = await convertToRGBAFormat(imageBuffer);
       
       editFormData.append('image', processedImageBlob, 'image.png');
@@ -195,8 +216,27 @@ serve(async (req) => {
       if (!editResponse.ok) {
         const errorText = await editResponse.text();
         console.error('OpenAI edit error:', errorText);
+        
+        // Parse error for better user messaging
+        let userFriendlyError = 'Image editing failed. ';
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error?.message) {
+            const message = errorData.error.message;
+            if (message.includes('RGBA') || message.includes('format')) {
+              userFriendlyError += 'The image format is not compatible. Please try with a PNG image that has transparency support.';
+            } else if (message.includes('size') || message.includes('dimensions')) {
+              userFriendlyError += 'The image dimensions are not supported. Please use a square image (e.g., 1024x1024).';
+            } else {
+              userFriendlyError += message;
+            }
+          }
+        } catch (parseError) {
+          userFriendlyError += 'Please try again with a different image or contact support if the issue persists.';
+        }
+        
         return new Response(
-          JSON.stringify({ error: `OpenAI error: ${errorText}` }),
+          JSON.stringify({ error: userFriendlyError }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
         );
       }
