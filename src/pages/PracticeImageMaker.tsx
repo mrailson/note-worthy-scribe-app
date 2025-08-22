@@ -402,6 +402,13 @@ const PracticeImageMaker = () => {
         validApiSize = "1024x1024"; // Default fallback
       }
 
+      // For edit mode, OpenAI only supports square sizes
+      if (editMode && !['1024x1024', '512x512', '256x256'].includes(validApiSize)) {
+        console.log(`Edit mode: forcing square size. Original: ${validApiSize} -> 1024x1024`);
+        validApiSize = '1024x1024';
+        toast.info('Edit mode uses square format (1024x1024) for compatibility.');
+      }
+
       // Create FormData for the advanced-image-generation function
       const formData = new FormData();
       

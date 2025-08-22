@@ -94,35 +94,37 @@ serve(async (req) => {
       // Use the edit endpoint for image editing
       endpoint = 'https://api.openai.com/v1/images/edits';
       
+      // OpenAI edit API only supports square images: 256x256, 512x512, 1024x1024
+      let editSize = size;
+      if (!['256x256', '512x512', '1024x1024'].includes(size)) {
+        console.log(`Size ${size} not supported for edit mode, defaulting to 1024x1024`);
+        editSize = '1024x1024';
+      }
+      
       // For edits, we need to send as form data
       const editFormData = new FormData();
       editFormData.append('model', 'dall-e-2'); // dall-e-2 supports edits
       editFormData.append('prompt', prompt);
-      editFormData.append('size', size);
+      editFormData.append('size', editSize);
       
-      // Download the image and convert to PNG if needed
+      // Download the image and append directly (frontend should already convert to PNG)
       const imageResponse = await fetch(imageUrl);
       const imageBlob = await imageResponse.blob();
       
-      // OpenAI only accepts PNG files for editing, so convert if necessary
-      let finalImageBlob = imageBlob;
-      if (imageBlob.type === 'image/jpeg' || imageBlob.type === 'image/jpg') {
-        console.log('Converting JPEG to PNG for OpenAI compatibility');
-        
-        // Convert JPEG to PNG using Canvas API
-        const arrayBuffer = await imageBlob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        
-        // Create a simple PNG conversion
-        // For now, we'll create a new blob with PNG mime type
-        // In a real implementation, you'd want proper image conversion
-        finalImageBlob = new Blob([uint8Array], { type: 'image/png' });
-        
-        // Alternative: Use a proper image conversion library
-        // But for simplicity, we'll change the MIME type which often works
+      console.log(`Downloaded image: type=${imageBlob.type}, size=${imageBlob.size} bytes`);
+      
+      // Ensure we have a PNG file (frontend should handle this, but double-check)
+      if (imageBlob.type !== 'image/png') {
+        console.error(`Invalid image type for editing: ${imageBlob.type}. OpenAI edit API requires PNG format.`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Image must be in PNG format for editing. Please ensure your image is converted to PNG before uploading.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       }
       
-      editFormData.append('image', finalImageBlob, 'image.png');
+      editFormData.append('image', imageBlob, 'image.png');
 
       const editResponse = await fetch(endpoint, {
         method: 'POST',
