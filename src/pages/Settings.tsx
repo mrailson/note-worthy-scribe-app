@@ -1267,6 +1267,24 @@ export default function Settings() {
                   </div>
 
                   <div>
+                    <h4 className="font-semibold mb-2 text-primary">Built by Healthcare Professionals, for Healthcare Professionals</h4>
+                    <div className="p-3 border rounded-lg bg-accent/20">
+                      <p className="text-sm font-medium mb-2">Developed by a PCN Manager with Deep Healthcare IT Expertise</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Notewell AI V1.3 has been built by a PCN Manager with over 25 years as an IT Professional, 
+                        previously responsible for building and delivering IT systems used by tens of thousands of users across the world. 
+                        This unique combination of healthcare management experience and enterprise-level IT expertise ensures that every feature 
+                        is designed with real-world practice needs in mind, while maintaining the highest standards of security and reliability.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        <strong>Why this matters:</strong> Unlike generic software companies, we understand the daily challenges of running a practice, 
+                        the complexity of NHS IT governance requirements, and the critical importance of patient data security. Every decision in 
+                        Notewell AI reflects this deep understanding of both healthcare and technology.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
                     <h4 className="font-semibold mb-3 text-primary">Built Specifically for Healthcare</h4>
                     <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
                       Unlike generic AI tools, Notewell AI V1.3 understands medical terminology, NHS processes, and healthcare workflows. 
@@ -1692,23 +1710,6 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div>
-                    <h4 className="font-semibold mb-2 text-primary">Built by Healthcare Professionals, for Healthcare Professionals</h4>
-                    <div className="p-3 border rounded-lg bg-accent/20">
-                      <p className="text-sm font-medium mb-2">Developed by a PCN Manager with Deep Healthcare IT Expertise</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Notewell AI V1.3 has been built by a PCN Manager with over 25 years as an IT Professional, 
-                        previously responsible for building and delivering IT systems used by tens of thousands of users across the world. 
-                        This unique combination of healthcare management experience and enterprise-level IT expertise ensures that every feature 
-                        is designed with real-world practice needs in mind, while maintaining the highest standards of security and reliability.
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        <strong>Why this matters:</strong> Unlike generic software companies, we understand the daily challenges of running a practice, 
-                        the complexity of NHS IT governance requirements, and the critical importance of patient data security. Every decision in 
-                        Notewell AI reflects this deep understanding of both healthcare and technology.
-                      </p>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
