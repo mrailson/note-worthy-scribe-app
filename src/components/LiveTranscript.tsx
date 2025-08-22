@@ -246,6 +246,8 @@ export const LiveTranscript = ({
       .replace(/\[audio gap\]/gi, '')
       .replace(/\[recording paused\]/gi, '')
       .replace(/\[system message\]/gi, '')
+      .replace(/if silence or background noise,?\s*return nothing\.?/gi, '')
+      .replace(/if silence or background noise,?\s*return nothing/gi, '')
       // Clean up extra spaces and line breaks
       .replace(/\s+/g, ' ')
       .trim();
