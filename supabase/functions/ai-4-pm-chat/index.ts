@@ -959,7 +959,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       temperature: 0.2,
       max_tokens: 1400,
       tools,
@@ -1020,7 +1020,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
               'Authorization': `Bearer ${openaiApiKey}`
             },
             body: JSON.stringify({
-              model: 'gpt-4o',
+              model: 'gpt-4o-mini',
               temperature: 0.2,
               max_tokens: 1400,
               tools,
