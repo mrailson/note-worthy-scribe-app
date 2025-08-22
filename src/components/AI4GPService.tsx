@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3 } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -27,6 +27,7 @@ import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
+import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 
 
 const AI4GPService = () => {
@@ -43,6 +44,7 @@ const AI4GPService = () => {
   const [showImageCreate, setShowImageCreate] = useState(false);
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
+  const [showVerificationChart, setShowVerificationChart] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
@@ -233,6 +235,10 @@ const AI4GPService = () => {
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <DropdownMenuItem onClick={() => setShowVerificationChart(true)}>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          AI Model Chart
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -458,6 +464,18 @@ const AI4GPService = () => {
         open={showQuickImageModal} 
         onOpenChange={setShowQuickImageModal} 
       />
+
+      {/* AI Model Verification Chart Modal */}
+      <Dialog open={showVerificationChart} onOpenChange={setShowVerificationChart}>
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-left">AI Model Verification Performance</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4">
+            <AIModelVerificationChart />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
