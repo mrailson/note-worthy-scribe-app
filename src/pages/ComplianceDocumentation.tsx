@@ -1537,22 +1537,34 @@ Approval Signatures Required:
                         </ul>
                       </Card>
                       
-                      <Card className="p-4">
-                        <h4 className="font-semibold mb-2 flex items-center gap-2">
-                          <Stethoscope className="h-4 w-4" />
-                          GP Scribe (Clinical Documentation)
-                        </h4>
-                        <ul className="text-sm space-y-1 text-muted-foreground">
-                          <li>• AI-powered consultation transcription</li>
-                          <li>• Automated clinical note generation</li>
-                          <li>• Patient-friendly summary generation</li>
-                          <li>• SNOMED CT coding integration</li>
-                          <li>• Clinical decision support</li>
-                          <li>• Prescription and referral letter automation</li>
-                          <li>• Multi-language patient communication</li>
-                          <li>• Voice-to-text with medical terminology</li>
-                        </ul>
-                      </Card>
+                       <Card className="p-4">
+                         <h4 className="font-semibold mb-2 flex items-center gap-2">
+                           <Stethoscope className="h-4 w-4" />
+                           GP Scribe (Clinical Documentation)
+                         </h4>
+                         <ul className="text-sm space-y-1 text-muted-foreground">
+                           <li>• AI-powered consultation transcription</li>
+                           <li>• Automated clinical note generation</li>
+                           <li>• Patient-friendly summary generation</li>
+                           <li>• SNOMED CT coding integration</li>
+                           <li>• Clinical decision support</li>
+                           <li>• Prescription and referral letter automation</li>
+                           <li>• Multi-language patient communication</li>
+                           <li>• Voice-to-text with medical terminology</li>
+                         </ul>
+                         <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                           <div className="flex items-start gap-2">
+                             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                             <div className="text-sm">
+                               <p className="font-medium text-amber-800 mb-1">MHRA Medical Device Registration</p>
+                               <p className="text-amber-700">
+                                 This system will be registered as MHRA medical device class 1 before use and is under review at present. 
+                                 Due for wider testing in November 2025. For more information, please contact Notewell AI.
+                               </p>
+                             </div>
+                           </div>
+                         </div>
+                       </Card>
                     </div>
                   </div>
 
