@@ -76,6 +76,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const [assignmentToSwap, setAssignmentToSwap] = useState<StaffAssignment | null>(null);
   const [isCopyingPreviousWeek, setIsCopyingPreviousWeek] = useState(false);
+  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
+  const [assignmentToRemove, setAssignmentToRemove] = useState<StaffAssignment | null>(null);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -198,6 +200,20 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   };
 
   const handleRemoveStaff = async (assignmentId: string) => {
+    // Find the assignment to check if it's assigned (green)
+    const assignment = assignments.find(a => a.id === assignmentId);
+    
+    if (assignment && assignment.status !== 'cancelled_late_notice') {
+      // Show confirmation for assigned shifts (green status)
+      setAssignmentToRemove(assignment);
+      setIsRemoveConfirmOpen(true);
+    } else {
+      // Directly remove cancelled shifts
+      await confirmRemoveStaff(assignmentId);
+    }
+  };
+
+  const confirmRemoveStaff = async (assignmentId: string) => {
     try {
       const { error } = await supabase
         .from('staff_assignments')
@@ -209,6 +225,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
       toast.success('Staff member removed from shift');
       fetchAssignments();
       onAssignmentChange();
+      setIsRemoveConfirmOpen(false);
+      setAssignmentToRemove(null);
     } catch (error) {
       toast.error('Failed to remove staff member');
       console.error('Error:', error);
@@ -878,6 +896,46 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                 </Button>
                 <Button onClick={handleSwapStaff} disabled={!selectedStaff}>
                   Swap Staff
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Confirmation Dialog */}
+      <Dialog open={isRemoveConfirmOpen} onOpenChange={setIsRemoveConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Shift Removal</DialogTitle>
+          </DialogHeader>
+          {assignmentToRemove && (
+            <div className="space-y-4">
+              <div className="p-4 border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Are you sure you want to remove this staff assignment?
+                </p>
+                <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                  <p><strong>Staff:</strong> {formatStaffName(assignmentToRemove.staff_member.name, assignmentToRemove.staff_member.role)}</p>
+                  <p><strong>Shift:</strong> {assignmentToRemove.shift_template.name}</p>
+                  <p><strong>Date:</strong> {format(new Date(assignmentToRemove.assignment_date), 'EEEE, MMMM do, yyyy')}</p>
+                  <p><strong>Time:</strong> {assignmentToRemove.start_time} - {assignmentToRemove.end_time}</p>
+                  <p><strong>Location:</strong> {getLocationDisplay(assignmentToRemove.location)}</p>
+                </div>
+                <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                  This action cannot be undone. The shift will become unassigned and appear as red until a new staff member is assigned.
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsRemoveConfirmOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => assignmentToRemove && confirmRemoveStaff(assignmentToRemove.id)}
+                >
+                  Remove Staff
                 </Button>
               </div>
             </div>
