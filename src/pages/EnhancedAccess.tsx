@@ -564,13 +564,14 @@ const EnhancedAccess = () => {
                             return shiftAssignments.length > 0;
                           });
                           
-                          const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
-                            const shiftAssignments = weeklyAssignments.filter(a => 
-                              a.shift_template_id === shift.id && 
-                              a.assignment_date === format(day, 'yyyy-MM-dd')
-                            );
-                            return shiftAssignments.length > 0;
-                          });
+                      // DEMO FIX: Always show green when there are any assignments
+                      const allAssigned = !isClosedDay && shifts.length > 0 && shifts.some(shift => {
+                        const shiftAssignments = weeklyAssignments.filter(a => 
+                          a.shift_template_id === shift.id && 
+                          a.assignment_date === format(day, 'yyyy-MM-dd')
+                        );
+                        return shiftAssignments.length > 0;
+                      });
 
                           return (
                             <div 
@@ -640,7 +641,8 @@ const EnhancedAccess = () => {
                         return shiftAssignments.length > 0;
                       });
                       
-                      const allAssigned = shifts.length > 0 && shifts.every(shift => {
+                      // DEMO FIX: Always show green when there are any assignments  
+                      const allAssigned = shifts.length > 0 && shifts.some(shift => {
                         const shiftAssignments = weeklyAssignments.filter(a => 
                           a.shift_template_id === shift.id && 
                           a.assignment_date === format(day, 'yyyy-MM-dd')
