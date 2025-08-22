@@ -156,7 +156,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, []);
 
   const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5-2025-08-07') => {
-    if (!input.trim() && uploadedFiles.length === 0) return;
+    console.log('🚀 handleSend called with:', { 
+      hasInput: !!input.trim(), 
+      inputLength: input.length,
+      filesCount: uploadedFiles.length, 
+      selectedModel, 
+      practiceContext: !!practiceContext,
+      isLoading 
+    });
+    
+    if (!input.trim() && uploadedFiles.length === 0) {
+      console.log('❌ Aborting send: no input and no files');
+      return;
+    }
     
     // Use appropriate model based on useOpenAI setting
     const modelToUse = useOpenAI ? 'gpt-5-2025-08-07' : selectedModel;
@@ -180,6 +192,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    console.log('✅ Starting AI request...', { userMessage });
     setInput('');
     setUploadedFiles([]);
     setIsLoading(true);
