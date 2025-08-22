@@ -94,11 +94,15 @@ export const useAI4GPService = () => {
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            const payload = line.slice(6);
+            if (payload === '[DONE]') break;
+            
             try {
-              const data = JSON.parse(line.slice(6));
-              if (data.content) {
-                fullResponse += data.content;
-                onStream?.(data.content);
+              const data = JSON.parse(payload);
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                fullResponse += content;
+                onStream?.(content);
               }
             } catch (e) {
               // Skip invalid JSON

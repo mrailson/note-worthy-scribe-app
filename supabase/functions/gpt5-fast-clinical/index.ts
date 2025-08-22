@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Cache-Control': 'no-cache, no-transform',
   'Connection': 'keep-alive',
 };
@@ -21,13 +22,13 @@ interface RequestBody {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const t0 = Date.now();
 
   try {
-    const { messages, model = 'gpt-5-mini-2025-08-07', systemPrompt }: RequestBody = await req.json();
+    const { messages = [], model = 'gpt-5-mini-2025-08-07', systemPrompt }: RequestBody = await req.json();
 
     if (!messages?.length) {
       throw new Error('No messages provided');
@@ -41,8 +42,8 @@ serve(async (req) => {
     // Ultra-minimal system prompt (<200 chars)
     const clinicalPrompt = systemPrompt || "NHS GP assistant. BNF/NICE/MHRA. Bullet points. UK terms.";
     
-    // Build minimal input for Responses API
-    const input = [
+    // Build messages for Chat Completions API
+    const chatMessages = [
       { role: 'system', content: clinicalPrompt },
       ...messages
     ];
@@ -50,11 +51,11 @@ serve(async (req) => {
     const t1 = Date.now();
     console.log(`t0->t1 (prep): ${t1-t0}ms`);
 
-    // Use OpenAI Responses API with streaming
+    // Use OpenAI Chat Completions API with streaming
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 65000);
 
-    const response = await fetch('https://api.openai.com/v1/responses', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -62,9 +63,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: model,
-        input: input,
+        messages: chatMessages, // Correct parameter for Chat Completions
         stream: true,
-        max_output_tokens: 700, // Optimal for clinical summaries
+        max_tokens: 700, // Chat API uses max_tokens (not max_output_tokens)
         temperature: 0.2
       }),
       signal: controller.signal,
@@ -92,19 +93,22 @@ serve(async (req) => {
     const totalTime = Date.now() - t0;
     console.log(`Error after ${totalTime}ms: ${error.message}`);
     
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        success: false,
-        responseTime: totalTime
-      }),
-      {
-        status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        }
+    // Return SSE format even for errors to maintain streaming UX
+    const errorStream = new ReadableStream({
+      start(controller) {
+        const errorMsg = `data: {"choices":[{"delta":{"content":"Error: ${error.message}"}}]}\n\n`;
+        controller.enqueue(new TextEncoder().encode(errorMsg));
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+        controller.close();
       }
-    );
+    });
+
+    return new Response(errorStream, {
+      status: 200, // Keep 200 for streaming
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'text/event-stream' 
+      }
+    });
   }
 });
