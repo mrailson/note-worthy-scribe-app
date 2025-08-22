@@ -399,13 +399,16 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
     }
 
     // Execute all verifications in parallel with overall timeout
+    let aiStartTime = Date.now();
+    let aiEndTime = Date.now();
+    
     try {
       console.log('Running parallel AI verifications...');
       console.log(`Total verification promises created: ${verificationPromises.length}`);
       
-      const aiStartTime = Date.now();
+      aiStartTime = Date.now();
       const results = await Promise.allSettled(verificationPromises);
-      const aiEndTime = Date.now();
+      aiEndTime = Date.now();
       
       console.log(`AI verifications took: ${aiEndTime - aiStartTime}ms`);
       
@@ -422,6 +425,7 @@ Focus on clinical accuracy, safety, and alignment with UK primary care guideline
       console.log('LLM models used:', llmConsensus.map(llm => llm.model));
     } catch (error) {
       console.error('Error in parallel verifications:', error);
+      aiEndTime = Date.now();
     }
 
     // Calculate consensus

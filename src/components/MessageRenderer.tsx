@@ -233,7 +233,16 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
       if (error) {
         console.error('Clinical verification error:', error);
-        toast.error('Failed to run clinical verification');
+        if (error.message?.includes('non-2xx status code')) {
+          toast.error('Clinical verification service temporarily unavailable');
+        } else {
+          toast.error('Failed to run clinical verification');
+        }
+        return;
+      }
+
+      if (!data) {
+        toast.error('No verification data received');
         return;
       }
 
