@@ -1534,6 +1534,9 @@ serve(async (req) => {
       }
     }
 
+    // Create final system prompt by combining enhanced prompt with source context
+    const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
+
     // Model routing with proper mapping
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, finalSystemPrompt, files);
