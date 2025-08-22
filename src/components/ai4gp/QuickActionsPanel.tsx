@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -18,11 +19,14 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   selectedRole = 'gp'
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
+  const isMobile = useIsMobile();
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
   
-  const visibleActions = showAllQuickActions ? currentActions : currentActions.slice(0, 4);
+  // Show only 3 actions on mobile, 4 on desktop
+  const maxVisibleActions = isMobile ? 3 : 4;
+  const visibleActions = showAllQuickActions ? currentActions : currentActions.slice(0, maxVisibleActions);
 
   // Function to replace practice placeholders with actual practice information
   const enhancePromptWithPracticeInfo = (prompt: string) => {
@@ -111,7 +115,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         })}
       </div>
       
-      {currentActions.length > 4 && (
+      {/* Don't show expand button on mobile, and only show if there are more actions than visible */}
+      {!isMobile && currentActions.length > maxVisibleActions && (
         <Button
           variant="ghost"
           size="sm"
@@ -126,7 +131,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           ) : (
             <>
               <Plus className="w-4 h-4 mr-2" />
-              Show More ({currentActions.length - 4} more)
+              Show More ({currentActions.length - maxVisibleActions} more)
             </>
           )}
         </Button>
