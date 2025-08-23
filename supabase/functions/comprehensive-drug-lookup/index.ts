@@ -168,7 +168,7 @@ serve(async (req) => {
             alternativesData.push({
               name: alt.item_name,
               notes: alt.notes,
-              status: altTlData?.tl_status_enum || 'UNKNOWN',
+              status: altTlData?.status_enum || 'UNKNOWN',
               detail_url: altTlData?.detail_url
             });
           }

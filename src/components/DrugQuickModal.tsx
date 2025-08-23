@@ -160,7 +160,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
         {/* Body */}
         <div className="grid grid-cols-12 gap-6 p-4 overflow-y-auto">
           {/* Left: Results */}
-          <div className="col-span-5">
+          <div className="col-span-8">
             <div className="rounded-xl border max-h-96 overflow-y-auto">
               {results.length ? (
                 results.map(r => (
@@ -188,7 +188,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
           </div>
 
           {/* Right: Details */}
-          <div className="col-span-7">
+          <div className="col-span-4">
             {!sel ? (
               <div className="text-muted-foreground p-4 text-center">
                 <div className="mb-2 text-lg">👈</div>
