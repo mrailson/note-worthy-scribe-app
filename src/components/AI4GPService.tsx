@@ -251,10 +251,6 @@ const AI4GPService = () => {
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                        <DropdownMenuItem onClick={() => setShowVerificationChart(true)}>
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          AI Model Chart
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAITestModal(true)}>
                           <TestTube className="w-4 h-4 mr-2" />
                           AI Model Tester
