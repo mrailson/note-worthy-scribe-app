@@ -931,6 +931,9 @@ Please fetch these and retry. No corrections made."`;
                               Translate for patients
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into English while maintaining medical accuracy and cultural appropriateness")}>
+                                🇬🇧 English
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Polish while maintaining medical accuracy and cultural appropriateness")}>
                                 🇵🇱 Polish
                               </DropdownMenuItem>
