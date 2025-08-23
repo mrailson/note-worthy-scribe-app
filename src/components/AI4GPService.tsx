@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -18,6 +18,8 @@ import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { ModelSelector } from '@/components/ai4gp/ModelSelector';
+import { MicroBanner, ShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
+import { useAI4GPDisclaimer } from '@/hooks/useAI4GPDisclaimer';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
@@ -31,12 +33,20 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { AITestModal } from '@/components/AITestModal';
+import { useToast } from '@/hooks/use-toast';
 
 
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  
+  // Disclaimer management
+  const { showDisclaimer, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
@@ -114,6 +124,29 @@ const AI4GPService = () => {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 300);
+  };
+
+  // Check if we need to show disclaimer modal on first use
+  React.useEffect(() => {
+    if (!disclaimerLoading && showDisclaimer) {
+      setShowDisclaimerModal(true);
+    }
+  }, [disclaimerLoading, showDisclaimer]);
+
+  const handleDisclaimerAccept = () => {
+    setShowDisclaimerModal(false);
+  };
+
+  const handleDisclaimerDoNotShowAgain = () => {
+    hideDisclaimer();
+    setShowDisclaimerModal(false);
+  };
+
+  const copyAuditLine = () => {
+    navigator.clipboard.writeText(getAuditLine());
+    toast({
+      description: "Audit line copied to clipboard",
+    });
   };
 
   if (loading) {
@@ -255,6 +288,14 @@ const AI4GPService = () => {
                           <TestTube className="w-4 h-4 mr-2" />
                           AI Model Tester
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowAboutModal(true)}>
+                          <Info className="w-4 h-4 mr-2" />
+                          About & Terms
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyAuditLine}>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Audit Line
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -314,6 +355,9 @@ const AI4GPService = () => {
               {/* Main Chat Content - Only show when services are not active */}
               {!showImageCreate && !showImageService && (
                 <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
+                  {/* Micro Banner - Always visible */}
+                  <MicroBanner />
+                  
                   {messages.length === 0 ? (
                     /* Welcome Screen - Compact, mobile-optimized */
                     <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -355,6 +399,11 @@ const AI4GPService = () => {
                           selectedRole={selectedRole}
                           onOpenAITestModal={() => setShowAITestModal(true)}
                         />
+                        
+                        {/* Short Card Disclaimer */}
+                        <div className="mt-6">
+                          <ShortCard />
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -501,6 +550,25 @@ const AI4GPService = () => {
       <AITestModal 
         open={showAITestModal} 
         onOpenChange={setShowAITestModal} 
+      />
+
+      {/* Disclaimer Modal - First Time Use */}
+      <FullModal 
+        open={showDisclaimerModal}
+        onOpenChange={setShowDisclaimerModal}
+        onAccept={handleDisclaimerAccept}
+        onDoNotShowAgain={handleDisclaimerDoNotShowAgain}
+      />
+
+      {/* About Modal - Manual Access */}
+      <FullModal 
+        open={showAboutModal}
+        onOpenChange={setShowAboutModal}
+        onAccept={() => setShowAboutModal(false)}
+        onDoNotShowAgain={() => {
+          hideDisclaimer();
+          setShowAboutModal(false);
+        }}
       />
     </>
   );
