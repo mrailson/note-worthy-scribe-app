@@ -884,23 +884,23 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     ];
     
     if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 2000, contentType: 'comprehensive' };
+      return { maxTokens: 4096, contentType: 'comprehensive' }; // Maximum for complete responses
     }
     
     if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 1500, contentType: 'analysis' };
+      return { maxTokens: 3000, contentType: 'analysis' }; // High limit for detailed analysis
     }
     
     if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 900, contentType: 'clinical_notes' };
+      return { maxTokens: 2000, contentType: 'clinical_notes' }; // Good limit for clinical content
     }
     
     // Check content length as secondary indicator
     if (content.length > 200) {
-      return { maxTokens: 1200, contentType: 'medium' };
+      return { maxTokens: 2500, contentType: 'medium' }; // Higher for medium content
     }
     
-    return { maxTokens: 600, contentType: 'short' };
+    return { maxTokens: 1500, contentType: 'short' }; // Even short responses get more tokens
   }
 
   const { maxTokens, contentType } = detectContentType(messages);
@@ -948,7 +948,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       console.log(`GPT-5 request timed out for ${contentType} content, trying with reduced tokens...`);
       
       // Progressive retry with reduced tokens
-      if (maxTokens > 800) {
+      if (maxTokens > 2000) {
         console.log('Retrying GPT-5 with reduced token limit...');
         try {
           const retryController = new AbortController();
@@ -962,7 +962,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
             },
             body: JSON.stringify({
               model: 'gpt-5-2025-08-07',
-              max_tokens: 800,
+              max_tokens: 2500, // Still high for retry
               messages: gptMessages,
               stop: ["\n##", "\n###", "\n---", "\n\n---", "Feel free to"]
             }),
@@ -1078,14 +1078,14 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     ];
     
     if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 2000, contentType: 'comprehensive' };
+      return { maxTokens: 4000, contentType: 'comprehensive' }; // Maximum for fallback
     }
     
     if (content.length > 200) {
-      return { maxTokens: 1400, contentType: 'medium' };
+      return { maxTokens: 2500, contentType: 'medium' }; // High for medium content
     }
     
-    return { maxTokens: 800, contentType: 'short' };
+    return { maxTokens: 1800, contentType: 'short' }; // Higher even for short
   }
 
   const { maxTokens, contentType } = detectContentType(messages);
