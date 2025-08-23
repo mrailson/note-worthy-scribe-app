@@ -11,6 +11,7 @@ export const useAI4GPService = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
@@ -698,14 +699,44 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (!user || messagesData.length < 2) return; // Need at least user + assistant message
 
     try {
-      // Generate title from first user message
+      // If we have a current search ID, update it instead of creating a new one
+      if (currentSearchId) {
+        // Generate updated brief overview
+        const aiMessages = messagesData.filter(m => m.role === 'assistant');
+        const overview = aiMessages.length > 0 
+          ? aiMessages[0].content.substring(0, 120) + (aiMessages[0].content.length > 120 ? '...' : '')
+          : 'No AI response';
+
+        const { error } = await supabase
+          .from('ai_4_pm_searches')
+          .update({
+            messages: messagesData as any,
+            brief_overview: overview,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentSearchId);
+        
+        if (error) {
+          console.error('Error updating search:', error);
+        } else {
+          // Update local search history to reflect changes
+          setSearchHistory(prev => prev.map(search => 
+            search.id === currentSearchId 
+              ? { ...search, messages: messagesData, brief_overview: overview, updated_at: new Date().toISOString() }
+              : search
+          ));
+        }
+        return;
+      }
+
+      // Create new search only if we don't have a current search ID
       const firstUserMessage = messagesData.find(m => m.role === 'user');
       const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
       
       // Generate brief overview from AI responses
       const aiMessages = messagesData.filter(m => m.role === 'assistant');
       const overview = aiMessages.length > 0 
-        ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
+        ? aiMessages[0].content.substring(0, 120) + (aiMessages[0].content.length > 120 ? '...' : '')
         : 'No AI response';
 
       const { data, error } = await supabase
@@ -720,7 +751,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         .single();
 
       if (!error && data) {
-        // Add the new search to the beginning of the local state instead of reloading everything
+        // Set the current search ID so future updates modify this entry
+        setCurrentSearchId(data.id);
+        
+        // Add the new search to the beginning of the local state
         const newSearch: SearchHistory = {
           id: data.id,
           title: data.title,
@@ -838,6 +872,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setMessages([]);
     setUploadedFiles([]);
     setInput('');
+    setCurrentSearchId(null); // Reset search ID when starting new conversation
   }, []);
 
   // Handle quick action responses
@@ -1045,6 +1080,18 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     isClinical,
     setIsClinical,
     performClinicalVerification,
-    saveUserSettings
+    saveUserSettings,
+    loadSearch: (search: SearchHistory) => {
+      setMessages(search.messages);
+      setCurrentSearchId(search.id); // Set the current search ID when loading
+      setInput('');
+      setUploadedFiles([]);
+    },
+    clearMessages: () => {
+      setMessages([]);
+      setInput('');
+      setUploadedFiles([]);
+      setCurrentSearchId(null); // Reset search ID when clearing messages
+    },
   };
 };
