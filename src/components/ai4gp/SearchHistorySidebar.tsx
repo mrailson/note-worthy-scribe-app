@@ -31,6 +31,43 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
       return search.brief_overview;
     }
     
+    // Enhanced content analysis for better summaries
+    const allContent = search.messages.map(m => m.content.toLowerCase()).join(' ');
+    
+    // Medical specialty and topic detection
+    const medicalCategories = {
+      'Patient Information': ['patient leaflet', 'information leaflet', 'patient education', 'explanation for patient'],
+      'Referral Letters': ['referral letter', 'refer to', 'secondary care', 'specialist referral', 'consultant'],
+      'Clinical Guidelines': ['nice guideline', 'clinical guidance', 'evidence based', 'best practice', 'protocol'],
+      'Prescription/Medication': ['prescription', 'medication', 'prescribe', 'drug interaction', 'dosage', 'bnf'],
+      'Diagnosis Support': ['diagnosis', 'diagnostic', 'differential diagnosis', 'symptoms', 'presentation'],
+      'Clinical Letters': ['discharge summary', 'clinic letter', 'consultation letter', 'medical report'],
+      'Practice Management': ['practice management', 'staff', 'rota', 'appointment', 'admin', 'workflow'],
+      'CQC Compliance': ['cqc', 'compliance', 'inspection', 'quality assurance', 'audit'],
+      'Clinical Coding': ['read code', 'snomed', 'icd', 'clinical coding', 'qof'],
+      'Emergency Care': ['urgent', 'emergency', 'immediate', 'acute', '999', 'ambulance'],
+      'Mental Health': ['mental health', 'depression', 'anxiety', 'psychological', 'psychiatry'],
+      'Paediatrics': ['child', 'children', 'paediatric', 'infant', 'baby', 'vaccination'],
+      'Women\'s Health': ['pregnancy', 'contraception', 'menstrual', 'gynae', 'obstetric'],
+      'Cardiology': ['heart', 'cardiac', 'chest pain', 'blood pressure', 'ecg', 'cardiovascular'],
+      'Respiratory': ['asthma', 'copd', 'breathing', 'cough', 'lung', 'respiratory'],
+      'Diabetes Care': ['diabetes', 'blood sugar', 'insulin', 'hba1c', 'diabetic'],
+      'Dermatology': ['skin', 'rash', 'dermatology', 'mole', 'eczema'],
+      'Musculoskeletal': ['joint', 'back pain', 'arthritis', 'fracture', 'orthopaedic']
+    };
+    
+    // Find the most relevant category
+    let detectedCategory = '';
+    let maxMatches = 0;
+    
+    for (const [category, keywords] of Object.entries(medicalCategories)) {
+      const matches = keywords.filter(keyword => allContent.includes(keyword)).length;
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        detectedCategory = category;
+      }
+    }
+    
     // Skip common generic starting messages
     const skipPhrases = [
       'you are an expert uk nhs',
@@ -38,48 +75,91 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
       'to proceed with your request',
       'i need more information',
       'could you please provide',
-      'what specific information'
+      'what specific information',
+      'hello', 'hi', 'help', 'can you help'
     ];
     
     // Find meaningful user messages by skipping generic ones
     const meaningfulMessages = search.messages.filter(msg => {
       if (msg.role !== 'user') return false;
       const content = msg.content.toLowerCase().trim();
-      return !skipPhrases.some(phrase => content.startsWith(phrase)) && content.length > 10;
+      return !skipPhrases.some(phrase => content.startsWith(phrase)) && content.length > 15;
     });
     
-    // If we have meaningful messages, use the most descriptive one
+    // Generate enhanced summary
     if (meaningfulMessages.length > 0) {
-      // Try the last meaningful message first (often more specific)
+      // Find the most descriptive message
       let bestMessage = meaningfulMessages[meaningfulMessages.length - 1];
       
-      // Or find the longest meaningful message (likely most descriptive)
+      // Prefer longer, more descriptive messages
       const longestMessage = meaningfulMessages.reduce((prev, current) => 
         current.content.length > prev.content.length ? current : prev
       );
       
-      if (longestMessage.content.length > bestMessage.content.length + 20) {
+      if (longestMessage.content.length > bestMessage.content.length + 30) {
         bestMessage = longestMessage;
       }
       
-      const content = bestMessage.content.trim();
-      if (content.length > 85) {
-        return content.substring(0, 85) + '...';
+      let content = bestMessage.content.trim();
+      
+      // Clean up and enhance the content
+      content = content.replace(/^(create?|write|generate|help me with|can you|please)\s*/i, '');
+      content = content.replace(/\?+$/, '');
+      
+      // Add category prefix if detected and relevant
+      if (detectedCategory && maxMatches >= 2) {
+        const prefix = `${detectedCategory}: `;
+        if (!content.toLowerCase().includes(detectedCategory.toLowerCase().split(' ')[0])) {
+          content = prefix + content;
+        }
       }
+      
+      // Capitalize first letter
+      content = content.charAt(0).toUpperCase() + content.slice(1);
+      
+      // Truncate with smart word boundary
+      if (content.length > 90) {
+        const truncated = content.substring(0, 87);
+        const lastSpace = truncated.lastIndexOf(' ');
+        content = (lastSpace > 60 ? truncated.substring(0, lastSpace) : truncated) + '...';
+      }
+      
       return content;
     }
     
-    // Analyze assistant responses for context if no good user messages
+    // Enhanced assistant response analysis
     const assistantMessages = search.messages.filter(msg => msg.role === 'assistant');
     if (assistantMessages.length > 0) {
       const content = assistantMessages[0].content.toLowerCase();
       
-      // Extract key topics from AI responses
-      if (content.includes('referral')) return 'Referral letter assistance';
-      if (content.includes('prescription') || content.includes('medication')) return 'Medication guidance';
-      if (content.includes('guideline') || content.includes('nice')) return 'Clinical guidelines';
-      if (content.includes('diagnosis')) return 'Diagnostic support';
-      if (content.includes('patient') && content.includes('care')) return 'Patient care advice';
+      // More comprehensive topic extraction from AI responses
+      const responsePatterns = {
+        'Patient Information Leaflet': ['patient.*leaflet', 'information.*leaflet', 'patient.*guide'],
+        'Referral Letter': ['referral.*letter', 'referring.*patient', 'secondary.*care'],
+        'Clinical Guidance': ['nice.*guideline', 'clinical.*guidance', 'evidence.*based'],
+        'Medication Review': ['medication.*review', 'prescription.*review', 'drug.*history'],
+        'Diagnostic Support': ['differential.*diagnosis', 'diagnostic.*criteria', 'clinical.*presentation'],
+        'Practice Administration': ['practice.*management', 'administrative', 'workflow'],
+        'Emergency Protocol': ['emergency.*procedure', 'urgent.*care', 'immediate.*action'],
+        'Preventive Care': ['screening', 'vaccination', 'health.*promotion', 'prevention'],
+        'Chronic Disease Management': ['long.*term.*condition', 'chronic.*disease', 'ongoing.*care']
+      };
+      
+      for (const [summary, patterns] of Object.entries(responsePatterns)) {
+        if (patterns.some(pattern => new RegExp(pattern).test(content))) {
+          return summary;
+        }
+      }
+      
+      // Fallback to detected category
+      if (detectedCategory && maxMatches >= 1) {
+        return `${detectedCategory} consultation`;
+      }
+    }
+    
+    // Final fallback with more context
+    if (detectedCategory) {
+      return `${detectedCategory} query`;
     }
     
     return 'General consultation';
