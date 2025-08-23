@@ -117,6 +117,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 }
               } else if (action.action === 'open-traffic-light-modal') {
                 setIsTrafficLightModalOpen(true);
+              } else if (action.action === 'open-traffic-light-importer') {
+                setIsTrafficLightImporterOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
