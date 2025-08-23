@@ -752,9 +752,28 @@ Please fetch these and retry. No corrections made."`;
           {(!isModal || (isModal && message.role === 'assistant')) && (
             <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>
               {!isModal && (
-                <span className="text-xs opacity-70">
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </span>
+                  {/* Clinical Verify button - moved to left side */}
+                  {message.role === 'assistant' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClinicalVerify}
+                      disabled={isVerifying}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Run clinical verification"
+                    >
+                      {isVerifying ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
+                      ) : (
+                        <ShieldCheck className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               )}
               <div className={`flex items-center gap-2 ${isModal ? 'justify-center w-full' : ''}`}>
                 {/* Action buttons for assistant messages */}
@@ -837,21 +856,23 @@ Please fetch these and retry. No corrections made."`;
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Clinical Verify button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClinicalVerify}
-                      disabled={isVerifying}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Run clinical verification"
-                    >
-                      {isVerifying ? (
-                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
-                      ) : (
-                        <ShieldCheck className="h-3 w-3" />
-                      )}
-                    </Button>
+                    {/* Clinical Verify button - for modal only */}
+                    {isModal && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClinicalVerify}
+                        disabled={isVerifying}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Run clinical verification"
+                      >
+                        {isVerifying ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
+                        ) : (
+                          <ShieldCheck className="h-3 w-3" />
+                        )}
+                      </Button>
+                    )}
 
                     {/* Copy button */}
                     <Button
