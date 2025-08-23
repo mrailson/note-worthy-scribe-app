@@ -1,4 +1,4 @@
-import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube } from 'lucide-react';
+import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -95,6 +95,17 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     icon: FileText, 
     prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
+  },
+  { 
+    label: 'Patient Translation Service', 
+    icon: Languages, 
+    prompt: `${nhsSafetyPreamble} Translate the following healthcare content into [target language]. Maintain medical accuracy and use culturally appropriate terminology. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+Target language: [specify language]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`,
+    requiresFile: true 
   },
 ];
 
