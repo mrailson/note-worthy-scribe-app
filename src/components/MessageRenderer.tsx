@@ -753,10 +753,7 @@ Please fetch these and retry. No corrections made."`;
             <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>
               {!isModal && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs opacity-70">
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </span>
-                  {/* Clinical Verify button - moved to left side */}
+                  {/* Clinical Verify button - moved before timestamp */}
                   {message.role === 'assistant' && (
                     <Button
                       variant="ghost"
@@ -773,6 +770,9 @@ Please fetch these and retry. No corrections made."`;
                       )}
                     </Button>
                   )}
+                  <span className="text-xs opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </span>
                 </div>
               )}
               <div className={`flex items-center gap-2 ${isModal ? 'justify-center w-full' : ''}`}>
