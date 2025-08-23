@@ -95,6 +95,8 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<'left' | 'center' | 'right'>('center');
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
   const config = getStatusConfig(status);
   const description = statusDescriptions[status];
   const policyUrl = detailUrl || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs";
@@ -105,6 +107,28 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
       setHideTimeout(null);
     }
     setIsTooltipVisible(true);
+    
+    // Calculate optimal position to prevent overflow
+    if (buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const tooltipWidth = 320; // 80 * 4 (w-80 = 20rem = 320px)
+      const viewportWidth = window.innerWidth;
+      
+      // Calculate centered position
+      const centeredLeft = buttonRect.left + buttonRect.width / 2 - tooltipWidth / 2;
+      
+      // Check if tooltip would overflow left or right
+      if (centeredLeft < 10) {
+        // Too close to left edge, align tooltip to left
+        setTooltipPosition('left');
+      } else if (centeredLeft + tooltipWidth > viewportWidth - 10) {
+        // Too close to right edge, align tooltip to right  
+        setTooltipPosition('right');
+      } else {
+        // Safe to center
+        setTooltipPosition('center');
+      }
+    }
   };
   
   const hideTooltip = () => {
@@ -128,6 +152,7 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
   return (
     <span className="relative inline-flex items-center">
       <button
+        ref={buttonRef}
         className={`
           inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold 
           cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-[#005EB8] focus:ring-offset-2
@@ -162,7 +187,13 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
           id={`tl-tip-${medicineName}-${status}`}
           className="pointer-events-auto absolute z-50 mt-2 w-80 rounded-xl border bg-white p-3 text-sm shadow-lg
                      opacity-100 transition-opacity duration-150 visible"
-          style={{ top: '100%', left: '50%', transform: 'translateX(-50%)' }}
+          style={{ 
+            top: '100%',
+            left: tooltipPosition === 'left' ? '0' : 
+                  tooltipPosition === 'right' ? 'auto' : '50%',
+            right: tooltipPosition === 'right' ? '0' : 'auto',
+            transform: tooltipPosition === 'center' ? 'translateX(-50%)' : 'none'
+          }}
           onMouseEnter={handleTooltipEnter}
           onMouseLeave={handleTooltipLeave}
         >
