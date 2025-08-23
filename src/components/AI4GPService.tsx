@@ -383,7 +383,7 @@ const AI4GPService = () => {
                   )}
                   
                   {/* Input Area at Bottom - Desktop only */}
-                  {!showNews && !showAIChat && !showSettings && !showImageService && !isMobile && (
+                  {!showNews && !showSettings && !showImageService && !isMobile && (
                     <div className="border-t">
                       <InputArea
                         ref={inputRef}
@@ -406,7 +406,7 @@ const AI4GPService = () => {
       </div>
 
       {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
-      {isMobile && !showNews && !showAIChat && !showSettings && !showImageService && (
+      {isMobile && !showNews && !showSettings && !showImageService && (
         <FloatingMobileInput
           ref={inputRef}
           input={input}
