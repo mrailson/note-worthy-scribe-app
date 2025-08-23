@@ -420,17 +420,21 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         console.log('Running GPT-5 reviews against gold standard...');
         
         const reviewPromises = results
-          .filter(result => result.status === 'success' && result.fullResponse)
+          .filter(result => result.status === 'success' && (result.fullResponse || result.response))
           .map(async (result) => {
+            console.log(`Running GPT-5 review for ${result.model}...`);
+            const textToReview = result.fullResponse || result.response;
             const review = await runGPT5Review(
-              result.fullResponse!,
+              textToReview,
               goldStandard,
               selectedClinicalTitle
             );
+            console.log(`GPT-5 review completed for ${result.model}:`, review);
             return { ...result, review };
           });
         
         const reviewedResults = await Promise.all(reviewPromises);
+        console.log('All GPT-5 reviews completed:', reviewedResults.length);
         
         // Merge reviewed results back with original results
         const finalResults = results.map(originalResult => {
@@ -444,7 +448,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         
         toast({
           title: "Clinical Test with GPT-5 Reviews Completed",
-          description: `Tested ${results.length} AI models with quality scoring`,
+          description: `Tested ${results.length} AI models with quality scoring against gold standard`,
         });
       } else {
         setClinicalResults(results);
@@ -862,9 +866,17 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                      </Badge>
                                      {getStatusIcon(result.status)}
                                    </div>
-                                   <div className="flex items-center gap-1 text-xs font-medium">
-                                     <Clock className="w-3 h-3" />
-                                     {result.responseTime}ms
+                                   <div className="flex items-center gap-2">
+                                     {/* Show confidence score prominently if available */}
+                                     {result.review && (
+                                       <div className={`px-2 py-1 rounded-full text-xs font-bold border-2 ${getRiskLevelColor(result.review.riskLevel)}`}>
+                                         {result.review.confidenceScore}/99
+                                       </div>
+                                     )}
+                                     <div className="flex items-center gap-1 text-xs font-medium">
+                                       <Clock className="w-3 h-3" />
+                                       {result.responseTime}ms
+                                     </div>
                                    </div>
                                  </div>
                                  
