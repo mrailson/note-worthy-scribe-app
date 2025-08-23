@@ -233,7 +233,7 @@ const AI4GPService = () => {
                   </div>
 
                   {/* Traffic Light Search - Center */}
-                  <div className="flex-1 max-w-md mx-4 hidden md:block">
+                  <div className="flex-1 max-w-xs mx-4 hidden md:block">
                     <TrafficLightSearch 
                       onInsertIntoChat={(message) => {
                         setInput(prev => prev ? `${prev}\n\n${message}` : message);
@@ -310,7 +310,7 @@ const AI4GPService = () => {
                   onInsertIntoChat={(message) => {
                     setInput(prev => prev ? `${prev}\n\n${message}` : message);
                   }}
-                  className="w-full max-w-md"
+                  className="w-full max-w-xs"
                 />
               </div>
 
