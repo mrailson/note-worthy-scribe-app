@@ -197,7 +197,7 @@ async function importAllMedicines() {
   // Clear existing data
   console.log('Clearing existing data...');
   const { error: deleteError } = await supabase
-    .from('traffic_light_vocab')
+    .from('traffic_light_medicines')
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000');
     
@@ -213,13 +213,14 @@ async function importAllMedicines() {
     const batch = uniqueMedicines.slice(i, i + batchSize);
     
     const { error: insertError } = await supabase
-      .from('traffic_light_vocab')
+      .from('traffic_light_medicines')
       .insert(batch.map(med => ({
-        medicine_name: med.name,
-        status: med.status_enum,
+        name: med.name,
+        status_enum: med.status_enum,
         bnf_chapter: med.bnf_chapter,
-        notes: `Detail: ${med.detail_url}${med.last_modified ? ` | Last modified: ${med.last_modified}` : ''}`,
-        last_modified: parseISODate(med.last_modified)
+        detail_url: med.detail_url,
+        notes: med.last_modified ? `Last modified: ${med.last_modified}` : null,
+        status_raw: med.status_raw
       })));
       
     if (insertError) {
