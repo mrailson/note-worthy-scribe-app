@@ -76,13 +76,13 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-3 space-y-3 bg-muted/30 rounded-xl">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
       />
       
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
@@ -90,7 +90,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[120px] max-h-40 resize-none bg-white border-border pr-20"
+            className="min-h-[120px] max-h-40 resize-none bg-white border-border pr-20 rounded-lg"
             disabled={isLoading}
           />
           
@@ -146,14 +146,14 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         <Button 
           onClick={onSend} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-          size="sm"
-          className="h-[120px] px-4 flex-shrink-0"
+          size="default"
+          className="h-[120px] px-6 flex-shrink-0 rounded-lg"
         >
-          <SendHorizontal className="w-4 h-4" />
+          <SendHorizontal className="w-5 h-5" />
         </Button>
       </div>
       
-      <div className="text-xs text-muted-foreground text-center">
+      <div className="text-xs text-muted-foreground text-center pt-1">
         <kbd className="px-1 py-0.5 text-xs bg-muted rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio
         {(isRecording || isProcessing) && (
