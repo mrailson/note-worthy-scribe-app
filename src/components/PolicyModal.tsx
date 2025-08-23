@@ -58,22 +58,24 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
     
     switch (tlStatus) {
       case 'DOUBLE_RED':
-        return { text: paStatus ? 'No - PA/IFR/Blueteq required' : 'No', color: 'destructive' };
+        return { text: 'Do not initiate', color: 'destructive', detail: 'Hospital-only. Follow specialist pathway. Prior Approval/IFR may be required.' };
       case 'RED':
-        return { text: paStatus ? 'No - Usually Blueteq required' : 'No', color: 'destructive' };
+        return { text: 'Do not initiate', color: 'destructive', detail: 'Specialist service only. Often Blueteq prior approval required.' };
       case 'SPECIALIST_INITIATED':
-        return { text: 'Only if specialist has started', color: 'warning' };
+        return { text: 'Do not initiate', color: 'destructive', detail: 'Continue only after specialist start when responsibilities agreed.' };
       case 'SPECIALIST_RECOMMENDED':
-        return { text: 'Yes - Specialist recommended', color: 'success' };
-      case 'AMBER_1':
+        return { text: 'Yes - when specialist recommends', color: 'warning', detail: 'Primary care may prescribe when recommended by specialist and criteria met.' };
       case 'AMBER_2':
-        return { text: 'Yes - Check local formulary', color: 'warning' };
+        return { text: 'Yes - with shared care', color: 'warning', detail: 'Shared-care required. Ensure SCP in place before transfer.' };
+      case 'AMBER_1':
+        return { text: 'Yes - following specialist advice', color: 'warning', detail: 'Primary care prescribing following specialist advice.' };
       case 'GREEN':
-        return { text: 'Yes', color: 'success' };
+        return { text: 'Yes', color: 'success', detail: 'Suitable for primary-care prescribing per local formulary.' };
       case 'GREY':
+        return { text: 'Check with Medicines Optimisation', color: 'secondary', detail: 'Not routinely commissioned or not assessed.' };
       case 'UNKNOWN':
       default:
-        return { text: 'Check ICB site / Medicines Optimisation', color: 'secondary' };
+        return { text: 'Check ICB site / Medicines Optimisation', color: 'secondary', detail: 'Local status not found. Verify on ICB site.' };
     }
   };
 
@@ -154,7 +156,13 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
 
         <div className="space-y-6">
           {/* Can GP Initiate - Main Question */}
-          <div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+          <div className={`p-4 rounded-lg border-2 ${
+            initiationAnswer.color === 'destructive' 
+              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+              : initiationAnswer.color === 'warning'
+              ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+              : 'bg-muted/50 border-dashed'
+          }`}>
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-5 w-5" />
               <h3 className="font-semibold">Can GP initiate?</h3>
@@ -165,10 +173,13 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 initiationAnswer.color === 'warning' ? 'secondary' : 
                 'destructive'
               }
-              className="text-sm px-3 py-1"
+              className="text-sm px-3 py-1 mb-2"
             >
               {initiationAnswer.text}
             </Badge>
+            <p className="text-sm text-muted-foreground">
+              {initiationAnswer.detail}
+            </p>
           </div>
 
           {/* Traffic Light Information */}

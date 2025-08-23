@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, AlertTriangle } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { PolicyBadge, type PolicyStatus } from './PolicyBadge';
+import { FormularyBadge, type FormularyStatus } from './FormularyBadge';
 import { PolicyModal } from './PolicyModal';
 import { useTrafficLightVocab, type TLVocabItem } from '@/hooks/useTrafficLightVocab';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,7 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [policyData, setPolicyData] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formularyCache, setFormularyCache] = useState<Record<string, FormularyStatus>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
   
@@ -129,13 +131,52 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
 
   const handleSelectItem = async (item: TLVocabItem) => {
     try {
-      const { data, error } = await supabase.functions.invoke('policy-resolve', {
+      const { data, error } = await supabase.functions.invoke('comprehensive-drug-lookup', {
         body: { name: item.name }
       });
       
       if (error) throw error;
       
-      setPolicyData(data);
+      // Transform the data to match the PolicyModal interface
+      const transformedData = {
+        drug: {
+          name: item.name,
+          searched_term: item.name
+        },
+        traffic_light: data?.traffic_light ? {
+          status: data.traffic_light.status_enum,
+          detail_url: data.traffic_light.detail_url,
+          last_modified: data.traffic_light.last_modified,
+          bnf_chapter: data.traffic_light.bnf_chapter,
+          notes: data.traffic_light.notes
+        } : null,
+        prior_approval: data?.prior_approval?.length > 0 ? {
+          status: data.prior_approval[0].pa_status_enum,
+          criteria: data.prior_approval[0].criteria_excerpt,
+          source_url: data.prior_approval[0].source_url,
+          last_updated: data.prior_approval[0].last_updated
+        } : null,
+        formulary: data?.formulary?.length > 0 ? {
+          bnf_chapter: data.formulary[0]?.bnf_chapter_name,
+          section: data.formulary[0]?.section,
+          preferred: data.formulary
+            .filter((item: any) => item.preference_rank)
+            .map((item: any) => ({
+              item_name: item.item_name,
+              rank: item.preference_rank,
+              notes: item.notes,
+              otc: item.otc
+            }))
+            .sort((a: any, b: any) => a.rank - b.rank),
+          page_url: data.formulary[0]?.page_url || "https://www.icnorthamptonshire.org.uk/mo-formulary",
+          last_published: data.formulary[0]?.last_published,
+          found_exact_match: data.formulary.some((item: any) => 
+            item.item_name.toLowerCase().includes(item.name?.toLowerCase() || '')
+          )
+        } : null
+      };
+      
+      setPolicyData(transformedData);
       setIsModalOpen(true);
       setIsOpen(false);
       setSelectedIndex(-1);
@@ -180,6 +221,63 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
       ) : part
     );
   };
+
+  // Fetch formulary status for search results
+  const fetchFormularyStatus = async (drugName: string): Promise<FormularyStatus> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('comprehensive-drug-lookup', {
+        body: { name: drugName }
+      });
+      
+      if (error || !data?.formulary?.length) return 'none';
+      
+      const formularyItems = data.formulary;
+      
+      // Check if any item has OTC status
+      const hasOTC = formularyItems.some((item: any) => item.otc === true);
+      if (hasOTC) return 'otc';
+      
+      // Check if any item is preferred (rank 1 or 2)
+      const hasPreferred = formularyItems.some((item: any) => 
+        item.preference_rank && [1, 2].includes(item.preference_rank)
+      );
+      if (hasPreferred) return 'preferred';
+      
+      // If listed but not preferred
+      if (formularyItems.length > 0) return 'listed';
+      
+      return 'none';
+    } catch (err) {
+      console.error('Failed to fetch formulary status:', err);
+      return 'none';
+    }
+  };
+
+  // Update formulary cache when search results change
+  useEffect(() => {
+    if (searchResults.length === 0) return;
+
+    const updateFormularyCache = async () => {
+      const newCache = { ...formularyCache };
+      const promises = searchResults
+        .filter(item => !newCache[item.name])
+        .map(async (item) => {
+          const status = await fetchFormularyStatus(item.name);
+          newCache[item.name] = status;
+        });
+      
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        setFormularyCache(newCache);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      updateFormularyCache();
+    }, 300); // Debounce to avoid too many requests
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchResults]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -252,6 +350,12 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
                     status={item.status_enum as PolicyStatus}
                     className="flex-shrink-0"
                   />
+                  {formularyCache[item.name] && formularyCache[item.name] !== 'none' && (
+                    <FormularyBadge 
+                      status={formularyCache[item.name]}
+                      className="flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
                       {highlightMatch(item.name, query)}
