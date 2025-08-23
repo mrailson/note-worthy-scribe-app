@@ -3912,6 +3912,39 @@ export type Database = {
         }
         Relationships: []
       }
+      traffic_light_vocab: {
+        Row: {
+          bnf_chapter: string | null
+          created_at: string
+          id: string
+          last_modified: string | null
+          medicine_name: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bnf_chapter?: string | null
+          created_at?: string
+          id?: string
+          last_modified?: string | null
+          medicine_name: string
+          notes?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          bnf_chapter?: string | null
+          created_at?: string
+          id?: string
+          last_modified?: string | null
+          medicine_name?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transcription_chunks: {
         Row: {
           audio_chunk_id: string | null
