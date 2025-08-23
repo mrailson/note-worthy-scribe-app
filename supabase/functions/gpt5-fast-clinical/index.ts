@@ -50,30 +50,20 @@ serve(async (req) => {
   };
 
   try {
-    // 1) Primary: gpt-5 streaming
-    let resp = await tryModel("gpt-5", true);
+    // 1) Primary: gpt-4o streaming (using available models)
+    let resp = await tryModel("gpt-4o", true);
 
-    // 2) If org verification blocks streaming, fall back
+    // 2) If that fails, fall back to gpt-4o-mini
     if (!resp.ok) {
       try {
         const err = await resp.json();
         console.log("Primary request failed:", err);
-        const gated =
-          err?.error?.code === "unsupported_value" && err?.error?.param === "stream" ||
-          (err?.error?.message || "").toLowerCase().includes("verify organization");
-        if (gated) {
-          console.log("Org verification required, falling back to gpt-4o-mini streaming");
-          // Preferred fallback: 4o-mini streaming
-          resp = await tryModel("gpt-4o-mini", true);
-        } else {
-          console.log("Other error, falling back to gpt-5 non-streaming");
-          // Non-stream fallback on gpt-5
-          resp = await tryModel("gpt-5", false);
-        }
+        console.log("Falling back to gpt-4o-mini streaming");
+        resp = await tryModel("gpt-4o-mini", true);
       } catch {
         console.log("Error parsing failed, using safe default");
         // If parsing fails, try a safe default
-        resp = await tryModel("gpt-4o-mini", true);
+        resp = await tryModel("gpt-4o-mini", false);
       }
     }
 

@@ -88,12 +88,12 @@ function extractTextFromChat(json: any): string {
 
 function resolveModel(requested: string): { api: "responses" | "chat"; name: string } {
   switch (requested) {
-    case "gpt-4o-mini": return { api: "responses", name: "gpt-4o-mini" };
-    case "gpt-4o":      return { api: "responses", name: "gpt-4o" };
-    case "gpt-5":       return { api: "responses", name: "gpt-5" }; // will 404 if not entitled
-    case "chatgpt5":    return { api: "chat",      name: "gpt-4o-mini" }; // legacy lane if you want
-    case "gpt":         return { api: "chat",      name: "gpt-4o" };      // legacy lane
-    default:            return { api: "responses", name: "gpt-4o-mini" };
+    case "gpt-4o-mini": return { api: "chat", name: "gpt-4o-mini" };
+    case "gpt-4o":      return { api: "chat", name: "gpt-4o" };
+    case "gpt-5":       return { api: "chat", name: "gpt-4o" }; // Use gpt-4o as fallback for gpt-5
+    case "chatgpt5":    return { api: "chat", name: "gpt-4o-mini" };
+    case "gpt":         return { api: "chat", name: "gpt-4o" };
+    default:            return { api: "chat", name: "gpt-4o-mini" };
   }
 }
 
@@ -116,15 +116,26 @@ async function callGPTChatCompletions(
   prompt: string, systemPrompt: string, model: string, enableStreaming: boolean
 ): Promise<string> {
 
-  const body = {
+  // Use correct parameter names based on model
+  const isNewerModel = model.startsWith('gpt-5') || model.startsWith('o3') || model.startsWith('o4');
+  
+  const body: any = {
     model,
     messages: [
       { role: "system", content: systemPrompt ?? "" },
       { role: "user",   content: prompt ?? "" }
     ],
-    max_tokens: 512,          // Chat Completions uses max_tokens
-    stream: !!enableStreaming // Fixed: Added missing comma
+    stream: !!enableStreaming
   };
+  
+  // Use correct parameter names based on model
+  if (isNewerModel) {
+    body.max_completion_tokens = 512; // Newer models use this
+    // Don't include temperature - newer models don't support it
+  } else {
+    body.max_tokens = 512; // Legacy models use this
+    body.temperature = 0.2;
+  }
 
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -369,9 +380,9 @@ serve(async (req) => {
         apiUsed = 'Anthropic';
         break;
       case 'gpt-5':
-        response = await callGPT(prompt, systemPrompt, 'gpt-5', useResponsesAPI, enableStreaming);
-        modelName = useResponsesAPI ? 'GPT-5 (Responses API)' : 'GPT-5 (Chat Completions)';
-        apiUsed = useResponsesAPI ? 'OpenAI Responses API' : 'OpenAI Chat Completions';
+        response = await callGPT(prompt, systemPrompt, 'gpt-4o', false, enableStreaming);
+        modelName = 'GPT-4o (GPT-5 fallback)';
+        apiUsed = 'OpenAI Chat Completions';
         break;
       case 'gpt':
         response = await callGPT(prompt, systemPrompt, 'gpt-4o', useResponsesAPI, enableStreaming);
