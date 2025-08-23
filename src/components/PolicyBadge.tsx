@@ -118,10 +118,10 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
       const centeredLeft = buttonRect.left + buttonRect.width / 2 - tooltipWidth / 2;
       
       // Check if tooltip would overflow left or right
-      if (centeredLeft < 10) {
-        // Too close to left edge, align tooltip to left
+      if (centeredLeft < 20) {
+        // Too close to left edge, align tooltip to left with margin
         setTooltipPosition('left');
-      } else if (centeredLeft + tooltipWidth > viewportWidth - 10) {
+      } else if (centeredLeft + tooltipWidth > viewportWidth - 20) {
         // Too close to right edge, align tooltip to right  
         setTooltipPosition('right');
       } else {
@@ -189,9 +189,9 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
                      opacity-100 transition-opacity duration-150 visible"
           style={{ 
             top: '100%',
-            left: tooltipPosition === 'left' ? '0' : 
+            left: tooltipPosition === 'left' ? '8px' : 
                   tooltipPosition === 'right' ? 'auto' : '50%',
-            right: tooltipPosition === 'right' ? '0' : 'auto',
+            right: tooltipPosition === 'right' ? '8px' : 'auto',
             transform: tooltipPosition === 'center' ? 'translateX(-50%)' : 'none'
           }}
           onMouseEnter={handleTooltipEnter}
