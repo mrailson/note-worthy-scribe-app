@@ -192,15 +192,6 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
                   Open Traffic-Light Database - Northants ICB
                 </a>
               </Button>
-              
-              {medicine.prior_approval_url && (
-                <Button variant="outline" size="sm" asChild className="justify-start">
-                  <a href={medicine.prior_approval_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open Prior Approval
-                  </a>
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
