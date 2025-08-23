@@ -27,25 +27,25 @@ export const TrafficLightImporter = () => {
         description: "Importing all 886 medicines from 30 pages. This will take a few minutes.",
       });
       
-      // Poll for progress every 3 seconds by checking database count
+      // Poll for progress every 2 seconds by checking database count
       const checkProgress = setInterval(async () => {
         try {
-          // Check database count as a simple progress indicator
+          // Check database count as progress indicator
           const { count, error: countError } = await supabase
             .from('traffic_light_medicines')
             .select('*', { count: 'exact', head: true });
           
           if (!countError && count !== null) {
             const progressData = {
-              status: count > 0 ? (count > 800 ? 'complete' : 'importing') : 'scraping',
+              status: count === 0 ? 'scraping' : count > 800 ? 'complete' : 'importing',
               importedMedicines: count,
               foundMedicines: 886,
-              message: count > 800 ? 'Import complete' : count > 0 ? `Imported ${count} medicines` : 'Scraping pages...'
+              message: count === 0 ? 'Scraping pages...' : count > 800 ? 'Import complete!' : `Imported ${count} medicines`
             };
             
             setProgress(progressData);
             
-            if (count > 800) { // Import likely complete
+            if (count > 800) { // Import complete
               clearInterval(checkProgress);
               setImportStatus('success');
               setIsImporting(false);
@@ -53,12 +53,15 @@ export const TrafficLightImporter = () => {
                 title: "Import Completed",
                 description: `Successfully imported ${count} medicines!`,
               });
+            } else if (count > 0) {
+              // Show import is working
+              setImportStatus('importing');
             }
           }
         } catch (err) {
           console.error('Progress check error:', err);
         }
-      }, 3000);
+      }, 2000);
       
       // Stop checking after 5 minutes
       setTimeout(() => {
