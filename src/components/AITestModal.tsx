@@ -58,11 +58,10 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+      const { data, error } = await supabase.functions.invoke('ai-api-test', {
         body: {
-          messages: [{ role: 'user', content: prompt }],
           model: modelId,
-          systemPrompt: 'You are a helpful AI assistant. Provide accurate and helpful responses.'
+          prompt: prompt
         }
       });
 
@@ -81,7 +80,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       return {
         model: modelId,
         response: data.response || 'No response received',
-        responseTime,
+        responseTime: data.responseTime || responseTime,
         status: 'success'
       };
     } catch (error: any) {
