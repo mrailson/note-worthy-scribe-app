@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { PolicyStatus } from '@/components/PolicyBadge';
 
 interface PolicyHit {
@@ -142,26 +143,58 @@ export const useTrafficLightResolver = () => {
       // Extract potential medicine names from the query
       const medicineNames = extractMedicineNames(query);
       
-      // For now, use fallback data (in production this would call the real API)
-      // const response = await fetch(`/tl/resolve?query=${encodeURIComponent(query)}`);
-      
-      const hits: PolicyHit[] = [];
-      
-      medicineNames.forEach(medicine => {
-        const normalized = normalizeMedicineName(medicine);
-        const fallbackHit = FALLBACK_MEDICINES[normalized];
+      if (medicineNames.length === 0) {
+        return {
+          hits: [],
+          query_time: 0,
+          service_status: 'ok'
+        };
+      }
+
+      // Query the database for matching medicines
+      const { data: medicines, error: fetchError } = await supabase
+        .from('traffic_light_medicines')
+        .select('*')
+        .or(
+          medicineNames.map(name => 
+            `name.ilike.%${name}%`
+          ).join(',')
+        );
+
+      if (fetchError) {
+        console.error('Database query failed:', fetchError);
+        // Fall back to mock data on error
+        const hits: PolicyHit[] = [];
+        medicineNames.forEach(medicine => {
+          const normalized = normalizeMedicineName(medicine);
+          const fallbackHit = FALLBACK_MEDICINES[normalized];
+          if (fallbackHit) {
+            hits.push(fallbackHit);
+          }
+        });
         
-        if (fallbackHit) {
-          hits.push(fallbackHit);
-        }
-      });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+        return {
+          hits,
+          query_time: 0.3,
+          service_status: 'degraded'
+        };
+      }
+
+      // Transform database results to PolicyHit format
+      const hits: PolicyHit[] = (medicines || []).map(medicine => ({
+        name: medicine.name,
+        status_enum: medicine.status_enum as PolicyStatus,
+        status_raw: medicine.status_raw || medicine.status_enum.toLowerCase(),
+        bnf_chapter: medicine.bnf_chapter || 'Unknown',
+        last_modified: medicine.updated_at || medicine.created_at,
+        detail_url: medicine.detail_url || 'https://www.icnorthamptonshire.org.uk/trafficlightdrugs',
+        notes: medicine.notes,
+        prior_approval_url: medicine.prior_approval_url
+      }));
+
       return {
         hits,
-        query_time: 0.3,
+        query_time: 0.2,
         service_status: 'ok'
       };
       
@@ -180,9 +213,49 @@ export const useTrafficLightResolver = () => {
 
   // Single medicine lookup
   const lookupMedicine = useCallback(async (medicineName: string): Promise<PolicyHit | null> => {
-    const result = await resolveMedicines(medicineName);
-    return result.hits[0] || null;
-  }, [resolveMedicines]);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Query database for exact or partial matches
+      const { data: medicines, error: fetchError } = await supabase
+        .from('traffic_light_medicines')
+        .select('*')
+        .or(`name.ilike.%${medicineName}%,name.ilike.${medicineName}`)
+        .order('name')
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Medicine lookup failed:', fetchError);
+        // Fall back to mock data
+        const normalized = normalizeMedicineName(medicineName);
+        return FALLBACK_MEDICINES[normalized] || null;
+      }
+
+      if (medicines && medicines.length > 0) {
+        const medicine = medicines[0];
+        return {
+          name: medicine.name,
+          status_enum: medicine.status_enum as PolicyStatus,
+          status_raw: medicine.status_raw || medicine.status_enum.toLowerCase(),
+          bnf_chapter: medicine.bnf_chapter || 'Unknown',
+          last_modified: medicine.updated_at || medicine.created_at,
+          detail_url: medicine.detail_url || 'https://www.icnorthamptonshire.org.uk/trafficlightdrugs',
+          notes: medicine.notes,
+          prior_approval_url: medicine.prior_approval_url
+        };
+      }
+
+      return null;
+      
+    } catch (err) {
+      console.error('Medicine lookup error:', err);
+      setError('Failed to lookup medicine');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Batch lookup for multiple medicines
   const batchLookup = useCallback(async (medicineNames: string[]): Promise<PolicyHit[]> => {

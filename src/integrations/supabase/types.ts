@@ -3873,6 +3873,45 @@ export type Database = {
           },
         ]
       }
+      traffic_light_medicines: {
+        Row: {
+          bnf_chapter: string | null
+          created_at: string | null
+          detail_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          prior_approval_url: string | null
+          status_enum: string
+          status_raw: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bnf_chapter?: string | null
+          created_at?: string | null
+          detail_url?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          prior_approval_url?: string | null
+          status_enum: string
+          status_raw?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bnf_chapter?: string | null
+          created_at?: string | null
+          detail_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          prior_approval_url?: string | null
+          status_enum?: string
+          status_raw?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       transcription_chunks: {
         Row: {
           audio_chunk_id: string | null

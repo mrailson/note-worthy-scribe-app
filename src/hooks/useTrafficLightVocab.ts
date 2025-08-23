@@ -7,6 +7,11 @@ export interface TLVocabItem {
   status_enum: string;
   bnf_chapter?: string;
   detail_url: string;
+  status_raw?: string;
+  notes?: string;
+  prior_approval_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface TLVocabResponse {
@@ -15,46 +20,25 @@ interface TLVocabResponse {
 }
 
 const CACHE_KEY = 'tl_vocab_cache';
-const ETAG_KEY = 'tl_vocab_etag';
+const VERSION_KEY = 'tl_vocab_version';
 
 // Fallback data for offline/error states
 const FALLBACK_VOCAB: TLVocabResponse = {
   version: "2025-08-23",
   items: [
     {
-      id: 937,
-      name: "Acarizax for Allergic Asthma",
-      status_enum: "DOUBLE_RED",
-      bnf_chapter: "03 – Respiratory system",
-      detail_url: "https://example.com/trafficlightdrugs/?testid=937"
-    },
-    {
-      id: 812,
-      name: "Acarizax",
+      id: 1,
+      name: "Atomoxetine (adult)",
       status_enum: "SPECIALIST_INITIATED",
-      bnf_chapter: "03 – Respiratory system",
-      detail_url: "https://example.com/trafficlightdrugs/?testid=812"
+      bnf_chapter: "04 - Central nervous system",
+      detail_url: "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"
     },
     {
-      id: 100,
-      name: "Adalimumab",
-      status_enum: "RED",
-      bnf_chapter: "10 – Musculoskeletal and joint diseases",
-      detail_url: "https://example.com/trafficlightdrugs/?testid=100"
-    },
-    {
-      id: 200,
-      name: "Metformin",
-      status_enum: "SPECIALIST_RECOMMENDED",
-      bnf_chapter: "06 – Endocrine system",
-      detail_url: "https://example.com/trafficlightdrugs/?testid=200"
-    },
-    {
-      id: 300,
-      name: "Paracetamol",
-      status_enum: "GREY",
-      bnf_chapter: "04 – Central nervous system",
-      detail_url: "https://example.com/trafficlightdrugs/?testid=300"
+      id: 2,
+      name: "Atorvastatin (Lipitor) Chewable",
+      status_enum: "DOUBLE_RED",
+      bnf_chapter: "02 - Cardiovascular system",
+      detail_url: "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"
     }
   ]
 };
@@ -75,12 +59,10 @@ export const useTrafficLightVocab = () => {
     }
   };
 
-  const setCachedData = (data: TLVocabResponse, etag?: string) => {
+  const setCachedData = (data: TLVocabResponse) => {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      if (etag) {
-        localStorage.setItem(ETAG_KEY, etag);
-      }
+      localStorage.setItem(VERSION_KEY, data.version);
     } catch (err) {
       console.warn('Failed to cache vocabulary data:', err);
     }
@@ -90,40 +72,46 @@ export const useTrafficLightVocab = () => {
     try {
       setError(null);
       
-      // For now, simulate API call - replace with actual endpoint when available
-      const cachedEtag = localStorage.getItem(ETAG_KEY);
-      
-      // Simulate API response
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mockResponse: TLVocabResponse = {
-        version: "2025-08-23",
-        items: [
-          ...FALLBACK_VOCAB.items,
-          {
-            id: 400,
-            name: "Omeprazole",
-            status_enum: "SPECIALIST_RECOMMENDED",
-            bnf_chapter: "01 – Gastro-intestinal system",
-            detail_url: "https://example.com/trafficlightdrugs/?testid=400"
-          },
-          {
-            id: 500,
-            name: "Warfarin",
-            status_enum: "RED",
-            bnf_chapter: "02 – Cardiovascular system",
-            detail_url: "https://example.com/trafficlightdrugs/?testid=500"
-          }
-        ]
-      };
+      // Fetch data from Supabase
+      const { data: medicines, error: fetchError } = await supabase
+        .from('traffic_light_medicines')
+        .select('*')
+        .order('name');
 
-      setVocab(mockResponse.items);
-      setVersion(mockResponse.version);
-      setCachedData(mockResponse);
-      setIsOffline(false);
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (medicines) {
+        // Transform database records to match TLVocabItem interface
+        const transformedItems: TLVocabItem[] = medicines.map((medicine, index) => ({
+          id: index + 1, // Generate sequential ID for compatibility
+          name: medicine.name,
+          status_enum: medicine.status_enum,
+          bnf_chapter: medicine.bnf_chapter,
+          detail_url: medicine.detail_url || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs",
+          status_raw: medicine.status_raw,
+          notes: medicine.notes,
+          prior_approval_url: medicine.prior_approval_url,
+          created_at: medicine.created_at,
+          updated_at: medicine.updated_at
+        }));
+
+        const response: TLVocabResponse = {
+          version: new Date().toISOString().split('T')[0], // Today's date as version
+          items: transformedItems
+        };
+
+        setVocab(response.items);
+        setVersion(response.version);
+        setCachedData(response);
+        setIsOffline(false);
+        
+        console.log(`Loaded ${transformedItems.length} traffic light medicines from database`);
+      }
       
     } catch (err) {
-      console.error('Failed to fetch vocabulary:', err);
+      console.error('Failed to fetch vocabulary from database:', err);
       
       // Try to use cached data
       const cached = getCachedData();
@@ -131,11 +119,11 @@ export const useTrafficLightVocab = () => {
         setVocab(cached.items);
         setVersion(cached.version);
         setIsOffline(true);
-        setError('Policy index offline—verify on ICB site');
+        setError('Using cached data - database temporarily unavailable');
       } else {
         setVocab(FALLBACK_VOCAB.items);
         setVersion(FALLBACK_VOCAB.version);
-        setError('Failed to load vocabulary');
+        setError('Failed to load vocabulary - using limited fallback data');
       }
     } finally {
       setIsLoading(false);
