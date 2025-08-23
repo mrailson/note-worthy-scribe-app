@@ -861,21 +861,66 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  // First completion - check for tool calls with timeout and proper parameters
+  // Detect content type and set appropriate token limits
+  function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
+    const lastMessage = messages[messages.length - 1];
+    const content = lastMessage?.content?.toLowerCase() || '';
+    
+    // Check for comprehensive content indicators
+    const comprehensiveIndicators = [
+      'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
+      'patient information', 'detailed explanation', 'comprehensive overview',
+      'step by step', 'complete instructions', 'full instructions'
+    ];
+    
+    const medicalAnalysisIndicators = [
+      'analyze', 'assessment', 'evaluation', 'diagnosis', 'differential',
+      'complex case', 'investigation', 'clinical reasoning', 'pathophysiology'
+    ];
+    
+    const clinicalNotesIndicators = [
+      'clinical note', 'soap note', 'consultation note', 'discharge summary',
+      'referral letter', 'brief summary', 'quick note'
+    ];
+    
+    if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 2000, contentType: 'comprehensive' };
+    }
+    
+    if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 1500, contentType: 'analysis' };
+    }
+    
+    if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 900, contentType: 'clinical_notes' };
+    }
+    
+    // Check content length as secondary indicator
+    if (content.length > 200) {
+      return { maxTokens: 1200, contentType: 'medium' };
+    }
+    
+    return { maxTokens: 600, contentType: 'short' };
+  }
+
+  const { maxTokens, contentType } = detectContentType(messages);
+  
   console.log('Making initial GPT-5 API call...');
   console.log('Request body preview:', {
     model: 'gpt-5-2025-08-07',
-    max_tokens: 800, // Fixed: Chat Completions uses max_tokens, not max_completion_tokens
+    max_tokens: maxTokens,
+    contentType: contentType,
     messageCount: gptMessages.length,
     hasTimeout: true
   });
 
-  // Add timeout controller for GPT-5 calls
+  // Add timeout controller for GPT-5 calls - longer timeout for comprehensive content
+  const timeoutDuration = contentType === 'comprehensive' || contentType === 'analysis' ? 60000 : 45000;
   const controller = new AbortController();
   const timeout = setTimeout(() => {
-    console.log('GPT-5 request timed out after 45 seconds, aborting...');
+    console.log(`GPT-5 request timed out after ${timeoutDuration/1000} seconds, aborting...`);
     controller.abort("GPT-5 request timeout");
-  }, 45000); // 45 second timeout
+  }, timeoutDuration);
 
   let initial;
   try {
@@ -887,10 +932,10 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       },
       body: JSON.stringify({
         model: 'gpt-5-2025-08-07',
-        max_tokens: 800, // Fixed: Use max_tokens for Chat Completions API
+        max_tokens: maxTokens,
         // Note: GPT-5 doesn't support temperature parameter
         messages: gptMessages,
-        stop: ["\n##", "\n###", "\n---"] // Add stop sequences to prevent run-on responses
+        stop: contentType === 'short' ? ["\n##", "\n###", "\n---"] : undefined // Only use stop sequences for short content
       }),
       signal: controller.signal
     });
@@ -900,7 +945,46 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     clearTimeout(timeout);
     
     if (error.name === 'AbortError' || String(error).includes('timeout')) {
-      console.log('GPT-5 request timed out, falling back to GPT-4 Turbo');
+      console.log(`GPT-5 request timed out for ${contentType} content, trying with reduced tokens...`);
+      
+      // Progressive retry with reduced tokens
+      if (maxTokens > 800) {
+        console.log('Retrying GPT-5 with reduced token limit...');
+        try {
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort("GPT-5 retry timeout"), 30000);
+          
+          const retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-5-2025-08-07',
+              max_tokens: 800,
+              messages: gptMessages,
+              stop: ["\n##", "\n###", "\n---", "\n\n---", "Feel free to"]
+            }),
+            signal: retryController.signal
+          });
+          
+          clearTimeout(retryTimeout);
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            const retryContent = retryData.choices?.[0]?.message?.content;
+            if (retryContent && retryContent.trim()) {
+              console.log('GPT-5 retry succeeded with reduced tokens');
+              return retryContent + '\n\n[Response truncated for performance. For complete information, please ask for specific sections.]';
+            }
+          }
+        } catch (retryError) {
+          console.log('GPT-5 retry also failed, falling back to GPT-4 Turbo');
+        }
+      }
+      
+      console.log('Falling back to GPT-4 Turbo');
       return await callGPT4Turbo(messages, systemPrompt, files);
     }
     throw error;
@@ -953,7 +1037,9 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     choicesLength: initialData.choices?.length,
     hasMessage: !!initialData.choices?.[0]?.message,
     hasContent: !!initialData.choices?.[0]?.message?.content,
-    contentLength: initialData.choices?.[0]?.message?.content?.length || 0
+    contentLength: initialData.choices?.[0]?.message?.content?.length || 0,
+    contentType: contentType,
+    maxTokensUsed: maxTokens
   });
   
   const choice = initialData.choices?.[0];
@@ -968,9 +1054,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     return await callGPT4Turbo(messages, systemPrompt, files);
   }
   
+  console.log(`GPT-5 response completed successfully for ${contentType} content (${responseContent.length} characters)`);
   return responseContent;
-  
-  return finalContent;
 }
 
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -979,7 +1064,32 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     throw new Error('OpenAI API key not configured');
   }
 
-  console.log('Calling GPT-4 Turbo with web search tools...');
+  console.log('Calling GPT-4 Turbo fallback with appropriate token allocation...');
+  
+  // Use same content type detection for fallback
+  function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
+    const lastMessage = messages[messages.length - 1];
+    const content = lastMessage?.content?.toLowerCase() || '';
+    
+    const comprehensiveIndicators = [
+      'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
+      'patient information', 'detailed explanation', 'comprehensive overview',
+      'step by step', 'complete instructions', 'full instructions'
+    ];
+    
+    if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 2000, contentType: 'comprehensive' };
+    }
+    
+    if (content.length > 200) {
+      return { maxTokens: 1400, contentType: 'medium' };
+    }
+    
+    return { maxTokens: 800, contentType: 'short' };
+  }
+
+  const { maxTokens, contentType } = detectContentType(messages);
+  console.log(`GPT-4 Turbo fallback: Using ${maxTokens} tokens for ${contentType} content`);
 
   const today = new Date().toLocaleDateString('en-GB', {
     timeZone: 'Europe/London',
@@ -1044,7 +1154,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       temperature: 0.2,
-      max_tokens: 1400,
+      max_tokens: maxTokens, // Use dynamic token allocation
       tools,
       tool_choice: "auto",
       messages: gptMessages
@@ -1111,7 +1221,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
             body: JSON.stringify({
               model: 'gpt-4o-mini',
               temperature: 0.2,
-              max_tokens: 1400,
+              max_tokens: maxTokens, // Use dynamic token allocation
               tools,
               messages: gptMessages
             })
