@@ -275,10 +275,6 @@ const AI4GPService = () => {
                           <TestTube className="w-4 h-4 mr-2" />
                           AI Model Tester
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowAboutModal(true)}>
-                          <Info className="w-4 h-4 mr-2" />
-                          About & Terms
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
