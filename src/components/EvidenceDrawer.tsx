@@ -186,14 +186,12 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
             )}
 
             <div className="flex flex-col gap-2">
-              {medicine.detail_url && (
-                <Button variant="outline" size="sm" asChild className="justify-start">
-                  <a href={medicine.detail_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Open Traffic-Light Database
-                  </a>
-                </Button>
-              )}
+              <Button variant="outline" size="sm" asChild className="justify-start">
+                <a href="https://www.icnorthamptonshire.org.uk/trafficlightdrugs" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Traffic-Light Database - Northants ICB
+                </a>
+              </Button>
               
               {medicine.prior_approval_url && (
                 <Button variant="outline" size="sm" asChild className="justify-start">
