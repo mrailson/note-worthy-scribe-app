@@ -142,39 +142,40 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[900px] max-h-[85vh] overflow-hidden p-0">
+      <DialogContent className="max-w-[900px] max-h-[85vh] overflow-hidden p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search local drug…"
-              className="w-[420px]"
+              placeholder="Search local drug policies..."
+              className="flex-1 border-0 focus-visible:ring-0 shadow-none"
             />
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Body */}
         <div className="grid grid-cols-12 gap-4 p-4 overflow-y-auto">
           {/* Left: Results */}
           <div className="col-span-4">
-            <div className="rounded-xl border">
+            <div className="rounded-xl border max-h-96 overflow-y-auto">
               {results.length ? (
                 results.map(r => (
                   <div
                     key={r.id}
-                    className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-2 hover:bg-muted/50 ${sel?.id === r.id ? 'bg-muted/50' : ''}`}
+                    className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-2 hover:bg-muted/50 transition-colors ${
+                      sel?.id === r.id ? 'bg-primary/10 border-l-2 border-l-primary' : ''
+                    }`}
                     onClick={() => setSel(r)}
                   >
-                    <span className="text-sm">{r.name}</span>
+                    <span className="text-sm flex-1 min-w-0">
+                      <div className="truncate font-medium">{r.name}</div>
+                    </span>
                     {r.tl_status && (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass[r.tl_status as Status]}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 ${statusClass[r.tl_status as Status]}`}>
                         {r.tl_status.replace(/_/g, " ")}
                       </span>
                     )}
@@ -189,9 +190,15 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
           {/* Right: Details */}
           <div className="col-span-8">
             {!sel ? (
-              <div className="text-muted-foreground">Select a drug to view local policy.</div>
+              <div className="text-muted-foreground p-4 text-center">
+                <div className="mb-2 text-lg">👈</div>
+                <p>Select a drug from the list to view detailed policy information</p>
+              </div>
             ) : loading ? (
-              <div className="text-muted-foreground">Loading…</div>
+              <div className="text-muted-foreground p-4 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p>Loading drug information...</p>
+              </div>
             ) : data ? (
               <div className="space-y-4">
                 {/* Title row */}
@@ -329,7 +336,13 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                   )}
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="text-muted-foreground p-4 text-center">
+                <div className="mb-2 text-2xl">⚠️</div>
+                <p>No policy information found for this drug</p>
+                <p className="text-sm mt-1">Please check the ICB website manually</p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
