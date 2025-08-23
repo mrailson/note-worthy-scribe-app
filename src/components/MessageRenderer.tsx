@@ -252,7 +252,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         return;
       }
 
-      console.log('Setting verification data and opening modal...');
+      console.log('Setting verification data and opening modal...', data);
       setVerificationData(data);
       setIsVerificationModalOpen(true);
       toast.success('Clinical verification completed');
@@ -758,13 +758,13 @@ Please fetch these and retry. No corrections made."`;
                   <button
                     onClick={() => setIsVerificationModalOpen(true)}
                     className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
-                      getConfidenceColor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)
+                      getConfidenceColor((verificationData?.confidence ?? message.clinicalVerification?.confidenceScore) || 0)
                     }`}
                     title="Click to view detailed verification report"
                   >
                     <div className="flex items-center gap-1">
-                      {getConfidenceIcon((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}
-                      <span>{Math.floor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}%</span>
+                      {getConfidenceIcon((verificationData?.confidence ?? message.clinicalVerification?.confidenceScore) || 0)}
+                      <span>{Math.floor((verificationData?.confidence ?? message.clinicalVerification?.confidenceScore) || 0)}%</span>
                     </div>
                   </button>
                   <Badge variant={
