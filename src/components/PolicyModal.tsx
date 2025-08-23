@@ -111,7 +111,10 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <PolicyBadge status={policyData.drug.tl_status} />
+            <PolicyBadge 
+              status={policyData.drug.tl_status} 
+              detailUrl={policyData.drug.tl_url}
+            />
             <div>
               <DialogTitle className="text-xl">{policyData.drug.name}</DialogTitle>
               <DialogDescription>
@@ -147,7 +150,10 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <PolicyBadge status={policyData.drug.tl_status} />
+                <PolicyBadge 
+                  status={policyData.drug.tl_status}
+                  detailUrl={policyData.drug.tl_url}
+                />
                 <span className="font-medium">
                   {policyData.drug.tl_status.replace('_', ' ')}
                 </span>
