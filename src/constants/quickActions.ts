@@ -11,15 +11,8 @@ export interface QuickAction {
 }
 
 export const quickActions: QuickAction[] = [
-  {
-    label: 'AI Model Tester',
-    icon: TestTube,
-    prompt: '',
-    requiresFile: false,
-    action: 'open-ai-test-modal'
-  },
   { 
-    label: 'NICE Guidance Finder', 
+    label: 'NICE Guidance Finder',
     icon: BookOpen, 
     prompt: `${nhsSafetyPreamble} Summarise NICE guidance [insert NG/CG number or condition] for GP use. Include: key diagnostic criteria, first-line and step-up treatments, relevant referral triggers, and monitoring recommendations. Cite the latest NICE update date.`,
     requiresFile: false 
@@ -108,13 +101,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
 
 export const practiceManagerQuickActions: QuickAction[] = [
-  {
-    label: 'AI Model Tester',
-    icon: TestTube,
-    prompt: '',
-    requiresFile: false,
-    action: 'open-ai-test-modal'
-  },
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
