@@ -324,9 +324,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
-      // For simple text queries with GPT-5, use the fast clinical function with streaming
-      if (modelToUse === 'gpt-5-2025-08-07' && (!uploadedFiles || uploadedFiles.length === 0)) {
-        console.log('🚀 Using GPT-5 Fast Clinical for text-only query');
+      // For GPT-5 queries, prefer the fast clinical function (works better and more reliable)
+      if (modelToUse === 'gpt-5-2025-08-07' || modelToUse === 'gpt-5') {
+        console.log('🚀 Using GPT-5 Fast Clinical function');
         
         try {
           let accumulatedContent = '';
@@ -376,11 +376,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           return;
           
         } catch (error) {
-          console.error('GPT-5 Fast Clinical failed, falling back to standard:', error);
-          // Fall through to standard processing
+          console.error('GPT-5 Fast Clinical failed:', error);
+          toast.error('GPT-5 service is currently unavailable. Please try again or switch to Grok (Speed) mode.');
+          setIsLoading(false);
+          
+          // Remove the failed streaming message
+          setMessages(prev => prev.filter(msg => msg.id !== assistantMessageId));
+          return;
         }
       }
 
+      // For non-GPT-5 models, use the ai-4-pm-chat function
       const requestBody = {
         messages: messagesForAPI,
         model: modelToUse,
@@ -395,7 +401,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       });
 
       if (error) {
-        throw error;
+        console.error('AI Service Error:', error);
+        throw new Error(`AI service error: ${error.message || 'Unknown error'}`);
       }
 
       const responseContent = data?.response || data?.content || 'No response received';
