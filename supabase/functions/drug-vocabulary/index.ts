@@ -29,7 +29,7 @@ serve(async (req) => {
     // Get vocabulary from traffic lights table first
     const { data: tlData, error: tlError } = await supabase
       .from('icn_tl_norm')
-      .select('drug_name, tl_status_enum')
+      .select('drug_name, status_enum')
       .order('drug_name', { ascending: true });
 
     if (tlError) {
@@ -56,7 +56,7 @@ serve(async (req) => {
           vocabMap.set(item.drug_name.toLowerCase(), {
             id: item.drug_name,
             name: item.drug_name,
-            tl_status: item.tl_status_enum
+            tl_status: item.status_enum
           });
         }
       });
