@@ -270,9 +270,18 @@ export function EmailCompositionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-none max-h-none overflow-y-auto resize min-w-[400px] min-h-[500px] w-[600px] h-[700px]" style={{ resize: 'both' }}>
+      <DialogContent className="sm:max-w-none max-h-none overflow-y-auto resize min-w-[400px] min-h-[300px] w-[600px] h-[300px]" style={{ resize: 'both' }}>
         <DialogHeader>
-          <DialogTitle>Compose Email</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Compose Email</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              {new Date().toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric' 
+              })}
+            </span>
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -287,16 +296,6 @@ export function EmailCompositionModal({
               onChange={(e) => setToEmail(e.target.value)}
               autoComplete="email"
               required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email-date">Date</Label>
-            <Input
-              id="email-date"
-              type="date"
-              value={emailDate}
-              onChange={(e) => setEmailDate(e.target.value)}
             />
           </div>
           
@@ -333,7 +332,7 @@ export function EmailCompositionModal({
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[200px] font-mono text-sm"
+              className="min-h-[100px] font-mono text-sm"
               placeholder="Enter your message here..."
             />
           </div>
