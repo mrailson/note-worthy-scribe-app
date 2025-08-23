@@ -190,45 +190,57 @@ const AI4GPService = () => {
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <Card className="flex-1 flex flex-col min-h-0">
               <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center text-sm sm:text-base">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button 
-                            onClick={() => {
-                              setMessages([]);
-                              setInput('');
-                              setUploadedFiles([]);
-                              setShowAIChat(false);
-                            }}
-                            className="flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative"
-                          >
-                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                            <div className="flex flex-col">
-                              <span className="hidden sm:inline">AI 4 GP Service</span>
-                              <span className="sm:hidden">AI4GP</span>
-                              <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
-                            </div>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Click to Clear Chat</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    {/* History button next to title */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSearchHistory(!showSearchHistory)}
-                      className="ml-3 px-2 sm:px-3"
-                    >
-                      <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">History</span>
-                    </Button>
-                  </CardTitle>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center">
+                    <CardTitle className="flex items-center text-sm sm:text-base">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button 
+                              onClick={() => {
+                                setMessages([]);
+                                setInput('');
+                                setUploadedFiles([]);
+                                setShowAIChat(false);
+                              }}
+                              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative"
+                            >
+                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                              <div className="flex flex-col">
+                                <span className="hidden sm:inline">AI 4 GP Service</span>
+                                <span className="sm:hidden">AI4GP</span>
+                                <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
+                              </div>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click to Clear Chat</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      {/* History button next to title */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSearchHistory(!showSearchHistory)}
+                        className="ml-3 px-2 sm:px-3"
+                      >
+                        <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <span className="hidden sm:inline text-xs">History</span>
+                      </Button>
+                    </CardTitle>
+                  </div>
+
+                  {/* Traffic Light Search - Center */}
+                  <div className="flex-1 max-w-md mx-4 hidden md:block">
+                    <TrafficLightSearch 
+                      onInsertIntoChat={(message) => {
+                        setInput(prev => prev ? `${prev}\n\n${message}` : message);
+                      }}
+                      className="w-full"
+                    />
+                  </div>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
                     {/* Settings Button */}
@@ -292,13 +304,13 @@ const AI4GPService = () => {
                 </div>
               </CardHeader>
 
-              {/* Traffic Light Search Bar */}
-              <div className="flex justify-center px-4 py-3 bg-background/50 backdrop-blur-sm border-b">
+              {/* Mobile Traffic Light Search Bar - Show on mobile when header search is hidden */}
+              <div className="md:hidden flex justify-center px-4 py-2 bg-background/50 backdrop-blur-sm border-b">
                 <TrafficLightSearch 
                   onInsertIntoChat={(message) => {
                     setInput(prev => prev ? `${prev}\n\n${message}` : message);
                   }}
-                  className="w-full max-w-2xl"
+                  className="w-full max-w-md"
                 />
               </div>
 
