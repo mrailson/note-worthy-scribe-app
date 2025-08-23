@@ -24,7 +24,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             <div className="flex items-center space-x-1">
               <Zap className={`w-3 h-3 transition-colors ${!isClaude ? 'text-primary' : 'text-muted-foreground/50'}`} />
               <Label className={`text-xs cursor-pointer transition-colors ${!isClaude ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                Grok
+                Speed
               </Label>
             </div>
             
@@ -36,7 +36,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             
             <div className="flex items-center space-x-1">
               <Label className={`text-xs cursor-pointer transition-colors ${isClaude ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                Claude
+                Thinking
               </Label>
               <Bot className={`w-3 h-3 transition-colors ${isClaude ? 'text-primary' : 'text-muted-foreground/50'}`} />
             </div>
@@ -46,7 +46,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           <div className="text-center">
             <p className="font-medium">AI Model Selection</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently using: <span className="font-medium text-foreground">{selectedModel === 'grok' ? 'Grok (xAI)' : 'Claude (Anthropic)'}</span>
+              Currently using: <span className="font-medium text-foreground">{selectedModel === 'grok' ? 'Speed (Grok)' : 'Thinking (Claude)'}</span>
             </p>
           </div>
         </TooltipContent>
