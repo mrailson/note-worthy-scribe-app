@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, Download, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,6 +10,7 @@ export const TrafficLightImporter = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success' | 'error'>('idle');
   const [progress, setProgress] = useState<any>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const startImport = async () => {
@@ -104,90 +106,106 @@ export const TrafficLightImporter = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Traffic Light Medicines Importer
-        </CardTitle>
-        <CardDescription>
-          Import the complete dataset of ~886 medicines from all 30 pages of the Northamptonshire ICB website
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            <p>This will:</p>
-            <ul className="list-disc list-inside space-y-1 mt-2">
-              <li>Fetch all 30 pages from icnorthamptonshire.org.uk</li>
-              <li>Parse ~886 traffic light medicines</li>
-              <li>Clear and replace existing data</li>
-              <li>Take approximately 2-3 minutes to complete</li>
-            </ul>
-          </div>
-          
-          <Button 
-            onClick={startImport} 
-            disabled={isImporting}
-            className="w-full"
-          >
-            {getStatusIcon()}
-            {isImporting ? 'Importing...' : 'Start Full Import'}
-          </Button>
-          
-          {/* Progress Display */}
-          {progress && isImporting && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{progress.message}</span>
-                <span>{progress.status}</span>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between w-full cursor-pointer hover:bg-muted/50 -m-2 p-2 rounded-md">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-left">
+                  <Download className="h-5 w-5" />
+                  Traffic Light Medicines Importer
+                </CardTitle>
+                <CardDescription className="text-left mt-1">
+                  Import the complete dataset of ~886 medicines from all 30 pages of the Northamptonshire ICB website
+                </CardDescription>
+              </div>
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              )}
+            </div>
+          </CollapsibleTrigger>
+        </CardHeader>
+        
+        <CollapsibleContent>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>This will:</p>
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li>Fetch all 30 pages from icnorthamptonshire.org.uk</li>
+                  <li>Parse ~886 traffic light medicines</li>
+                  <li>Clear and replace existing data</li>
+                  <li>Take approximately 2-3 minutes to complete</li>
+                </ul>
               </div>
               
-              {progress.status === 'scraping' && (
-                <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Scraping pages...</span>
-                    <span>Finding medicines</span>
+              <Button 
+                onClick={startImport} 
+                disabled={isImporting}
+                className="w-full"
+              >
+                {getStatusIcon()}
+                {isImporting ? 'Importing...' : 'Start Full Import'}
+              </Button>
+              
+              {/* Progress Display */}
+              {progress && isImporting && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{progress.message}</span>
+                    <span>{progress.status}</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: '30%' }} />
-                  </div>
+                  
+                  {progress.status === 'scraping' && (
+                    <div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Scraping pages...</span>
+                        <span>Finding medicines</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: '30%' }} />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {progress.status === 'importing' && (
+                    <div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Importing medicines</span>
+                        <span>{progress.importedMedicines} / ~886</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${Math.min((progress.importedMedicines / 886) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               
-              {progress.status === 'importing' && (
-                <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Importing medicines</span>
-                    <span>{progress.importedMedicines} / ~886</span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${Math.min((progress.importedMedicines / 886) * 100, 100)}%` }}
-                    />
-                  </div>
+              {importStatus === 'success' && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-green-800 text-sm">
+                    ✅ Import completed successfully! All medicines are now available in the search.
+                  </p>
+                </div>
+              )}
+              
+              {importStatus === 'error' && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-800 text-sm">
+                    ❌ Import failed. Please check the function logs for details.
+                  </p>
                 </div>
               )}
             </div>
-          )}
-          
-          {importStatus === 'success' && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-green-800 text-sm">
-                ✅ Import completed successfully! All medicines are now available in the search.
-              </p>
-            </div>
-          )}
-          
-          {importStatus === 'error' && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-800 text-sm">
-                ❌ Import failed. Please check the function logs for details.
-              </p>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          </CardContent>
+        </CollapsibleContent>
+  </Collapsible>
+</Card>
+);
 };
