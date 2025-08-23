@@ -90,8 +90,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[240px] max-h-80 resize-none bg-white border-border pr-20 rounded-lg"
+            className="min-h-[180px] max-h-80 resize-none bg-white border-border pr-20 rounded-lg leading-relaxed py-4"
             disabled={isLoading}
+            style={{ minHeight: '180px' }}
           />
           
           <input
@@ -147,7 +148,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
           onClick={onSend} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
           size="default"
-          className="h-[240px] px-6 flex-shrink-0 rounded-lg"
+          className="h-[180px] px-6 flex-shrink-0 rounded-lg"
         >
           <SendHorizontal className="w-5 h-5" />
         </Button>
