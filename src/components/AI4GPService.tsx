@@ -68,8 +68,8 @@ const AI4GPService = () => {
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
-  // Local policy state
-  const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
+  // Local policy state - remove from component since it's now in the hook
+  // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
 
   const {
     messages,
@@ -98,7 +98,9 @@ const AI4GPService = () => {
     handleQuickResponse,
     isClinical,
     setIsClinical,
-    saveUserSettings
+    saveUserSettings,
+    northamptonshireICB,
+    setNorthamptonshireICB
   } = useAI4GPService();
 
   const { practiceContext } = usePracticeContext();

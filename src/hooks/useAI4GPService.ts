@@ -20,6 +20,7 @@ export const useAI4GPService = () => {
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
   const [isClinical, setIsClinical] = useState(false);
+  const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
@@ -802,6 +803,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
+          setNorthamptonshireICB(preferences.northamptonshireICB ?? false);
           
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -832,7 +834,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         selectedModel,
         useOpenAI,
         showRenderTimes,
-        showAIService
+        showAIService,
+        northamptonshireICB
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -855,7 +858,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -866,7 +869,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, saveUserSettings]);
+  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -1093,5 +1096,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       setUploadedFiles([]);
       setCurrentSearchId(null); // Reset search ID when clearing messages
     },
+    northamptonshireICB,
+    setNorthamptonshireICB
   };
 };
