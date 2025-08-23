@@ -726,34 +726,34 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                     </p>
                   </div>
 
-                  {/* Clinical Quick Picks */}
+                   {/* Clinical Quick Picks */}
                   <Card className="p-3 sm:p-4">
                     <h4 className="font-medium mb-3 flex items-center gap-2 text-sm sm:text-base">
                       <span className="text-green-600">🩺</span>
                       NHS Clinical Quick Picks
                     </h4>
-                    <ScrollArea className="max-h-48">
+                    <ScrollArea className="h-64 sm:h-72 md:h-80">
                       <div className="grid grid-cols-1 gap-3 pr-2">
                         {clinicalQuickPicks.map((pick, index) => (
                           <div
                             key={index}
-                            className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                            className={`p-2 sm:p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                               selectedClinicalQuery === pick.prompt 
-                                ? 'border-green-600 bg-green-50 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
-                                : 'border-border hover:border-green-400 hover:bg-green-50/50'
+                                ? 'border-green-600 bg-green-50 dark:bg-green-950 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
+                                : 'border-border hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-950/50'
                             }`}
                             onClick={() => {
                               setSelectedClinicalQuery(pick.prompt);
                               setSelectedClinicalTitle(pick.title);
                             }}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className={`font-medium text-sm ${
-                                selectedClinicalQuery === pick.prompt ? 'text-green-700' : 'text-primary'
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1">
+                              <div className={`font-medium text-xs sm:text-sm mb-1 sm:mb-0 ${
+                                selectedClinicalQuery === pick.prompt ? 'text-green-700 dark:text-green-300' : 'text-primary'
                               }`}>
                                 {pick.title}
                               </div>
-                              <Badge variant="outline" className="text-xs flex-shrink-0 ml-2">
+                              <Badge variant="outline" className="text-xs flex-shrink-0 self-start sm:ml-2">
                                 {pick.category}
                               </Badge>
                             </div>
