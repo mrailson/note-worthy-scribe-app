@@ -17,6 +17,7 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
+import { ModelSelector } from '@/components/ai4gp/ModelSelector';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
@@ -51,7 +52,7 @@ const AI4GPService = () => {
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
-  const { selectedModel: aiModel } = useAIModelPreference();
+  const { selectedModel: aiModel, setSelectedModel: setAIModel } = useAIModelPreference();
 
   const {
     messages,
@@ -188,6 +189,14 @@ const AI4GPService = () => {
                       <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                       <span className="hidden sm:inline text-xs">History</span>
                     </Button>
+                    
+                    {/* Model Selector next to History */}
+                    <div className="ml-2 hidden sm:block">
+                      <ModelSelector
+                        selectedModel={aiModel}
+                        onModelChange={setAIModel}
+                      />
+                    </div>
                   </CardTitle>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
