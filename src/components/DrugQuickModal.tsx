@@ -158,37 +158,37 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
         </div>
 
         {/* Body */}
-        <div className="grid grid-cols-12 gap-4 p-4 overflow-y-auto">
+        <div className="grid grid-cols-12 gap-6 p-4 overflow-y-auto">
           {/* Left: Results */}
-          <div className="col-span-4">
+          <div className="col-span-5">
             <div className="rounded-xl border max-h-96 overflow-y-auto">
               {results.length ? (
                 results.map(r => (
                   <div
                     key={r.id}
-                    className={`flex cursor-pointer items-center justify-between gap-2 px-3 py-2 hover:bg-muted/50 transition-colors ${
+                    className={`flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${
                       sel?.id === r.id ? 'bg-primary/10 border-l-2 border-l-primary' : ''
                     }`}
                     onClick={() => setSel(r)}
                   >
-                    <span className="text-sm flex-1 min-w-0">
-                      <div className="truncate font-medium">{r.name}</div>
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm leading-tight break-words">{r.name}</div>
+                    </div>
                     {r.tl_status && (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 ${statusClass[r.tl_status as Status]}`}>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-semibold flex-shrink-0 whitespace-nowrap ${statusClass[r.tl_status as Status]}`}>
                         {r.tl_status.replace(/_/g, " ")}
                       </span>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="px-3 py-2 text-sm text-muted-foreground">Start typing…</div>
+                <div className="px-4 py-3 text-sm text-muted-foreground">Start typing…</div>
               )}
             </div>
           </div>
 
           {/* Right: Details */}
-          <div className="col-span-8">
+          <div className="col-span-7">
             {!sel ? (
               <div className="text-muted-foreground p-4 text-center">
                 <div className="mb-2 text-lg">👈</div>
