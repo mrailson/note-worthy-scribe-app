@@ -132,12 +132,16 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                       <ChevronDown className="w-3 h-3 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuContent 
+                    align="start" 
+                    className="w-64 bg-popover border border-border shadow-lg z-[9999]"
+                    sideOffset={8}
+                  >
                     {action.submenu.map((subItem, subIndex) => (
                       <DropdownMenuItem
                         key={subIndex}
                         onClick={() => setInput(enhancePromptWithPracticeInfo(subItem.prompt))}
-                        className="cursor-pointer"
+                        className="cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground px-3 py-2"
                       >
                         {subItem.label}
                       </DropdownMenuItem>
