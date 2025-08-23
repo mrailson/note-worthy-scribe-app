@@ -8,16 +8,14 @@ const corsHeaders = {
 };
 
 interface FormularyItem {
-  bnf_chapter_code: string | null;
-  bnf_chapter_name: string;
-  section: string;
+  bnf_chapter_name?: string;
+  section?: string;
   item_name: string;
-  preference_rank: number | null;
-  is_preferred: boolean;
+  preference_rank?: number;
   otc: boolean;
-  notes: string | null;
+  notes?: string;
   page_url: string;
-  last_published: string | null;
+  last_published?: string;
 }
 
 serve(async (req) => {
@@ -54,141 +52,106 @@ serve(async (req) => {
 });
 
 async function importFormularyData(supabase: any) {
-  console.log('Fetching formulary page...');
+  const URL = "https://www.icnorthamptonshire.org.uk/mo-formulary";
   
-  const url = 'https://www.icnorthamptonshire.org.uk/mo-formulary';
+  console.log('Fetching formulary data from:', URL);
   
-  const response = await fetch(url, {
+  // Fetch the page with user agent to avoid blocking
+  const response = await fetch(URL, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      'User-Agent': 'Mozilla/5.0 (compatible; FormularyBot/1.0)'
     }
   });
   
   if (!response.ok) {
-    throw new Error(`Failed to fetch formulary: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
   }
   
   const html = await response.text();
   const $ = cheerio.load(html);
   
-  console.log('Parsing formulary data...');
+  // Helper function to normalize text
+  const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
   
-  const items: FormularyItem[] = [];
-  let lastPublished: string | null = null;
+  // Extract last published date - look for "Last published" text
+  const lastPublished = norm($("*:contains('Last published')").next().text()) || "";
+  console.log('Last published:', lastPublished);
   
-  // Extract "Last published" date
-  $('p, div, span').each((_, element) => {
-    const text = $(element).text();
-    const dateMatch = text.match(/Last published[:\s]*(\d{1,2}\s+\w+\s+\d{4}(?:\s+\d{1,2}:\d{2})?)/i);
-    if (dateMatch) {
-      lastPublished = dateMatch[1];
-      console.log('Found last published date:', lastPublished);
-    }
-  });
+  const rows: FormularyItem[] = [];
   
-  // Parse the formulary structure
-  let currentChapter = '';
-  let currentSection = '';
-  let currentChapterCode: string | null = null;
-  
-  // Look for main content sections
-  $('h2, h3, h4, ul, ol').each((_, element) => {
-    const $el = $(element);
-    const tagName = element.tagName.toLowerCase();
-    const text = $el.text().trim();
+  // Walk H2 (chapters) → H3 (sections) → list items (ordered preference)
+  $("h2").each((_, h2) => {
+    const chapter = norm($(h2).text());
+    if (!chapter) return;
     
-    if (tagName === 'h2') {
-      // This is likely a BNF chapter
-      currentChapter = text;
-      currentSection = '';
-      
-      // Try to extract BNF chapter code (e.g., "01 - Gastro-intestinal system")
-      const chapterMatch = text.match(/^(\d+)\s*[-–]\s*(.+)$/);
-      if (chapterMatch) {
-        currentChapterCode = chapterMatch[1];
-        currentChapter = chapterMatch[2].trim();
-      } else {
-        currentChapterCode = null;
+    let $n = $(h2).next();
+    
+    while ($n.length && !/^h2$/i.test($n[0].name)) {
+      if (/^h3$/i.test($n[0].name)) {
+        const section = norm($n.text());
+        if (!section) {
+          $n = $n.next();
+          continue;
+        }
+        
+        // Look ahead for <ol> or <ul> blocks that list preferred items
+        let $l = $n.next();
+        let rank = 0;
+        
+        while ($l.length && !/^h3|h2$/i.test($l[0].name)) {
+          if (/^ol|ul$/i.test($l[0].name)) {
+            $l.children("li").each((_, li) => {
+              rank++;
+              const liText = norm($(li).text());
+              if (!liText) return;
+              
+              // Split off " – " notes if present
+              const [item, ...rest] = liText.split(" – ");
+              const notes = rest.join(" – ");
+              
+              rows.push({
+                bnf_chapter_name: chapter,
+                section,
+                item_name: item,
+                preference_rank: rank, // order = preference
+                otc: /OTC|over the counter/i.test(liText),
+                notes: notes || undefined,
+                page_url: URL,
+                last_published: lastPublished || undefined
+              });
+            });
+          }
+          $l = $l.next();
+        }
       }
-      
-      console.log(`Found chapter: ${currentChapter} (code: ${currentChapterCode})`);
-    } else if (tagName === 'h3' || tagName === 'h4') {
-      // This is likely a section within a chapter
-      currentSection = text;
-      console.log(`Found section: ${currentSection}`);
-    } else if ((tagName === 'ul' || tagName === 'ol') && currentChapter && currentSection) {
-      // Parse list items as formulary entries
-      let rank = 1;
-      
-      $el.find('li').each((_, li) => {
-        const $li = $(li);
-        const itemText = $li.text().trim();
-        
-        if (!itemText || itemText.length < 3) return;
-        
-        // Skip if this looks like a sub-list or note
-        if (itemText.toLowerCase().startsWith('note:') || 
-            itemText.toLowerCase().startsWith('see also:')) {
-          return;
-        }
-        
-        // Parse the item
-        let itemName = itemText;
-        let notes: string | null = null;
-        let otc = false;
-        let isPreferred = true;
-        let currentRank = rank;
-        
-        // Check for OTC marker
-        if (itemText.toLowerCase().includes('otc') || itemText.toLowerCase().includes('over the counter')) {
-          otc = true;
-        }
-        
-        // Check for special markers that indicate non-preferred status
-        if (itemText.toLowerCase().includes('only if') || 
-            itemText.toLowerCase().includes('second line') ||
-            itemText.toLowerCase().includes('alternative')) {
-          isPreferred = false;
-          currentRank = 2;
-        }
-        
-        // Extract notes (typically in parentheses or after certain markers)
-        const noteMatch = itemText.match(/(.+?)[\s]*[\(]([^)]+)[\)]/);
-        if (noteMatch) {
-          itemName = noteMatch[1].trim();
-          notes = noteMatch[2];
-        }
-        
-        // Clean up item name
-        itemName = itemName
-          .replace(/\s*\([^)]*\)\s*/g, '') // Remove parenthetical content already extracted
-          .replace(/\s*–\s*.+$/, '') // Remove everything after em-dash
-          .replace(/\s*-\s*.+$/, '') // Remove everything after regular dash if it looks like a note
-          .trim();
-        
-        if (itemName && itemName.length > 2) {
-          items.push({
-            bnf_chapter_code: currentChapterCode,
-            bnf_chapter_name: currentChapter,
-            section: currentSection,
-            item_name: itemName,
-            preference_rank: isPreferred ? currentRank : null,
-            is_preferred: isPreferred,
-            otc: otc,
-            notes: notes,
-            page_url: url,
-            last_published: lastPublished
-          });
-          
-          console.log(`Added item: ${itemName} (rank: ${currentRank}, preferred: ${isPreferred})`);
-        }
-        
-        rank++;
-      });
+      $n = $n.next();
     }
   });
   
-  console.log(`Parsed ${items.length} formulary items`);
+  console.log(`Extracted ${rows.length} formulary items`);
+  
+  // Deduplicate: keep first occurrence of each item
+  const key = (r: FormularyItem) => 
+    `${r.bnf_chapter_name}::${r.section}::${r.item_name}`.toLowerCase();
+  const seen = new Set<string>();
+  const items = rows.filter(r => {
+    const k = key(r);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  
+  console.log(`After deduplication: ${items.length} items`);
+  
+  if (items.length === 0) {
+    return {
+      success: false,
+      message: 'No formulary data extracted from the page',
+      items_found: 0,
+      items_inserted: 0,
+      final_count: 0
+    };
+  }
   
   // Clear existing data
   console.log('Clearing existing formulary data...');
