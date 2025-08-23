@@ -49,6 +49,7 @@ const APITesting = () => {
   const [testMode, setTestMode] = useState<'fast' | 'quality'>('fast');
   const [nhsVerificationResults, setNhsVerificationResults] = useState<any[]>([]);
   const [challengeResults, setChallengeResults] = useState<any[]>([]);
+  const [goldStandardResults, setGoldStandardResults] = useState<any[]>([]);
   const [showRawJSON, setShowRawJSON] = useState(false);
   const [rawResponses, setRawResponses] = useState<any[]>([]);
 
@@ -87,6 +88,69 @@ const APITesting = () => {
     {
       category: "Code Generation",
       prompt: "Write a Python function that calculates BMI from height and weight, includes error handling, and returns appropriate NHS weight category classifications."
+    }
+  ];
+
+  const clinicalQuickPicks = [
+    {
+      title: "BNF Drug Lookup – Ramipril",
+      category: "Clinical - BNF Drugs",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications (adult, primary care)\nAdult dosing & titration (include starting dose, up-titration intervals, BP/U&E checks)\nRenal/hepatic adjustment (eGFR/Cr thresholds; when to avoid/seek specialist advice)\nMajor interactions (e.g., NSAIDs, K-sparing diuretics, lithium)\nContraindications & cautions (pregnancy, bilateral RAS, hypotension, hyperkalaemia)\nMonitoring (U&E/K⁺ timing after initiation/titration; BP targets)\nCommon adverse effects\nSick-day rules\nReferences (BNF/NICE/MHRA/ICB with titles + URLs)\n\nDrug: Ramipril. If information is not present in UK sources, state \"Not specified in UK sources\" and do not infer.",
+      goldStandard: "Indications (adult): Hypertension; symptomatic heart failure; post-MI; diabetic nephropathy (per local pathways).\n\nAdult dosing & titration (HTN): Start 2.5–5 mg once daily; titrate to BP target; max 10 mg daily (once daily or 5 mg bd). HF/post-MI often start lower (e.g., 1.25 mg od), up-titrate. Check U&E/K⁺ before, and 1–2 weeks after initiation/dose change. Avoid abrupt up-titration on diuretics/elderly.\n\nRenal/hepatic: Caution in renal impairment; avoid in bilateral renal artery stenosis. Hold during intercurrent illness (see Sick-day rules).\n\nMajor interactions: NSAIDs, K-sparing diuretics/potassium, lithium, other antihypertensives (hypotension).\n\nContraindications/cautions: Pregnancy, history of ACE-i angioedema, severe aortic stenosis, hyperkalaemia.\n\nMonitoring: BP; U&E/K⁺ at baseline and after dose changes; watch for cough/renal function changes.\n\nCommon AEs: Cough, dizziness, hyperkalaemia, renal impairment.\n\nSick-day rules: Pause ACE-i during dehydration/AKI risk (vomiting/diarrhoea; NSAID use).\n\nReferences: NHS medicines: ramipril; NICE CKS (ACE-i dosing/starts)."
+    },
+    {
+      title: "BNF Drug Lookup – Sertraline",
+      category: "Clinical - BNF Drugs",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications\nAdult dosing & titration (onset/time to effect)\nRenal/hepatic guidance\nMajor interactions (MAOIs, linezolid, triptans, warfarin, QTc cautions)\nContraindications & cautions (serotonin syndrome risks, switching rules)\nMonitoring\nCommon adverse effects\nPregnancy/breastfeeding (UK sources)\nReferences\n\nDrug: Sertraline.",
+      goldStandard: "Indications: Depression, GAD, panic disorder, PTSD, OCD (adult).\n\nAdult dosing & titration: 50 mg od initially; increase by 50 mg steps at ≥1-week intervals to max 200 mg od. Time to effect ~1–2 weeks; reassess 4–6 weeks.\n\nRenal/hepatic: Use lower doses/caution in hepatic impairment.\n\nMajor interactions: MAOIs/linezolid (contraindicated/serotonin syndrome), triptans, warfarin (monitor INR), other serotonergic drugs; alcohol caution.\n\nContraindications/cautions: Current/recent MAOI; significant QTc risks (caution); seizure disorder.\n\nMonitoring: Symptom response, suicidality early in treatment, bleeding risk with NSAIDs/anticoagulants.\n\nCommon AEs: GI upset, insomnia/somnolence, sexual dysfunction, headache.\n\nPregnancy/breastfeeding: May be used if benefits outweigh risks—use UK sources for shared decision.\n\nReferences: NHS sertraline; NICE CKS antidepressant dosing."
+    },
+    {
+      title: "BNF Drug Lookup – Apixaban (DOAC)",
+      category: "Clinical - BNF Drugs",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications (NVAF, DVT/PE tx & prophylaxis)\nAdult dosing (include renal criteria, age/weight/Cr thresholds for dose reduction)\nPeri-procedural advice (primary-care scope)\nMajor interactions (strong CYP3A4/P-gp)\nContraindications & cautions\nMonitoring (renal function interval, adherence)\nPatient counselling & bleeding red flags\nReferences\n\nDrug: Apixaban.",
+      goldStandard: "Indications: NVAF (stroke prevention); DVT/PE treatment and prophylaxis.\n\nAdult dosing (examples):\nNVAF: 5 mg bd; consider 2.5 mg bd if older/frail/renal criteria met per UK guidance.\nDVT/PE tx: 10 mg bd for 7 days, then 5 mg bd.\n\nRenal/hepatic: Dose-reduce/avoid with significant renal impairment; avoid in hepatic disease with coagulopathy—check UK monographs.\n\nMajor interactions: Strong P-gp/CYP3A4 inhibitors/inducers; avoid dual anticoagulation; additive bleed with antiplatelets/NSAIDs.\n\nContraindications/cautions: Active bleeding; lesions at high bleed risk; severe hepatic disease.\n\nMonitoring: Baseline renal/hepatic function; periodic renal check; adherence; bleed red flags and counselling.\n\nReferences: NHS apixaban; MHRA DOAC safety; SPS DOAC interactions."
+    },
+    {
+      title: "BNF Drug Lookup – Empagliflozin (SGLT2i)",
+      category: "Clinical - BNF Drugs",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications (T2DM ± CKD/HF per NICE)\nAdult dosing\nRenal thresholds for initiation/continuation\nMajor interactions & cautions (DKA risk incl. euglycaemic DKA, dehydration, genital infections)\nSick-day rules\nContraindications\nCommon adverse effects\nMonitoring\nReferences\n\nDrug: Empagliflozin.",
+      goldStandard: "Indications: T2DM (glycaemic control); HF and CKD indications per UK guidance.\n\nAdult dosing: Start 10 mg od; may increase to 25 mg od. HF/CKD: typically 10 mg od.\n\nRenal: Check eGFR before/after initiation; initiation/continuation thresholds per NICE/BNF/local ICB.\n\nMajor interactions & cautions: Risk of (eu)DKA, dehydration/volume depletion; consider holding peri-op/acute illness; risk of genital mycotic infections.\n\nContraindications/cautions: Type 1 diabetes; pregnancy/breastfeeding (specialist).\n\nMonitoring: HbA1c; U&E/eGFR; sick-day rules; foot care if neuropathy.\n\nReferences: NHS empagliflozin; MHRA DKA advisory; NICE NG28 (treatment selection)."
+    },
+    {
+      title: "Hypertension – Adult Primary Care Management",
+      category: "Clinical - Guidelines",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nDiagnosis & confirmation (clinic vs ABPM/HBPM thresholds)\nTreatment targets (age/diabetes/CKD nuance)\nStepwise drug algorithm (A/C/D sequence; considerations for Black African/Caribbean heritage and diabetes) with BNF starting doses\nMonitoring (U&E, BP review cadence)\nLifestyle advice (concise)\nWhen to refer / urgent red flags\nFollow-up intervals\nReferences (NICE/BNF/ICB with URLs).",
+      goldStandard: "Diagnosis: Confirm with ABPM/HBPM; base ABPM on average daytime readings.\n\nTargets (individualise): See visual summary—age/comorbidity specific; aim clinic <140/90 mmHg (or lower if tolerated) in most adults; lower targets in DM/CKD as per NICE.\n\nStepwise drugs:\nStep 1: A-drug (ACE-i/ARB) if ≤55 y; CCB if ≥55 y or African/Caribbean family origin (prefer ARB over ACE-i in this group).\nStep 2: A + C. Step 3: A + C + D (thiazide-like). Step 4: Consider spironolactone/alpha-/beta-blocker and specialist advice.\n\nMonitoring: U&E/K⁺ after RAAS up-titration; annual review; lifestyle advice.\n\nRed flags: Same-day if accelerated HTN (retinal haemorrhage/papilloedema) or life-threatening symptoms.\n\nReferences: NICE NG136 (visual & guideline pages)."
+    },
+    {
+      title: "Atrial Fibrillation – Primary Care Assessment & Treatment",
+      category: "Clinical - Guidelines",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nInitial assessment (ECG, bloods, reversible causes)\nStroke/bleed risk (CHA₂DS₂-VASc, HAS-BLED – state scoring use)\nAnticoagulation options with BNF doses/renal adjustments (DOACs)\nRate vs rhythm (primary-care scope)\nWhen to refer (syncope, HF, new WPW, refractory symptoms)\nSafety-netting\nReferences.",
+      goldStandard: "Assessment: ECG confirmation; bloods (U&E, TFTs); check triggers (thyrotoxicosis, infection, alcohol).\n\nStroke/bleed risk: CHA₂DS₂-VASc for stroke; HAS-BLED for bleeding—use to structure discussion, not to deny therapy.\n\nAnticoagulation: Offer a DOAC first-line unless contraindicated; choose/dose per BNF, renal function, age/weight; counsel on bleeding and adherence.\n\nRate vs rhythm: Rate control first-line in most; rhythm for symptomatic/reversible cause—consider cardiology referral.\n\nRefer/urgent: Syncope, HF, haemodynamic instability, suspected WPW, refractory symptoms.\n\nReferences: NICE NG196 (AF)."
+    },
+    {
+      title: "Type 2 Diabetes – Initial & Add-On Therapy",
+      category: "Clinical - Guidelines",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nDiagnostic thresholds\nHbA1c targets\nFirst-line and add-on per NICE (metformin baseline, SGLT2i in ASCVD/CKD/HF, GLP-1 criteria)\nBNF dose/titration highlights\nMonitoring (HbA1c/U&E)\nHypoglycaemia education\nSick-day rules\nReferral triggers\nReferences.",
+      goldStandard: "Diagnosis/targets: Diagnose per HbA1c/FBG thresholds; set individualised HbA1c target (e.g., 48–58 mmol/mol typical range).\n\nFirst-line: Metformin if tolerated.\n\nAdd-on choices: Use person-centred factors; prioritise SGLT2-i in ASCVD/CKD/HF; consider GLP-1 RA per criteria; avoid hypoglycaemia in high-risk.\n\nBNF dose notes: Include dose/titration snippets for chosen agents (e.g., metformin slow up-titration).\n\nMonitoring: HbA1c 3–6-monthly until stable, then 6–12-monthly; U&E, eGFR with SGLT2-i/Met; weight, BP, lipids; foot care.\n\nReferences: NICE NG28 + \"Choosing medicines\" visual summary."
+    },
+    {
+      title: "Adult Asthma – Acute Exacerbation (Primary Care)",
+      category: "Clinical - Emergency",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nSeverity assessment\nImmediate treatment (inhaled SABA doses; oral prednisolone BNF dosing)\nOxygen/peak flow targets\nWhen to admit/999\nPost-exacerbation review (ICS step-up, inhaler technique, adherence)\nSafety-netting\nFollow-up timeline\nReferences.",
+      goldStandard: "Assess severity: PEFR %, RR, SpO₂, speech, cyanosis, exhaustion.\n\nImmediate treatment: Inhaled SABA via spacer/nebuliser; give oral prednisolone 40–50 mg once daily (adult) immediately; oxygen if hypoxic; consider ipratropium in moderate–severe attacks.\n\nRefer 999/admit: Life-threatening features or poor response.\n\nPost-exacerbation: Check inhaler technique/adherence; step-up controller; provide written action plan; arrange follow-up.\n\nReferences: NICE CKS (Asthma – acute exacerbation); NHS prednisolone usage advice."
+    },
+    {
+      title: "UTI – Non-Pregnant Adult Female (Uncomplicated)",
+      category: "Clinical - Infections",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nDiagnosis (symptom score; dipstick use)\nFirst-/second-line antibiotics with BNF doses/durations aligned to NICE antimicrobial prescribing & local ICB\nWhen to send MSU\nSpecial cases (pregnancy, men, catheters – brief signposts)\nPrevention for recurrent UTI\nRed flags & safety-netting\nReferences.",
+      goldStandard: "Diagnosis: Typical dysuria/urgency; dipstick optional depending on age/symptoms; consider back-up prescription in milder cases.\n\nAntibiotics (align to NICE/local ICB):\nFirst-line: Nitrofurantoin (if eGFR ≥ 45) 3 days; Trimethoprim 3 days if low resistance risk.\nSecond-line/alternatives: Pivmecillinam 3 days or Fosfomycin single dose. (Check local ICB formulary for resistance patterns.)\n\nWhen to send MSU: Atypical features, recurrent UTI, treatment failure, red flags.\n\nSafety-net: Worsening/systemically unwell; pyelonephritis symptoms → urgent review.\n\nReferences: NICE NG109 (and visual summary); UK quick-reference (UKHSA/NHS England)."
+    },
+    {
+      title: "Shingles (Herpes Zoster) Vaccination – Green Book",
+      category: "Clinical - Immunisations",
+      prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nEligibility (routine, catch-up, clinical risk groups)\nVaccine products & schedules\nCo-administration\nContraindications & precautions (immunosuppression, pregnancy)\nPost-exposure considerations\nDocumentation/coding\nPatient counselling\nReferences (Green Book/NHS.uk/ICB).",
+      goldStandard: "Eligibility (England, current):\nRoutine: People turning 65 (from 1 Sep 2023, remain eligible to 80th birthday), and 70–79 catch-up if not yet vaccinated.\nClinical risk: Severely immunosuppressed adults ≥50 y (recent updates extend to certain ≥18 y cohorts—check latest chapter update).\n\nSchedule: Shingrix 2 doses, usually 6–12 months apart (8 weeks–6 months in immunosuppressed).\n\nCo-administration: Can be co-administered with other inactivated vaccines per Green Book.\n\nContraindications/precautions: Anaphylaxis to a previous dose/component; defer if acutely unwell.\n\nCoding/admin: Record product, batch, site, route; follow GPES/technical guidance.\n\nReferences: Green Book Chapter 28a; NHS shingles vaccine page."
     }
   ];
 
@@ -232,6 +296,12 @@ const APITesting = () => {
     if (prompt.toLowerCase().includes('pong')) {
       await runChallengeVerify();
     }
+
+    // Run Gold Standard Comparison if available
+    const matchingQuickPick = clinicalQuickPicks.find(qp => qp.prompt === prompt);
+    if (matchingQuickPick && matchingQuickPick.goldStandard) {
+      await runGoldStandardComparison();
+    }
     
     // Save to history
     const historyEntry: TestHistory = {
@@ -285,6 +355,51 @@ const APITesting = () => {
       setChallengeResults(verificationResults);
     } catch (error) {
       console.error('Challenge & Verify error:', error);
+    }
+  };
+
+  const runGoldStandardComparison = async () => {
+    try {
+      // Find the matching clinical quick pick for gold standard comparison
+      const matchingQuickPick = clinicalQuickPicks.find(qp => qp.prompt === prompt);
+      
+      if (!matchingQuickPick || !matchingQuickPick.goldStandard) {
+        console.log('No gold standard available for this prompt');
+        return;
+      }
+
+      const completedResults = results.filter(r => r.status === 'completed');
+      const goldStandardPromises = completedResults.map(async (result) => {
+        const { data, error } = await supabase.functions.invoke('clinical-verification', {
+          body: {
+            messageId: `gold-standard-${Date.now()}`,
+            originalPrompt: prompt,
+            responses: [{
+              role: 'assistant',
+              content: result.response,
+              model: result.model,
+              responseTime: result.responseTime
+            }],
+            goldStandard: matchingQuickPick.goldStandard,
+            comparisonMode: true
+          }
+        });
+
+        if (error) throw error;
+        return { 
+          model: result.model, 
+          goldStandardComparison: data,
+          goldStandard: matchingQuickPick.goldStandard
+        };
+      });
+
+      const goldStandardResults = await Promise.all(goldStandardPromises);
+      
+      // Store results in a new state for gold standard comparisons
+      setGoldStandardResults(goldStandardResults);
+      
+    } catch (error) {
+      console.error('Gold Standard Comparison error:', error);
     }
   };
 
@@ -532,7 +647,10 @@ const APITesting = () => {
                 {/* Predefined Prompts */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">Quick Start Prompts</label>
-                  <div className="space-y-3">
+                  
+                  {/* Regular Prompts */}
+                  <div className="space-y-3 mb-4">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">General Prompts</div>
                     {predefinedPrompts.map((p, i) => (
                       <div
                         key={i}
@@ -551,6 +669,44 @@ const APITesting = () => {
                         <div className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words">
                           {p.prompt}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Clinical Quick Picks */}
+                  <div className="space-y-3">
+                    <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <span className="text-green-600">🩺</span>
+                      NHS Clinical Quick Picks (GPT-5 Recommended)
+                    </div>
+                    {clinicalQuickPicks.map((p, i) => (
+                      <div
+                        key={`clinical-${i}`}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                          prompt === p.prompt 
+                            ? 'border-green-600 bg-green-50 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
+                            : 'border-border hover:border-green-400 hover:bg-green-50/50'
+                        }`}
+                        onClick={() => setPrompt(p.prompt)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className={`font-medium text-sm ${
+                            prompt === p.prompt ? 'text-green-700' : 'text-primary'
+                          }`}>
+                            {p.title}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {p.category}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words line-clamp-3">
+                          {p.prompt.length > 150 ? p.prompt.substring(0, 150) + '...' : p.prompt}
+                        </div>
+                        {p.goldStandard && (
+                          <div className="mt-2 text-xs text-green-600 font-medium">
+                            ✓ Gold Standard Available
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -630,12 +786,13 @@ const APITesting = () => {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-7">
                       <TabsTrigger value="overview">Overview</TabsTrigger>
                       <TabsTrigger value="responses">Responses</TabsTrigger>
                       <TabsTrigger value="analysis">Analysis</TabsTrigger>
                       <TabsTrigger value="nhs-verify">NHS Verify</TabsTrigger>
                       <TabsTrigger value="challenge">Challenge</TabsTrigger>
+                      <TabsTrigger value="gold-standard">Gold Standard</TabsTrigger>
                       <TabsTrigger value="history">History</TabsTrigger>
                     </TabsList>
 
@@ -982,6 +1139,105 @@ const APITesting = () => {
                           </CardContent>
                         </Card>
                       </div>
+                    </TabsContent>
+
+                    <TabsContent value="gold-standard" className="space-y-4">
+                      {goldStandardResults.length > 0 ? (
+                        <div className="space-y-4">
+                          {goldStandardResults.map((result, index) => {
+                            const modelInfo = getModelInfo(result.model);
+                            const comparison = result.goldStandardComparison;
+                            
+                            return (
+                              <Card key={index}>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full ${modelInfo.color}`} />
+                                    {modelInfo.name} - Gold Standard Comparison
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                  {comparison && (
+                                    <>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                          <h4 className="font-semibold text-sm mb-2">Confidence Score</h4>
+                                          <div className="flex items-center gap-2">
+                                            <Progress 
+                                              value={comparison.confidenceScore || 0} 
+                                              className="flex-1" 
+                                            />
+                                            <span className="text-sm font-medium">
+                                              {Math.round(comparison.confidenceScore || 0)}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                        
+                                        <div>
+                                          <h4 className="font-semibold text-sm mb-2">Risk Level</h4>
+                                          <Badge 
+                                            variant={comparison.riskLevel === 'LOW' ? 'default' : 
+                                                   comparison.riskLevel === 'MEDIUM' ? 'secondary' : 'destructive'}
+                                          >
+                                            {comparison.riskLevel}
+                                          </Badge>
+                                        </div>
+                                      </div>
+
+                                      {comparison.concerns && comparison.concerns.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm mb-2">Key Concerns</h4>
+                                          <ul className="space-y-1">
+                                            {comparison.concerns.map((concern, i) => (
+                                              <li key={i} className="text-sm text-red-600 flex items-start gap-2">
+                                                <span className="text-red-500 mt-1">•</span>
+                                                {concern}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+
+                                      {comparison.strengths && comparison.strengths.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm mb-2">Strengths</h4>
+                                          <ul className="space-y-1">
+                                            {comparison.strengths.map((strength, i) => (
+                                              <li key={i} className="text-sm text-green-600 flex items-start gap-2">
+                                                <span className="text-green-500 mt-1">•</span>
+                                                {strength}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                  
+                                  <div className="border-t pt-4">
+                                    <h4 className="font-semibold text-sm mb-2">Gold Standard Reference</h4>
+                                    <div className="bg-amber-50 p-3 rounded-md text-sm">
+                                      {result.goldStandard}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="text-center py-8">
+                            <p className="text-muted-foreground">
+                              No gold standard comparison available. 
+                              {clinicalQuickPicks.find(qp => qp.prompt === prompt) 
+                                ? ' Run a test to see results.' 
+                                : ' Select a Clinical Quick Pick prompt to compare against gold standards.'
+                              }
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
 
                     <TabsContent value="history" className="space-y-4">
