@@ -97,6 +97,21 @@ async function importFormularyData(supabase: any) {
   console.log(`Found ${$(".accordion-content").length} accordion-content elements`);
   console.log(`Found ${$("strong").length} strong elements`);
   
+  // Debug: log first few h3 elements and their content
+  $("h3.accordion-switch").slice(0, 3).each((i, el) => {
+    const title = norm($(el).text());
+    console.log(`H3 ${i}: "${title}"`);
+    const content = $(el).next("div.accordion-content");
+    console.log(`- Has content div: ${content.length > 0}`);
+    if (content.length > 0) {
+      const strongTags = content.find("strong");
+      console.log(`- Strong tags found: ${strongTags.length}`);
+      strongTags.slice(0, 3).each((j, strong) => {
+        console.log(`  - Strong ${j}: "${norm($(strong).text())}"`);
+      });
+    }
+  });
+  
   // Look for accordion sections with h3.accordion-switch and div.accordion-content
   $("h3.accordion-switch").each((_, h3Element) => {
     const $h3 = $(h3Element);
