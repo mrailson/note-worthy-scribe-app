@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 AI API Test function started (updated for new OpenAI key)');
+    console.log('🚀 AI API Test function started (RECREATED)');
     
     const requestBody = await req.json();
     const { model, prompt }: TestRequest = requestBody;
@@ -25,25 +25,17 @@ serve(async (req) => {
     console.log(`📝 Testing model: ${model}`);
     console.log(`💬 Prompt: ${prompt.substring(0, 50)}...`);
     
-    // Get API keys from environment - Updated for new deployment
+    // Get API keys using the exact same method as working functions
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY'); 
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     
-    // Debug: Log first few characters of each key
-    console.log('🔑 API Keys debug info:', {
-      openai: OPENAI_API_KEY ? `✅ Present (${OPENAI_API_KEY.substring(0, 10)}...)` : '❌ Missing',
-      anthropic: ANTHROPIC_API_KEY ? `✅ Present (${ANTHROPIC_API_KEY.substring(0, 10)}...)` : '❌ Missing', 
-      grok: GROK_API_KEY ? `✅ Present (${GROK_API_KEY.substring(0, 10)}...)` : '❌ Missing',
-      gemini: GEMINI_API_KEY ? `✅ Present (${GEMINI_API_KEY.substring(0, 10)}...)` : '❌ Missing'
-    });
-    
-    console.log('🔑 Environment variables check:', {
-      openai: OPENAI_API_KEY ? '✅ Present' : '❌ Missing',
-      anthropic: ANTHROPIC_API_KEY ? '✅ Present' : '❌ Missing',
-      grok: GROK_API_KEY ? '✅ Present' : '❌ Missing',
-      gemini: GEMINI_API_KEY ? '✅ Present' : '❌ Missing'
+    console.log('🔑 API Keys status (recreated function):', {
+      openai: OPENAI_API_KEY ? 'Present' : 'Missing',
+      anthropic: ANTHROPIC_API_KEY ? 'Present' : 'Missing',
+      grok: GROK_API_KEY ? 'Present' : 'Missing',
+      gemini: GEMINI_API_KEY ? 'Present' : 'Missing'
     });
 
     const startTime = Date.now();

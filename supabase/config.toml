@@ -48,6 +48,9 @@ verify_jwt = true
 [functions.api-testing-service]
 verify_jwt = true
 
+[functions.ai-api-test]
+verify_jwt = true
+
 [functions.runware-image-generation]
 verify_jwt = true
 
