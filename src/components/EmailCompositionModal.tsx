@@ -270,7 +270,7 @@ export function EmailCompositionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-none max-h-none overflow-y-auto resize min-w-[400px] min-h-[300px] w-[600px] h-[300px]" style={{ resize: 'both' }}>
+      <DialogContent className="sm:max-w-none max-h-none overflow-y-auto resize min-w-[400px] min-h-[900px] w-[600px] h-[900px]" style={{ resize: 'both' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Compose Email</span>
@@ -332,7 +332,7 @@ export function EmailCompositionModal({
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[100px] font-mono text-sm"
+              className="h-[300px] font-mono text-sm resize-none"
               placeholder="Enter your message here..."
             />
           </div>
