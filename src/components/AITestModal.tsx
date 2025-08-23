@@ -99,15 +99,32 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     const startTime = Date.now();
     
     try {
-      const functionName = service === 'fast' ? 'gpt5-fast-clinical' : 'ai-4-pm-chat';
+      let data, error;
       
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: {
-          messages: [{ role: 'user', content: CLINICAL_TEST_QUERY }],
-          model: model,
-          systemPrompt: 'You are a clinical AI assistant providing accurate medical information based on UK NHS guidelines.'
-        }
-      });
+      if (service === 'fast') {
+        // Use gpt5-fast-clinical with correct format
+        const response = await supabase.functions.invoke('gpt5-fast-clinical', {
+          body: {
+            messages: [{ role: 'user', content: CLINICAL_TEST_QUERY }],
+            model: model,
+            systemPrompt: 'You are a clinical AI assistant providing accurate medical information based on UK NHS guidelines.'
+          }
+        });
+        data = response.data;
+        error = response.error;
+      } else {
+        // Use ai-4-pm-chat with correct format
+        const response = await supabase.functions.invoke('ai-4-pm-chat', {
+          body: {
+            messages: [{ role: 'user', content: CLINICAL_TEST_QUERY }],
+            model: model,
+            systemPrompt: 'You are a clinical AI assistant providing accurate medical information based on UK NHS guidelines.',
+            verificationLevel: 'clinical'
+          }
+        });
+        data = response.data;
+        error = response.error;
+      }
 
       const responseTime = Date.now() - startTime;
 
@@ -125,8 +142,8 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       return {
         model: model,
         service: service,
-        response: data.response || 'No response received',
-        responseTime: data.responseTime || responseTime,
+        response: data?.response || data?.content || 'No response received',
+        responseTime: data?.responseTime || responseTime,
         status: 'success'
       };
     } catch (error: any) {
