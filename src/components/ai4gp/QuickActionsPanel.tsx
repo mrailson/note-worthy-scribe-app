@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import TrafficLightBrowser from '@/components/TrafficLightBrowser';
 import { TrafficLightImporter } from '@/components/TrafficLightImporter';
+import TrafficLightSearch from '@/components/TrafficLightSearch';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -31,6 +32,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [isTrafficLightModalOpen, setIsTrafficLightModalOpen] = useState(false);
   const [isTrafficLightImporterOpen, setIsTrafficLightImporterOpen] = useState(false);
+  const [isTrafficLightSearchOpen, setIsTrafficLightSearchOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -119,6 +121,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 setIsTrafficLightModalOpen(true);
               } else if (action.action === 'open-traffic-light-importer') {
                 setIsTrafficLightImporterOpen(true);
+              } else if (action.action === 'open-traffic-light-search') {
+                setIsTrafficLightSearchOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -159,6 +163,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             }
                           } else if (subItem.action === 'open-traffic-light-importer') {
                             setIsTrafficLightImporterOpen(true);
+                          } else if (subItem.action === 'open-traffic-light-search') {
+                            setIsTrafficLightSearchOpen(true);
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt));
                           }
@@ -247,6 +253,41 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 </Button>
               </div>
               <TrafficLightImporter />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Traffic Light Search Modal */}
+      {isTrafficLightSearchOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold">Search Traffic Light Medicines</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTrafficLightSearchOpen(false)}
+                >
+                  ×
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <TrafficLightSearch
+                  onInsertIntoChat={(message) => {
+                    if (onInsertIntoChat) {
+                      onInsertIntoChat(message);
+                    }
+                    setIsTrafficLightSearchOpen(false);
+                  }}
+                  className="w-full"
+                />
+                <div className="text-sm text-muted-foreground">
+                  <p>• Click on a medicine to view detailed information</p>
+                  <p>• Ctrl/Cmd + Click to insert directly into chat</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

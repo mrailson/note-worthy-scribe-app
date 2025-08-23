@@ -27,7 +27,6 @@ import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import AITestModal from '@/components/AITestModal';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
-import TrafficLightSearch from '@/components/TrafficLightSearch';
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -235,16 +234,6 @@ const AI4GPService = () => {
                     </CardTitle>
                   </div>
 
-                   {/* Traffic Light Search - Center */}
-                  <div className="flex-1 max-w-xs mx-4 hidden md:block">
-                    <TrafficLightSearch 
-                      onInsertIntoChat={(message) => {
-                        setInput(prev => prev ? `${prev}\n\n${message}` : message);
-                      }}
-                      onRegisterSetDrugName={(fn) => setSetDrugNameFn(() => fn)}
-                      className="w-full"
-                    />
-                  </div>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
                     {/* Settings Button */}
@@ -308,16 +297,6 @@ const AI4GPService = () => {
                 </div>
               </CardHeader>
 
-              {/* Mobile Traffic Light Search Bar - Show on mobile when header search is hidden */}
-              <div className="md:hidden flex justify-center px-4 py-2 bg-background/50 backdrop-blur-sm border-b">
-                <TrafficLightSearch 
-                  onInsertIntoChat={(message) => {
-                    setInput(prev => prev ? `${prev}\n\n${message}` : message);
-                  }}
-                  onRegisterSetDrugName={(fn) => setSetDrugNameFn(() => fn)}
-                  className="w-full max-w-xs"
-                />
-              </div>
 
               {/* AI Chat Display */}
               {showAIChat && (

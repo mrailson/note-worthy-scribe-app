@@ -1,4 +1,4 @@
-import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download } from 'lucide-react';
+import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -34,6 +34,13 @@ export const quickActions: QuickAction[] = [
     prompt: '',
     requiresFile: false,
     action: 'open-traffic-light-importer'
+  },
+  { 
+    label: 'Search Traffic Light Medicines',
+    icon: Search, 
+    prompt: '',
+    requiresFile: false,
+    action: 'open-traffic-light-search'
   },
   { 
     label: 'Red Flag Symptom Checker', 
