@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Lock } from 'lucide-react';
+import { AlertCircle, Lock, Search } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
+import { DrugQuickModal } from '@/components/DrugQuickModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 const AI4GP = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [drugModalOpen, setDrugModalOpen] = useState(false);
+
+  // Keyboard shortcut for Drug Quick Lookup (Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'k') {
+        event.preventDefault();
+        setDrugModalOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Fetch user profile to check AI4GP access
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -120,11 +135,35 @@ const AI4GP = () => {
     <div className="h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
       <Header onNewMeeting={() => {}} />
       
+      {/* Drug Quick Lookup Button */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-2 sm:px-4 py-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDrugModalOpen(true)}
+            className="gap-2"
+          >
+            <Search className="h-4 w-4" />
+            Drug Quick Lookup
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">Ctrl</span>K
+            </kbd>
+          </Button>
+        </div>
+      </div>
+      
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll">
         <div className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto space-y-6">
           <AI4GPService />
         </div>
       </main>
+
+      {/* Drug Quick Lookup Modal */}
+      <DrugQuickModal 
+        open={drugModalOpen} 
+        onClose={() => setDrugModalOpen(false)} 
+      />
     </div>
   );
 };
