@@ -6,7 +6,8 @@ import { quickActions, practiceManagerQuickActions, QuickAction } from '@/consta
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
-import TrafficLightQuickPick from '@/components/TrafficLightQuickPick';
+import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
+import TrafficLightBrowser from '@/components/TrafficLightBrowser';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -172,7 +173,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           })}
         </div>
 
-        {/* Special tiles row - Traffic Light Checker */}
+        {/* Special tiles row - Traffic Light Tools */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <TrafficLightQuickPick onInsertIntoChat={onInsertIntoChat}>
             <Button
@@ -184,6 +185,17 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               <span className="truncate">Traffic-Light Medicine Checker</span>
             </Button>
           </TrafficLightQuickPick>
+          
+          <TrafficLightBrowser onInsertIntoChat={onInsertIntoChat}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-start text-left h-auto py-2 px-3"
+            >
+              <Shield className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Browse All Medicines</span>
+            </Button>
+          </TrafficLightBrowser>
         </div>
         
         {/* Don't show expand button on mobile, and only show if there are more actions than visible */}
