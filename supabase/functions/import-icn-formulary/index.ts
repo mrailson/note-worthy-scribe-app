@@ -18,39 +18,6 @@ interface FormularyItem {
   last_published?: string;
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    console.log('Starting ICN Formulary import...');
-    
-    const result = await importFormularyData(supabase);
-    
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
-  } catch (error) {
-    console.error('Import failed:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      details: error.toString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});
-
 async function importFormularyData(supabase: any) {
   const URL = "https://www.icnorthamptonshire.org.uk/mo-formulary";
   
@@ -274,3 +241,39 @@ async function importFormularyData(supabase: any) {
     throw error;
   }
 }
+
+// Main serve function
+serve(async (req) => {
+  console.log('=== ICN FORMULARY IMPORT REQUEST RECEIVED ===');
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    console.log('Starting ICN Formulary import...');
+    
+    const result = await importFormularyData(supabase);
+    
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Import failed:', error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message,
+      details: error.toString()
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
