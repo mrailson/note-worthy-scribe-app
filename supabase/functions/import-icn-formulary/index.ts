@@ -54,206 +54,223 @@ serve(async (req) => {
 async function importFormularyData(supabase: any) {
   const URL = "https://www.icnorthamptonshire.org.uk/mo-formulary";
   
+  console.log('=== STARTING ICN FORMULARY IMPORT ===');
   console.log('Fetching formulary data from:', URL);
   
-  // Fetch the page with user agent to avoid blocking
-  const response = await fetch(URL, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; FormularyBot/1.0)'
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
-  }
-  
-  const html = await response.text();
-  const $ = cheerio.load(html);
-  
-  // Helper function to normalize text
-  const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
-  
-  // Extract last published date more specifically
-  let lastPublished = "";
-  $("*").each((_, element) => {
-    const text = $(element).text();
-    if (text.includes("Last published")) {
-      // Extract just the date part after "Last published"
-      const match = text.match(/Last published[:\s]+([^\n\r]+)/i);
-      if (match && match[1]) {
-        lastPublished = norm(match[1]).split(/\s+/).slice(0, 4).join(" "); // Take first few words only
+  try {
+    // Fetch the page with user agent to avoid blocking
+    const response = await fetch(URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; FormularyBot/1.0)'
       }
-    }
-  });
-  console.log('Last published:', lastPublished);
-  
-  const rows: FormularyItem[] = [];
-  
-  console.log('Starting to parse HTML content...');
-  
-  // Debug: log some basic info about the HTML structure
-  console.log(`Found ${$("h3").length} h3 elements`);
-  console.log(`Found ${$(".accordion-switch").length} accordion-switch elements`);
-  console.log(`Found ${$(".accordion-content").length} accordion-content elements`);
-  console.log(`Found ${$("strong").length} strong elements`);
-  
-  // Debug: log first few h3 elements and their content
-  $("h3.accordion-switch").slice(0, 3).each((i, el) => {
-    const title = norm($(el).text());
-    console.log(`H3 ${i}: "${title}"`);
-    const content = $(el).next("div.accordion-content");
-    console.log(`- Has content div: ${content.length > 0}`);
-    if (content.length > 0) {
-      const strongTags = content.find("strong");
-      console.log(`- Strong tags found: ${strongTags.length}`);
-      strongTags.slice(0, 3).each((j, strong) => {
-        console.log(`  - Strong ${j}: "${norm($(strong).text())}"`);
-      });
-    }
-  });
-  
-  // Look for accordion sections with h3.accordion-switch and div.accordion-content
-  $("h3.accordion-switch").each((_, h3Element) => {
-    const $h3 = $(h3Element);
-    const sectionTitle = norm($h3.text());
-    
-    if (!sectionTitle || sectionTitle.length < 3) {
-      console.log(`Skipping empty section title`);
-      return;
-    }
-    
-    // Skip guidance sections
-    if (/^guidance$/i.test(sectionTitle)) {
-      console.log(`Skipping guidance section: ${sectionTitle}`);
-      return;
-    }
-    
-    console.log(`Processing section: ${sectionTitle}`);
-    
-    // Determine chapter - simplified
-    let chapter = "Other";
-    const sectionLower = sectionTitle.toLowerCase();
-    
-    if (sectionLower.includes("cardiac") || sectionLower.includes("diuretic") || 
-        sectionLower.includes("beta") || sectionLower.includes("ace") || 
-        sectionLower.includes("lipid") || sectionLower.includes("anticoagulant")) {
-      chapter = "Cardiovascular system";
-    } else if (sectionLower.includes("bronchodilator") || sectionLower.includes("asthma") ||
-               sectionLower.includes("corticosteroid") || sectionLower.includes("inhaler")) {
-      chapter = "Respiratory system";
-    } else if (sectionLower.includes("antacid") || sectionLower.includes("gastro")) {
-      chapter = "Gastro-intestinal system";
-    }
-    
-    // Find the accordion content div that follows this h3
-    let $content = $h3.next("div.accordion-content");
-    if (!$content.length) {
-      console.log(`No accordion-content found for section: ${sectionTitle}`);
-      return;
-    }
-    
-    console.log(`Found content div for: ${sectionTitle}`);
-    
-    let rank = 0;
-    
-    // SIMPLIFIED: Extract ANY strong tag text as potential drugs
-    $content.find("strong").each((_, strongEl) => {
-      const strongText = norm($(strongEl).text());
-      if (!strongText || strongText.length < 3) return;
-      
-      // VERY BASIC filtering - only skip obvious non-drugs
-      if (/^(guidance|note|short-acting|long-acting)$/i.test(strongText)) return;
-      
-      console.log(`Found potential drug: "${strongText}" in section: ${sectionTitle}`);
-      
-      rank++;
-      
-      rows.push({
-        bnf_chapter_name: chapter,
-        section: sectionTitle,
-        item_name: strongText,
-        preference_rank: rank,
-        otc: false,
-        notes: undefined,
-        page_url: URL,
-        last_published: lastPublished || undefined
-      });
     });
     
-    console.log(`Section "${sectionTitle}" yielded ${rank} items`);
-  });
-  
-  console.log(`Extracted ${rows.length} formulary items`);
-  
-  // Deduplicate: keep first occurrence of each item
-  const key = (r: FormularyItem) => 
-    `${r.bnf_chapter_name}::${r.section}::${r.item_name}`.toLowerCase();
-  const seen = new Set<string>();
-  const items = rows.filter(r => {
-    const k = key(r);
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
-  
-  console.log(`After deduplication: ${items.length} items`);
-  
-  if (items.length === 0) {
-    return {
-      success: false,
-      message: 'No formulary data extracted from the page',
-      items_found: 0,
-      items_inserted: 0,
-      final_count: 0
-    };
-  }
-  
-  // Clear existing data
-  console.log('Clearing existing formulary data...');
-  const { error: deleteError } = await supabase
-    .from('icn_formulary')
-    .delete()
-    .neq('id', 0); // Delete all records
+    console.log('Fetch response status:', response.status);
+    console.log('Fetch response ok:', response.ok);
     
-  if (deleteError) {
-    console.error('Error clearing existing data:', deleteError);
-    throw new Error(`Failed to clear existing data: ${deleteError.message}`);
-  }
-  
-  // Insert new data in batches
-  console.log('Inserting new formulary data...');
-  const batchSize = 100;
-  let insertedCount = 0;
-  
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    
-    const { error: insertError } = await supabase
-      .from('icn_formulary')
-      .insert(batch);
-      
-    if (insertError) {
-      console.error(`Error inserting batch ${i / batchSize + 1}:`, insertError);
-      throw new Error(`Failed to insert batch: ${insertError.message}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
     
-    insertedCount += batch.length;
-    console.log(`Inserted batch ${i / batchSize + 1}: ${batch.length} items (total: ${insertedCount})`);
-  }
-  
-  console.log(`Import completed! Inserted ${insertedCount} formulary items`);
-  
-  // Get final count
-  const { count: finalCount } = await supabase
-    .from('icn_formulary')
-    .select('*', { count: 'exact', head: true });
+    const html = await response.text();
+    console.log('HTML length received:', html.length);
+    console.log('HTML preview (first 200 chars):', html.substring(0, 200));
+    
+    const $ = cheerio.load(html);
+    console.log('Cheerio loaded successfully');
+    
+    // Helper function to normalize text
+    const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
+    
+    // Extract last published date more specifically
+    let lastPublished = "";
+    $("*").each((_, element) => {
+      const text = $(element).text();
+      if (text.includes("Last published")) {
+        // Extract just the date part after "Last published"
+        const match = text.match(/Last published[:\s]+([^\n\r]+)/i);
+        if (match && match[1]) {
+          lastPublished = norm(match[1]).split(/\s+/).slice(0, 4).join(" "); // Take first few words only
+        }
+      }
+    });
+    console.log('Last published:', lastPublished);
+    
+    const rows: FormularyItem[] = [];
+    
+    console.log('=== HTML STRUCTURE ANALYSIS ===');
+    console.log(`Total HTML elements: ${$("*").length}`);
+    console.log(`Found ${$("h3").length} h3 elements`);
+    console.log(`Found ${$(".accordion-switch").length} accordion-switch elements`);
+    console.log(`Found ${$(".accordion-content").length} accordion-content elements`);
+    console.log(`Found ${$("strong").length} strong elements`);
+    
+    // Debug: log first few h3 elements and their content
+    console.log('=== FIRST FEW H3 ELEMENTS ===');
+    $("h3.accordion-switch").slice(0, 5).each((i, el) => {
+      const title = norm($(el).text());
+      console.log(`H3 ${i}: "${title}"`);
+      const content = $(el).next("div.accordion-content");
+      console.log(`- Has content div: ${content.length > 0}`);
+      if (content.length > 0) {
+        const strongTags = content.find("strong");
+        console.log(`- Strong tags found: ${strongTags.length}`);
+        strongTags.slice(0, 5).each((j, strong) => {
+          console.log(`  - Strong ${j}: "${norm($(strong).text())}"`);
+        });
+      }
+    });
+    
+    console.log('=== STARTING SECTION PROCESSING ===');
+    
+    // Look for accordion sections with h3.accordion-switch and div.accordion-content
+    $("h3.accordion-switch").each((_, h3Element) => {
+      const $h3 = $(h3Element);
+      const sectionTitle = norm($h3.text());
+      
+      if (!sectionTitle || sectionTitle.length < 3) {
+        console.log(`Skipping empty section title`);
+        return;
+      }
+      
+      // Skip guidance sections
+      if (/^guidance$/i.test(sectionTitle)) {
+        console.log(`Skipping guidance section: ${sectionTitle}`);
+        return;
+      }
+      
+      console.log(`Processing section: ${sectionTitle}`);
+      
+      // Determine chapter - simplified
+      let chapter = "Other";
+      const sectionLower = sectionTitle.toLowerCase();
+      
+      if (sectionLower.includes("cardiac") || sectionLower.includes("diuretic") || 
+          sectionLower.includes("beta") || sectionLower.includes("ace") || 
+          sectionLower.includes("lipid") || sectionLower.includes("anticoagulant")) {
+        chapter = "Cardiovascular system";
+      } else if (sectionLower.includes("bronchodilator") || sectionLower.includes("asthma") ||
+                 sectionLower.includes("corticosteroid") || sectionLower.includes("inhaler")) {
+        chapter = "Respiratory system";
+      } else if (sectionLower.includes("antacid") || sectionLower.includes("gastro")) {
+        chapter = "Gastro-intestinal system";
+      }
+      
+      // Find the accordion content div that follows this h3
+      let $content = $h3.next("div.accordion-content");
+      if (!$content.length) {
+        console.log(`No accordion-content found for section: ${sectionTitle}`);
+        return;
+      }
+      
+      console.log(`Found content div for: ${sectionTitle}`);
+      
+      let rank = 0;
+      
+      // SIMPLIFIED: Extract ANY strong tag text as potential drugs
+      $content.find("strong").each((_, strongEl) => {
+        const strongText = norm($(strongEl).text());
+        if (!strongText || strongText.length < 3) return;
+        
+        // VERY BASIC filtering - only skip obvious non-drugs
+        if (/^(guidance|note|short-acting|long-acting)$/i.test(strongText)) return;
+        
+        console.log(`Found potential drug: "${strongText}" in section: ${sectionTitle}`);
+        
+        rank++;
+        
+        rows.push({
+          bnf_chapter_name: chapter,
+          section: sectionTitle,
+          item_name: strongText,
+          preference_rank: rank,
+          otc: false,
+          notes: undefined,
+          page_url: URL,
+          last_published: lastPublished || undefined
+        });
+      });
+      
+      console.log(`Section "${sectionTitle}" yielded ${rank} items`);
+    });
+    
+    console.log(`=== EXTRACTION COMPLETE ===`);
+    console.log(`Extracted ${rows.length} formulary items`);
+    
+    // Deduplicate: keep first occurrence of each item
+    const key = (r: FormularyItem) => 
+      `${r.bnf_chapter_name}::${r.section}::${r.item_name}`.toLowerCase();
+    const seen = new Set<string>();
+    const items = rows.filter(r => {
+      const k = key(r);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    
+    console.log(`After deduplication: ${items.length} items`);
+    
+    if (items.length === 0) {
+      return {
+        success: false,
+        message: 'No formulary data extracted from the page',
+        items_found: 0,
+        items_inserted: 0,
+        final_count: 0
+      };
+    }
+    
+    // Clear existing data
+    console.log('Clearing existing formulary data...');
+    const { error: deleteError } = await supabase
+      .from('icn_formulary')
+      .delete()
+      .neq('id', 0); // Delete all records
+      
+    if (deleteError) {
+      console.error('Error clearing existing data:', deleteError);
+      throw new Error(`Failed to clear existing data: ${deleteError.message}`);
+    }
+    
+    // Insert new data in batches
+    console.log('Inserting new formulary data...');
+    const batchSize = 100;
+    let insertedCount = 0;
+    
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      
+      const { error: insertError } = await supabase
+        .from('icn_formulary')
+        .insert(batch);
+        
+      if (insertError) {
+        console.error(`Error inserting batch ${i / batchSize + 1}:`, insertError);
+        throw new Error(`Failed to insert batch: ${insertError.message}`);
+      }
+      
+      insertedCount += batch.length;
+      console.log(`Inserted batch ${i / batchSize + 1}: ${batch.length} items (total: ${insertedCount})`);
+    }
+    
+    console.log(`Import completed! Inserted ${insertedCount} formulary items`);
+    
+    // Get final count
+    const { count: finalCount } = await supabase
+      .from('icn_formulary')
+      .select('*', { count: 'exact', head: true });
 
-  return {
-    success: true,
-    message: `Successfully imported ${finalCount || insertedCount} formulary items`,
-    items_found: items.length,
-    items_inserted: insertedCount,
-    final_count: finalCount,
-    last_published: lastPublished
-  };
+    return {
+      success: true,
+      message: `Successfully imported ${finalCount || insertedCount} formulary items`,
+      items_found: items.length,
+      items_inserted: insertedCount,
+      final_count: finalCount,
+      last_published: lastPublished
+    };
+    
+  } catch (error) {
+    console.error('Error in importFormularyData:', error);
+    throw error;
+  }
 }
