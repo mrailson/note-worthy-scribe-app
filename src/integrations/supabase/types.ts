@@ -4688,7 +4688,7 @@ export type Database = {
         Returns: boolean
       }
       icn_norm: {
-        Args: { "": string }
+        Args: { input_name: string }
         Returns: string
       }
       initialize_complaint_compliance: {

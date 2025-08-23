@@ -59,17 +59,15 @@ serve(async (req) => {
 
     // Step 1: Normalize the name using the database function
     const { data: normalizedData, error: normError } = await supabase
-      .rpc('icn_norm', name);
+      .rpc('icn_norm', { input_name: name });
 
     if (normError) {
       console.error('Error normalizing name:', normError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to normalize drug name' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Continue without normalization if function fails
+      const normalizedName = name.toLowerCase().trim();
     }
 
-    const normalizedName = normalizedData;
+    const normalizedName = normalizedData || name.toLowerCase().trim();
     console.log('Normalized name:', normalizedName);
 
     // Step 2: Search traffic lights table (icn_tl_norm)
