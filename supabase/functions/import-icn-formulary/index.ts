@@ -98,27 +98,38 @@ async function importFormularyData(supabase: any) {
       totalStrong++;
       
       if (strongText && strongText.length >= 3) {
-        // Very basic drug-like filtering
-        if (!/^(guidance|note|current|last published|copyright|powered by|login|contact|privacy|accessibility)$/i.test(strongText)) {
+        // Filter out obvious non-drug content
+        const isExcluded = /^(guidance|note|current|last published|copyright|powered by|login|contact|privacy|accessibility|available products|notes|combined oral contraceptive|contraceptive|emergency|erectile dysfunction|anaemias|vitamin deficiency|non-steroidal|guidance|antacids|antispasmodics|urinary|contraception)$/i.test(strongText) ||
+          strongText.includes('®') && strongText.length < 10 && !/mg|mcg|tablet|capsule|liquid|cream|gel|patch/i.test(strongText) ||
+          /^(over the counter|otc products|available|preferred|formulary|choices|bold)$/i.test(strongText);
+        
+        if (!isExcluded) {
+          // Look for drug-like characteristics
+          const isDrugLike = /mg|mcg|microgram|tablet|capsule|liquid|cream|gel|patch|injection|inhaler/i.test(strongText) ||
+            /^\w+\s+\d+/i.test(strongText) || // Word followed by number
+            strongText.includes('®') ||
+            /acid|ine|ol|one|ide|ate|cin|lin|fen|ben|pam|zol/i.test(strongText.toLowerCase()); // Common drug endings
           
-          console.log(`Adding potential drug: "${strongText}"`);
-          
-          rows.push({
-            bnf_chapter_name: "Other",
-            section: "General",
-            item_name: strongText,
-            preference_rank: rows.length + 1,
-            otc: false,
-            notes: undefined,
-            page_url: URL,
-            last_published: lastPublished || undefined
-          });
+          if (isDrugLike || strongText.length >= 5) {
+            console.log(`Adding drug: "${strongText}"`);
+            
+            rows.push({
+              bnf_chapter_name: "Other",
+              section: "General", 
+              item_name: strongText,
+              preference_rank: rows.length + 1,
+              otc: false,
+              notes: undefined,
+              page_url: URL,
+              last_published: lastPublished || undefined
+            });
+          }
         }
       }
       
       // Only log first 20 to avoid spam
       if (i < 20) {
-        console.log(`Strong ${i}: "${strongText}"`);
+        console.log(`Strong ${i}: "${strongText}" - excluded: ${isExcluded}, drug-like: ${isDrugLike}`);
       }
     });
     
