@@ -7,6 +7,7 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import TrafficLightBrowser from '@/components/TrafficLightBrowser';
+import { TrafficLightImporter } from '@/components/TrafficLightImporter';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -29,6 +30,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [isTrafficLightModalOpen, setIsTrafficLightModalOpen] = useState(false);
+  const [isTrafficLightImporterOpen, setIsTrafficLightImporterOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -146,7 +148,19 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                     {action.submenu.map((subItem, subIndex) => (
                       <DropdownMenuItem
                         key={subIndex}
-                        onClick={() => setInput(enhancePromptWithPracticeInfo(subItem.prompt))}
+                        onClick={() => {
+                          if (subItem.action === 'open-ai-test-modal') {
+                            if (onOpenAITestModal) {
+                              onOpenAITestModal();
+                            } else {
+                              setIsAITestModalOpen(true);
+                            }
+                          } else if (subItem.action === 'open-traffic-light-importer') {
+                            setIsTrafficLightImporterOpen(true);
+                          } else {
+                            setInput(enhancePromptWithPracticeInfo(subItem.prompt));
+                          }
+                        }}
                         className="cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground px-3 py-2"
                       >
                         {subItem.label}
@@ -214,6 +228,27 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         open={isAITestModalOpen} 
         onOpenChange={setIsAITestModalOpen} 
       />
+
+      {/* Traffic Light Importer Modal */}
+      {isTrafficLightImporterOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Traffic Light Medicines Importer</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTrafficLightImporterOpen(false)}
+                >
+                  ×
+                </Button>
+              </div>
+              <TrafficLightImporter />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

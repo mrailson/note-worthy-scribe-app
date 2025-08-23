@@ -11,6 +11,7 @@ export interface QuickAction {
   submenu?: Array<{
     label: string;
     prompt: string;
+    action?: string;
   }>;
 }
 
@@ -26,6 +27,24 @@ export const quickActions: QuickAction[] = [
     icon: Shield, 
     prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name metformin`,
     requiresFile: false 
+  },
+  { 
+    label: 'AI Model Tester',
+    icon: TestTube, 
+    prompt: '',
+    requiresFile: false,
+    submenu: [
+      {
+        label: 'Clinical Performance Tests',
+        prompt: '',
+        action: 'open-ai-test-modal'
+      },
+      {
+        label: 'Traffic Light Medicines Importer',
+        prompt: '',
+        action: 'open-traffic-light-importer'
+      }
+    ]
   },
   { 
     label: 'Red Flag Symptom Checker', 
