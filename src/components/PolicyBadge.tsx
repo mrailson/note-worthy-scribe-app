@@ -92,16 +92,39 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
   detailUrl
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
   const config = getStatusConfig(status);
   const description = statusDescriptions[status];
   const policyUrl = detailUrl || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs";
   
+  const showTooltip = () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      setHideTimeout(null);
+    }
+    setIsTooltipVisible(true);
+  };
+  
+  const hideTooltip = () => {
+    const timeout = setTimeout(() => {
+      setIsTooltipVisible(false);
+    }, 100); // Small delay to allow moving to tooltip
+    setHideTimeout(timeout);
+  };
+  
+  const handleTooltipEnter = () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      setHideTimeout(null);
+    }
+  };
+  
+  const handleTooltipLeave = () => {
+    setIsTooltipVisible(false);
+  };
+  
   return (
-    <span 
-      className="relative inline-flex items-center group"
-      onMouseEnter={() => setIsTooltipVisible(true)}
-      onMouseLeave={() => setIsTooltipVisible(false)}
-    >
+    <span className="relative inline-flex items-center">
       <button
         className={`
           inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold 
@@ -109,6 +132,8 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
           ${config.className} ${className}
         `}
         onClick={onClick}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -118,8 +143,8 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
             setIsTooltipVisible(false);
           }
         }}
-        onFocus={() => setIsTooltipVisible(true)}
-        onBlur={() => setIsTooltipVisible(false)}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
         tabIndex={0}
         aria-describedby={`tl-tip-${medicineName}-${status}`}
         aria-label={`${config.label} policy status${medicineName ? ` for ${medicineName}` : ''}`}
@@ -133,9 +158,11 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
         <div
           role="tooltip"
           id={`tl-tip-${medicineName}-${status}`}
-          className="pointer-events-auto absolute z-50 mt-8 w-80 rounded-xl border bg-white p-3 text-sm shadow-lg
+          className="pointer-events-auto absolute z-50 mt-2 w-80 rounded-xl border bg-white p-3 text-sm shadow-lg
                      opacity-100 transition-opacity duration-150 visible"
           style={{ top: '100%', left: '50%', transform: 'translateX(-50%)' }}
+          onMouseEnter={handleTooltipEnter}
+          onMouseLeave={handleTooltipLeave}
         >
           <div className="mb-2 flex items-center gap-2 text-[#005EB8]">
             <Info className="h-4 w-4" aria-hidden />
