@@ -451,6 +451,7 @@ Please fetch these and retry. No corrections made."`;
               <PolicyBadge 
                 status={status as any} 
                 medicineName={medicineName}
+                detailUrl={policyHit.detail_url}
                 onSetDrugName={onSetDrugName}
                 className="ml-1 cursor-pointer"
               />
