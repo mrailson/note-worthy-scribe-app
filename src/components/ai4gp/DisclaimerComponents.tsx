@@ -67,15 +67,15 @@ export const FullModal: React.FC<FullModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center space-x-2">
             <FileText className="w-5 h-5 text-blue-600" />
             <span>AI4GP Clinical Decision Support - Terms of Use</span>
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 text-sm">
+        <div className="flex-1 overflow-y-auto space-y-4 text-sm pr-2">
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
             <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
               Clinical decision-support, not a substitute for professional judgement.
@@ -119,8 +119,10 @@ export const FullModal: React.FC<FullModalProps> = ({
               By continuing, you confirm you understand and accept these conditions.
             </p>
           </div>
-          
-          <div className="flex items-center space-x-2 pt-2">
+        </div>
+        
+        <div className="flex-shrink-0 space-y-4 pt-4 border-t">
+          <div className="flex items-center space-x-2">
             <Checkbox 
               id="do-not-show" 
               checked={doNotShow}
@@ -133,15 +135,15 @@ export const FullModal: React.FC<FullModalProps> = ({
               Do not show this again
             </label>
           </div>
-        </div>
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAccept}>
-            I Understand and Accept
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAccept}>
+              I Understand and Accept
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
