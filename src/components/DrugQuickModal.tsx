@@ -142,7 +142,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[900px] max-h-[85vh] overflow-hidden p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-[1170px] max-h-[85vh] overflow-hidden p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2 flex-1">
