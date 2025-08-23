@@ -650,6 +650,48 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         })
       );
 
+      // Test prompt section
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: "TEST PROMPT USED",
+            bold: true,
+            size: 28,
+            color: "1f2937"
+          })],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Query Title: ", bold: true, size: 22 }),
+            new TextRun({ text: selectedClinicalTitle, size: 22 })
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [new TextRun({
+            text: "Full Prompt:",
+            bold: true,
+            size: 22,
+            color: "1f2937"
+          })],
+          spacing: { before: 120, after: 80 }
+        })
+      );
+
+      // Add the full prompt text
+      const promptParagraphs = convertTextToParagraphs(selectedClinicalQuery);
+      docSections.push(...promptParagraphs);
+
+      // Add spacing after prompt
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun({ text: "", size: 22 })],
+          spacing: { after: 400 }
+        })
+      );
+
       // Summary section
       docSections.push(
         new Paragraph({
