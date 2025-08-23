@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -27,6 +27,8 @@ interface SettingsModalProps {
   onShowAIServiceChange: (enabled: boolean) => void;
   useOpenAI: boolean;
   onUseOpenAIChange: (enabled: boolean) => void;
+  northamptonshireICB: boolean;
+  onNorthamptonshireICBChange: (enabled: boolean) => void;
   onSaveSettings?: () => void;
 }
 
@@ -89,6 +91,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onShowAIServiceChange,
   useOpenAI,
   onUseOpenAIChange,
+  northamptonshireICB,
+  onNorthamptonshireICBChange,
   onSaveSettings
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
@@ -471,6 +475,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onCheckedChange={onShowAIServiceChange}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Local Policy Settings */}
+          <Card className="border-green-200 bg-gradient-to-r from-background to-green-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4 text-green-600" />
+                Local Policy Guidance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="northamptonshire-icb" className="text-sm font-medium">
+                    Northamptonshire ICB
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable Northamptonshire Integrated Care Board local guidance and traffic-light medicines policy
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {northamptonshireICB ? 'Active' : 'Disabled'}
+                  </span>
+                  <Switch
+                    id="northamptonshire-icb"
+                    checked={northamptonshireICB}
+                    onCheckedChange={onNorthamptonshireICBChange}
+                  />
+                </div>
+              </div>
+              
+              {northamptonshireICB && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-sm font-medium text-green-800">🏥 Northamptonshire ICB Active</div>
+                  <div className="text-xs text-green-700 mt-1">
+                    Local medicines policies, pathways, and traffic-light guidance enabled
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

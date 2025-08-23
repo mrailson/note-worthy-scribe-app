@@ -60,6 +60,9 @@ const AI4GPService = () => {
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
+  // Local policy state
+  const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
+
   const {
     messages,
     setMessages,
@@ -502,6 +505,8 @@ const AI4GPService = () => {
         onShowAIServiceChange={setShowAIService}
         useOpenAI={useOpenAI}
         onUseOpenAIChange={setUseOpenAI}
+        northamptonshireICB={northamptonshireICB}
+        onNorthamptonshireICBChange={setNorthamptonshireICB}
         onSaveSettings={saveUserSettings}
       />
 
