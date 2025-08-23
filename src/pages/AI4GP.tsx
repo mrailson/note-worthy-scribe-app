@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
+import { TrafficLightImporter } from '@/components/TrafficLightImporter';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -121,7 +122,8 @@ const AI4GP = () => {
       <Header onNewMeeting={() => {}} />
       
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll">
-        <div className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto">
+        <div className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto space-y-6">
+          <TrafficLightImporter />
           <AI4GPService />
         </div>
       </main>
