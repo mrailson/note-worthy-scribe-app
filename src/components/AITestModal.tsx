@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap } from 'lucide-react';
+import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -53,6 +53,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
   const [isLoading, setIsLoading] = useState(false);
   const [clinicalResults, setClinicalResults] = useState<ClinicalTestResult[]>([]);
   const [isClinicalTesting, setIsClinicalTesting] = useState(false);
+  const [testRunTime, setTestRunTime] = useState<string>('');
 
   const testSingleModel = async (modelId: string): Promise<TestResult> => {
     const startTime = Date.now();
@@ -275,6 +276,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
   const handleClinicalTest = async () => {
     setIsClinicalTesting(true);
     setClinicalResults([]);
+    setTestRunTime(new Date().toLocaleString()); // Store test run time
 
     try {
       console.log('Starting comprehensive clinical performance test...');
@@ -307,6 +309,91 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     } finally {
       setIsClinicalTesting(false);
     }
+  };
+
+  const downloadClinicalReport = () => {
+    if (clinicalResults.length === 0 || !testRunTime) {
+      toast({
+        title: "No Data",
+        description: "Please run the clinical performance test first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Generate comprehensive report
+    let report = `AI CLINICAL PERFORMANCE TEST REPORT\n`;
+    report += `${'='.repeat(50)}\n\n`;
+    report += `Date & Time: ${testRunTime}\n`;
+    report += `Test Type: Clinical Performance Analysis\n`;
+    report += `Models Tested: ${clinicalResults.length}\n\n`;
+    
+    report += `TEST PROMPT:\n`;
+    report += `${'-'.repeat(20)}\n`;
+    report += `${CLINICAL_TEST_QUERY}\n\n`;
+    
+    report += `RESULTS SUMMARY:\n`;
+    report += `${'-'.repeat(20)}\n`;
+    const successful = clinicalResults.filter(r => r.status === 'success');
+    const failed = clinicalResults.filter(r => r.status === 'error');
+    report += `✓ Successful: ${successful.length}/${clinicalResults.length}\n`;
+    report += `✗ Failed: ${failed.length}/${clinicalResults.length}\n`;
+    
+    if (successful.length > 0) {
+      const avgTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
+      const fastest = successful.reduce((prev, current) => prev.responseTime < current.responseTime ? prev : current);
+      const slowest = successful.reduce((prev, current) => prev.responseTime > current.responseTime ? prev : current);
+      
+      report += `Average Response Time: ${avgTime}ms\n`;
+      report += `Fastest: ${fastest.model} (${fastest.responseTime}ms)\n`;
+      report += `Slowest: ${slowest.model} (${slowest.responseTime}ms)\n`;
+    }
+    
+    report += `\nDETAILED RESULTS:\n`;
+    report += `${'='.repeat(50)}\n\n`;
+    
+    // Add detailed results for each model
+    clinicalResults.forEach((result, index) => {
+      report += `${index + 1}. MODEL: ${result.model}\n`;
+      report += `   Service: ${result.service}\n`;
+      report += `   Status: ${result.status.toUpperCase()}\n`;
+      report += `   Response Time: ${result.responseTime}ms\n`;
+      
+      if (result.error) {
+        report += `   Error: ${result.error}\n`;
+      } else {
+        report += `   Response:\n`;
+        report += `   ${'-'.repeat(10)}\n`;
+        // Format response with proper indentation
+        const formattedResponse = result.response
+          .split('\n')
+          .map(line => `   ${line}`)
+          .join('\n');
+        report += `${formattedResponse}\n`;
+      }
+      
+      report += `\n${'-'.repeat(30)}\n\n`;
+    });
+    
+    report += `REPORT GENERATED: ${new Date().toLocaleString()}\n`;
+    report += `Test completed using AI4GP Clinical Performance Testing Suite\n`;
+
+    // Create and download the file
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = `Clinical-AI-Performance-Report_${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Report Downloaded",
+      description: "Clinical performance report saved successfully",
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -485,14 +572,27 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                   </p>
                 </div>
 
-                <Button 
-                  onClick={handleClinicalTest} 
-                  disabled={isClinicalTesting}
-                  className="w-full"
-                >
-                  {isClinicalTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <TestTube className="w-4 h-4 mr-2" />}
-                  Run Clinical Performance Test
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleClinicalTest} 
+                    disabled={isClinicalTesting}
+                    className="flex-1"
+                  >
+                    {isClinicalTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <TestTube className="w-4 h-4 mr-2" />}
+                    Run Clinical Performance Test
+                  </Button>
+                  
+                  {clinicalResults.length > 0 && (
+                    <Button 
+                      onClick={downloadClinicalReport}
+                      variant="outline"
+                      className="flex-shrink-0"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Report
+                    </Button>
+                  )}
+                </div>
 
                 {clinicalResults.length > 0 && (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
