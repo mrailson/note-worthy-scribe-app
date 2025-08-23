@@ -74,6 +74,7 @@ interface MessageRendererProps {
   showRenderTimes?: boolean; // New prop to show render times separately
   showAIService?: boolean; // New prop to show AI service separately
   onQuickResponse?: (response: string) => void; // New prop for quick responses
+  onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -86,7 +87,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   showResponseMetrics = false,
   showRenderTimes = false,
   showAIService = false,
-  onQuickResponse
+  onQuickResponse,
+  onSetDrugName
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -449,6 +451,7 @@ Please fetch these and retry. No corrections made."`;
               <PolicyBadge 
                 status={status as any} 
                 medicineName={medicineName}
+                onSetDrugName={onSetDrugName}
                 className="ml-1 cursor-pointer"
               />
             </EvidenceDrawer>

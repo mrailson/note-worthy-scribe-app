@@ -67,6 +67,7 @@ const AI4GPService = () => {
   const [showAITestModal, setShowAITestModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
+  const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
 
   // Local policy state - remove from component since it's now in the hook
   // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
@@ -234,12 +235,13 @@ const AI4GPService = () => {
                     </CardTitle>
                   </div>
 
-                  {/* Traffic Light Search - Center */}
+                   {/* Traffic Light Search - Center */}
                   <div className="flex-1 max-w-xs mx-4 hidden md:block">
                     <TrafficLightSearch 
                       onInsertIntoChat={(message) => {
                         setInput(prev => prev ? `${prev}\n\n${message}` : message);
                       }}
+                      onRegisterSetDrugName={(fn) => setSetDrugNameFn(() => fn)}
                       className="w-full"
                     />
                   </div>
@@ -312,6 +314,7 @@ const AI4GPService = () => {
                   onInsertIntoChat={(message) => {
                     setInput(prev => prev ? `${prev}\n\n${message}` : message);
                   }}
+                  onRegisterSetDrugName={(fn) => setSetDrugNameFn(() => fn)}
                   className="w-full max-w-xs"
                 />
               </div>
@@ -421,7 +424,7 @@ const AI4GPService = () => {
                   ) : (
                     /* Messages Area */
                     <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <MessagesList
+                    <MessagesList
                         messages={messages}
                         isLoading={isLoading}
                         expandedMessage={expandedMessage}
@@ -431,6 +434,7 @@ const AI4GPService = () => {
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
+                        onSetDrugName={setDrugNameFn}
                         onQuickResponse={(response) => {
                           // Always use GPT-5 for AI4GP
                           handleQuickResponse(response, practiceContext, 'gpt-5');

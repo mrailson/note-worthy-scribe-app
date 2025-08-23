@@ -10,6 +10,7 @@ interface PolicyBadgeProps {
   onClick?: () => void;
   className?: string;
   detailUrl?: string;
+  onSetDrugName?: (drugName: string) => void;
 }
 
 const statusDescriptions: Record<PolicyStatus, string> = {
@@ -89,7 +90,8 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
   medicineName, 
   onClick, 
   className,
-  detailUrl
+  detailUrl,
+  onSetDrugName
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -176,7 +178,13 @@ export const PolicyBadge: React.FC<PolicyBadgeProps> = ({
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-[#005EB8] hover:underline"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Set drug name in search box when link is clicked
+                if (onSetDrugName && medicineName) {
+                  onSetDrugName(medicineName);
+                }
+              }}
             >
               <ExternalLink className="h-4 w-4" aria-hidden />
               Open ICB policy

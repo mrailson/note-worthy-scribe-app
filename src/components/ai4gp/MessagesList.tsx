@@ -15,6 +15,7 @@ interface MessagesListProps {
   showRenderTimes?: boolean;
   showAIService?: boolean;
   onQuickResponse?: (response: string) => void;
+  onSetDrugName?: (drugName: string) => void;
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
@@ -27,7 +28,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   showResponseMetrics = false,
   showRenderTimes = false,
   showAIService = false,
-  onQuickResponse
+  onQuickResponse,
+  onSetDrugName
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadingText, setLoadingText] = useState("AI is thinking...");
@@ -94,7 +96,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     <ScrollArea className="flex-1 px-2 sm:p-2">
       <div className="space-y-4 py-2">
         {messages.map((message) => (
-          <MessageRenderer
+            <MessageRenderer
             key={message.id}
             message={message}
             onExpandMessage={setExpandedMessage}
@@ -104,6 +106,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
               showRenderTimes={showRenderTimes}
               showAIService={showAIService}
               onQuickResponse={onQuickResponse}
+              onSetDrugName={onSetDrugName}
             />
         ))}
         

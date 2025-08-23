@@ -9,11 +9,13 @@ import { supabase } from '@/integrations/supabase/client';
 interface TrafficLightSearchProps {
   onInsertIntoChat?: (message: string) => void;
   className?: string;
+  onRegisterSetDrugName?: (setDrugNameFn: (drugName: string) => void) => void;
 }
 
 const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({ 
   onInsertIntoChat,
-  className = ""
+  className = "",
+  onRegisterSetDrugName
 }) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -109,6 +111,21 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
         break;
     }
   };
+
+  // Function to set drug name externally
+  const setDrugName = (drugName: string) => {
+    setQuery(drugName);
+    setIsOpen(false);
+    setSelectedIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  // Register setDrugName function with parent
+  useEffect(() => {
+    if (onRegisterSetDrugName) {
+      onRegisterSetDrugName(setDrugName);
+    }
+  }, [onRegisterSetDrugName]);
 
   const handleSelectItem = async (item: TLVocabItem) => {
     try {
