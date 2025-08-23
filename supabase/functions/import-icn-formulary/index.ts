@@ -89,76 +89,41 @@ async function importFormularyData(supabase: any) {
     
     console.log('=== STARTING SECTION PROCESSING ===');
     
-    // Look for accordion sections with h3.accordion-switch and div.accordion-content
-    $("h3.accordion-switch").each((_, h3Element) => {
-      const $h3 = $(h3Element);
-      const sectionTitle = norm($h3.text());
+    // SIMPLIFIED APPROACH: Just extract ANY strong tags from the entire page
+    console.log('=== EXTRACTING ALL STRONG TAGS ===');
+    let totalStrong = 0;
+    
+    $("strong").each((i, strongEl) => {
+      const strongText = norm($(strongEl).text());
+      totalStrong++;
       
-      if (!sectionTitle || sectionTitle.length < 3) {
-        console.log(`Skipping empty section title`);
-        return;
+      if (strongText && strongText.length >= 3) {
+        // Very basic drug-like filtering
+        if (!/^(guidance|note|current|last published|copyright|powered by|login|contact|privacy|accessibility)$/i.test(strongText)) {
+          
+          console.log(`Adding potential drug: "${strongText}"`);
+          
+          rows.push({
+            bnf_chapter_name: "Other",
+            section: "General",
+            item_name: strongText,
+            preference_rank: rows.length + 1,
+            otc: false,
+            notes: undefined,
+            page_url: URL,
+            last_published: lastPublished || undefined
+          });
+        }
       }
       
-      // Skip guidance sections
-      if (/^guidance$/i.test(sectionTitle)) {
-        console.log(`Skipping guidance section: ${sectionTitle}`);
-        return;
+      // Only log first 20 to avoid spam
+      if (i < 20) {
+        console.log(`Strong ${i}: "${strongText}"`);
       }
-      
-      console.log(`Processing section: ${sectionTitle}`);
-      
-      // Determine chapter - simplified
-      let chapter = "Other";
-      const sectionLower = sectionTitle.toLowerCase();
-      
-      if (sectionLower.includes("cardiac") || sectionLower.includes("diuretic") || 
-          sectionLower.includes("beta") || sectionLower.includes("ace") || 
-          sectionLower.includes("lipid") || sectionLower.includes("anticoagulant")) {
-        chapter = "Cardiovascular system";
-      } else if (sectionLower.includes("bronchodilator") || sectionLower.includes("asthma") ||
-                 sectionLower.includes("corticosteroid") || sectionLower.includes("inhaler")) {
-        chapter = "Respiratory system";
-      } else if (sectionLower.includes("antacid") || sectionLower.includes("gastro")) {
-        chapter = "Gastro-intestinal system";
-      }
-      
-      // Find the accordion content div that follows this h3
-      let $content = $h3.next("div.accordion-content");
-      if (!$content.length) {
-        console.log(`No accordion-content found for section: ${sectionTitle}`);
-        return;
-      }
-      
-      console.log(`Found content div for: ${sectionTitle}`);
-      
-      let rank = 0;
-      
-      // SIMPLIFIED: Extract ANY strong tag text as potential drugs
-      $content.find("strong").each((_, strongEl) => {
-        const strongText = norm($(strongEl).text());
-        if (!strongText || strongText.length < 3) return;
-        
-        // VERY BASIC filtering - only skip obvious non-drugs
-        if (/^(guidance|note|short-acting|long-acting)$/i.test(strongText)) return;
-        
-        console.log(`Found potential drug: "${strongText}" in section: ${sectionTitle}`);
-        
-        rank++;
-        
-        rows.push({
-          bnf_chapter_name: chapter,
-          section: sectionTitle,
-          item_name: strongText,
-          preference_rank: rank,
-          otc: false,
-          notes: undefined,
-          page_url: URL,
-          last_published: lastPublished || undefined
-        });
-      });
-      
-      console.log(`Section "${sectionTitle}" yielded ${rank} items`);
     });
+    
+    console.log(`Total strong tags found: ${totalStrong}`);
+    console.log(`Items added to rows: ${rows.length}`);
     
     console.log(`=== EXTRACTION COMPLETE ===`);
     console.log(`Extracted ${rows.length} formulary items`);
