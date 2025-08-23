@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Send, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Plus } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -76,21 +76,21 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
 
   return (
-    <div className="p-4 space-y-3">{/* Removed bg and border styling since it's handled by parent */}
+    <div className="p-6 space-y-4">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
       />
       
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
+      <div className="relative">
+        <div className="relative bg-background border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[120px] max-h-32 resize-none pr-20 bg-white border-border"
+            className="min-h-[120px] max-h-32 resize-none border-0 focus:ring-0 bg-transparent px-4 py-3 text-sm leading-relaxed"
             disabled={isLoading}
           />
           
@@ -103,63 +103,70 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             className="hidden"
           />
           
-          <div className="absolute right-1 top-1 flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 w-8 p-0 transition-all duration-200 ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
-                  : isProcessing 
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                    : 'hover:bg-accent'
-              }`}
-              onClick={async () => {
-                const text = await toggleRecording();
-                if (text) {
-                  setInput(input + (input ? ' ' : '') + text);
-                }
-              }}
-              disabled={isLoading}
-              title={isRecording ? 'Click to stop recording' : isProcessing ? 'Processing speech...' : 'Click to start recording'}
-            >
-              {isRecording ? (
-                <MicOff className="w-4 h-4" />
-              ) : (
-                <Mic className="w-4 h-4" />
+          {/* Bottom toolbar */}
+          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-accent/80 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                title="Attach files"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-9 w-9 p-0 rounded-lg transition-all duration-200 ${
+                  isRecording 
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20' 
+                    : isProcessing 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20' 
+                      : 'hover:bg-accent/80'
+                }`}
+                onClick={async () => {
+                  const text = await toggleRecording();
+                  if (text) {
+                    setInput(input + (input ? ' ' : '') + text);
+                  }
+                }}
+                disabled={isLoading}
+                title={isRecording ? 'Stop recording' : isProcessing ? 'Processing speech...' : 'Start voice recording'}
+              >
+                {isRecording ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </Button>
+              
+              {(isRecording || isProcessing) && (
+                <span className="text-xs font-medium text-muted-foreground animate-pulse">
+                  {isRecording ? 'Recording...' : 'Processing...'}
+                </span>
               )}
-            </Button>
+            </div>
             
-            <Button
-              variant="ghost"
+            <Button 
+              onClick={onSend} 
+              disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
               size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
+              className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200"
             >
-              <Paperclip className="w-4 h-4" />
+              <SendHorizontal className="w-4 h-4 mr-1.5" />
+              Send
             </Button>
           </div>
         </div>
         
-        <Button 
-          onClick={onSend} 
-          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-          size="sm"
-          className="h-[40px]"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
-      
-      <div className="text-xs text-muted-foreground text-center">
-        Press Ctrl+Enter to send • Upload files: PDF, Word, Excel, text, images, audio • {
-          isRecording 
-            ? '🔴 Recording... click mic to stop' 
-            : isProcessing 
-              ? '⏳ Processing speech...' 
-              : ''
-        }
+        <div className="text-xs text-muted-foreground text-center mt-3 leading-relaxed">
+          <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd> to send
+          <span className="mx-2">•</span>
+          Supports: PDF, Word, Excel, images, audio files
+        </div>
       </div>
     </div>
   );
