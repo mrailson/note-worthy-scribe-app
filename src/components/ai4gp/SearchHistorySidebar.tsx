@@ -23,9 +23,23 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const cleanMarkdown = (text: string) => {
+    return text
+      .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+      .replace(/`(.*?)`/g, '$1') // Remove inline code markdown
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Remove links, keep text
+      .replace(/^\s*[-*+]\s+/gm, '') // Remove bullet points
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .replace(/\n+/g, ' ') // Replace line breaks with spaces
+      .trim();
+  };
+
   const getSearchOverview = (search: SearchHistory) => {
     if (search.brief_overview) {
-      return search.brief_overview;
+      return cleanMarkdown(search.brief_overview);
     }
     
     // Enhanced content analysis for better summaries
@@ -258,7 +272,7 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
                   onClick={() => onLoadSearch(search)}
                 >
                   <div className="font-medium text-sm truncate w-full">
-                    {search.title}
+                    {cleanMarkdown(search.title)}
                   </div>
                   <div className="text-xs text-muted-foreground line-clamp-2 w-full">
                     {getSearchOverview(search)}
