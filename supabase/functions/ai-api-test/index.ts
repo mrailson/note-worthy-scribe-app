@@ -42,14 +42,20 @@ serve(async (req) => {
     let response: string;
     let modelUsed: string;
 
-    // Route to appropriate API
+    // Route to appropriate API with fallbacks to available APIs
     switch (model) {
       case 'gpt-5-2025-08-07':
         if (!OPENAI_API_KEY) {
-          throw new Error('OpenAI API key not configured');
+          console.log('⚠️ OpenAI API key not found, falling back to Claude API');
+          if (!ANTHROPIC_API_KEY) {
+            throw new Error('Neither OpenAI nor Anthropic API keys are configured');
+          }
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022 (fallback from gpt-5)';
+        } else {
+          response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+          modelUsed = 'gpt-4o (fallback from gpt-5)';
         }
-        response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
-        modelUsed = 'gpt-4o (fallback from gpt-5)';
         break;
         
       case 'claude-4-opus':
@@ -62,10 +68,16 @@ serve(async (req) => {
         
       case 'gpt-4-turbo':
         if (!OPENAI_API_KEY) {
-          throw new Error('OpenAI API key not configured');
+          console.log('⚠️ OpenAI API key not found, falling back to Claude API');
+          if (!ANTHROPIC_API_KEY) {
+            throw new Error('Neither OpenAI nor Anthropic API keys are configured');
+          }
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022 (fallback from gpt-4-turbo)';
+        } else {
+          response = await testOpenAI(prompt, 'gpt-4-turbo', OPENAI_API_KEY);
+          modelUsed = 'gpt-4-turbo';
         }
-        response = await testOpenAI(prompt, 'gpt-4-turbo', OPENAI_API_KEY);
-        modelUsed = 'gpt-4-turbo';
         break;
         
       case 'grok-beta':
@@ -85,7 +97,22 @@ serve(async (req) => {
         break;
         
       default:
-        throw new Error(`Unsupported model: ${model}`);
+        // Default fallback to any available API
+        if (ANTHROPIC_API_KEY) {
+          console.log('🧠 Unknown model, falling back to Claude API');
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022 (fallback)';
+        } else if (GROK_API_KEY) {
+          console.log('🚀 Unknown model, falling back to Grok API');
+          response = await testGrok(prompt, GROK_API_KEY);
+          modelUsed = 'grok-2-1212 (fallback)';
+        } else if (GEMINI_API_KEY) {
+          console.log('💎 Unknown model, falling back to Gemini API');
+          response = await testGemini(prompt, GEMINI_API_KEY);
+          modelUsed = 'gemini-1.5-pro-latest (fallback)';
+        } else {
+          throw new Error(`Unsupported model: ${model} and no API keys available`);
+        }
     }
 
     const responseTime = Date.now() - startTime;
