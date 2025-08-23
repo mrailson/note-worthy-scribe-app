@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 AI API Test function started');
+    console.log('🚀 AI API Test function started (updated for new OpenAI key)');
     
     const requestBody = await req.json();
     const { model, prompt }: TestRequest = requestBody;
