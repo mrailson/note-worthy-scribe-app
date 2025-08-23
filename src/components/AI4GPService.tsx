@@ -355,9 +355,6 @@ const AI4GPService = () => {
               {/* Main Chat Content - Only show when services are not active */}
               {!showImageCreate && !showImageService && (
                 <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
-                  {/* Micro Banner - Always visible */}
-                  <MicroBanner />
-                  
                   {messages.length === 0 ? (
                     /* Welcome Screen - Compact, mobile-optimized */
                     <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
