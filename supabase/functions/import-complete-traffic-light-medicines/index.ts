@@ -88,7 +88,7 @@ async function scrapePage(page: number): Promise<Medicine[]> {
     const name = $(a).text().trim();
     const href = $(a).attr("href") || "";
     
-    if (!href.includes("/trafficlightdrugs/?testid=")) return;
+    if (!href.includes("testid=")) return;
     if (!name || name.length < 2) return; // Skip empty or very short names
 
     // The line text looks like: "<name>  NN - Chapter <status>"
