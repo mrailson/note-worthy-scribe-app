@@ -5,7 +5,7 @@ import { Plus, Minus, ChevronDown } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AITestModal } from '@/components/AITestModal';
+import AITestModal from '@/components/AITestModal';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;

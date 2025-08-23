@@ -30,7 +30,7 @@ import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
-import { AITestModal } from '@/components/AITestModal';
+import AITestModal from '@/components/AITestModal';
 import { useToast } from '@/hooks/use-toast';
 
 
