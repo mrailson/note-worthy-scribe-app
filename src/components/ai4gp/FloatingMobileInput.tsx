@@ -82,7 +82,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
 
   const handleSend = () => {
     onSend();
-    setIsExpanded(false);
+    // Keep expanded after sending so user can see the response and send follow-ups
   };
 
   const toggleExpanded = () => {
