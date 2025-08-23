@@ -115,7 +115,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
             };
 
             // If action has a submenu, render a dropdown
-            if (action.submenu) {
+            if (action.submenu && action.submenu.length > 0) {
+              console.log('Rendering submenu for:', action.label, action.submenu);
               return (
                 <DropdownMenu key={index}>
                   <DropdownMenuTrigger asChild>
