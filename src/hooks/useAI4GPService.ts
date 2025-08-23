@@ -377,11 +377,76 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           
         } catch (error) {
           console.error('GPT-5 Fast Clinical failed:', error);
-          toast.error('GPT-5 service is currently unavailable. Please try again or switch to Grok (Speed) mode.');
-          setIsLoading(false);
           
-          // Remove the failed streaming message
-          setMessages(prev => prev.filter(msg => msg.id !== assistantMessageId));
+          // Don't remove the message, instead show an error in it and fall back to Grok
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { 
+                  ...msg, 
+                  content: 'GPT-5 service encountered an error. Switching to Grok (Speed) mode...', 
+                  isStreaming: false 
+                }
+              : msg
+          ));
+          
+          // Fall back to Grok instead of failing completely
+          const grokRequestBody = {
+            messages: messagesForAPI,
+            model: 'grok-beta',
+            systemPrompt: systemPrompt,
+            files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+            verificationLevel: verificationLevel
+          };
+
+          try {
+            const { data: grokData, error: grokError } = await supabase.functions.invoke('ai-4-pm-chat', {
+              body: grokRequestBody
+            });
+
+            if (grokError) {
+              throw grokError;
+            }
+
+            const grokResponse = grokData?.response || grokData?.content || 'No response received from Grok';
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            const finalMessage = {
+              ...assistantMessage,
+              content: `${grokResponse}\n\n_Note: Response generated using Grok due to GPT-5 service unavailability._`,
+              isStreaming: false,
+              responseTime,
+              apiResponseTime: responseTime,
+              model: 'grok-beta'
+            };
+
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? finalMessage
+                : msg
+            ));
+
+            // Auto-save the search
+            setTimeout(async () => {
+              const finalMessages = [...newMessages, finalMessage];
+              await saveSearchAutomatically(finalMessages);
+            }, 100);
+
+          } catch (fallbackError) {
+            console.error('Fallback to Grok also failed:', fallbackError);
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { 
+                    ...msg, 
+                    content: 'Both GPT-5 and Grok services are currently unavailable. Please try again later or check your connection.', 
+                    isStreaming: false 
+                  }
+                : msg
+            ));
+          }
+          
+          setIsLoading(false);
           return;
         }
       }
