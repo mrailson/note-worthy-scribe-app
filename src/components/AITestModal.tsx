@@ -61,6 +61,35 @@ const AI_MODELS = [
 
 const CLINICAL_TEST_QUERY = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology. Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Metformin.";
 
+// Simple markdown formatter for basic formatting
+const formatText = (text: string) => {
+  if (!text) return text;
+  
+  return text
+    // Bold text **text** -> <strong>text</strong>
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic text *text* -> <em>text</em>
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+    // Headers ### -> <h3>
+    .replace(/^### (.*$)/gm, '<h3 class="font-semibold text-sm mt-2 mb-1">$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2 class="font-semibold text-base mt-2 mb-1">$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1 class="font-bold text-lg mt-2 mb-1">$1</h1>')
+    // Bullet points
+    .replace(/^- (.*$)/gm, '<div class="ml-3">• $1</div>')
+    // Line breaks
+    .replace(/\n/g, '<br/>');
+};
+
+// Component to render formatted text
+const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, className = "" }) => {
+  return (
+    <div 
+      className={className} 
+      dangerouslySetInnerHTML={{ __html: formatText(text) }}
+    />
+  );
+};
+
 const clinicalQuickPicks = [
   {
     title: "BNF Drug Lookup – Ramipril",
@@ -863,8 +892,11 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                    
                                    <div className="relative">
                                      <ScrollArea className={isExpanded ? "h-64" : "h-24"}>
-                                       <div className="text-xs bg-muted p-2 rounded whitespace-pre-wrap">
-                                         {isExpanded ? (result.fullResponse || result.response) : result.response}
+                                       <div className="text-xs bg-muted p-2 rounded">
+                                         <FormattedText 
+                                           text={isExpanded ? (result.fullResponse || result.response) : result.response}
+                                           className="whitespace-pre-wrap"
+                                         />
                                        </div>
                                      </ScrollArea>
                                      
@@ -897,7 +929,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                        
                                        <div>
                                          <strong>Overall Assessment:</strong>
-                                         <div className="mt-1 p-2 bg-muted rounded">{result.review.overallAssessment}</div>
+                                         <div className="mt-1 p-2 bg-muted rounded">
+                                           <FormattedText text={result.review.overallAssessment} />
+                                         </div>
                                        </div>
                                        
                                        {result.review.strengths.length > 0 && (
@@ -905,7 +939,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                            <strong className="text-green-600 dark:text-green-400">Strengths:</strong>
                                            <ul className="mt-1 list-disc list-inside space-y-1">
                                              {result.review.strengths.map((strength, i) => (
-                                               <li key={i} className="text-green-600 dark:text-green-400">{strength}</li>
+                                               <li key={i} className="text-green-600 dark:text-green-400">
+                                                 <FormattedText text={strength} className="inline" />
+                                               </li>
                                              ))}
                                            </ul>
                                          </div>
@@ -916,7 +952,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                            <strong className="text-red-600 dark:text-red-400">Concerns:</strong>
                                            <ul className="mt-1 list-disc list-inside space-y-1">
                                              {result.review.concerns.map((concern, i) => (
-                                               <li key={i} className="text-red-600 dark:text-red-400">{concern}</li>
+                                               <li key={i} className="text-red-600 dark:text-red-400">
+                                                 <FormattedText text={concern} className="inline" />
+                                               </li>
                                              ))}
                                            </ul>
                                          </div>
@@ -927,7 +965,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                            <strong className="text-orange-600 dark:text-orange-400">Missing Sections:</strong>
                                            <ul className="mt-1 list-disc list-inside space-y-1">
                                              {result.review.missingSections.map((missing, i) => (
-                                               <li key={i} className="text-orange-600 dark:text-orange-400">{missing}</li>
+                                               <li key={i} className="text-orange-600 dark:text-orange-400">
+                                                 <FormattedText text={missing} className="inline" />
+                                               </li>
                                              ))}
                                            </ul>
                                          </div>
@@ -936,11 +976,15 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                        <div className="grid grid-cols-2 gap-2 mt-2">
                                          <div>
                                            <strong>NHS Compliance:</strong>
-                                           <div className="mt-1 text-xs">{result.review.nhsCompliance}</div>
+                                           <div className="mt-1 text-xs">
+                                             <FormattedText text={result.review.nhsCompliance} />
+                                           </div>
                                          </div>
                                          <div>
                                            <strong>Safety Rating:</strong>
-                                           <div className="mt-1 text-xs">{result.review.safetyRating}</div>
+                                           <div className="mt-1 text-xs">
+                                             <FormattedText text={result.review.safetyRating} />
+                                           </div>
                                          </div>
                                        </div>
                                      </div>
@@ -949,15 +993,17 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                    {!isExpanded && result.review && (
                                      <div className="text-xs text-muted-foreground">
                                        <div className="font-medium mb-1">GPT-5 Review Summary:</div>
-                                       <div className="truncate">{result.review.overallAssessment}</div>
+                                       <div className="truncate">
+                                         <FormattedText text={result.review.overallAssessment} className="inline" />
+                                       </div>
                                        {result.review.strengths.length > 0 && (
                                          <div className="text-green-600 dark:text-green-400 mt-1">
-                                           ✓ {result.review.strengths.slice(0, 2).join(', ')}
+                                           ✓ <FormattedText text={result.review.strengths.slice(0, 2).join(', ')} className="inline" />
                                          </div>
                                        )}
                                        {result.review.concerns.length > 0 && (
                                          <div className="text-red-600 dark:text-red-400 mt-1">
-                                           ⚠ {result.review.concerns.slice(0, 1).join(', ')}
+                                           ⚠ <FormattedText text={result.review.concerns.slice(0, 1).join(', ')} className="inline" />
                                          </div>
                                        )}
                                      </div>
@@ -981,13 +1027,16 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                              <FileText className="w-4 h-4" />
                              Gold Standard for: {selectedClinicalTitle}
                            </h4>
-                           {getCurrentGoldStandard() ? (
-                             <ScrollArea className="h-96">
-                               <div className="text-sm whitespace-pre-wrap p-3 bg-muted rounded font-mono">
-                                 {getCurrentGoldStandard()}
-                               </div>
-                             </ScrollArea>
-                           ) : (
+                            {getCurrentGoldStandard() ? (
+                              <ScrollArea className="h-96">
+                                <div className="text-sm p-3 bg-muted rounded">
+                                  <FormattedText 
+                                    text={getCurrentGoldStandard() || ""} 
+                                    className="whitespace-pre-wrap"
+                                  />
+                                </div>
+                              </ScrollArea>
+                            ) : (
                              <div className="text-center text-muted-foreground py-8">
                                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                <p>No gold standard available for this query</p>
