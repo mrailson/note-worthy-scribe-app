@@ -26,7 +26,8 @@ import {
   Shield,
   CheckCircle,
   Stethoscope,
-  ShieldCheck
+  ShieldCheck,
+  Languages
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -900,6 +901,10 @@ Please fetch these and retry. No corrections made."`;
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand and create as a patient leaflet")}>
                             <FileText className="h-4 w-4 mr-2" />
                             Expand and create as a patient leaflet
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into [specify language] while maintaining medical accuracy and cultural appropriateness")}>
+                            <Languages className="h-4 w-4 mr-2" />
+                            Translate for patients
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Create as a detailed training document for our staff, covering off any areas that are expected to be known")}>
                             <GraduationCap className="h-4 w-4 mr-2" />
