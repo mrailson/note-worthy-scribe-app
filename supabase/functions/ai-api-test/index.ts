@@ -57,13 +57,48 @@ serve(async (req) => {
           modelUsed = 'gpt-4o (fallback from gpt-5)';
         }
         break;
+
+      case 'gpt-4o':
+        if (!OPENAI_API_KEY) {
+          console.log('⚠️ OpenAI API key not found, falling back to Claude API');
+          if (!ANTHROPIC_API_KEY) {
+            throw new Error('Neither OpenAI nor Anthropic API keys are configured');
+          }
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022 (fallback from gpt-4o)';
+        } else {
+          response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+          modelUsed = 'gpt-4o';
+        }
+        break;
+
+      case 'gpt-4o-mini':
+        if (!OPENAI_API_KEY) {
+          console.log('⚠️ OpenAI API key not found, falling back to Claude API');
+          if (!ANTHROPIC_API_KEY) {
+            throw new Error('Neither OpenAI nor Anthropic API keys are configured');
+          }
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022 (fallback from gpt-4o-mini)';
+        } else {
+          response = await testOpenAI(prompt, 'gpt-4o-mini', OPENAI_API_KEY);
+          modelUsed = 'gpt-4o-mini';
+        }
+        break;
         
+      case 'claude-4-sonnet':
       case 'claude-4-opus':
         if (!ANTHROPIC_API_KEY) {
-          throw new Error('Anthropic API key not configured');
+          console.log('⚠️ Anthropic API key not found, falling back to OpenAI API');
+          if (!OPENAI_API_KEY) {
+            throw new Error('Neither Anthropic nor OpenAI API keys are configured');
+          }
+          response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+          modelUsed = 'gpt-4o (fallback from claude)';
+        } else {
+          response = await testClaude(prompt, ANTHROPIC_API_KEY);
+          modelUsed = 'claude-3-5-sonnet-20241022';
         }
-        response = await testClaude(prompt, ANTHROPIC_API_KEY);
-        modelUsed = 'claude-3-5-sonnet-20241022';
         break;
         
       case 'gpt-4-turbo':
@@ -82,18 +117,38 @@ serve(async (req) => {
         
       case 'grok-beta':
         if (!GROK_API_KEY) {
-          throw new Error('Grok API key not configured');
+          console.log('⚠️ Grok API key not found, falling back to available API');
+          if (OPENAI_API_KEY) {
+            response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+            modelUsed = 'gpt-4o (fallback from grok)';
+          } else if (ANTHROPIC_API_KEY) {
+            response = await testClaude(prompt, ANTHROPIC_API_KEY);
+            modelUsed = 'claude-3-5-sonnet-20241022 (fallback from grok)';
+          } else {
+            throw new Error('Grok API key not configured and no fallback available');
+          }
+        } else {
+          response = await testGrok(prompt, GROK_API_KEY);
+          modelUsed = 'grok-2-1212';
         }
-        response = await testGrok(prompt, GROK_API_KEY);
-        modelUsed = 'grok-2-1212';
         break;
         
       case 'gemini-1.5-pro':
         if (!GEMINI_API_KEY) {
-          throw new Error('Gemini API key not configured');
+          console.log('⚠️ Gemini API key not found, falling back to available API');
+          if (OPENAI_API_KEY) {
+            response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+            modelUsed = 'gpt-4o (fallback from gemini)';
+          } else if (ANTHROPIC_API_KEY) {
+            response = await testClaude(prompt, ANTHROPIC_API_KEY);
+            modelUsed = 'claude-3-5-sonnet-20241022 (fallback from gemini)';
+          } else {
+            throw new Error('Gemini API key not configured and no fallback available');
+          }
+        } else {
+          response = await testGemini(prompt, GEMINI_API_KEY);
+          modelUsed = 'gemini-1.5-pro-latest';
         }
-        response = await testGemini(prompt, GEMINI_API_KEY);
-        modelUsed = 'gemini-1.5-pro-latest';
         break;
         
       default:
