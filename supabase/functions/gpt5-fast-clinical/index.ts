@@ -33,19 +33,68 @@ serve(async (req) => {
     return sseError("Bad JSON in request body.", 400);
   }
 
-  const { messages = [], model, systemPrompt } = body;
+  const { messages = [], model, systemPrompt, max_tokens } = body;
   const sys = systemPrompt ?? SMALL_SYS;
 
   const chatMessages = [{ role: "system", content: sys }, ...messages];
+
+  // Content type detection for dynamic token allocation
+  function detectContentType(messages: any[]): { maxTokens: number; contentType: string } {
+    const lastMessage = messages[messages.length - 1];
+    const content = lastMessage?.content?.toLowerCase() || '';
+    
+    // Check for comprehensive content indicators
+    const comprehensiveIndicators = [
+      'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
+      'patient information', 'detailed explanation', 'comprehensive overview',
+      'step by step', 'complete instructions', 'full instructions'
+    ];
+    
+    const medicalAnalysisIndicators = [
+      'analyze', 'assessment', 'evaluation', 'diagnosis', 'differential',
+      'complex case', 'investigation', 'clinical reasoning', 'pathophysiology'
+    ];
+    
+    const clinicalNotesIndicators = [
+      'clinical note', 'soap note', 'consultation note', 'discharge summary',
+      'referral letter', 'brief summary', 'quick note'
+    ];
+    
+    // Use maximum tokens for ALL content types to prevent cutoffs
+    if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'comprehensive' };
+    }
+    
+    if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'analysis' };
+    }
+    
+    if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'clinical_notes' };
+    }
+    
+    // Check content length as secondary indicator
+    if (content.length > 200) {
+      return { maxTokens: 4096, contentType: 'medium' };
+    }
+    
+    return { maxTokens: 4096, contentType: 'short' };
+  }
+
+  // Determine max tokens - use provided value or detect from content
+  const { maxTokens: detectedMaxTokens } = detectContentType(messages);
+  const finalMaxTokens = max_tokens || detectedMaxTokens;
 
   const tryModel = async (m: string, stream: boolean) => {
     const requestBody: Record<string, any> = {
       model: m,
       messages: chatMessages,
       stream,
-      // Use Chat Completions params everywhere for compatibility
-      max_tokens: 450,
-      temperature: 0.2,
+      // Use appropriate max_tokens for GPT-5 (max_completion_tokens) vs legacy models (max_tokens)
+      ...(m.startsWith('gpt-5') ? 
+        { max_completion_tokens: finalMaxTokens } : 
+        { max_tokens: finalMaxTokens, temperature: 0.2 }
+      ),
     };
 
     const headers: Record<string, string> = {

@@ -63,6 +63,51 @@ export const useAI4GPService = () => {
       const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'gpt-5' :
                          selectedModel === 'gpt-5-mini-2025-08-07' ? 'gpt-5-instant' :
                          selectedModel;
+
+      // Content type detection for dynamic token allocation
+      function detectContentType(messages: { content: string }[]): { maxTokens: number; contentType: string } {
+        const lastMessage = messages[messages.length - 1];
+        const content = lastMessage?.content?.toLowerCase() || '';
+        
+        // Check for comprehensive content indicators
+        const comprehensiveIndicators = [
+          'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
+          'patient information', 'detailed explanation', 'comprehensive overview',
+          'step by step', 'complete instructions', 'full instructions'
+        ];
+        
+        const medicalAnalysisIndicators = [
+          'analyze', 'assessment', 'evaluation', 'diagnosis', 'differential',
+          'complex case', 'investigation', 'clinical reasoning', 'pathophysiology'
+        ];
+        
+        const clinicalNotesIndicators = [
+          'clinical note', 'soap note', 'consultation note', 'discharge summary',
+          'referral letter', 'brief summary', 'quick note'
+        ];
+        
+        // Use maximum tokens for ALL content types to prevent cutoffs
+        if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
+          return { maxTokens: 4096, contentType: 'comprehensive' };
+        }
+        
+        if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
+          return { maxTokens: 4096, contentType: 'analysis' };
+        }
+        
+        if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
+          return { maxTokens: 4096, contentType: 'clinical_notes' };
+        }
+        
+        // Check content length as secondary indicator
+        if (content.length > 200) {
+          return { maxTokens: 4096, contentType: 'medium' };
+        }
+        
+        return { maxTokens: 4096, contentType: 'short' };
+      }
+
+      const { maxTokens } = detectContentType(messages);
       
       const response = await fetch(
         `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/gpt5-fast-clinical`,
@@ -76,7 +121,8 @@ export const useAI4GPService = () => {
           body: JSON.stringify({
             messages,
             model: stableModel,
-            systemPrompt
+            systemPrompt,
+            max_tokens: maxTokens
           })
         }
       );
