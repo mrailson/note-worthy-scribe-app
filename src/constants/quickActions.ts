@@ -24,6 +24,17 @@ export const quickActions: QuickAction[] = [
     requiresFile: false 
   },
   { 
+    label: 'Patient Translation Service', 
+    icon: Languages, 
+    prompt: `${nhsSafetyPreamble} Translate the following healthcare content into [target language]. Maintain medical accuracy and use culturally appropriate terminology. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+Target language: [specify language]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`,
+    requiresFile: true 
+  },
+  { 
     label: 'Red Flag Symptom Checker', 
     icon: AlertTriangle, 
     prompt: `${nhsSafetyPreamble} List red flag symptoms for [insert symptom/condition] that require urgent or 2WW referral according to NICE/NHS pathways. Include pathway names and recommended referral timeframes.`,
@@ -95,17 +106,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     icon: FileText, 
     prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
-  },
-  { 
-    label: 'Patient Translation Service', 
-    icon: Languages, 
-    prompt: `${nhsSafetyPreamble} Translate the following healthcare content into [target language]. Maintain medical accuracy and use culturally appropriate terminology. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
-
-Content to translate: [paste content here]
-Target language: [specify language]
-
-Note: For official patient communications, consider professional medical translation services for final verification.`,
-    requiresFile: true 
   },
 ];
 
