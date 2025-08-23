@@ -1,35 +1,44 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Calendar, FileText, AlertCircle, Copy, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, AlertTriangle, CheckCircle, Clock, ShoppingCart, Info, Pill } from 'lucide-react';
 import { PolicyBadge, type PolicyStatus } from './PolicyBadge';
-import { useToast } from '@/hooks/use-toast';
-
-interface PolicyData {
-  drug: {
-    name: string;
-    tl_status: PolicyStatus;
-    bnf_chapter?: string;
-    tl_url?: string;
-    last_modified?: string;
-    notes?: string;
-  };
-  prior_approval?: {
-    status: string;
-    route: string;
-    criteria: string[];
-    link?: string;
-    notes?: string;
-  } | null;
-  can_gp_initiate: string;
-  fuzzy_match?: number | null;
-}
 
 interface PolicyModalProps {
-  policyData: PolicyData | null;
+  policyData: {
+    drug: {
+      name: string;
+      searched_term?: string;
+    };
+    traffic_light: {
+      status: string;
+      detail_url?: string;
+      last_modified?: string;
+      bnf_chapter?: string;
+      notes?: string;
+    } | null;
+    prior_approval: {
+      status: string;
+      criteria?: string;
+      source_url?: string;
+      last_updated?: string;
+    } | null;
+    formulary: {
+      bnf_chapter?: string;
+      section?: string;
+      preferred: Array<{
+        item_name: string;
+        rank: number;
+        notes?: string;
+        otc?: boolean;
+      }>;
+      page_url: string;
+      last_published?: string;
+      found_exact_match: boolean;
+    } | null;
+  } | null;
   isOpen: boolean;
   onClose: () => void;
   onInsertIntoChat?: (message: string) => void;
@@ -41,253 +50,281 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
   onClose,
   onInsertIntoChat
 }) => {
-  const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-
   if (!policyData) return null;
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not specified';
-    try {
-      return new Date(dateString).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
+  const getInitiationAnswer = () => {
+    const tlStatus = policyData?.traffic_light?.status;
+    const paStatus = policyData?.prior_approval?.status;
+    
+    switch (tlStatus) {
+      case 'DOUBLE_RED':
+        return { text: paStatus ? 'No - PA/IFR/Blueteq required' : 'No', color: 'destructive' };
+      case 'RED':
+        return { text: paStatus ? 'No - Usually Blueteq required' : 'No', color: 'destructive' };
+      case 'SPECIALIST_INITIATED':
+        return { text: 'Only if specialist has started', color: 'warning' };
+      case 'SPECIALIST_RECOMMENDED':
+        return { text: 'Yes - Specialist recommended', color: 'success' };
+      case 'AMBER_1':
+      case 'AMBER_2':
+        return { text: 'Yes - Check local formulary', color: 'warning' };
+      case 'GREEN':
+        return { text: 'Yes', color: 'success' };
+      case 'GREY':
+      case 'UNKNOWN':
+      default:
+        return { text: 'Check ICB site / Medicines Optimisation', color: 'secondary' };
+    }
+  };
+
+  const initiationAnswer = getInitiationAnswer();
+
+  const generateChatMessage = () => {
+    const drug = policyData?.drug;
+    const tlData = policyData?.traffic_light;
+    const formulary = policyData?.formulary;
+    
+    if (!drug) return '';
+    
+    let message = `**${drug.name}**\n\n`;
+    
+    // GP initiation status
+    message += `**Can GP initiate?** ${initiationAnswer.text}\n\n`;
+    
+    // Traffic light status
+    if (tlData) {
+      message += `**Traffic Light:** ${tlData.status}`;
+      if (tlData.bnf_chapter) {
+        message += ` (${tlData.bnf_chapter})`;
+      }
+      message += '\n';
+    }
+    
+    // Prior approval
+    if (policyData?.prior_approval) {
+      message += `**Prior Approval:** ${policyData.prior_approval.status}\n`;
+    }
+    
+    // Formulary information
+    if (formulary && formulary.preferred?.length > 0) {
+      message += `\n**Local Formulary (${formulary.bnf_chapter || 'ICN'}):**\n`;
+      if (formulary.section) {
+        message += `*Section: ${formulary.section}*\n`;
+      }
+      
+      const preferredItems = formulary.preferred.slice(0, 3);
+      preferredItems.forEach((item, index) => {
+        message += `${index + 1}. ${item.item_name}`;
+        if (item.notes) message += ` (${item.notes})`;
+        if (item.otc) message += ` [OTC]`;
+        message += '\n';
       });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const getStatusColor = (canInitiate: string) => {
-    if (canInitiate.toLowerCase().includes('yes')) return 'text-green-700 bg-green-50 border-green-200';
-    if (canInitiate.toLowerCase().includes('no')) return 'text-red-700 bg-red-50 border-red-200';
-    return 'text-amber-700 bg-amber-50 border-amber-200';
-  };
-
-  const copyToNotes = () => {
-    const summary = generateSummaryText();
-    navigator.clipboard.writeText(summary);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({
-      title: "Copied to clipboard",
-      description: "Policy summary has been copied to your clipboard.",
-    });
-  };
-
-  const insertIntoChat = () => {
-    if (onInsertIntoChat) {
-      const message = generateSummaryText();
-      onInsertIntoChat(message);
-      onClose();
-    }
-  };
-
-  const generateSummaryText = () => {
-    const { drug, prior_approval, can_gp_initiate } = policyData;
-    
-    let summary = `**${drug.name}**\n`;
-    summary += `• Can GP initiate? ${can_gp_initiate}\n`;
-    summary += `• Status: ${drug.tl_status.replace('_', ' ')}\n`;
-    
-    if (drug.bnf_chapter) {
-      summary += `• BNF: ${drug.bnf_chapter}\n`;
+      
+      if (formulary.last_published) {
+        message += `\n*Last updated: ${formulary.last_published}*\n`;
+      }
     }
     
-    if (prior_approval) {
-      summary += `• ${prior_approval.route}: ${prior_approval.status}\n`;
+    // Links
+    if (tlData?.detail_url) {
+      message += `\n[Traffic Light Details](${tlData.detail_url})`;
+    }
+    if (formulary?.page_url) {
+      message += `\n[ICN Formulary](${formulary.page_url})`;
     }
     
-    if (drug.last_modified) {
-      summary += `• Updated: ${formatDate(drug.last_modified)}\n`;
-    }
-    
-    return summary;
+    return message;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <PolicyBadge 
-              status={policyData.drug.tl_status} 
-              detailUrl={policyData.drug.tl_url}
-            />
-            <div>
-              <DialogTitle className="text-xl">{policyData.drug.name}</DialogTitle>
-              <DialogDescription>
-                Local medicines policy guidance and evidence
-                {policyData.fuzzy_match && policyData.fuzzy_match < 0.8 && (
-                  <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
-                    Fuzzy match - verify name
-                  </Badge>
-                )}
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Pill className="h-5 w-5" />
+            {policyData?.drug?.name || 'Medicine Information'}
+            {policyData?.traffic_light && (
+              <PolicyBadge 
+                status={policyData.traffic_light.status as PolicyStatus} 
+                className="ml-2"
+              />
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
-          {/* Can GP Initiate - Big Answer */}
-          <Card className={`border-2 ${getStatusColor(policyData.can_gp_initiate)}`}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Can GP initiate?</h3>
-                <p className="text-xl font-bold">{policyData.can_gp_initiate}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Traffic Light Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Traffic Light Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <PolicyBadge 
-                  status={policyData.drug.tl_status}
-                  detailUrl={policyData.drug.tl_url}
-                />
-                <span className="font-medium">
-                  {policyData.drug.tl_status.replace('_', ' ')}
-                </span>
-              </div>
-              
-              {policyData.drug.bnf_chapter && (
-                <div>
-                  <Badge variant="secondary" className="text-xs">
-                    {policyData.drug.bnf_chapter}
-                  </Badge>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Calendar className="w-3 h-3" />
-                <span>Last modified: {formatDate(policyData.drug.last_modified)}</span>
-              </div>
-
-              {policyData.drug.notes && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-amber-800">{policyData.drug.notes}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Prior Approval Section */}
-          {policyData.prior_approval && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Prior Approval Requirements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant={policyData.prior_approval.status === 'DOUBLE_RED' ? 'destructive' : 'secondary'}>
-                    {policyData.prior_approval.route}
-                  </Badge>
-                  <span className="text-sm font-medium">
-                    {policyData.prior_approval.status.replace('_', ' ')}
-                  </span>
-                </div>
-
-                {policyData.prior_approval.criteria.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Criteria:</h4>
-                    <ul className="space-y-1">
-                      {policyData.prior_approval.criteria.map((criterion, index) => (
-                        <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="w-1 h-1 bg-muted-foreground rounded-full mt-2 flex-shrink-0" />
-                          <span>{criterion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {policyData.prior_approval.notes && (
-                  <p className="text-sm text-muted-foreground">
-                    {policyData.prior_approval.notes}
-                  </p>
-                )}
-
-                {policyData.prior_approval.link && (
-                  <Button variant="outline" size="sm" asChild className="w-full">
-                    <a href={policyData.prior_approval.link} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open Form/Policy
-                    </a>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Formulary Alternative - Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Formulary Alternative</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Alternative recommendations will be available in a future update. 
-                Consult your local formulary or Medicines Optimisation team.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* Provenance */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium">Provenance</h3>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a 
-                  href={policyData.drug.tl_url || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="justify-start"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  ICN Traffic Light Database
-                </a>
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Last updated: {formatDate(policyData.drug.last_modified)}
-              </p>
+        <div className="space-y-6">
+          {/* Can GP Initiate - Main Question */}
+          <div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-5 w-5" />
+              <h3 className="font-semibold">Can GP initiate?</h3>
             </div>
+            <Badge 
+              variant={
+                initiationAnswer.color === 'success' ? 'default' : 
+                initiationAnswer.color === 'warning' ? 'secondary' : 
+                'destructive'
+              }
+              className="text-sm px-3 py-1"
+            >
+              {initiationAnswer.text}
+            </Badge>
           </div>
 
+          {/* Traffic Light Information */}
+          {policyData?.traffic_light && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="h-4 w-4" />
+                <h3 className="font-semibold">Traffic Light Status</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <PolicyBadge status={policyData.traffic_light.status as PolicyStatus} />
+                  <span className="font-medium">{policyData.traffic_light.status}</span>
+                </div>
+                {policyData.traffic_light.bnf_chapter && (
+                  <p className="text-sm text-muted-foreground">
+                    BNF: {policyData.traffic_light.bnf_chapter}
+                  </p>
+                )}
+                {policyData.traffic_light.notes && (
+                  <p className="text-sm bg-muted/30 p-2 rounded">
+                    {policyData.traffic_light.notes}
+                  </p>
+                )}
+                {policyData.traffic_light.detail_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(policyData.traffic_light!.detail_url, '_blank')}
+                    className="w-fit"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View Traffic Light Details
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Formulary Information */}
+          {policyData?.formulary && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingCart className="h-4 w-4 text-green-600" />
+                <h3 className="font-semibold">ICN Formulary - Local Preferred Choices</h3>
+                {!policyData.formulary.found_exact_match && (
+                  <Badge variant="outline" className="text-xs">
+                    Section matches
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                {policyData.formulary.bnf_chapter && policyData.formulary.section && (
+                  <div className="text-sm text-muted-foreground">
+                    <strong>{policyData.formulary.bnf_chapter}</strong> → {policyData.formulary.section}
+                  </div>
+                )}
+                
+                {policyData.formulary.preferred && policyData.formulary.preferred.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Preferred Choices (in order):</h4>
+                    {policyData.formulary.preferred.map((item, index) => (
+                      <div key={index} className="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border-l-2 border-green-500">
+                        <Badge variant="outline" className="text-xs bg-green-100 dark:bg-green-900">
+                          {item.rank === 1 ? '1st Line' : item.rank === 2 ? '2nd Line' : `${item.rank}th Line`}
+                        </Badge>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{item.item_name}</span>
+                            {item.otc && (
+                              <Badge variant="secondary" className="text-xs">OTC</Badge>
+                            )}
+                          </div>
+                          {item.notes && (
+                            <p className="text-xs text-muted-foreground">{item.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(policyData.formulary!.page_url, '_blank')}
+                    className="w-fit"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open ICN Formulary
+                  </Button>
+                  {policyData.formulary.last_published && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Updated: {policyData.formulary.last_published}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Prior Approval Information */}
+          {policyData?.prior_approval && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="h-4 w-4" />
+                <h3 className="font-semibold">Prior Approval</h3>
+              </div>
+              <div className="space-y-2">
+                <Badge variant="outline">{policyData.prior_approval.status}</Badge>
+                {policyData.prior_approval.criteria && (
+                  <p className="text-sm bg-muted/30 p-2 rounded">
+                    <strong>Criteria:</strong> {policyData.prior_approval.criteria}
+                  </p>
+                )}
+                {policyData.prior_approval.source_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(policyData.prior_approval!.source_url, '_blank')}
+                    className="w-fit"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View PA Details
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           <Separator />
 
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={copyToNotes} className="flex-1">
-              {copied ? (
-                <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" />
-              ) : (
-                <Copy className="w-4 h-4 mr-2" />
-              )}
-              {copied ? 'Copied!' : 'Copy to Notes'}
-            </Button>
-            
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
             {onInsertIntoChat && (
-              <Button onClick={insertIntoChat} className="flex-1">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  onInsertIntoChat(generateChatMessage());
+                  onClose();
+                }}
+              >
                 Insert into Chat
               </Button>
             )}
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={onClose}
+            >
+              Close
+            </Button>
           </div>
         </div>
       </DialogContent>

@@ -2094,6 +2094,57 @@ export type Database = {
           },
         ]
       }
+      icn_formulary: {
+        Row: {
+          bnf_chapter_code: string | null
+          bnf_chapter_name: string | null
+          created_at: string | null
+          id: number
+          is_preferred: boolean | null
+          item_name: string | null
+          last_published: string | null
+          name_norm: string | null
+          notes: string | null
+          otc: boolean | null
+          page_url: string | null
+          preference_rank: number | null
+          section: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bnf_chapter_code?: string | null
+          bnf_chapter_name?: string | null
+          created_at?: string | null
+          id?: number
+          is_preferred?: boolean | null
+          item_name?: string | null
+          last_published?: string | null
+          name_norm?: string | null
+          notes?: string | null
+          otc?: boolean | null
+          page_url?: string | null
+          preference_rank?: number | null
+          section?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bnf_chapter_code?: string | null
+          bnf_chapter_name?: string | null
+          created_at?: string | null
+          id?: number
+          is_preferred?: boolean | null
+          item_name?: string | null
+          last_published?: string | null
+          name_norm?: string | null
+          notes?: string | null
+          otc?: boolean | null
+          page_url?: string | null
+          preference_rank?: number | null
+          section?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       icn_policy_synonyms: {
         Row: {
           canonical: string

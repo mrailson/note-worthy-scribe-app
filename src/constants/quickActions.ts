@@ -43,6 +43,13 @@ export const quickActions: QuickAction[] = [
     action: 'open-traffic-light-search'
   },
   { 
+    label: 'ICN Formulary Importer',
+    icon: Download, 
+    prompt: '',
+    requiresFile: false,
+    action: 'open-formulary-importer'
+  },
+  { 
     label: 'Red Flag Symptom Checker', 
     icon: AlertTriangle, 
     prompt: `${nhsSafetyPreamble} List red flag symptoms for [insert symptom/condition] that require urgent or 2WW referral according to NICE/NHS pathways. Include pathway names and recommended referral timeframes.`,

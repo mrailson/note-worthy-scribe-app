@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import TrafficLightBrowser from '@/components/TrafficLightBrowser';
 import { TrafficLightImporter } from '@/components/TrafficLightImporter';
+import { FormularyImporter } from '@/components/FormularyImporter';
 import TrafficLightSearch from '@/components/TrafficLightSearch';
 
 interface QuickActionsPanelProps {
@@ -33,6 +34,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isTrafficLightModalOpen, setIsTrafficLightModalOpen] = useState(false);
   const [isTrafficLightImporterOpen, setIsTrafficLightImporterOpen] = useState(false);
   const [isTrafficLightSearchOpen, setIsTrafficLightSearchOpen] = useState(false);
+  const [isFormularyImporterOpen, setIsFormularyImporterOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -123,6 +125,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 setIsTrafficLightImporterOpen(true);
               } else if (action.action === 'open-traffic-light-search') {
                 setIsTrafficLightSearchOpen(true);
+              } else if (action.action === 'open-formulary-importer') {
+                setIsFormularyImporterOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -165,6 +169,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             setIsTrafficLightImporterOpen(true);
                           } else if (subItem.action === 'open-traffic-light-search') {
                             setIsTrafficLightSearchOpen(true);
+                          } else if (subItem.action === 'open-formulary-importer') {
+                            setIsFormularyImporterOpen(true);
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt));
                           }
@@ -300,6 +306,27 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Formulary Importer Modal */}
+      {isFormularyImporterOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">ICN Formulary Importer</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFormularyImporterOpen(false)}
+                >
+                  ×
+                </Button>
+              </div>
+              <FormularyImporter />
             </div>
           </div>
         </div>

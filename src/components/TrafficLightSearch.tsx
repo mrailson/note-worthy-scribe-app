@@ -130,7 +130,7 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
   const handleSelectItem = async (item: TLVocabItem) => {
     try {
       const { data, error } = await supabase.functions.invoke('policy-resolve', {
-        body: { id: item.id }
+        body: { name: item.name }
       });
       
       if (error) throw error;
