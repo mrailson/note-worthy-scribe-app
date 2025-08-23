@@ -79,53 +79,133 @@ async function importFormularyData(supabase: any) {
   
   const rows: FormularyItem[] = [];
   
-  // Walk H2 (chapters) → H3 (sections) → list items (ordered preference)
-  $("h2").each((_, h2) => {
-    const chapter = norm($(h2).text());
-    if (!chapter) return;
+  // The site uses accordion structure: h3.accordion-switch + div.accordion-content
+  // Find chapter headings (placement sections) and their content
+  $(".placement-row").each((_, placement) => {
+    const $placement = $(placement);
     
-    let $n = $(h2).next();
+    // Try to find chapter name from the placement or nearby headings
+    let chapter = "";
     
-    while ($n.length && !/^h2$/i.test($n[0].name)) {
-      if (/^h3$/i.test($n[0].name)) {
-        const section = norm($n.text());
-        if (!section) {
-          $n = $n.next();
-          continue;
-        }
-        
-        // Look ahead for <ol> or <ul> blocks that list preferred items
-        let $l = $n.next();
-        let rank = 0;
-        
-        while ($l.length && !/^h3|h2$/i.test($l[0].name)) {
-          if (/^ol|ul$/i.test($l[0].name)) {
-            $l.children("li").each((_, li) => {
-              rank++;
-              const liText = norm($(li).text());
-              if (!liText) return;
-              
-              // Split off " – " notes if present
-              const [item, ...rest] = liText.split(" – ");
-              const notes = rest.join(" – ");
-              
-              rows.push({
-                bnf_chapter_name: chapter,
-                section,
-                item_name: item,
-                preference_rank: rank, // order = preference
-                otc: /OTC|over the counter/i.test(liText),
-                notes: notes || undefined,
-                page_url: URL,
-                last_published: lastPublished || undefined
-              });
-            });
-          }
-          $l = $l.next();
-        }
+    // Look for h2 or h1 that might indicate the chapter
+    const $prevH2 = $placement.prevAll().find("h2").first();
+    const $prevH1 = $placement.prevAll().find("h1").first(); 
+    
+    if ($prevH2.length) {
+      chapter = norm($prevH2.text());
+    } else if ($prevH1.length) {
+      chapter = norm($prevH1.text());
+    } else {
+      // Fallback: look for specific keywords to identify chapters
+      const placementText = norm($placement.text().toLowerCase());
+      if (placementText.includes("cardiovascular") || placementText.includes("cardiac")) {
+        chapter = "Cardiovascular system";
+      } else if (placementText.includes("respiratory") || placementText.includes("asthma") || placementText.includes("copd")) {
+        chapter = "Respiratory system";
+      } else if (placementText.includes("gastro") || placementText.includes("antacid")) {
+        chapter = "Gastro-intestinal system";
+      } else if (placementText.includes("central nervous") || placementText.includes("hypnotic") || placementText.includes("anxiolytic")) {
+        chapter = "Central nervous system";
+      } else if (placementText.includes("infection")) {
+        chapter = "Infections";
+      } else if (placementText.includes("endocrine") || placementText.includes("diabetes")) {
+        chapter = "Endocrine system";
+      } else {
+        chapter = "Other";
       }
-      $n = $n.next();
     }
+    
+    // Process accordion sections within this placement
+    $placement.find("h3.accordion-switch").each((_, h3) => {
+      const $h3 = $(h3);
+      const section = norm($h3.text());
+      if (!section) return;
+      
+      // Find the corresponding accordion content
+      const $content = $h3.next(".accordion-content");
+      if (!$content.length) return;
+      
+      let rank = 0;
+      
+      // Extract drug names from various formats
+      // 1. Look for <strong> tags (most common pattern)
+      $content.find("strong").each((_, strong) => {
+        const drugText = norm($(strong).text());
+        if (!drugText || drugText.length < 3) return;
+        
+        // Skip obvious non-drug text
+        if (/^(guidance|note|prescribe|licensed|available|low carbon|high carbon|very high|shelf life)$/i.test(drugText)) return;
+        if (/^(single|dry powder|pressurised|triple therapy|combination|short|long|acting)$/i.test(drugText)) return;
+        
+        rank++;
+        
+        // Clean up drug names
+        const cleanDrug = drugText
+          .replace(/®/g, '')
+          .replace(/\s+(tablet|capsule|injection|cream|ointment|spray|inhaler|dpi|pmdi)s?$/i, '')
+          .replace(/\s+m\/r$/i, '')
+          .replace(/\s+\d+(\.\d+)?\s*(mg|microgram|g).*$/i, '')
+          .trim();
+          
+        if (cleanDrug.length < 2) return;
+        
+        // Get surrounding context for notes
+        const parentText = norm($(strong).parent().text());
+        let notes = "";
+        
+        // Extract notes that follow the drug name
+        const drugIndex = parentText.toLowerCase().indexOf(drugText.toLowerCase());
+        if (drugIndex >= 0) {
+          const afterDrug = parentText.substring(drugIndex + drugText.length).trim();
+          if (afterDrug.length > 0 && afterDrug.length < 200) {
+            notes = afterDrug.replace(/^[\s\-–—]+/, '').substring(0, 200);
+          }
+        }
+        
+        rows.push({
+          bnf_chapter_name: chapter,
+          section,
+          item_name: cleanDrug,
+          preference_rank: rank,
+          otc: /OTC|over the counter/i.test(parentText),
+          notes: notes || undefined,
+          page_url: URL,
+          last_published: lastPublished || undefined
+        });
+      });
+      
+      // 2. Look for list items if no strong tags found useful content
+      if (rank === 0) {
+        $content.find("li").each((_, li) => {
+          const liText = norm($(li).text());
+          if (!liText || liText.length < 3) return;
+          
+          rank++;
+          
+          // Split off notes
+          const [item, ...rest] = liText.split(/\s*[-–—]\s*/);
+          const notes = rest.join(' - ');
+          
+          const cleanItem = item
+            .replace(/®/g, '')
+            .replace(/\s+\d+(\.\d+)?\s*(mg|microgram|g).*$/i, '')
+            .trim();
+            
+          if (cleanItem.length < 2) return;
+          
+          rows.push({
+            bnf_chapter_name: chapter,
+            section,
+            item_name: cleanItem,
+            preference_rank: rank,
+            otc: /OTC|over the counter/i.test(liText),
+            notes: notes || undefined,
+            page_url: URL,
+            last_published: lastPublished || undefined
+          });
+        });
+      }
+    });
   });
   
   console.log(`Extracted ${rows.length} formulary items`);
