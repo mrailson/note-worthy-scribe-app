@@ -56,3 +56,6 @@ verify_jwt = true
 
 [functions.gpt5-fast-clinical]
 verify_jwt = true
+
+[functions.comprehensive-drug-lookup]
+verify_jwt = true
