@@ -108,18 +108,18 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             <Button
               variant="ghost"
               size="sm"
-              className="h-10 w-10 p-0 hover:bg-accent rounded-md"
+              className="h-12 w-12 p-0 hover:bg-accent rounded-md"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               title="Attach files"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-6 h-6" />
             </Button>
             
             <Button
               variant="ghost"
               size="sm"
-              className={`h-10 w-10 p-0 rounded-md transition-all duration-200 ${
+              className={`h-12 w-12 p-0 rounded-md transition-all duration-200 ${
                 isRecording 
                   ? 'bg-red-500 hover:bg-red-600 text-white' 
                   : isProcessing 
@@ -136,9 +136,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
               title={isRecording ? 'Stop recording' : isProcessing ? 'Processing speech...' : 'Start recording'}
             >
               {isRecording ? (
-                <MicOff className="w-5 h-5" />
+                <MicOff className="w-6 h-6" />
               ) : (
-                <Mic className="w-5 h-5" />
+                <Mic className="w-6 h-6" />
               )}
             </Button>
           </div>
