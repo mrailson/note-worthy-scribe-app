@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 export const TrafficLightImporter = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success' | 'error'>('idle');
+  const [progress, setProgress] = useState<any>(null);
   const { toast } = useToast();
 
   const startImport = async () => {
@@ -26,22 +27,38 @@ export const TrafficLightImporter = () => {
         description: "Importing all 886 medicines from 30 pages. This will take a few minutes.",
       });
       
-      // Poll for completion - check database count every 10 seconds
+      // Poll for progress every 3 seconds by checking database count
       const checkProgress = setInterval(async () => {
-        const { data: countData } = await supabase
-          .from('traffic_light_medicines')
-          .select('id', { count: 'exact', head: true });
-        
-        if (countData && (countData as any).count > 100) { // Significant progress
-          clearInterval(checkProgress);
-          setImportStatus('success');
-          setIsImporting(false);
-          toast({
-            title: "Import Completed",
-            description: `Successfully imported ${(countData as any).count} medicines!`,
-          });
+        try {
+          // Check database count as a simple progress indicator
+          const { count, error: countError } = await supabase
+            .from('traffic_light_medicines')
+            .select('*', { count: 'exact', head: true });
+          
+          if (!countError && count !== null) {
+            const progressData = {
+              status: count > 0 ? (count > 800 ? 'complete' : 'importing') : 'scraping',
+              importedMedicines: count,
+              foundMedicines: 886,
+              message: count > 800 ? 'Import complete' : count > 0 ? `Imported ${count} medicines` : 'Scraping pages...'
+            };
+            
+            setProgress(progressData);
+            
+            if (count > 800) { // Import likely complete
+              clearInterval(checkProgress);
+              setImportStatus('success');
+              setIsImporting(false);
+              toast({
+                title: "Import Completed",
+                description: `Successfully imported ${count} medicines!`,
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Progress check error:', err);
         }
-      }, 10000);
+      }, 3000);
       
       // Stop checking after 5 minutes
       setTimeout(() => {
@@ -113,6 +130,43 @@ export const TrafficLightImporter = () => {
             {getStatusIcon()}
             {isImporting ? 'Importing...' : 'Start Full Import'}
           </Button>
+          
+          {/* Progress Display */}
+          {progress && isImporting && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>{progress.message}</span>
+                <span>{progress.status}</span>
+              </div>
+              
+              {progress.status === 'scraping' && (
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Scraping pages...</span>
+                    <span>Finding medicines</span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: '30%' }} />
+                  </div>
+                </div>
+              )}
+              
+              {progress.status === 'importing' && (
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Importing medicines</span>
+                    <span>{progress.importedMedicines} / ~886</span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((progress.importedMedicines / 886) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           {importStatus === 'success' && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-md">
