@@ -87,15 +87,15 @@ async function importFormularyData(supabase: any) {
   console.log(`Found ${$(".accordion-content").length} accordion-content elements`);
   console.log(`Found ${$("strong").length} strong elements`);
   
-  // Look for all h3 headers that contain drug/formulary information
-  $("h3").each((_, h3Element) => {
+  // Look for accordion sections with h3.accordion-switch and div.accordion-content
+  $("h3.accordion-switch").each((_, h3Element) => {
     const $h3 = $(h3Element);
     const sectionTitle = norm($h3.text());
     
     if (!sectionTitle || sectionTitle.length < 3) return;
     
-    // Skip non-drug sections
-    if (/^(guidance|current|last published)$/i.test(sectionTitle)) return;
+    // Skip guidance sections
+    if (/^guidance$/i.test(sectionTitle)) return;
     
     console.log(`Processing section: ${sectionTitle}`);
     
@@ -103,79 +103,102 @@ async function importFormularyData(supabase: any) {
     let chapter = "Other";
     const sectionLower = sectionTitle.toLowerCase();
     
+    // More comprehensive chapter mapping
     if (sectionLower.includes("cardiac") || sectionLower.includes("diuretic") || 
         sectionLower.includes("beta") || sectionLower.includes("ace") || 
         sectionLower.includes("calcium") || sectionLower.includes("anticoagulant") ||
-        sectionLower.includes("lipid") || sectionLower.includes("statin")) {
+        sectionLower.includes("lipid") || sectionLower.includes("statin") ||
+        sectionLower.includes("nitrate") || sectionLower.includes("antiplatelet") ||
+        sectionLower.includes("sglt2")) {
       chapter = "Cardiovascular system";
     } else if (sectionLower.includes("bronchodilator") || sectionLower.includes("inhaler") ||
                sectionLower.includes("asthma") || sectionLower.includes("copd") ||
-               sectionLower.includes("corticosteroid") || sectionLower.includes("steroid")) {
+               sectionLower.includes("corticosteroid") || sectionLower.includes("steroid") ||
+               sectionLower.includes("theophylline") || sectionLower.includes("spacer") ||
+               sectionLower.includes("cromoglicate") || sectionLower.includes("mucolytic") ||
+               sectionLower.includes("antihistamine")) {
       chapter = "Respiratory system";
     } else if (sectionLower.includes("antacid") || sectionLower.includes("ppi") ||
                sectionLower.includes("laxative") || sectionLower.includes("gastro")) {
       chapter = "Gastro-intestinal system";
     } else if (sectionLower.includes("hypnotic") || sectionLower.includes("anxiolytic") ||
-               sectionLower.includes("antidepress") || sectionLower.includes("anticonvulsant")) {
+               sectionLower.includes("antidepress") || sectionLower.includes("anticonvulsant") ||
+               sectionLower.includes("antipsychotic") || sectionLower.includes("analgesic") ||
+               sectionLower.includes("opioid")) {
       chapter = "Central nervous system";
     } else if (sectionLower.includes("antibiotic") || sectionLower.includes("antiviral") ||
                sectionLower.includes("antifungal")) {
       chapter = "Infections";
+    } else if (sectionLower.includes("insulin") || sectionLower.includes("diabetes") ||
+               sectionLower.includes("metformin")) {
+      chapter = "Endocrine system";
     }
     
-    // Find the next sibling content (could be div.accordion-content or just the next element)
-    let $content = $h3.next();
-    if ($content.hasClass("accordion-content")) {
-      // Standard accordion structure
-    } else {
-      // Look for content in the same parent or nearby elements
-      $content = $h3.parent().find("p, div").first();
-      if (!$content.length) {
-        $content = $h3.nextAll("p, div").first();
-      }
+    // Find the accordion content div that follows this h3
+    let $content = $h3.next("div.accordion-content");
+    if (!$content.length) {
+      // Fallback: look for any next div
+      $content = $h3.next("div");
     }
     
-    if (!$content.length) return;
+    if (!$content.length) {
+      console.log(`No content found for section: ${sectionTitle}`);
+      return;
+    }
     
     let rank = 0;
     
-    // Extract drugs from strong tags
+    // Extract drugs from strong tags within the content
     $content.find("strong").each((_, strongEl) => {
       const strongText = norm($(strongEl).text());
       if (!strongText || strongText.length < 2) return;
       
       // Skip section headers and non-drug text
-      if (/^(guidance|note|prescribe|licensed|available|carbon footprint|shelf life)$/i.test(strongText)) return;
-      if (/^(single|dry|powder|pressurised|triple|therapy|combination|short|long|acting)$/i.test(strongText)) return;
-      if (/^(modified|release|tablet|capsule|injection|cream|ointment|spray)$/i.test(strongText)) return;
+      if (/^(guidance|note|prescribe|licensed|available|carbon footprint|shelf life|short-acting|long-acting|single|dry|powder|pressurised|triple|therapy|combination|modified|release|tablet|capsule|injection|cream|ointment|spray|inhaler|dpi|pmdi|oral|solution|other|compound)$/i.test(strongText)) return;
+      
+      // Skip generic formulations and instructions
+      if (/^(generic|brand|preferred|formulary|choice|first line|second line)$/i.test(strongText)) return;
+      
+      // Skip non-drug technical terms
+      if (strongText.includes("®") && strongText.length < 6) return;
+      if (/^(nitrates|calcium-channel blockers|anticoagulants|antiplatelet|lipid-regulating|bronchodilators|corticosteroids|antimuscarinic|theophylline|spacer devices)$/i.test(strongText)) return;
       
       rank++;
       
-      // Clean the drug name
+      // Clean the drug name but preserve brand names with ®
       let cleanDrug = strongText
-        .replace(/®/g, '')
         .replace(/\s+(tablet|capsule|injection|cream|ointment|spray|inhaler|dpi|pmdi|oral|solution)s?$/i, '')
         .replace(/\s+(m\/r|mr|xl|la|sr)$/i, '')
-        .replace(/\s+\d+(\.\d+)?\s*(mg|microgram|mcg|g|ml|%)\b.*$/i, '')
+        .replace(/\s+\d+(\.\d+)?\s*(mg|microgram|mcg|g|ml|%|units)\b.*$/i, '')
         .replace(/\s+once\s+daily$/i, '')
         .replace(/\s+twice\s+daily$/i, '')
+        .replace(/^\(|\)$/g, '')
         .trim();
         
-      if (cleanDrug.length < 2) return;
+      if (cleanDrug.length < 3) return;
       
       // Get surrounding context for notes
       const parentEl = $(strongEl).parent();
       const parentText = norm(parentEl.text());
       let notes = "";
       
-      // Extract notes that follow the drug name
+      // Extract useful notes that follow the drug name
       const drugIndex = parentText.toLowerCase().indexOf(strongText.toLowerCase());
       if (drugIndex >= 0) {
         const afterDrug = parentText.substring(drugIndex + strongText.length).trim();
-        if (afterDrug.length > 0 && afterDrug.length < 300) {
-          notes = afterDrug.replace(/^[\s\-–—]+/, '').substring(0, 200);
+        if (afterDrug.length > 0 && afterDrug.length < 500) {
+          // Clean up the notes
+          notes = afterDrug
+            .replace(/^[\s\-–—\(\)]+/, '')
+            .replace(/\s+/g, ' ')
+            .substring(0, 300)
+            .trim();
         }
       }
+      
+      // Check if it's an OTC item
+      const isOTC = /OTC|over the counter/i.test(parentText) || 
+                    sectionTitle.toLowerCase().includes('over the counter');
       
       console.log(`Found drug: ${cleanDrug} in section: ${sectionTitle}`);
       
@@ -184,41 +207,10 @@ async function importFormularyData(supabase: any) {
         section: sectionTitle,
         item_name: cleanDrug,
         preference_rank: rank,
-        otc: /OTC|over the counter/i.test(parentText),
+        otc: isOTC,
         notes: notes || undefined,
         page_url: URL,
         last_published: lastPublished || undefined
-      });
-    });
-    
-    // Also check for drugs in paragraph text (not in strong tags)
-    $content.find("p").each((_, p) => {
-      const pText = norm($(p).text());
-      if (!pText || pText.length < 10) return;
-      
-      // Look for drug names that might not be in strong tags
-      // This is a basic implementation - could be improved
-      const lines = pText.split(/[.\n]/);
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.length > 3 && trimmed.length < 50) {
-          // Basic drug name pattern matching
-          if (/^[A-Z][a-z]+(\s+[A-Z]*[a-z]*)*$/i.test(trimmed) && 
-              !/^(the|and|or|but|for|with|from|this|that|when|where|how|why)$/i.test(trimmed)) {
-            
-            rank++;
-            rows.push({
-              bnf_chapter_name: chapter,
-              section: sectionTitle,
-              item_name: trimmed,
-              preference_rank: rank,
-              otc: /OTC|over the counter/i.test(pText),
-              notes: undefined,
-              page_url: URL,
-              last_published: lastPublished || undefined
-            });
-          }
-        }
       });
     });
   });
