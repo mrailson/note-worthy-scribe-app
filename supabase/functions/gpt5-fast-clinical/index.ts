@@ -112,6 +112,7 @@ serve(async (req) => {
 
   try {
     // Primary attempt: gpt-5 streaming
+    console.log(`Attempting GPT-5 with max_tokens: ${finalMaxTokens}`);
     let resp = await tryModel(model ?? "gpt-5", true);
 
     if (!resp.ok) {
@@ -119,6 +120,8 @@ serve(async (req) => {
       let errJson: any = null;
       let errText = "";
       try { errJson = await resp.json(); } catch { errText = await resp.text(); }
+
+      console.log(`GPT-5 failed, error:`, errJson || errText);
 
       const msg = (errJson?.error?.message ?? errText ?? "").toLowerCase();
       const gated =
@@ -128,20 +131,24 @@ serve(async (req) => {
 
       if (gated) {
         // Same model, non-stream (allowed even when streaming is gated)
+        console.log(`Trying GPT-5 non-stream with max_tokens: ${finalMaxTokens}`);
         resp = await tryModel("gpt-5", false);
       } else {
         // Something else (e.g., parameter error or model not available) → try 4o-mini streaming
+        console.log(`Trying gpt-4o-mini streaming with max_tokens: ${finalMaxTokens}`);
         resp = await tryModel("gpt-4o-mini", true);
       }
 
       // If still not OK, last fallback: 4o-mini non-stream (we will wrap)
       if (!resp.ok) {
+        console.log(`Trying gpt-4o-mini non-stream with max_tokens: ${finalMaxTokens}`);
         resp = await tryModel("gpt-4o-mini", false);
       }
 
       // If STILL not OK, surface the original error cleanly
       if (!resp.ok) {
         const finalErr = errJson ?? (errText || (await resp.text()));
+        console.error(`All models failed, final error:`, finalErr);
         return sseError(`OpenAI error: ${typeof finalErr === "string" ? finalErr : JSON.stringify(finalErr)}`, 502);
       }
     }
@@ -155,7 +162,7 @@ serve(async (req) => {
       const stream = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`data: {"_meta":"nonstream-wrap"}\n\n`));
-          const chunks = text.match(/.{1,800}/gs) ?? [];
+          const chunks = text.match(/.{1,100}/gs) ?? []; // Smaller chunks to prevent truncation
           for (const chunk of chunks) {
             const evt = { choices: [{ delta: { content: chunk } }] };
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
