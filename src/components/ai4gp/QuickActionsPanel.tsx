@@ -214,8 +214,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           </TrafficLightBrowser>
         </div>
         
-        {/* Don't show expand button on mobile, and only show if there are more actions than visible */}
-        {!isMobile && currentActions.length > maxVisibleActions && (
+        {/* Show expand button if there are more actions than visible */}
+        {currentActions.length > maxVisibleActions && (
           <Button
             variant="ghost"
             size="sm"
