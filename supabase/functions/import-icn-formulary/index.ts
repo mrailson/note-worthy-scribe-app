@@ -125,8 +125,25 @@ async function importFormularyData(supabase: any) {
     console.log(`Total strong tags found: ${totalStrong}`);
     console.log(`Items added to rows: ${rows.length}`);
     
-    console.log(`=== EXTRACTION COMPLETE ===`);
+    console.log('=== EXTRACTION COMPLETE ===');
     console.log(`Extracted ${rows.length} formulary items`);
+    
+    // DIAGNOSTIC: Return HTML info even if no items found
+    if (rows.length === 0) {
+      return {
+        success: false,
+        message: 'No formulary data extracted - DIAGNOSTIC INFO',
+        html_length: html.length,
+        html_preview: html.substring(0, 500),
+        total_h3_elements: $("h3").length,
+        total_strong_elements: $("strong").length,
+        accordion_switches: $(".accordion-switch").length,
+        accordion_content: $(".accordion-content").length,
+        items_found: 0,
+        items_inserted: 0,
+        final_count: 0
+      };
+    }
     
     // Deduplicate: keep first occurrence of each item
     const key = (r: FormularyItem) => 
