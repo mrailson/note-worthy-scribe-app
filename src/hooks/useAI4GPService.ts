@@ -230,7 +230,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5-2025-08-07') => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'claude-4-sonnet') => {
     console.log('🚀 handleSend called with:', { 
       hasInput: !!input.trim(), 
       inputLength: input.length,
@@ -247,9 +247,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     
     console.log('🔄 Proceeding with send - creating user message...');
     
-    // Use appropriate model based on useOpenAI setting
-    const modelToUse = useOpenAI ? 'gpt-5-2025-08-07' : selectedModel;
-    console.log('🤖 Model selection:', { useOpenAI, selectedModel, modelToUse });
+    // Use the provided model instead of useOpenAI setting for model selection
+    const modelToUse = selectedModel;
+    console.log('🤖 Model selection:', { selectedModel, modelToUse });
     
     // Enhance the message content when files are attached
     let messageContent = input;

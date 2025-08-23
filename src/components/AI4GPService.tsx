@@ -20,6 +20,7 @@ import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
@@ -49,6 +50,8 @@ const AI4GPService = () => {
   const [showAITestModal, setShowAITestModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
+
+  const { selectedModel: aiModel } = useAIModelPreference();
 
   const {
     messages,
@@ -90,7 +93,9 @@ const AI4GPService = () => {
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
-    handleSend(practiceContext, selectedModel);
+    // Map the AI model preference to the appropriate model string for the backend
+    const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'claude-4-sonnet';
+    handleSend(practiceContext, modelToUse);
   };
 
   const handleLoadPreviousSearch = (search: any) => {
@@ -360,7 +365,10 @@ const AI4GPService = () => {
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
-                        onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+                        onQuickResponse={(response) => {
+                          const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'claude-4-sonnet';
+                          handleQuickResponse(response, practiceContext, modelToUse);
+                        }}
                       />
                     </div>
                   )}
