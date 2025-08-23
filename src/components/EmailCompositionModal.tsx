@@ -67,8 +67,9 @@ export function EmailCompositionModal({
   const [toEmail, setToEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [emailDate, setEmailDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedQuickPick, setSelectedQuickPick] = useState('consultation');
-  const [attachWordDoc, setAttachWordDoc] = useState(true);
+  const [attachWordDoc, setAttachWordDoc] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const { profile } = useUserProfile();
@@ -93,6 +94,21 @@ export function EmailCompositionModal({
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>') // Convert links to HTML
       .replace(/\n/g, '<br>') // Convert line breaks to HTML br tags
       .replace(/<ul><\/ul>/g, '') // Remove empty ul tags
+      .trim();
+  };
+
+  // Function to strip markdown formatting for display in textarea
+  const stripMarkdownForDisplay = (text: string): string => {
+    return text
+      .replace(/^---+$/gm, '') // Remove horizontal rules
+      .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove bold+italic formatting
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold formatting
+      .replace(/\*([^*]+)\*/g, '$1') // Remove italic formatting
+      .replace(/`(.*?)`/g, '$1') // Remove inline code formatting
+      .replace(/#{1,6}\s+(.*?)$/gm, '$1') // Remove header formatting
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert markdown bullets to simple bullets
+      .replace(/^\s*(\d+)\.\s+/gm, '$1. ') // Keep numbered lists simple
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)') // Convert links to text with URL
       .trim();
   };
 
@@ -126,13 +142,13 @@ export function EmailCompositionModal({
       
       setSubject(`AI Generated: ${truncatedSubject}`);
       
-      // Format message body maintaining structure
-      const formattedContent = content
+      // Format message body for display (strip markdown)
+      const displayContent = stripMarkdownForDisplay(content)
         .replace(/\n\s*\n/g, '\n\n') // Preserve paragraph breaks
         .replace(/^\s+/gm, '') // Remove leading whitespace but keep structure
         .trim();
       
-      updateMessageWithQuickPick(selectedQuickPick, formattedContent);
+      updateMessageWithQuickPick(selectedQuickPick, displayContent);
     }
   }, [content, selectedQuickPick]);
 
@@ -140,11 +156,11 @@ export function EmailCompositionModal({
   const handleQuickPickChange = (value: string) => {
     setSelectedQuickPick(value);
     if (content) {
-      const formattedContent = content
+      const displayContent = stripMarkdownForDisplay(content)
         .replace(/\n\s*\n/g, '\n\n')
         .replace(/^\s+/gm, '')
         .trim();
-      updateMessageWithQuickPick(value, formattedContent);
+      updateMessageWithQuickPick(value, displayContent);
     }
   };
 
@@ -233,8 +249,9 @@ export function EmailCompositionModal({
       // Reset form (keep email from profile)
       setSubject('');
       setMessage('');
+      setEmailDate(new Date().toISOString().split('T')[0]);
       setSelectedQuickPick('consultation');
-      setAttachWordDoc(true);
+      setAttachWordDoc(false);
     } catch (error: any) {
       console.error('Error sending email:', error);
       toast({
@@ -255,17 +272,7 @@ export function EmailCompositionModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-none max-h-none overflow-y-auto resize min-w-[400px] min-h-[500px] w-[600px] h-[700px]" style={{ resize: 'both' }}>
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Compose Email
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Compose Email</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -282,7 +289,16 @@ export function EmailCompositionModal({
               required
             />
           </div>
-          
+
+          <div className="space-y-2">
+            <Label htmlFor="email-date">Date</Label>
+            <Input
+              id="email-date"
+              type="date"
+              value={emailDate}
+              onChange={(e) => setEmailDate(e.target.value)}
+            />
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
