@@ -14,6 +14,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
 import { FloatingMobileInput } from '@/components/ai4gp/FloatingMobileInput';
+import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
@@ -457,6 +458,21 @@ const AI4GPService = () => {
           isLoading={isLoading}
           isClinical={isClinical}
           setIsClinical={setIsClinical}
+        />
+      )}
+
+      {/* Floating Quick Actions for when there are messages */}
+      {messages.length > 0 && (
+        <FloatingQuickActions
+          setInput={setInput}
+          onOpenDrugModal={() => {
+            // Trigger drug modal through parent component
+            window.dispatchEvent(new CustomEvent('openDrugModal'));
+          }}
+          onOpenAITestModal={() => setShowAITestModal(true)}
+          onOpenNews={() => setShowNews(true)}
+          onOpenImageService={() => setShowImageService(true)}
+          onOpenQuickImageModal={() => setShowQuickImageModal(true)}
         />
       )}
 

@@ -683,8 +683,12 @@ Please fetch these and retry. No corrections made."`;
   };
 
   return (
-    <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex gap-3 w-full ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex gap-2 sm:gap-3 w-full ${
+        message.role === 'user' 
+          ? 'max-w-[90%] sm:max-w-[85%] flex-row-reverse' 
+          : 'max-w-[95%] sm:max-w-[90%] flex-row'
+      }`}>
         {/* Avatar with scroll arrows for assistant messages - hidden in modal */}
         {!isModal && (
           <div className="flex flex-col items-center gap-1">
@@ -699,13 +703,13 @@ Please fetch these and retry. No corrections made."`;
               </button>
             )}
             
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               message.role === 'user' ? 'bg-primary' : 'bg-muted'
             }`}>
               {message.role === 'user' ? (
-                <User className="h-4 w-4 text-primary-foreground" />
+                <User className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
               ) : (
-                <Bot className="h-4 w-4 text-muted-foreground" />
+                <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               )}
             </div>
             
@@ -728,9 +732,10 @@ Please fetch these and retry. No corrections made."`;
             message.role === 'user' 
               ? 'bg-primary text-primary-foreground' 
               : isModal ? 'bg-transparent border-0' : 'bg-muted border border-border'
-          } ${isModal ? 'p-0' : 'p-4'}`}
+          } ${isModal ? 'p-0' : 'p-2 sm:p-4'}`}
           style={{
-            width: '100%'
+            width: '100%',
+            minWidth: 0
           }}
         >
           {/* Message Content */}
@@ -738,10 +743,12 @@ Please fetch these and retry. No corrections made."`;
             {message.role === 'assistant' ? (
               <div 
                 ref={contentRef}
-                className={`ai-response-content overflow-y-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm'}`}
+                className={`ai-response-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
                 style={{
                   maxWidth: 'none',
-                  width: '100%'
+                  width: '100%',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word'
                 }}
               >
                 {formatContent(displayContent)}

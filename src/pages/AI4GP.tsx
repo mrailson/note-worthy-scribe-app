@@ -8,6 +8,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
 import { DrugQuickModal } from '@/components/DrugQuickModal';
+import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -25,8 +26,17 @@ const AI4GP = () => {
       }
     };
 
+    const handleOpenDrugModal = () => {
+      setDrugModalOpen(true);
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('openDrugModal', handleOpenDrugModal);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('openDrugModal', handleOpenDrugModal);
+    };
   }, []);
 
   // Fetch user profile to check AI4GP access
@@ -157,6 +167,18 @@ const AI4GP = () => {
         <div className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto space-y-6">
           <AI4GPService />
         </div>
+        
+        {/* Floating Quick Actions */}
+        {user && profile?.ai4gp_access && (
+          <FloatingQuickActions
+            setInput={() => {}}
+            onOpenDrugModal={() => setDrugModalOpen(true)}
+            onOpenAITestModal={() => {}}
+            onOpenNews={() => {}}
+            onOpenImageService={() => {}}
+            onOpenQuickImageModal={() => {}}
+          />
+        )}
       </main>
 
       {/* Drug Quick Lookup Modal */}
