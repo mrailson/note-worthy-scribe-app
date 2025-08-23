@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Minus, ChevronDown } from 'lucide-react';
+import { Plus, Minus, ChevronDown, Shield } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
+import TrafficLightQuickPick from '@/components/TrafficLightQuickPick';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -13,6 +14,7 @@ interface QuickActionsPanelProps {
   setInput: (input: string) => void;
   selectedRole?: 'gp' | 'practice-manager';
   onOpenAITestModal?: () => void;
+  onInsertIntoChat?: (message: string) => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
@@ -20,11 +22,13 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   setShowAllQuickActions,
   setInput,
   selectedRole = 'gp',
-  onOpenAITestModal
+  onOpenAITestModal,
+  onInsertIntoChat
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
+  const [isTrafficLightModalOpen, setIsTrafficLightModalOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -109,6 +113,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 } else {
                   setIsAITestModalOpen(true);
                 }
+              } else if (action.action === 'open-traffic-light-modal') {
+                setIsTrafficLightModalOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -164,6 +170,20 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               </Button>
             );
           })}
+        </div>
+
+        {/* Special tiles row - Traffic Light Checker */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <TrafficLightQuickPick onInsertIntoChat={onInsertIntoChat}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-start text-left h-auto py-2 px-3"
+            >
+              <Shield className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Traffic-Light Medicine Checker</span>
+            </Button>
+          </TrafficLightQuickPick>
         </div>
         
         {/* Don't show expand button on mobile, and only show if there are more actions than visible */}

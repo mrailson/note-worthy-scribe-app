@@ -374,6 +374,7 @@ const AI4GPService = () => {
                           setInput={setInput}
                           selectedRole={selectedRole}
                           onOpenAITestModal={() => setShowAITestModal(true)}
+                          onInsertIntoChat={setInput}
                         />
                         
                         {/* Short Card Disclaimer */}

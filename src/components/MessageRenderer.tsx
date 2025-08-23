@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,6 +29,10 @@ import {
   ShieldCheck,
   Languages
 } from 'lucide-react';
+import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
+import PolicyBadge from '@/components/PolicyBadge';
+import EvidenceDrawer from '@/components/EvidenceDrawer';
+import PolicyBanner from '@/components/PolicyBanner';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,8 +94,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationData, setVerificationData] = useState(null);
+  const [policyHits, setPolicyHits] = useState<any[]>([]);
+  const [policyEnforcement, setPolicyEnforcement] = useState(true);
   const { user } = useAuth();
   const { sendEmailAutomatically, isSending } = useAutoEmail();
+  const { resolveMedicines } = useTrafficLightResolver();
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -104,6 +111,24 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       }
     }
   }, [message.content, message.isStreaming]);
+
+  // Check for policy violations when message content updates
+  useEffect(() => {
+    const checkPolicyViolations = async () => {
+      if (message.content && (message.role === 'user' || message.role === 'assistant')) {
+        try {
+          const result = await resolveMedicines(message.content);
+          if (result.hits.length > 0) {
+            setPolicyHits(result.hits);
+          }
+        } catch (error) {
+          console.error('Policy check failed:', error);
+        }
+      }
+    };
+
+    checkPolicyViolations();
+  }, [message.content, message.role, resolveMedicines]);
   
   // Calculate if this is a large response (more than 1000 characters or multiple sections)
   const isLargeResponse = message.role === 'assistant' && (
@@ -388,6 +413,58 @@ Please fetch these and retry. No corrections made."`;
     }
   };
 
+  // Function to inject policy badges into content
+  const injectPolicyBadges = (content: string) => {
+    if (policyHits.length === 0) return content;
+    
+    let modifiedContent = content;
+    
+    policyHits.forEach(hit => {
+      // Create a case-insensitive regex to find medicine names
+      const medicineRegex = new RegExp(`\\b${hit.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      
+      modifiedContent = modifiedContent.replace(medicineRegex, (match) => {
+        return `${match} ✦POLICY_BADGE:${hit.name}:${hit.status_enum}✦`;
+      });
+    });
+    
+    return modifiedContent;
+  };
+
+  // Function to render policy badges within text
+  const renderContentWithBadges = (content: string) => {
+    const badgeRegex = /✦POLICY_BADGE:([^:]+):([^✦]+)✦/g;
+    const parts = content.split(badgeRegex);
+    
+    return parts.map((part, index) => {
+      // Every third part starting from index 1 is a medicine name, and index 2 is the status
+      if ((index - 1) % 3 === 0 && index + 1 < parts.length) {
+        const medicineName = part;
+        const status = parts[index + 1];
+        const policyHit = policyHits.find(hit => hit.name === medicineName);
+        
+        if (policyHit) {
+          return (
+            <EvidenceDrawer key={`badge-${index}`} policyHit={policyHit}>
+              <PolicyBadge 
+                status={status as any} 
+                medicineName={medicineName}
+                className="ml-1 cursor-pointer"
+              />
+            </EvidenceDrawer>
+          );
+        }
+      }
+      
+      // Skip the status parts
+      if ((index - 2) % 3 === 0) {
+        return null;
+      }
+      
+      return part;
+    }).filter(Boolean);
+  };
+
   // Simple function to convert URLs to clickable links
   const linkifyContent = (content: string) => {
     const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
@@ -413,12 +490,17 @@ Please fetch these and retry. No corrections made."`;
 
   const formatContent = (content: string) => {
     // Clean AI response content by removing separators and extra blank lines
-    const cleanedContent = content
+    let cleanedContent = content
       .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
       .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
       .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
       .replace(/^\s+$/gm, '') // Remove lines with only whitespace
       .trim();
+
+    // Inject policy badges if this is an assistant message
+    if (message.role === 'assistant') {
+      cleanedContent = injectPolicyBadges(cleanedContent);
+    }
     
     // Process markdown formatting
     const processMarkdown = (text: string) => {
@@ -457,6 +539,15 @@ Please fetch these and retry. No corrections made."`;
           // Code blocks `code`
           .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>');
         
+        // Check if this text part contains policy badges
+        if (part.includes('✦POLICY_BADGE:')) {
+          return (
+            <span key={`text-${index}`} className="inline">
+              {renderContentWithBadges(processedText.replace(/<[^>]*>/g, ''))}
+            </span>
+          );
+        }
+
         return (
           <span 
             key={`text-${index}`} 
