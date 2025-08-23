@@ -1252,6 +1252,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Move selectedModel declaration outside try block to fix variable scope issue
+  let selectedModel = 'gpt-4-turbo';
+  let messages: Message[] = [];
+  let verificationLevel = 'standard';
+
   try {
     console.log('🚀 AI-4-PM-Chat function started');
     console.log('📝 Request method:', req.method);
@@ -1260,9 +1265,14 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log('📝 Request body keys:', Object.keys(requestBody));
     
-    const { messages, model, systemPrompt, files, verificationLevel }: RequestBody = requestBody;
+    const requestData: RequestBody = requestBody;
+    messages = requestData.messages || [];
+    const model = requestData.model;
+    const systemPrompt = requestData.systemPrompt;
+    const files = requestData.files;
+    verificationLevel = requestData.verificationLevel || 'standard';
 
-    // Check API key availability
+    // Check API key availability using the same variable names as ai-api-test
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY'); 
@@ -1281,7 +1291,7 @@ serve(async (req) => {
     console.log('Messages content check:', messages?.map(m => ({ role: m.role, hasContent: !!m.content })) || 'No messages');
 
     // Default to gpt-4-turbo if no model specified
-    const selectedModel = model || 'gpt-4-turbo';
+    selectedModel = model || 'gpt-4-turbo';
     console.log(`Using model: ${selectedModel}`);
 
     // Process uploaded files to extract text content

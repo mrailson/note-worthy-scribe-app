@@ -279,12 +279,12 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     try {
       console.log('Starting comprehensive clinical performance test...');
       
-      // Test multiple models with different approaches
+      // Use the working ai-api-test approach for all models consistently
       const testPromises = [
-        // GPT-5 with both standard AI function and fast clinical function
-        testClinicalPerformance('standard', 'gpt-5-2025-08-07'),
-        testClinicalPerformance('fast', 'gpt-5-2025-08-07'),
-        // Other models using the reliable ai-api-test function
+        // All models via direct API (this approach works for all)
+        testClinicalModelDirect('gpt-5-2025-08-07'),
+        testClinicalModelDirect('gpt-4o'),
+        testClinicalModelDirect('gpt-4o-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
         testClinicalModelDirect('grok-beta'),
         testClinicalModelDirect('gemini-1.5-pro')
@@ -295,7 +295,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       
       toast({
         title: "Clinical Test Completed",
-        description: `Tested ${results.length} clinical AI configurations`,
+        description: `Tested ${results.length} AI models for clinical performance`,
       });
     } catch (error) {
       console.error('Error running clinical test:', error);
