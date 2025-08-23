@@ -76,21 +76,21 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 space-y-3">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
       />
       
-      <div className="relative">
-        <div className="relative bg-background border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex gap-2">
+        <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[120px] max-h-32 resize-none border-0 focus:ring-0 bg-transparent px-4 py-3 text-sm leading-relaxed"
+            className="min-h-[100px] max-h-32 resize-none bg-white border-border pr-20"
             disabled={isLoading}
           />
           
@@ -103,70 +103,64 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             className="hidden"
           />
           
-          {/* Bottom toolbar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-lg hover:bg-accent/80 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                title="Attach files"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-9 w-9 p-0 rounded-lg transition-all duration-200 ${
-                  isRecording 
-                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20' 
-                    : isProcessing 
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20' 
-                      : 'hover:bg-accent/80'
-                }`}
-                onClick={async () => {
-                  const text = await toggleRecording();
-                  if (text) {
-                    setInput(input + (input ? ' ' : '') + text);
-                  }
-                }}
-                disabled={isLoading}
-                title={isRecording ? 'Stop recording' : isProcessing ? 'Processing speech...' : 'Start voice recording'}
-              >
-                {isRecording ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </Button>
-              
-              {(isRecording || isProcessing) && (
-                <span className="text-xs font-medium text-muted-foreground animate-pulse">
-                  {isRecording ? 'Recording...' : 'Processing...'}
-                </span>
-              )}
-            </div>
-            
-            <Button 
-              onClick={onSend} 
-              disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+          <div className="absolute right-2 top-2 flex gap-1">
+            <Button
+              variant="ghost"
               size="sm"
-              className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200"
+              className="h-8 w-8 p-0 hover:bg-accent rounded-md"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              title="Attach files"
             >
-              <SendHorizontal className="w-4 h-4 mr-1.5" />
-              Send
+              <Plus className="w-4 h-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+                isRecording 
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : isProcessing 
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                    : 'hover:bg-accent'
+              }`}
+              onClick={async () => {
+                const text = await toggleRecording();
+                if (text) {
+                  setInput(input + (input ? ' ' : '') + text);
+                }
+              }}
+              disabled={isLoading}
+              title={isRecording ? 'Stop recording' : isProcessing ? 'Processing speech...' : 'Start recording'}
+            >
+              {isRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>
         
-        <div className="text-xs text-muted-foreground text-center mt-3 leading-relaxed">
-          <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd> to send
-          <span className="mx-2">•</span>
-          Supports: PDF, Word, Excel, images, audio files
-        </div>
+        <Button 
+          onClick={onSend} 
+          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+          size="sm"
+          className="h-[100px] px-3"
+        >
+          <SendHorizontal className="w-4 h-4" />
+        </Button>
+      </div>
+      
+      <div className="text-xs text-muted-foreground text-center">
+        <kbd className="px-1 py-0.5 text-xs bg-muted rounded mr-1">Ctrl+Enter</kbd>
+        to send • Supports: PDF, Word, Excel, images, audio
+        {(isRecording || isProcessing) && (
+          <span className="ml-2 text-amber-600 font-medium">
+            {isRecording ? '🎤 Recording...' : '⏳ Processing...'}
+          </span>
+        )}
       </div>
     </div>
   );
