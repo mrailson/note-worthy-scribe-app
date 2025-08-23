@@ -30,7 +30,16 @@ export const ShortCard: React.FC<ShortCardProps> = ({ className }) => (
       <div className="flex items-start space-x-3">
         <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-blue-800 dark:text-blue-200">
-          <p className="font-medium mb-2">NHS Primary Care Decision Support</p>
+          <p className="font-medium mb-2">
+            <a 
+              href="https://www.icnorthamptonshire.org.uk/primarycareportal/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              NHS Primary Care Decision Support
+            </a>
+          </p>
           <p>
             This service provides NHS primary-care decision-support (NICE, BNF, MHRA, NHS.uk, local ICB). 
             Outputs may be incomplete or inaccurate. You remain responsible for all clinical decisions, 
