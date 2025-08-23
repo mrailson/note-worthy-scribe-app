@@ -73,8 +73,18 @@ async function importFormularyData(supabase: any) {
   // Helper function to normalize text
   const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
   
-  // Extract last published date - look for "Last published" text
-  const lastPublished = norm($("*:contains('Last published')").next().text()) || "";
+  // Extract last published date more specifically
+  let lastPublished = "";
+  $("*").each((_, element) => {
+    const text = $(element).text();
+    if (text.includes("Last published")) {
+      // Extract just the date part after "Last published"
+      const match = text.match(/Last published[:\s]+([^\n\r]+)/i);
+      if (match && match[1]) {
+        lastPublished = norm(match[1]).split(/\s+/).slice(0, 4).join(" "); // Take first few words only
+      }
+    }
+  });
   console.log('Last published:', lastPublished);
   
   const rows: FormularyItem[] = [];
@@ -148,22 +158,20 @@ async function importFormularyData(supabase: any) {
     
     let rank = 0;
     
-    // Extract drugs from strong tags within the content
+     // Extract drugs from strong tags within the content
     $content.find("strong").each((_, strongEl) => {
       const strongText = norm($(strongEl).text());
       if (!strongText || strongText.length < 2) return;
       
-      // Skip section headers and non-drug text
-      if (/^(guidance|note|prescribe|licensed|available|carbon footprint|shelf life|short-acting|long-acting|single|dry|powder|pressurised|triple|therapy|combination|modified|release|tablet|capsule|injection|cream|ointment|spray|inhaler|dpi|pmdi|oral|solution|other|compound)$/i.test(strongText)) return;
+      // Skip obvious non-drug text (be more selective)
+      if (/^(guidance|current|last published|note|prescribe|licensed|available|carbon footprint|shelf life)$/i.test(strongText)) return;
+      if (/^(short-acting|long-acting|single component|dry powder|pressurised metered|triple therapy|combination|compound)$/i.test(strongText)) return;
       
-      // Skip generic formulations and instructions
-      if (/^(generic|brand|preferred|formulary|choice|first line|second line)$/i.test(strongText)) return;
+      // Skip category headers only if they're clearly categories
+      if (/^(nitrates|calcium-channel blockers|anticoagulants|antiplatelet drugs|lipid-regulating drugs|bronchodilators|corticosteroids|antimuscarinic|spacer devices)$/i.test(strongText)) return;
       
-      // Skip non-drug technical terms
-      if (strongText.includes("®") && strongText.length < 6) return;
-      if (/^(nitrates|calcium-channel blockers|anticoagulants|antiplatelet|lipid-regulating|bronchodilators|corticosteroids|antimuscarinic|theophylline|spacer devices)$/i.test(strongText)) return;
-      
-      rank++;
+      // Skip formulation types when they appear alone
+      if (/^(tablet|capsule|injection|cream|ointment|spray|inhaler|dpi|pmdi|oral|solution|generic|brand|preferred|formulary)$/i.test(strongText.toLowerCase()) && !strongText.includes("®")) return;
       
       // Clean the drug name but preserve brand names with ®
       let cleanDrug = strongText
@@ -176,6 +184,12 @@ async function importFormularyData(supabase: any) {
         .trim();
         
       if (cleanDrug.length < 3) return;
+      
+      // Additional check: must look like a drug name (starts with capital letter, reasonable length)
+      if (!/^[A-Z][a-zA-Z]/.test(cleanDrug)) return;
+      if (cleanDrug.length > 50) return;
+      
+      rank++;
       
       // Get surrounding context for notes
       const parentEl = $(strongEl).parent();
