@@ -72,20 +72,19 @@ async function importFormularyData(supabase: any) {
     console.log(`Found ${$(".accordion-content").length} accordion-content elements`);
     console.log(`Found ${$("strong").length} strong elements`);
     
-    // Debug: log first few h3 elements and their content
-    console.log('=== FIRST FEW H3 ELEMENTS ===');
-    $("h3.accordion-switch").slice(0, 5).each((i, el) => {
-      const title = norm($(el).text());
-      console.log(`H3 ${i}: "${title}"`);
-      const content = $(el).next("div.accordion-content");
-      console.log(`- Has content div: ${content.length > 0}`);
-      if (content.length > 0) {
-        const strongTags = content.find("strong");
-        console.log(`- Strong tags found: ${strongTags.length}`);
-        strongTags.slice(0, 5).each((j, strong) => {
-          console.log(`  - Strong ${j}: "${norm($(strong).text())}"`);
-        });
-      }
+    // Debug: Show ALL h3 elements to see what's actually there
+    console.log('=== ALL H3 ELEMENTS ===');
+    $("h3").each((i, el) => {
+      const text = norm($(el).text());
+      const hasAccordionClass = $(el).hasClass("accordion-switch");
+      console.log(`H3 ${i}: "${text}" (has accordion-switch: ${hasAccordionClass})`);
+    });
+    
+    // Debug: Show a sample of strong elements
+    console.log('=== SAMPLE STRONG ELEMENTS ===');
+    $("strong").slice(0, 10).each((i, el) => {
+      const text = norm($(el).text());
+      console.log(`Strong ${i}: "${text}"`);
     });
     
     console.log('=== STARTING SECTION PROCESSING ===');
