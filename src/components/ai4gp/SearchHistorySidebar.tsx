@@ -5,8 +5,6 @@ import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Clock, Trash2, X, Search } from 'lucide-react';
 import { SearchHistory, Message } from '@/types/ai4gp';
-import { ModelSelector } from '@/components/ai4gp/ModelSelector';
-import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 
 interface SearchHistorySidebarProps {
   searchHistory: SearchHistory[];
@@ -24,7 +22,6 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
   onClose
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { selectedModel, setSelectedModel } = useAIModelPreference();
 
   const getSearchOverview = (search: SearchHistory) => {
     if (search.brief_overview) {
@@ -239,15 +236,6 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
             />
           </div>
         )}
-        
-        {/* AI Model Selector */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-2 font-medium">AI Model</p>
-          <ModelSelector
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-          />
-        </div>
       </div>
       
       <ScrollArea className="flex-1">
