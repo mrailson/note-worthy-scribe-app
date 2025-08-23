@@ -32,6 +32,8 @@ interface ClinicalTestResult {
   responseTime: number;
   status: 'success' | 'error' | 'testing';
   error?: string;
+  fullResponse?: string; // Store complete untruncated response
+  responseLength?: number; // Track response length
 }
 
 // AI Models Configuration  
@@ -180,16 +182,22 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
           response: `Error: ${error.message}`,
           responseTime,
           status: 'error',
-          error: error.message
+          error: error.message,
+          fullResponse: '',
+          responseLength: 0
         };
       }
 
+      const fullResponse = data?.response || 'No response received';
+      
       return {
         model: modelId,
         service: 'Direct API',
-        response: data?.response || 'No response received',
+        response: fullResponse.length > 200 ? fullResponse.substring(0, 200) + '...' : fullResponse, // Truncated for display
         responseTime: data?.responseTime || responseTime,
-        status: 'success'
+        status: 'success',
+        fullResponse: fullResponse, // Store complete response
+        responseLength: fullResponse.length
       };
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
@@ -199,7 +207,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         response: `Error: ${error.message}`,
         responseTime,
         status: 'error',
-        error: error.message
+        error: error.message,
+        fullResponse: '',
+        responseLength: 0
       };
     }
   };
@@ -323,17 +333,17 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
 
     // Generate comprehensive report
     let report = `AI CLINICAL PERFORMANCE TEST REPORT\n`;
-    report += `${'='.repeat(50)}\n\n`;
+    report += `${'='.repeat(80)}\n\n`;
     report += `Date & Time: ${testRunTime}\n`;
     report += `Test Type: Clinical Performance Analysis\n`;
     report += `Models Tested: ${clinicalResults.length}\n\n`;
     
     report += `TEST PROMPT:\n`;
-    report += `${'-'.repeat(20)}\n`;
+    report += `${'-'.repeat(40)}\n`;
     report += `${CLINICAL_TEST_QUERY}\n\n`;
     
     report += `RESULTS SUMMARY:\n`;
-    report += `${'-'.repeat(20)}\n`;
+    report += `${'-'.repeat(40)}\n`;
     const successful = clinicalResults.filter(r => r.status === 'success');
     const failed = clinicalResults.filter(r => r.status === 'error');
     report += `✓ Successful: ${successful.length}/${clinicalResults.length}\n`;
@@ -343,40 +353,66 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       const avgTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
       const fastest = successful.reduce((prev, current) => prev.responseTime < current.responseTime ? prev : current);
       const slowest = successful.reduce((prev, current) => prev.responseTime > current.responseTime ? prev : current);
+      const avgLength = Math.round(successful.reduce((sum, r) => sum + (r.responseLength || 0), 0) / successful.length);
       
       report += `Average Response Time: ${avgTime}ms\n`;
       report += `Fastest: ${fastest.model} (${fastest.responseTime}ms)\n`;
       report += `Slowest: ${slowest.model} (${slowest.responseTime}ms)\n`;
+      report += `Average Response Length: ${avgLength} characters\n`;
+      
+      // Add response length breakdown
+      report += `\nResponse Lengths by Model:\n`;
+      successful.forEach(r => {
+        report += `  ${r.model}: ${r.responseLength || 0} characters\n`;
+      });
     }
     
-    report += `\nDETAILED RESULTS:\n`;
-    report += `${'='.repeat(50)}\n\n`;
+    report += `\nDETAILED RESULTS FOR ANALYSIS:\n`;
+    report += `${'='.repeat(80)}\n\n`;
     
-    // Add detailed results for each model
+    // Add detailed results for each model with full responses
     clinicalResults.forEach((result, index) => {
       report += `${index + 1}. MODEL: ${result.model}\n`;
-      report += `   Service: ${result.service}\n`;
-      report += `   Status: ${result.status.toUpperCase()}\n`;
-      report += `   Response Time: ${result.responseTime}ms\n`;
+      report += `${'-'.repeat(60)}\n`;
+      report += `Service: ${result.service}\n`;
+      report += `Status: ${result.status.toUpperCase()}\n`;
+      report += `Response Time: ${result.responseTime}ms\n`;
+      report += `Response Length: ${result.responseLength || 0} characters\n`;
       
       if (result.error) {
-        report += `   Error: ${result.error}\n`;
+        report += `Error: ${result.error}\n`;
       } else {
-        report += `   Response:\n`;
-        report += `   ${'-'.repeat(10)}\n`;
-        // Format response with proper indentation
-        const formattedResponse = result.response
-          .split('\n')
-          .map(line => `   ${line}`)
-          .join('\n');
-        report += `${formattedResponse}\n`;
+        report += `\nFULL RESPONSE:\n`;
+        report += `${'-'.repeat(30)}\n`;
+        // Include complete untruncated response for analysis
+        const fullResponse = result.fullResponse || result.response;
+        report += `${fullResponse}\n`;
       }
       
-      report += `\n${'-'.repeat(30)}\n\n`;
+      report += `\n${'='.repeat(60)}\n\n`;
     });
     
-    report += `REPORT GENERATED: ${new Date().toLocaleString()}\n`;
+    // Add analysis section
+    report += `ANALYSIS METADATA:\n`;
+    report += `${'-'.repeat(40)}\n`;
+    report += `Total Response Characters: ${successful.reduce((sum, r) => sum + (r.responseLength || 0), 0)}\n`;
+    report += `Models by Response Speed (fastest to slowest):\n`;
+    successful
+      .sort((a, b) => a.responseTime - b.responseTime)
+      .forEach((r, i) => {
+        report += `  ${i + 1}. ${r.model}: ${r.responseTime}ms (${r.responseLength} chars)\n`;
+      });
+    
+    report += `\nModels by Response Length (longest to shortest):\n`;
+    successful
+      .sort((a, b) => (b.responseLength || 0) - (a.responseLength || 0))
+      .forEach((r, i) => {
+        report += `  ${i + 1}. ${r.model}: ${r.responseLength} chars (${r.responseTime}ms)\n`;
+      });
+    
+    report += `\nREPORT GENERATED: ${new Date().toLocaleString()}\n`;
     report += `Test completed using AI4GP Clinical Performance Testing Suite\n`;
+    report += `Ready for onward analysis and comparison\n`;
 
     // Create and download the file
     const blob = new Blob([report], { type: 'text/plain' });
@@ -392,7 +428,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
 
     toast({
       title: "Report Downloaded",
-      description: "Clinical performance report saved successfully",
+      description: "Complete clinical performance report with full responses saved for analysis",
     });
   };
 
