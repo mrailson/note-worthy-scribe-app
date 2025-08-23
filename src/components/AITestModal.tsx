@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download } from 'lucide-react';
+import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -104,6 +104,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
   const [testRunTime, setTestRunTime] = useState<string>('');
   const [selectedClinicalQuery, setSelectedClinicalQuery] = useState(CLINICAL_TEST_QUERY);
   const [selectedClinicalTitle, setSelectedClinicalTitle] = useState('Default Metformin Query');
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
 
   const testSingleModel = async (modelId: string): Promise<TestResult> => {
     const startTime = Date.now();
@@ -561,17 +562,33 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'text-green-600';
-      case 'error':
-        return 'text-red-600';
-      case 'testing':
-      case 'pending':
-        return 'text-blue-600';
+  // Helper functions for expand functionality
+  const toggleExpanded = (resultKey: string) => {
+    setExpandedResults(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(resultKey)) {
+        newSet.delete(resultKey);
+      } else {
+        newSet.add(resultKey);
+      }
+      return newSet;
+    });
+  };
+
+  const getResultKey = (result: ClinicalTestResult, index: number) => {
+    return `${result.model}-${result.service}-${index}`;
+  };
+
+  const getRiskLevelColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'GREEN':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-500';
+      case 'ORANGE':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-500';
+      case 'RED':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-500';
       default:
-        return 'text-gray-600';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 border-gray-500';
     }
   };
 
@@ -790,95 +807,197 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                     )}
                   </div>
 
-                  {clinicalResults.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                      {clinicalResults.map((result, index) => (
-                        <Card key={index} className="p-3">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <Badge variant={
-                                result.service === 'Fast Clinical' ? 'default' : 
-                                result.service === 'Standard AI' ? 'secondary' : 
-                                'outline'
-                              } className="text-xs">
-                                {result.service}
-                              </Badge>
-                              {getStatusIcon(result.status)}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs font-medium">
-                              <Clock className="w-3 h-3" />
-                              {result.responseTime}ms
-                            </div>
-                          </div>
-                          
-                          {/* GPT-5 Review Results */}
-                          {result.review && (
-                            <div className="mb-3">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className={`px-2 py-1 rounded text-xs font-bold ${
-                                  result.review.riskLevel === 'GREEN' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                    : result.review.riskLevel === 'ORANGE'
-                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                }`}>
-                                  {result.review.confidenceScore}/99
-                                </div>
-                                <Badge variant="outline" className={`text-xs ${
-                                  result.review.riskLevel === 'GREEN' 
-                                    ? 'border-green-500 text-green-700 dark:text-green-300'
-                                    : result.review.riskLevel === 'ORANGE'
-                                    ? 'border-orange-500 text-orange-700 dark:text-orange-300'
-                                    : 'border-red-500 text-red-700 dark:text-red-300'
-                                }`}>
-                                  {result.review.riskLevel}
-                                </Badge>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {result.review.clinicalAccuracy} • {result.review.safetyRating}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="space-y-2">
-                            <div className="text-xs font-medium">
-                              Model: {result.model}
-                            </div>
-                            
-                            <ScrollArea className="h-24">
-                              <div className="text-xs bg-muted p-2 rounded">
-                                {result.response}
-                              </div>
-                            </ScrollArea>
-                            
-                            {/* Review Details */}
-                            {result.review && (
-                              <div className="text-xs text-muted-foreground">
-                                <div className="font-medium mb-1">GPT-5 Review:</div>
-                                <div className="truncate">{result.review.overallAssessment}</div>
-                                {result.review.strengths.length > 0 && (
-                                  <div className="text-green-600 dark:text-green-400 mt-1">
-                                    ✓ {result.review.strengths.slice(0, 2).join(', ')}
-                                  </div>
-                                )}
-                                {result.review.concerns.length > 0 && (
-                                  <div className="text-red-600 dark:text-red-400 mt-1">
-                                    ⚠ {result.review.concerns.slice(0, 1).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            {result.error && (
-                              <div className="text-xs text-destructive">
-                                Error: {result.error}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
+                   {clinicalResults.length > 0 && (
+                     <Tabs defaultValue="results" className="w-full">
+                       <TabsList className="grid w-full grid-cols-2 mb-3">
+                         <TabsTrigger value="results" className="text-xs">Test Results</TabsTrigger>
+                         <TabsTrigger value="goldstandard" className="text-xs">Gold Standard</TabsTrigger>
+                       </TabsList>
+                       
+                       <TabsContent value="results" className="m-0">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                           {clinicalResults.map((result, index) => {
+                             const resultKey = getResultKey(result, index);
+                             const isExpanded = expandedResults.has(resultKey);
+                             
+                             return (
+                               <Card key={index} className="p-3">
+                                 <div className="flex items-center justify-between mb-3">
+                                   <div className="flex items-center gap-2">
+                                     <Badge variant={
+                                       result.service === 'Fast Clinical' ? 'default' : 
+                                       result.service === 'Standard AI' ? 'secondary' : 
+                                       'outline'
+                                     } className="text-xs">
+                                       {result.service}
+                                     </Badge>
+                                     {getStatusIcon(result.status)}
+                                   </div>
+                                   <div className="flex items-center gap-1 text-xs font-medium">
+                                     <Clock className="w-3 h-3" />
+                                     {result.responseTime}ms
+                                   </div>
+                                 </div>
+                                 
+                                 {/* GPT-5 Review Results */}
+                                 {result.review && (
+                                   <div className="mb-3">
+                                     <div className="flex items-center gap-2 mb-2">
+                                       <div className={`px-2 py-1 rounded text-xs font-bold ${getRiskLevelColor(result.review.riskLevel)}`}>
+                                         {result.review.confidenceScore}/99
+                                       </div>
+                                       <Badge variant="outline" className={`text-xs ${getRiskLevelColor(result.review.riskLevel)}`}>
+                                         {result.review.riskLevel}
+                                       </Badge>
+                                     </div>
+                                     <div className="text-xs text-muted-foreground">
+                                       {result.review.clinicalAccuracy} • {result.review.safetyRating}
+                                     </div>
+                                   </div>
+                                 )}
+                                 
+                                 <div className="space-y-2">
+                                   <div className="text-xs font-medium">
+                                     Model: {result.model}
+                                   </div>
+                                   
+                                   <div className="relative">
+                                     <ScrollArea className={isExpanded ? "h-64" : "h-24"}>
+                                       <div className="text-xs bg-muted p-2 rounded whitespace-pre-wrap">
+                                         {isExpanded ? (result.fullResponse || result.response) : result.response}
+                                       </div>
+                                     </ScrollArea>
+                                     
+                                     {result.fullResponse && result.fullResponse !== result.response && (
+                                       <Button
+                                         variant="ghost"
+                                         size="sm"
+                                         className="absolute -bottom-1 right-0 h-6 px-2 text-xs bg-background border"
+                                         onClick={() => toggleExpanded(resultKey)}
+                                       >
+                                         {isExpanded ? (
+                                           <>
+                                             <ChevronUp className="w-3 h-3 mr-1" />
+                                             Collapse
+                                           </>
+                                         ) : (
+                                           <>
+                                             <ChevronDown className="w-3 h-3 mr-1" />
+                                             Expand
+                                           </>
+                                         )}
+                                       </Button>
+                                     )}
+                                   </div>
+                                   
+                                   {/* Review Details */}
+                                   {result.review && isExpanded && (
+                                     <div className="text-xs text-muted-foreground space-y-2 border-t pt-2">
+                                       <div className="font-medium mb-1">GPT-5 Detailed Review:</div>
+                                       
+                                       <div>
+                                         <strong>Overall Assessment:</strong>
+                                         <div className="mt-1 p-2 bg-muted rounded">{result.review.overallAssessment}</div>
+                                       </div>
+                                       
+                                       {result.review.strengths.length > 0 && (
+                                         <div>
+                                           <strong className="text-green-600 dark:text-green-400">Strengths:</strong>
+                                           <ul className="mt-1 list-disc list-inside space-y-1">
+                                             {result.review.strengths.map((strength, i) => (
+                                               <li key={i} className="text-green-600 dark:text-green-400">{strength}</li>
+                                             ))}
+                                           </ul>
+                                         </div>
+                                       )}
+                                       
+                                       {result.review.concerns.length > 0 && (
+                                         <div>
+                                           <strong className="text-red-600 dark:text-red-400">Concerns:</strong>
+                                           <ul className="mt-1 list-disc list-inside space-y-1">
+                                             {result.review.concerns.map((concern, i) => (
+                                               <li key={i} className="text-red-600 dark:text-red-400">{concern}</li>
+                                             ))}
+                                           </ul>
+                                         </div>
+                                       )}
+                                       
+                                       {result.review.missingSections.length > 0 && (
+                                         <div>
+                                           <strong className="text-orange-600 dark:text-orange-400">Missing Sections:</strong>
+                                           <ul className="mt-1 list-disc list-inside space-y-1">
+                                             {result.review.missingSections.map((missing, i) => (
+                                               <li key={i} className="text-orange-600 dark:text-orange-400">{missing}</li>
+                                             ))}
+                                           </ul>
+                                         </div>
+                                       )}
+                                       
+                                       <div className="grid grid-cols-2 gap-2 mt-2">
+                                         <div>
+                                           <strong>NHS Compliance:</strong>
+                                           <div className="mt-1 text-xs">{result.review.nhsCompliance}</div>
+                                         </div>
+                                         <div>
+                                           <strong>Safety Rating:</strong>
+                                           <div className="mt-1 text-xs">{result.review.safetyRating}</div>
+                                         </div>
+                                       </div>
+                                     </div>
+                                   )}
+                                   
+                                   {!isExpanded && result.review && (
+                                     <div className="text-xs text-muted-foreground">
+                                       <div className="font-medium mb-1">GPT-5 Review Summary:</div>
+                                       <div className="truncate">{result.review.overallAssessment}</div>
+                                       {result.review.strengths.length > 0 && (
+                                         <div className="text-green-600 dark:text-green-400 mt-1">
+                                           ✓ {result.review.strengths.slice(0, 2).join(', ')}
+                                         </div>
+                                       )}
+                                       {result.review.concerns.length > 0 && (
+                                         <div className="text-red-600 dark:text-red-400 mt-1">
+                                           ⚠ {result.review.concerns.slice(0, 1).join(', ')}
+                                         </div>
+                                       )}
+                                     </div>
+                                   )}
+                                   
+                                   {result.error && (
+                                     <div className="text-xs text-destructive">
+                                       Error: {result.error}
+                                     </div>
+                                   )}
+                                 </div>
+                               </Card>
+                             );
+                           })}
+                         </div>
+                       </TabsContent>
+                       
+                       <TabsContent value="goldstandard" className="m-0">
+                         <Card className="p-4">
+                           <h4 className="font-medium mb-3 flex items-center gap-2">
+                             <FileText className="w-4 h-4" />
+                             Gold Standard for: {selectedClinicalTitle}
+                           </h4>
+                           {getCurrentGoldStandard() ? (
+                             <ScrollArea className="h-96">
+                               <div className="text-sm whitespace-pre-wrap p-3 bg-muted rounded font-mono">
+                                 {getCurrentGoldStandard()}
+                               </div>
+                             </ScrollArea>
+                           ) : (
+                             <div className="text-center text-muted-foreground py-8">
+                               <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                               <p>No gold standard available for this query</p>
+                               <p className="text-xs mt-1">Select a clinical quick pick with gold standard to compare AI outputs</p>
+                             </div>
+                           )}
+                         </Card>
+                       </TabsContent>
+                     </Tabs>
+                   )}
 
                   {clinicalResults.length > 0 && (
                     <Card className="p-3 sm:p-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
