@@ -4687,6 +4687,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      icn_norm: {
+        Args: { "": string }
+        Returns: string
+      }
       initialize_complaint_compliance: {
         Args: { complaint_id_param: string }
         Returns: undefined
