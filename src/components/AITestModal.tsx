@@ -44,7 +44,7 @@ const AI_MODELS = [
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', service: 'google' },
 ];
 
-const CLINICAL_TEST_QUERY = "Provide comprehensive information about metformin including: indication, contraindications, dosing, monitoring requirements, and common side effects. Include BNF guidance.";
+const CLINICAL_TEST_QUERY = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology. Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Metformin.";
 
 export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
   const [prompt, setPrompt] = useState('');
