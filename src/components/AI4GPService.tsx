@@ -8,22 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy } from 'lucide-react';
+
+// Component imports
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
 import { FloatingMobileInput } from '@/components/ai4gp/FloatingMobileInput';
-import { useIsMobile } from '@/hooks/use-mobile';
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
-import { useAI4GPDisclaimer } from '@/hooks/useAI4GPDisclaimer';
-import { useAI4GPService } from '@/hooks/useAI4GPService';
-import { usePracticeContext } from '@/hooks/usePracticeContext';
-import { useSearchHistory } from '@/hooks/useSearchHistory';
-import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
-import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
@@ -31,9 +26,20 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import AITestModal from '@/components/AITestModal';
-import { useToast } from '@/hooks/use-toast';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import TrafficLightSearch from '@/components/TrafficLightSearch';
+
+// Hook imports
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useAI4GPDisclaimer } from '@/hooks/useAI4GPDisclaimer';
+import { useAI4GPService } from '@/hooks/useAI4GPService';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { useToast } from '@/hooks/use-toast';
+
+// Utils and types
+import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
+import { Message } from '@/types/ai4gp';
 
 
 const AI4GPService = () => {
