@@ -8,6 +8,10 @@ export interface QuickAction {
   prompt: string;
   requiresFile: boolean;
   action?: string;
+  submenu?: Array<{
+    label: string;
+    prompt: string;
+  }>;
 }
 
 export const quickActions: QuickAction[] = [
@@ -26,13 +30,58 @@ export const quickActions: QuickAction[] = [
   { 
     label: 'Patient Translation Service', 
     icon: Languages, 
-    prompt: `${nhsSafetyPreamble} Translate the following healthcare content into [target language]. Maintain medical accuracy and use culturally appropriate terminology. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+    prompt: '',
+    requiresFile: true,
+    submenu: [
+      {
+        label: 'Spanish',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into Spanish (Castilian). Maintain medical accuracy and use culturally appropriate terminology for Spanish-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
 
 Content to translate: [paste content here]
-Target language: [specify language]
 
-Note: For official patient communications, consider professional medical translation services for final verification.`,
-    requiresFile: true 
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      },
+      {
+        label: 'Polish',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into Polish. Maintain medical accuracy and use culturally appropriate terminology for Polish-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      },
+      {
+        label: 'Urdu',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into Urdu. Maintain medical accuracy and use culturally appropriate terminology for Urdu-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      },
+      {
+        label: 'Bengali',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into Bengali. Maintain medical accuracy and use culturally appropriate terminology for Bengali-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      },
+      {
+        label: 'Arabic',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into Arabic. Maintain medical accuracy and use culturally appropriate terminology for Arabic-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      },
+      {
+        label: 'French',
+        prompt: `${nhsSafetyPreamble} Translate the following healthcare content into French. Maintain medical accuracy and use culturally appropriate terminology for French-speaking patients. Preserve all critical medical information, dosages, and safety warnings. Include a note about professional medical translation verification if needed for official use.
+
+Content to translate: [paste content here]
+
+Note: For official patient communications, consider professional medical translation services for final verification.`
+      }
+    ]
   },
   { 
     label: 'Red Flag Symptom Checker', 

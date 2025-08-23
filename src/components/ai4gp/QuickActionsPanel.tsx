@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Minus, ChevronDown } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -108,10 +109,42 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 } else {
                   setIsAITestModalOpen(true);
                 }
-              } else {
+              } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
             };
+
+            // If action has a submenu, render a dropdown
+            if (action.submenu) {
+              return (
+                <DropdownMenu key={index}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-between text-left h-auto py-2 px-3 w-full"
+                    >
+                      <div className="flex items-center">
+                        <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">{action.label}</span>
+                      </div>
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    {action.submenu.map((subItem, subIndex) => (
+                      <DropdownMenuItem
+                        key={subIndex}
+                        onClick={() => setInput(enhancePromptWithPracticeInfo(subItem.prompt))}
+                        className="cursor-pointer"
+                      >
+                        {subItem.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
 
             return (
               <Button
