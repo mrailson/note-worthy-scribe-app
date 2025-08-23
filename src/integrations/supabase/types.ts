@@ -4425,6 +4425,10 @@ export type Database = {
         Args: { p_practice_id: string; p_user_id: string }
         Returns: undefined
       }
+      deduplicate_medicines: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
