@@ -292,10 +292,6 @@ const AI4GPService = () => {
                           <Info className="w-4 h-4 mr-2" />
                           About & Terms
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={copyAuditLine}>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copy Audit Line
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
