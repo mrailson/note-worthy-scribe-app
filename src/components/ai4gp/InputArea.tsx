@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Plus } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -112,7 +112,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
               disabled={isLoading}
               title="Attach files"
             >
-              <Plus className="w-4 h-4" />
+              <Paperclip className="w-4 h-4" />
             </Button>
             
             <Button
