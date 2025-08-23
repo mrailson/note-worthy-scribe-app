@@ -70,7 +70,8 @@ const formatText = (text: string) => {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     // Italic text *text* -> <em>text</em>
     .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
-    // Headers ### -> <h3>
+    // Headers #### -> <h4>, ### -> <h3>, ## -> <h2>, # -> <h1>
+    .replace(/^#### (.*$)/gm, '<h4 class="font-semibold text-xs mt-2 mb-1">$1</h4>')
     .replace(/^### (.*$)/gm, '<h3 class="font-semibold text-sm mt-2 mb-1">$1</h3>')
     .replace(/^## (.*$)/gm, '<h2 class="font-semibold text-base mt-2 mb-1">$1</h2>')
     .replace(/^# (.*$)/gm, '<h1 class="font-bold text-lg mt-2 mb-1">$1</h1>')
@@ -470,7 +471,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     }
   };
 
-  const downloadClinicalReport = () => {
+  const downloadClinicalReport = async () => {
     if (clinicalResults.length === 0 || !testRunTime) {
       toast({
         title: "No Data",
@@ -480,105 +481,392 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       return;
     }
 
-    // Generate comprehensive report
-    let report = `AI CLINICAL PERFORMANCE TEST REPORT\n`;
-    report += `${'='.repeat(80)}\n\n`;
-    report += `Date & Time: ${testRunTime}\n`;
-    report += `Test Type: Clinical Performance Analysis\n`;
-    report += `Models Tested: ${clinicalResults.length}\n\n`;
-    
-    report += `TEST PROMPT:\n`;
-    report += `${'-'.repeat(40)}\n`;
-    report += `${CLINICAL_TEST_QUERY}\n\n`;
-    
-    report += `RESULTS SUMMARY:\n`;
-    report += `${'-'.repeat(40)}\n`;
-    const successful = clinicalResults.filter(r => r.status === 'success');
-    const failed = clinicalResults.filter(r => r.status === 'error');
-    report += `✓ Successful: ${successful.length}/${clinicalResults.length}\n`;
-    report += `✗ Failed: ${failed.length}/${clinicalResults.length}\n`;
-    
-    if (successful.length > 0) {
-      const avgTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
-      const fastest = successful.reduce((prev, current) => prev.responseTime < current.responseTime ? prev : current);
-      const slowest = successful.reduce((prev, current) => prev.responseTime > current.responseTime ? prev : current);
-      const avgLength = Math.round(successful.reduce((sum, r) => sum + (r.responseLength || 0), 0) / successful.length);
+    try {
+      // Dynamically import docx to avoid bundling issues
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell } = await import('docx');
+
+      const successful = clinicalResults.filter(r => r.status === 'success');
+      const failed = clinicalResults.filter(r => r.status === 'error');
       
-      report += `Average Response Time: ${avgTime}ms\n`;
-      report += `Fastest: ${fastest.model} (${fastest.responseTime}ms)\n`;
-      report += `Slowest: ${slowest.model} (${slowest.responseTime}ms)\n`;
-      report += `Average Response Length: ${avgLength} characters\n`;
-      
-      // Add response length breakdown
-      report += `\nResponse Lengths by Model:\n`;
-      successful.forEach(r => {
-        report += `  ${r.model}: ${r.responseLength || 0} characters\n`;
+      // Helper function to convert markdown text to docx paragraphs
+      const convertTextToParagraphs = (text: string): any[] => {
+        if (!text) return [];
+        
+        const lines = text.split('\n');
+        const paragraphs: any[] = [];
+        
+        lines.forEach(line => {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text: "", size: 22 })],
+              spacing: { after: 60 }
+            }));
+            return;
+          }
+          
+          // Handle headers
+          if (trimmedLine.startsWith('####')) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: trimmedLine.replace(/^#{1,4}\s*/, ''),
+                bold: true,
+                size: 20,
+                color: "2563eb"
+              })],
+              spacing: { before: 200, after: 100 }
+            }));
+          } else if (trimmedLine.startsWith('###')) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: trimmedLine.replace(/^#{1,4}\s*/, ''),
+                bold: true,
+                size: 22,
+                color: "1f2937"
+              })],
+              spacing: { before: 200, after: 100 }
+            }));
+          } else if (trimmedLine.startsWith('##')) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: trimmedLine.replace(/^#{1,4}\s*/, ''),
+                bold: true,
+                size: 24,
+                color: "1f2937"
+              })],
+              spacing: { before: 240, after: 120 }
+            }));
+          } else if (trimmedLine.startsWith('#')) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: trimmedLine.replace(/^#{1,4}\s*/, ''),
+                bold: true,
+                size: 26,
+                color: "0f172a"
+              })],
+              spacing: { before: 280, after: 140 }
+            }));
+          } else if (trimmedLine.startsWith('- ')) {
+            // Bullet points
+            paragraphs.push(new Paragraph({
+              children: [
+                new TextRun({ text: "• ", size: 22, color: "374151" }),
+                new TextRun({ text: trimmedLine.substring(2), size: 22, color: "374151" })
+              ],
+              indent: { left: 360 },
+              spacing: { after: 80 }
+            }));
+          } else {
+            // Regular text with bold formatting
+            const parts: any[] = [];
+            let lastIndex = 0;
+            
+            const boldRegex = /\*\*([^*]+?)\*\*/g;
+            let match;
+            
+            while ((match = boldRegex.exec(trimmedLine)) !== null) {
+              if (match.index > lastIndex) {
+                const normalText = trimmedLine.substring(lastIndex, match.index);
+                if (normalText) {
+                  parts.push(new TextRun({
+                    text: normalText,
+                    size: 22,
+                    color: "374151"
+                  }));
+                }
+              }
+              
+              parts.push(new TextRun({
+                text: match[1],
+                bold: true,
+                size: 22,
+                color: "1f2937"
+              }));
+              
+              lastIndex = match.index + match[0].length;
+            }
+            
+            if (lastIndex < trimmedLine.length) {
+              parts.push(new TextRun({
+                text: trimmedLine.substring(lastIndex),
+                size: 22,
+                color: "374151"
+              }));
+            }
+            
+            if (parts.length === 0) {
+              parts.push(new TextRun({
+                text: trimmedLine,
+                size: 22,
+                color: "374151"
+              }));
+            }
+            
+            paragraphs.push(new Paragraph({
+              children: parts,
+              spacing: { after: 120 }
+            }));
+          }
+        });
+        
+        return paragraphs;
+      };
+
+      // Create document sections
+      const docSections: any[] = [];
+
+      // Title and metadata
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: "AI CLINICAL PERFORMANCE TEST REPORT",
+            bold: true,
+            size: 32,
+            color: "0f172a"
+          })],
+          heading: HeadingLevel.TITLE,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Date & Time: ", bold: true, size: 24 }),
+            new TextRun({ text: testRunTime, size: 24 })
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Test Type: ", bold: true, size: 24 }),
+            new TextRun({ text: "Clinical Performance Analysis", size: 24 })
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Models Tested: ", bold: true, size: 24 }),
+            new TextRun({ text: clinicalResults.length.toString(), size: 24 })
+          ],
+          spacing: { after: 300 }
+        })
+      );
+
+      // Summary section
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: "RESULTS SUMMARY",
+            bold: true,
+            size: 28,
+            color: "1f2937"
+          })],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "✓ Successful: ", bold: true, size: 24, color: "16a34a" }),
+            new TextRun({ text: `${successful.length}/${clinicalResults.length}`, size: 24 })
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "✗ Failed: ", bold: true, size: 24, color: "dc2626" }),
+            new TextRun({ text: `${failed.length}/${clinicalResults.length}`, size: 24 })
+          ],
+          spacing: { after: 200 }
+        })
+      );
+
+      // Performance metrics
+      if (successful.length > 0) {
+        const avgTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
+        const fastest = successful.reduce((prev, current) => prev.responseTime < current.responseTime ? prev : current);
+        const slowest = successful.reduce((prev, current) => prev.responseTime > current.responseTime ? prev : current);
+        const avgLength = Math.round(successful.reduce((sum, r) => sum + (r.responseLength || 0), 0) / successful.length);
+        
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: "PERFORMANCE METRICS",
+              bold: true,
+              size: 26,
+              color: "1f2937"
+            })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 150 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Average Response Time: ", bold: true, size: 22 }),
+              new TextRun({ text: `${avgTime}ms`, size: 22 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Fastest Model: ", bold: true, size: 22 }),
+              new TextRun({ text: `${fastest.model} (${fastest.responseTime}ms)`, size: 22 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Slowest Model: ", bold: true, size: 22 }),
+              new TextRun({ text: `${slowest.model} (${slowest.responseTime}ms)`, size: 22 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Average Response Length: ", bold: true, size: 22 }),
+              new TextRun({ text: `${avgLength} characters`, size: 22 })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      // Detailed results for each model
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: "DETAILED MODEL RESPONSES",
+            bold: true,
+            size: 28,
+            color: "1f2937"
+          })],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 400, after: 200 }
+        })
+      );
+
+      clinicalResults.forEach((result, index) => {
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `${index + 1}. ${result.model}`,
+              bold: true,
+              size: 24,
+              color: "2563eb"
+            })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 150 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Service: ", bold: true, size: 22 }),
+              new TextRun({ text: result.service, size: 22 })
+            ],
+            spacing: { after: 80 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Status: ", bold: true, size: 22 }),
+              new TextRun({ 
+                text: result.status.toUpperCase(), 
+                size: 22,
+                color: result.status === 'success' ? "16a34a" : "dc2626"
+              })
+            ],
+            spacing: { after: 80 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Response Time: ", bold: true, size: 22 }),
+              new TextRun({ text: `${result.responseTime}ms`, size: 22 })
+            ],
+            spacing: { after: 80 }
+          })
+        );
+
+        // Add confidence score if available
+        if (result.review && result.review.confidenceScore !== undefined) {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Confidence Score: ", bold: true, size: 22 }),
+                new TextRun({ 
+                  text: `${result.review.confidenceScore}/99`, 
+                  size: 22,
+                  bold: true,
+                  color: result.review.confidenceScore >= 80 ? "16a34a" : 
+                        result.review.confidenceScore >= 60 ? "ea580c" : "dc2626"
+                })
+              ],
+              spacing: { after: 80 }
+            })
+          );
+        }
+
+        if (result.error) {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Error: ", bold: true, size: 22, color: "dc2626" }),
+                new TextRun({ text: result.error, size: 22 })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+        } else {
+          docSections.push(
+            new Paragraph({
+              children: [new TextRun({
+                text: "Response Content:",
+                bold: true,
+                size: 22,
+                color: "1f2937"
+              })],
+              spacing: { before: 120, after: 80 }
+            })
+          );
+
+          const fullResponse = result.fullResponse || result.response;
+          const responseParagraphs = convertTextToParagraphs(fullResponse);
+          docSections.push(...responseParagraphs);
+        }
+
+        // Add separator
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun({ text: "", size: 22 })],
+            spacing: { after: 300 }
+          })
+        );
+      });
+
+      // Create and save document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docSections
+        }]
+      });
+
+      const buffer = await Packer.toBlob(doc);
+      const url = window.URL.createObjectURL(buffer);
+      const a = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.href = url;
+      a.download = `Clinical-AI-Performance-Report_${timestamp}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Report Downloaded",
+        description: "Formatted Word document with AI responses and confidence scores saved",
+      });
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate Word document. Please try again.",
+        variant: "destructive",
       });
     }
-    
-    report += `\nDETAILED RESULTS FOR ANALYSIS:\n`;
-    report += `${'='.repeat(80)}\n\n`;
-    
-    // Add detailed results for each model with full responses
-    clinicalResults.forEach((result, index) => {
-      report += `${index + 1}. MODEL: ${result.model}\n`;
-      report += `${'-'.repeat(60)}\n`;
-      report += `Service: ${result.service}\n`;
-      report += `Status: ${result.status.toUpperCase()}\n`;
-      report += `Response Time: ${result.responseTime}ms\n`;
-      report += `Response Length: ${result.responseLength || 0} characters\n`;
-      
-      if (result.error) {
-        report += `Error: ${result.error}\n`;
-      } else {
-        report += `\nFULL RESPONSE:\n`;
-        report += `${'-'.repeat(30)}\n`;
-        // Include complete untruncated response for analysis
-        const fullResponse = result.fullResponse || result.response;
-        report += `${fullResponse}\n`;
-      }
-      
-      report += `\n${'='.repeat(60)}\n\n`;
-    });
-    
-    // Add analysis section
-    report += `ANALYSIS METADATA:\n`;
-    report += `${'-'.repeat(40)}\n`;
-    report += `Total Response Characters: ${successful.reduce((sum, r) => sum + (r.responseLength || 0), 0)}\n`;
-    report += `Models by Response Speed (fastest to slowest):\n`;
-    successful
-      .sort((a, b) => a.responseTime - b.responseTime)
-      .forEach((r, i) => {
-        report += `  ${i + 1}. ${r.model}: ${r.responseTime}ms (${r.responseLength} chars)\n`;
-      });
-    
-    report += `\nModels by Response Length (longest to shortest):\n`;
-    successful
-      .sort((a, b) => (b.responseLength || 0) - (a.responseLength || 0))
-      .forEach((r, i) => {
-        report += `  ${i + 1}. ${r.model}: ${r.responseLength} chars (${r.responseTime}ms)\n`;
-      });
-    
-    report += `\nREPORT GENERATED: ${new Date().toLocaleString()}\n`;
-    report += `Test completed using AI4GP Clinical Performance Testing Suite\n`;
-    report += `Ready for onward analysis and comparison\n`;
-
-    // Create and download the file
-    const blob = new Blob([report], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    a.href = url;
-    a.download = `Clinical-AI-Performance-Report_${timestamp}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    toast({
-      title: "Report Downloaded",
-      description: "Complete clinical performance report with full responses saved for analysis",
-    });
   };
 
   const getStatusIcon = (status: string) => {
