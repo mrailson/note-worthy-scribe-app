@@ -132,7 +132,7 @@ const AI4GP = () => {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
       <Header onNewMeeting={() => {}} />
       
       {/* Drug Quick Lookup Button */}
