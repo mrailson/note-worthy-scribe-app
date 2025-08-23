@@ -17,13 +17,11 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
-import { ModelSelector } from '@/components/ai4gp/ModelSelector';
 import { MicroBanner, ShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
 import { useAI4GPDisclaimer } from '@/hooks/useAI4GPDisclaimer';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
-import { useAIModelPreference } from '@/hooks/useAIModelPreference';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
@@ -61,8 +59,6 @@ const AI4GPService = () => {
   const [showAITestModal, setShowAITestModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
-
-  const { selectedModel: aiModel, setSelectedModel: setAIModel } = useAIModelPreference();
 
   const {
     messages,
@@ -104,9 +100,8 @@ const AI4GPService = () => {
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
-    // Map the AI model preference to the appropriate model string for the backend
-    const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'gpt-5';
-    handleSend(practiceContext, modelToUse);
+    // Always use GPT-5 for AI4GP
+    handleSend(practiceContext, 'gpt-5');
   };
 
   const handleLoadPreviousSearch = (search: any) => {
@@ -222,14 +217,6 @@ const AI4GPService = () => {
                       <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                       <span className="hidden sm:inline text-xs">History</span>
                     </Button>
-                    
-                    {/* Model Selector next to History */}
-                    <div className="ml-2 hidden sm:block">
-                      <ModelSelector
-                        selectedModel={aiModel}
-                        onModelChange={setAIModel}
-                      />
-                    </div>
                   </CardTitle>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
@@ -413,8 +400,8 @@ const AI4GPService = () => {
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
                         onQuickResponse={(response) => {
-                          const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'gpt-5';
-                          handleQuickResponse(response, practiceContext, modelToUse);
+                          // Always use GPT-5 for AI4GP
+                          handleQuickResponse(response, practiceContext, 'gpt-5');
                         }}
                       />
                     </div>
