@@ -682,32 +682,7 @@ Please fetch these and retry. No corrections made."`;
           )}
           
   {/* Clinical verification badge */}
-          {/* Clinical verification display - show from either message data or verification data */}
-          {message.role === 'assistant' && (message.clinicalVerification || verificationData) && (
-            <div className="mt-3 pt-2 border-t border-border/20">
-              <div className="flex items-center gap-2">
-                <Stethoscope className="w-3 h-3 text-blue-600" />
-                <button
-                  onClick={() => setIsVerificationModalOpen(true)}
-                  className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
-                    getConfidenceColor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)
-                  }`}
-                  title="Click to view detailed verification report"
-                >
-                  <div className="flex items-center gap-1">
-                    {getConfidenceIcon((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}
-                    <span>{Math.floor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}% Clinical Confidence</span>
-                  </div>
-                </button>
-                <Badge variant={
-                  (verificationData?.riskLevel || message.clinicalVerification?.riskLevel) === 'high' ? 'destructive' :
-                  (verificationData?.riskLevel || message.clinicalVerification?.riskLevel) === 'medium' ? 'secondary' : 'default'
-                } className="text-xs">
-                  {((verificationData?.riskLevel || message.clinicalVerification?.riskLevel) || 'low').toUpperCase()} RISK
-                </Badge>
-              </div>
-            </div>
-          )}
+          {/* Clinical verification display - removed from here since it's now inline with footer */}
           
           {/* Response metrics for assistant messages */}
           {(showResponseMetrics || showRenderTimes || showAIService) && message.role === 'assistant' && (
@@ -776,6 +751,31 @@ Please fetch these and retry. No corrections made."`;
                   </span>
                 </div>
               )}
+
+              {/* Clinical verification results - show in middle when available */}
+              {!isModal && message.role === 'assistant' && (message.clinicalVerification || verificationData) && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsVerificationModalOpen(true)}
+                    className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
+                      getConfidenceColor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)
+                    }`}
+                    title="Click to view detailed verification report"
+                  >
+                    <div className="flex items-center gap-1">
+                      {getConfidenceIcon((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}
+                      <span>{Math.floor((verificationData?.confidence || message.clinicalVerification?.confidenceScore) || 0)}%</span>
+                    </div>
+                  </button>
+                  <Badge variant={
+                    (verificationData?.riskLevel || message.clinicalVerification?.riskLevel) === 'high' ? 'destructive' :
+                    (verificationData?.riskLevel || message.clinicalVerification?.riskLevel) === 'medium' ? 'secondary' : 'default'
+                  } className="text-xs">
+                    {((verificationData?.riskLevel || message.clinicalVerification?.riskLevel) || 'low').toUpperCase()} RISK
+                  </Badge>
+                </div>
+              )}
+
               <div className={`flex items-center gap-2 ${isModal ? 'justify-center w-full' : ''}`}>
                 {/* Action buttons for assistant messages */}
                 {message.role === 'assistant' && (
