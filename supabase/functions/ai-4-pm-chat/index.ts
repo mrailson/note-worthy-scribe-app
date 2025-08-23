@@ -861,7 +861,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  // Detect content type and set appropriate token limits
+  // Set maximum token limits for all content types to prevent cutoffs
   function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
     const lastMessage = messages[messages.length - 1];
     const content = lastMessage?.content?.toLowerCase() || '';
@@ -883,24 +883,25 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       'referral letter', 'brief summary', 'quick note'
     ];
     
+    // Use maximum tokens for ALL content types to prevent cutoffs
     if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 4096, contentType: 'comprehensive' }; // Maximum for complete responses
+      return { maxTokens: 4096, contentType: 'comprehensive' };
     }
     
     if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 3000, contentType: 'analysis' }; // High limit for detailed analysis
+      return { maxTokens: 4096, contentType: 'analysis' }; // Max tokens for analysis
     }
     
     if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 2000, contentType: 'clinical_notes' }; // Good limit for clinical content
+      return { maxTokens: 4096, contentType: 'clinical_notes' }; // Max tokens for clinical content
     }
     
     // Check content length as secondary indicator
     if (content.length > 200) {
-      return { maxTokens: 2500, contentType: 'medium' }; // Higher for medium content
+      return { maxTokens: 4096, contentType: 'medium' }; // Max tokens for medium content
     }
     
-    return { maxTokens: 1500, contentType: 'short' }; // Even short responses get more tokens
+    return { maxTokens: 4096, contentType: 'short' }; // Max tokens for ALL responses
   }
 
   const { maxTokens, contentType } = detectContentType(messages);
@@ -947,9 +948,9 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     if (error.name === 'AbortError' || String(error).includes('timeout')) {
       console.log(`GPT-5 request timed out for ${contentType} content, trying with reduced tokens...`);
       
-      // Progressive retry with reduced tokens
-      if (maxTokens > 2000) {
-        console.log('Retrying GPT-5 with reduced token limit...');
+      // Progressive retry with maximum tokens - no reduction needed
+      if (maxTokens >= 4096) {
+        console.log('Retrying GPT-5 with maximum token limit...');
         try {
           const retryController = new AbortController();
           const retryTimeout = setTimeout(() => retryController.abort("GPT-5 retry timeout"), 30000);
@@ -962,9 +963,9 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
             },
             body: JSON.stringify({
               model: 'gpt-5-2025-08-07',
-              max_tokens: 2500, // Still high for retry
+              max_tokens: 4096, // Maximum tokens for retry
               messages: gptMessages,
-              stop: ["\n##", "\n###", "\n---", "\n\n---", "Feel free to"]
+              stop: undefined // Remove stop sequences to allow full responses
             }),
             signal: retryController.signal
           });
@@ -975,8 +976,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
             const retryData = await retryResponse.json();
             const retryContent = retryData.choices?.[0]?.message?.content;
             if (retryContent && retryContent.trim()) {
-              console.log('GPT-5 retry succeeded with reduced tokens');
-              return retryContent + '\n\n[Response truncated for performance. For complete information, please ask for specific sections.]';
+              console.log('GPT-5 retry succeeded with maximum tokens');
+              return retryContent;
             }
           }
         } catch (retryError) {
@@ -1066,7 +1067,7 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
 
   console.log('Calling GPT-4 Turbo fallback with appropriate token allocation...');
   
-  // Use same content type detection for fallback
+  // Set maximum token limits for fallback - no content type restrictions
   function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
     const lastMessage = messages[messages.length - 1];
     const content = lastMessage?.content?.toLowerCase() || '';
@@ -1077,15 +1078,16 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
       'step by step', 'complete instructions', 'full instructions'
     ];
     
+    // Use maximum tokens for ALL content types in fallback
     if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 4000, contentType: 'comprehensive' }; // Maximum for fallback
+      return { maxTokens: 4000, contentType: 'comprehensive' }; // Maximum for GPT-4 Turbo
     }
     
     if (content.length > 200) {
-      return { maxTokens: 2500, contentType: 'medium' }; // High for medium content
+      return { maxTokens: 4000, contentType: 'medium' }; // Maximum for medium content
     }
     
-    return { maxTokens: 1800, contentType: 'short' }; // Higher even for short
+    return { maxTokens: 4000, contentType: 'short' }; // Maximum for ALL fallback responses
   }
 
   const { maxTokens, contentType } = detectContentType(messages);
