@@ -48,6 +48,39 @@ const AI_MODELS = [
 
 const CLINICAL_TEST_QUERY = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology. Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Metformin.";
 
+const clinicalQuickPicks = [
+  {
+    title: "BNF Drug Lookup – Ramipril",
+    category: "Clinical - BNF Drugs",
+    prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications (adult, primary care)\nAdult dosing & titration (include starting dose, up-titration intervals, BP/U&E checks)\nRenal/hepatic adjustment (eGFR/Cr thresholds; when to avoid/seek specialist advice)\nMajor interactions (e.g., NSAIDs, K-sparing diuretics, lithium)\nContraindications & cautions (pregnancy, bilateral RAS, hypotension, hyperkalaemia)\nMonitoring (U&E/K⁺ timing after initiation/titration; BP targets)\nCommon adverse effects\nSick-day rules\nReferences (BNF/NICE/MHRA/ICB with titles + URLs)\n\nDrug: Ramipril. If information is not present in UK sources, state \"Not specified in UK sources\" and do not infer.",
+    goldStandard: "Indications (adult): Hypertension; symptomatic heart failure; post-MI; diabetic nephropathy (per local pathways).\n\nAdult dosing & titration (HTN): Start 2.5–5 mg once daily; titrate to BP target; max 10 mg daily (once daily or 5 mg bd). HF/post-MI often start lower (e.g., 1.25 mg od), up-titrate. Check U&E/K⁺ before, and 1–2 weeks after initiation/dose change. Avoid abrupt up-titration on diuretics/elderly.\n\nRenal/hepatic: Caution in renal impairment; avoid in bilateral renal artery stenosis. Hold during intercurrent illness (see Sick-day rules).\n\nMajor interactions: NSAIDs, K-sparing diuretics/potassium, lithium, other antihypertensives (hypotension).\n\nContraindications/cautions: Pregnancy, history of ACE-i angioedema, severe aortic stenosis, hyperkalaemia.\n\nMonitoring: BP; U&E/K⁺ at baseline and after dose changes; watch for cough/renal function changes.\n\nCommon AEs: Cough, dizziness, hyperkalaemia, renal impairment.\n\nSick-day rules: Pause ACE-i during dehydration/AKI risk (vomiting/diarrhoea; NSAID use).\n\nReferences: NHS medicines: ramipril; NICE CKS (ACE-i dosing/starts)."
+  },
+  {
+    title: "BNF Drug Lookup – Sertraline",
+    category: "Clinical - BNF Drugs",
+    prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications\nAdult dosing & titration (onset/time to effect)\nRenal/hepatic guidance\nMajor interactions (MAOIs, linezolid, triptans, warfarin, QTc cautions)\nContraindications & cautions (serotonin syndrome risks, switching rules)\nMonitoring\nCommon adverse effects\nPregnancy/breastfeeding (UK sources)\nReferences\n\nDrug: Sertraline.",
+    goldStandard: "Indications: Depression, GAD, panic disorder, PTSD, OCD (adult).\n\nAdult dosing & titration: 50 mg od initially; increase by 50 mg steps at ≥1-week intervals to max 200 mg od. Time to effect ~1–2 weeks; reassess 4–6 weeks.\n\nRenal/hepatic: Use lower doses/caution in hepatic impairment.\n\nMajor interactions: MAOIs/linezolid (contraindicated/serotonin syndrome), triptans, warfarin (monitor INR), other serotonergic drugs; alcohol caution.\n\nContraindications/cautions: Current/recent MAOI; significant QTc risks (caution); seizure disorder.\n\nMonitoring: Symptom response, suicidality early in treatment, bleeding risk with NSAIDs/anticoagulants.\n\nCommon AEs: GI upset, insomnia/somnolence, sexual dysfunction, headache.\n\nPregnancy/breastfeeding: May be used if benefits outweigh risks—use UK sources for shared decision.\n\nReferences: NHS sertraline; NICE CKS antidepressant dosing."
+  },
+  {
+    title: "BNF Drug Lookup – Apixaban (DOAC)",
+    category: "Clinical - BNF Drugs",
+    prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nIndications (NVAF, DVT/PE tx & prophylaxis)\nAdult dosing (include renal criteria, age/weight/Cr thresholds for dose reduction)\nPeri-procedural advice (primary-care scope)\nMajor interactions (strong CYP3A4/P-gp)\nContraindications & cautions\nMonitoring (renal function interval, adherence)\nPatient counselling & bleeding red flags\nReferences\n\nDrug: Apixaban.",
+    goldStandard: "Indications: NVAF (stroke prevention); DVT/PE treatment and prophylaxis.\n\nAdult dosing (examples):\nNVAF: 5 mg bd; consider 2.5 mg bd if older/frail/renal criteria met per UK guidance.\nDVT/PE tx: 10 mg bd for 7 days, then 5 mg bd.\n\nRenal/hepatic: Dose-reduce/avoid with significant renal impairment; avoid in hepatic disease with coagulopathy—check UK monographs.\n\nMajor interactions: Strong P-gp/CYP3A4 inhibitors/inducers; avoid dual anticoagulation; additive bleed with antiplatelets/NSAIDs.\n\nContraindications/cautions: Active bleeding; lesions at high bleed risk; severe hepatic disease.\n\nMonitoring: Baseline renal/hepatic function; periodic renal check; adherence; bleed red flags and counselling.\n\nReferences: NHS apixaban; MHRA DOAC safety; SPS DOAC interactions."
+  },
+  {
+    title: "Hypertension – Adult Primary Care Management",
+    category: "Clinical - Guidelines",
+    prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nDiagnosis & confirmation (clinic vs ABPM/HBPM thresholds)\nTreatment targets (age/diabetes/CKD nuance)\nStepwise drug algorithm (A/C/D sequence; considerations for Black African/Caribbean heritage and diabetes) with BNF starting doses\nMonitoring (U&E, BP review cadence)\nLifestyle advice (concise)\nWhen to refer / urgent red flags\nFollow-up intervals\nReferences (NICE/BNF/ICB with URLs).",
+    goldStandard: "Diagnosis: Confirm with ABPM/HBPM; base ABPM on average daytime readings.\n\nTargets (individualise): See visual summary—age/comorbidity specific; aim clinic <140/90 mmHg (or lower if tolerated) in most adults; lower targets in DM/CKD as per NICE.\n\nStepwise drugs:\nStep 1: A-drug (ACE-i/ARB) if ≤55 y; CCB if ≥55 y or African/Caribbean family origin (prefer ARB over ACE-i in this group).\nStep 2: A + C. Step 3: A + C + D (thiazide-like). Step 4: Consider spironolactone/alpha-/beta-blocker and specialist advice.\n\nMonitoring: U&E/K⁺ after RAAS up-titration; annual review; lifestyle advice.\n\nRed flags: Same-day if accelerated HTN (retinal haemorrhage/papilloedema) or life-threatening symptoms.\n\nReferences: NICE NG136 (visual & guideline pages)."
+  },
+  {
+    title: "Adult Asthma – Acute Exacerbation",
+    category: "Clinical - Emergency",
+    prompt: "You are an expert UK NHS GP assistant. Use only UK primary care sources: NICE guidance, NHS.uk, BNF, MHRA Drug Safety Update/alerts, the Green Book (if relevant), and local ICB protocols. Do not use non-UK sources. Present concise, GP-friendly bullet points in UK medical terminology.\nProduce exactly these sections:\n\nSeverity assessment\nImmediate treatment (inhaled SABA doses; oral prednisolone BNF dosing)\nOxygen/peak flow targets\nWhen to admit/999\nPost-exacerbation review (ICS step-up, inhaler technique, adherence)\nSafety-netting\nFollow-up timeline\nReferences.",
+    goldStandard: "Assess severity: PEFR %, RR, SpO₂, speech, cyanosis, exhaustion.\n\nImmediate treatment: Inhaled SABA via spacer/nebuliser; give oral prednisolone 40–50 mg once daily (adult) immediately; oxygen if hypoxic; consider ipratropium in moderate–severe attacks.\n\nRefer 999/admit: Life-threatening features or poor response.\n\nPost-exacerbation: Check inhaler technique/adherence; step-up controller; provide written action plan; arrange follow-up.\n\nReferences: NICE CKS (Asthma – acute exacerbation); NHS prednisolone usage advice."
+  }
+];
+
 export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
@@ -56,6 +89,8 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
   const [clinicalResults, setClinicalResults] = useState<ClinicalTestResult[]>([]);
   const [isClinicalTesting, setIsClinicalTesting] = useState(false);
   const [testRunTime, setTestRunTime] = useState<string>('');
+  const [selectedClinicalQuery, setSelectedClinicalQuery] = useState(CLINICAL_TEST_QUERY);
+  const [selectedClinicalTitle, setSelectedClinicalTitle] = useState('Default Metformin Query');
 
   const testSingleModel = async (modelId: string): Promise<TestResult> => {
     const startTime = Date.now();
@@ -108,7 +143,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         // Use gpt5-fast-clinical with correct format
         const response = await supabase.functions.invoke('gpt5-fast-clinical', {
           body: {
-            messages: [{ role: 'user', content: CLINICAL_TEST_QUERY }],
+            messages: [{ role: 'user', content: selectedClinicalQuery }],
             model: model,
             systemPrompt: 'You are a clinical AI assistant providing accurate medical information based on UK NHS guidelines.'
           }
@@ -119,7 +154,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         // Use ai-4-pm-chat with correct format
         const response = await supabase.functions.invoke('ai-4-pm-chat', {
           body: {
-            messages: [{ role: 'user', content: CLINICAL_TEST_QUERY }],
+            messages: [{ role: 'user', content: selectedClinicalQuery }],
             model: model,
             systemPrompt: 'You are a clinical AI assistant providing accurate medical information based on UK NHS guidelines.',
             verificationLevel: 'clinical'
@@ -169,7 +204,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       const { data, error } = await supabase.functions.invoke('ai-api-test', {
         body: {
           model: modelId,
-          prompt: CLINICAL_TEST_QUERY
+          prompt: selectedClinicalQuery
         }
       });
 
@@ -593,20 +628,58 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
 
             <TabsContent value="clinical" className="h-full m-0">
               <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                  <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    Clinical Performance Test
-                  </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    This comprehensive test compares clinical AI performance across multiple models (GPT-5, Claude, Grok, Gemini) 
-                    and different service configurations including our standard AI function with clinical verification and the 
-                    lightweight fast clinical function.
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    Test Query: "{CLINICAL_TEST_QUERY}"
-                  </p>
-                </div>
+                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                   <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                     <Zap className="w-4 h-4" />
+                     Clinical Performance Test
+                   </h3>
+                   <p className="text-sm text-blue-700 dark:text-blue-300">
+                     This comprehensive test compares clinical AI performance across multiple models (GPT-5, Claude, Grok, Gemini) 
+                     and different service configurations including our standard AI function with clinical verification and the 
+                     lightweight fast clinical function.
+                   </p>
+                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                     Current Test: <strong>{selectedClinicalTitle}</strong>
+                   </p>
+                 </div>
+
+                 {/* Clinical Quick Picks */}
+                 <Card className="p-4">
+                   <h4 className="font-medium mb-3 flex items-center gap-2">
+                     <span className="text-green-600">🩺</span>
+                     NHS Clinical Quick Picks
+                   </h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-40 overflow-y-auto">
+                     {clinicalQuickPicks.map((pick, index) => (
+                       <div
+                         key={index}
+                         className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                           selectedClinicalQuery === pick.prompt 
+                             ? 'border-green-600 bg-green-50 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
+                             : 'border-border hover:border-green-400 hover:bg-green-50/50'
+                         }`}
+                         onClick={() => {
+                           setSelectedClinicalQuery(pick.prompt);
+                           setSelectedClinicalTitle(pick.title);
+                         }}
+                       >
+                         <div className="flex items-center justify-between mb-1">
+                           <div className={`font-medium text-sm ${
+                             selectedClinicalQuery === pick.prompt ? 'text-green-700' : 'text-primary'
+                           }`}>
+                             {pick.title}
+                           </div>
+                           <Badge variant="outline" className="text-xs">
+                             {pick.category}
+                           </Badge>
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           {pick.goldStandard ? '✓ Gold Standard Available' : 'Standard NHS Query'}
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </Card>
 
                 <div className="flex gap-2">
                   <Button 
