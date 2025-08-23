@@ -2,9 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, AlertTriangle } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { PolicyBadge, type PolicyStatus } from './PolicyBadge';
-import { EvidenceDrawer } from './EvidenceDrawer';
+import { PolicyModal } from './PolicyModal';
 import { useTrafficLightVocab, type TLVocabItem } from '@/hooks/useTrafficLightVocab';
-import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TrafficLightSearchProps {
   onInsertIntoChat?: (message: string) => void;
@@ -18,12 +18,12 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [selectedItem, setSelectedItem] = useState<(TLVocabItem & { policyDetails?: any }) | null>(null);
+  const [policyData, setPolicyData] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
   
   const { vocab, isLoading, error, isOffline } = useTrafficLightVocab();
-  const { lookupMedicine } = useTrafficLightResolver();
 
   // Configure fuzzy search
   const fuse = useMemo(() => {
@@ -112,13 +112,14 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
 
   const handleSelectItem = async (item: TLVocabItem) => {
     try {
-      const policyHit = await lookupMedicine(item.name);
-      if (policyHit) {
-        setSelectedItem({
-          ...item,
-          policyDetails: policyHit
-        });
-      }
+      const { data, error } = await supabase.functions.invoke('policy-resolve', {
+        body: { id: item.id }
+      });
+      
+      if (error) throw error;
+      
+      setPolicyData(data);
+      setIsModalOpen(true);
       setIsOpen(false);
       setSelectedIndex(-1);
     } catch (err) {
@@ -264,24 +265,15 @@ const TrafficLightSearch: React.FC<TrafficLightSearchProps> = ({
         )}
       </div>
 
-      {selectedItem?.policyDetails && (
-        <EvidenceDrawer
-          policyHit={selectedItem.policyDetails}
-          nationalRefs={[
-            "BNF Guidance - British National Formulary guidance",
-            "NICE Pathways - NICE clinical pathways"
-          ]}
-          changeLog={[
-            {
-              date: "2025-08-23",
-              change: "Status updated",
-              reason: "Medicines Optimisation Team review"
-            }
-          ]}
-          isOpen={true}
-          onClose={() => setSelectedItem(null)}
-        />
-      )}
+      <PolicyModal
+        policyData={policyData}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setPolicyData(null);
+        }}
+        onInsertIntoChat={onInsertIntoChat}
+      />
     </>
   );
 };

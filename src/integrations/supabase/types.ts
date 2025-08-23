@@ -2094,6 +2094,63 @@ export type Database = {
           },
         ]
       }
+      icn_policy_synonyms: {
+        Row: {
+          canonical: string
+          created_at: string
+          term: string
+        }
+        Insert: {
+          canonical: string
+          created_at?: string
+          term: string
+        }
+        Update: {
+          canonical?: string
+          created_at?: string
+          term?: string
+        }
+        Relationships: []
+      }
+      icn_prior_approval: {
+        Row: {
+          created_at: string
+          criteria_excerpt: string | null
+          drug_name: string
+          id: string
+          last_updated: string | null
+          notes: string | null
+          pa_route: string
+          pa_status_enum: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criteria_excerpt?: string | null
+          drug_name: string
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          pa_route: string
+          pa_status_enum: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criteria_excerpt?: string | null
+          drug_name?: string
+          id?: string
+          last_updated?: string | null
+          notes?: string | null
+          pa_route?: string
+          pa_status_enum?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       image_processing_requests: {
         Row: {
           created_at: string | null
@@ -4210,6 +4267,145 @@ export type Database = {
         }
         Relationships: []
       }
+      icn_pa_norm: {
+        Row: {
+          criteria_excerpt: string | null
+          drug_name: string | null
+          id: string | null
+          last_updated: string | null
+          name_norm: string | null
+          notes: string | null
+          pa_route: string | null
+          pa_status_enum: string | null
+          source_url: string | null
+        }
+        Insert: {
+          criteria_excerpt?: string | null
+          drug_name?: string | null
+          id?: string | null
+          last_updated?: string | null
+          name_norm?: never
+          notes?: string | null
+          pa_route?: string | null
+          pa_status_enum?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          criteria_excerpt?: string | null
+          drug_name?: string | null
+          id?: string | null
+          last_updated?: string | null
+          name_norm?: never
+          notes?: string | null
+          pa_route?: string | null
+          pa_status_enum?: string | null
+          source_url?: string | null
+        }
+        Relationships: []
+      }
+      icn_pa_norm2: {
+        Row: {
+          canonical: string | null
+          criteria_excerpt: string | null
+          drug_name: string | null
+          id: string | null
+          last_updated: string | null
+          name_norm: string | null
+          notes: string | null
+          pa_route: string | null
+          pa_status_enum: string | null
+          source_url: string | null
+        }
+        Relationships: []
+      }
+      icn_policy_unified: {
+        Row: {
+          bnf_chapter: string | null
+          criteria_excerpt: string | null
+          pa_id: string | null
+          pa_last_updated: string | null
+          pa_name: string | null
+          pa_notes: string | null
+          pa_route: string | null
+          pa_source_url: string | null
+          pa_status_enum: string | null
+          tl_detail_url: string | null
+          tl_id: string | null
+          tl_last_modified: string | null
+          tl_name: string | null
+          tl_notes: string | null
+          tl_status_enum: string | null
+        }
+        Relationships: []
+      }
+      icn_policy_unified_fuzzy: {
+        Row: {
+          bnf_chapter: string | null
+          criteria_excerpt: string | null
+          pa_id: string | null
+          pa_last_updated: string | null
+          pa_name: string | null
+          pa_notes: string | null
+          pa_route: string | null
+          pa_source_url: string | null
+          pa_status_enum: string | null
+          sim: number | null
+          tl_detail_url: string | null
+          tl_id: string | null
+          tl_last_modified: string | null
+          tl_name: string | null
+          tl_notes: string | null
+          tl_status_enum: string | null
+        }
+        Relationships: []
+      }
+      icn_tl_norm: {
+        Row: {
+          bnf_chapter: string | null
+          detail_url: string | null
+          drug_name: string | null
+          id: string | null
+          last_modified: string | null
+          name_norm: string | null
+          notes: string | null
+          status_enum: string | null
+        }
+        Insert: {
+          bnf_chapter?: string | null
+          detail_url?: string | null
+          drug_name?: string | null
+          id?: string | null
+          last_modified?: string | null
+          name_norm?: never
+          notes?: string | null
+          status_enum?: string | null
+        }
+        Update: {
+          bnf_chapter?: string | null
+          detail_url?: string | null
+          drug_name?: string | null
+          id?: string | null
+          last_modified?: string | null
+          name_norm?: never
+          notes?: string | null
+          status_enum?: string | null
+        }
+        Relationships: []
+      }
+      icn_tl_norm2: {
+        Row: {
+          bnf_chapter: string | null
+          canonical: string | null
+          detail_url: string | null
+          drug_name: string | null
+          id: string | null
+          last_modified: string | null
+          name_norm: string | null
+          notes: string | null
+          status_enum: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_user_to_practice: {
@@ -4409,6 +4605,26 @@ export type Database = {
         }
         Returns: string
       }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4539,9 +4755,29 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
         Returns: boolean
+      }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
       }
       user_has_meeting_access: {
         Args: { p_meeting_id: string; p_user_id?: string }
