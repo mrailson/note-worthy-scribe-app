@@ -7,9 +7,31 @@ const corsHeaders = {
 };
 
 interface DrugLookupResponse {
+  drug: {
+    name: string;
+    searched_term?: string;
+  };
   traffic_light: any;
   prior_approval: any[];
-  formulary: any[];
+  formulary: {
+    bnf_chapter?: string;
+    section?: string;
+    preferred: Array<{
+      item_name: string;
+      rank: number;
+      notes?: string;
+      otc?: boolean;
+    }>;
+    page_url: string;
+    last_published?: string;
+    found_exact_match: boolean;
+  } | null;
+  alternatives: Array<{
+    name: string;
+    notes?: string;
+    status: string;
+    detail_url?: string;
+  }>;
 }
 
 serve(async (req) => {
@@ -119,10 +141,61 @@ serve(async (req) => {
       formularyData = directMatches || [];
     }
 
+    // Step 5: Get alternatives from the same formulary section
+    let alternativesData: any[] = [];
+    if (formularyData && formularyData.length > 0) {
+      const sections = [...new Set(formularyData.map(item => item.section))];
+      
+      for (const section of sections) {
+        const { data: sectionAlternatives, error: altError } = await supabase
+          .from('icn_formulary')
+          .select('*')
+          .eq('section', section)
+          .neq('name_norm', normalizedName)
+          .order('preference_rank', { ascending: true, nullsFirst: false })
+          .limit(5);
+          
+        if (altError) {
+          console.error('Error fetching alternatives:', altError);
+        } else if (sectionAlternatives) {
+          // Look up traffic light status for each alternative
+          for (const alt of sectionAlternatives) {
+            const { data: altTlData } = await supabase
+              .from('icn_tl_norm')
+              .select('*')
+              .ilike('name_norm', `${alt.name_norm}%`)
+              .limit(1)
+              .maybeSingle();
+              
+            alternativesData.push({
+              name: alt.item_name,
+              notes: alt.notes,
+              status: altTlData?.tl_status_enum || 'UNKNOWN',
+              detail_url: altTlData?.detail_url
+            });
+          }
+        }
+      }
+    }
+
     const response: DrugLookupResponse = {
+      drug: { name: name, searched_term: normalizedName },
       traffic_light: trafficLightData,
       prior_approval: priorApprovalData,
-      formulary: formularyData
+      formulary: formularyData.length > 0 ? {
+        bnf_chapter: formularyData[0]?.bnf_chapter,
+        section: formularyData[0]?.section,
+        preferred: formularyData.map(item => ({
+          item_name: item.item_name,
+          rank: item.preference_rank || 999,
+          notes: item.notes,
+          otc: item.otc
+        })),
+        page_url: formularyData[0]?.page_url || 'https://www.icnorthamptonshire.org.uk/mo-formulary',
+        last_published: formularyData[0]?.last_published,
+        found_exact_match: true
+      } : null,
+      alternatives: alternativesData
     };
 
     console.log('Lookup complete:', {
