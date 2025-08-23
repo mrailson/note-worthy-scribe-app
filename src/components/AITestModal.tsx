@@ -131,7 +131,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       if (error) {
         return {
           model: model,
-          service: service,
+          service: service === 'fast' ? 'Fast Clinical' : 'Standard AI',
           response: `Error: ${error.message}`,
           responseTime,
           status: 'error',
@@ -141,7 +141,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
 
       return {
         model: model,
-        service: service,
+        service: service === 'fast' ? 'Fast Clinical' : 'Standard AI',
         response: data?.response || data?.content || 'No response received',
         responseTime: data?.responseTime || responseTime,
         status: 'success'
@@ -150,7 +150,51 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       const responseTime = Date.now() - startTime;
       return {
         model: model,
-        service: service,
+        service: service === 'fast' ? 'Fast Clinical' : 'Standard AI',
+        response: `Error: ${error.message}`,
+        responseTime,
+        status: 'error',
+        error: error.message
+      };
+    }
+  };
+
+  const testClinicalModelDirect = async (modelId: string): Promise<ClinicalTestResult> => {
+    const startTime = Date.now();
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-api-test', {
+        body: {
+          model: modelId,
+          prompt: CLINICAL_TEST_QUERY
+        }
+      });
+
+      const responseTime = Date.now() - startTime;
+
+      if (error) {
+        return {
+          model: modelId,
+          service: 'Direct API',
+          response: `Error: ${error.message}`,
+          responseTime,
+          status: 'error',
+          error: error.message
+        };
+      }
+
+      return {
+        model: modelId,
+        service: 'Direct API',
+        response: data?.response || 'No response received',
+        responseTime: data?.responseTime || responseTime,
+        status: 'success'
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      return {
+        model: modelId,
+        service: 'Direct API',
         response: `Error: ${error.message}`,
         responseTime,
         status: 'error',
@@ -233,19 +277,25 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     setClinicalResults([]);
 
     try {
-      console.log('Starting clinical performance comparison...');
+      console.log('Starting comprehensive clinical performance test...');
       
-      // Test GPT-5 with both services
-      const [standardResult, fastResult] = await Promise.all([
+      // Test multiple models with different approaches
+      const testPromises = [
+        // GPT-5 with both standard AI function and fast clinical function
         testClinicalPerformance('standard', 'gpt-5-2025-08-07'),
-        testClinicalPerformance('fast', 'gpt-5-2025-08-07')
-      ]);
+        testClinicalPerformance('fast', 'gpt-5-2025-08-07'),
+        // Other models using the reliable ai-api-test function
+        testClinicalModelDirect('claude-4-sonnet'),
+        testClinicalModelDirect('grok-beta'),
+        testClinicalModelDirect('gemini-1.5-pro')
+      ];
 
-      setClinicalResults([standardResult, fastResult]);
+      const results = await Promise.all(testPromises);
+      setClinicalResults(results);
       
       toast({
         title: "Clinical Test Completed",
-        description: `GPT-5 performance comparison completed`,
+        description: `Tested ${results.length} clinical AI configurations`,
       });
     } catch (error) {
       console.error('Error running clinical test:', error);
@@ -426,8 +476,9 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                     Clinical Performance Test
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    This test compares GPT-5 performance between the standard AI function (with file processing, verification, etc.) 
-                    and the new lightweight fast clinical function designed for quick text-only medical queries.
+                    This comprehensive test compares clinical AI performance across multiple models (GPT-5, Claude, Grok, Gemini) 
+                    and different service configurations including our standard AI function with clinical verification and the 
+                    lightweight fast clinical function.
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                     Test Query: "{CLINICAL_TEST_QUERY}"
@@ -444,68 +495,103 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                 </Button>
 
                 {clinicalResults.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {clinicalResults.map((result, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={result.service === 'fast' ? 'default' : 'secondary'}>
-                              {result.service === 'fast' ? 'Fast Clinical' : 'Standard AI'}
-                            </Badge>
-                            {getStatusIcon(result.status)}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <Clock className="w-4 h-4" />
-                            {result.responseTime}ms
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">
-                            Model: {result.model}
-                          </div>
-                          
-                          <ScrollArea className="h-40">
-                            <div className="text-sm bg-muted p-3 rounded">
-                              {result.response}
-                            </div>
-                          </ScrollArea>
-                          
-                          {result.error && (
-                            <div className="text-xs text-destructive">
-                              Error: {result.error}
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {clinicalResults.map((result, index) => (
+                       <Card key={index} className="p-4">
+                         <div className="flex items-center justify-between mb-3">
+                           <div className="flex items-center gap-2">
+                             <Badge variant={
+                               result.service === 'Fast Clinical' ? 'default' : 
+                               result.service === 'Standard AI' ? 'secondary' : 
+                               'outline'
+                             }>
+                               {result.service}
+                             </Badge>
+                             {getStatusIcon(result.status)}
+                           </div>
+                           <div className="flex items-center gap-2 text-sm font-medium">
+                             <Clock className="w-4 h-4" />
+                             {result.responseTime}ms
+                           </div>
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <div className="text-sm font-medium">
+                             Model: {result.model}
+                           </div>
+                           
+                           <ScrollArea className="h-32">
+                             <div className="text-sm bg-muted p-3 rounded">
+                               {result.response}
+                             </div>
+                           </ScrollArea>
+                           
+                           {result.error && (
+                             <div className="text-xs text-destructive">
+                               Error: {result.error}
+                             </div>
+                           )}
+                         </div>
+                       </Card>
+                     ))}
+                   </div>
+                 )}
 
                 {clinicalResults.length > 0 && (
                   <Card className="p-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Performance Analysis</h4>
+                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Clinical Performance Analysis</h4>
                     <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
                       {(() => {
-                        const standardResult = clinicalResults.find(r => r.service === 'standard');
-                        const fastResult = clinicalResults.find(r => r.service === 'fast');
+                        const successful = clinicalResults.filter(r => r.status === 'success');
+                        if (successful.length === 0) return <p>No successful responses to analyze.</p>;
                         
-                        if (!standardResult || !fastResult) {
-                          return <div>Analysis unavailable - missing results</div>;
-                        }
+                        const fastest = successful.reduce((prev, current) => 
+                          prev.responseTime < current.responseTime ? prev : current
+                        );
                         
-                        const improvement = ((standardResult.responseTime - fastResult.responseTime) / standardResult.responseTime * 100).toFixed(1);
-                        const speedup = (standardResult.responseTime / fastResult.responseTime).toFixed(1);
+                        const slowest = successful.reduce((prev, current) => 
+                          prev.responseTime > current.responseTime ? prev : current
+                        );
+                        
+                        const avgResponseTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
+                        
+                        const standardResult = clinicalResults.find(r => r.service === 'Standard AI');
+                        const fastResult = clinicalResults.find(r => r.service === 'Fast Clinical');
+                        
+                        const modelStats = successful.reduce((acc, r) => {
+                          const model = r.model.split('-')[0]; // Get base model name
+                          if (!acc[model]) acc[model] = [];
+                          acc[model].push(r.responseTime);
+                          return acc;
+                        }, {} as Record<string, number[]>);
                         
                         return (
                           <>
-                            <div>• Speed improvement: {improvement}% faster ({speedup}x speedup)</div>
-                            <div>• Standard: {standardResult.responseTime}ms | Fast: {fastResult.responseTime}ms</div>
-                            <div>• Both responses successful: {standardResult.status === 'success' && fastResult.status === 'success' ? '✅' : '❌'}</div>
-                            {fastResult.responseTime < 10000 && (
-                              <div className="font-medium text-green-800 dark:text-green-200">
-                                ✨ Target achieved: Clinical response under 10 seconds!
-                              </div>
+                            <p>• Successful responses: {successful.length}/{clinicalResults.length}</p>
+                            <p>• Fastest: {fastest.model} via {fastest.service} ({fastest.responseTime}ms)</p>
+                            <p>• Slowest: {slowest.model} via {slowest.service} ({slowest.responseTime}ms)</p>
+                            <p>• Average response time: {avgResponseTime}ms</p>
+                            
+                            {standardResult && fastResult && standardResult.status === 'success' && fastResult.status === 'success' && (
+                              <>
+                                <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
+                                  <p className="font-medium">GPT-5 Service Comparison:</p>
+                                  <p>• Standard AI: {standardResult.responseTime}ms</p>
+                                  <p>• Fast Clinical: {fastResult.responseTime}ms</p>
+                                  <p>• Speed improvement: {((standardResult.responseTime - fastResult.responseTime) / standardResult.responseTime * 100).toFixed(1)}% faster</p>
+                                </div>
+                              </>
+                            )}
+                            
+                            <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
+                              <p className="font-medium">Model Performance:</p>
+                              {Object.entries(modelStats).map(([model, times]) => (
+                                <p key={model}>• {model.toUpperCase()}: avg {Math.round(times.reduce((a, b) => a + b, 0) / times.length)}ms</p>
+                              ))}
+                            </div>
+                            
+                            {avgResponseTime < 10000 && (
+                              <p className="mt-2 font-medium text-green-800 dark:text-green-200">⭐ Target achieved: Average clinical response under 10 seconds!</p>
                             )}
                           </>
                         );
