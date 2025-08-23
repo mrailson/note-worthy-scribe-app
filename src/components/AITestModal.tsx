@@ -34,6 +34,19 @@ interface ClinicalTestResult {
   error?: string;
   fullResponse?: string; // Store complete untruncated response
   responseLength?: number; // Track response length
+  review?: ClinicalReview; // GPT-5 review against gold standard
+}
+
+interface ClinicalReview {
+  confidenceScore: number; // 0-99
+  riskLevel: 'GREEN' | 'ORANGE' | 'RED';
+  overallAssessment: string;
+  strengths: string[];
+  concerns: string[];
+  missingSections: string[];
+  clinicalAccuracy: string;
+  nhsCompliance: string;
+  safetyRating: string;
 }
 
 // AI Models Configuration  
@@ -130,6 +143,35 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
         status: 'error',
         error: error.message
       };
+    }
+  };
+
+  // Helper function to get gold standard for current query
+  const getCurrentGoldStandard = (): string | null => {
+    const currentPick = clinicalQuickPicks.find(pick => pick.prompt === selectedClinicalQuery);
+    return currentPick?.goldStandard || null;
+  };
+
+  // GPT-5 Review function
+  const runGPT5Review = async (modelOutput: string, goldStandard: string, queryTitle: string): Promise<ClinicalReview | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('gpt5-clinical-reviewer', {
+        body: {
+          modelOutput,
+          goldStandard,
+          queryTitle
+        }
+      });
+
+      if (error) {
+        console.error('GPT-5 Review Error:', error);
+        return null;
+      }
+
+      return data.review;
+    } catch (error) {
+      console.error('Error calling GPT-5 reviewer:', error);
+      return null;
     }
   };
 
@@ -326,6 +368,10 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
     try {
       console.log('Starting comprehensive clinical performance test...');
       
+      // Get gold standard for current query
+      const goldStandard = getCurrentGoldStandard();
+      const hasGoldStandard = !!goldStandard;
+      
       // Use the working ai-api-test approach for all models consistently
       const testPromises = [
         // All models via direct API (this approach works for all)
@@ -338,12 +384,46 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
       ];
 
       const results = await Promise.all(testPromises);
-      setClinicalResults(results);
       
-      toast({
-        title: "Clinical Test Completed",
-        description: `Tested ${results.length} AI models for clinical performance`,
-      });
+      // If we have a gold standard, run GPT-5 reviews for successful results
+      if (hasGoldStandard && goldStandard) {
+        console.log('Running GPT-5 reviews against gold standard...');
+        
+        const reviewPromises = results
+          .filter(result => result.status === 'success' && result.fullResponse)
+          .map(async (result) => {
+            const review = await runGPT5Review(
+              result.fullResponse!,
+              goldStandard,
+              selectedClinicalTitle
+            );
+            return { ...result, review };
+          });
+        
+        const reviewedResults = await Promise.all(reviewPromises);
+        
+        // Merge reviewed results back with original results
+        const finalResults = results.map(originalResult => {
+          const reviewedResult = reviewedResults.find(r => 
+            r.model === originalResult.model && r.service === originalResult.service
+          );
+          return reviewedResult || originalResult;
+        });
+        
+        setClinicalResults(finalResults);
+        
+        toast({
+          title: "Clinical Test with GPT-5 Reviews Completed",
+          description: `Tested ${results.length} AI models with quality scoring`,
+        });
+      } else {
+        setClinicalResults(results);
+        
+        toast({
+          title: "Clinical Test Completed",
+          description: `Tested ${results.length} AI models for clinical performance`,
+        });
+      }
     } catch (error) {
       console.error('Error running clinical test:', error);
       toast({
@@ -731,6 +811,35 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                             </div>
                           </div>
                           
+                          {/* GPT-5 Review Results */}
+                          {result.review && (
+                            <div className="mb-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={`px-2 py-1 rounded text-xs font-bold ${
+                                  result.review.riskLevel === 'GREEN' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : result.review.riskLevel === 'ORANGE'
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                }`}>
+                                  {result.review.confidenceScore}/99
+                                </div>
+                                <Badge variant="outline" className={`text-xs ${
+                                  result.review.riskLevel === 'GREEN' 
+                                    ? 'border-green-500 text-green-700 dark:text-green-300'
+                                    : result.review.riskLevel === 'ORANGE'
+                                    ? 'border-orange-500 text-orange-700 dark:text-orange-300'
+                                    : 'border-red-500 text-red-700 dark:text-red-300'
+                                }`}>
+                                  {result.review.riskLevel}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {result.review.clinicalAccuracy} • {result.review.safetyRating}
+                              </div>
+                            </div>
+                          )}
+                          
                           <div className="space-y-2">
                             <div className="text-xs font-medium">
                               Model: {result.model}
@@ -741,6 +850,24 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                                 {result.response}
                               </div>
                             </ScrollArea>
+                            
+                            {/* Review Details */}
+                            {result.review && (
+                              <div className="text-xs text-muted-foreground">
+                                <div className="font-medium mb-1">GPT-5 Review:</div>
+                                <div className="truncate">{result.review.overallAssessment}</div>
+                                {result.review.strengths.length > 0 && (
+                                  <div className="text-green-600 dark:text-green-400 mt-1">
+                                    ✓ {result.review.strengths.slice(0, 2).join(', ')}
+                                  </div>
+                                )}
+                                {result.review.concerns.length > 0 && (
+                                  <div className="text-red-600 dark:text-red-400 mt-1">
+                                    ⚠ {result.review.concerns.slice(0, 1).join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             
                             {result.error && (
                               <div className="text-xs text-destructive">
@@ -759,6 +886,8 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                       <div className="text-xs sm:text-sm text-green-700 dark:text-green-300 space-y-1">
                         {(() => {
                           const successful = clinicalResults.filter(r => r.status === 'success');
+                          const reviewed = clinicalResults.filter(r => r.review);
+                          
                           if (successful.length === 0) return <p>No successful responses to analyze.</p>;
                           
                           const fastest = successful.reduce((prev, current) => 
@@ -780,6 +909,21 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                             acc[model].push(r.responseTime);
                             return acc;
                           }, {} as Record<string, number[]>);
+
+                          // GPT-5 Review Statistics
+                          const avgConfidence = reviewed.length > 0 ? 
+                            Math.round(reviewed.reduce((sum, r) => sum + (r.review?.confidenceScore || 0), 0) / reviewed.length) : 0;
+                          
+                          const riskBreakdown = reviewed.reduce((acc, r) => {
+                            if (r.review) {
+                              acc[r.review.riskLevel] = (acc[r.review.riskLevel] || 0) + 1;
+                            }
+                            return acc;
+                          }, {} as Record<string, number>);
+
+                          const topScorer = reviewed.reduce((prev, current) => 
+                            (current.review?.confidenceScore || 0) > (prev.review?.confidenceScore || 0) ? current : prev
+                          , reviewed[0]);
                           
                           return (
                             <>
@@ -787,6 +931,16 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                               <p>• Fastest: {fastest.model} via {fastest.service} ({fastest.responseTime}ms)</p>
                               <p>• Slowest: {slowest.model} via {slowest.service} ({slowest.responseTime}ms)</p>
                               <p>• Average response time: {avgResponseTime}ms</p>
+                              
+                              {reviewed.length > 0 && (
+                                <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
+                                  <p className="font-medium">GPT-5 Quality Review:</p>
+                                  <p>• Average confidence score: {avgConfidence}/99</p>
+                                  <p>• Top performer: {topScorer?.model} ({topScorer?.review?.confidenceScore}/99, {topScorer?.review?.riskLevel})</p>
+                                  <p>• Risk distribution: 🟢{riskBreakdown.GREEN || 0} 🟠{riskBreakdown.ORANGE || 0} 🔴{riskBreakdown.RED || 0}</p>
+                                  <p>• NHS compliance: {reviewed.filter(r => r.review?.nhsCompliance?.includes('Compliant')).length}/{reviewed.length} fully compliant</p>
+                                </div>
+                              )}
                               
                               {standardResult && fastResult && standardResult.status === 'success' && fastResult.status === 'success' && (
                                 <>
@@ -808,6 +962,10 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                               
                               {avgResponseTime < 10000 && (
                                 <p className="mt-2 font-medium text-green-800 dark:text-green-200">⭐ Target achieved: Average clinical response under 10 seconds!</p>
+                              )}
+
+                              {avgConfidence >= 80 && reviewed.length > 0 && (
+                                <p className="mt-2 font-medium text-green-800 dark:text-green-200">🏆 Excellent quality: Average confidence {avgConfidence}/99</p>
                               )}
                             </>
                           );
