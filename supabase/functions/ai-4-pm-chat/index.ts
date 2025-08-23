@@ -861,28 +861,50 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  // First completion - check for tool calls
+  // First completion - check for tool calls with timeout and proper parameters
   console.log('Making initial GPT-5 API call...');
   console.log('Request body preview:', {
     model: 'gpt-5-2025-08-07',
-    max_completion_tokens: 4000,
+    max_tokens: 800, // Fixed: Chat Completions uses max_tokens, not max_completion_tokens
     messageCount: gptMessages.length,
-    hasTools: true
+    hasTimeout: true
   });
-  
-  const initial = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openaiApiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5-2025-08-07',
-      max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
-      // Note: GPT-5 doesn't support temperature parameter
-      messages: gptMessages
-    })
-  });
+
+  // Add timeout controller for GPT-5 calls
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    console.log('GPT-5 request timed out after 45 seconds, aborting...');
+    controller.abort("GPT-5 request timeout");
+  }, 45000); // 45 second timeout
+
+  let initial;
+  try {
+    initial = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5-2025-08-07',
+        max_tokens: 800, // Fixed: Use max_tokens for Chat Completions API
+        // Note: GPT-5 doesn't support temperature parameter
+        messages: gptMessages,
+        stop: ["\n##", "\n###", "\n---"] // Add stop sequences to prevent run-on responses
+      }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeout);
+  } catch (error) {
+    clearTimeout(timeout);
+    
+    if (error.name === 'AbortError' || String(error).includes('timeout')) {
+      console.log('GPT-5 request timed out, falling back to GPT-4 Turbo');
+      return await callGPT4Turbo(messages, systemPrompt, files);
+    }
+    throw error;
+  }
 
   if (!initial.ok) {
     const error = await initial.text();
@@ -930,20 +952,23 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     hasChoices: !!initialData.choices,
     choicesLength: initialData.choices?.length,
     hasMessage: !!initialData.choices?.[0]?.message,
-    hasToolCalls: !!initialData.choices?.[0]?.message?.tool_calls,
-    toolCallsCount: initialData.choices?.[0]?.message?.tool_calls?.length || 0
+    hasContent: !!initialData.choices?.[0]?.message?.content,
+    contentLength: initialData.choices?.[0]?.message?.content?.length || 0
   });
   
   const choice = initialData.choices?.[0];
   console.log('Initial completion result - GPT-5 response received successfully');
   console.log('Response length:', choice?.message?.content?.length || 0);
 
-  // Return the direct response since we're not using tools anymore
-  return choice?.message?.content || 'No response received from GPT-5';
-  if (!finalContent || finalContent.trim() === '' || finalContent === 'No response received') {
-    console.error('ERROR: GPT-5 returned empty or invalid response');
-    return 'I apologize, but I encountered an issue generating a response. Please try again.';
+  // Return the direct response with validation
+  const responseContent = choice?.message?.content;
+  
+  if (!responseContent || responseContent.trim() === '') {
+    console.error('ERROR: GPT-5 returned empty content, falling back to GPT-4 Turbo');
+    return await callGPT4Turbo(messages, systemPrompt, files);
   }
+  
+  return responseContent;
   
   return finalContent;
 }
