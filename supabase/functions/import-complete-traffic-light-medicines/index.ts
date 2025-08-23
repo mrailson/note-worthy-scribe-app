@@ -15,9 +15,7 @@ interface Medicine {
 }
 
 async function fetchPageMedicines(pageNum: number): Promise<Medicine[]> {
-  const url = pageNum === 1 
-    ? 'https://www.icnorthamptonshire.org.uk/trafficlightdrugs'
-    : `https://www.icnorthamptonshire.org.uk/trafficlightdrugs/?pag_page=${pageNum}`
+  const url = `https://www.icnorthamptonshire.org.uk/trafficlightdrugs/?pag_page=${pageNum}`
   
   console.log(`Fetching page ${pageNum}: ${url}`)
   
@@ -27,52 +25,66 @@ async function fetchPageMedicines(pageNum: number): Promise<Medicine[]> {
     
     const medicines: Medicine[] = []
     
-    // Parse the HTML table - look for table rows with medicine data
-    const rows = html.split('<tr>')
+    // Parse the HTML more carefully - look for table data with medicine info
+    // Find the main table and extract rows
+    const tableMatch = html.match(/<table[^>]*>(.*?)<\/table>/s)
+    if (!tableMatch) {
+      console.log(`No table found on page ${pageNum}`)
+      return []
+    }
+    
+    const tableContent = tableMatch[1]
+    const rows = tableContent.split(/<\/?tr[^>]*>/i).filter(row => row.trim() && row.includes('testid'))
     
     for (const row of rows) {
-      // Look for links with testid parameter
-      const testidMatch = row.match(/testid=(\d+)/)
-      const nameMatch = row.match(/<a[^>]*>([^<]+)<\/a>/)
-      const bnfMatch = row.match(/<td[^>]*>([^<]*(?:Gastro|Cardiovascular|Respiratory|Central nervous|Endocrine|Infections|Eye|Skin|Musculoskeletal|Malignant disease|Nutrition|Appliances|Dressings)[^<]*)<\/td>/)
-      const statusMatch = row.match(/<td[^>]*>\s*(red|double red|Specialist Initiated|Specialist Recommended|grey|amber)\s*<\/td>/)
-      
-      if (testidMatch && nameMatch && bnfMatch) {
-        const testid = testidMatch[1]
-        const name = nameMatch[1].trim()
-        const bnfChapter = bnfMatch[1].trim()
-        const statusRaw = statusMatch ? statusMatch[1].trim() : 'unknown'
+      try {
+        // Extract medicine data more carefully
+        const testidMatch = row.match(/testid=(\d+)/)
+        const nameMatch = row.match(/<a[^>]*testid=\d+[^>]*>([^<]+)<\/a>/i)
         
-        // Map status to enum values
-        let statusEnum = 'UNKNOWN'
-        switch (statusRaw.toLowerCase()) {
-          case 'double red':
-            statusEnum = 'DOUBLE_RED'
-            break
-          case 'red':
-            statusEnum = 'RED'
-            break
-          case 'specialist initiated':
-            statusEnum = 'SPECIALIST_INITIATED'
-            break
-          case 'specialist recommended':
-            statusEnum = 'SPECIALIST_RECOMMENDED'
-            break
-          case 'grey':
-            statusEnum = 'GREY'
-            break
-          default:
-            statusEnum = 'UNKNOWN'
+        // Look for BNF chapter in table cells
+        const cellMatches = row.match(/<td[^>]*>([^<]*)<\/td>/gi)
+        
+        if (testidMatch && nameMatch && cellMatches && cellMatches.length >= 4) {
+          const testid = testidMatch[1]
+          const name = nameMatch[1].trim()
+          
+          // Extract data from table cells
+          const bnfCell = cellMatches[1] ? cellMatches[1].replace(/<[^>]*>/g, '').trim() : ''
+          const statusCell = cellMatches[3] ? cellMatches[3].replace(/<[^>]*>/g, '').trim() : ''
+          
+          if (bnfCell && statusCell) {
+            // Map status to enum values
+            let statusEnum = 'UNKNOWN'
+            const statusLower = statusCell.toLowerCase()
+            
+            if (statusLower.includes('double red')) {
+              statusEnum = 'DOUBLE_RED'
+            } else if (statusLower.includes('red')) {
+              statusEnum = 'RED'
+            } else if (statusLower.includes('specialist initiated')) {
+              statusEnum = 'SPECIALIST_INITIATED'
+            } else if (statusLower.includes('specialist recommended')) {
+              statusEnum = 'SPECIALIST_RECOMMENDED'
+            } else if (statusLower.includes('grey')) {
+              statusEnum = 'GREY'
+            } else if (statusLower.includes('amber')) {
+              statusEnum = 'SPECIALIST_INITIATED' // Treat amber as specialist initiated
+            }
+            
+            medicines.push({
+              name: name,
+              bnf_chapter: bnfCell,
+              status_enum: statusEnum,
+              status_raw: statusCell,
+              detail_url: `https://www.icnorthamptonshire.org.uk/trafficlightdrugs/?testid=${testid}`,
+              testid: testid
+            })
+          }
         }
-        
-        medicines.push({
-          name: name,
-          bnf_chapter: bnfChapter,
-          status_enum: statusEnum,
-          status_raw: statusRaw,
-          detail_url: `https://www.icnorthamptonshire.org.uk/trafficlightdrugs/?testid=${testid}`,
-          testid: testid
-        })
+      } catch (rowError) {
+        console.log(`Error processing row on page ${pageNum}:`, rowError)
+        continue
       }
     }
     
