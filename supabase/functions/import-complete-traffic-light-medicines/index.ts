@@ -91,13 +91,22 @@ async function scrapePage(page: number): Promise<Medicine[]> {
     if (!href.includes("testid=")) return;
     if (!name || name.length < 2) return; // Skip empty or very short names
 
-    // The line text looks like: "<name>  NN - Chapter <status>"
-    const line = $(a).parent().text().replace(/\s+/g, " ").trim();
-    const after = line.replace(name, "").trim(); // "03 - Respiratory system double red"
-    const match = after.match(/^([0-9]{2}\s*-\s*[^]+?)\s+(.+?)$/);
-    const bnf = match?.[1]?.trim() ?? null;
-    const statusRaw = match?.[2]?.trim() ?? "Unknown";
-
+    // Find the table row containing this link
+    const $row = $(a).closest('tr');
+    if ($row.length === 0) return;
+    
+    // Get all table cells in this row
+    const $cells = $row.find('td');
+    if ($cells.length < 4) return; // Need at least 4 columns
+    
+    // Parse BNF chapter from second column
+    const bnfText = $cells.eq(1).text().trim();
+    const bnf = bnfText || null;
+    
+    // Parse status from the fourth column (status column)
+    const $statusCell = $cells.eq(3);
+    const statusRaw = $statusCell.text().trim();
+    
     medicines.push({
       name,
       bnf_chapter: bnf,
