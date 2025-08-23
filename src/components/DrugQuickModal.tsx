@@ -85,13 +85,20 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
   useEffect(() => {
     if (open) {
       // Fetch vocabulary
+      console.log('Fetching drug vocabulary...');
       supabase.functions.invoke('drug-vocabulary')
-        .then(({ data: response }) => {
+        .then(({ data: response, error }) => {
+          console.log('Drug vocabulary response:', response, 'Error:', error);
           if (response?.items) {
+            console.log(`Loaded ${response.items.length} vocabulary items`);
             setVocab(response.items);
+          } else {
+            console.error('No items in vocabulary response:', response);
           }
         })
-        .catch(console.error);
+        .catch((err) => {
+          console.error('Drug vocabulary fetch error:', err);
+        });
       
       setQ("");
       setSel(null);
