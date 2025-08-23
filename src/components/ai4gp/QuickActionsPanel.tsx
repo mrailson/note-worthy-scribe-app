@@ -261,31 +261,43 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       {/* Traffic Light Search Modal */}
       {isTrafficLightSearchOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+          <div className="bg-background rounded-lg border shadow-lg w-full max-w-2xl mx-auto">
+            <div className="flex flex-col max-h-[85vh]">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b">
                 <h2 className="text-lg font-semibold">Search Traffic Light Medicines</h2>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsTrafficLightSearchOpen(false)}
+                  className="h-8 w-8 p-0"
                 >
                   ×
                 </Button>
               </div>
-              <div className="space-y-4">
-                <TrafficLightSearch
-                  onInsertIntoChat={(message) => {
-                    if (onInsertIntoChat) {
-                      onInsertIntoChat(message);
-                    }
-                    setIsTrafficLightSearchOpen(false);
-                  }}
-                  className="w-full"
-                />
-                <div className="text-sm text-muted-foreground">
-                  <p>• Click on a medicine to view detailed information</p>
-                  <p>• Ctrl/Cmd + Click to insert directly into chat</p>
+              
+              {/* Content */}
+              <div className="flex-1 overflow-hidden p-4">
+                <div className="space-y-4 h-full">
+                  <div className="relative">
+                    <TrafficLightSearch
+                      onInsertIntoChat={(message) => {
+                        if (onInsertIntoChat) {
+                          onInsertIntoChat(message);
+                        }
+                        setIsTrafficLightSearchOpen(false);
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  {/* Help text */}
+                  <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 space-y-1">
+                    <p>💡 <strong>How to use:</strong></p>
+                    <p>• Type to search for medicines in the local formulary</p>
+                    <p>• Click a result to view detailed policy information</p>
+                    <p>• Use Ctrl/Cmd + Click to insert directly into chat</p>
+                  </div>
                 </div>
               </div>
             </div>
