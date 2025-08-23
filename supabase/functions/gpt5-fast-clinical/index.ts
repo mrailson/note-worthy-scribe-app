@@ -90,11 +90,8 @@ serve(async (req) => {
       model: m,
       messages: chatMessages,
       stream,
-      // Use appropriate max_tokens for GPT-5 (max_completion_tokens) vs legacy models (max_tokens)
-      ...(m.startsWith('gpt-5') ? 
-        { max_completion_tokens: finalMaxTokens } : 
-        { max_tokens: finalMaxTokens, temperature: 0.2 }
-      ),
+      max_tokens: finalMaxTokens,
+      temperature: 0.2
     };
 
     const headers: Record<string, string> = {
@@ -103,73 +100,43 @@ serve(async (req) => {
     };
     if (OPENAI_ORG) headers["OpenAI-Organization"] = OPENAI_ORG;
 
-    return fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(requestBody)
-    });
+    // Much shorter timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`Request timeout after 15 seconds for model ${m}`);
+      controller.abort();
+    }, 15000); // 15 second timeout
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(`API call failed for ${m}:`, error.message);
+      throw error;
+    }
   };
 
   try {
-    // Primary attempt: gpt-5 streaming
-    let resp = await tryModel(model ?? "gpt-5", true);
+    // Use GPT-4o-mini directly with streaming for fast, reliable responses
+    console.log(`Starting request with model: gpt-4o-mini, tokens: ${finalMaxTokens}`);
+    const resp = await tryModel("gpt-4o-mini", true);
 
     if (!resp.ok) {
-      // Read error once so we can branch intelligently
-      let errJson: any = null;
-      let errText = "";
-      try { errJson = await resp.json(); } catch { errText = await resp.text(); }
-
-      const msg = (errJson?.error?.message ?? errText ?? "").toLowerCase();
-      const gated =
-        (errJson?.error?.code === "unsupported_value" && errJson?.error?.param === "stream") ||
-        msg.includes("verify organization") ||
-        msg.includes("must be verified to stream");
-
-      if (gated) {
-        // Same model, non-stream (allowed even when streaming is gated)
-        resp = await tryModel("gpt-5", false);
-      } else {
-        // Something else (e.g., parameter error or model not available) → try 4o-mini streaming
-        resp = await tryModel("gpt-4o-mini", true);
-      }
-
-      // If still not OK, last fallback: 4o-mini non-stream (we will wrap)
-      if (!resp.ok) {
-        resp = await tryModel("gpt-4o-mini", false);
-      }
-
-      // If STILL not OK, surface the original error cleanly
-      if (!resp.ok) {
-        const finalErr = errJson ?? (errText || (await resp.text()));
-        return sseError(`OpenAI error: ${typeof finalErr === "string" ? finalErr : JSON.stringify(finalErr)}`, 502);
-      }
+      const errorText = await resp.text();
+      console.error(`GPT-4o-mini failed:`, errorText);
+      return sseError(`OpenAI API error: ${errorText}`, resp.status);
     }
 
-    // If non-streaming JSON, wrap to SSE so the client can consume uniformly
-    const ct = resp.headers.get("content-type") || "";
-    if (ct.includes("application/json")) {
-      const json = await resp.json();
-      const text = json?.choices?.[0]?.message?.content ?? "";
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`data: {"_meta":"nonstream-wrap"}\n\n`));
-          // Send the full text as a single chunk to avoid truncation issues
-          if (text) {
-            const evt = { choices: [{ delta: { content: text } }] };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
-          }
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-          controller.close();
-        }
-      });
-      return new Response(stream, {
-        headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" }
-      });
-    }
-
-    // Otherwise it's a proper streaming body already → passthrough
+    console.log(`Successfully got response from gpt-4o-mini`);
+    
+    // Return the streaming response directly
     return new Response(resp.body, {
       headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" }
     });
