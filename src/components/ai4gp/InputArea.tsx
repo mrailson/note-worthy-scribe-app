@@ -76,7 +76,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
 
   return (
-    <div className="p-3 space-y-3 bg-muted/30 rounded-xl">
+    <div className="p-3 space-y-3 bg-accent rounded-xl">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
@@ -154,7 +154,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         </Button>
       </div>
       
-      <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-accent rounded-b-lg">
+      <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3">
         <kbd className="px-1 py-0.5 text-xs bg-muted rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio
         {(isRecording || isProcessing) && (
