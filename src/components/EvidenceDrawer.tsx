@@ -27,16 +27,31 @@ interface EvidenceDrawerProps {
     change: string;
     reason?: string;
   }>;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  onClose?: () => void;
+  isOpen?: boolean;
 }
 
 export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
   policyHit,
   nationalRefs = [],
   changeLog = [],
-  children
+  children,
+  onClose,
+  isOpen: controlledIsOpen
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = controlledIsOpen !== undefined ? onClose || (() => {}) : setInternalIsOpen;
+
+  // Auto-open when policyHit is provided and in controlled mode
+  React.useEffect(() => {
+    if (policyHit && onClose && controlledIsOpen === undefined) {
+      setInternalIsOpen(true);
+    }
+  }, [policyHit, onClose, controlledIsOpen]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not specified';
@@ -66,11 +81,23 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (controlledIsOpen !== undefined) {
+      if (!open && onClose) {
+        onClose();
+      }
+    } else {
+      setIsOpen(open);
+    }
+  };
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+      {children && (
+        <SheetTrigger asChild>
+          {children}
+        </SheetTrigger>
+      )}
       <SheetContent className="w-[600px] sm:max-w-[600px]">
         <SheetHeader>
           <div className="flex items-center gap-2">

@@ -32,6 +32,8 @@ import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import AITestModal from '@/components/AITestModal';
 import { useToast } from '@/hooks/use-toast';
+import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
+import TrafficLightSearch from '@/components/TrafficLightSearch';
 
 
 const AI4GPService = () => {
@@ -283,6 +285,16 @@ const AI4GPService = () => {
                   </div>
                 </div>
               </CardHeader>
+
+              {/* Traffic Light Search Bar */}
+              <div className="flex justify-center px-4 py-3 bg-background/50 backdrop-blur-sm border-b">
+                <TrafficLightSearch 
+                  onInsertIntoChat={(message) => {
+                    setInput(prev => prev ? `${prev}\n\n${message}` : message);
+                  }}
+                  className="w-full max-w-2xl"
+                />
+              </div>
 
               {/* AI Chat Display */}
               {showAIChat && (
