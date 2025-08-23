@@ -95,7 +95,7 @@ const AI4GPService = () => {
 
   const handleSendWithContext = () => {
     // Map the AI model preference to the appropriate model string for the backend
-    const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'claude-4-sonnet';
+    const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'gpt-5';
     handleSend(practiceContext, modelToUse);
   };
 
@@ -375,7 +375,7 @@ const AI4GPService = () => {
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
                         onQuickResponse={(response) => {
-                          const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'claude-4-sonnet';
+                          const modelToUse = aiModel === 'grok' ? 'grok-beta' : 'gpt-5';
                           handleQuickResponse(response, practiceContext, modelToUse);
                         }}
                       />

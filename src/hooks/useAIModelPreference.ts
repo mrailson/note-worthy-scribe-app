@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type AIModel = 'claude' | 'grok';
+export type AIModel = 'chatgpt5' | 'grok';
 
 interface UseAIModelPreferenceReturn {
   selectedModel: AIModel;
@@ -8,13 +8,17 @@ interface UseAIModelPreferenceReturn {
 }
 
 export const useAIModelPreference = (): UseAIModelPreferenceReturn => {
-  const [selectedModel, setSelectedModelState] = useState<AIModel>('claude');
+  const [selectedModel, setSelectedModelState] = useState<AIModel>('chatgpt5');
 
   // Load preference from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('ai4gp-model-preference');
-    if (saved === 'claude' || saved === 'grok') {
+    if (saved === 'chatgpt5' || saved === 'grok') {
       setSelectedModelState(saved);
+    } else if (saved === 'claude') {
+      // Migrate old claude preference to chatgpt5
+      setSelectedModelState('chatgpt5');
+      localStorage.setItem('ai4gp-model-preference', 'chatgpt5');
     }
   }, []);
 
