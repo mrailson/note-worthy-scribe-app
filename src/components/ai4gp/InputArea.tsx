@@ -154,7 +154,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         </Button>
       </div>
       
-      <div className="text-xs text-muted-foreground text-center pt-1">
+      <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-accent rounded-b-lg">
         <kbd className="px-1 py-0.5 text-xs bg-muted rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio
         {(isRecording || isProcessing) && (
