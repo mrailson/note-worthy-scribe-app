@@ -384,7 +384,7 @@ const AI4GPService = () => {
                   
                   {/* Input Area at Bottom - Desktop only */}
                   {!showNews && !showAIChat && !showSettings && !showImageService && !isMobile && (
-                    <div className="border-t bg-background">
+                    <div className="border-t">
                       <InputArea
                         ref={inputRef}
                         input={input}
