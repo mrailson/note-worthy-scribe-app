@@ -497,25 +497,25 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <TestTube className="h-5 w-5" />
+      <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] flex flex-col p-4 sm:p-6">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <TestTube className="h-4 w-4 sm:h-5 sm:w-5" />
             AI Model Tester
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="standard" className="flex-1 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="standard">Standard Testing</TabsTrigger>
-            <TabsTrigger value="clinical">Clinical Performance</TabsTrigger>
+        <Tabs defaultValue="standard" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="standard" className="text-xs sm:text-sm">Standard Testing</TabsTrigger>
+            <TabsTrigger value="clinical" className="text-xs sm:text-sm">Clinical Performance</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-hidden mt-4">
+          <div className="flex-1 overflow-hidden">
             <TabsContent value="standard" className="h-full m-0">
-              <div className="grid grid-cols-2 gap-6 h-full">
-                {/* Left Column - Input */}
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+                {/* Input Section */}
+                <div className="space-y-3 order-1">
                   <div>
                     <Label htmlFor="prompt" className="text-sm font-medium">
                       Test Prompt
@@ -525,7 +525,7 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                       placeholder="Enter your prompt to test across models..."
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      className="min-h-[100px] mt-1"
+                      className="min-h-[80px] sm:min-h-[100px] mt-1 text-sm"
                     />
                   </div>
 
@@ -547,33 +547,35 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                     </Select>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button 
                       onClick={handleSingleTest} 
                       disabled={isLoading}
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 text-xs sm:text-sm"
+                      size="sm"
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
                       Test Selected Model
                     </Button>
                     <Button 
                       onClick={handleTestAll} 
                       disabled={isLoading}
-                      className="flex-1"
+                      className="flex-1 text-xs sm:text-sm"
+                      size="sm"
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
                       Test All Models
                     </Button>
                   </div>
                 </div>
 
-                {/* Right Column - Results */}
-                <div className="space-y-4">
+                {/* Results Section */}
+                <div className="space-y-3 order-2 lg:order-none overflow-hidden">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Test Results</Label>
                     {testResults.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground hidden sm:block">
                         Fastest: {testResults.reduce((prev, current) => 
                           prev.responseTime < current.responseTime ? prev : current
                         ).model} ({testResults.reduce((prev, current) => 
@@ -583,21 +585,21 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                     )}
                   </div>
                   
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-3">
+                  <ScrollArea className="h-[300px] lg:h-[400px]">
+                    <div className="space-y-2 pr-2">
                       {testResults.map((result, index) => (
-                        <Card key={index} className="p-4">
+                        <Card key={index} className="p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{result.model}</span>
+                              <span className="font-medium text-sm">{result.model}</span>
                               {getStatusIcon(result.status)}
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Clock className="w-3 h-3" />
                               {result.responseTime}ms
                             </div>
                           </div>
-                          <div className="text-sm bg-muted p-2 rounded max-h-32 overflow-y-auto">
+                          <div className="text-xs bg-muted p-2 rounded max-h-24 overflow-y-auto">
                             {result.response}
                           </div>
                           {result.error && (
@@ -609,14 +611,14 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
                       ))}
                       
                       {testResults.length === 0 && !isLoading && (
-                        <div className="text-center text-muted-foreground py-8">
-                          Run tests to see results here
+                        <div className="text-center text-muted-foreground py-6">
+                          <p className="text-sm">Run tests to see results here</p>
                         </div>
                       )}
                       
                       {isLoading && (
-                        <div className="text-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                        <div className="text-center py-6">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                           <p className="text-sm text-muted-foreground">Running tests...</p>
                         </div>
                       )}
@@ -626,196 +628,202 @@ export const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) 
               </div>
             </TabsContent>
 
-            <TabsContent value="clinical" className="h-full m-0">
-              <div className="space-y-4">
-                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                   <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
-                     <Zap className="w-4 h-4" />
-                     Clinical Performance Test
-                   </h3>
-                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                     This comprehensive test compares clinical AI performance across multiple models (GPT-5, Claude, Grok, Gemini) 
-                     and different service configurations including our standard AI function with clinical verification and the 
-                     lightweight fast clinical function.
-                   </p>
-                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                     Current Test: <strong>{selectedClinicalTitle}</strong>
-                   </p>
-                 </div>
+            <TabsContent value="clinical" className="h-full m-0 overflow-y-auto">
+              <ScrollArea className="h-full">
+                <div className="space-y-3 pr-2 pb-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 p-3 sm:p-4 rounded-lg">
+                    <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                      <Zap className="w-4 h-4" />
+                      Clinical Performance Test
+                    </h3>
+                    <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+                      This comprehensive test compares clinical AI performance across multiple models (GPT-5, Claude, Grok, Gemini) 
+                      and different service configurations including our standard AI function with clinical verification and the 
+                      lightweight fast clinical function.
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      Current Test: <strong>{selectedClinicalTitle}</strong>
+                    </p>
+                  </div>
 
-                 {/* Clinical Quick Picks */}
-                 <Card className="p-4">
-                   <h4 className="font-medium mb-3 flex items-center gap-2">
-                     <span className="text-green-600">🩺</span>
-                     NHS Clinical Quick Picks
-                   </h4>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-40 overflow-y-auto">
-                     {clinicalQuickPicks.map((pick, index) => (
-                       <div
-                         key={index}
-                         className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                           selectedClinicalQuery === pick.prompt 
-                             ? 'border-green-600 bg-green-50 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
-                             : 'border-border hover:border-green-400 hover:bg-green-50/50'
-                         }`}
-                         onClick={() => {
-                           setSelectedClinicalQuery(pick.prompt);
-                           setSelectedClinicalTitle(pick.title);
-                         }}
-                       >
-                         <div className="flex items-center justify-between mb-1">
-                           <div className={`font-medium text-sm ${
-                             selectedClinicalQuery === pick.prompt ? 'text-green-700' : 'text-primary'
-                           }`}>
-                             {pick.title}
-                           </div>
-                           <Badge variant="outline" className="text-xs">
-                             {pick.category}
-                           </Badge>
-                         </div>
-                         <div className="text-xs text-muted-foreground">
-                           {pick.goldStandard ? '✓ Gold Standard Available' : 'Standard NHS Query'}
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </Card>
+                  {/* Clinical Quick Picks */}
+                  <Card className="p-3 sm:p-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2 text-sm sm:text-base">
+                      <span className="text-green-600">🩺</span>
+                      NHS Clinical Quick Picks
+                    </h4>
+                    <ScrollArea className="max-h-48">
+                      <div className="grid grid-cols-1 gap-3 pr-2">
+                        {clinicalQuickPicks.map((pick, index) => (
+                          <div
+                            key={index}
+                            className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                              selectedClinicalQuery === pick.prompt 
+                                ? 'border-green-600 bg-green-50 ring-2 ring-green-600 ring-opacity-20 shadow-md' 
+                                : 'border-border hover:border-green-400 hover:bg-green-50/50'
+                            }`}
+                            onClick={() => {
+                              setSelectedClinicalQuery(pick.prompt);
+                              setSelectedClinicalTitle(pick.title);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className={`font-medium text-sm ${
+                                selectedClinicalQuery === pick.prompt ? 'text-green-700' : 'text-primary'
+                              }`}>
+                                {pick.title}
+                              </div>
+                              <Badge variant="outline" className="text-xs flex-shrink-0 ml-2">
+                                {pick.category}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {pick.goldStandard ? '✓ Gold Standard Available' : 'Standard NHS Query'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </Card>
 
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleClinicalTest} 
-                    disabled={isClinicalTesting}
-                    className="flex-1"
-                  >
-                    {isClinicalTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <TestTube className="w-4 h-4 mr-2" />}
-                    Run Clinical Performance Test
-                  </Button>
-                  
-                  {clinicalResults.length > 0 && (
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button 
-                      onClick={downloadClinicalReport}
-                      variant="outline"
-                      className="flex-shrink-0"
+                      onClick={handleClinicalTest} 
+                      disabled={isClinicalTesting}
+                      className="flex-1 text-xs sm:text-sm"
+                      size="sm"
                     >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Report
+                      {isClinicalTesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <TestTube className="w-4 h-4 mr-2" />}
+                      Run Clinical Performance Test
                     </Button>
-                  )}
-                </div>
+                    
+                    {clinicalResults.length > 0 && (
+                      <Button 
+                        onClick={downloadClinicalReport}
+                        variant="outline"
+                        className="flex-shrink-0 text-xs sm:text-sm"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Report
+                      </Button>
+                    )}
+                  </div>
 
-                {clinicalResults.length > 0 && (
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                     {clinicalResults.map((result, index) => (
-                       <Card key={index} className="p-4">
-                         <div className="flex items-center justify-between mb-3">
-                           <div className="flex items-center gap-2">
-                             <Badge variant={
-                               result.service === 'Fast Clinical' ? 'default' : 
-                               result.service === 'Standard AI' ? 'secondary' : 
-                               'outline'
-                             }>
-                               {result.service}
-                             </Badge>
-                             {getStatusIcon(result.status)}
-                           </div>
-                           <div className="flex items-center gap-2 text-sm font-medium">
-                             <Clock className="w-4 h-4" />
-                             {result.responseTime}ms
-                           </div>
-                         </div>
-                         
-                         <div className="space-y-2">
-                           <div className="text-sm font-medium">
-                             Model: {result.model}
-                           </div>
-                           
-                           <ScrollArea className="h-32">
-                             <div className="text-sm bg-muted p-3 rounded">
-                               {result.response}
-                             </div>
-                           </ScrollArea>
-                           
-                           {result.error && (
-                             <div className="text-xs text-destructive">
-                               Error: {result.error}
-                             </div>
-                           )}
-                         </div>
-                       </Card>
-                     ))}
-                   </div>
-                 )}
-
-                {clinicalResults.length > 0 && (
-                  <Card className="p-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Clinical Performance Analysis</h4>
-                    <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                      {(() => {
-                        const successful = clinicalResults.filter(r => r.status === 'success');
-                        if (successful.length === 0) return <p>No successful responses to analyze.</p>;
-                        
-                        const fastest = successful.reduce((prev, current) => 
-                          prev.responseTime < current.responseTime ? prev : current
-                        );
-                        
-                        const slowest = successful.reduce((prev, current) => 
-                          prev.responseTime > current.responseTime ? prev : current
-                        );
-                        
-                        const avgResponseTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
-                        
-                        const standardResult = clinicalResults.find(r => r.service === 'Standard AI');
-                        const fastResult = clinicalResults.find(r => r.service === 'Fast Clinical');
-                        
-                        const modelStats = successful.reduce((acc, r) => {
-                          const model = r.model.split('-')[0]; // Get base model name
-                          if (!acc[model]) acc[model] = [];
-                          acc[model].push(r.responseTime);
-                          return acc;
-                        }, {} as Record<string, number[]>);
-                        
-                        return (
-                          <>
-                            <p>• Successful responses: {successful.length}/{clinicalResults.length}</p>
-                            <p>• Fastest: {fastest.model} via {fastest.service} ({fastest.responseTime}ms)</p>
-                            <p>• Slowest: {slowest.model} via {slowest.service} ({slowest.responseTime}ms)</p>
-                            <p>• Average response time: {avgResponseTime}ms</p>
-                            
-                            {standardResult && fastResult && standardResult.status === 'success' && fastResult.status === 'success' && (
-                              <>
-                                <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
-                                  <p className="font-medium">GPT-5 Service Comparison:</p>
-                                  <p>• Standard AI: {standardResult.responseTime}ms</p>
-                                  <p>• Fast Clinical: {fastResult.responseTime}ms</p>
-                                  <p>• Speed improvement: {((standardResult.responseTime - fastResult.responseTime) / standardResult.responseTime * 100).toFixed(1)}% faster</p>
-                                </div>
-                              </>
-                            )}
-                            
-                            <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
-                              <p className="font-medium">Model Performance:</p>
-                              {Object.entries(modelStats).map(([model, times]) => (
-                                <p key={model}>• {model.toUpperCase()}: avg {Math.round(times.reduce((a, b) => a + b, 0) / times.length)}ms</p>
-                              ))}
+                  {clinicalResults.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {clinicalResults.map((result, index) => (
+                        <Card key={index} className="p-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={
+                                result.service === 'Fast Clinical' ? 'default' : 
+                                result.service === 'Standard AI' ? 'secondary' : 
+                                'outline'
+                              } className="text-xs">
+                                {result.service}
+                              </Badge>
+                              {getStatusIcon(result.status)}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs font-medium">
+                              <Clock className="w-3 h-3" />
+                              {result.responseTime}ms
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium">
+                              Model: {result.model}
                             </div>
                             
-                            {avgResponseTime < 10000 && (
-                              <p className="mt-2 font-medium text-green-800 dark:text-green-200">⭐ Target achieved: Average clinical response under 10 seconds!</p>
+                            <ScrollArea className="h-24">
+                              <div className="text-xs bg-muted p-2 rounded">
+                                {result.response}
+                              </div>
+                            </ScrollArea>
+                            
+                            {result.error && (
+                              <div className="text-xs text-destructive">
+                                Error: {result.error}
+                              </div>
                             )}
-                          </>
-                        );
-                      })()}
+                          </div>
+                        </Card>
+                      ))}
                     </div>
-                  </Card>
-                )}
+                  )}
 
-                {isClinicalTesting && (
-                  <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Running clinical performance comparison...</p>
-                  </div>
-                )}
-              </div>
+                  {clinicalResults.length > 0 && (
+                    <Card className="p-3 sm:p-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                      <h4 className="font-medium text-green-900 dark:text-green-100 mb-2 text-sm sm:text-base">Clinical Performance Analysis</h4>
+                      <div className="text-xs sm:text-sm text-green-700 dark:text-green-300 space-y-1">
+                        {(() => {
+                          const successful = clinicalResults.filter(r => r.status === 'success');
+                          if (successful.length === 0) return <p>No successful responses to analyze.</p>;
+                          
+                          const fastest = successful.reduce((prev, current) => 
+                            prev.responseTime < current.responseTime ? prev : current
+                          );
+                          
+                          const slowest = successful.reduce((prev, current) => 
+                            prev.responseTime > current.responseTime ? prev : current
+                          );
+                          
+                          const avgResponseTime = Math.round(successful.reduce((sum, r) => sum + r.responseTime, 0) / successful.length);
+                          
+                          const standardResult = clinicalResults.find(r => r.service === 'Standard AI');
+                          const fastResult = clinicalResults.find(r => r.service === 'Fast Clinical');
+                          
+                          const modelStats = successful.reduce((acc, r) => {
+                            const model = r.model.split('-')[0]; // Get base model name
+                            if (!acc[model]) acc[model] = [];
+                            acc[model].push(r.responseTime);
+                            return acc;
+                          }, {} as Record<string, number[]>);
+                          
+                          return (
+                            <>
+                              <p>• Successful responses: {successful.length}/{clinicalResults.length}</p>
+                              <p>• Fastest: {fastest.model} via {fastest.service} ({fastest.responseTime}ms)</p>
+                              <p>• Slowest: {slowest.model} via {slowest.service} ({slowest.responseTime}ms)</p>
+                              <p>• Average response time: {avgResponseTime}ms</p>
+                              
+                              {standardResult && fastResult && standardResult.status === 'success' && fastResult.status === 'success' && (
+                                <>
+                                  <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
+                                    <p className="font-medium">GPT-5 Service Comparison:</p>
+                                    <p>• Standard AI: {standardResult.responseTime}ms</p>
+                                    <p>• Fast Clinical: {fastResult.responseTime}ms</p>
+                                    <p>• Speed improvement: {((standardResult.responseTime - fastResult.responseTime) / standardResult.responseTime * 100).toFixed(1)}% faster</p>
+                                  </div>
+                                </>
+                              )}
+                              
+                              <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2">
+                                <p className="font-medium">Model Performance:</p>
+                                {Object.entries(modelStats).map(([model, times]) => (
+                                  <p key={model}>• {model.toUpperCase()}: avg {Math.round(times.reduce((a, b) => a + b, 0) / times.length)}ms</p>
+                                ))}
+                              </div>
+                              
+                              {avgResponseTime < 10000 && (
+                                <p className="mt-2 font-medium text-green-800 dark:text-green-200">⭐ Target achieved: Average clinical response under 10 seconds!</p>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </Card>
+                  )}
+
+                  {isClinicalTesting && (
+                    <div className="text-center py-6">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Running clinical performance comparison...</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </TabsContent>
           </div>
         </Tabs>
