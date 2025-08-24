@@ -8,7 +8,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
 import { DrugQuickModal } from '@/components/DrugQuickModal';
-import { FormularyImportButton } from '@/components/FormularyImportButton';
+
 import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -162,11 +162,6 @@ const AI4GP = () => {
                 <span className="text-xs">Ctrl</span>K
               </kbd>
             </Button>
-            
-            {/* Admin Tools - Development */}
-            <div className="ml-auto">
-              <FormularyImportButton />
-            </div>
           </div>
         </div>
       </div>
