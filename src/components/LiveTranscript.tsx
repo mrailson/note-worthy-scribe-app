@@ -476,30 +476,18 @@ export const LiveTranscript = ({
                      Meeting Settings
                    </Button>
                    
-                    <MedicalTermCorrectionDialog
-                      selectedText={selectedText}
-                      onCorrectionAdded={async () => {
-                        // Refresh corrections when new ones are added
-                        const { data: user } = await supabase.auth.getUser();
-                        if (user.user) {
-                          await medicalTermCorrector.refreshCorrections(user.user.id);
-                        }
-                        setIsMedicalCorrectionsLoaded(true);
-                      }}
-                      buttonText="Update Medical Terms, Acronyms & Missheard Names"
-                    />
-                    
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="timestamps-toggle"
-                        checked={showTimestamps}
-                        onCheckedChange={onTimestampsToggle}
-                      />
-                      <Label htmlFor="timestamps-toggle" className="flex items-center gap-1 text-sm">
-                        <Clock className="h-3 w-3" />
-                        Show Timestamps
-                      </Label>
-                    </div>
+                     <MedicalTermCorrectionDialog
+                       selectedText={selectedText}
+                       onCorrectionAdded={async () => {
+                         // Refresh corrections when new ones are added
+                         const { data: user } = await supabase.auth.getUser();
+                         if (user.user) {
+                           await medicalTermCorrector.refreshCorrections(user.user.id);
+                         }
+                         setIsMedicalCorrectionsLoaded(true);
+                       }}
+                       buttonText="Update Medical Terms, Acronyms & Missheard Names"
+                     />
                  </div>
                  
                  {transcript && speakers.length > 0 && (
