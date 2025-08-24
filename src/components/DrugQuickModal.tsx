@@ -188,7 +188,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search local drug policies..."
-                className="flex-1 border-0 focus-visible:ring-0 shadow-none bg-white"
+                className="flex-1 border border-transparent focus-visible:ring-0 focus:border-blue-500 shadow-none bg-white transition-colors"
               />
             </div>
             
