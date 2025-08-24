@@ -2,122 +2,270 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
-import { DeepgramRealtimeTranscriber, TranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mic, MicOff, Loader2, Smartphone, Zap, Bot } from 'lucide-react';
+import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
+import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
+import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { toast } from 'sonner';
 
+type ServiceType = 'browser' | 'openai' | 'whisper';
+
+interface ServiceData {
+  isRecording: boolean;
+  transcriptData: any[];
+  currentTranscript: string;
+  status: string;
+  isLoading: boolean;
+  transcriber: any;
+}
+
 const DeepgramTest = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcriptData, setTranscriptData] = useState<TranscriptData[]>([]);
-  const [currentTranscript, setCurrentTranscript] = useState('');
-  const [status, setStatus] = useState('Disconnected');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const transcriberRef = useRef<DeepgramRealtimeTranscriber | null>(null);
-
-  const onTranscription = (data: TranscriptData) => {
-    console.log('Transcription received:', data);
-    
-    if (data.is_final) {
-      setTranscriptData(prev => [...prev, data]);
-      setCurrentTranscript('');
-    } else {
-      setCurrentTranscript(data.text);
+  const [activeService, setActiveService] = useState<ServiceType>('browser');
+  const [services, setServices] = useState<Record<ServiceType, ServiceData>>({
+    browser: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    openai: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    whisper: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
     }
-  };
+  });
 
-  const onError = (error: string) => {
-    console.error('Transcription error:', error);
-    toast.error(`Error: ${error}`);
-    setStatus(`Error: ${error}`);
-    setIsRecording(false);
-    setIsLoading(false);
-  };
+  const createServiceCallbacks = (serviceType: ServiceType) => {
+    const onTranscription = (data: any) => {
+      console.log(`${serviceType} transcription received:`, data);
+      
+      setServices(prev => {
+        const service = prev[serviceType];
+        if (data.is_final || data.isFinal) {
+          return {
+            ...prev,
+            [serviceType]: {
+              ...service,
+              transcriptData: [...service.transcriptData, data],
+              currentTranscript: ''
+            }
+          };
+        } else {
+          return {
+            ...prev,
+            [serviceType]: {
+              ...service,
+              currentTranscript: data.text
+            }
+          };
+        }
+      });
+    };
 
-  const onStatusChange = (status: string) => {
-    console.log('Status changed:', status);
-    setStatus(status);
-  };
+    const onError = (error: string) => {
+      console.error(`${serviceType} error:`, error);
+      toast.error(`${serviceType} error: ${error}`);
+      
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          status: `Error: ${error}`,
+          isRecording: false,
+          isLoading: false
+        }
+      }));
+    };
 
-  const onSummary = (summary: string) => {
-    console.log('Summary received:', summary);
-    toast.success('Summary generated');
+    const onStatusChange = (status: string) => {
+      console.log(`${serviceType} status changed:`, status);
+      
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          status
+        }
+      }));
+    };
+
+    const onSummary = (summary: string) => {
+      console.log(`${serviceType} summary received:`, summary);
+      toast.success(`${serviceType} summary generated`);
+    };
+
+    return { onTranscription, onError, onStatusChange, onSummary };
   };
 
   useEffect(() => {
     return () => {
-      if (transcriberRef.current) {
-        transcriberRef.current.stopTranscription();
-      }
+      // Cleanup all services
+      Object.values(services).forEach(service => {
+        if (service.transcriber) {
+          service.transcriber.stopTranscription();
+        }
+      });
     };
   }, []);
 
-  const startRecording = async () => {
+  const startRecording = async (serviceType: ServiceType) => {
     try {
-      setIsLoading(true);
-      setStatus('Connecting...');
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          isLoading: true,
+          status: 'Connecting...'
+        }
+      }));
       
-      transcriberRef.current = new DeepgramRealtimeTranscriber(
-        onTranscription,
-        onError,
-        onStatusChange,
-        onSummary
-      );
+      const callbacks = createServiceCallbacks(serviceType);
+      let transcriber;
 
-      await transcriberRef.current.startTranscription();
-      setIsRecording(true);
-      setIsLoading(false);
-      toast.success('Recording started');
+      switch (serviceType) {
+        case 'browser':
+          transcriber = new BrowserSpeechTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange,
+            callbacks.onSummary
+          );
+          break;
+        case 'openai':
+          transcriber = new OpenAIRealtimeTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange
+          );
+          break;
+        case 'whisper':
+          transcriber = new WhisperTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange,
+            callbacks.onSummary
+          );
+          break;
+        default:
+          throw new Error('Unknown service type');
+      }
+
+      await transcriber.startTranscription();
+      
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          transcriber,
+          isRecording: true,
+          isLoading: false
+        }
+      }));
+      
+      toast.success(`${serviceType} recording started`);
     } catch (error) {
-      console.error('Failed to start recording:', error);
-      toast.error('Failed to start recording');
-      setIsLoading(false);
-      setStatus('Failed to connect');
+      console.error(`Failed to start ${serviceType} recording:`, error);
+      toast.error(`Failed to start ${serviceType} recording`);
+      
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          isLoading: false,
+          status: 'Failed to connect'
+        }
+      }));
     }
   };
 
-  const stopRecording = () => {
-    if (transcriberRef.current) {
-      transcriberRef.current.stopTranscription();
-      setIsRecording(false);
-      setStatus('Disconnected');
-      toast.success('Recording stopped');
+  const stopRecording = (serviceType: ServiceType) => {
+    const service = services[serviceType];
+    if (service.transcriber) {
+      service.transcriber.stopTranscription();
+      
+      setServices(prev => ({
+        ...prev,
+        [serviceType]: {
+          ...prev[serviceType],
+          isRecording: false,
+          status: 'Disconnected'
+        }
+      }));
+      
+      toast.success(`${serviceType} recording stopped`);
     }
   };
 
-  const clearTranscripts = () => {
-    setTranscriptData([]);
-    setCurrentTranscript('');
-    toast.success('Transcripts cleared');
+  const clearTranscripts = (serviceType: ServiceType) => {
+    setServices(prev => ({
+      ...prev,
+      [serviceType]: {
+        ...prev[serviceType],
+        transcriptData: [],
+        currentTranscript: ''
+      }
+    }));
+    toast.success(`${serviceType} transcripts cleared`);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
+  const renderServicePanel = (serviceType: ServiceType) => {
+    const service = services[serviceType];
+    const serviceNames = {
+      browser: 'Browser Speech API',
+      openai: 'OpenAI Realtime',
+      whisper: 'Whisper AI (Local)'
+    };
+    
+    const serviceIcons = {
+      browser: <Smartphone className="w-4 h-4" />,
+      openai: <Zap className="w-4 h-4" />,
+      whisper: <Bot className="w-4 h-4" />
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Service Controls */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Deepgram Service Test</span>
-              <Badge variant={isRecording ? 'default' : 'secondary'}>
-                {status}
+              <div className="flex items-center gap-2">
+                {serviceIcons[serviceType]}
+                <span>{serviceNames[serviceType]}</span>
+              </div>
+              <Badge variant={service.isRecording ? 'default' : 'secondary'}>
+                {service.status}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
-              {!isRecording ? (
+              {!service.isRecording ? (
                 <Button
-                  onClick={startRecording}
-                  disabled={isLoading}
+                  onClick={() => startRecording(serviceType)}
+                  disabled={service.isLoading}
                   className="flex items-center gap-2"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
-                  {isLoading ? 'Connecting...' : 'Start Recording'}
+                  {service.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+                  {service.isLoading ? 'Connecting...' : 'Start Recording'}
                 </Button>
               ) : (
                 <Button
-                  onClick={stopRecording}
+                  onClick={() => stopRecording(serviceType)}
                   variant="destructive"
                   className="flex items-center gap-2"
                 >
@@ -127,9 +275,9 @@ const DeepgramTest = () => {
               )}
               
               <Button
-                onClick={clearTranscripts}
+                onClick={() => clearTranscripts(serviceType)}
                 variant="outline"
-                disabled={transcriptData.length === 0}
+                disabled={service.transcriptData.length === 0}
               >
                 Clear
               </Button>
@@ -138,7 +286,7 @@ const DeepgramTest = () => {
         </Card>
 
         {/* Live Transcript */}
-        {(isRecording || currentTranscript) && (
+        {(service.isRecording || service.currentTranscript) && (
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -148,7 +296,7 @@ const DeepgramTest = () => {
             <CardContent>
               <div className="p-4 bg-muted/50 rounded-lg min-h-[60px]">
                 <p className="text-muted-foreground italic">
-                  {currentTranscript || 'Listening...'}
+                  {service.currentTranscript || 'Listening...'}
                 </p>
               </div>
             </CardContent>
@@ -161,18 +309,18 @@ const DeepgramTest = () => {
             <CardTitle className="flex items-center justify-between">
               <span>Transcription Results</span>
               <Badge variant="outline">
-                {transcriptData.length} segments
+                {service.transcriptData.length} segments
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {transcriptData.length === 0 ? (
+              {service.transcriptData.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   No transcriptions yet. Start recording to see results.
                 </p>
               ) : (
-                transcriptData.map((data, index) => (
+                service.transcriptData.map((data, index) => (
                   <div
                     key={index}
                     className="p-3 bg-card border rounded-lg space-y-2"
@@ -208,21 +356,82 @@ const DeepgramTest = () => {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Status:</span> {status}
+                <span className="font-medium">Status:</span> {service.status}
               </div>
               <div>
-                <span className="font-medium">Recording:</span> {isRecording ? 'Yes' : 'No'}
+                <span className="font-medium">Recording:</span> {service.isRecording ? 'Yes' : 'No'}
               </div>
               <div>
-                <span className="font-medium">Total Segments:</span> {transcriptData.length}
+                <span className="font-medium">Total Segments:</span> {service.transcriptData.length}
               </div>
               <div>
                 <span className="font-medium">Total Words:</span>{' '}
-                {transcriptData.reduce((acc, data) => acc + data.text.split(' ').length, 0)}
+                {service.transcriptData.reduce((acc, data) => acc + data.text.split(' ').length, 0)}
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-background p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Multi-Service Microphone Test</span>
+              <div className="flex gap-2">
+                {Object.entries(services).map(([type, service]) => (
+                  <Badge 
+                    key={type} 
+                    variant={service.isRecording ? 'default' : 'secondary'}
+                    className="capitalize"
+                  >
+                    {type}: {service.status}
+                  </Badge>
+                ))}
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Test and compare different speech-to-text services. Each service can be started independently to compare accuracy and performance.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Service Tabs */}
+        <Tabs value={activeService} onValueChange={(value) => setActiveService(value as ServiceType)}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="browser" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              Browser Speech
+            </TabsTrigger>
+            <TabsTrigger value="openai" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              OpenAI Realtime
+            </TabsTrigger>
+            <TabsTrigger value="whisper" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Whisper AI
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="browser">
+            {renderServicePanel('browser')}
+          </TabsContent>
+
+          <TabsContent value="openai">
+            {renderServicePanel('openai')}
+          </TabsContent>
+
+          <TabsContent value="whisper">
+            {renderServicePanel('whisper')}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
