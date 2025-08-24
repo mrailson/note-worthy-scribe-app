@@ -44,6 +44,7 @@ serve(async (req) => {
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
         input_audio_transcription: {
+          model: "whisper-1",
           enabled: true,
           language: language === "auto" ? undefined : (language || "en")
         },
