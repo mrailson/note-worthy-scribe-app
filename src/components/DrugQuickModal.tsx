@@ -343,6 +343,15 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                           <ExternalLink className="h-4 w-4" /> Open ICB PDF
                         </a>
                       )}
+                      <a 
+                        className="inline-flex items-center gap-2 text-primary hover:underline" 
+                        href="/MHRA-Compliance-Documentation.md" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        title="Verify prior approval requirements manually"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
+                      </a>
                       {data.prior_approval.page_ref && (
                         <span className="text-xs text-muted-foreground">
                           {data.prior_approval.page_ref}
@@ -360,6 +369,17 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     </div>
                     <div className="text-sm text-green-700 dark:text-green-300 mt-1">
                       This medication does not require prior approval according to local guidelines.
+                    </div>
+                    <div className="mt-3">
+                      <a 
+                        className="inline-flex items-center gap-2 text-primary hover:underline" 
+                        href="/MHRA-Compliance-Documentation.md" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        title="Verify prior approval requirements manually"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
+                      </a>
                     </div>
                   </div>
                 )}
