@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, Copy, X } from "lucide-react";
+import { Search, ExternalLink, Copy, X, Maximize, Minimize, ArrowsUpFromLine, Expand } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
   const [sel, setSel] = useState<VocabItem | null>(null);
   const [data, setData] = useState<ResolveResp | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandMode, setExpandMode] = useState<'normal' | 'wide' | 'tall'>('normal');
 
   useEffect(() => {
     if (open) {
@@ -103,6 +104,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
       setQ("");
       setSel(null);
       setData(null);
+      setExpandMode('normal');
     }
   }, [open]);
 
@@ -136,6 +138,12 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     return "YES";
   })();
 
+  const modalSizeClass = {
+    normal: "max-w-[1170px] max-h-[85vh]",
+    wide: "max-w-[90vw] max-h-[85vh]", 
+    tall: "max-w-[1170px] max-h-[95vh]"
+  }[expandMode];
+
   const handleCopySummary = () => {
     if (!data || !sel) return;
     
@@ -147,9 +155,13 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     navigator.clipboard.writeText(lines.join(" "));
   };
 
+  const toggleExpandMode = (mode: 'wide' | 'tall') => {
+    setExpandMode(current => current === mode ? 'normal' : mode);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1170px] max-h-[85vh] overflow-hidden p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className={`${modalSizeClass} overflow-hidden p-0 z-50 bg-background`} onOpenAutoFocus={(e) => e.preventDefault()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2 flex-1">
@@ -162,13 +174,35 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
               className="flex-1 border-0 focus-visible:ring-0 shadow-none"
             />
           </div>
+          
+          {/* Expansion Controls */}
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleExpandMode('wide')}
+              title="Expand horizontally"
+              className={expandMode === 'wide' ? 'bg-muted' : ''}
+            >
+              <Expand className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleExpandMode('tall')}
+              title="Expand vertically"
+              className={expandMode === 'tall' ? 'bg-muted' : ''}
+            >
+              <ArrowsUpFromLine className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Body */}
         <div className="grid grid-cols-12 gap-6 p-4 overflow-y-auto">
-          {/* Left: Results */}
-          <div className="col-span-8">
-            <div className="rounded-xl border max-h-96 overflow-y-auto">
+          {/* Left: Results - Reduced from col-span-8 to col-span-6 (25% narrower) */}
+          <div className="col-span-6">
+            <div className="rounded-xl border max-h-96 overflow-y-auto bg-background">
               {results.length ? (
                 results.map(r => (
                   <div
@@ -194,8 +228,8 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
             </div>
           </div>
 
-          {/* Right: Details */}
-          <div className="col-span-4">
+          {/* Right: Details - Expanded from col-span-4 to col-span-6 */}
+          <div className="col-span-6">
             {!sel ? (
               <div className="text-muted-foreground p-4 text-center">
                 <div className="mb-2 text-lg">👈</div>
@@ -238,7 +272,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
                 {/* Prior approval */}
                 {data.prior_approval && (
-                  <div className="rounded-xl border p-3">
+                  <div className="rounded-xl border p-3 bg-background">
                     <div className="mb-1 text-sm font-semibold">Prior-Approval / IFR / Blueteq</div>
                     <div className="text-sm">
                       <strong>{data.prior_approval.status}</strong>
@@ -266,7 +300,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
                 {/* Formulary */}
                 {data.formulary && (
-                  <div className="rounded-xl border p-3">
+                  <div className="rounded-xl border p-3 bg-background">
                     <div className="mb-1 text-sm font-semibold">Formulary (Northamptonshire)</div>
                     <div className="text-sm text-muted-foreground">
                       {data.formulary.bnf_chapter} — {data.formulary.section}
@@ -299,12 +333,12 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                 )}
 
                 {/* Alternatives */}
-                <div className="rounded-xl border p-3">
+                <div className="rounded-xl border p-3 bg-background">
                   <div className="mb-2 text-sm font-semibold">Consider alternatives (local)</div>
                   {data.alternatives?.length ? (
                     <ul className="grid grid-cols-1 gap-2">
                       {data.alternatives.map((a, i) => (
-                        <li key={i} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                        <li key={i} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 bg-background">
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium">{a.name}</div>
                             {a.notes && <div className="truncate text-xs text-muted-foreground">{a.notes}</div>}
