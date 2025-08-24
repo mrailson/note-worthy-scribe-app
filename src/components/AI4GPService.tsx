@@ -114,8 +114,8 @@ const AI4GPService = () => {
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
-    // Always use GPT-5 for AI4GP
-    handleSend(practiceContext, 'gpt-5');
+    // Use the selected model from settings
+    handleSend(practiceContext, selectedModel);
   };
 
   const handleLoadPreviousSearch = (search: any) => {
@@ -416,8 +416,8 @@ const AI4GPService = () => {
                         showAIService={showAIService}
                         onSetDrugName={setDrugNameFn}
                         onQuickResponse={(response) => {
-                          // Always use GPT-5 for AI4GP
-                          handleQuickResponse(response, practiceContext, 'gpt-5');
+                          // Use the selected model from settings
+                          handleQuickResponse(response, practiceContext, selectedModel);
                         }}
                       />
                     </div>
