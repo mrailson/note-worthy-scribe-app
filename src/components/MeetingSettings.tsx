@@ -83,7 +83,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     attendees: "",
     agenda: "",
     date: format(new Date(), 'yyyy-MM-dd'),
-    startTime: generateRoundedStartTime()
+    startTime: generateRoundedStartTime(),
+    transcriberService: "whisper" as "whisper" | "deepgram"
   });
 
   // Fetch user's associated practices
@@ -404,6 +405,23 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               </Select>
               <p className="text-xs text-muted-foreground">
                 Choose the formatting style for your meeting minutes
+              </p>
+            </div>
+
+            {/* Transcription Service */}
+            <div className="space-y-2">
+              <Label htmlFor="transcriber-service">Transcription Service</Label>
+              <Select value={settings.transcriberService} onValueChange={(value) => updateSetting('transcriberService', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select transcription service" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whisper">Whisper (OpenAI)</SelectItem>
+                  <SelectItem value="deepgram">Deepgram</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choose between Whisper or Deepgram for speech-to-text. Falls back to Whisper if Deepgram is unavailable.
               </p>
             </div>
 

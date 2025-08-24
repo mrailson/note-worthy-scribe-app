@@ -45,7 +45,7 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
-import { detectDevice, logDeviceInfo, getRecommendedTranscriber } from '@/utils/DeviceDetection';
+import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -64,6 +64,7 @@ interface MeetingRecorderProps {
     description: string;
     meetingType: string;
     practiceId?: string;
+    transcriberService?: 'whisper' | 'deepgram';
   };
   initialActiveTab?: string;
 }
@@ -176,7 +177,8 @@ export const MeetingRecorder = ({
     description: "",
     meetingType: "general",
     practiceId: "",
-    meetingFormat: "teams"
+    meetingFormat: "teams",
+    transcriberService: (initialSettings?.transcriberService || "whisper") as "whisper" | "deepgram"
   });
 
   // Timestamp toggle state
@@ -219,7 +221,8 @@ export const MeetingRecorder = ({
       description: "",
       meetingType: "general",
       practiceId: "",
-      meetingFormat: "teams"
+      meetingFormat: "teams",
+      transcriberService: "whisper"
     });
     
     // Clear parent component state
@@ -241,6 +244,11 @@ export const MeetingRecorder = ({
     if (desktopTranscriberRef.current) {
       await desktopTranscriberRef.current.stopTranscription();
       desktopTranscriberRef.current = null;
+    }
+
+    if (deepgramTranscriberRef.current) {
+      deepgramTranscriberRef.current.stopTranscription();
+      deepgramTranscriberRef.current = null;
     }
     
     // Clear recording audio if playing
@@ -1025,6 +1033,7 @@ export const MeetingRecorder = ({
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
+  const deepgramTranscriberRef = useRef<DeepgramTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
@@ -1314,6 +1323,48 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Deepgram transcription
+  const startDeepgramTranscription = async () => {
+    try {
+      console.log('🔗 Starting Deepgram transcription...');
+      addDebugLog('🔗 Starting Deepgram transcription...');
+      
+      deepgramTranscriberRef.current = new DeepgramTranscriber(
+        handleBrowserTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
+
+      // Ensure a session/meeting id 
+      const existingSession = sessionStorage.getItem('currentSessionId') || crypto.randomUUID();
+      sessionStorage.setItem('currentSessionId', existingSession);
+
+      console.log('🔗 Starting Deepgram transcription...');
+      await deepgramTranscriberRef.current.startTranscription();
+      console.log('✅ Deepgram transcription started successfully');
+      addDebugLog('✅ Deepgram transcription started');
+    } catch (error) {
+      console.error('❌ Deepgram transcription error:', error);
+      addDebugLog(`❌ Failed to start Deepgram transcription: ${error}`);
+      
+      // Fall back to Whisper
+      console.log('🔄 Falling back to Whisper transcription...');
+      addDebugLog('🔄 Falling back to Whisper transcription...');
+      await startWhisperTranscription();
+    }
+  };
+
+  // Whisper transcription (original logic)
+  const startWhisperTranscription = async () => {
+    const browserSupport = checkBrowserSupport();
+    
+    if (browserSupport.isIOS) {
+      await startIPhoneWhisperTranscription();
+    } else {
+      await startDesktopWhisperTranscription();
+    }
+  };
+
   // iPhone-optimized transcription using Whisper AI
   const startIPhoneWhisperTranscription = async () => {
     try {
@@ -1361,40 +1412,16 @@ export const MeetingRecorder = ({
 
   // Smart transcription method that chooses the best option for the device
   const startMicrophoneTranscription = async () => {
-    const browserSupport = checkBrowserSupport();
+    // Check user's transcription service preference
+    const selectedService = meetingSettings.transcriberService || 'whisper';
     
-    // Debug: Log browser detection results
-    console.log('🔍 Browser detection results:', {
-      isIOS: browserSupport.isIOS,
-      isSafari: browserSupport.isSafari,
-      isMobile: browserSupport.isMobile,
-      browserName: browserSupport.browserName,
-      userAgent: navigator.userAgent
-    });
-    addDebugLog(`🔍 Detected browser: ${browserSupport.browserName} (iOS: ${browserSupport.isIOS})`);
+    console.log(`🎙️ Starting transcription with service: ${selectedService}`);
+    addDebugLog(`🎙️ Starting transcription with service: ${selectedService}`);
     
-    if (browserSupport.isIOS) {
-      // Use iPhone Whisper transcription for iOS devices
-      console.log('📱 Attempting iPhone Whisper transcription...');
-      addDebugLog('📱 Attempting iPhone Whisper transcription for iOS device...');
-      try {
-        await startIPhoneWhisperTranscription();
-        console.log('✅ iPhone Whisper transcription started successfully');
-        addDebugLog('✅ iPhone Whisper transcription started successfully');
-      } catch (error) {
-        console.error('❌ iPhone Whisper transcription failed:', error);
-        addDebugLog(`❌ iPhone Whisper transcription failed: ${error.message}`);
-        addDebugLog('🔄 Falling back to browser speech recognition...');
-        toast.info('iPhone transcription failed. Falling back to browser speech recognition.');
-        
-        // Fallback to desktop Whisper transcription
-        await startDesktopWhisperTranscription();
-      }
+    if (selectedService === 'deepgram') {
+      await startDeepgramTranscription();
     } else {
-      // Use desktop Whisper transcription for better accuracy
-      console.log('🖥️ Using Desktop Whisper transcription for desktop/non-iOS device');
-      addDebugLog('🖥️ Using Desktop Whisper transcription for desktop/non-iOS device');
-      await startDesktopWhisperTranscription();
+      await startWhisperTranscription();
     }
   };
 
@@ -2072,6 +2099,10 @@ export const MeetingRecorder = ({
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
+
+      if (deepgramTranscriberRef.current) {
+        deepgramTranscriberRef.current.stopTranscription();
+      }
       
       // Clear timer
       if (intervalRef.current) {
@@ -2473,6 +2504,13 @@ export const MeetingRecorder = ({
       // Give extra time for final transcription to be processed and combined
       await new Promise(resolve => setTimeout(resolve, 2000));
       desktopTranscriberRef.current = null;
+    }
+
+    // Stop Deepgram transcriber and wait for final processing
+    if (deepgramTranscriberRef.current) {
+      deepgramTranscriberRef.current.stopTranscription();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      deepgramTranscriberRef.current = null;
     }
     
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
@@ -3368,6 +3406,9 @@ export const MeetingRecorder = ({
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
+      if (deepgramTranscriberRef.current) {
+        deepgramTranscriberRef.current.stopTranscription();
+      }
       
       // Mute audio streams but keep them alive
       if (micAudioStreamRef.current) {
@@ -3873,13 +3914,15 @@ export const MeetingRecorder = ({
                 attendees={""}
                 meetingSettings={{
                   practiceId: (meetingSettings as any)?.practiceId || "",
-                  meetingFormat: (meetingSettings as any)?.meetingFormat || "teams"
+                  meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
+                  transcriberService: (meetingSettings as any)?.transcriberService || "whisper"
                 }}
                 onMeetingSettingsChange={(settings) => {
                   setMeetingSettings(prev => ({
                     ...prev,
                     practiceId: settings.practiceId,
-                    meetingFormat: settings.meetingFormat
+                    meetingFormat: settings.meetingFormat,
+                    transcriberService: settings.transcriberService || prev.transcriberService
                   }));
                 }}
               />

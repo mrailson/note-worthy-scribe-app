@@ -56,8 +56,9 @@ interface LiveTranscriptProps {
   meetingSettings?: {
     practiceId: string;
     meetingFormat: string;
+    transcriberService?: 'whisper' | 'deepgram';
   };
-  onMeetingSettingsChange?: (settings: { practiceId: string; meetingFormat: string }) => void;
+  onMeetingSettingsChange?: (settings: { practiceId: string; meetingFormat: string; transcriberService?: 'whisper' | 'deepgram' }) => void;
   defaultOpen?: boolean;
 }
 
