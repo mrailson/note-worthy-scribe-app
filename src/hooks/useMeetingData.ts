@@ -178,7 +178,7 @@ export const useMeetingData = () => {
         
         setMeetingSettings(prev => ({
           ...prev,
-          transcriberService: savedSettings.transcriberService || "whisper",
+          transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
           transcriberThresholds: {
             whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
             deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
@@ -198,7 +198,7 @@ export const useMeetingData = () => {
           
           setMeetingSettings(prev => ({
             ...prev,
-            transcriberService: savedSettings.transcriberService || "whisper",
+            transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
             transcriberThresholds: {
               whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
               deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80

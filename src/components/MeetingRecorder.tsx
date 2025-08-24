@@ -3566,7 +3566,7 @@ export const MeetingRecorder = ({
                         {/* Transcription Service Indicator */}
                         <div className="flex justify-center">
                           <Badge variant="outline" className="text-xs font-mono">
-                            Service: {meetingSettings.transcriberService?.toUpperCase() || "WHISPER"}
+                            Service: {(meetingSettings.transcriberService === "whisper" || !meetingSettings.transcriberService) ? "WHISPER" : meetingSettings.transcriberService?.toUpperCase()}
                           </Badge>
                         </div>
                        
