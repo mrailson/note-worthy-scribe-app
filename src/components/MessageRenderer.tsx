@@ -27,7 +27,8 @@ import {
   CheckCircle,
   Stethoscope,
   ShieldCheck,
-  Languages
+  Languages,
+  Printer
 } from 'lucide-react';
 import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -1100,6 +1101,10 @@ Please fetch these and retry. No corrections made."`;
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
                             <FileText className="h-4 w-4 mr-2" />
                             Combine with my practice information
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Print")}>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
