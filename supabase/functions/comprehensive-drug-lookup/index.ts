@@ -154,6 +154,8 @@ serve(async (req) => {
       drug: name,
       traffic_light: trafficLightData ? {
         status: trafficLightData.status_enum,
+        status_enum: trafficLightData.status_enum,
+        status_raw: trafficLightData.status_raw || trafficLightData.status_enum,
         detail_url: trafficLightData.detail_url,
         bnf_chapter: trafficLightData.bnf_chapter,
         notes: trafficLightData.notes,

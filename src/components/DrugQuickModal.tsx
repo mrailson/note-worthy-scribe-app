@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { canGPInitiateDrug, getGPInitiationColor } from '@/utils/gpInitiationLogic';
 
 type Status =
   | "DOUBLE_RED" | "RED" | "SPECIALIST_INITIATED" | "SPECIALIST_RECOMMENDED"
@@ -58,6 +59,8 @@ type DrugLookupResponse = {
   drug: string;
   traffic_light: {
     status: string;
+    status_enum?: string;
+    status_raw?: string;
     detail_url?: string;
     bnf_chapter?: string;
     notes?: string;
@@ -150,27 +153,15 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
      return vocab.filter(v => v.name.toLowerCase().includes(n)).slice(0, 10);
    }, [q, vocab]);
 
-   // Enhanced logic for "Can GP initiate" based on formulary and traffic light data
-   const canInitiate = useMemo(() => {
-     // Check formulary data first
-     if (data?.formulary && data.formulary.length > 0) {
-       const status = data.formulary[0].status.toLowerCase();
-       if (status.includes('green')) return 'YES';
-       if (status.includes('formulary') && !status.includes('red')) return 'YES';
-       if (status.includes('amber') || status.includes('specialist_recommended')) return 'ONLY_IF_SPECIALIST';
-       if (status.includes('double_red') || status.includes('red') || status.includes('specialist_initiated')) return 'NO';
-     }
-     
-     // Fall back to traffic light logic
-     if (!data?.traffic_light?.status) return 'UNKNOWN';
-     
-     const status = data.traffic_light.status;
-     if (status === 'GREEN' || status === 'GREY') return 'YES';
-     if (status === 'AMBER_1' || status === 'AMBER_2' || status === 'SPECIALIST_RECOMMENDED') return 'ONLY_IF_SPECIALIST';
-     if (status === 'DOUBLE_RED' || status === 'RED' || status === 'SPECIALIST_INITIATED') return 'NO';
-     
-     return 'UNKNOWN';
-   }, [data]);
+     // GP initiation logic based on NPAG guidelines
+     const gpInitiation = useMemo(() => {
+       if (!data?.traffic_light) return null;
+       
+       return canGPInitiateDrug(
+         data.traffic_light.status_enum || data.traffic_light.status,
+         data.traffic_light.status_raw || data.traffic_light.status
+       );
+     }, [data]);
 
   const modalSizeClass = expandMode === 'expanded' ? "max-w-[90vw] max-h-[95vh]" : "max-w-[1170px] max-h-[85vh]";
 
@@ -346,19 +337,17 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                 </div>
 
                 {/* Can GP initiate */}
-                <div className={`rounded-xl border p-3 ${
-                  canInitiate === 'NO' ? 'border-destructive/50 bg-destructive/10' : 
-                  canInitiate === 'ONLY_IF_SPECIALIST' ? 'border-purple-600/40 bg-purple-50 dark:bg-purple-900/20' : 
-                  'border-green-600/30 bg-green-50 dark:bg-green-900/20'
-                }`}>
-                  <div className="text-sm font-semibold">Can GP initiate?</div>
-                  <div className="text-base">
-                    {canInitiate === 'NO' && <>No – restricted by local policy.</>}
-                    {canInitiate === 'ONLY_IF_SPECIALIST' && <>Only if <strong>specialist-initiated</strong>; do not start in primary care.</>}
-                    {canInitiate === 'YES' && <>Yes – no local initiation restriction found.</>}
-                    {canInitiate === 'UNKNOWN' && <>Unknown – verify on ICB site.</>}
+                {gpInitiation && (
+                  <div className={`rounded-xl border p-3 ${getGPInitiationColor(gpInitiation.canInitiate).includes('red') ? 'border-destructive/50 bg-destructive/10' : 
+                    getGPInitiationColor(gpInitiation.canInitiate).includes('amber') ? 'border-amber-600/40 bg-amber-50 dark:bg-amber-900/20' : 
+                    'border-green-600/30 bg-green-50 dark:bg-green-900/20'
+                  }`}>
+                    <div className="text-sm font-semibold">Can GP initiate?</div>
+                    <div className="text-base font-medium">{gpInitiation.canInitiate}</div>
+                    <div className="text-sm text-muted-foreground mt-1">{gpInitiation.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Status: {gpInitiation.statusUsed}</div>
                   </div>
-                </div>
+                )}
 
                 {/* Prior Approval Section */}
                 {data.prior_approval.required ? (
