@@ -88,6 +88,15 @@ All colors MUST be HSL.
   animation: scroll 10s linear infinite;
 }
 
+/* Hide scrollbars for mobile compatibility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Safari and Chrome */
+}
+
 @layer base {
   .dark {
     --background: 222.2 84% 4.9%;

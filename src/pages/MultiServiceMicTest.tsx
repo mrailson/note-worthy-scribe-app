@@ -426,6 +426,29 @@ ${service.transcriptData.map((segment, index) =>
           </CardContent>
         </Card>
 
+        {/* Service Results */}
+        <div className="w-full">
+          <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
+            {Object.entries(services).map(([key, service]) => (
+              <div
+                key={key}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 mx-1 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${
+                  service.isActive 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-card border-border'
+                }`}
+              >
+                <div className="w-3 h-3 rounded-full" style={{
+                  backgroundColor: service.isActive ? '#10b981' : '#6b7280'
+                }} />
+                <span>{service.name}</span>
+                <Badge variant="secondary" className="text-xs">
+                  {service.wordCount}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
         {/* Service Results Grid */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:gap-6">
           {Object.entries(services).map(([key, service]) => (
