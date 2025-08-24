@@ -40,7 +40,7 @@ export const ShortCard: React.FC<ShortCardProps> = ({ className }) => (
             formulary before acting.
           </p>
           <p>
-            <a 
+            GP Portal: <a 
               href="https://www.icnorthamptonshire.org.uk/primarycareportal/" 
               target="_blank" 
               rel="noopener noreferrer"
