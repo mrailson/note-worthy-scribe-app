@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Loader2, Download, Save, Clock, Hash } from 'lucide-react';
 import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { toast } from 'sonner';
 
@@ -29,17 +28,6 @@ const MultiServiceMicTest = () => {
   const [services, setServices] = useState<Record<string, ServiceResult>>({
     browser: {
       name: 'Browser Speech API',
-      status: 'Disconnected',
-      transcriptData: [],
-      currentTranscript: '',
-      isActive: false,
-      transcriber: null,
-      startTime: null,
-      wordCount: 0,
-      fullTranscript: ''
-    },
-    openai: {
-      name: 'OpenAI Realtime',
       status: 'Disconnected',
       transcriptData: [],
       currentTranscript: '',
@@ -157,13 +145,6 @@ const MultiServiceMicTest = () => {
                 callbacks.onError,
                 callbacks.onStatusChange,
                 callbacks.onSummary
-              );
-              break;
-            case 'openai':
-              transcriber = new OpenAIRealtimeTranscriber(
-                callbacks.onTranscription,
-                callbacks.onError,
-                callbacks.onStatusChange
               );
               break;
             case 'whisper':
