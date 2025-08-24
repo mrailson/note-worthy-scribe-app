@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.drug-vocabulary]
 verify_jwt = false
+
+[functions.serve-pdf]
+verify_jwt = false
