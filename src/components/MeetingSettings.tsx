@@ -421,83 +421,48 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whisper">Whisper (OpenAI)</SelectItem>
-                  <SelectItem value="deepgram">Deepgram</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Choose between Whisper or Deepgram for speech-to-text. Falls back to Whisper if Deepgram is unavailable.
+                Using Whisper (OpenAI) for high-quality speech-to-text transcription.
               </p>
             </div>
 
             {/* Confidence Thresholds */}
             <div className="space-y-4">
-              <Label className="text-sm font-medium">Confidence Thresholds</Label>
+              <Label className="text-sm font-medium">Confidence Threshold</Label>
               <p className="text-xs text-muted-foreground">
-                Set minimum confidence levels to filter out low-quality transcriptions (0.0 - 1.0)
+                Set minimum confidence level to filter out low-quality transcriptions (0.0 - 1.0)
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="whisper-threshold" className="text-xs">Whisper Min Confidence</Label>
-                  <Input
-                    id="whisper-threshold"
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={settings.transcriberThresholds?.whisper || 0.75}
-                    onChange={(e) => {
-                      const newValue = Number(e.target.value);
-                      setSettings(prev => ({
-                        ...prev,
-                        transcriberThresholds: {
-                          ...prev.transcriberThresholds,
-                          whisper: newValue,
-                          deepgram: prev.transcriberThresholds?.deepgram || 0.80
-                        }
-                      }));
-                      onSettingsChange({
-                        ...settings,
-                        transcriberThresholds: {
-                          ...settings.transcriberThresholds,
-                          whisper: newValue,
-                          deepgram: settings.transcriberThresholds?.deepgram || 0.80
-                        }
-                      });
-                    }}
-                    className="text-xs"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="deepgram-threshold" className="text-xs">Deepgram Min Confidence</Label>
-                  <Input
-                    id="deepgram-threshold"
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={settings.transcriberThresholds?.deepgram || 0.80}
-                    onChange={(e) => {
-                      const newValue = Number(e.target.value);
-                      setSettings(prev => ({
-                        ...prev,
-                        transcriberThresholds: {
-                          ...prev.transcriberThresholds,
-                          whisper: prev.transcriberThresholds?.whisper || 0.75,
-                          deepgram: newValue
-                        }
-                      }));
-                      onSettingsChange({
-                        ...settings,
-                        transcriberThresholds: {
-                          ...settings.transcriberThresholds,
-                          whisper: settings.transcriberThresholds?.whisper || 0.75,
-                          deepgram: newValue
-                        }
-                      });
-                    }}
-                    className="text-xs"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="whisper-threshold" className="text-xs">Whisper Min Confidence</Label>
+                <Input
+                  id="whisper-threshold"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={settings.transcriberThresholds?.whisper || 0.75}
+                  onChange={(e) => {
+                    const newValue = Number(e.target.value);
+                    setSettings(prev => ({
+                      ...prev,
+                      transcriberThresholds: {
+                        ...prev.transcriberThresholds,
+                        whisper: newValue,
+                        deepgram: prev.transcriberThresholds?.deepgram || 0.80
+                      }
+                    }));
+                    onSettingsChange({
+                      ...settings,
+                      transcriberThresholds: {
+                        ...settings.transcriberThresholds,
+                        whisper: newValue,
+                      }
+                    });
+                  }}
+                  className="text-xs"
+                />
               </div>
             </div>
 
