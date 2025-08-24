@@ -303,33 +303,36 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   <DrawerTitle>Menu</DrawerTitle>
                   <DrawerDescription>Quick access to services</DrawerDescription>
                 </DrawerHeader>
-                <div className="px-4 pb-4 space-y-2">
-                  <nav className="grid gap-2">
+                <div className="px-4 pb-4 space-y-1">
+                  <nav className="grid gap-1">
                     <DrawerClose asChild>
                        <Button 
                          variant="ghost" 
                          className="justify-start"
                          onClick={() => window.location.href = '/'}
                        >
-                         <Plus className="h-4 w-4 mr-2" />
-                         New
+                         <Home className="h-4 w-4 mr-2" />
+                         Home
                        </Button>
                     </DrawerClose>
 
-                    <DrawerClose asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="justify-start"
-                        onClick={() => navigate('/')}
-                      >
-                        <Home className="h-4 w-4 mr-2" />
-                        Home
-                      </Button>
-                    </DrawerClose>
-
-                    {/* Services */}
+                    {/* Testing Services - Featured at top */}
                     {user && (
                       <>
+                        <DrawerClose asChild>
+                          <Button variant="default" className="justify-start bg-primary text-primary-foreground" onClick={() => navigate('/multi-service-mic-test')}>
+                            <Mic className="h-4 w-4 mr-2" />
+                            Multi-Service Test
+                          </Button>
+                        </DrawerClose>
+                        <DrawerClose asChild>
+                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Deepgram Service
+                          </Button>
+                        </DrawerClose>
+                        
+                        {/* Main Services */}
                          {hasModuleAccess('meeting_recorder') && (
                            <DrawerClose asChild>
                              <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
@@ -346,6 +349,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              </Button>
                            </DrawerClose>
                          )}
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
+                               <Sparkles className="h-4 w-4 mr-2" />
+                               AI4GP Service
+                             </Button>
+                           </DrawerClose>
                         {hasModuleAccess('complaints_system') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
@@ -362,12 +371,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
                          )}
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                               <Sparkles className="h-4 w-4 mr-2" />
-                               AI4GP Service
-                             </Button>
-                           </DrawerClose>
                           {hasModuleAccess('enhanced_access') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
@@ -400,18 +403,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </Button>
                             </DrawerClose>
                           )}
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
-                               <Zap className="h-4 w-4 mr-2" />
-                               Deepgram Service
-                             </Button>
-                           </DrawerClose>
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
-                               <Mic className="h-4 w-4 mr-2" />
-                               Multi-Service Test
-                             </Button>
-                           </DrawerClose>
                       </>
                     )}
 
