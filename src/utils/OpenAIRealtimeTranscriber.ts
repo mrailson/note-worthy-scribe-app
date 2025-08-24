@@ -127,7 +127,8 @@ export class OpenAIRealtimeTranscriber {
   private handleDeepgramMessage(message: any) {
     console.log('📥 Deepgram message:', message);
 
-    if (message.type === 'Results' && message.channel?.alternatives) {
+    // Deepgram sends different message structure
+    if (message.channel?.alternatives) {
       const alternative = message.channel.alternatives[0];
       if (alternative?.transcript) {
         const isFinal = message.is_final || false;
@@ -169,6 +170,8 @@ export class OpenAIRealtimeTranscriber {
     } else if (message.error) {
       console.error('❌ Deepgram error:', message.error);
       this.onError(message.error);
+    } else {
+      console.log('📥 Deepgram other message:', message);
     }
   }
 
@@ -231,8 +234,8 @@ export class OpenAIRealtimeTranscriber {
         
         this.audioWorklet = new AudioWorkletNode(this.audioContext, 'audio-processor');
         this.audioWorklet.port.onmessage = (event) => {
-          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            // Send raw binary data to Deepgram
+          if (this.ws && this.ws.readyState === WebSocket.OPEN && this.isRecording) {
+            // Send raw binary PCM16 data directly to Deepgram
             this.ws.send(event.data);
           }
         };
@@ -258,17 +261,17 @@ export class OpenAIRealtimeTranscriber {
     const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
     
     processor.onaudioprocess = (event) => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN && this.isRecording) {
         const inputData = event.inputBuffer.getChannelData(0);
         
-        // Convert to PCM16
+        // Convert to PCM16 for Deepgram
         const pcm16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
           const s = Math.max(-1, Math.min(1, inputData[i]));
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
         
-        // Send raw binary data to Deepgram
+        // Send raw binary PCM16 data to Deepgram
         this.ws.send(pcm16.buffer);
       }
     };
