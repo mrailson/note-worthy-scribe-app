@@ -161,6 +161,8 @@ export const useMeetingData = () => {
   const loadMeetingSettings = useCallback(async () => {
     if (!user?.id) return;
 
+    console.log('🔄 Loading meeting transcriber settings for user:', user.id);
+
     try {
       // Try to load from user_settings table first
       const { data, error } = await supabase
@@ -172,6 +174,8 @@ export const useMeetingData = () => {
 
       if (!error && data?.setting_value) {
         const savedSettings = data.setting_value as any;
+        console.log('✅ Loaded transcriber settings from database:', savedSettings);
+        
         setMeetingSettings(prev => ({
           ...prev,
           transcriberService: savedSettings.transcriberService || "whisper",
@@ -180,13 +184,18 @@ export const useMeetingData = () => {
             deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
           }
         }));
+      } else {
+        console.log('📝 No saved transcriber settings found in database, trying localStorage...');
       }
     } catch (error) {
+      console.warn('⚠️ Database load failed, falling back to localStorage:', error);
       // Fallback to localStorage if database fails
       try {
         const saved = localStorage.getItem(`meeting_settings_${user.id}`);
         if (saved) {
           const savedSettings = JSON.parse(saved);
+          console.log('✅ Loaded transcriber settings from localStorage:', savedSettings);
+          
           setMeetingSettings(prev => ({
             ...prev,
             transcriberService: savedSettings.transcriberService || "whisper",
@@ -195,9 +204,11 @@ export const useMeetingData = () => {
               deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
             }
           }));
+        } else {
+          console.log('📝 No saved transcriber settings found in localStorage either');
         }
       } catch (localError) {
-        console.error('Error loading settings from localStorage:', localError);
+        console.error('❌ Error loading settings from localStorage:', localError);
       }
     }
   }, [user?.id]);
@@ -211,6 +222,8 @@ export const useMeetingData = () => {
       transcriberThresholds: settings.transcriberThresholds
     };
 
+    console.log('💾 Saving meeting transcriber settings:', settingsToSave);
+
     try {
       // Save to database
       await supabase
@@ -223,13 +236,16 @@ export const useMeetingData = () => {
 
       // Also save to localStorage as backup
       localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
+      
+      console.log('✅ Transcriber settings saved successfully to both database and localStorage');
     } catch (error) {
-      console.error('Error saving meeting settings:', error);
+      console.error('❌ Error saving meeting settings to database:', error);
       // Fallback to localStorage only
       try {
         localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
+        console.log('✅ Transcriber settings saved to localStorage as fallback');
       } catch (localError) {
-        console.error('Error saving to localStorage:', localError);
+        console.error('❌ Error saving to localStorage:', localError);
       }
     }
   }, [user?.id]);
@@ -239,6 +255,10 @@ export const useMeetingData = () => {
     if (meetingSettings.transcriberService !== "whisper" || 
         meetingSettings.transcriberThresholds.whisper !== 0.75 ||
         meetingSettings.transcriberThresholds.deepgram !== 0.80) {
+      console.log('🔄 Auto-saving transcriber settings due to change:', {
+        service: meetingSettings.transcriberService,
+        thresholds: meetingSettings.transcriberThresholds
+      });
       saveMeetingSettings(meetingSettings);
     }
   }, [meetingSettings.transcriberService, meetingSettings.transcriberThresholds, saveMeetingSettings]);

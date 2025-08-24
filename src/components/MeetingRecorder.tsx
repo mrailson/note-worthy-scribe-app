@@ -3578,21 +3578,34 @@ export const MeetingRecorder = ({
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
                 <div className="text-center space-y-4">
-                  {!isRecording ? (
-                     <div className="space-y-4">
-                      
-                      <Button 
-                        onClick={startRecording}
-                        size="lg"
-                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
-                      >
-                        <Mic className="h-5 w-5 mr-2" />
-                        Start Recording
-                      </Button>
-                    </div>
+                   {!isRecording ? (
+                      <div className="space-y-4">
+                        {/* Transcription Service Indicator */}
+                        <div className="flex justify-center">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            Service: {meetingSettings.transcriberService?.toUpperCase() || "WHISPER"}
+                          </Badge>
+                        </div>
+                       
+                       <Button 
+                         onClick={startRecording}
+                         size="lg"
+                         className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                       >
+                         <Mic className="h-5 w-5 mr-2" />
+                         Start Recording
+                       </Button>
+                     </div>
                   ) : (
-                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                      <div className="space-y-1">
+                        {/* Transcription Service Indicator During Recording */}
+                        <div className="flex justify-center mb-2">
+                          <Badge variant="secondary" className="text-xs font-mono">
+                            {meetingSettings.transcriberService?.toUpperCase() || "WHISPER"} Active
+                          </Badge>
+                        </div>
+                        
+                       <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                           <span className="text-base font-semibold">
