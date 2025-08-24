@@ -8,7 +8,6 @@ import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
 import { DrugQuickModal } from '@/components/DrugQuickModal';
-import { PDFUploader } from '@/components/PDFUploader';
 
 import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,12 +73,6 @@ const AI4GP = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePDFUpload = (url: string, fileName: string) => {
-    // Store the PDF URL in localStorage so the drug modal can use it
-    localStorage.setItem('uploaded_prior_approval_pdf', url);
-    localStorage.setItem('uploaded_prior_approval_filename', fileName);
   };
 
   if (authLoading || profileLoading) {
@@ -175,11 +168,6 @@ const AI4GP = () => {
       
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll">
         <div className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto space-y-6">
-          {/* PDF Upload Section */}
-          <div className="bg-muted/20 rounded-lg p-4">
-            <PDFUploader onUploadComplete={handlePDFUpload} />
-          </div>
-          
           <AI4GPService />
         </div>
         
