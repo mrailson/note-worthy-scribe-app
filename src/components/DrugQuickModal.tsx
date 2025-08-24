@@ -343,15 +343,22 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                           <ExternalLink className="h-4 w-4" /> Open ICB PDF
                         </a>
                       )}
-                      <a 
-                        className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href={localStorage.getItem('uploaded_prior_approval_pdf') || "/MHRA-Compliance-Documentation.md"} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        title="Verify prior approval requirements manually"
-                      >
-                        <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
-                      </a>
+                       <a 
+                         className="inline-flex items-center gap-2 text-primary hover:underline" 
+                         href={(() => {
+                           const storedUrl = localStorage.getItem('uploaded_prior_approval_pdf');
+                           if (storedUrl && storedUrl.includes('supabase.co/storage')) {
+                             const filename = storedUrl.split('/').pop();
+                             return `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/serve-pdf?file=${filename}`;
+                           }
+                           return storedUrl || "/MHRA-Compliance-Documentation.md";
+                         })()} 
+                         target="_blank" 
+                         rel="noreferrer"
+                         title="Verify prior approval requirements manually"
+                       >
+                         <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
+                       </a>
                       {data.prior_approval.page_ref && (
                         <span className="text-xs text-muted-foreground">
                           {data.prior_approval.page_ref}
@@ -373,7 +380,14 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     <div className="mt-3">
                       <a 
                         className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href={localStorage.getItem('uploaded_prior_approval_pdf') || "/MHRA-Compliance-Documentation.md"} 
+                        href={(() => {
+                          const storedUrl = localStorage.getItem('uploaded_prior_approval_pdf');
+                          if (storedUrl && storedUrl.includes('supabase.co/storage')) {
+                            const filename = storedUrl.split('/').pop();
+                            return `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/serve-pdf?file=${filename}`;
+                          }
+                          return storedUrl || "/MHRA-Compliance-Documentation.md";
+                        })()} 
                         target="_blank" 
                         rel="noreferrer"
                         title="Verify prior approval requirements manually"
