@@ -322,19 +322,167 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         <html>
           <head>
             <title>AI Assistant Response</title>
+            <meta charset="UTF-8">
             <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
-              h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-              p { margin-bottom: 10px; }
-              strong { font-weight: bold; }
-              em { font-style: italic; }
-              ul, ol { margin-left: 20px; }
-              @media print { body { margin: 20px; } }
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              
+              body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+                line-height: 1.6; 
+                margin: 20px 40px;
+                color: #1f2937;
+                background: white;
+                font-size: 14px;
+              }
+              
+              .header {
+                border-bottom: 2px solid #e5e7eb;
+                padding-bottom: 16px;
+                margin-bottom: 24px;
+              }
+              
+              .title { 
+                font-size: 24px;
+                font-weight: 600;
+                color: #111827;
+                margin-bottom: 4px;
+              }
+              
+              .timestamp {
+                font-size: 12px;
+                color: #6b7280;
+              }
+              
+              .content {
+                max-width: none;
+              }
+              
+              /* Typography */
+              h1, h2, h3, h4, h5, h6 { 
+                font-weight: 600;
+                margin: 24px 0 12px 0;
+                color: #111827;
+              }
+              
+              h1 { font-size: 20px; }
+              h2 { font-size: 18px; }
+              h3 { font-size: 16px; }
+              h4 { font-size: 15px; }
+              
+              p { 
+                margin-bottom: 12px;
+                text-align: justify;
+              }
+              
+              strong, b { 
+                font-weight: 600;
+                color: #111827;
+              }
+              
+              em, i { 
+                font-style: italic; 
+              }
+              
+              /* Lists */
+              ul, ol { 
+                margin: 12px 0 12px 24px;
+                padding-left: 0;
+              }
+              
+              li {
+                margin-bottom: 6px;
+                line-height: 1.5;
+              }
+              
+              /* Code and preformatted text */
+              code {
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                font-size: 13px;
+              }
+              
+              pre {
+                background: #f9fafb;
+                padding: 16px;
+                border-radius: 6px;
+                border-left: 4px solid #e5e7eb;
+                margin: 16px 0;
+                overflow-x: auto;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+                font-size: 13px;
+              }
+              
+              /* Tables */
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 16px 0;
+              }
+              
+              th, td {
+                border: 1px solid #e5e7eb;
+                padding: 8px 12px;
+                text-align: left;
+              }
+              
+              th {
+                background: #f9fafb;
+                font-weight: 600;
+              }
+              
+              /* Blockquotes */
+              blockquote {
+                border-left: 4px solid #e5e7eb;
+                margin: 16px 0;
+                padding: 0 16px;
+                color: #6b7280;
+                font-style: italic;
+              }
+              
+              /* Links */
+              a {
+                color: #2563eb;
+                text-decoration: underline;
+              }
+              
+              /* Print specific styles */
+              @media print { 
+                body { 
+                  margin: 15mm;
+                  font-size: 12px;
+                }
+                
+                .header {
+                  margin-bottom: 20px;
+                }
+                
+                h1, h2, h3 {
+                  page-break-after: avoid;
+                }
+                
+                p, li {
+                  orphans: 2;
+                  widows: 2;
+                }
+                
+                table {
+                  page-break-inside: avoid;
+                }
+              }
             </style>
           </head>
           <body>
-            <h1>AI Assistant Response</h1>
-            <div>${cleanedContent}</div>
+            <div class="header">
+              <div class="title">AI Assistant Response</div>
+              <div class="timestamp">${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', { hour12: false })}</div>
+            </div>
+            <div class="content">${cleanedContent}</div>
           </body>
         </html>
       `);
