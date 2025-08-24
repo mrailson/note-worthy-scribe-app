@@ -357,8 +357,8 @@ ${service.transcriptData.map((segment, index) =>
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-background p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-background p-2 md:p-4">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
         <Card>
           <CardHeader>
@@ -427,7 +427,7 @@ ${service.transcriptData.map((segment, index) =>
         </Card>
 
         {/* Service Results Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:gap-6">
           {Object.entries(services).map(([key, service]) => (
             <Card key={key} className="h-fit">
               <CardHeader>
