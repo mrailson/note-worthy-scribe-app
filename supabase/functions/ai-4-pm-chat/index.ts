@@ -11,6 +11,7 @@ const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const grokApiKey = Deno.env.get('GROK_API_KEY');
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
 // Removed Tavily API key
 
 // Removed Tavily search functionality to fix response errors
@@ -35,7 +36,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'deepseek-chat';
   systemPrompt: string;
   files?: UploadedFile[];
   verificationLevel?: string;
@@ -1383,6 +1384,67 @@ async function callGemini(messages: Message[], systemPrompt: string, model: stri
   return data.candidates[0].content.parts[0].text || 'No response generated';
 }
 
+async function callDeepseek(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+  const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!deepseekApiKey) {
+    throw new Error('DeepSeek API key not configured');
+  }
+
+  console.log('Calling DeepSeek API...');
+
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
+  // Format messages for DeepSeek (OpenAI-compatible API)
+  const formattedMessages = [
+    { role: 'system', content: enhancedSystemPrompt },
+    ...messages.map(msg => {
+      let content = msg.content || '[No message content]';
+      
+      if (msg.files && msg.files.length > 0) {
+        const fileContent = msg.files.map(file => 
+          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+        ).join('');
+        content += fileContent;
+      }
+      
+      return {
+        role: msg.role,
+        content: content
+      };
+    })
+  ];
+
+  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${deepseekApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: formattedMessages,
+      max_tokens: 4000,
+      temperature: 0.7,
+      stream: false
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`DeepSeek API error (${response.status}):`, errorText);
+    throw new Error(`DeepSeek API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    console.error('Unexpected DeepSeek response structure:', JSON.stringify(data));
+    throw new Error('Invalid response structure from DeepSeek API');
+  }
+  
+  return data.choices[0].message.content || 'No response generated';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -1414,12 +1476,14 @@ serve(async (req) => {
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY'); 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
     
     console.log('API Keys status:', {
       openai: OPENAI_API_KEY ? 'Set' : 'Missing',
       anthropic: ANTHROPIC_API_KEY ? 'Set' : 'Missing',
       grok: GROK_API_KEY ? 'Set' : 'Missing',
-      gemini: GEMINI_API_KEY ? 'Set' : 'Missing'
+      gemini: GEMINI_API_KEY ? 'Set' : 'Missing',
+      deepseek: DEEPSEEK_API_KEY ? 'Set' : 'Missing'
     });
 
     console.log(`Processing request with model: ${model || 'undefined'}`);
@@ -1541,6 +1605,8 @@ serve(async (req) => {
     response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
   } else if (selectedModel === 'gemini-1.5-flash') {
     response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
+  } else if (selectedModel === 'deepseek-chat') {
+    response = await callDeepseek(processedMessages, finalSystemPrompt, files);
   } else {
     // Fallback to GPT-4 Turbo for any unsupported model
     console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
