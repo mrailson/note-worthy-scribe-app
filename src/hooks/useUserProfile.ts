@@ -15,6 +15,8 @@ export interface UserProfile {
   meeting_retention_policy: string | null;
   mic_test_service_visible: boolean;
   display_name?: string | null; // Optional for backwards compatibility
+  show_ai_service?: boolean;
+  northamptonshire_icb_active?: boolean;
 }
 
 export function useUserProfile() {
@@ -82,7 +84,7 @@ export function useUserProfile() {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name'>>) => {
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active'>>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {

@@ -395,6 +395,74 @@ export default function Settings() {
             </TabsList>
 
             <TabsContent value="general" className="space-y-6">
+              {/* AI Service Display Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <SettingsIcon className="h-5 w-5" />
+                    Show AI Service
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Display which AI model was used
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="show-ai-service"
+                      checked={profile?.show_ai_service || false}
+                      onCheckedChange={async (checked) => {
+                        await updateProfile({ show_ai_service: checked });
+                      }}
+                    />
+                    <Label htmlFor="show-ai-service">Display AI model information</Label>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Local Policy Guidance */}
+              <Card className="border-2 border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-green-600" />
+                    Local Policy Guidance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-medium">Northamptonshire ICB</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Enable Northamptonshire integrated Care Board local guidance and traffic-light medicines policy
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">Active</span>
+                        <Switch
+                          id="northamptonshire-icb"
+                          checked={profile?.northamptonshire_icb_active || false}
+                          onCheckedChange={async (checked) => {
+                            await updateProfile({ northamptonshire_icb_active: checked });
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {profile?.northamptonshire_icb_active && (
+                      <div className="flex items-center gap-2 p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
+                        <Badge variant="outline" className="bg-green-600 text-white border-green-600">
+                          📋 Northamptonshire ICB Active
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">
+                          Local medicines policies, pathways, and traffic-light guidance enabled
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
