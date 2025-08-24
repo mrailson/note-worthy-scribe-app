@@ -30,7 +30,7 @@ serve(async (req) => {
     const deepgramModel = model || (medicalBias ? 'nova-2-medical' : 'nova-2-general');
     const languageCode = language === 'auto' ? 'en' : (language || 'en');
 
-    // Create WebSocket URL with parameters
+    // Create WebSocket URL with authentication token for Deepgram Streaming API
     const wsUrl = new URL('wss://api.deepgram.com/v1/listen');
     wsUrl.searchParams.set('model', deepgramModel);
     wsUrl.searchParams.set('language', languageCode);
@@ -45,25 +45,28 @@ serve(async (req) => {
     wsUrl.searchParams.set('diarize', 'false');
     wsUrl.searchParams.set('filler_words', 'false');
     wsUrl.searchParams.set('numerals', 'true');
+    wsUrl.searchParams.set('vad_events', 'true');
+    // Include token in URL for authentication
+    wsUrl.searchParams.set('token', DEEPGRAM_API_KEY);
     
     if (medicalBias) {
       wsUrl.searchParams.set('keywords', 'NHS:3,GP:3,prescription:2,medication:2,diagnosis:2,treatment:2,patient:2,clinical:2,medical:2');
     }
 
-    console.log('📡 Creating Deepgram session with URL:', wsUrl.toString());
+    console.log('📡 Deepgram WebSocket URL configured (token hidden)');
 
-    // Return configuration for client to connect directly
+    // Return configuration for client to connect
     const sessionConfig = {
       url: wsUrl.toString(),
-      headers: {
-        'Authorization': `Token ${DEEPGRAM_API_KEY}`,
-      },
+      token: DEEPGRAM_API_KEY,
       model: deepgramModel,
       language: languageCode,
       medicalBias,
-      // Return a session token (we'll use the API key directly)
-      token: DEEPGRAM_API_KEY,
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+      // For compatibility with existing frontend code
+      client_secret: {
+        value: DEEPGRAM_API_KEY
+      }
     };
 
     console.log('✅ Deepgram session configured successfully');

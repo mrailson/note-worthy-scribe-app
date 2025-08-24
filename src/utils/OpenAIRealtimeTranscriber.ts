@@ -69,18 +69,18 @@ export class OpenAIRealtimeTranscriber {
       throw new Error(`Failed to get session token: ${error.message}`);
     }
 
-    if (!data?.token) {
-      throw new Error('No Deepgram token received');
+    if (!data?.url) {
+      throw new Error('No Deepgram URL received');
     }
 
     this.deepgramConfig = data;
-    console.log('📡 Connecting to Deepgram with URL:', this.deepgramConfig.url);
+    console.log('📡 Connecting to Deepgram...');
 
-    // Connect to Deepgram WebSocket
+    // Connect to Deepgram WebSocket using the pre-configured URL with authentication
     this.ws = new WebSocket(this.deepgramConfig.url);
 
     this.ws.addEventListener('open', () => {
-      console.log('🔌 Deepgram WebSocket connected');
+      console.log('🔌 Deepgram WebSocket connected successfully');
       this.onStatusChange('connected');
     });
 
@@ -95,19 +95,22 @@ export class OpenAIRealtimeTranscriber {
 
     this.ws.addEventListener('error', (error) => {
       console.error('❌ Deepgram WebSocket error:', error);
-      this.onError('Connection error occurred');
+      this.onError('Deepgram connection error occurred');
       this.onStatusChange('error');
     });
 
     this.ws.addEventListener('close', (event) => {
       console.log('🔌 Deepgram WebSocket disconnected:', event.code, event.reason);
+      if (event.code !== 1000 && event.code !== 1001) {
+        this.onError(`Connection closed unexpectedly (${event.code}): ${event.reason || 'Unknown reason'}`);
+      }
       this.onStatusChange('disconnected');
     });
 
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Connection timeout'));
-      }, 10000);
+        reject(new Error('Connection timeout - please check your internet connection'));
+      }, 15000);
 
       this.ws!.addEventListener('open', () => {
         clearTimeout(timeout);
@@ -116,7 +119,7 @@ export class OpenAIRealtimeTranscriber {
 
       this.ws!.addEventListener('error', (error) => {
         clearTimeout(timeout);
-        reject(new Error('Failed to connect to Deepgram'));
+        reject(new Error('Failed to connect to Deepgram - please check your API key'));
       });
     });
   }
