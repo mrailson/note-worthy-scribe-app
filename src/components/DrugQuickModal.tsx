@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 type Status =
   | "DOUBLE_RED" | "RED" | "SPECIALIST_INITIATED" | "SPECIALIST_RECOMMENDED"
@@ -256,7 +257,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                   {data.traffic_light?.last_modified && (
                     <div className="mt-1 text-xs text-muted-foreground">
-                      Traffic-Light last updated: {data.traffic_light.last_modified}
+                      Traffic-Light last updated: {format(new Date(data.traffic_light.last_modified), "do MMMM yyyy")}
                     </div>
                   )}
                 </div>
@@ -316,7 +317,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                       )}
                       {data.formulary.last_published && (
                         <span className="text-xs text-muted-foreground">
-                          Last published: {data.formulary.last_published}
+                          Last published: {format(new Date(data.formulary.last_published), "do MMMM yyyy")}
                         </span>
                       )}
                     </div>
