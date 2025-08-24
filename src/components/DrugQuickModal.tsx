@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, X, Maximize2, Minimize2, AlertTriangle } from "lucide-react";
+import { Search, ExternalLink, X, Maximize2, Minimize2, AlertTriangle, Pill } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,7 +184,10 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
         {/* Header */}
         <div className="border-b">
           <div className="px-4 py-3 border-b">
-            <h1 className="text-lg font-semibold text-foreground">Northants Medicines Lookup</h1>
+            <h1 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Pill className="h-5 w-5 text-primary" />
+              Northants Medicines Lookup
+            </h1>
           </div>
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-2 flex-1">
