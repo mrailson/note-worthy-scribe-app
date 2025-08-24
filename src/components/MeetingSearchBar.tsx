@@ -128,7 +128,7 @@ export const MeetingSearchBar = ({
             placeholder="Search meetings by title, description, or type..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 pr-10"
+            className="pl-10 pr-10 bg-white"
           />
           {searchQuery && (
             <Button
