@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, X, Maximize2, Minimize2, AlertTriangle, Pill } from "lucide-react";
+import { Search, ExternalLink, X, Maximize2, Minimize2, AlertTriangle, Pill, Info, CheckCircle, Clock, Eye } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -245,7 +245,76 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-3 text-sm text-muted-foreground">Please begin the search by typing the drug name above</div>
+                <div className="p-6 space-y-4">
+                  {/* Welcome message */}
+                  <div className="text-center mb-6">
+                    <div className="text-2xl mb-2">🩺</div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Welcome to Northants Medicines Lookup</h3>
+                    <p className="text-sm text-muted-foreground">Quick access to local prescribing policies and formulary information</p>
+                  </div>
+
+                  {/* How to use guide */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">How to use this tool:</h4>
+                    
+                    <div className="flex items-start gap-3">
+                      <Search className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">Search for a medicine</div>
+                        <div className="text-xs text-muted-foreground">Type the drug name in the search box above</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Eye className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">Select from results</div>
+                        <div className="text-xs text-muted-foreground">Click on a medicine to view detailed policy information</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">Review prescribing guidance</div>
+                        <div className="text-xs text-muted-foreground">See traffic light status, prior approval requirements, and alternatives</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What you'll see */}
+                  <div className="border-t pt-4 space-y-3">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">What you'll see:</h4>
+                    
+                    <div className="grid grid-cols-1 gap-2 text-xs">
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 dark:bg-green-900/20">
+                        <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                        <span className="font-medium">GREEN:</span> Can initiate in primary care
+                      </div>
+                      
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-orange-50 dark:bg-orange-900/20">
+                        <div className="w-2 h-2 rounded-full bg-orange-600"></div>
+                        <span className="font-medium">AMBER:</span> Specialist recommendation preferred
+                      </div>
+                      
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-red-50 dark:bg-red-900/20">
+                        <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                        <span className="font-medium">RED:</span> Specialist initiation only
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Important disclaimer */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-xs text-blue-800 dark:text-blue-200">
+                        <div className="font-semibold mb-1">Important Disclaimer</div>
+                        <p>This tool provides guidance based on Northamptonshire ICB policies. Always verify information with the official ICB website if you have any concerns about prescribing decisions. Clinical judgment should always take precedence.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
