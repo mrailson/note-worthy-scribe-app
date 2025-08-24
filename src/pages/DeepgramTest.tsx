@@ -421,6 +421,64 @@ const DeepgramTest = () => {
           </CardContent>
         </Card>
 
+        {/* Consolidated Transcription */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Consolidated Transcription</span>
+              <Badge variant="outline">
+                {Object.values(services).reduce((acc, service) => acc + service.transcriptData.length, 0)} total segments
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              {Object.values(services).every(service => service.transcriptData.length === 0) ? (
+                <p className="text-muted-foreground text-center py-8">
+                  No transcriptions available. Start recording with any service to see consolidated results.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {Object.entries(services).map(([serviceType, service]) => {
+                    if (service.transcriptData.length === 0) return null;
+                    
+                    const serviceNames = {
+                      browser: 'Browser Speech API',
+                      openai: 'OpenAI Realtime',
+                      whisper: 'Whisper AI',
+                      deepgram: 'Deepgram Realtime'
+                    };
+
+                    const serviceIcons = {
+                      browser: <Smartphone className="w-4 h-4" />,
+                      openai: <Zap className="w-4 h-4" />,
+                      whisper: <Bot className="w-4 h-4" />,
+                      deepgram: <Radio className="w-4 h-4" />
+                    };
+
+                    const fullText = service.transcriptData.map(data => data.text).join(' ');
+                    
+                    return (
+                      <div key={serviceType} className="p-4 bg-muted/30 rounded-lg border">
+                        <div className="flex items-center gap-2 mb-3">
+                          {serviceIcons[serviceType as ServiceType]}
+                          <h3 className="font-semibold text-sm">{serviceNames[serviceType as ServiceType]}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {service.transcriptData.length} segments
+                          </Badge>
+                        </div>
+                        <p className="text-sm leading-relaxed">
+                          {fullText || 'No transcription available'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Service Tabs */}
         <div className="w-full">
           <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
