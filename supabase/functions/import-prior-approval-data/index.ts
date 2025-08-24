@@ -37,17 +37,21 @@ serve(async (req) => {
     let totalUpdated = 0
     const results = []
 
-    for (const fileData of files) {
+    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+      const fileData = files[fileIndex]
       const { fileName, content } = fileData
+      
+      const actualFileName = fileName || `File_${fileIndex + 1}.json`
       
       try {
         // Parse JSON content
         const jsonData = JSON.parse(content)
-        console.log(`Processing file: ${fileName}`)
+        console.log(`Processing file: ${actualFileName}, type: ${typeof jsonData}, isArray: ${Array.isArray(jsonData)}`)
         
         if (!Array.isArray(jsonData)) {
+          console.log(`File ${actualFileName} content preview:`, JSON.stringify(jsonData).substring(0, 200))
           results.push({
-            file: fileName,
+            file: actualFileName,
             status: 'error',
             message: 'File content must be an array of objects'
           })
@@ -57,13 +61,21 @@ serve(async (req) => {
         let fileInserted = 0
         let fileUpdated = 0
 
+        console.log(`File ${actualFileName} contains ${jsonData.length} items`)
+
         // Process each item in the JSON array
         for (const item of jsonData) {
-          // Validate required fields
-          if (!item.drug_name) {
-            console.warn(`Skipping item without drug_name in ${fileName}`)
+          console.log(`Processing item:`, Object.keys(item))
+          
+          // Try different possible field names for drug name
+          const drugName = item.drug_name || item.name || item.medicine_name || item.drug || item.medication
+
+          if (!drugName) {
+            console.warn(`Skipping item without drug name in ${actualFileName}. Available fields:`, Object.keys(item))
             continue
           }
+
+          console.log(`Processing drug: ${drugName}`)
 
           // Insert or update prior approval criteria
           if (item.prior_approval_criteria && Array.isArray(item.prior_approval_criteria)) {
@@ -71,7 +83,7 @@ serve(async (req) => {
               const { data: existingData, error: checkError } = await supabase
                 .from('prior_approval_criteria')
                 .select('id')
-                .eq('drug_name', item.drug_name)
+                .eq('drug_name', drugName)
                 .eq('criteria_text', criteria.criteria_text || '')
                 .single()
 
@@ -91,16 +103,17 @@ serve(async (req) => {
                   .eq('id', existingData.id)
 
                 if (updateError) {
-                  console.error(`Error updating criteria for ${item.drug_name}:`, updateError)
+                  console.error(`Error updating criteria for ${drugName}:`, updateError)
                 } else {
                   fileUpdated++
+                  console.log(`Updated criteria for ${drugName}`)
                 }
               } else {
                 // Insert new record
                 const { error: insertError } = await supabase
                   .from('prior_approval_criteria')
                   .insert({
-                    drug_name: item.drug_name,
+                    drug_name: drugName,
                     criteria_text: criteria.criteria_text || '',
                     category: criteria.category,
                     application_route: criteria.application_route,
@@ -111,20 +124,22 @@ serve(async (req) => {
                   })
 
                 if (insertError) {
-                  console.error(`Error inserting criteria for ${item.drug_name}:`, insertError)
+                  console.error(`Error inserting criteria for ${drugName}:`, insertError)
                 } else {
                   fileInserted++
+                  console.log(`Inserted criteria for ${drugName}`)
                 }
               }
             }
           }
 
           // Update or insert traffic light data if provided
-          if (item.traffic_light_status) {
+          const trafficLightStatus = item.traffic_light_status || item.status || item.traffic_light
+          if (trafficLightStatus) {
             const { data: existingTL, error: tlCheckError } = await supabase
               .from('icn_traffic_light_medicines')
               .select('id')
-              .eq('drug_name', item.drug_name)
+              .eq('drug_name', drugName)
               .single()
 
             if (existingTL) {
@@ -132,7 +147,7 @@ serve(async (req) => {
               const { error: updateTLError } = await supabase
                 .from('icn_traffic_light_medicines')
                 .update({
-                  status: item.traffic_light_status,
+                  status: trafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
                   detail_url: item.detail_url,
@@ -142,15 +157,17 @@ serve(async (req) => {
                 .eq('id', existingTL.id)
 
               if (updateTLError) {
-                console.error(`Error updating traffic light for ${item.drug_name}:`, updateTLError)
+                console.error(`Error updating traffic light for ${drugName}:`, updateTLError)
+              } else {
+                console.log(`Updated traffic light for ${drugName}`)
               }
-            } else if (item.traffic_light_status !== 'UNKNOWN') {
+            } else if (trafficLightStatus !== 'UNKNOWN') {
               // Insert new traffic light record only if status is not UNKNOWN
               const { error: insertTLError } = await supabase
                 .from('icn_traffic_light_medicines')
                 .insert({
-                  drug_name: item.drug_name,
-                  status: item.traffic_light_status,
+                  drug_name: drugName,
+                  status: trafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
                   detail_url: item.detail_url,
@@ -158,7 +175,9 @@ serve(async (req) => {
                 })
 
               if (insertTLError) {
-                console.error(`Error inserting traffic light for ${item.drug_name}:`, insertTLError)
+                console.error(`Error inserting traffic light for ${drugName}:`, insertTLError)
+              } else {
+                console.log(`Inserted traffic light for ${drugName}`)
               }
             }
           }
@@ -168,19 +187,19 @@ serve(async (req) => {
         totalUpdated += fileUpdated
 
         results.push({
-          file: fileName,
+          file: actualFileName,
           status: 'success',
           inserted: fileInserted,
           updated: fileUpdated,
           processed: jsonData.length
         })
 
-        console.log(`File ${fileName} processed: ${fileInserted} inserted, ${fileUpdated} updated`)
+        console.log(`File ${actualFileName} processed: ${fileInserted} inserted, ${fileUpdated} updated`)
 
       } catch (parseError) {
-        console.error(`Error processing file ${fileName}:`, parseError)
+        console.error(`Error processing file ${actualFileName}:`, parseError)
         results.push({
-          file: fileName,
+          file: actualFileName,
           status: 'error',
           message: `Failed to parse JSON: ${parseError.message}`
         })
