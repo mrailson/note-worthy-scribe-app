@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Loader2, Smartphone, Zap, Bot } from 'lucide-react';
+import { Mic, MicOff, Loader2, Smartphone, Zap, Bot, Radio } from 'lucide-react';
 import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { toast } from 'sonner';
 
-type ServiceType = 'browser' | 'openai' | 'whisper';
+type ServiceType = 'browser' | 'openai' | 'whisper' | 'deepgram';
 
 interface ServiceData {
   isRecording: boolean;
@@ -41,6 +41,14 @@ const DeepgramTest = () => {
       transcriber: null
     },
     whisper: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    deepgram: {
       isRecording: false,
       transcriptData: [],
       currentTranscript: '',
@@ -161,6 +169,14 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
+        case 'deepgram':
+          transcriber = new DeepgramRealtimeTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange,
+            callbacks.onSummary
+          );
+          break;
         default:
           throw new Error('Unknown service type');
       }
@@ -228,13 +244,15 @@ const DeepgramTest = () => {
     const serviceNames = {
       browser: 'Browser Speech API',
       openai: 'OpenAI Realtime',
-      whisper: 'Whisper AI (Local)'
+      whisper: 'Whisper AI (Local)',
+      deepgram: 'Deepgram Realtime'
     };
     
     const serviceIcons = {
       browser: <Smartphone className="w-4 h-4" />,
       openai: <Zap className="w-4 h-4" />,
-      whisper: <Bot className="w-4 h-4" />
+      whisper: <Bot className="w-4 h-4" />,
+      deepgram: <Radio className="w-4 h-4" />
     };
 
     return (
@@ -405,7 +423,7 @@ const DeepgramTest = () => {
 
         {/* Service Tabs */}
         <Tabs value={activeService} onValueChange={(value) => setActiveService(value as ServiceType)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="browser" className="flex items-center gap-2">
               <Smartphone className="w-4 h-4" />
               Browser Speech
@@ -417,6 +435,10 @@ const DeepgramTest = () => {
             <TabsTrigger value="whisper" className="flex items-center gap-2">
               <Bot className="w-4 h-4" />
               Whisper AI
+            </TabsTrigger>
+            <TabsTrigger value="deepgram" className="flex items-center gap-2">
+              <Radio className="w-4 h-4" />
+              Deepgram
             </TabsTrigger>
           </TabsList>
 
@@ -430,6 +452,10 @@ const DeepgramTest = () => {
 
           <TabsContent value="whisper">
             {renderServicePanel('whisper')}
+          </TabsContent>
+
+          <TabsContent value="deepgram">
+            {renderServicePanel('deepgram')}
           </TabsContent>
         </Tabs>
       </div>
