@@ -24,10 +24,10 @@ export class OpenAIRealtimeTranscriber {
   private audioWorklet: AudioWorkletNode | null = null;
   private mediaStream: MediaStream | null = null;
   private isRecording = false;
-  private sessionId: string | null = null;
   private language: string = 'en';
   private medicalBias: boolean = false;
   private latencyStart: number = 0;
+  private deepgramConfig: any = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -36,13 +36,13 @@ export class OpenAIRealtimeTranscriber {
   ) {}
 
   async startTranscription(language: string = 'en', medicalBias: boolean = false) {
-    console.log('🎙️ Starting OpenAI Realtime Transcription...');
+    console.log('🎙️ Starting Deepgram Realtime Transcription...');
     this.language = language;
     this.medicalBias = medicalBias;
     
     try {
       this.onStatusChange('connecting');
-      await this.setupRealtimeSession();
+      await this.setupDeepgramSession();
       await this.setupAudioCapture();
       this.isRecording = true;
       this.onStatusChange('live');
@@ -54,10 +54,10 @@ export class OpenAIRealtimeTranscriber {
     }
   }
 
-  private async setupRealtimeSession() {
-    console.log('🔗 Setting up realtime session...');
+  private async setupDeepgramSession() {
+    console.log('🔗 Setting up Deepgram session...');
     
-    // Get token from our edge function
+    // Get Deepgram configuration from our edge function
     const { data, error } = await supabase.functions.invoke('openai-realtime-token', {
       body: {
         language: this.language,
@@ -69,62 +69,38 @@ export class OpenAIRealtimeTranscriber {
       throw new Error(`Failed to get session token: ${error.message}`);
     }
 
-    if (!data?.client_secret?.value) {
-      throw new Error('No session token received');
+    if (!data?.token) {
+      throw new Error('No Deepgram token received');
     }
 
-    this.sessionId = data.id;
-    const token = data.client_secret.value;
+    this.deepgramConfig = data;
+    console.log('📡 Connecting to Deepgram with URL:', this.deepgramConfig.url);
 
-    // Connect to OpenAI Realtime API using WebSocket
-    const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-    this.ws = new WebSocket(wsUrl, ["realtime"]);
-    
-    // Set authorization header
+    // Connect to Deepgram WebSocket
+    this.ws = new WebSocket(this.deepgramConfig.url);
+
     this.ws.addEventListener('open', () => {
-      console.log('🔌 WebSocket connected');
+      console.log('🔌 Deepgram WebSocket connected');
       this.onStatusChange('connected');
-      
-      // Send authentication
-      this.ws?.send(JSON.stringify({
-        type: 'session.update',
-        session: {
-          input_audio_format: "pcm16",
-          input_audio_transcription: {
-            enabled: true,
-            language: this.language === "auto" ? undefined : this.language
-          },
-          modalities: ["text"],
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 500
-          },
-          instructions: this.medicalBias 
-            ? "Transcribe UK primary care speech with medical abbreviations. Preserve drug names, doses, routes accurately. Use UK spelling."
-            : "Transcribe speech clearly and accurately."
-        }
-      }));
     });
 
     this.ws.addEventListener('message', (event) => {
       try {
         const message = JSON.parse(event.data);
-        this.handleRealtimeMessage(message);
+        this.handleDeepgramMessage(message);
       } catch (error) {
         console.error('❌ Error parsing WebSocket message:', error);
       }
     });
 
     this.ws.addEventListener('error', (error) => {
-      console.error('❌ WebSocket error:', error);
+      console.error('❌ Deepgram WebSocket error:', error);
       this.onError('Connection error occurred');
       this.onStatusChange('error');
     });
 
-    this.ws.addEventListener('close', () => {
-      console.log('🔌 WebSocket disconnected');
+    this.ws.addEventListener('close', (event) => {
+      console.log('🔌 Deepgram WebSocket disconnected:', event.code, event.reason);
       this.onStatusChange('disconnected');
     });
 
@@ -138,54 +114,58 @@ export class OpenAIRealtimeTranscriber {
         resolve();
       });
 
-      this.ws!.addEventListener('error', () => {
+      this.ws!.addEventListener('error', (error) => {
         clearTimeout(timeout);
-        reject(new Error('Failed to connect to OpenAI'));
+        reject(new Error('Failed to connect to Deepgram'));
       });
     });
   }
 
-  private handleRealtimeMessage(message: any) {
-    console.log('📥 Realtime message:', message.type, message);
+  private handleDeepgramMessage(message: any) {
+    console.log('📥 Deepgram message:', message);
 
-    switch (message.type) {
-      case 'session.created':
-      case 'session.updated':
-        console.log('✅ Session configured:', message);
-        break;
+    if (message.type === 'Results' && message.channel?.alternatives) {
+      const alternative = message.channel.alternatives[0];
+      if (alternative?.transcript) {
+        const isFinal = message.is_final || false;
+        const text = alternative.transcript;
+        
+        if (text.trim()) {
+          console.log(`📝 ${isFinal ? 'Final' : 'Interim'} transcript:`, text);
+          
+          if (isFinal && this.latencyStart) {
+            const latency = Date.now() - this.latencyStart;
+            this.onStatusChange('live', latency);
+            this.latencyStart = 0;
+          } else if (!isFinal && !this.latencyStart) {
+            this.latencyStart = Date.now();
+          }
 
-      case 'input_audio_buffer.speech_started':
-        console.log('🗣️ Speech detected');
-        this.latencyStart = Date.now();
-        break;
-
-      case 'input_audio_buffer.speech_stopped':
-        console.log('🤫 Speech ended');
-        break;
-
-      case 'conversation.item.input_audio_transcription.completed':
-        const finalText = message.transcript;
-        if (finalText && finalText.trim()) {
-          console.log('📝 Final transcript:', finalText);
-          const latency = this.latencyStart ? Date.now() - this.latencyStart : 0;
-          this.onStatusChange('live', latency);
           this.onTranscription({
-            text: finalText,
-            isFinal: true,
-            confidence: 0.9, // OpenAI doesn't provide confidence scores
+            text,
+            isFinal,
+            confidence: alternative.confidence || 0.9,
+            start: message.start,
+            end: message.end,
+            words: alternative.words?.map((word: any) => ({
+              word: word.word,
+              start: word.start,
+              end: word.end,
+              confidence: word.confidence || 0.9
+            }))
           });
         }
-        break;
-
-      case 'conversation.item.input_audio_transcription.failed':
-        console.warn('⚠️ Transcription failed:', message.error);
-        this.onError('Transcription failed: ' + (message.error?.message || 'Unknown error'));
-        break;
-
-      case 'error':
-        console.error('❌ OpenAI error:', message.error);
-        this.onError(message.error?.message || 'Unknown error occurred');
-        break;
+      }
+    } else if (message.type === 'Metadata') {
+      console.log('📊 Deepgram metadata:', message);
+    } else if (message.type === 'SpeechStarted') {
+      console.log('🗣️ Speech detected');
+      this.latencyStart = Date.now();
+    } else if (message.type === 'UtteranceEnd') {
+      console.log('🤫 Utterance ended');
+    } else if (message.error) {
+      console.error('❌ Deepgram error:', message.error);
+      this.onError(message.error);
     }
   }
 
@@ -249,22 +229,8 @@ export class OpenAIRealtimeTranscriber {
         this.audioWorklet = new AudioWorkletNode(this.audioContext, 'audio-processor');
         this.audioWorklet.port.onmessage = (event) => {
           if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            // Convert ArrayBuffer to base64
-            const uint8Array = new Uint8Array(event.data);
-            let binary = '';
-            const chunkSize = 0x8000;
-            
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-              binary += String.fromCharCode.apply(null, Array.from(chunk));
-            }
-            
-            const base64 = btoa(binary);
-            
-            this.ws.send(JSON.stringify({
-              type: 'input_audio_buffer.append',
-              audio: base64
-            }));
+            // Send raw binary data to Deepgram
+            this.ws.send(event.data);
           }
         };
         
@@ -299,22 +265,8 @@ export class OpenAIRealtimeTranscriber {
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
         
-        // Convert to base64
-        const uint8Array = new Uint8Array(pcm16.buffer);
-        let binary = '';
-        const chunkSize = 0x8000;
-        
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-          binary += String.fromCharCode.apply(null, Array.from(chunk));
-        }
-        
-        const base64 = btoa(binary);
-        
-        this.ws.send(JSON.stringify({
-          type: 'input_audio_buffer.append',
-          audio: base64
-        }));
+        // Send raw binary data to Deepgram
+        this.ws.send(pcm16.buffer);
       }
     };
     
@@ -329,11 +281,9 @@ export class OpenAIRealtimeTranscriber {
     
     this.isRecording = false;
     
-    // Commit final audio buffer
+    // Send close frame to Deepgram
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'input_audio_buffer.commit'
-      }));
+      this.ws.send(JSON.stringify({ type: 'CloseStream' }));
     }
     
     // Clean up audio resources
