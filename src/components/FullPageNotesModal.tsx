@@ -10,6 +10,7 @@ import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -64,6 +65,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   notes,
   onNotesChange
 }) => {
+  const { user } = useAuth();
   console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title);
   
   const [isEditing, setIsEditing] = useState(false);
@@ -898,7 +900,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       toast.info('🤖 Analyzing transcript with AI...');
       
       const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
-        body: { transcript },
+        body: { 
+          transcript,
+          options: {
+            finalThreshold: 0.97,
+            finalWindow: 15,
+            use_llm: false // Deterministic by default, can be enabled if needed
+          },
+          // practiceId: undefined, // TODO: Add practice_id to meeting data if needed
+          userId: user?.id || undefined
+        },
       });
 
       if (error) {
@@ -908,12 +919,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
 
       if (!data?.cleanedTranscript) {
-        toast.error('GPT returned empty response - please check your OpenAI API key');
+        toast.error('Cleaner returned empty response - please check configuration');
         return;
       }
 
       setTranscript(data.cleanedTranscript);
-      toast.success(`✅ Transcript cleaned with GPT! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.`);
+      
+      // Enhanced success message with custom corrections info
+      const customCorrectionsText = data.appliedCustomCorrections > 0 
+        ? ` Applied ${data.appliedCustomCorrections} custom corrections.` 
+        : '';
+      
+      toast.success(`✅ Transcript cleaned! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.${customCorrectionsText}`);
       
     } catch (error) {
       console.error('Error cleaning transcript:', error);
