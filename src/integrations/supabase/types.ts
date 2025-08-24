@@ -2810,7 +2810,9 @@ export type Database = {
           confidence: number | null
           created_at: string
           id: string
+          is_final: boolean | null
           meeting_id: string
+          seq: number | null
           session_id: string
           transcription_text: string
           user_id: string
@@ -2820,7 +2822,9 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           id?: string
+          is_final?: boolean | null
           meeting_id: string
+          seq?: number | null
           session_id: string
           transcription_text: string
           user_id: string
@@ -2830,7 +2834,9 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           id?: string
+          is_final?: boolean | null
           meeting_id?: string
+          seq?: number | null
           session_id?: string
           transcription_text?: string
           user_id?: string

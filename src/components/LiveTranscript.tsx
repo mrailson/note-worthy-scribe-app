@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,14 +198,20 @@ export const LiveTranscript = ({
     loadMedicalCorrections();
   }, []);
 
+  // Guard against double subscription (StrictMode)
+  const subscribedRef = useRef(false);
+  const processedSeqRef = useRef(new Set<number>());
+
   // Subscribe to transcription chunks for AI enhancement updates
   useEffect(() => {
     if (!user?.id) return;
+    if (subscribedRef.current) return;
 
     const currentSessionId = sessionStorage.getItem('currentSessionId');
     if (!currentSessionId) return;
 
-    console.log('🔄 Setting up transcription chunks subscription for session:', currentSessionId);
+    subscribedRef.current = true;
+    console.log('🔄 Setting up transcription chunks subscription for session:', currentSessionId, 'subscription-id:', Math.random().toString(36).substr(2, 9));
 
     const channel = supabase
       .channel('transcription-chunks')
@@ -220,53 +226,71 @@ export const LiveTranscript = ({
         (payload) => {
           console.log('📝 New transcription chunk received:', payload);
           const chunkRow = payload.new;
-          if (chunkRow.transcription_text) {
-            // Get confidence gating settings
-            const confidenceSettings = withDefaultThresholds(meetingSettings);
-            const chunkConfidence = chunkRow.confidence_score;
+          if (!chunkRow?.transcription_text) return;
 
-            // Apply confidence gating - drop low-confidence chunks
-            if (!meetsConfidenceThreshold(chunkConfidence, confidenceSettings)) {
-              console.log(`🚫 Dropping low-confidence chunk (${chunkConfidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+          // Skip if we already processed this seq (reconnect/replay safe)
+          if (typeof chunkRow.seq === 'number') {
+            if (processedSeqRef.current.has(chunkRow.seq)) {
+              console.log(`🔄 Skipping duplicate seq ${chunkRow.seq}`);
               return;
             }
-
-            console.log(`✅ Accepting chunk with confidence ${chunkConfidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
-
-            // Apply medical corrections if loaded
-            let processedText = chunkRow.transcription_text;
-            if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
-              processedText = medicalTermCorrector.applyCorrections(processedText);
-            }
-            
-            // Create LiveChunk object
-            const liveChunk: LiveChunk = {
-              text: processedText,
-              isFinal: chunkRow.is_final ?? true, // default to true if not specified
-              seq: chunkRow.seq ?? chunkRow.chunk_number,
-              start_ms: chunkRow.start_ms,
-              end_ms: chunkRow.end_ms,
-              source: chunkRow.source,
-              speaker: chunkRow.speaker_info?.name ?? null,
-            };
-
-            // Update cleaned transcript with new chunk using live merge
-            setCleanedTranscript(prev => {
-              const newText = mergeLive(prev, liveChunk);
-              console.log('✨ Updated AI enhanced transcript with live merge (length:', newText.length, ')');
-              return newText;
-            });
-
-            // Show latest final chunk in raw section (separate from cleanedTranscript)
-            if (liveChunk.isFinal !== false) {
-              setLiveTranscriptText(processedText);
-            }
+            processedSeqRef.current.add(chunkRow.seq);
+            console.log(`📝 Processing seq ${chunkRow.seq}, processed count: ${processedSeqRef.current.size}`);
           }
+
+          // Get confidence gating settings
+          const confidenceSettings = withDefaultThresholds(meetingSettings);
+          const chunkConfidence = chunkRow.confidence_score;
+
+          // Apply confidence gating - drop low-confidence chunks
+          if (!meetsConfidenceThreshold(chunkConfidence, confidenceSettings)) {
+            console.log(`🚫 Dropping low-confidence chunk (${chunkConfidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+            return;
+          }
+
+          console.log(`✅ Accepting chunk with confidence ${chunkConfidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+
+          // Apply medical corrections if loaded
+          let processedText = chunkRow.transcription_text;
+          if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
+            processedText = medicalTermCorrector.applyCorrections(processedText);
+          }
+
+          // Only merge final chunks into clean buffer
+          if (chunkRow.is_final === false) {
+            console.log(`⏳ Ignoring non-final chunk for clean buffer: "${processedText.substring(0, 50)}..."`);
+            // You can still show this in the *raw* pane if you want
+            setLiveTranscriptText(processedText);
+            return;
+          }
+
+          // Create LiveChunk object for final chunks only
+          const liveChunk: LiveChunk = {
+            text: processedText,
+            isFinal: true,
+            seq: chunkRow.seq ?? chunkRow.chunk_number,
+            start_ms: chunkRow.start_ms,
+            end_ms: chunkRow.end_ms,
+            source: chunkRow.source,
+            speaker: chunkRow.speaker_info?.name ?? null,
+          };
+
+          // Update cleaned transcript with new chunk using live merge
+          setCleanedTranscript(prev => {
+            const newText = mergeLive(prev, liveChunk);
+            console.log('✨ Updated AI enhanced transcript with live merge (length:', newText.length, ')');
+            return newText;
+          });
+
+          // Show latest final chunk in raw section (separate from cleanedTranscript)
+          setLiveTranscriptText(processedText);
         }
       )
       .subscribe();
 
     return () => {
+      subscribedRef.current = false;
+      processedSeqRef.current.clear();
       supabase.removeChannel(channel);
     };
   }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
