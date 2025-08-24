@@ -357,7 +357,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                          rel="noreferrer"
                          title="Verify prior approval requirements manually"
                        >
-                         <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
+                         <ExternalLink className="h-4 w-4" /> Prior Approval Criteria - Northamptonshire ICB (August 2025)
                        </a>
                       {data.prior_approval.page_ref && (
                         <span className="text-xs text-muted-foreground">
@@ -392,7 +392,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                         rel="noreferrer"
                         title="Verify prior approval requirements manually"
                       >
-                        <ExternalLink className="h-4 w-4" /> Verify Manually (PDF)
+                        <ExternalLink className="h-4 w-4" /> Prior Approval Criteria - Northamptonshire ICB (August 2025)
                       </a>
                     </div>
                   </div>
