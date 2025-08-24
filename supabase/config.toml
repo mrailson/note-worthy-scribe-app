@@ -63,5 +63,8 @@ verify_jwt = false
 [functions.drug-vocabulary]
 verify_jwt = false
 
+[functions.import-prior-approval-data]
+verify_jwt = true
+
 [functions.serve-pdf]
 verify_jwt = false
