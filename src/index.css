@@ -408,4 +408,58 @@ tbody tr:hover {
       ring-width: 3px;
     }
   }
+
+/* Quick Pick Scroll UX */
+.qp-scroll {
+  position: relative;
+  overflow: auto;
+  max-height: 70vh;
+  scroll-behavior: smooth;
+}
+
+.qp-scroll::before,
+.qp-scroll::after {
+  content: "";
+  position: sticky;
+  left: 0; 
+  right: 0;
+  height: 18px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.qp-scroll::before {
+  top: 0;
+  background: linear-gradient(hsl(var(--background)), hsl(var(--background) / 0));
+}
+
+.qp-scroll::after {
+  bottom: 0;
+  background: linear-gradient(hsl(var(--background) / 0), hsl(var(--background)));
+}
+
+.qp-scroll.at-top::before { 
+  opacity: 0; 
+}
+
+.qp-scroll.at-bottom::after { 
+  opacity: 0; 
+}
+
+.qp-more-nudge {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(hsl(var(--background) / 0), hsl(var(--background)) 60%);
+  text-align: center;
+  padding: 8px 0 6px;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 3;
+  color: hsl(var(--muted-foreground));
+  transition: var(--transition-smooth);
+}
+
+.qp-more-nudge:hover {
+  color: hsl(var(--foreground));
+}
 }

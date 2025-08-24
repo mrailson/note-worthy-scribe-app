@@ -44,6 +44,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { quickPickConfig } from '@/constants/quickPickConfig';
 import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
+import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
 
 interface Message {
   id: string;
@@ -546,8 +547,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
 
+  const quickPickScrollRef = useQuickPickScrollUX<HTMLDivElement>("peek");
+
   // Recursive function to render menu items from config
-  const renderQuickPickItems = (items: QuickPickItem[]): React.ReactNode => {
+  const renderQuickPickItems = (items: QuickPickItem[], level = 0): React.ReactNode => {
     return items.map((item) => {
       if (item.children && item.children.length > 0) {
         return (
@@ -555,8 +558,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             <DropdownMenuSubTrigger className="flex items-center">
               {item.label}
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
-              {renderQuickPickItems(item.children)}
+            <DropdownMenuSubContent className={`w-56 bg-popover border border-border shadow-lg z-[9999] ${level === 0 ? 'qp-scroll' : ''}`}>
+              {renderQuickPickItems(item.children, level + 1)}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         );
@@ -1157,7 +1160,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <Zap className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-72 bg-background border z-50 shadow-lg">
+                        <DropdownMenuContent 
+                          align="end" 
+                          className="w-72 bg-background border z-50 shadow-lg qp-scroll" 
+                          ref={quickPickScrollRef}
+                        >
                           {renderQuickPickItems(quickPickConfig.quickPick)}
                         </DropdownMenuContent>
                       </DropdownMenu>
