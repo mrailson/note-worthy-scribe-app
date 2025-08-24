@@ -102,12 +102,7 @@ export async function cleanLargeTranscript(
       } catch (e) {
         // Fallback to local rule-based cleaner if AI fails
         try {
-          results[i] = transcriptCleaner.cleanTranscript(chunks[i], {
-            removeHallucinations: true,
-            fixGrammar: true,
-            addPunctuation: true,
-            mergeFragments: true,
-          } as any);
+          results[i] = transcriptCleaner.cleanFinal(chunks[i]);
         } catch {
           results[i] = chunks[i];
         }

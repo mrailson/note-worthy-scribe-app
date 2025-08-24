@@ -1,18 +1,4 @@
-/**
- * Advanced Transcript Cleaning Service
- * Cleans and formats transcripts in real-time by removing hallucinations,
- * fixing grammar, and improving readability
- */
-
-export interface CleaningOptions {
-  removeHallucinations: boolean;
-  fixGrammar: boolean;
-  addPunctuation: boolean;
-  removeFiller: boolean;
-  mergeFragments: boolean;
-  confidenceThreshold?: number; // New: minimum confidence threshold (0-1)
-  minimumLength?: number; // New: minimum segment length to keep
-}
+// src/utils/TranscriptCleaner.ts
 
 export interface RemovedSegment {
   text: string;
@@ -22,633 +8,296 @@ export interface RemovedSegment {
   type: 'hallucination' | 'low-confidence' | 'too-short' | 'duplicate' | 'quiet-section';
 }
 
+type Options = {
+  // live-mode knobs
+  liveThreshold?: number;   // near-dup sim threshold (0..1)
+  liveWindow?: number;      // sentences to look back
+  // final-mode knobs
+  finalThreshold?: number;
+  finalWindow?: number;
+};
+
 export class TranscriptCleaner {
-  private hallucinationPatterns: RegExp[];
-  private fillerWords: RegExp;
-  private commonHallucinations: string[];
-  private lastConfidence: number = 1.0; // Track last known confidence
+  private liveThreshold: number;
+  private liveWindow: number;
+  private finalThreshold: number;
+  private finalWindow: number;
   private removedSegments: RemovedSegment[] = []; // Track removed items
-  
-  constructor() {
-    // Common hallucination patterns
-    this.hallucinationPatterns = [
-      // Repeated words (2+ times)
-      /\b(\w+)(\s+\1){1,}\b/gi,
-      // Audio instructions and technical terms
-      /please use (earphones|headphones|headset|microphone)/gi,
-      /check your (audio|microphone|speakers|headphones)/gi,
-      /turn (on|off) your (microphone|camera|audio)/gi,
-      // Audio quality descriptions (major hallucination source)
-      /unclear audio/gi,
-      /background noise/gi,
-      /static/gi,
-      /\[music\]/gi,
-      /\[sound\]/gi,
-      /\[noise\]/gi,
-      // Repetitive audio descriptors
-      /\b(music|audio)\b.*?\b(or|and)\b.*?\b(unclear|music|audio)\b/gi,
-      // Generic meeting phrases that appear incorrectly
-      /thank you for watching/gi,
-      /thanks for listening/gi,
-      /see you (next time|later|soon)/gi,
-      /goodbye everyone/gi,
-      /that's all for today/gi,
-      // Technical artifacts
-      /\[inaudible\]/gi,
-      /\[unclear\]/gi,
-      /\[background noise\]/gi,
-      /\[static\]/gi,
-      // Whisper model artifacts
-      /transcript provided by/gi,
-      /subtitles by/gi,
-      /closed captioning/gi,
-      // Music and sound references when not contextual
-      /♪.*?♪/g,
-      /\[music\]/gi,
-      /\[applause\]/gi,
-      /\[laughter\] \[laughter\]/gi, // Repeated laughter
-    ];
 
-    // Common filler words and phrases
-    this.fillerWords = /\b(um+|uh+|er+|ah+|like|you know|basically|actually|literally|sort of|kind of)\b/gi;
-
-    // Specific hallucination phrases
-    this.commonHallucinations = [
-      "please use earphones or a headset",
-      "please use headphones",
-      "check your microphone",
-      "turn on your microphone",
-      "can you hear me",
-      "testing testing",
-      "hello hello",
-      "mic check",
-      "one two three",
-      "thank you for watching",
-      "goodbye everyone",
-      "see you next time",
-      "that's all for today",
-      "transcript provided by",
-      "subtitles by",
-      "closed captioning",
-      "automatic transcript",
-      "this meeting is being recorded in english",
-      "this meeting is being recorded",
-      "recording in progress",
-      "this call is being recorded",
-      "this session is being recorded",
-      "recording has started",
-      "recording will begin",
-      "start recording",
-      "stop recording",
-      "recording stopped",
-      "meeting recording enabled",
-      "audio is being captured",
-      "voice recording active",
-      "unclear audio",
-      "background music",
-      "background noise",
-      "music",
-      "speech and unclear audio",
-      "or unclear audio",
-      "and unclear audio",
-      "please subscribe only clear english speech and ignore background noise, music, or unclear audio",
-      "please subscribe, like, comment, and share",
-      "if you have any questions or comments, please post them in the q&a section",
-      "if you have any questions, please let me know in the comments",
-      // Quiet section specific hallucinations
-      "hmm",
-      "mm",
-      "uh-huh",
-      "yeah",
-      "ok",
-      "okay",
-      "right",
-      "bye",
-      "bye bye", 
-      "goodbye",
-      "thanks",
-      "thank you",
-      "good",
-      "well",
-      "so",
-      "now",
-      "yes",
-      "no",
-      "hello",
-      "hi",
-      "oh",
-      "ah",
-      "eh",
-      "hm",
-      "mm-hmm",
-      "uh-oh",
-      "oops",
-      "wow",
-      "hey",
-    ];
+  constructor(opts?: Options) {
+    this.liveThreshold  = opts?.liveThreshold  ?? 0.94; // conservative live
+    this.liveWindow     = opts?.liveWindow     ?? 6;
+    this.finalThreshold = opts?.finalThreshold ?? 0.97; // strict final
+    this.finalWindow    = opts?.finalWindow    ?? 15;
   }
 
-  /**
-   * Main cleaning function - processes transcript text
-   */
-  cleanTranscript(text: string, options: CleaningOptions = {
-    removeHallucinations: true,
-    fixGrammar: true,
-    addPunctuation: true,
-    removeFiller: false, // Keep false by default to preserve natural speech
-    mergeFragments: true
-  }): string {
-    if (!text || typeof text !== 'string') return '';
+  // ---------- Public entry points ----------
 
-    let cleaned = text.trim();
+  /** Use for streaming updates (low flicker). Pass previous full text + new chunk. */
+  cleanStreamingAppend(prevText: string, newChunk: string, confidence?: number): string {
+    if (!newChunk) return prevText || "";
+    if (confidence !== undefined && confidence < 0.7) return prevText || "";
 
-    // Step 1: Remove obvious hallucinations
-    if (options.removeHallucinations) {
-      cleaned = this.removeHallucinations(cleaned);
-    }
+    // 1) Basic normalisation
+    const prev = this.normWS(prevText);
+    const chunk = this.normWS(this.stripSystem(newChunk));
 
-    // Step 2: Remove overlapping dialogue segments
-    if (options.removeHallucinations) {
-      cleaned = this.removeOverlappingSegments(cleaned);
-    }
+    // 2) Cut overlap so we don't double-append
+    const merged = this.mergeWithoutOverlap(prev, chunk);
 
-    // Step 3: Remove excessive filler words (optional)
-    if (options.removeFiller) {
-      cleaned = this.removeExcessiveFiller(cleaned);
-    }
+    // 3) Light sentence-level dedupe
+    const lightly = this.dedupeSentences(merged, this.liveThreshold, this.liveWindow);
 
-    // Step 4: Fix basic grammar and spacing
-    if (options.fixGrammar) {
-      cleaned = this.fixBasicGrammar(cleaned);
-    }
+    // 4) NHS corrections
+    const corrected = this.applyNHSCorrections(lightly);
 
-    // Step 5: Add punctuation
-    if (options.addPunctuation) {
-      cleaned = this.addPunctuation(cleaned);
-    }
-
-    // Step 6: Merge sentence fragments
-    if (options.mergeFragments) {
-      cleaned = this.mergeFragments(cleaned);
-    }
-
-    // Step 7: Final cleanup
-    cleaned = this.finalCleanup(cleaned);
-
-    return cleaned;
+    // 5) Micro-tidy
+    return this.microTidy(corrected);
   }
 
-  /**
-   * Remove hallucinations and artifacts
-   */
-  private removeHallucinations(text: string): string {
-    let cleaned = text;
+  /** Use once at end for export-quality output. */
+  cleanFinal(fullText: string): string {
+    if (!fullText) return "";
 
-    // Remove using regex patterns
-    this.hallucinationPatterns.forEach(pattern => {
-      cleaned = cleaned.replace(pattern, ' ');
-    });
+    // 1) Normalise, then split and join half-sentences
+    const initial = this.normWS(fullText);
+    const joined = this.joinHalfSentences(this.splitSentences(initial));
 
-    // Remove specific phrases (case insensitive)
-    this.commonHallucinations.forEach(phrase => {
-      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      cleaned = cleaned.replace(regex, ' ');
-    });
+    // 2) Strict sentence-level dedupe
+    const deduped = this.dedupeSentences(joined.join(" "), this.finalThreshold, this.finalWindow);
 
-    // Remove very short repeated segments
-    cleaned = this.removeShortRepeats(cleaned);
+    // 3) NHS corrections
+    const corrected = this.applyNHSCorrections(deduped);
 
-    return cleaned;
+    // 4) Final micro tidy
+    return this.finalPolish(this.microTidy(corrected)).trim();
   }
 
-  /**
-   * Remove short repeated segments like "the the the" or "and and"
-   * Also catches longer repetitive patterns like "unclear audio, music, or unclear audio"
-   */
-  private removeShortRepeats(text: string): string {
-    // Remove 2-3 word repeated segments  
-    let cleaned = text.replace(/\b(\w{1,6}(?:\s+\w{1,6}){0,2})(\s+\1){1,}/gi, '$1');
-    
-    // Special case: remove repetitive "unclear audio, music" patterns
-    cleaned = cleaned.replace(/(unclear audio[,\s]*music[,\s]*or\s+)+/gi, ' ');
-    cleaned = cleaned.replace(/(music[,\s]*or\s+unclear audio[,\s]*)+/gi, ' ');
-    
-    // Remove any phrase that repeats more than 3 times in a row
-    cleaned = cleaned.replace(/\b(.{5,20}?)\1{2,}/gi, '$1');
-    
-    return cleaned;
+  // Legacy compatibility methods (for gradual migration)
+  cleanStreamingTranscript(prevText: string, newChunk: string, confidence?: number): string {
+    // Legacy method - redirect to new API
+    return this.cleanStreamingAppend(prevText, newChunk, confidence);
   }
 
-  /**
-   * Remove overlapping dialogue segments that repeat across different speakers
-   */
-  private removeOverlappingSegments(text: string): string {
-    // First, handle large block duplicates (like entire paragraphs repeated)
-    let cleaned = this.removeLargeBlockDuplicates(text);
-    
-    // Then handle sentence-level duplicates
-    const sentences = cleaned.split(/[.!?]+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-    
-    if (sentences.length <= 1) return cleaned;
-
-    // Remove exact duplicates first
-    const uniqueSentences: string[] = [];
-    const seenExact = new Set<string>();
-
-    for (const sentence of sentences) {
-      const normalized = sentence.toLowerCase().trim();
-      if (!seenExact.has(normalized) && normalized.length > 2) {
-        seenExact.add(normalized);
-        uniqueSentences.push(sentence);
-      }
-    }
-
-    // Now check for similar overlaps
-    const finalSentences: string[] = [];
-    
-    for (let i = 0; i < uniqueSentences.length; i++) {
-      const current = uniqueSentences[i];
-      let isDuplicate = false;
-      
-      // Check against already added sentences
-      for (const existing of finalSentences) {
-        if (this.calculateSimilarity(current.toLowerCase(), existing.toLowerCase()) > 0.85) {
-          this.addRemovedSegment(current, `Duplicate sentence (${Math.round(this.calculateSimilarity(current.toLowerCase(), existing.toLowerCase()) * 100)}% similar)`, undefined, 'duplicate');
-          console.log(`🚫 Removing similar segment: "${current.substring(0, 50)}..."`);
-          isDuplicate = true;
-          break;
-        }
-      }
-      
-      if (!isDuplicate) {
-        finalSentences.push(current);
-      }
-    }
-
-    const result = finalSentences.join('. ') + (finalSentences.length > 0 ? '.' : '');
-    
-    // Log the deduplication if it made a significant change
-    if (text.length - result.length > 50) {
-      console.log(`🧹 Deduplication removed ${text.length - result.length} characters of overlap`);
-    }
-    
-    return result;
+  cleanTranscript(text: string, options?: any): string {
+    // Legacy method - redirect to final clean
+    return this.cleanFinal(text);
   }
 
-  /**
-   * Remove large block duplicates (entire paragraphs/sections repeated)
-   */
-  private removeLargeBlockDuplicates(text: string): string {
-    // Split text into chunks by looking for natural breaks
-    const chunks = text.split(/(?:[.!?]\s+){2,}/).filter(chunk => chunk.trim().length > 10);
-    
-    if (chunks.length <= 1) return text;
-    
-    const uniqueChunks: string[] = [];
-    const seenChunks = new Set<string>();
-    
-    for (const chunk of chunks) {
-      const normalized = chunk.toLowerCase()
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      // Check for exact or very high similarity matches
-      let isDuplicate = false;
-      for (const seen of seenChunks) {
-        const similarity = this.calculateSimilarity(normalized, seen);
-        if (similarity > 0.9) {
-          this.addRemovedSegment(chunk, `Duplicate block (${Math.round(similarity * 100)}% similar)`, undefined, 'duplicate');
-          console.log(`🚫 Removing duplicate block (${Math.round(similarity * 100)}% similar):`, chunk.substring(0, 80) + '...');
-          isDuplicate = true;
-          break;
-        }
-      }
-      
-      if (!isDuplicate) {
-        seenChunks.add(normalized);
-        uniqueChunks.push(chunk.trim());
-      }
-    }
-    
-    return uniqueChunks.join('. ');
+  // Legacy removed segments compatibility
+  getRemovedSegments(): RemovedSegment[] {
+    return this.removedSegments;
   }
 
-  /**
-   * Calculate similarity between two strings (0-1)
-   */
-  private calculateSimilarity(str1: string, str2: string): number {
-    const words1 = str1.split(/\s+/);
-    const words2 = str2.split(/\s+/);
-    
-    if (words1.length === 0 && words2.length === 0) return 1;
-    if (words1.length === 0 || words2.length === 0) return 0;
-
-    const set1 = new Set(words1);
-    const set2 = new Set(words2);
-    const intersection = new Set([...set1].filter(x => set2.has(x)));
-    const union = new Set([...set1, ...set2]);
-
-    return intersection.size / union.size;
-  }
-
-  /**
-   * Remove excessive filler words but keep some natural speech patterns
-   */
-  private removeExcessiveFiller(text: string): string {
-    // Only remove if there are 3+ filler words in close proximity
-    const words = text.split(/\s+/);
-    const cleaned: string[] = [];
-    let consecutiveFiller = 0;
-
-    words.forEach(word => {
-      if (this.fillerWords.test(word)) {
-        consecutiveFiller++;
-        // Keep first 2 filler words, remove the rest
-        if (consecutiveFiller <= 2) {
-          cleaned.push(word);
-        }
-      } else {
-        consecutiveFiller = 0;
-        cleaned.push(word);
-      }
-    });
-
-    return cleaned.join(' ');
-  }
-
-  /**
-   * Fix basic grammar and spacing issues
-   */
-  private fixBasicGrammar(text: string): string {
-    let fixed = text;
-
-    // Fix spacing around punctuation
-    fixed = fixed.replace(/\s+([.!?,:;])/g, '$1');
-    fixed = fixed.replace(/([.!?])\s*([a-z])/g, '$1 $2');
-    
-    // Fix multiple spaces
-    fixed = fixed.replace(/\s+/g, ' ');
-
-    // Fix common speech-to-text errors
-    fixed = fixed.replace(/\bi\b/g, 'I'); // Capitalize standalone 'i'
-    fixed = fixed.replace(/\b(im|ive|ill|id|wont|cant|dont|didnt|isnt|arent|wasnt|werent)\b/gi, (match) => {
-      const corrections: { [key: string]: string } = {
-        'im': "I'm", 'ive': "I've", 'ill': "I'll", 'id': "I'd",
-        'wont': "won't", 'cant': "can't", 'dont': "don't",
-        'didnt': "didn't", 'isnt': "isn't", 'arent': "aren't",
-        'wasnt': "wasn't", 'werent': "weren't"
-      };
-      return corrections[match.toLowerCase()] || match;
-    });
-
-    return fixed;
-  }
-
-  /**
-   * Add basic punctuation based on speech patterns
-   */
-  private addPunctuation(text: string): string {
-    let punctuated = text;
-
-    // Add periods at natural sentence breaks
-    punctuated = punctuated.replace(/\b(and then|so then|after that|next|finally)\s+/gi, '$1. ');
-    
-    // Add commas for natural pauses
-    punctuated = punctuated.replace(/\b(however|therefore|moreover|furthermore|meanwhile)\s+/gi, ', $1 ');
-    
-    // Ensure sentences end with periods if they don't have punctuation
-    punctuated = punctuated.replace(/([a-z])\s*$/i, '$1.');
-
-    return punctuated;
-  }
-
-  /**
-   * Merge sentence fragments into complete sentences
-   */
-  private mergeFragments(text: string): string {
-    // Split into potential sentences
-    const fragments = text.split(/[.!?]+/).filter(f => f.trim());
-    const merged: string[] = [];
-
-    fragments.forEach((fragment, index) => {
-      const trimmed = fragment.trim();
-      if (!trimmed) return;
-
-      // If fragment is very short and doesn't start with capital letter,
-      // try to merge with previous sentence
-      if (trimmed.length < 15 && index > 0 && !/^[A-Z]/.test(trimmed)) {
-        if (merged.length > 0) {
-          merged[merged.length - 1] += ' ' + trimmed;
-        } else {
-          merged.push(trimmed);
-        }
-      } else {
-        // Capitalize first letter
-        const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-        merged.push(capitalized);
-      }
-    });
-
-    return merged.join('. ') + (merged.length > 0 ? '.' : '');
-  }
-
-  /**
-   * Final cleanup pass
-   */
-  private finalCleanup(text: string): string {
-    let cleaned = text;
-
-    // Remove empty sentences
-    cleaned = cleaned.replace(/\.\s*\./g, '.');
-    
-    // Fix spacing
-    cleaned = cleaned.replace(/\s+/g, ' ');
-    
-    // Remove leading/trailing spaces
-    cleaned = cleaned.trim();
-
-    // Ensure proper sentence ending
-    if (cleaned && !/[.!?]$/.test(cleaned)) {
-      cleaned += '.';
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * Quick check if text contains obvious hallucinations
-   */
-  isLikelyHallucination(text: string): boolean {
-    if (!text || text.length < 3) return true;
-
-    const lowerText = text.toLowerCase();
-
-    // Check for specific hallucination phrases
-    const hasHallucinationPhrase = this.commonHallucinations.some(phrase => 
-      lowerText.includes(phrase.toLowerCase())
-    );
-
-    // Check for excessive repetition
-    const words = text.split(/\s+/);
-    if (words.length >= 3) {
-      const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-      const repetitionRatio = uniqueWords.size / words.length;
-      if (repetitionRatio < 0.5) return true; // More than 50% repeated words
-    }
-
-    // Check for very short repeated patterns
-    const hasShortRepeats = /\b(\w{1,3})\s+\1\s+\1/i.test(text);
-
-    return hasHallucinationPhrase || hasShortRepeats;
-  }
-
-  /**
-   * Enhanced check that includes confidence and length filtering
-   */
-  isLikelyHallucinationWithMetrics(text: string, confidence?: number, options?: CleaningOptions): boolean {
-    // Apply basic hallucination check first
-    if (this.isLikelyHallucination(text)) {
-      this.addRemovedSegment(text, 'Common hallucination pattern detected', confidence, 'hallucination');
-      return true;
-    }
-
-    // Apply confidence threshold if provided
-    if (confidence !== undefined && options?.confidenceThreshold !== undefined) {
-      if (confidence < options.confidenceThreshold) {
-        this.addRemovedSegment(text, `Low confidence: ${Math.round(confidence * 100)}%`, confidence, 'low-confidence');
-        console.log(`🚫 Low confidence segment (${Math.round(confidence * 100)}%):`, text.substring(0, 50) + '...');
-        return true;
-      }
-    }
-
-    // Apply minimum length filter
-    if (options?.minimumLength !== undefined) {
-      const trimmedText = text.trim();
-      if (trimmedText.length < options.minimumLength) {
-        this.addRemovedSegment(text, `Too short: ${trimmedText.length} characters`, confidence, 'too-short');
-        console.log(`🚫 Too short segment (${trimmedText.length} chars):`, trimmedText);
-        return true;
-      }
-    }
-
-    // Check for quiet-section specific patterns
-    if (this.isQuietSectionHallucination(text)) {
-      this.addRemovedSegment(text, 'Quiet section filler word/phrase', confidence, 'quiet-section');
-      console.log('🚫 Quiet section hallucination detected:', text);
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Detect hallucinations specific to quiet sections
-   */
-  private isQuietSectionHallucination(text: string): boolean {
-    const trimmed = text.trim().toLowerCase();
-    
-    // Very short standalone words that often appear in quiet sections
-    const quietHallucinations = [
-      /^(hmm|mm|uh|oh|ah|eh|hm)\.?$/,
-      /^(bye|hi|hello|yeah|yes|no|ok|okay|right|good|well|so|now)\.?$/,
-      /^(thanks?|thank you)\.?$/,
-      /^(wow|hey|oops)\.?$/,
-    ];
-
-    // Check if the entire text matches quiet section patterns
-    return quietHallucinations.some(pattern => pattern.test(trimmed));
-  }
-
-  /**
-   * Clean transcript with confidence filtering
-   */
-  cleanTranscriptWithConfidence(text: string, confidence?: number, options: CleaningOptions = {
-    removeHallucinations: true,
-    fixGrammar: true,
-    addPunctuation: true,
-    removeFiller: false,
-    mergeFragments: true,
-    confidenceThreshold: 0.6, // Default 60% confidence threshold
-    minimumLength: 3 // Default minimum 3 characters
-  }): string {
-    // Skip cleaning if segment is likely hallucination based on metrics
-    if (this.isLikelyHallucinationWithMetrics(text, confidence, options)) {
-      return ''; // Return empty string to filter out the segment
-    }
-
-    // Apply normal cleaning
-    return this.cleanTranscript(text, options);
-  }
-
-  /**
-   * Clean transcript in real-time (for streaming) with enhanced filtering
-   */
-  cleanStreamingTranscript(currentText: string, newSegment: string, confidence?: number): string {
-    // Enhanced filtering options for streaming
-    const streamingOptions: CleaningOptions = {
-      removeHallucinations: true,
-      fixGrammar: true,
-      addPunctuation: false, // Don't add punctuation for live text
-      removeFiller: false,
-      mergeFragments: false, // Don't merge fragments for live updates
-      confidenceThreshold: 0.5, // Lower threshold for real-time (50%)
-      minimumLength: 2 // Minimum 2 characters for real-time
-    };
-
-    // First check if new segment should be filtered out
-    if (this.isLikelyHallucinationWithMetrics(newSegment, confidence, streamingOptions)) {
-      console.log('🚫 Filtering out segment:', newSegment);
-      return currentText; // Don't add the hallucination
-    }
-
-    // Combine and clean
-    const combined = currentText + (currentText ? ' ' : '') + newSegment;
-    return this.cleanTranscript(combined, streamingOptions);
-  }
-
-  /**
-   * Add a removed segment to the tracking list
-   */
-  private addRemovedSegment(text: string, reason: string, confidence?: number, type: RemovedSegment['type'] = 'hallucination') {
-    const segment: RemovedSegment = {
-      text: text.trim(),
+  addRemovedSegment(text: string, reason: string, confidence?: number, type: RemovedSegment['type'] = 'duplicate'): void {
+    this.removedSegments.push({
+      text,
       reason,
       timestamp: new Date().toISOString(),
       confidence,
       type
-    };
-    
-    this.removedSegments.push(segment);
-    
-    // Keep only the last 100 removed segments to prevent memory issues
-    if (this.removedSegments.length > 100) {
-      this.removedSegments = this.removedSegments.slice(-100);
-    }
+    });
   }
 
-  /**
-   * Get all removed segments for review
-   */
-  getRemovedSegments(): RemovedSegment[] {
-    return [...this.removedSegments]; // Return a copy
-  }
-
-  /**
-   * Clear the removed segments list
-   */
-  clearRemovedSegments() {
+  clearRemovedSegments(): void {
     this.removedSegments = [];
   }
 
+  // ---------- Normalisation & system noise ----------
+
+  private normWS(t: string): string {
+    return t.replace(/\s+/g, " ").trim();
+  }
+
+  private stripSystem(t: string): string {
+    return t
+      .replace(/\[(?:silence|no audio) detected\]/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // ---------- Chunk overlap removal ----------
+
   /**
-   * Get removed segments by type
+   * Remove duplicated overlap when appending a new chunk to previous text.
+   * Finds the best suffix of prev that matches the prefix of chunk using n-gram Jaccard.
    */
-  getRemovedSegmentsByType(type: RemovedSegment['type']): RemovedSegment[] {
-    return this.removedSegments.filter(segment => segment.type === type);
+  private mergeWithoutOverlap(prev: string, chunk: string): string {
+    if (!prev) return chunk;
+    if (!chunk) return prev;
+
+    const maxLook = Math.min(400, prev.length, chunk.length); // limit cost
+    const tail = prev.slice(-maxLook);
+    const head = chunk.slice(0, maxLook);
+
+    const best = this.bestOverlapIndex(tail, head);
+    if (best <= 0) return prev + " " + chunk;
+
+    // Cut the overlapping part from the start of chunk
+    return (prev + " " + chunk.slice(best)).replace(/\s{2,}/g, " ").trim();
+  }
+
+  /** Return index in head where overlap ends (number of chars to skip). */
+  private bestOverlapIndex(tail: string, head: string): number {
+    // Try several window sizes; compute bigram Jaccard on growing prefixes of head.
+    const grams = (s: string, n = 2) => {
+      const w = s.toLowerCase().split(/\s+/);
+      const set = new Set<string>();
+      for (let i = 0; i <= w.length - n; i++) set.add(w.slice(i, i + n).join(" "));
+      return set;
+    };
+
+    let bestScore = 0;
+    let bestIdx = 0;
+
+    // Try multiple cut points on head (prefix lengths)
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      const cut = Math.floor((i / steps) * head.length);
+      const h = head.slice(0, cut);
+      if (h.length < 20) continue; // too tiny to trust
+
+      const A2 = grams(tail, 2), B2 = grams(h, 2);
+      const A3 = grams(tail, 3), B3 = grams(h, 3);
+
+      const jac = (X: Set<string>, Y: Set<string>) => {
+        const inter = [...X].filter(x => Y.has(x)).length;
+        const uni = new Set([...X, ...Y]).size || 1;
+        return inter / uni;
+      };
+
+      const score = Math.max(jac(A2, B2), jac(A3, B3));
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = cut;
+      }
+    }
+
+    // Require a reasonable similarity to accept an overlap
+    return bestScore >= 0.55 ? bestIdx : 0;
+  }
+
+  // ---------- Sentence segmentation & joining ----------
+
+  private splitSentences(text: string): string[] {
+    return text
+      .split(/(?<=[.!?…])\s+(?=[A-Z""('\[])/) // sentence end + next starts with cap/quote/paren
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  /** Merge split halves like "justify. requesting..." */
+  private joinHalfSentences(sents: string[]): string[] {
+    const out: string[] = [];
+    for (const s of sents) {
+      if (!out.length) { out.push(s); continue; }
+      const prev = out[out.length - 1];
+      const prevOpen = !/[.!?…]$/.test(prev);
+      const startsLower = /^[a-z""(]/.test(s);
+      if (prevOpen && startsLower) {
+        out[out.length - 1] = (prev + " " + s).replace(/\s+/g, " ");
+      } else {
+        out.push(s);
+      }
+    }
+    return out;
+  }
+
+  // ---------- Near-duplicate removal ----------
+
+  private dedupeSentences(text: string, threshold: number, window: number): string {
+    const sents = this.splitSentences(text);
+    const out: string[] = [];
+
+    const grams = (t: string, n: number) => {
+      const w = t.toLowerCase().split(/\s+/);
+      const set = new Set<string>();
+      for (let i = 0; i <= w.length - n; i++) set.add(w.slice(i, i + n).join(" "));
+      return set;
+    };
+    const jacc = (A: Set<string>, B: Set<string>) => {
+      const inter = [...A].filter(x => B.has(x)).length;
+      const uni = new Set([...A, ...B]).size || 1;
+      return inter / uni;
+    };
+    const sim = (a: string, b: string) =>
+      Math.max(jacc(grams(a, 2), grams(b, 2)), jacc(grams(a, 3), grams(b, 3)));
+
+    for (const s of sents) {
+      const recent = out.slice(-window);
+      const dup = recent.some(r => sim(r, s) >= threshold);
+      if (!dup) out.push(s);
+    }
+    return out.join(" ");
+  }
+
+  // ---------- NHS corrections ----------
+
+  private applyNHSCorrections(text: string): string {
+    const stringFixes: Array<[RegExp, string]> = [
+      // Schemes / acronyms
+      [/\bARS\b/gi, "ARRS"],
+      [/\bIRS\b/gi, "ARRS"],
+      [/\bARRS\b/gi, "ARRS"],
+      [/\bPCN\s*DES\b/gi, "PCN DES"],
+      [/\bPCM\s*D(AS|ES)?\b/gi, "PCN DES"],
+      [/\bIIF\b/gi, "IIF"],
+      [/\bQOF\b/gi, "QOF"],
+      [/\bICB\b/gi, "ICB"],
+      [/\bCQC\b/gi, "CQC"],
+      // Systems / platforms
+      [/\bDoc\s*man\b/gi, "Docman"],
+      [/\bSystem\s*One\b/gi, "SystmOne"],
+      [/\bSyst(?:em)?\s*1\b/gi, "SystmOne"],
+      [/\bNHS app\b/gi, "NHS App"],
+      // Common mis-hears seen in your data
+      [/\bcall\s*cues\b/gi, "call queues"],
+      [/\bcool\s*cues\b/gi, "call queues"],
+      [/\bcall\s+que+e?s?\b/gi, "call queues"],
+      [/\bsalary doctor\b/gi, "salaried doctor"],
+      [/\bsmiles\b/gi, "SMRs"],
+      [/\bsame day\b/gi, "same-day"],
+      [/\bneighbo(u)?rhood\b/gi, "neighbourhood"],
+      [/\bdocument workflow\b/gi, "Docman workflow"],
+      [/\bstudy evil\b/gi, "study leave"],
+      [/\bred(u|)ctions\b/gi, "redactions"],
+      [/\bfridge(s)?\b/gi, "fridges"]
+    ];
+    
+    let out = text;
+    
+    // Apply string replacements
+    for (const [pat, rep] of stringFixes) {
+      out = out.replace(pat, rep);
+    }
+    
+    // Apply function replacements
+    out = out.replace(/\blocum spend was about\s*£?\s*([0-9][0-9,\.]*)\b/gi, (match, n) => `locum spend was about £${n}`);
+    
+    return out;
+  }
+
+  // ---------- Micro tidy / polish ----------
+
+  private microTidy(text: string): string {
+    return text
+      .replace(/\b(No\?\s+){2,}/gi, "No? ")
+      .replace(/\s+,/g, ",")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
+  private finalPolish(text: string): string {
+    return text
+      // kill a few known echo patterns if they slipped through
+      .replace(/(\baround 120 new registrations[^.]*\.)\s+\1/gi, "$1")
+      .replace(/(list size is now just over\s*12,?600[^.]*\.)\s+\1/gi, "$1")
+      .replace(/(we can'?t create more same-?day appointments[^.]*\.)\s+\1/gi, "$1")
+      .trim();
   }
 }
 
-// Singleton instance for use across the app
+// Export singleton instance for backward compatibility
 export const transcriptCleaner = new TranscriptCleaner();

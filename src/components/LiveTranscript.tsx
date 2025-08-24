@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { transcriptCleaner } from "@/utils/TranscriptCleaner";
+import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -96,6 +96,9 @@ export const LiveTranscript = ({
   const { toast } = useToast();
   const [practices, setPractices] = useState<Array<{id: string, name: string}>>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
+
+  // Create transcript cleaner instance
+  const transcriptCleaner = useMemo(() => new TranscriptCleaner(), []);
 
   // Editing state for cleaned transcript
   const [isEditingCleaned, setIsEditingCleaned] = useState(false);
@@ -209,10 +212,10 @@ export const LiveTranscript = ({
               processedText = medicalTermCorrector.applyCorrections(processedText);
             }
             
-            // Update cleaned transcript with new chunk
+            // Update cleaned transcript with new chunk using overlap-aware cleaner
             setCleanedTranscript(prev => {
-              const newText = prev + (prev ? ' ' : '') + processedText;
-              console.log('✨ Updated AI enhanced transcript with new chunk');
+              const newText = transcriptCleaner.cleanStreamingAppend(prev, processedText, chunk.confidence_score ?? undefined);
+              console.log('✨ Updated AI enhanced transcript with cleaned chunk (length:', newText.length, ')');
               return newText;
             });
           }
@@ -271,7 +274,7 @@ export const LiveTranscript = ({
       // ONLY update liveTranscriptText, NOT cleanedTranscript (which is handled by AI chunks subscription)
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering for live display
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript("", processedTranscript, confidence);
+        const cleanedNew = transcriptCleaner.cleanStreamingAppend(liveTranscriptText, processedTranscript, confidence);
         setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
         console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
       } else {
@@ -341,13 +344,7 @@ export const LiveTranscript = ({
     
     // Clean transcript using our cleaning service
     const cleanedText = isAutoCleaningEnabled ? 
-      transcriptCleaner.cleanTranscript(text, {
-        removeHallucinations: true,
-        fixGrammar: true,
-        addPunctuation: true,
-        removeFiller: false,
-        mergeFragments: true
-      }) : text;
+      transcriptCleaner.cleanFinal(text) : text;
     
     if (showTimestamps) {
       const sentences = cleanedText.split(/[.!?]+/).filter(s => s.trim());
