@@ -215,7 +215,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-3 text-sm text-muted-foreground">Start typing…</div>
+                <div className="px-4 py-3 text-sm text-muted-foreground">Please begin search by typing the drug name above</div>
               )}
             </div>
           </div>
