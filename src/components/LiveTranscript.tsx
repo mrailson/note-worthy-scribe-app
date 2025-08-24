@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
-import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
+import { mergeLive } from "@/utils/TranscriptMerge";
+import { type LiveChunk } from "@/utils/liveMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -100,9 +101,10 @@ export const LiveTranscript = ({
   }>>([]);
   
   // State for live transcript display
-  const [accumulatedTranscript, setAccumulatedTranscript] = useState<string>("");
+  const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
+  const [isRawExpanded, setIsRawExpanded] = useState(false);
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   
@@ -225,66 +227,22 @@ export const LiveTranscript = ({
         },
         (payload) => {
           console.log('📝 New transcription chunk received:', payload);
-          const chunkRow = payload.new;
-          if (!chunkRow?.transcription_text) return;
+          const r = payload.new;
+          if (!r?.transcription_text) return;
 
-          // Skip if we already processed this seq (reconnect/replay safe)
-          if (typeof chunkRow.seq === 'number') {
-            if (processedSeqRef.current.has(chunkRow.seq)) {
-              console.log(`🔄 Skipping duplicate seq ${chunkRow.seq}`);
-              return;
-            }
-            processedSeqRef.current.add(chunkRow.seq);
-            console.log(`📝 Processing seq ${chunkRow.seq}, processed count: ${processedSeqRef.current.size}`);
+          // replay/duplicate guard (StrictMode + reconnect safe)
+          if (typeof r.seq === 'number') {
+            if (processedSeqRef.current.has(r.seq)) return;
+            processedSeqRef.current.add(r.seq);
           }
 
-          // Get confidence gating settings
-          const confidenceSettings = withDefaultThresholds(meetingSettings);
-          const chunkConfidence = chunkRow.confidence_score;
+          // Always show latest raw text (interim or final) in the tiny box
+          setLiveTranscriptText(r.transcription_text);
 
-          // Apply confidence gating - drop low-confidence chunks
-          if (!meetsConfidenceThreshold(chunkConfidence, confidenceSettings)) {
-            console.log(`🚫 Dropping low-confidence chunk (${chunkConfidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
-            return;
-          }
+          // Only merge finals into the clean buffer
+          if (r.is_final === false) return;
 
-          console.log(`✅ Accepting chunk with confidence ${chunkConfidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
-
-          // Apply medical corrections if loaded
-          let processedText = chunkRow.transcription_text;
-          if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
-            processedText = medicalTermCorrector.applyCorrections(processedText);
-          }
-
-          // Only merge final chunks into clean buffer
-          if (chunkRow.is_final === false) {
-            console.log(`⏳ Ignoring non-final chunk for clean buffer: "${processedText.substring(0, 50)}..."`);
-            return;
-          }
-
-          // Create LiveChunk object for final chunks only
-          const liveChunk: LiveChunk = {
-            text: processedText,
-            isFinal: true,
-            seq: chunkRow.seq ?? chunkRow.chunk_number,
-            start_ms: chunkRow.start_ms,
-            end_ms: chunkRow.end_ms,
-            source: chunkRow.source,
-            speaker: chunkRow.speaker_info?.name ?? null,
-          };
-
-          // Update cleaned transcript with new chunk using live merge
-          setCleanedTranscript(prev => {
-            const newText = mergeLive(prev, liveChunk);
-            console.log('✨ Updated AI enhanced transcript with live merge (length:', newText.length, ')');
-            return newText;
-          });
-
-          // Show latest final chunk in raw section (separate from cleanedTranscript)
-          setAccumulatedTranscript(prev => {
-            // Accumulate the full transcript
-            return prev ? prev + " " + processedText : processedText;
-          });
+          setCleanedTranscript(prev => mergeLive(prev, r.transcription_text));
         }
       )
       .subscribe();
@@ -326,46 +284,13 @@ export const LiveTranscript = ({
     return filtered;
   };
 
-  // Update live transcript text when transcript prop changes (RAW TRANSCRIPT ONLY)
+  // Update live transcript text when transcript prop changes (for live box only)
   useEffect(() => {
     if (transcript && transcript.trim()) {
-      // Get confidence gating settings
-      const confidenceSettings = withDefaultThresholds(meetingSettings);
-      
-      // Apply confidence gating - drop low-confidence chunks
-      if (!meetsConfidenceThreshold(confidence, confidenceSettings)) {
-        console.log(`🚫 Dropping low-confidence raw transcript (${confidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
-        return;
-      }
-
-      console.log(`✅ Processing raw transcript with confidence ${confidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
-
-      let processedTranscript = filterSystemMessages(transcript);
-      
-      // Apply medical term corrections if loaded
-      if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
-        processedTranscript = medicalTermCorrector.applyCorrections(processedTranscript);
-      }
-      
-      console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
-      
-      // Always keep the full transcript history - no clearing
-      // ONLY update accumulatedTranscript for raw display
-      if (isAutoCleaningEnabled) {
-        // Use streaming cleaner with confidence filtering for live display
-        const cleanedNew = transcriptCleaner.cleanStreamingAppend(accumulatedTranscript, processedTranscript, confidence);
-        setAccumulatedTranscript(cleanedNew); // Show cleaned version for live display
-        console.log('✨ Updated accumulated transcript with cleaned version (length:', cleanedNew.length, ')');
-      } else {
-        // For non-auto-cleaning, still use append to avoid duplication
-        const combinedText = [accumulatedTranscript, processedTranscript].filter(Boolean).join(" ");
-        setAccumulatedTranscript(combinedText); // Show processed version
-        console.log('📝 Updated accumulated transcript with raw version (length:', combinedText.length, ')');
-      }
+      const processedTranscript = filterSystemMessages(transcript);
+      setLiveTranscriptText(processedTranscript);
     }
-    // NEVER clear liveTranscriptText - always preserve transcript history
-    // NEVER update cleanedTranscript here - only AI chunks subscription should do that
-  }, [transcript, confidence, isAutoCleaningEnabled, isMedicalCorrectionsLoaded, meetingSettings]);
+  }, [transcript]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {
@@ -483,7 +408,7 @@ export const LiveTranscript = ({
 
   const handleDownloadWord = async () => {
     try {
-      const content = accumulatedTranscript;
+      const content = cleanedTranscript;
 
       const createParagraphsFromText = (text: string) => {
         const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
@@ -503,7 +428,7 @@ export const LiveTranscript = ({
           {
             properties: {},
             children: [
-              new Paragraph({ text: "Meeting Transcript", heading: HeadingLevel.HEADING_1 }),
+              new Paragraph({ text: "Final Transcript", heading: HeadingLevel.HEADING_1 }),
               ...paragraphs,
             ],
           },
@@ -511,7 +436,7 @@ export const LiveTranscript = ({
       });
 
       const blob = await Packer.toBlob(doc);
-      const fileName = `Meeting-Transcript-${new Date().toISOString().slice(0, 10)}.docx`;
+      const fileName = `Final-Transcript-${new Date().toISOString().slice(0, 10)}.docx`;
       saveAs(blob, fileName);
       toast({ title: "Downloaded", description: "Word document generated." });
     } catch (e) {
@@ -714,65 +639,79 @@ export const LiveTranscript = ({
                 </div>
               )}
 
-             {/* Latest Transcript Section */}
-             <div className="space-y-4">
-                {/* Latest Transcription Section - Expanded */}
-                <div className="min-h-[400px] p-4 bg-background/50 rounded-lg border">
-                  <div className="flex items-center gap-2 mb-3">
+              {/* Two Feed Transcript System */}
+              <div className="space-y-4">
+
+                {/* Live (Interim) Transcript – 3 lines only */}
+                <div className="p-3 bg-accent/20 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Meeting Transcript
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Live Transcript (Interim)
                     </span>
-                    <Badge variant="outline" className="text-xs">Live</Badge>
+                    <Badge variant="outline" className="text-xs">may repeat</Badge>
+                    <div className="ml-auto">
+                      <Button size="sm" variant="ghost" onClick={() => setIsRawExpanded(v => !v)}>
+                        {isRawExpanded ? "Collapse" : "Show more"}
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div 
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[360px] max-h-[600px] p-4 bg-background/80 rounded-md border overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
-                    style={{ 
-                      transition: 'all 0.2s ease-in-out',
-                      wordWrap: 'break-word',
-                      overflowWrap: 'break-word',
-                      scrollbarWidth: 'thin'
-                    }}
+
+                  <div
+                    className={`text-sm font-mono leading-relaxed bg-background/50 rounded-md border p-2 transition-all
+                      ${isRawExpanded ? "max-h-64 overflow-y-auto" : "line-clamp-3 overflow-hidden"}`}
+                    style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
                   >
-                    {accumulatedTranscript ? (
-                      <span className="text-foreground font-mono leading-relaxed">
-                        {accumulatedTranscript}
-                      </span>
+                    {liveTranscriptText || (
+                      <span className="text-muted-foreground italic">Listening… interim speech appears here</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Final (Clean) Transcript – authoritative */}
+                <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium text-foreground uppercase tracking-wide">
+                      Final Transcript (Clean)
+                    </span>
+                    <Badge variant="default" className="text-xs">Finalised chunks</Badge>
+                  </div>
+
+                  <div className="mb-2 flex items-center gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                      Copy
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                      Download Word
+                    </Button>
+                  </div>
+
+                  <div
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[220px] max-h-[70vh] overflow-y-auto p-3 bg-background/80 rounded-md border"
+                    style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                  >
+                    {cleanedTranscript ? (
+                      <div className="text-foreground">{cleanedTranscript}</div>
                     ) : (
                       <span className="text-muted-foreground italic">
-                        Listening for speech... meeting transcript will appear here and accumulate as the meeting continues
+                        Final transcript will appear here once chunks are confirmed…
                       </span>
                     )}
                   </div>
-                  
-                  {confidence && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Confidence: {Math.round(confidence * 100)}%</span>
-                    </div>
-                  )}
-                  
-                  {/* Action buttons for transcript */}
-                  {accumulatedTranscript && (
-                    <div className="mt-3 flex items-center gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(accumulatedTranscript)}>
-                        <Copy className="h-4 w-4 mr-2" /> Copy Transcript
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleDownloadWord}>
-                        <FileDown className="h-4 w-4 mr-2" /> Download Word
-                      </Button>
-                    </div>
-                  )}
+
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Updated when chunks are finalised. May lag the live feed by ~1 minute.
+                  </div>
                 </div>
 
-                {/* Find & Replace Panel */}
-                {accumulatedTranscript && (
+                {/* Find & Replace Panel for Clean Transcript */}
+                {cleanedTranscript && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Find & Replace (misheard names)</Label>
                     <EnhancedFindReplacePanel
-                      getCurrentText={() => accumulatedTranscript}
+                      getCurrentText={() => cleanedTranscript}
                       onApply={(updated) => {
-                        setAccumulatedTranscript(updated);
+                        setCleanedTranscript(updated);
                         toast({
                           title: "Applied",
                           description: "Find & Replace changes applied successfully."
