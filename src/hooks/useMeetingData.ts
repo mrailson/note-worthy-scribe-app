@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { MeetingData, MeetingSettingsState, SummaryContent } from "@/types/meetingTypes";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +23,14 @@ export const useMeetingData = () => {
     date: "",
     startTime: "",
     format: "",
-    location: ""
+    location: "",
+    practiceId: "",
+    meetingFormat: "teams",
+    transcriberService: "whisper",
+    transcriberThresholds: {
+      whisper: 0.75,
+      deepgram: 0.80
+    }
   });
 
   const [summaryContent, setSummaryContent] = useState<SummaryContent>({
@@ -150,6 +157,97 @@ export const useMeetingData = () => {
     }
   };
 
+  // Load meeting settings from localStorage/user preferences
+  const loadMeetingSettings = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      // Try to load from user_settings table first
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_key', 'meeting_transcriber_preferences')
+        .single();
+
+      if (!error && data?.setting_value) {
+        const savedSettings = data.setting_value as any;
+        setMeetingSettings(prev => ({
+          ...prev,
+          transcriberService: savedSettings.transcriberService || "whisper",
+          transcriberThresholds: {
+            whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+            deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
+          }
+        }));
+      }
+    } catch (error) {
+      // Fallback to localStorage if database fails
+      try {
+        const saved = localStorage.getItem(`meeting_settings_${user.id}`);
+        if (saved) {
+          const savedSettings = JSON.parse(saved);
+          setMeetingSettings(prev => ({
+            ...prev,
+            transcriberService: savedSettings.transcriberService || "whisper",
+            transcriberThresholds: {
+              whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+              deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
+            }
+          }));
+        }
+      } catch (localError) {
+        console.error('Error loading settings from localStorage:', localError);
+      }
+    }
+  }, [user?.id]);
+
+  // Save meeting settings 
+  const saveMeetingSettings = useCallback(async (settings: Partial<MeetingSettingsState>) => {
+    if (!user?.id) return;
+
+    const settingsToSave = {
+      transcriberService: settings.transcriberService,
+      transcriberThresholds: settings.transcriberThresholds
+    };
+
+    try {
+      // Save to database
+      await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'meeting_transcriber_preferences',
+          setting_value: settingsToSave
+        });
+
+      // Also save to localStorage as backup
+      localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
+    } catch (error) {
+      console.error('Error saving meeting settings:', error);
+      // Fallback to localStorage only
+      try {
+        localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
+      } catch (localError) {
+        console.error('Error saving to localStorage:', localError);
+      }
+    }
+  }, [user?.id]);
+
+  // Auto-save settings when transcriber settings change
+  useEffect(() => {
+    if (meetingSettings.transcriberService !== "whisper" || 
+        meetingSettings.transcriberThresholds.whisper !== 0.75 ||
+        meetingSettings.transcriberThresholds.deepgram !== 0.80) {
+      saveMeetingSettings(meetingSettings);
+    }
+  }, [meetingSettings.transcriberService, meetingSettings.transcriberThresholds, saveMeetingSettings]);
+
+  // Load settings on mount
+  useEffect(() => {
+    loadMeetingSettings();
+  }, [loadMeetingSettings]);
+
   // Sync attendees and agenda from Meeting Settings into summary content
   useEffect(() => {
     setSummaryContent(prev => {
@@ -176,6 +274,7 @@ export const useMeetingData = () => {
     practiceData,
     saveMeetingToDatabase,
     loadExistingSummary,
-    fetchPracticeData
+    fetchPracticeData,
+    saveMeetingSettings
   };
 };

@@ -343,7 +343,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     toast.success(`Audio transcribed successfully (${importedTranscript.wordCount} words)`);
   };
 
-  const updateSetting = (key: string, value: string) => {
+  const updateSetting = (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     onSettingsChange(newSettings);

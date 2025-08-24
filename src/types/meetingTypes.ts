@@ -35,8 +35,10 @@ export interface MeetingSettingsState {
   startTime?: string;
   format?: 'face-to-face' | 'online' | 'hybrid' | 'phone' | '' | undefined;
   location?: string;
-  transcriberService?: 'whisper' | 'deepgram';
-  transcriberThresholds?: {
+  practiceId?: string;
+  meetingFormat?: string;
+  transcriberService: 'whisper' | 'deepgram';
+  transcriberThresholds: {
     whisper: number;
     deepgram: number;
   };

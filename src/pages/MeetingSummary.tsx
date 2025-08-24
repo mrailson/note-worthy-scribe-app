@@ -146,6 +146,15 @@ export default function MeetingSummary() {
         agenda: data.extractedSettings?.agenda || "",
         date: dt ? `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}` : "",
         startTime: dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : "",
+        format: "",
+        location: "",
+        practiceId: "",
+        meetingFormat: "teams",
+        transcriberService: "whisper",
+        transcriberThresholds: {
+          whisper: 0.75,
+          deepgram: 0.80
+        }
       });
       
       // Auto-populate summary content from imported data

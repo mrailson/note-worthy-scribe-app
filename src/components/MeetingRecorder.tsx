@@ -46,6 +46,7 @@ import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
+import { useMeetingData } from "@/hooks/useMeetingData";
 
 interface TranscriptData {
   text: string;
@@ -175,19 +176,11 @@ export const MeetingRecorder = ({
   });
   
   
-  // Meeting settings
-  const [meetingSettings, setMeetingSettings] = useState(() => ({
-    title: initialSettings?.title || "General Meeting",
-    description: initialSettings?.description || "",
-    meetingType: initialSettings?.meetingType || "general",
-    practiceId: initialSettings?.practiceId || "",
-    meetingFormat: "teams",
-    transcriberService: (initialSettings?.transcriberService || "whisper") as "whisper" | "deepgram",
-    transcriberThresholds: {
-      whisper: initialSettings?.transcriberThresholds?.whisper || 0.75,
-      deepgram: initialSettings?.transcriberThresholds?.deepgram || 0.80
-    }
-  }));
+  // Meeting settings - use from useMeetingData hook
+  const {
+    meetingSettings,
+    setMeetingSettings: updateMeetingSettings
+  } = useMeetingData();
 
   // Timestamp toggle state
   const [showTimestamps, setShowTimestamps] = useState(true);
@@ -224,7 +217,7 @@ export const MeetingRecorder = ({
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
-    setMeetingSettings({
+    updateMeetingSettings({
       title: "General Meeting",
       description: "",
       meetingType: "general",
@@ -234,7 +227,14 @@ export const MeetingRecorder = ({
       transcriberThresholds: {
         whisper: 0.75,
         deepgram: 0.80
-      }
+      },
+      meetingStyle: "standard", 
+      attendees: "",
+      agenda: "",
+      date: "",
+      startTime: "",
+      format: "",
+      location: ""
     });
     
     // Clear parent component state
@@ -3482,7 +3482,7 @@ export const MeetingRecorder = ({
 
   // Settings handlers
   const handleSettingsChange = (newSettings: any) => {
-    setMeetingSettings(newSettings);
+    updateMeetingSettings(newSettings);
   };
               
   return (
@@ -3931,7 +3931,7 @@ export const MeetingRecorder = ({
                   transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.75, deepgram: 0.80 }
                 }}
                 onMeetingSettingsChange={(settings) => {
-                  setMeetingSettings(prev => ({
+                  updateMeetingSettings(prev => ({
                     ...prev,
                     practiceId: settings.practiceId,
                     meetingFormat: settings.meetingFormat,
