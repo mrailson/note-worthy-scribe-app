@@ -177,15 +177,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           Shared Drive
                         </DropdownMenuItem>
                       )}
-                      {hasModuleAccess('mic_test_service_access') && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/meetings')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Wrench className="h-4 w-4 mr-2" />
-                          Mic Test Service
-                        </DropdownMenuItem>
-                      )}
+                       {hasModuleAccess('mic_test_service_access') && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/meetings')}
+                           className="cursor-pointer py-3"
+                         >
+                           <Wrench className="h-4 w-4 mr-2" />
+                           Mic Test Service
+                         </DropdownMenuItem>
+                       )}
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/deepgram-test')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Zap className="h-4 w-4 mr-2" />
+                         Deepgram Service
+                       </DropdownMenuItem>
                  </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -378,14 +385,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              </Button>
                            </DrawerClose>
                          )}
-                         {hasModuleAccess('mic_test_service_access') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
-                               <Wrench className="h-4 w-4 mr-2" />
-                               Mic Test Service
-                             </Button>
-                           </DrawerClose>
-                         )}
+                          {hasModuleAccess('mic_test_service_access') && (
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
+                                <Wrench className="h-4 w-4 mr-2" />
+                                Mic Test Service
+                              </Button>
+                            </DrawerClose>
+                          )}
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              Deepgram Service
+                            </Button>
+                          </DrawerClose>
                       </>
                     )}
 

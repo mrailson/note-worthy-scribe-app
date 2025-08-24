@@ -24,6 +24,7 @@ import AIAnimationPreview from "./pages/AIAnimationPreview";
 import APITesting from "./pages/APITesting";
 import ImageCreate from "./pages/ImageCreate";
 import PracticeImageMaker from "./pages/PracticeImageMaker";
+import DeepgramTest from "./pages/DeepgramTest";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -71,6 +72,7 @@ const App = () => (
         <Route path="/api-testing" element={<APITesting />} />
         <Route path="/image-create" element={<ImageCreate />} />
         <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
+        <Route path="/deepgram-test" element={<DeepgramTest />} />
         
         <Route path="/reset-password" element={<ResetPassword />} />
         
