@@ -310,7 +310,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                       <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-xs text-blue-800 dark:text-blue-200">
                         <div className="font-semibold mb-1">Important Disclaimer</div>
-                        <p>This tool provides guidance based on Northamptonshire ICB policies. Always verify information with the official ICB website if you have any concerns about prescribing decisions. Clinical judgment should always take precedence.</p>
+                        <p>This tool provides guidance based on Northamptonshire ICB policies. Always verify information with the <a href="https://www.icnorthamptonshire.org.uk/primarycareportal" target="_blank" rel="noreferrer" className="underline hover:no-underline text-blue-700 dark:text-blue-300">official ICB website</a> if you have any concerns about prescribing decisions. Clinical judgment should always take precedence.</p>
                       </div>
                     </div>
                   </div>
