@@ -427,6 +427,21 @@ const Index = () => {
                 toast.success("New consultation started");
               }}
             />
+
+            {/* Transcript Panel with Clean Functionality */}
+            {recording.transcript && (
+              <TranscriptPanel
+                transcript={recording.transcript}
+                realtimeTranscripts={recording.realtimeTranscripts}
+                cleanedTranscript={recording.cleanedTranscript}
+                isCleaningTranscript={recording.isCleaningTranscript}
+                showTranscriptTimestamps={false}
+                isRecording={recording.isRecording}
+                onTranscriptChange={recording.setTranscript}
+                onCleanTranscript={handleCleanTranscript}
+                onClearTranscript={recording.clearTranscript}
+              />
+            )}
           </TabsContent>
 
           {/* Summary Tab */}
