@@ -423,22 +423,26 @@ const DeepgramTest = () => {
 
         {/* Service Tabs */}
         <Tabs value={activeService} onValueChange={(value) => setActiveService(value as ServiceType)}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="browser" className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
-              Browser Speech
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+            <TabsTrigger value="browser" className="flex items-center gap-1 text-xs md:text-sm">
+              <Smartphone className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Browser</span>
+              <span className="sm:hidden">BS</span>
             </TabsTrigger>
-            <TabsTrigger value="openai" className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              OpenAI Realtime
+            <TabsTrigger value="openai" className="flex items-center gap-1 text-xs md:text-sm">
+              <Zap className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">OpenAI</span>
+              <span className="sm:hidden">OAI</span>
             </TabsTrigger>
-            <TabsTrigger value="whisper" className="flex items-center gap-2">
-              <Bot className="w-4 h-4" />
-              Whisper AI
+            <TabsTrigger value="whisper" className="flex items-center gap-1 text-xs md:text-sm">
+              <Bot className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Whisper</span>
+              <span className="sm:hidden">WSP</span>
             </TabsTrigger>
-            <TabsTrigger value="deepgram" className="flex items-center gap-2">
-              <Radio className="w-4 h-4" />
-              Deepgram
+            <TabsTrigger value="deepgram" className="flex items-center gap-1 text-xs md:text-sm">
+              <Radio className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Deepgram</span>
+              <span className="sm:hidden">DG</span>
             </TabsTrigger>
           </TabsList>
 
