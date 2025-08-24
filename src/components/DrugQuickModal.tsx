@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, Copy, X, Maximize2, Minimize2 } from "lucide-react";
+import { Search, ExternalLink, Copy, X, Maximize2, Minimize2, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -10,31 +11,20 @@ type Status =
   | "DOUBLE_RED" | "RED" | "SPECIALIST_INITIATED" | "SPECIALIST_RECOMMENDED"
   | "AMBER_2" | "AMBER_1" | "GREEN" | "GREY" | "UNKNOWN";
 
-const statusText: Record<Status, string> = {
-  DOUBLE_RED: "Hospital-only. Do not prescribe in primary care. Prior Approval/IFR may be required.",
-  RED: "Specialist service only. Do not initiate in primary care. Often Blueteq applies.",
-  SPECIALIST_INITIATED: "Continue only after specialist start; agree responsibilities (check letter/shared-care). Do not initiate.",
-  SPECIALIST_RECOMMENDED: "Primary care may prescribe when recommended by specialist and criteria met.",
-  AMBER_2: "Shared-Care required before transfer.",
-  AMBER_1: "Primary care prescribing following specialist advice; check criteria.",
-  GREEN: "Suitable for primary-care prescribing per local formulary.",
-  GREY: "Not routinely commissioned / not assessed. Check with Medicines Optimisation.",
-  UNKNOWN: "Local status not found. Verify on ICB site."
-};
-
+// Status classes with better semantic design system colors
 const statusClass: Record<Status, string> = {
-  DOUBLE_RED: "bg-red-800 text-white",
-  RED: "bg-red-600 text-white",
-  SPECIALIST_INITIATED: "bg-purple-700 text-white",
+  DOUBLE_RED: "bg-destructive text-destructive-foreground",
+  RED: "bg-destructive text-destructive-foreground",
+  SPECIALIST_INITIATED: "bg-purple-600 text-white",
   SPECIALIST_RECOMMENDED: "bg-blue-600 text-white",
   AMBER_2: "bg-orange-600 text-white",
   AMBER_1: "bg-orange-500 text-white",
   GREEN: "bg-green-600 text-white",
-  GREY: "bg-gray-600 text-white",
-  UNKNOWN: "bg-gray-500 text-white"
+  GREY: "bg-muted text-muted-foreground",
+  UNKNOWN: "bg-muted text-muted-foreground"
 };
 
-function Chip({ status, href }: { status: Status; href?: string }) {
+function Chip({ status, href, tooltip }: { status: Status; href?: string; tooltip?: string }) {
   const label = status.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase());
   
   return (
@@ -42,55 +32,74 @@ function Chip({ status, href }: { status: Status; href?: string }) {
       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass[status]}`}>
         {label}
       </span>
-      <div className="pointer-events-none absolute z-50 mt-8 w-80 rounded-xl border bg-background p-3 text-sm shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible">
-        <div className="mb-1 font-semibold text-primary">Northamptonshire ICB</div>
-        <p className="text-muted-foreground">{statusText[status]}</p>
-        <div className="mt-2">
-          <a 
-            className="inline-flex items-center gap-2 text-primary hover:underline" 
-            target="_blank" 
-            rel="noreferrer" 
-            href={href || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"}
-          >
-            <ExternalLink className="h-4 w-4" /> Open ICB policy
-          </a>
+      {tooltip && (
+        <div className="pointer-events-none absolute z-50 mt-8 w-80 rounded-xl border bg-background p-3 text-sm shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-opacity">
+          <div className="mb-1 font-semibold text-primary">Northamptonshire ICB</div>
+          <p className="text-muted-foreground">{tooltip}</p>
+          <div className="mt-2">
+            <a 
+              className="inline-flex items-center gap-2 text-primary hover:underline" 
+              target="_blank" 
+              rel="noreferrer" 
+              href={href || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"}
+            >
+              <ExternalLink className="h-4 w-4" /> Open ICB policy
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </span>
   );
 }
 
 type VocabItem = { id: string; name: string; tl_status?: Status; };
 
-type ResolveResp = {
-  drug: { name: string } | null;
-  traffic_light: null | { status: Status; detail_url?: string; last_modified?: string };
-  prior_approval: null | { status: Status; route: "PRIOR_APPROVAL" | "IFR" | "BLUETEQ"; bullets?: string[]; link?: string };
-  formulary: null | {
+type DrugLookupResponse = {
+  drug: string;
+  traffic_light: {
+    status: string;
+    detail_url?: string;
     bnf_chapter?: string;
-    section?: string;
-    preferred: { 
-      item_name: string; 
-      rank: number; 
-      notes?: string;
-      status?: string;
-      source_document?: string;
-      last_reviewed_date?: string;
-    }[];
-    page_url?: string;
-    last_published?: string;
+    notes?: string;
+    status_tooltip?: string;
+  } | null;
+  prior_approval: {
+    required: boolean;
+    pdf_url?: string;
+    page_ref?: string;
+    criteria: Array<{
+      id: string;
+      criteria_text: string;
+      category?: string;
+      application_route?: string;
+      application_url?: string;
+      evidence_required?: string;
+      icb_version?: string;
+      icb_pdf_url?: string;
+    }>;
+  };
+  formulary: Array<{
+    name: string;
+    status: string;
     therapeutic_area?: string;
     source_document?: string;
-    formulary_status?: string;
-  };
-  alternatives: { name: string; notes?: string; status: Status; detail_url?: string }[];
+    source_page?: string;
+    last_reviewed?: string;
+    detail_url?: string;
+    bnf_chapter?: string;
+  }>;
+  alternatives: Array<{
+    name: string;
+    status: string;
+    therapeutic_area?: string;
+  }>;
 };
 
 export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [vocab, setVocab] = useState<VocabItem[]>([]);
   const [sel, setSel] = useState<VocabItem | null>(null);
-  const [data, setData] = useState<ResolveResp | null>(null);
+  const [data, setData] = useState<DrugLookupResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandMode, setExpandMode] = useState<'normal' | 'expanded'>('normal');
 
@@ -141,15 +150,15 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
      return vocab.filter(v => v.name.toLowerCase().includes(n)).slice(0, 10);
    }, [q, vocab]);
 
-   // Enhanced logic for "Can GP initiate" based on formulary data
+   // Enhanced logic for "Can GP initiate" based on formulary and traffic light data
    const canInitiate = useMemo(() => {
-     // If we have formulary data with status, use that first
-     if (data?.formulary?.formulary_status) {
-       const status = data.formulary.formulary_status.toLowerCase();
+     // Check formulary data first
+     if (data?.formulary && data.formulary.length > 0) {
+       const status = data.formulary[0].status.toLowerCase();
        if (status.includes('green')) return 'YES';
        if (status.includes('formulary') && !status.includes('red')) return 'YES';
-       if (status.includes('amber')) return 'ONLY_IF_SPECIALIST';
-       if (status.includes('double red') || status.includes('red')) return 'NO';
+       if (status.includes('amber') || status.includes('specialist_recommended')) return 'ONLY_IF_SPECIALIST';
+       if (status.includes('double_red') || status.includes('red') || status.includes('specialist_initiated')) return 'NO';
      }
      
      // Fall back to traffic light logic
@@ -169,9 +178,9 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     if (!data || !sel) return;
     
     const lines = [];
-    lines.push(`Local policy: ${data.drug?.name || sel.name} — ${data.traffic_light?.status || 'UNKNOWN'}.`);
-    if (data.prior_approval) {
-      lines.push(`${data.prior_approval.status} ${data.prior_approval.route || ''}`);
+    lines.push(`Local policy: ${data.drug || sel.name} — ${data.traffic_light?.status || 'UNKNOWN'}.`);
+    if (data.prior_approval.required) {
+      lines.push(`Prior approval required.`);
     }
     navigator.clipboard.writeText(lines.join(" "));
   };
@@ -216,7 +225,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
         {/* Body */}
         <div className="grid grid-cols-12 gap-6 p-4 overflow-y-auto">
-          {/* Left: Results - Reduced from col-span-8 to col-span-6 (25% narrower) */}
+          {/* Left: Results */}
           <div className="col-span-6">
             <div className="rounded-xl border max-h-96 overflow-y-auto bg-background">
               {results.length ? (
@@ -244,7 +253,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
             </div>
           </div>
 
-          {/* Right: Details - Expanded from col-span-4 to col-span-6 */}
+          {/* Right: Details */}
           <div className="col-span-6">
             {!sel ? (
               <div className="text-muted-foreground p-4 text-center">
@@ -260,9 +269,13 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
               <div className="space-y-4">
                 {/* Title row */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-lg font-semibold">{data.drug?.name || sel.name}</h2>
+                  <h2 className="text-lg font-semibold">{data.drug || sel.name}</h2>
                   {data.traffic_light?.status && (
-                    <Chip status={data.traffic_light.status} href={data.traffic_light.detail_url} />
+                    <Chip 
+                      status={data.traffic_light.status as Status} 
+                      href={data.traffic_light.detail_url} 
+                      tooltip={data.traffic_light.status_tooltip}
+                    />
                   )}
                 </div>
 
@@ -279,119 +292,138 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     {canInitiate === 'YES' && <>Yes – no local initiation restriction found.</>}
                     {canInitiate === 'UNKNOWN' && <>Unknown – verify on ICB site.</>}
                   </div>
-                  {data.traffic_light?.last_modified && (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Traffic-Light last updated: {format(new Date(data.traffic_light.last_modified), "do MMMM yyyy")}
-                    </div>
-                  )}
                 </div>
 
-                {/* Prior approval */}
-                {data.prior_approval && (
-                  <div className="rounded-xl border p-3 bg-background">
-                    <div className="mb-1 text-sm font-semibold">Prior-Approval / IFR / Blueteq</div>
-                    <div className="text-sm">
-                      <strong>{data.prior_approval.status}</strong>
-                      {data.prior_approval.route ? ` — ${data.prior_approval.route.replace('_', ' ')}` : ""}
+                {/* Prior Approval Section */}
+                {data.prior_approval.required ? (
+                  <div className="rounded-xl border border-orange-300 p-3 bg-orange-50 dark:bg-orange-900/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      <div className="text-sm font-semibold text-orange-800 dark:text-orange-200">Prior Approval Required</div>
+                      <Badge variant="outline" className="bg-orange-100 border-orange-300 text-orange-800">
+                        Prior Approval
+                      </Badge>
                     </div>
-                    {data.prior_approval.bullets?.length && (
-                      <ul className="mt-2 list-disc pl-5 text-sm">
-                        {data.prior_approval.bullets.map((b, i) => (
-                          <li key={i}>{b}</li>
-                        ))}
-                      </ul>
+                    
+                    {/* Prior Approval Criteria */}
+                    {data.prior_approval.criteria && data.prior_approval.criteria.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <div className="text-sm font-medium">Approval Criteria:</div>
+                        <ul className="space-y-2 text-sm">
+                          {data.prior_approval.criteria.map((criterion, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-orange-600 mt-1">•</span>
+                              <div>
+                                <div>{criterion.criteria_text}</div>
+                                {criterion.category && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Category: {criterion.category}
+                                  </div>
+                                )}
+                                {criterion.application_route && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Route: {criterion.application_route}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
+                    
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      {data.prior_approval.link && (
+                      {data.prior_approval.pdf_url && (
                         <a 
                           className="inline-flex items-center gap-2 text-primary hover:underline" 
-                          href={data.prior_approval.link} 
+                          href={data.prior_approval.pdf_url} 
                           target="_blank" 
                           rel="noreferrer"
                         >
-                          <ExternalLink className="h-4 w-4" /> Open form/policy
+                          <ExternalLink className="h-4 w-4" /> Open ICB PDF
                         </a>
                       )}
-                      <a 
-                        className="inline-flex items-center gap-2 text-primary hover:underline text-xs" 
-                        href="https://www.icnorthamptonshire.org.uk/download.cfm?doc=docm93jijm4n22499&ver=66342" 
-                        target="_blank" 
-                        rel="noreferrer"
-                      >
-                        <ExternalLink className="h-3 w-3" /> Prior Approval Criteria (NHS Northamptonshire ICB)
-                      </a>
+                      {data.prior_approval.page_ref && (
+                        <span className="text-xs text-muted-foreground">
+                          {data.prior_approval.page_ref}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-green-300 p-3 bg-green-50 dark:bg-green-900/20">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-semibold text-green-800 dark:text-green-200">No Prior Approval Required</div>
+                      <Badge variant="outline" className="bg-green-100 border-green-300 text-green-800">
+                        No PA Required
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      This medication does not require prior approval according to local guidelines.
                     </div>
                   </div>
                 )}
 
                 {/* Therapeutic Area */}
-                {data.formulary?.therapeutic_area && (
+                {data.formulary?.[0]?.therapeutic_area && (
                   <div className="rounded-xl border p-3 bg-background">
                     <div className="mb-1 text-sm font-semibold">Therapeutic Area</div>
                     <div className="text-sm">
                       <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                        {data.formulary.therapeutic_area}
+                        {data.formulary[0].therapeutic_area}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Enhanced Formulary */}
-                {data.formulary && (
+                {/* Formulary Information */}
+                {data.formulary && data.formulary.length > 0 ? (
                   <div className="rounded-xl border p-3 bg-background">
-                    <div className="mb-1 text-sm font-semibold">Formulary Status (Northamptonshire ICB)</div>
-                    <div className="mb-2 text-sm text-muted-foreground">
-                      {data.formulary.bnf_chapter} — {data.formulary.section}
-                    </div>
+                    <div className="mb-2 text-sm font-semibold">Formulary Information</div>
                     
-                    {/* Show formulary status if available */}
-                    {data.formulary.formulary_status && (
-                      <div className="mb-3">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                          data.formulary.formulary_status.toLowerCase().includes('green') ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                          data.formulary.formulary_status.toLowerCase().includes('formulary') ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
-                          data.formulary.formulary_status.toLowerCase().includes('amber') ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100' :
-                          data.formulary.formulary_status.toLowerCase().includes('red') ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100'
-                        }`}>
-                          {data.formulary.formulary_status}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <ol className="mt-2 list-decimal pl-5 text-sm">
-                      {data.formulary.preferred.map((p, i) => (
-                        <li key={i}>
-                          <strong>{p.item_name}</strong>
-                          {p.status && (
-                            <span className="ml-2 text-xs text-muted-foreground">({p.status})</span>
+                    <div className="space-y-3">
+                      {data.formulary.map((item, i) => (
+                        <div key={i} className="border-l-2 border-primary/20 pl-3">
+                          <div className="font-medium text-sm">{item.name}</div>
+                          {item.status && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              {item.status}
+                            </Badge>
                           )}
-                          {p.notes && <div className="mt-1 text-xs text-muted-foreground">{p.notes}</div>}
-                        </li>
+                          {item.bnf_chapter && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              BNF: {item.bnf_chapter}
+                            </div>
+                          )}
+                          {item.source_document && (
+                            <div className="text-xs text-muted-foreground">
+                              Source: {item.source_document}
+                            </div>
+                          )}
+                          {item.last_reviewed && (
+                            <div className="text-xs text-muted-foreground">
+                              Last reviewed: {format(new Date(item.last_reviewed), "do MMM yyyy")}
+                            </div>
+                          )}
+                        </div>
                       ))}
-                    </ol>
-                    
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-                      {data.formulary.page_url && (
-                        <a 
-                          className="inline-flex items-center gap-2 text-primary hover:underline" 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          href={data.formulary.page_url}
-                        >
-                          <ExternalLink className="h-3 w-3" /> Open Formulary
-                        </a>
-                      )}
-                      {data.formulary.source_document && (
-                        <span className="text-muted-foreground">
-                          Source: {data.formulary.source_document}
-                        </span>
-                      )}
-                      {data.formulary.last_published && (
-                        <span className="text-muted-foreground">
-                          Last reviewed: {format(new Date(data.formulary.last_published), "do MMM yyyy")}
-                        </span>
-                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border p-3 bg-muted/20">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <AlertTriangle className="h-4 w-4" />
+                      <div className="text-sm">No local formulary data stored</div>
+                    </div>
+                    <div className="mt-2">
+                      <a 
+                        className="inline-flex items-center gap-2 text-primary hover:underline text-sm" 
+                        href={data.traffic_light?.detail_url || "https://www.icnorthamptonshire.org.uk/trafficlightdrugs"} 
+                        target="_blank" 
+                        rel="noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Check ICB page
+                      </a>
                     </div>
                   </div>
                 )}
@@ -405,10 +437,12 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                         <li key={i} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 bg-background">
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium">{a.name}</div>
-                            {a.notes && <div className="truncate text-xs text-muted-foreground">{a.notes}</div>}
+                            {a.therapeutic_area && (
+                              <div className="truncate text-xs text-muted-foreground">{a.therapeutic_area}</div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <Chip status={a.status as Status} href={a.detail_url} />
+                            <Chip status={a.status as Status} />
                             <Button
                               variant="outline"
                               size="sm"
@@ -445,7 +479,16 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
               <div className="text-muted-foreground p-4 text-center">
                 <div className="mb-2 text-2xl">⚠️</div>
                 <p>No policy information found for this drug</p>
-                <p className="text-sm mt-1">Please check the ICB website manually</p>
+                <div className="mt-3">
+                  <a 
+                    className="inline-flex items-center gap-2 text-primary hover:underline" 
+                    href="https://www.icnorthamptonshire.org.uk/trafficlightdrugs" 
+                    target="_blank" 
+                    rel="noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Check ICB website manually
+                  </a>
+                </div>
               </div>
             )}
           </div>

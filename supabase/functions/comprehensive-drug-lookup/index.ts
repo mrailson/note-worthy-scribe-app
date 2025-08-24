@@ -7,43 +7,57 @@ const corsHeaders = {
 };
 
 interface DrugLookupResponse {
-  drug: {
-    name: string;
-    searched_term?: string;
-  };
-  traffic_light: any;
-  prior_approval: {
-    status: string;
-    route: "PRIOR_APPROVAL" | "IFR" | "BLUETEQ";
-    bullets?: string[];
-    link?: string;
-  } | null;
-  formulary: {
-    bnf_chapter?: string;
-    section?: string;
-    preferred: Array<{
-      item_name: string;
-      rank: number;
-      notes?: string;
-      status?: string;
-      source_document?: string;
-      last_reviewed_date?: string;
-      otc?: boolean;
-    }>;
-    page_url: string;
-    last_published?: string;
-    found_exact_match: boolean;
-    therapeutic_area?: string;
-    source_document?: string;
-    formulary_status?: string;
-  } | null;
-  alternatives: Array<{
-    name: string;
-    notes?: string;
+  drug: string;
+  traffic_light: {
     status: string;
     detail_url?: string;
+    bnf_chapter?: string;
+    notes?: string;
+    status_tooltip?: string;
+  } | null;
+  prior_approval: {
+    required: boolean;
+    pdf_url?: string;
+    page_ref?: string;
+    criteria: Array<{
+      id: string;
+      criteria_text: string;
+      category?: string;
+      application_route?: string;
+      application_url?: string;
+      evidence_required?: string;
+      icb_version?: string;
+      icb_pdf_url?: string;
+    }>;
+  };
+  formulary: Array<{
+    name: string;
+    status: string;
+    therapeutic_area?: string;
+    source_document?: string;
+    source_page?: string;
+    last_reviewed?: string;
+    detail_url?: string;
+    bnf_chapter?: string;
+  }>;
+  alternatives: Array<{
+    name: string;
+    status: string;
+    therapeutic_area?: string;
   }>;
 }
+
+// Traffic Light Status Tooltips (Northamptonshire definitions)
+const STATUS_TOOLTIPS = {
+  'DOUBLE_RED': 'Not routinely prescribed in primary care. Requires prior approval/IFR as specified by ICN.',
+  'RED': 'Specialist initiation/supply only; usually not in primary care.',
+  'AMBER_1': 'Shared care or specialist recommendation—check local guidance.',
+  'AMBER_2': 'Shared care or specialist recommendation—check local guidance.',
+  'SPECIALIST_INITIATED': 'Specialist initiation required.',
+  'SPECIALIST_RECOMMENDED': 'Specialist recommendation advised.',
+  'GREEN': 'Suitable for primary care prescribing within formulary.',
+  'UNKNOWN': 'Status not classified. Check ICB guidance.'
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -68,172 +82,116 @@ serve(async (req) => {
 
     console.log('Looking up drug:', name);
 
-    // Step 1: Normalize the name using the database function
-    const { data: normalizedData, error: normError } = await supabase
-      .rpc('icn_norm', { input_name: name });
-
-    if (normError) {
-      console.error('Error normalizing name:', normError);
-      // Continue without normalization if function fails
-      const normalizedName = name.toLowerCase().trim();
-    }
-
-    const normalizedName = normalizedData || name.toLowerCase().trim();
+    // Step 1: Normalize the name
+    const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     console.log('Normalized name:', normalizedName);
 
-    // Step 2: Search traffic lights table (icn_tl_norm)
+    // Step 2: Fetch traffic light data
+    console.log('Fetching traffic light data...');
     const { data: trafficLightData, error: tlError } = await supabase
       .from('icn_tl_norm')
       .select('*')
-      .ilike('name_norm', `${normalizedName}%`)
-      .order('drug_name', { ascending: true })
-      .limit(1)
+      .eq('name_norm', normalizedName)
       .maybeSingle();
 
-    if (tlError) {
-      console.error('Error fetching traffic light data:', tlError);
+    if (tlError && tlError.code !== 'PGRST116') {
+      console.error('Traffic light query error:', tlError);
     }
 
-    // Step 3: Search prior approval table using ICB formulary data
-    let priorApprovalData: any = null;
-    
-    // First check ICB formulary for prior approval status
-    const { data: icbFormularyPA, error: icbError } = await supabase
+    // Step 3: Fetch ICB formulary data
+    console.log('Fetching ICB formulary data...');
+    const { data: formularyData, error: formularyError } = await supabase
       .from('icb_formulary')
       .select('*')
-      .ilike('drug_name', `%${name}%`)
-      .eq('prior_approval_required', 'Yes')
-      .limit(1)
-      .maybeSingle();
+      .eq('name_norm', normalizedName);
 
-    if (icbError) {
-      console.error('Error fetching ICB formulary prior approval:', icbError);
+    if (formularyError && formularyError.code !== 'PGRST116') {
+      console.error('Formulary query error:', formularyError);
     }
 
-    if (icbFormularyPA) {
-      // Determine route based on status
-      let route: "PRIOR_APPROVAL" | "IFR" | "BLUETEQ" = "PRIOR_APPROVAL";
-      let bullets: string[] = [];
-      
-      if (icbFormularyPA.status.includes('IFR')) {
-        route = "IFR";
-      } else if (icbFormularyPA.status.includes('Blueteq')) {
-        route = "BLUETEQ";
-      }
-      
-      if (icbFormularyPA.notes_restrictions) {
-        bullets.push(icbFormularyPA.notes_restrictions);
-      }
-      
-      priorApprovalData = {
-        status: icbFormularyPA.status,
-        route: route,
-        bullets: bullets,
-        link: "https://www.icnorthamptonshire.org.uk/download.cfm?doc=docm93jijm4n22499&ver=66342"
-      };
-    }
-
-    // Step 4: Search ICB formulary table
-    let formularyData: any[] = [];
-    
-    // First, get direct matches from ICB formulary
-    const { data: directMatches, error: directError } = await supabase
-      .from('icb_formulary')
-      .select('*')
-      .ilike('drug_name', `%${name}%`)
-      .order('drug_name', { ascending: true });
-
-    if (directError) {
-      console.error('Error fetching ICB formulary matches:', directError);
-    } else {
-      formularyData = directMatches || [];
-    }
-
-    // If no direct matches, try normalized search
-    if (formularyData.length === 0) {
-      const { data: normalizedMatches, error: normError } = await supabase
+    // If no match by name_norm, try drug_name
+    let formularyFallback = null;
+    if (!formularyData || formularyData.length === 0) {
+      console.log('Trying drug_name formulary search...');
+      const { data: fallbackData, error: fallbackError } = await supabase
         .from('icb_formulary')
         .select('*')
-        .ilike('drug_name', `%${normalizedName}%`)
-        .order('drug_name', { ascending: true });
-
-      if (!normError && normalizedMatches) {
-        formularyData = normalizedMatches;
-      }
-    }
-
-    // Step 5: Get alternatives from the same therapeutic area
-    let alternativesData: any[] = [];
-    if (formularyData && formularyData.length > 0) {
-      const therapeuticAreas = [...new Set(formularyData.map(item => item.therapeutic_area))];
+        .ilike('drug_name', `%${name}%`);
       
-      for (const area of therapeuticAreas) {
-        const { data: areaAlternatives, error: altError } = await supabase
-          .from('icb_formulary')
-          .select('*')
-          .eq('therapeutic_area', area)
-          .neq('drug_name', name)
-          .order('drug_name', { ascending: true })
-          .limit(5);
-          
-        if (altError) {
-          console.error('Error fetching alternatives:', altError);
-        } else if (areaAlternatives) {
-          // Look up traffic light status for each alternative
-          for (const alt of areaAlternatives) {
-            const { data: altTlData } = await supabase
-              .from('icn_tl_norm')
-              .select('*')
-              .ilike('drug_name', `${alt.drug_name}%`)
-              .limit(1)
-              .maybeSingle();
-              
-            alternativesData.push({
-              name: alt.drug_name,
-              notes: alt.notes_restrictions,
-              status: altTlData?.status_enum || mapFormularyStatusToTrafficLight(alt.status),
-              detail_url: altTlData?.detail_url
-            });
-          }
-        }
+      if (!fallbackError) {
+        formularyFallback = fallbackData;
       }
     }
 
+    const formulary = formularyData || formularyFallback || [];
+
+    // Step 4: Fetch prior approval criteria
+    console.log('Fetching prior approval criteria...');
+    const { data: priorApprovalCriteria, error: criteriaError } = await supabase
+      .from('prior_approval_criteria')
+      .select('*')
+      .eq('drug_name_norm', normalizedName);
+
+    if (criteriaError && criteriaError.code !== 'PGRST116') {
+      console.error('Prior approval criteria query error:', criteriaError);
+    }
+
+    // Step 5: Fetch alternatives from the same therapeutic area
+    console.log('Fetching alternatives...');
+    const { data: alternatives, error: altError } = await supabase
+      .from('icb_formulary')
+      .select('drug_name, status, therapeutic_area, name, formulary_status')
+      .eq('therapeutic_area', formulary?.[0]?.therapeutic_area || 'Unknown')
+      .neq('name_norm', normalizedName)
+      .limit(5);
+
+    if (altError) {
+      console.error('Alternatives query error:', altError);
+    }
+
+    // Construct response
     const response: DrugLookupResponse = {
-      drug: { name: name, searched_term: normalizedName },
-      traffic_light: trafficLightData,
-      prior_approval: priorApprovalData,
-      formulary: formularyData.length > 0 ? {
-        bnf_chapter: "ICB Formulary",
-        section: formularyData[0]?.therapeutic_area,
-        preferred: formularyData.map((item, index) => ({
-          item_name: item.drug_name,
-          rank: index + 1,
-          notes: item.notes_restrictions,
-          status: item.status,
-          source_document: item.source_document,
-          last_reviewed_date: item.last_reviewed_date
-        })),
-        page_url: 'https://www.icnorthamptonshire.org.uk/mo-formulary',
-        last_published: formularyData[0]?.last_reviewed_date,
-        found_exact_match: true,
-        therapeutic_area: formularyData[0]?.therapeutic_area,
-        source_document: formularyData[0]?.source_document,
-        formulary_status: formularyData[0]?.status
+      drug: name,
+      traffic_light: trafficLightData ? {
+        status: trafficLightData.status_enum,
+        detail_url: trafficLightData.detail_url,
+        bnf_chapter: trafficLightData.bnf_chapter,
+        notes: trafficLightData.notes,
+        status_tooltip: STATUS_TOOLTIPS[trafficLightData.status_enum as keyof typeof STATUS_TOOLTIPS] || STATUS_TOOLTIPS['UNKNOWN']
       } : null,
-      alternatives: alternativesData
+      prior_approval: {
+        required: formulary?.[0]?.prior_approval_required || false,
+        pdf_url: formulary?.[0]?.prior_approval_pdf_url || null,
+        page_ref: formulary?.[0]?.prior_approval_page_ref || null,
+        criteria: priorApprovalCriteria || []
+      },
+      formulary: formulary ? formulary.map(item => ({
+        name: item.name || item.drug_name,
+        status: item.formulary_status || mapFormularyStatusToTrafficLight(item.status),
+        therapeutic_area: item.therapeutic_area,
+        source_document: item.source_document,
+        source_page: item.source_page,
+        last_reviewed: item.last_reviewed || item.last_reviewed_date,
+        detail_url: item.detail_url,
+        bnf_chapter: item.bnf_chapter
+      })) : [],
+      alternatives: alternatives ? alternatives.map(alt => ({
+        name: alt.name || alt.drug_name,
+        status: alt.formulary_status || mapFormularyStatusToTrafficLight(alt.status),
+        therapeutic_area: alt.therapeutic_area
+      })) : []
     };
 
     console.log('Lookup complete:', {
       traffic_light_found: !!trafficLightData,
-      prior_approval_found: !!priorApprovalData,
-      formulary_count: formularyData.length
+      prior_approval_found: !!formulary,
+      formulary_count: formulary?.length || 0,
+      criteria_count: priorApprovalCriteria?.length || 0
     });
 
-    return new Response(
-      JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in comprehensive-drug-lookup function:', error);
@@ -260,9 +218,15 @@ function mapFormularyStatusToTrafficLight(status: string): string {
       return 'AMBER_1';
     }
   } else if (statusLower.includes('red')) {
+    if (statusLower.includes('double')) {
+      return 'DOUBLE_RED';
+    }
     return 'RED';
-  } else if (statusLower.includes('formulary')) {
-    return 'GREEN'; // Assume formulary items are generally green
+  } else if (statusLower.includes('specialist')) {
+    if (statusLower.includes('initiat')) {
+      return 'SPECIALIST_INITIATED';
+    }
+    return 'SPECIALIST_RECOMMENDED';
   } else {
     return 'UNKNOWN';
   }
