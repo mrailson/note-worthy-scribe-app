@@ -36,92 +36,100 @@ export class OpenAIRealtimeTranscriber {
   ) {}
 
   async startTranscription(language: string = 'en', medicalBias: boolean = false) {
-    console.log('🎙️ Starting Deepgram Realtime Transcription...');
+    console.log('🎙️ Starting Speech Recognition (using browser fallback)...');
     this.language = language;
     this.medicalBias = medicalBias;
     
     try {
       this.onStatusChange('connecting');
-      await this.setupDeepgramSession();
-      await this.setupAudioCapture();
+      await this.setupBrowserSpeechRecognition();
       this.isRecording = true;
       this.onStatusChange('live');
-      console.log('✅ Transcription started successfully');
+      console.log('✅ Speech recognition started successfully');
     } catch (error) {
-      console.error('❌ Failed to start transcription:', error);
-      this.onError(error instanceof Error ? error.message : 'Failed to start transcription');
+      console.error('❌ Failed to start speech recognition:', error);
+      this.onError(error instanceof Error ? error.message : 'Failed to start speech recognition');
       this.onStatusChange('error');
     }
   }
 
-  private async setupDeepgramSession() {
-    console.log('🔗 Setting up Deepgram session...');
+  private recognition: any = null;
+
+  private async setupBrowserSpeechRecognition() {
+    console.log('🔗 Setting up browser speech recognition...');
     
-    // Get Deepgram configuration from our edge function
-    const { data, error } = await supabase.functions.invoke('openai-realtime-token', {
-      body: {
-        language: this.language,
-        medicalBias: this.medicalBias
-      }
-    });
-
-    if (error) {
-      throw new Error(`Failed to get session token: ${error.message}`);
+    // Check if speech recognition is available
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      throw new Error('Speech recognition not supported in this browser');
     }
 
-    if (!data?.url) {
-      throw new Error('No Deepgram URL received');
-    }
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+    this.recognition.lang = this.language;
 
-    this.deepgramConfig = data;
-    console.log('📡 Connecting to Deepgram...');
-
-    // Connect to Deepgram WebSocket using the pre-configured URL with authentication
-    this.ws = new WebSocket(this.deepgramConfig.url);
-
-    this.ws.addEventListener('open', () => {
-      console.log('🔌 Deepgram WebSocket connected successfully');
+    this.recognition.onstart = () => {
+      console.log('🎙️ Browser speech recognition started');
       this.onStatusChange('connected');
-    });
+    };
 
-    this.ws.addEventListener('message', (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        this.handleDeepgramMessage(message);
-      } catch (error) {
-        console.error('❌ Error parsing WebSocket message:', error);
+    this.recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
       }
-    });
 
-    this.ws.addEventListener('error', (error) => {
-      console.error('❌ Deepgram WebSocket error:', error);
-      this.onError('Deepgram connection error occurred');
+      if (finalTranscript) {
+        console.log('📝 Final transcript:', finalTranscript);
+        this.onTranscription({
+          text: finalTranscript,
+          isFinal: true,
+          confidence: 0.9
+        });
+      } else if (interimTranscript) {
+        console.log('📝 Interim transcript:', interimTranscript);
+        this.onTranscription({
+          text: interimTranscript,
+          isFinal: false,
+          confidence: 0.7
+        });
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      console.error('❌ Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        this.onError('Microphone access denied. Please allow microphone access.');
+      } else {
+        this.onError(`Speech recognition error: ${event.error}`);
+      }
       this.onStatusChange('error');
-    });
+    };
 
-    this.ws.addEventListener('close', (event) => {
-      console.log('🔌 Deepgram WebSocket disconnected:', event.code, event.reason);
-      if (event.code !== 1000 && event.code !== 1001) {
-        this.onError(`Connection closed unexpectedly (${event.code}): ${event.reason || 'Unknown reason'}`);
+    this.recognition.onend = () => {
+      console.log('🔚 Speech recognition ended');
+      if (this.isRecording) {
+        // Restart if we're still supposed to be recording
+        setTimeout(() => {
+          if (this.isRecording) {
+            this.recognition.start();
+          }
+        }, 100);
+      } else {
+        this.onStatusChange('disconnected');
       }
-      this.onStatusChange('disconnected');
-    });
+    };
 
-    return new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Connection timeout - please check your internet connection'));
-      }, 15000);
-
-      this.ws!.addEventListener('open', () => {
-        clearTimeout(timeout);
-        resolve();
-      });
-
-      this.ws!.addEventListener('error', (error) => {
-        clearTimeout(timeout);
-        reject(new Error('Failed to connect to Deepgram - please check your API key'));
-      });
-    });
+    this.recognition.start();
   }
 
   private handleDeepgramMessage(message: any) {
@@ -283,39 +291,18 @@ export class OpenAIRealtimeTranscriber {
   }
 
   stopTranscription() {
-    console.log('🛑 Stopping transcription...');
+    console.log('🛑 Stopping speech recognition...');
     
     this.isRecording = false;
     
-    // Send close frame to Deepgram
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'CloseStream' }));
-    }
-    
-    // Clean up audio resources
-    if (this.audioWorklet) {
-      this.audioWorklet.disconnect();
-      this.audioWorklet = null;
-    }
-    
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
-    
-    if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
-      this.mediaStream = null;
-    }
-    
-    // Close WebSocket
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    // Stop browser speech recognition
+    if (this.recognition) {
+      this.recognition.stop();
+      this.recognition = null;
     }
     
     this.onStatusChange('disconnected');
-    console.log('✅ Transcription stopped');
+    console.log('✅ Speech recognition stopped');
   }
 
   clearTranscript() {
@@ -324,6 +311,6 @@ export class OpenAIRealtimeTranscriber {
   }
 
   isActive(): boolean {
-    return this.isRecording && this.ws?.readyState === WebSocket.OPEN;
+    return this.isRecording && this.recognition !== null;
   }
 }
