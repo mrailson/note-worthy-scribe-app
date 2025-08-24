@@ -100,7 +100,7 @@ export const LiveTranscript = ({
   }>>([]);
   
   // State for live transcript display
-  const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
   const [selectedText, setSelectedText] = useState<string>("");
@@ -259,8 +259,6 @@ export const LiveTranscript = ({
           // Only merge final chunks into clean buffer
           if (chunkRow.is_final === false) {
             console.log(`⏳ Ignoring non-final chunk for clean buffer: "${processedText.substring(0, 50)}..."`);
-            // You can still show this in the *raw* pane if you want
-            setLiveTranscriptText(processedText);
             return;
           }
 
@@ -283,7 +281,10 @@ export const LiveTranscript = ({
           });
 
           // Show latest final chunk in raw section (separate from cleanedTranscript)
-          setLiveTranscriptText(processedText);
+          setAccumulatedTranscript(prev => {
+            // Accumulate the full transcript
+            return prev ? prev + " " + processedText : processedText;
+          });
         }
       )
       .subscribe();
@@ -349,17 +350,17 @@ export const LiveTranscript = ({
       console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
       
       // Always keep the full transcript history - no clearing
-      // ONLY update liveTranscriptText, NOT cleanedTranscript (which is handled by AI chunks subscription)
+      // ONLY update accumulatedTranscript for raw display
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering for live display
-        const cleanedNew = transcriptCleaner.cleanStreamingAppend(liveTranscriptText, processedTranscript, confidence);
-        setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
-        console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
+        const cleanedNew = transcriptCleaner.cleanStreamingAppend(accumulatedTranscript, processedTranscript, confidence);
+        setAccumulatedTranscript(cleanedNew); // Show cleaned version for live display
+        console.log('✨ Updated accumulated transcript with cleaned version (length:', cleanedNew.length, ')');
       } else {
         // For non-auto-cleaning, still use append to avoid duplication
-        const combinedText = [liveTranscriptText, processedTranscript].filter(Boolean).join(" ");
-        setLiveTranscriptText(combinedText); // Show processed version
-        console.log('📝 Updated live transcript with raw version (length:', combinedText.length, ')');
+        const combinedText = [accumulatedTranscript, processedTranscript].filter(Boolean).join(" ");
+        setAccumulatedTranscript(combinedText); // Show processed version
+        console.log('📝 Updated accumulated transcript with raw version (length:', combinedText.length, ')');
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
@@ -482,7 +483,7 @@ export const LiveTranscript = ({
 
   const handleDownloadWord = async () => {
     try {
-      const content = getFormattedCleanedText();
+      const content = accumulatedTranscript;
 
       const createParagraphsFromText = (text: string) => {
         const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
@@ -502,7 +503,7 @@ export const LiveTranscript = ({
           {
             properties: {},
             children: [
-              new Paragraph({ text: "AI-Enhanced Transcript", heading: HeadingLevel.HEADING_1 }),
+              new Paragraph({ text: "Meeting Transcript", heading: HeadingLevel.HEADING_1 }),
               ...paragraphs,
             ],
           },
@@ -510,7 +511,7 @@ export const LiveTranscript = ({
       });
 
       const blob = await Packer.toBlob(doc);
-      const fileName = `Cleaned-Transcript-${new Date().toISOString().slice(0, 10)}.docx`;
+      const fileName = `Meeting-Transcript-${new Date().toISOString().slice(0, 10)}.docx`;
       saveAs(blob, fileName);
       toast({ title: "Downloaded", description: "Word document generated." });
     } catch (e) {
@@ -715,30 +716,32 @@ export const LiveTranscript = ({
 
              {/* Latest Transcript Section */}
              <div className="space-y-4">
-                <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
+                {/* Latest Transcription Section - Expanded */}
+                <div className="min-h-[400px] p-4 bg-background/50 rounded-lg border">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Latest Transcription
+                      Meeting Transcript
                     </span>
-                    <Badge variant="outline" className="text-xs">Raw</Badge>
+                    <Badge variant="outline" className="text-xs">Live</Badge>
                   </div>
                   
                   <div 
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-3 bg-background/50 rounded-md border"
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[360px] max-h-[600px] p-4 bg-background/80 rounded-md border overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
                     style={{ 
                       transition: 'all 0.2s ease-in-out',
                       wordWrap: 'break-word',
-                      overflowWrap: 'break-word'
+                      overflowWrap: 'break-word',
+                      scrollbarWidth: 'thin'
                     }}
                   >
-                    {transcript ? (
-                      <span className="text-foreground font-mono">
-                        {transcript}
+                    {accumulatedTranscript ? (
+                      <span className="text-foreground font-mono leading-relaxed">
+                        {accumulatedTranscript}
                       </span>
                     ) : (
                       <span className="text-muted-foreground italic">
-                        Listening for speech... raw transcription will appear here
+                        Listening for speech... meeting transcript will appear here and accumulate as the meeting continues
                       </span>
                     )}
                   </div>
@@ -748,133 +751,32 @@ export const LiveTranscript = ({
                       <span>Confidence: {Math.round(confidence * 100)}%</span>
                     </div>
                   )}
-                </div>
-
-                {/* AI-Cleaned and Formatted Section */}
-                <div className="min-h-[120px] p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                    <span className="text-sm font-medium text-foreground uppercase tracking-wide">
-                      AI-Enhanced Transcript
-                    </span>
-                    <Badge variant="default" className="text-xs">
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Live Merge
-                    </Badge>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="mb-2 flex items-center gap-2 flex-wrap">
-                    {/* Copy and Download buttons (always visible when transcript exists) */}
-                    <>
-                      <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
-                        <Copy className="h-4 w-4 mr-2" /> Copy Cleaned
+                  
+                  {/* Action buttons for transcript */}
+                  {accumulatedTranscript && (
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(accumulatedTranscript)}>
+                        <Copy className="h-4 w-4 mr-2" /> Copy Transcript
                       </Button>
                       <Button size="sm" variant="outline" onClick={handleDownloadWord}>
                         <FileDown className="h-4 w-4 mr-2" /> Download Word
                       </Button>
-                    </>
-                    
-                    {/* Edit controls */}
-                    {!isEditingCleaned ? (
-                      <Button size="sm" variant="outline" onClick={() => { setIsEditingCleaned(true); setEditedCleanedText(getFormattedCleanedText()); }}>
-                        <Edit3 className="h-4 w-4 mr-2" /> Edit
-                      </Button>
-                    ) : (
-                      <>
-                        <Button size="sm" onClick={() => { setCleanedTranscript(editedCleanedText); setIsEditingCleaned(false); setLiveTranscriptText(editedCleanedText); try { localStorage.setItem('cleanedTranscriptDraft', editedCleanedText); } catch (e) {} toast({ title: "Saved", description: "Transcript updated." }); }}>
-                          <Check className="h-4 w-4 mr-2" /> Save
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setIsEditingCleaned(false)}>
-                          <X className="h-4 w-4 mr-2" /> Cancel
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                   <div 
-                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-[80vh] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
-                     style={{ 
-                       transition: 'all 0.2s ease-in-out',
-                       wordWrap: 'break-word',
-                       overflowWrap: 'break-word',
-                       userSelect: 'text',
-                       scrollbarWidth: 'thin'
-                     }}
-                     onMouseUp={handleTextSelection}
-                   >
-                    {isEditingCleaned ? (
-                      <Textarea
-                        value={editedCleanedText}
-                        onChange={(e) => setEditedCleanedText(e.target.value)}
-                        rows={12}
-                      />
-                     ) : cleanedTranscript ? (
-                       <div className="space-y-2">
-                         <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                           {showTimestamps ? (
-                             // Display with timestamps - split by sentences and add timestamps
-                             cleanedTranscript.split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
-                               const timestamp = new Date();
-                               timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
-                               const timeStr = timestamp.toLocaleTimeString('en-GB', { 
-                                 hour: '2-digit', 
-                                 minute: '2-digit' 
-                               });
-                               
-                               return (
-                                 <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
-                                   <div className="flex items-center gap-2 min-w-fit">
-                                     <Clock className="h-3 w-3 text-primary/70" />
-                                     <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                       {timeStr}
-                                     </Badge>
-                                   </div>
-                                   <span className="text-foreground leading-relaxed">
-                                     {sentence.trim()}.
-                                   </span>
-                                 </div>
-                               );
-                             })
-                           ) : (
-                             // Display without timestamps - show full accumulated transcript
-                             <div className="text-foreground leading-relaxed">
-                               {cleanedTranscript}
-                             </div>
-                           )}
-                          </div>
-                        </div>
-                     ) : (
-                       <span className="text-muted-foreground italic">
-                         AI-cleaned and formatted transcript will appear here with timestamps...
-                       </span>
-                     )}
-                   </div>
-                  
-                  <div className="mt-3 space-y-2">
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      <span>Enhanced with AI: Grammar corrected, medical terms fixed, timestamps added</span>
                     </div>
-                    {isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections() && (
-                      <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
-                        💡 Select any text above to add medical term corrections • 
-                        {medicalTermCorrector.getCorrections().size} correction(s) active
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* Find & Replace Panel */}
-                {(cleanedTranscript || transcript) && (
+                {accumulatedTranscript && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Find & Replace (misheard names)</Label>
                     <EnhancedFindReplacePanel
-                      getCurrentText={() => getFormattedCleanedText()}
+                      getCurrentText={() => accumulatedTranscript}
                       onApply={(updated) => {
-                        setCleanedTranscript(updated);
-                        setLiveTranscriptText(updated);
-                        if (isEditingCleaned) setEditedCleanedText(updated);
+                        setAccumulatedTranscript(updated);
+                        toast({
+                          title: "Applied",
+                          description: "Find & Replace changes applied successfully."
+                        });
                       }}
                     />
                   </div>
