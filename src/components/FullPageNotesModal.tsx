@@ -75,7 +75,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
   const [transcript, setTranscript] = useState("");
-  const [rawChunks, setRawChunks] = useState<Array<{id: number, text: string, timestamp: string, confidence?: number}>>([]);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
@@ -89,9 +88,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
-  const [transcriptSubTab, setTranscriptSubTab] = useState<"processed" | "raw">("processed");
 
-  // Fetch transcript and raw chunks when modal opens
+  // Fetch transcript when modal opens
   useEffect(() => {
     console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id);
     if (isOpen && meeting?.id) {
@@ -121,29 +119,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         setTranscript(fullTranscript);
       } else {
         console.log('📝 No transcript data found');
-      }
-      
-      // Fetch raw chunks from new raw_transcript_chunks table
-      console.log('🔍 Fetching raw chunks for meeting:', meeting.id);
-      const { data: rawChunksData, error: chunksError } = await supabase
-        .from('raw_transcript_chunks')
-        .select('chunk_id, text, timestamp, confidence')
-        .eq('meeting_id', meeting.id)
-        .order('chunk_id');
-      
-      if (chunksError) {
-        console.error('❌ Error fetching raw chunks:', chunksError);
-      } else if (rawChunksData) {
-        console.log('✅ Raw chunks fetched:', rawChunksData.length, 'chunks', rawChunksData);
-        const formattedChunks = rawChunksData.map(chunk => ({
-          id: chunk.chunk_id,
-          text: chunk.text,
-          timestamp: chunk.timestamp,
-          confidence: chunk.confidence
-        }));
-        setRawChunks(formattedChunks);
-      } else {
-        console.log('📝 No raw chunks data found');
       }
       
     } catch (error) {
@@ -540,15 +515,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       if (chunksError) {
         console.error('Error fetching raw chunks:', chunksError);
       } else if (chunksData && chunksData.length > 0) {
-        const formattedChunks = chunksData.map(chunk => ({
-          id: chunk.chunk_number,
-          text: chunk.transcription_text || '',
-          timestamp: new Date(chunk.created_at).toLocaleTimeString()
-        }));
-        setRawChunks(formattedChunks);
-        console.log('🔍 Raw chunks loaded:', formattedChunks.length);
+        console.log('🔍 Raw chunks found but not using them');
       } else {
-        setRawChunks([]);
         console.log('🔍 No raw chunks found');
       }
 
@@ -556,7 +524,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.error('🚨 CRITICAL: Error fetching transcript:', error);
       toast.error('Failed to load transcript');
       setTranscript('');
-      setRawChunks([]);
     } finally {
       setIsLoadingTranscript(false);
     }
@@ -814,6 +781,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         saveSummaryToDatabase(editingContent);
       } else if (editingTab === "transcript") {
         setTranscript(editingContent);
+        saveTranscriptToDatabase(editingContent);
       }
       setEditingContent(""); // Clear editing content
       setEditingTab(""); // Clear editing tab
@@ -1077,6 +1045,42 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       } else {
         toast.error("Failed to save notes");
       }
+    }
+  };
+
+  const saveTranscriptToDatabase = async (content: string) => {
+    if (!meeting?.id) return;
+    
+    try {
+      // Delete existing transcript entries for this meeting
+      const { error: deleteError } = await supabase
+        .from('meeting_transcripts')
+        .delete()
+        .eq('meeting_id', meeting.id);
+
+      if (deleteError) {
+        console.error('Error deleting old transcript:', deleteError);
+      }
+
+      // Insert the updated transcript
+      const { error: insertError } = await supabase
+        .from('meeting_transcripts')
+        .insert({
+          meeting_id: meeting.id,
+          content: content,
+          speaker_name: 'Updated Transcript',
+          confidence_score: 1.0
+        });
+        
+      if (insertError) {
+        console.error('Error saving transcript:', insertError);
+        toast.error('Failed to save transcript to database');
+      } else {
+        toast.success('Transcript saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving transcript:', error);
+      toast.error('Failed to save transcript changes');
     }
   };
 
@@ -1582,127 +1586,66 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <div className="flex items-center gap-4">
                       <h3 className="text-lg font-semibold">Meeting Transcript</h3>
-                      <Tabs value={transcriptSubTab} onValueChange={(value: "processed" | "raw") => setTranscriptSubTab(value)}>
-                        <TabsList className="grid w-[300px] grid-cols-2">
-                          <TabsTrigger value="processed">Processed</TabsTrigger>
-                          <TabsTrigger value="raw">Raw Chunked</TabsTrigger>
-                        </TabsList>
-                      </Tabs>
                     </div>
                     <div className="flex items-center gap-2">
-                      {transcriptSubTab === "processed" && (
-                        <>
-                          <Button
-                            onClick={handleReprocessAudio}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={!meeting?.id || isLoadingTranscript}
-                            title="Reprocess full meeting audio with Whisper for better transcription"
-                          >
-                            <RefreshCw className={`h-4 w-4 ${isLoadingTranscript ? 'animate-spin' : ''}`} />
-                            {isLoadingTranscript ? 'Processing...' : 'Reprocess Audio'}
-                          </Button>
-                          <Button
-                            onClick={handleCleanTranscript}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={!transcript || transcript.trim().length === 0}
-                            title="Quick clean transcript to remove duplicates"
-                          >
-                            <Wand2 className="h-4 w-4" />
-                            Clean
-                          </Button>
-                          <Button
-                            onClick={handleGPTCleanTranscript}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
-                            title="Deep clean transcript using GPT to remove duplicates and improve formatting"
-                          >
-                            <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
-                            {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
-                          </Button>
-                          <Button
-                            onClick={handleUndo}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={transcriptVersions.length === 0}
-                            title={`Undo (${transcriptVersions.length} versions available)`}
-                          >
-                            <Undo2 className="h-4 w-4" />
-                            Undo
-                          </Button>
-                          <Button
-                            onClick={handleEditToggle}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                            {isEditing ? 'Save' : 'Edit'}
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        onClick={handleGPTCleanTranscript}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
+                        title="Deep clean transcript using GPT to remove duplicates and improve formatting"
+                      >
+                        <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
+                        {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
+                      </Button>
+                      <Button
+                        onClick={handleUndo}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={transcriptVersions.length === 0}
+                        title={`Undo (${transcriptVersions.length} versions available)`}
+                      >
+                        <Undo2 className="h-4 w-4" />
+                        Undo
+                      </Button>
+                      <Button
+                        onClick={handleEditToggle}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        {isEditing ? 'Save' : 'Edit'}
+                      </Button>
                     </div>
                   </div>
                   
-                  {transcriptSubTab === "processed" ? (
-                    <div className="flex-1 overflow-auto p-6 pt-0">
-                      {isLoadingTranscript ? (
-                        <div className="flex items-center justify-center h-32">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                          <span className="ml-2">Loading transcript...</span>
-                        </div>
-                      ) : isEditing ? (
-                        <Textarea
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          className="h-full w-full font-mono text-sm resize-none"
-                          placeholder="Meeting transcript will appear here..."
-                        />
-                      ) : !transcript ? (
-                        <div className="flex items-center justify-center h-32 text-muted-foreground">
-                          No transcript available for this meeting.
-                        </div>
-                      ) : (
-                        <div 
-                          className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                          dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-auto p-6 pt-0">
-                      {rawChunks.length === 0 ? (
-                        <div className="flex items-center justify-center h-32 text-muted-foreground">
-                          No raw chunks available for this meeting.
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {rawChunks.map((chunk, index) => (
-                            <div key={chunk.id} className="border-l-2 border-muted pl-4 py-2">
-                              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                                Chunk {chunk.id} • {chunk.timestamp}
-                                {chunk.confidence && (
-                                  <span className="text-xs bg-muted px-1 rounded">
-                                    {Math.round(chunk.confidence * 100)}%
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-sm leading-relaxed">
-                                {chunk.text}
-                              </div>
-                              {index < rawChunks.length - 1 && <div className="mt-2 border-b border-muted/30"></div>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                   )}
+                  <div className="flex-1 overflow-auto p-6 pt-0">
+                    {isLoadingTranscript ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-2">Loading transcript...</span>
+                      </div>
+                    ) : isEditing ? (
+                      <Textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        className="h-full w-full font-mono text-sm resize-none"
+                        placeholder="Meeting transcript will appear here..."
+                      />
+                    ) : !transcript ? (
+                      <div className="flex items-center justify-center h-32 text-muted-foreground">
+                        No transcript available for this meeting.
+                      </div>
+                    ) : (
+                      <div 
+                        className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                        dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
+                      />
+                    )}
+                  </div>
                  </div>
                </TabsContent>
             </Tabs>
