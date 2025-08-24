@@ -1,80 +1,199 @@
+import { supabase } from '@/integrations/supabase/client';
+
+export interface TranscriptData {
+  text: string;
+  isFinal: boolean;
+  confidence: number;
+  start?: number;
+  end?: number;
+  speaker?: string;
+  words?: Array<{
+    word: string;
+    start: number;
+    end: number;
+    confidence: number;
+    speaker?: number;
+  }>;
+}
+
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'live' | 'error';
+
 export class OpenAIRealtimeTranscriber {
   private ws: WebSocket | null = null;
-  private mediaRecorder: MediaRecorder | null = null;
-  private stream: MediaStream | null = null;
+  private audioContext: AudioContext | null = null;
+  private audioWorklet: AudioWorkletNode | null = null;
+  private mediaStream: MediaStream | null = null;
   private isRecording = false;
+  private sessionId: string | null = null;
+  private language: string = 'en';
+  private medicalBias: boolean = false;
+  private latencyStart: number = 0;
 
   constructor(
-    private onTranscript: (transcript: TranscriptData) => void,
+    private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void
+    private onStatusChange: (status: ConnectionStatus, latency?: number) => void
   ) {}
 
-  async startTranscription() {
+  async startTranscription(language: string = 'en', medicalBias: boolean = false) {
+    console.log('🎙️ Starting OpenAI Realtime Transcription...');
+    this.language = language;
+    this.medicalBias = medicalBias;
+    
     try {
-      this.onStatusChange('Connecting to OpenAI...');
-      await this.connectToOpenAI();
-      await this.startAudioCapture();
-      this.onStatusChange('Recording...');
+      this.onStatusChange('connecting');
+      await this.setupRealtimeSession();
+      await this.setupAudioCapture();
+      this.isRecording = true;
+      this.onStatusChange('live');
+      console.log('✅ Transcription started successfully');
     } catch (error) {
-      console.error('Failed to start transcription:', error);
-      this.onError('Failed to start transcription: ' + error.message);
+      console.error('❌ Failed to start transcription:', error);
+      this.onError(error instanceof Error ? error.message : 'Failed to start transcription');
+      this.onStatusChange('error');
     }
   }
 
-  private async connectToOpenAI() {
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/functions/v1/realtime-transcription`;
+  private async setupRealtimeSession() {
+    console.log('🔗 Setting up realtime session...');
     
-    this.ws = new WebSocket(wsUrl);
-    
-    return new Promise((resolve, reject) => {
-      this.ws!.onopen = () => {
-        console.log('Connected to OpenAI Realtime API');
-        resolve(undefined);
-      };
+    // Get token from our edge function
+    const { data, error } = await supabase.functions.invoke('openai-realtime-token', {
+      body: {
+        language: this.language,
+        medicalBias: this.medicalBias
+      }
+    });
 
-      this.ws!.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleOpenAIMessage(data);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+    if (error) {
+      throw new Error(`Failed to get session token: ${error.message}`);
+    }
+
+    if (!data?.client_secret?.value) {
+      throw new Error('No session token received');
+    }
+
+    this.sessionId = data.id;
+    const token = data.client_secret.value;
+
+    // Connect to OpenAI Realtime API using WebSocket
+    const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+    this.ws = new WebSocket(wsUrl, ["realtime"]);
+    
+    // Set authorization header
+    this.ws.addEventListener('open', () => {
+      console.log('🔌 WebSocket connected');
+      this.onStatusChange('connected');
+      
+      // Send authentication
+      this.ws?.send(JSON.stringify({
+        type: 'session.update',
+        session: {
+          input_audio_format: "pcm16",
+          input_audio_transcription: {
+            enabled: true,
+            language: this.language === "auto" ? undefined : this.language
+          },
+          modalities: ["text"],
+          turn_detection: {
+            type: "server_vad",
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 500
+          },
+          instructions: this.medicalBias 
+            ? "Transcribe UK primary care speech with medical abbreviations. Preserve drug names, doses, routes accurately. Use UK spelling."
+            : "Transcribe speech clearly and accurately."
         }
-      };
+      }));
+    });
 
-      this.ws!.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        reject(new Error('WebSocket connection failed'));
-      };
+    this.ws.addEventListener('message', (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        this.handleRealtimeMessage(message);
+      } catch (error) {
+        console.error('❌ Error parsing WebSocket message:', error);
+      }
+    });
 
-      this.ws!.onclose = () => {
-        console.log('WebSocket connection closed');
-      };
+    this.ws.addEventListener('error', (error) => {
+      console.error('❌ WebSocket error:', error);
+      this.onError('Connection error occurred');
+      this.onStatusChange('error');
+    });
+
+    this.ws.addEventListener('close', () => {
+      console.log('🔌 WebSocket disconnected');
+      this.onStatusChange('disconnected');
+    });
+
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Connection timeout'));
+      }, 10000);
+
+      this.ws!.addEventListener('open', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      this.ws!.addEventListener('error', () => {
+        clearTimeout(timeout);
+        reject(new Error('Failed to connect to OpenAI'));
+      });
     });
   }
 
-  private handleOpenAIMessage(data: any) {
-    if (data.type === 'conversation.item.input_audio_transcription.completed') {
-      const transcript = data.transcript;
-      if (transcript && transcript.trim()) {
-        this.onTranscript({
-          text: transcript,
-          speaker: 'Speaker',
-          confidence: 0.9,
-          timestamp: new Date().toISOString(),
-          isFinal: true,
-          words: []
-        });
-      }
-    } else if (data.type === 'error') {
-      this.onError('OpenAI API error: ' + data.error?.message || 'Unknown error');
+  private handleRealtimeMessage(message: any) {
+    console.log('📥 Realtime message:', message.type, message);
+
+    switch (message.type) {
+      case 'session.created':
+      case 'session.updated':
+        console.log('✅ Session configured:', message);
+        break;
+
+      case 'input_audio_buffer.speech_started':
+        console.log('🗣️ Speech detected');
+        this.latencyStart = Date.now();
+        break;
+
+      case 'input_audio_buffer.speech_stopped':
+        console.log('🤫 Speech ended');
+        break;
+
+      case 'conversation.item.input_audio_transcription.completed':
+        const finalText = message.transcript;
+        if (finalText && finalText.trim()) {
+          console.log('📝 Final transcript:', finalText);
+          const latency = this.latencyStart ? Date.now() - this.latencyStart : 0;
+          this.onStatusChange('live', latency);
+          this.onTranscription({
+            text: finalText,
+            isFinal: true,
+            confidence: 0.9, // OpenAI doesn't provide confidence scores
+          });
+        }
+        break;
+
+      case 'conversation.item.input_audio_transcription.failed':
+        console.warn('⚠️ Transcription failed:', message.error);
+        this.onError('Transcription failed: ' + (message.error?.message || 'Unknown error'));
+        break;
+
+      case 'error':
+        console.error('❌ OpenAI error:', message.error);
+        this.onError(message.error?.message || 'Unknown error occurred');
+        break;
     }
   }
 
-  private async startAudioCapture() {
+  private async setupAudioCapture() {
+    console.log('🎧 Setting up audio capture...');
+    
     try {
-      // Try to get both microphone and any available system audio
-      const constraints = {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
           channelCount: 1,
@@ -82,109 +201,173 @@ export class OpenAIRealtimeTranscriber {
           noiseSuppression: true,
           autoGainControl: true
         }
-      };
-
-      // Get microphone first
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // Try to capture from any active audio elements on the page
-      const audioElements = document.querySelectorAll('audio, video');
-      if (audioElements.length > 0) {
-        try {
-          const audioContext = new AudioContext({ sampleRate: 24000 });
-          const micSource = audioContext.createMediaStreamSource(this.stream);
-          const destination = audioContext.createMediaStreamDestination();
-          
-          // Connect microphone
-          micSource.connect(destination);
-          
-          // Try to connect any playing media elements
-          audioElements.forEach((element) => {
-            try {
-              const mediaElement = element as HTMLMediaElement;
-              if (!mediaElement.paused && mediaElement.currentTime > 0) {
-                const mediaSource = audioContext.createMediaElementSource(mediaElement);
-                mediaSource.connect(destination);
-                console.log('Connected media element to audio stream');
-              }
-            } catch (e) {
-              console.log('Could not connect media element:', e);
-            }
-          });
-          
-          this.stream = destination.stream;
-        } catch (e) {
-          console.log('Could not mix audio sources, using microphone only:', e);
-        }
-      }
-
-      // Set up MediaRecorder to send chunks to OpenAI
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 64000
       });
 
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && this.ws?.readyState === WebSocket.OPEN) {
-          // Convert to base64 and send to OpenAI
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Data = (reader.result as string).split(',')[1];
-            this.ws?.send(JSON.stringify({
+      this.audioContext = new AudioContext({ sampleRate: 24000 });
+      
+      // Load audio worklet processor for better performance
+      try {
+        await this.audioContext.audioWorklet.addModule(
+          'data:application/javascript;base64,' + btoa(`
+            class AudioProcessor extends AudioWorkletProcessor {
+              constructor() {
+                super();
+                this.bufferSize = 1024;
+                this.buffer = new Float32Array(this.bufferSize);
+                this.bufferIndex = 0;
+              }
+              
+              process(inputs, outputs, parameters) {
+                const input = inputs[0];
+                if (input.length > 0) {
+                  const channelData = input[0];
+                  
+                  for (let i = 0; i < channelData.length; i++) {
+                    this.buffer[this.bufferIndex++] = channelData[i];
+                    
+                    if (this.bufferIndex >= this.bufferSize) {
+                      // Convert to PCM16 and send
+                      const pcm16 = new Int16Array(this.bufferSize);
+                      for (let j = 0; j < this.bufferSize; j++) {
+                        const s = Math.max(-1, Math.min(1, this.buffer[j]));
+                        pcm16[j] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                      }
+                      
+                      this.port.postMessage(pcm16.buffer);
+                      this.bufferIndex = 0;
+                    }
+                  }
+                }
+                return true;
+              }
+            }
+            
+            registerProcessor('audio-processor', AudioProcessor);
+          `)
+        );
+        
+        this.audioWorklet = new AudioWorkletNode(this.audioContext, 'audio-processor');
+        this.audioWorklet.port.onmessage = (event) => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            // Convert ArrayBuffer to base64
+            const uint8Array = new Uint8Array(event.data);
+            let binary = '';
+            const chunkSize = 0x8000;
+            
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+              binary += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            
+            const base64 = btoa(binary);
+            
+            this.ws.send(JSON.stringify({
               type: 'input_audio_buffer.append',
-              audio: base64Data
+              audio: base64
             }));
-          };
-          reader.readAsDataURL(event.data);
-        }
-      };
-
-      // Record in small chunks for real-time processing
-      this.mediaRecorder.start(1000); // 1 second chunks
-      this.isRecording = true;
-
+          }
+        };
+        
+        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+        source.connect(this.audioWorklet);
+        
+        console.log('✅ Audio worklet setup complete');
+        
+      } catch (workletError) {
+        console.warn('⚠️ Audio worklet failed, falling back to ScriptProcessor:', workletError);
+        await this.setupScriptProcessorFallback();
+      }
     } catch (error) {
-      console.error('Failed to start audio capture:', error);
-      throw error;
+      throw new Error(`Failed to access microphone: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  private async setupScriptProcessorFallback() {
+    if (!this.audioContext || !this.mediaStream) return;
+    
+    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+    const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    
+    processor.onaudioprocess = (event) => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        const inputData = event.inputBuffer.getChannelData(0);
+        
+        // Convert to PCM16
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        
+        // Convert to base64
+        const uint8Array = new Uint8Array(pcm16.buffer);
+        let binary = '';
+        const chunkSize = 0x8000;
+        
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        
+        const base64 = btoa(binary);
+        
+        this.ws.send(JSON.stringify({
+          type: 'input_audio_buffer.append',
+          audio: base64
+        }));
+      }
+    };
+    
+    source.connect(processor);
+    processor.connect(this.audioContext.destination);
+    
+    console.log('✅ ScriptProcessor fallback setup complete');
+  }
+
   stopTranscription() {
+    console.log('🛑 Stopping transcription...');
+    
     this.isRecording = false;
-    this.onStatusChange('Stopping...');
-
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
+    
+    // Commit final audio buffer
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        type: 'input_audio_buffer.commit'
+      }));
     }
-
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
+    
+    // Clean up audio resources
+    if (this.audioWorklet) {
+      this.audioWorklet.disconnect();
+      this.audioWorklet = null;
     }
-
+    
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
+    }
+    
+    // Close WebSocket
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
-
-    this.onStatusChange('Stopped');
+    
+    this.onStatusChange('disconnected');
+    console.log('✅ Transcription stopped');
   }
 
-  isActive() {
-    return this.isRecording;
+  clearTranscript() {
+    console.log('🧹 Clearing transcript');
+    // This is handled at the UI level
   }
-}
 
-export interface TranscriptData {
-  text: string;
-  speaker: string;
-  confidence: number;
-  timestamp: string;
-  isFinal: boolean;
-  words?: Array<{
-    text: string;
-    start: number;
-    end: number;
-    confidence: number;
-  }>;
+  isActive(): boolean {
+    return this.isRecording && this.ws?.readyState === WebSocket.OPEN;
+  }
 }

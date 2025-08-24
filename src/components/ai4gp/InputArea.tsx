@@ -1,12 +1,12 @@
-import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
+import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Zap } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import { OpenAIRealtimeModal } from '@/components/OpenAIRealtimeModal';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -37,7 +37,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
-  const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
+  const [showRealtimeModal, setShowRealtimeModal] = useState(false);
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -67,6 +67,17 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleTranscriptionComplete = (text: string) => {
+    if (text.trim()) {
+      setInput(input + (input ? ' ' : '') + text);
+      toast({
+        title: "Transcription complete",
+        description: `Added ${text.split(' ').length} words to your message`,
+      });
+    }
+  };
+
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -74,9 +85,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     }
   };
 
-
   return (
-    <div className="p-3 space-y-3 bg-accent rounded-xl">
+    <>
+      <div className="p-3 space-y-3 bg-accent rounded-xl">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
@@ -119,27 +130,12 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             <Button
               variant="ghost"
               size="sm"
-              className={`h-12 w-12 p-0 rounded-md transition-all duration-200 ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : isProcessing 
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                    : 'hover:bg-accent'
-              }`}
-              onClick={async () => {
-                const text = await toggleRecording();
-                if (text) {
-                  setInput(input + (input ? ' ' : '') + text);
-                }
-              }}
+              className="h-12 w-12 p-0 hover:bg-accent rounded-md"
+              onClick={() => setShowRealtimeModal(true)}
               disabled={isLoading}
-              title={isRecording ? 'Stop recording' : isProcessing ? 'Processing speech...' : 'Start recording'}
+              title="OpenAI Realtime Transcription"
             >
-              {isRecording ? (
-                <MicOff className="w-6 h-6" />
-              ) : (
-                <Mic className="w-6 h-6" />
-              )}
+              <Zap className="w-6 h-6" />
             </Button>
           </div>
         </div>
@@ -156,13 +152,16 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
-        to send • Supports: PDF, Word, Excel, images, audio
-        {(isRecording || isProcessing) && (
-          <span className="ml-2 text-amber-600 font-medium">
-            {isRecording ? '🎤 Recording...' : '⏳ Processing...'}
-          </span>
-        )}
+        to send • Supports: PDF, Word, Excel, images, audio • 
+        <span className="text-primary font-medium">⚡ Real-time transcription available</span>
       </div>
     </div>
+
+    <OpenAIRealtimeModal
+      isOpen={showRealtimeModal}
+      onClose={() => setShowRealtimeModal(false)}
+      onTranscriptionComplete={handleTranscriptionComplete}
+    />
+    </>
   );
 });
