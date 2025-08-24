@@ -3270,8 +3270,10 @@ export type Database = {
           meeting_retention_policy: string | null
           mic_test_service_visible: boolean
           nhs_trust: string | null
+          northamptonshire_icb_active: boolean | null
           role: string | null
           shared_drive_visible: boolean
+          show_ai_service: boolean | null
           show_ai4gp_disclaimer: boolean | null
           title: string | null
           updated_at: string
@@ -3288,8 +3290,10 @@ export type Database = {
           meeting_retention_policy?: string | null
           mic_test_service_visible?: boolean
           nhs_trust?: string | null
+          northamptonshire_icb_active?: boolean | null
           role?: string | null
           shared_drive_visible?: boolean
+          show_ai_service?: boolean | null
           show_ai4gp_disclaimer?: boolean | null
           title?: string | null
           updated_at?: string
@@ -3306,8 +3310,10 @@ export type Database = {
           meeting_retention_policy?: string | null
           mic_test_service_visible?: boolean
           nhs_trust?: string | null
+          northamptonshire_icb_active?: boolean | null
           role?: string | null
           shared_drive_visible?: boolean
+          show_ai_service?: boolean | null
           show_ai4gp_disclaimer?: boolean | null
           title?: string | null
           updated_at?: string

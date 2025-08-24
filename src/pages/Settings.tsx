@@ -1,20 +1,67 @@
-import { useState, useEffect } from "react";
-import { Header } from "@/components/Header";
-import { AttendeeManager } from "@/components/AttendeeManager";
-import { PracticeManager } from "@/components/PracticeManager";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen, Headphones, Stethoscope, Sparkles } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { 
+  Trash2, 
+  Plus, 
+  SettingsIcon, 
+  Shield, 
+  BookOpen, 
+  Building, 
+  HelpCircle, 
+  Clock, 
+  Calendar, 
+  BarChart3, 
+  Timer, 
+  TrendingUp, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  User,
+  Key,
+  Search,
+  Pencil,
+  X,
+  Mail,
+  Globe,
+  ExternalLink,
+  Users,
+  Database,
+  FileCheck,
+  FolderOpen,
+  Headphones,
+  Stethoscope,
+  Sparkles
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Header } from '@/components/Header';
+import { PracticeManager } from '@/components/PracticeManager';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface NHSTerm {
   id: string;
@@ -27,6 +74,8 @@ interface NHSTerm {
 
 export default function Settings() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { profile, updateProfile } = useUserProfile();
   
   // NHS Terms state
   const [terms, setTerms] = useState<NHSTerm[]>([]);
@@ -84,7 +133,10 @@ export default function Settings() {
       setTerms(data || []);
     } catch (error) {
       console.error('Error fetching terms:', error);
-      toast.error('Failed to load NHS terms');
+      toast({
+        title: "Failed to load NHS terms",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -161,10 +213,15 @@ export default function Settings() {
       if (error) throw error;
 
       setRetentionPolicy(value);
-      toast.success('Meeting retention policy updated successfully');
+      toast({
+        title: "Meeting retention policy updated successfully"
+      });
     } catch (error) {
       console.error('Error updating retention policy:', error);
-      toast.error('Failed to update retention policy');
+      toast({
+        title: "Failed to update retention policy",
+        variant: "destructive"
+      });
     } finally {
       setRetentionLoading(false);
     }
@@ -233,7 +290,10 @@ export default function Settings() {
   // Add new term
   const handleAddTerm = async () => {
     if (!user || !newTerm.term.trim() || !newTerm.definition.trim()) {
-      toast.error('Please fill in both term and definition');
+      toast({
+        title: "Please fill in both term and definition",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -249,20 +309,28 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success('Term added successfully');
+      toast({
+        title: "Term added successfully"
+      });
       setNewTerm({ term: "", definition: "" });
       setShowAddForm(false);
       fetchTerms();
     } catch (error) {
       console.error('Error adding term:', error);
-      toast.error('Failed to add term');
+      toast({
+        title: "Failed to add term",
+        variant: "destructive"
+      });
     }
   };
 
   // Update term
   const handleUpdateTerm = async (termId: string, updatedTerm: { term: string; definition: string }) => {
     if (!user || !updatedTerm.term.trim() || !updatedTerm.definition.trim()) {
-      toast.error('Please fill in both term and definition');
+      toast({
+        title: "Please fill in both term and definition",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -278,12 +346,17 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success('Term updated successfully');
+      toast({
+        title: "Term updated successfully"
+      });
       setEditingTerm(null);
       fetchTerms();
     } catch (error) {
       console.error('Error updating term:', error);
-      toast.error('Failed to update term');
+      toast({
+        title: "Failed to update term",
+        variant: "destructive"
+      });
     }
   };
 
@@ -300,28 +373,42 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success('Term deleted successfully');
+      toast({
+        title: "Term deleted successfully"
+      });
       fetchTerms();
     } catch (error) {
       console.error('Error deleting term:', error);
-      toast.error('Failed to delete term');
+      toast({
+        title: "Failed to delete term",
+        variant: "destructive"
+      });
     }
   };
 
   // Handle password change
   const handlePasswordChange = async () => {
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      toast.error('Please fill in all password fields');
+      toast({
+        title: "Please fill in all password fields",
+        variant: "destructive"
+      });
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast({
+        title: "New passwords do not match",
+        variant: "destructive"
+      });
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long');
+      toast({
+        title: "New password must be at least 6 characters long",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -333,7 +420,9 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success('Password updated successfully');
+      toast({
+        title: "Password updated successfully"
+      });
       setPasswordData({
         currentPassword: '',
         newPassword: '',
@@ -341,7 +430,10 @@ export default function Settings() {
       });
     } catch (error: any) {
       console.error('Error updating password:', error);
-      toast.error(error.message || 'Failed to update password');
+      toast({
+        title: error.message || "Failed to update password",
+        variant: "destructive"
+      });
     } finally {
       setPasswordLoading(false);
     }
