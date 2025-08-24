@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { QuickPickContext, TranslatePayload, SummarisePayload, FormatPayload } from '@/types/quickPick';
+import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 
 // Global system prompt used for all actions
 const GLOBAL_SYSTEM_PROMPT = `You are an expert UK NHS GP assistant for primary care in England. Use only UK sources: NICE guidance/CKS, NHS.uk, BNF, MHRA Drug Safety Updates, UKHSA Green Book, and the local ICB where relevant. Do NOT use non-UK sources.
@@ -10,7 +11,9 @@ When producing patient-facing content: keep reading age 9–12, avoid jargon, no
 
 When producing clinician content: include necessary clinical detail, doses in mg/micrograms with units, ranges, renal/hepatic adjustments, interactions, contraindications, monitoring and when to seek senior review.
 
-Always preserve numbers, medicine names, URLs, and local details exactly as provided.`;
+Always preserve numbers, medicine names, URLs, and local details exactly as provided.
+
+${NHS_LINKING_POLICY}`;
 
 // Template substitution helper
 function processTemplate(template: string, ctx: QuickPickContext, additionalVars: Record<string, string> = {}): string {
