@@ -1949,6 +1949,24 @@ export type Database = {
         }
         Relationships: []
       }
+      drug_synonyms: {
+        Row: {
+          created_at: string
+          drug_name_norm: string
+          synonym_norm: string
+        }
+        Insert: {
+          created_at?: string
+          drug_name_norm: string
+          synonym_norm: string
+        }
+        Update: {
+          created_at?: string
+          drug_name_norm?: string
+          synonym_norm?: string
+        }
+        Relationships: []
+      }
       gp_practices: {
         Row: {
           address: string | null
@@ -2096,13 +2114,22 @@ export type Database = {
       }
       icb_formulary: {
         Row: {
+          bnf_chapter: string | null
           created_at: string
+          detail_url: string | null
           drug_name: string
+          formulary_status: string | null
           icb_region: string
           id: string
+          last_reviewed: string | null
           last_reviewed_date: string | null
+          name: string | null
+          name_norm: string | null
           notes_restrictions: string | null
+          prior_approval_page_ref: string | null
+          prior_approval_pdf_url: string | null
           prior_approval_required: boolean
+          source: string | null
           source_document: string | null
           source_page: string | null
           status: string
@@ -2110,13 +2137,22 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bnf_chapter?: string | null
           created_at?: string
+          detail_url?: string | null
           drug_name: string
+          formulary_status?: string | null
           icb_region?: string
           id?: string
+          last_reviewed?: string | null
           last_reviewed_date?: string | null
+          name?: string | null
+          name_norm?: string | null
           notes_restrictions?: string | null
+          prior_approval_page_ref?: string | null
+          prior_approval_pdf_url?: string | null
           prior_approval_required?: boolean
+          source?: string | null
           source_document?: string | null
           source_page?: string | null
           status: string
@@ -2124,13 +2160,22 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bnf_chapter?: string | null
           created_at?: string
+          detail_url?: string | null
           drug_name?: string
+          formulary_status?: string | null
           icb_region?: string
           id?: string
+          last_reviewed?: string | null
           last_reviewed_date?: string | null
+          name?: string | null
+          name_norm?: string | null
           notes_restrictions?: string | null
+          prior_approval_page_ref?: string | null
+          prior_approval_pdf_url?: string | null
           prior_approval_required?: boolean
+          source?: string | null
           source_document?: string | null
           source_page?: string | null
           status?: string
@@ -3159,6 +3204,57 @@ export type Database = {
           id?: string
           pcn_code?: string
           pcn_name?: string
+        }
+        Relationships: []
+      }
+      prior_approval_criteria: {
+        Row: {
+          application_route: string | null
+          application_url: string | null
+          category: string | null
+          created_at: string
+          criteria_text: string
+          drug_name_norm: string
+          effective_from: string | null
+          effective_to: string | null
+          evidence_required: string | null
+          icb_pdf_url: string | null
+          icb_version: string | null
+          id: string
+          last_scraped: string | null
+          review_interval_months: number | null
+        }
+        Insert: {
+          application_route?: string | null
+          application_url?: string | null
+          category?: string | null
+          created_at?: string
+          criteria_text: string
+          drug_name_norm: string
+          effective_from?: string | null
+          effective_to?: string | null
+          evidence_required?: string | null
+          icb_pdf_url?: string | null
+          icb_version?: string | null
+          id?: string
+          last_scraped?: string | null
+          review_interval_months?: number | null
+        }
+        Update: {
+          application_route?: string | null
+          application_url?: string | null
+          category?: string | null
+          created_at?: string
+          criteria_text?: string
+          drug_name_norm?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          evidence_required?: string | null
+          icb_pdf_url?: string | null
+          icb_version?: string | null
+          id?: string
+          last_scraped?: string | null
+          review_interval_months?: number | null
         }
         Relationships: []
       }
