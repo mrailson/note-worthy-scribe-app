@@ -345,17 +345,10 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                       )}
                        <a 
                          className="inline-flex items-center gap-2 text-primary hover:underline" 
-                         href={(() => {
-                           const storedUrl = localStorage.getItem('uploaded_prior_approval_pdf');
-                           if (storedUrl && storedUrl.includes('supabase.co/storage')) {
-                             const filename = storedUrl.split('/').pop();
-                             return `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/serve-pdf?file=${filename}`;
-                           }
-                           return storedUrl || "/MHRA-Compliance-Documentation.md";
-                         })()} 
+                         href="/prior-approval-northamptonshire-icb-august-2025.pdf"
                          target="_blank" 
                          rel="noreferrer"
-                         title="Verify prior approval requirements manually"
+                         title="Prior approval requirements document"
                        >
                          <ExternalLink className="h-4 w-4" /> Prior Approval Criteria - Northamptonshire ICB (August 2025)
                        </a>
@@ -380,17 +373,10 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     <div className="mt-3">
                       <a 
                         className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href={(() => {
-                          const storedUrl = localStorage.getItem('uploaded_prior_approval_pdf');
-                          if (storedUrl && storedUrl.includes('supabase.co/storage')) {
-                            const filename = storedUrl.split('/').pop();
-                            return `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/serve-pdf?file=${filename}`;
-                          }
-                          return storedUrl || "/MHRA-Compliance-Documentation.md";
-                        })()} 
+                        href="/prior-approval-northamptonshire-icb-august-2025.pdf"
                         target="_blank" 
                         rel="noreferrer"
-                        title="Verify prior approval requirements manually"
+                        title="Prior approval requirements document"
                       >
                         <ExternalLink className="h-4 w-4" /> Prior Approval Criteria - Northamptonshire ICB (August 2025)
                       </a>
