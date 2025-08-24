@@ -306,8 +306,53 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     return <AlertTriangle className="w-3 h-3" />;
   };
 
+  // Handle print functionality
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const cleanedContent = message.content
+        .replace(/^```html\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```\s*$/i, '')
+        .replace(/^html\s*/i, '')
+        .replace(/\s*```[a-z]*\s*$/gi, '')
+        .trim();
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>AI Assistant Response</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+              h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+              p { margin-bottom: 10px; }
+              strong { font-weight: bold; }
+              em { font-style: italic; }
+              ul, ol { margin-left: 20px; }
+              @media print { body { margin: 20px; } }
+            </style>
+          </head>
+          <body>
+            <h1>AI Assistant Response</h1>
+            <div>${cleanedContent}</div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+      toast("The AI response is ready to print");
+    } else {
+      toast.error("Unable to open print dialog. Please check your browser settings.");
+    }
+  };
+
   const handleQuickPickAction = (action: string) => {
     if (onQuickResponse) {
+      if (action === "Print") {
+        handlePrint();
+        return;
+      }
+      
       if (action === "Check this as I think it's wrong") {
         const correctionPrompt = `You are an NHS UK primary-care assistant acting in "Challenge & Verify" mode.
 
@@ -378,15 +423,11 @@ Comparison with previous answer:
 - Differences found:
   • <difference 1>
   • <difference 2>
-  • ...
 
-Corrected answer (only if Verdict ≠ Correct):
-<Provide the final corrected answer. Where applicable (e.g., eligibility), paste the bullets verbatim.>
+Revised answer (only if needed):
+<Complete replacement content that matches the evidence exactly>
 
-Change log:
-- <What changed and why, each mapped to a quoted evidence line.>
-
-References:
+Sources used:
 - <Primary source title> — <url>
 - <Secondary source title> — <url> (only if used)
 
