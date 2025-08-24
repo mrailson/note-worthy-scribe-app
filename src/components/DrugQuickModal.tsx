@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, Copy, X, Maximize2, Minimize2, AlertTriangle } from "lucide-react";
+import { Search, ExternalLink, X, Maximize2, Minimize2, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,17 +173,6 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
    }, [data]);
 
   const modalSizeClass = expandMode === 'expanded' ? "max-w-[90vw] max-h-[95vh]" : "max-w-[1170px] max-h-[85vh]";
-
-  const handleCopySummary = () => {
-    if (!data || !sel) return;
-    
-    const lines = [];
-    lines.push(`Local policy: ${data.drug || sel.name} — ${data.traffic_light?.status || 'UNKNOWN'}.`);
-    if (data.prior_approval.required) {
-      lines.push(`Prior approval required.`);
-    }
-    navigator.clipboard.writeText(lines.join(" "));
-  };
 
   const toggleExpand = () => {
     setExpandMode(current => current === 'expanded' ? 'normal' : 'expanded');
@@ -481,10 +470,6 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
 
                 {/* Actions */}
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" onClick={handleCopySummary}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy summary
-                  </Button>
                   {data.traffic_light?.detail_url && (
                     <Button variant="outline" asChild>
                       <a href={data.traffic_light.detail_url} target="_blank" rel="noreferrer">
