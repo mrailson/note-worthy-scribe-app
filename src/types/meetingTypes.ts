@@ -36,6 +36,10 @@ export interface MeetingSettingsState {
   format?: 'face-to-face' | 'online' | 'hybrid' | 'phone' | '' | undefined;
   location?: string;
   transcriberService?: 'whisper' | 'deepgram';
+  transcriberThresholds?: {
+    whisper: number;
+    deepgram: number;
+  };
 }
 
 export interface SummaryContent {

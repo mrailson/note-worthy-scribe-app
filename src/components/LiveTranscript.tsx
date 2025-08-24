@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
+import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -57,8 +58,20 @@ interface LiveTranscriptProps {
     practiceId: string;
     meetingFormat: string;
     transcriberService?: 'whisper' | 'deepgram';
+    transcriberThresholds?: {
+      whisper: number;
+      deepgram: number;
+    };
   };
-  onMeetingSettingsChange?: (settings: { practiceId: string; meetingFormat: string; transcriberService?: 'whisper' | 'deepgram' }) => void;
+  onMeetingSettingsChange?: (settings: { 
+    practiceId: string; 
+    meetingFormat: string; 
+    transcriberService?: 'whisper' | 'deepgram';
+    transcriberThresholds?: {
+      whisper: number;
+      deepgram: number;
+    };
+  }) => void;
   defaultOpen?: boolean;
 }
 
@@ -207,6 +220,18 @@ export const LiveTranscript = ({
           console.log('📝 New transcription chunk received:', payload);
           const chunk = payload.new;
           if (chunk.transcription_text) {
+            // Get confidence gating settings
+            const confidenceSettings = withDefaultThresholds(meetingSettings);
+            const chunkConfidence = chunk.confidence_score;
+
+            // Apply confidence gating - drop low-confidence chunks
+            if (!meetsConfidenceThreshold(chunkConfidence, confidenceSettings)) {
+              console.log(`🚫 Dropping low-confidence chunk (${chunkConfidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+              return;
+            }
+
+            console.log(`✅ Accepting chunk with confidence ${chunkConfidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+
             // Apply medical corrections if loaded
             let processedText = chunk.transcription_text;
             if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
@@ -215,7 +240,7 @@ export const LiveTranscript = ({
             
             // Update cleaned transcript with new chunk using overlap-aware cleaner
             setCleanedTranscript(prev => {
-              const newText = transcriptCleaner.cleanStreamingAppend(prev, processedText, chunk.confidence_score ?? undefined);
+              const newText = transcriptCleaner.cleanStreamingAppend(prev, processedText, chunkConfidence);
               console.log('✨ Updated AI enhanced transcript with cleaned chunk (length:', newText.length, ')');
               return newText;
             });
@@ -227,7 +252,7 @@ export const LiveTranscript = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isMedicalCorrectionsLoaded]);
+  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
 
   // Filter out system messages (silence detection, etc.)
   const filterSystemMessages = (text: string): string => {
@@ -262,6 +287,17 @@ export const LiveTranscript = ({
   // Update live transcript text when transcript prop changes (RAW TRANSCRIPT ONLY)
   useEffect(() => {
     if (transcript && transcript.trim()) {
+      // Get confidence gating settings
+      const confidenceSettings = withDefaultThresholds(meetingSettings);
+      
+      // Apply confidence gating - drop low-confidence chunks
+      if (!meetsConfidenceThreshold(confidence, confidenceSettings)) {
+        console.log(`🚫 Dropping low-confidence raw transcript (${confidence?.toFixed(3)} < ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+        return;
+      }
+
+      console.log(`✅ Processing raw transcript with confidence ${confidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
+
       let processedTranscript = filterSystemMessages(transcript);
       
       // Apply medical term corrections if loaded
@@ -279,13 +315,15 @@ export const LiveTranscript = ({
         setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
         console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
       } else {
-        setLiveTranscriptText(processedTranscript); // Show processed version
-        console.log('📝 Updated live transcript with raw version (length:', processedTranscript.length, ')');
+        // For non-auto-cleaning, still use append to avoid duplication
+        const combinedText = [liveTranscriptText, processedTranscript].filter(Boolean).join(" ");
+        setLiveTranscriptText(combinedText); // Show processed version
+        console.log('📝 Updated live transcript with raw version (length:', combinedText.length, ')');
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
     // NEVER update cleanedTranscript here - only AI chunks subscription should do that
-  }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
+  }, [transcript, confidence, isAutoCleaningEnabled, isMedicalCorrectionsLoaded, meetingSettings]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {

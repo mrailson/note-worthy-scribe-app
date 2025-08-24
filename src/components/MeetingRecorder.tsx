@@ -65,6 +65,10 @@ interface MeetingRecorderProps {
     meetingType: string;
     practiceId?: string;
     transcriberService?: 'whisper' | 'deepgram';
+    transcriberThresholds?: {
+      whisper: number;
+      deepgram: number;
+    };
   };
   initialActiveTab?: string;
 }
@@ -172,14 +176,18 @@ export const MeetingRecorder = ({
   
   
   // Meeting settings
-  const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
-    title: "General Meeting",
-    description: "",
-    meetingType: "general",
-    practiceId: "",
+  const [meetingSettings, setMeetingSettings] = useState(() => ({
+    title: initialSettings?.title || "General Meeting",
+    description: initialSettings?.description || "",
+    meetingType: initialSettings?.meetingType || "general",
+    practiceId: initialSettings?.practiceId || "",
     meetingFormat: "teams",
-    transcriberService: (initialSettings?.transcriberService || "whisper") as "whisper" | "deepgram"
-  });
+    transcriberService: (initialSettings?.transcriberService || "whisper") as "whisper" | "deepgram",
+    transcriberThresholds: {
+      whisper: initialSettings?.transcriberThresholds?.whisper || 0.75,
+      deepgram: initialSettings?.transcriberThresholds?.deepgram || 0.80
+    }
+  }));
 
   // Timestamp toggle state
   const [showTimestamps, setShowTimestamps] = useState(true);
@@ -222,7 +230,11 @@ export const MeetingRecorder = ({
       meetingType: "general",
       practiceId: "",
       meetingFormat: "teams",
-      transcriberService: "whisper"
+      transcriberService: "whisper",
+      transcriberThresholds: {
+        whisper: 0.75,
+        deepgram: 0.80
+      }
     });
     
     // Clear parent component state
@@ -3915,14 +3927,16 @@ export const MeetingRecorder = ({
                 meetingSettings={{
                   practiceId: (meetingSettings as any)?.practiceId || "",
                   meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
-                  transcriberService: (meetingSettings as any)?.transcriberService || "whisper"
+                  transcriberService: (meetingSettings as any)?.transcriberService || "whisper",
+                  transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.75, deepgram: 0.80 }
                 }}
                 onMeetingSettingsChange={(settings) => {
                   setMeetingSettings(prev => ({
                     ...prev,
                     practiceId: settings.practiceId,
                     meetingFormat: settings.meetingFormat,
-                    transcriberService: settings.transcriberService || prev.transcriberService
+                    transcriberService: settings.transcriberService || prev.transcriberService,
+                    transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
                   }));
                 }}
               />
