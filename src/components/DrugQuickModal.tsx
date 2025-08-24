@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, Copy, X, Maximize, Minimize, ArrowsUpFromLine, Expand } from "lucide-react";
+import { Search, ExternalLink, Copy, X, Maximize2, Minimize2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
   const [sel, setSel] = useState<VocabItem | null>(null);
   const [data, setData] = useState<ResolveResp | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandMode, setExpandMode] = useState<'normal' | 'wide' | 'tall'>('normal');
+  const [expandMode, setExpandMode] = useState<'normal' | 'expanded'>('normal');
 
   useEffect(() => {
     if (open) {
@@ -138,11 +138,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     return "YES";
   })();
 
-  const modalSizeClass = {
-    normal: "max-w-[1170px] max-h-[85vh]",
-    wide: "max-w-[90vw] max-h-[85vh]", 
-    tall: "max-w-[1170px] max-h-[95vh]"
-  }[expandMode];
+  const modalSizeClass = expandMode === 'expanded' ? "max-w-[90vw] max-h-[95vh]" : "max-w-[1170px] max-h-[85vh]";
 
   const handleCopySummary = () => {
     if (!data || !sel) return;
@@ -155,8 +151,8 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     navigator.clipboard.writeText(lines.join(" "));
   };
 
-  const toggleExpandMode = (mode: 'wide' | 'tall') => {
-    setExpandMode(current => current === mode ? 'normal' : mode);
+  const toggleExpand = () => {
+    setExpandMode(current => current === 'expanded' ? 'normal' : 'expanded');
   };
 
   return (
@@ -175,25 +171,20 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           
-          {/* Expansion Controls */}
+          {/* Expansion Control */}
           <div className="flex items-center gap-2 ml-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => toggleExpandMode('wide')}
-              title="Expand horizontally"
-              className={expandMode === 'wide' ? 'bg-muted' : ''}
+              onClick={toggleExpand}
+              title={expandMode === 'expanded' ? "Minimize modal" : "Expand modal"}
+              className={expandMode === 'expanded' ? 'bg-muted' : ''}
             >
-              <Expand className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleExpandMode('tall')}
-              title="Expand vertically"
-              className={expandMode === 'tall' ? 'bg-muted' : ''}
-            >
-              <ArrowsUpFromLine className="h-4 w-4" />
+              {expandMode === 'expanded' ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
