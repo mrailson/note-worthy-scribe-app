@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download, ChevronDown, ChevronUp, FileText, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -143,18 +143,17 @@ const clinicalQuickPicks = [
 ];
 
 const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
-  const [prompt, setPrompt] = useState('');
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const [results, setResults] = useState<Record<string, TestResult>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [testPrompt, setTestPrompt] = useState('Write a short poem about artificial intelligence.');
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [isTestingIndividual, setIsTestingIndividual] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Clinical Performance Testing State
+  // Clinical testing state
+  const [selectedClinicalQuery, setSelectedClinicalQuery] = useState(CLINICAL_TEST_QUERY);
+  const [selectedClinicalTitle, setSelectedClinicalTitle] = useState('');
   const [clinicalResults, setClinicalResults] = useState<ClinicalTestResult[]>([]);
   const [isClinicalTesting, setIsClinicalTesting] = useState(false);
-  const [selectedClinicalQuery, setSelectedClinicalQuery] = useState(clinicalQuickPicks[0].prompt);
-  const [selectedClinicalTitle, setSelectedClinicalTitle] = useState(clinicalQuickPicks[0].title);
-  
-  // Expanded results tracking
   const [expandedResults, setExpandedResults] = useState<Record<string, boolean>>({});
 
   // Get current gold standard if available
@@ -412,14 +411,29 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
     return `${result.model}-${result.service}`;
   };
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className={`${isFullscreen ? 'max-w-[98vw] h-[98vh]' : 'max-w-7xl max-h-[95vh]'} overflow-hidden flex flex-col`}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <TestTube className="w-5 h-5" />
-            AI Model Tester
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <TestTube className="w-5 h-5" />
+              AI Model Tester
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="flex items-center gap-2"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            </Button>
+          </div>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">
@@ -515,8 +529,8 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
                     )}
                   </div>
 
-                  <ScrollArea className="flex-1">
-                    <div className="grid gap-3">
+                  <ScrollArea className="flex-1 max-h-[60vh]">
+                    <div className="grid gap-3 pr-4">
                       {clinicalResults.map((result, index) => {
                         const resultKey = getResultKey(result);
                         const isExpanded = expandedResults[resultKey];
@@ -564,12 +578,14 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
                               {/* Response */}
                               <div className="space-y-2">
                                 <Label className="text-xs font-medium text-muted-foreground">Response:</Label>
-                                <div className="p-3 bg-muted rounded-lg">
-                                  <FormattedText 
-                                    text={isExpanded ? (result.fullResponse || result.response) : result.response}
-                                    className="text-sm leading-relaxed"
-                                  />
-                                </div>
+                                <ScrollArea className="max-h-96">
+                                  <div className="p-3 bg-muted rounded-lg">
+                                    <FormattedText 
+                                      text={isExpanded ? (result.fullResponse || result.response) : result.response}
+                                      className="text-sm leading-relaxed"
+                                    />
+                                  </div>
+                                </ScrollArea>
                               </div>
                             </div>
                           </Card>
