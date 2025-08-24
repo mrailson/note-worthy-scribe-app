@@ -1220,66 +1220,174 @@ Please fetch these and retry. No corrections made."`;
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="flex items-center">
                               <Languages className="h-4 w-4 mr-2" />
-                              Translate for patients
+                              Translate
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into English while maintaining medical accuracy and cultural appropriateness")}>
-                                🇬🇧 English
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content automatically into the most appropriate language for this patient while maintaining medical accuracy and cultural appropriateness")}>
+                                <Languages className="h-4 w-4 mr-2" />
+                                Quick translate (auto)
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Polish while maintaining medical accuracy and cultural appropriateness")}>
-                                🇵🇱 Polish
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Romanian while maintaining medical accuracy and cultural appropriateness")}>
-                                🇷🇴 Romanian
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hungarian while maintaining medical accuracy and cultural appropriateness")}>
-                                🇭🇺 Hungarian
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Portuguese while maintaining medical accuracy and cultural appropriateness")}>
-                                🇵🇹 Portuguese
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Italian while maintaining medical accuracy and cultural appropriateness")}>
-                                🇮🇹 Italian
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into French while maintaining medical accuracy and cultural appropriateness")}>
-                                🇫🇷 French
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into German while maintaining medical accuracy and cultural appropriateness")}>
-                                🇩🇪 German
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Dutch while maintaining medical accuracy and cultural appropriateness")}>
-                                🇳🇱 Dutch
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Greek while maintaining medical accuracy and cultural appropriateness")}>
-                                🇬🇷 Greek
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Spanish while maintaining medical accuracy and cultural appropriateness")}>
-                                🇪🇸 Spanish
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Arabic while maintaining medical accuracy and cultural appropriateness")}>
-                                🇸🇦 Arabic
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Urdu while maintaining medical accuracy and cultural appropriateness")}>
-                                🇵🇰 Urdu
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Bengali while maintaining medical accuracy and cultural appropriateness")}>
-                                🇧🇩 Bengali
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hindi while maintaining medical accuracy and cultural appropriateness")}>
-                                🇮🇳 Hindi
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Gujarati while maintaining medical accuracy and cultural appropriateness")}>
-                                🇮🇳 Gujarati
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Punjabi while maintaining medical accuracy and cultural appropriateness")}>
-                                🇮🇳 Punjabi
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Turkish while maintaining medical accuracy and cultural appropriateness")}>
-                                🇹🇷 Turkish
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Somali while maintaining medical accuracy and cultural appropriateness")}>
-                                🇸🇴 Somali
-                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              
+                              {/* Patient-friendly translations */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger className="flex items-center">
+                                  Patient-friendly
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Polish in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇵🇱 Polish
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Romanian in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇷🇴 Romanian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Lithuanian in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇱🇹 Lithuanian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Ukrainian in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇺🇦 Ukrainian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Arabic in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇸🇦 Arabic
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Portuguese in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                    🇵🇹 Portuguese
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger className="flex items-center">
+                                      More languages...
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into English in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇬🇧 English
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hungarian in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇭🇺 Hungarian
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Italian in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇮🇹 Italian
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into French in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇫🇷 French
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into German in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇩🇪 German
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Dutch in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇳🇱 Dutch
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Greek in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇬🇷 Greek
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Spanish in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇪🇸 Spanish
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Urdu in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇵🇰 Urdu
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Bengali in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇧🇩 Bengali
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hindi in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇮🇳 Hindi
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Gujarati in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇮🇳 Gujarati
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Punjabi in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇮🇳 Punjabi
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Turkish in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇹🇷 Turkish
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Somali in a patient-friendly manner while maintaining medical accuracy and cultural appropriateness")}>
+                                        🇸🇴 Somali
+                                      </DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuSub>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+
+                              {/* Clinician-literal translations */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger className="flex items-center">
+                                  Clinician-literal
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Polish using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇵🇱 Polish
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Romanian using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇷🇴 Romanian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Lithuanian using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇱🇹 Lithuanian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Ukrainian using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇺🇦 Ukrainian
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Arabic using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇸🇦 Arabic
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Portuguese using precise clinical terminology while maintaining medical accuracy")}>
+                                    🇵🇹 Portuguese
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger className="flex items-center">
+                                      More languages...
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent className="w-56 bg-popover border border-border shadow-lg z-[9999]">
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into English using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇬🇧 English
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hungarian using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇭🇺 Hungarian
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Italian using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇮🇹 Italian
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into French using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇫🇷 French
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into German using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇩🇪 German
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Dutch using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇳🇱 Dutch
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Greek using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇬🇷 Greek
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Spanish using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇪🇸 Spanish
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Urdu using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇵🇰 Urdu
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Bengali using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇧🇩 Bengali
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Hindi using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇮🇳 Hindi
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Gujarati using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇮🇳 Gujarati
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Punjabi using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇮🇳 Punjabi
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Turkish using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇹🇷 Turkish
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Translate this content into Somali using precise clinical terminology while maintaining medical accuracy")}>
+                                        🇸🇴 Somali
+                                      </DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                  </DropdownMenuSub>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Create as a detailed training document for our staff, covering off any areas that are expected to be known")}>
