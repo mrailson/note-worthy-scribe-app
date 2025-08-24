@@ -345,7 +345,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                       )}
                        <a 
                          className="inline-flex items-center gap-2 text-primary hover:underline" 
-                         href="/prior-approval-northamptonshire-icb-august-2025.pdf"
+                         href="https://www.icnorthamptonshire.org.uk/mo-prior-approval?media_item=22499&media_type=10#file-viewer"
                          target="_blank" 
                          rel="noreferrer"
                          title="Prior approval requirements document"
@@ -373,7 +373,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     <div className="mt-3">
                       <a 
                         className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href="/prior-approval-northamptonshire-icb-august-2025.pdf"
+                        href="https://www.icnorthamptonshire.org.uk/mo-prior-approval?media_item=22499&media_type=10#file-viewer"
                         target="_blank" 
                         rel="noreferrer"
                         title="Prior approval requirements document"
