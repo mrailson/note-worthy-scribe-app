@@ -83,7 +83,7 @@ serve(async (req) => {
               const { data: existingData, error: checkError } = await supabase
                 .from('prior_approval_criteria')
                 .select('id')
-                .eq('drug_name', drugName)
+                .eq('drug_name_norm', drugName.toLowerCase().replace(/[^a-z0-9]/g, ''))
                 .eq('criteria_text', criteria.criteria_text || '')
                 .single()
 
@@ -98,7 +98,7 @@ serve(async (req) => {
                     evidence_required: criteria.evidence_required,
                     icb_version: criteria.icb_version || 'August 2025',
                     icb_pdf_url: criteria.icb_pdf_url,
-                    updated_at: new Date().toISOString()
+                    last_scraped: new Date().toISOString()
                   })
                   .eq('id', existingData.id)
 
@@ -113,7 +113,7 @@ serve(async (req) => {
                 const { error: insertError } = await supabase
                   .from('prior_approval_criteria')
                   .insert({
-                    drug_name: drugName,
+                    drug_name_norm: drugName.toLowerCase().replace(/[^a-z0-9]/g, ''),
                     criteria_text: criteria.criteria_text || '',
                     category: criteria.category,
                     application_route: criteria.application_route,
@@ -137,21 +137,20 @@ serve(async (req) => {
           const trafficLightStatus = item.traffic_light_status || item.status || item.traffic_light
           if (trafficLightStatus) {
             const { data: existingTL, error: tlCheckError } = await supabase
-              .from('icn_traffic_light_medicines')
+              .from('traffic_light_medicines')
               .select('id')
-              .eq('drug_name', drugName)
+              .eq('name', drugName)
               .single()
 
             if (existingTL) {
               // Update existing traffic light record
               const { error: updateTLError } = await supabase
-                .from('icn_traffic_light_medicines')
+                .from('traffic_light_medicines')
                 .update({
-                  status: trafficLightStatus,
+                  status_enum: trafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
                   detail_url: item.detail_url,
-                  status_tooltip: item.status_tooltip,
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', existingTL.id)
@@ -164,14 +163,14 @@ serve(async (req) => {
             } else if (trafficLightStatus !== 'UNKNOWN') {
               // Insert new traffic light record only if status is not UNKNOWN
               const { error: insertTLError } = await supabase
-                .from('icn_traffic_light_medicines')
+                .from('traffic_light_medicines')
                 .insert({
-                  drug_name: drugName,
-                  status: trafficLightStatus,
+                  name: drugName,
+                  status_enum: trafficLightStatus,
+                  status_raw: trafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
-                  detail_url: item.detail_url,
-                  status_tooltip: item.status_tooltip
+                  detail_url: item.detail_url
                 })
 
               if (insertTLError) {
