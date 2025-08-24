@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
+import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -218,11 +219,11 @@ export const LiveTranscript = ({
         },
         (payload) => {
           console.log('📝 New transcription chunk received:', payload);
-          const chunk = payload.new;
-          if (chunk.transcription_text) {
+          const chunkRow = payload.new;
+          if (chunkRow.transcription_text) {
             // Get confidence gating settings
             const confidenceSettings = withDefaultThresholds(meetingSettings);
-            const chunkConfidence = chunk.confidence_score;
+            const chunkConfidence = chunkRow.confidence_score;
 
             // Apply confidence gating - drop low-confidence chunks
             if (!meetsConfidenceThreshold(chunkConfidence, confidenceSettings)) {
@@ -233,17 +234,33 @@ export const LiveTranscript = ({
             console.log(`✅ Accepting chunk with confidence ${chunkConfidence?.toFixed(3)} (threshold: ${getActiveMinConfidence(confidenceSettings).toFixed(3)})`);
 
             // Apply medical corrections if loaded
-            let processedText = chunk.transcription_text;
+            let processedText = chunkRow.transcription_text;
             if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
               processedText = medicalTermCorrector.applyCorrections(processedText);
             }
             
-            // Update cleaned transcript with new chunk using overlap-aware cleaner
+            // Create LiveChunk object
+            const liveChunk: LiveChunk = {
+              text: processedText,
+              isFinal: chunkRow.is_final ?? true, // default to true if not specified
+              seq: chunkRow.seq ?? chunkRow.chunk_number,
+              start_ms: chunkRow.start_ms,
+              end_ms: chunkRow.end_ms,
+              source: chunkRow.source,
+              speaker: chunkRow.speaker_info?.name ?? null,
+            };
+
+            // Update cleaned transcript with new chunk using live merge
             setCleanedTranscript(prev => {
-              const newText = transcriptCleaner.cleanStreamingAppend(prev, processedText, chunkConfidence);
-              console.log('✨ Updated AI enhanced transcript with cleaned chunk (length:', newText.length, ')');
+              const newText = mergeLive(prev, liveChunk);
+              console.log('✨ Updated AI enhanced transcript with live merge (length:', newText.length, ')');
               return newText;
             });
+
+            // Show latest final chunk in raw section (separate from cleanedTranscript)
+            if (liveChunk.isFinal !== false) {
+              setLiveTranscriptText(processedText);
+            }
           }
         }
       )
@@ -399,7 +416,8 @@ export const LiveTranscript = ({
 
   // Build formatted cleaned text (paragraphs separated by blank lines)
   const getFormattedCleanedText = () => {
-    const base = cleanedTranscript || transcript || "";
+    // Only use cleanedTranscript - no fallback to avoid contamination
+    const base = cleanedTranscript || "";
     return formatTranscriptWithTimestamps(base);
   };
 
@@ -647,7 +665,7 @@ export const LiveTranscript = ({
                     </p>
                   </div>
 
-                  {(cleanedTranscript || (transcript && isAutoCleaningEnabled)) && (
+                  {cleanedTranscript && (
                     <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label className="text-sm font-medium flex items-center gap-2">
                         <FileText className="h-4 w-4" />
@@ -717,7 +735,7 @@ export const LiveTranscript = ({
                     </span>
                     <Badge variant="default" className="text-xs">
                       <Sparkles className="h-3 w-3 mr-1" />
-                      Cleaned
+                      Live Merge
                     </Badge>
                   </div>
 
@@ -767,41 +785,41 @@ export const LiveTranscript = ({
                         onChange={(e) => setEditedCleanedText(e.target.value)}
                         rows={12}
                       />
-                    ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
-                      <div className="space-y-2">
-                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                          {showTimestamps ? (
-                            // Display with timestamps - split by sentences and add timestamps
-                            (cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
-                              const timestamp = new Date();
-                              timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
-                              const timeStr = timestamp.toLocaleTimeString('en-GB', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              });
-                              
-                              return (
-                                <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
-                                  <div className="flex items-center gap-2 min-w-fit">
-                                    <Clock className="h-3 w-3 text-primary/70" />
-                                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                      {timeStr}
-                                    </Badge>
-                                  </div>
-                                  <span className="text-foreground leading-relaxed">
-                                    {sentence.trim()}.
-                                  </span>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            // Display without timestamps - show full accumulated transcript
-                            <div className="text-foreground leading-relaxed">
-                              {cleanedTranscript || transcript}
-                            </div>
-                          )}
-                         </div>
-                       </div>
+                     ) : cleanedTranscript ? (
+                       <div className="space-y-2">
+                         <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                           {showTimestamps ? (
+                             // Display with timestamps - split by sentences and add timestamps
+                             cleanedTranscript.split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+                               const timestamp = new Date();
+                               timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+                               const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+                                 hour: '2-digit', 
+                                 minute: '2-digit' 
+                               });
+                               
+                               return (
+                                 <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
+                                   <div className="flex items-center gap-2 min-w-fit">
+                                     <Clock className="h-3 w-3 text-primary/70" />
+                                     <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                       {timeStr}
+                                     </Badge>
+                                   </div>
+                                   <span className="text-foreground leading-relaxed">
+                                     {sentence.trim()}.
+                                   </span>
+                                 </div>
+                               );
+                             })
+                           ) : (
+                             // Display without timestamps - show full accumulated transcript
+                             <div className="text-foreground leading-relaxed">
+                               {cleanedTranscript}
+                             </div>
+                           )}
+                          </div>
+                        </div>
                      ) : (
                        <span className="text-muted-foreground italic">
                          AI-cleaned and formatted transcript will appear here with timestamps...
