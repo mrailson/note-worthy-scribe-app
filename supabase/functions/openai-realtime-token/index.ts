@@ -21,13 +21,36 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured');
     }
 
+    console.log('✅ OPENAI_API_KEY found, length:', OPENAI_API_KEY.length);
+
     const { language, medicalBias } = await req.json().catch(() => ({}));
+    console.log('📝 Request params:', { language, medicalBias });
 
     const instructions = medicalBias 
       ? "You are a medical transcription AI. Transcribe UK primary care speech with medical abbreviations (e.g., PCN DES, CQC, ARRS). Preserve drug names, doses, routes, and timings accurately. Use UK spelling. Focus on medical terminology and be precise with clinical language."
       : "Transcribe speech clearly and accurately. Use appropriate punctuation and formatting.";
 
     console.log('📡 Creating realtime session with OpenAI...');
+
+    const requestBody = {
+      model: "gpt-4o-realtime-preview-2024-12-17",
+      voice: "alloy",
+      instructions,
+      modalities: ["text", "audio"],
+      input_audio_format: "pcm16",
+      output_audio_format: "pcm16",
+      input_audio_transcription: {
+        model: "whisper-1"
+      },
+      turn_detection: {
+        type: "server_vad",
+        threshold: 0.5,
+        prefix_padding_ms: 300,
+        silence_duration_ms: 500
+      }
+    };
+
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
 
     // Request an ephemeral token from OpenAI Realtime API
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
@@ -36,23 +59,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "alloy",
-        instructions,
-        modalities: ["text"],
-        input_audio_format: "pcm16",
-        output_audio_format: "pcm16",
-        input_audio_transcription: {
-          model: "whisper-1"
-        },
-        turn_detection: {
-          type: "server_vad",
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500
-        }
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
