@@ -25,11 +25,17 @@ interface DrugLookupResponse {
       item_name: string;
       rank: number;
       notes?: string;
+      status?: string;
+      source_document?: string;
+      last_reviewed_date?: string;
       otc?: boolean;
     }>;
     page_url: string;
     last_published?: string;
     found_exact_match: boolean;
+    therapeutic_area?: string;
+    source_document?: string;
+    formulary_status?: string;
   } | null;
   alternatives: Array<{
     name: string;
@@ -203,11 +209,17 @@ serve(async (req) => {
         preferred: formularyData.map((item, index) => ({
           item_name: item.drug_name,
           rank: index + 1,
-          notes: item.notes_restrictions
+          notes: item.notes_restrictions,
+          status: item.status,
+          source_document: item.source_document,
+          last_reviewed_date: item.last_reviewed_date
         })),
         page_url: 'https://www.icnorthamptonshire.org.uk/mo-formulary',
         last_published: formularyData[0]?.last_reviewed_date,
-        found_exact_match: true
+        found_exact_match: true,
+        therapeutic_area: formularyData[0]?.therapeutic_area,
+        source_document: formularyData[0]?.source_document,
+        formulary_status: formularyData[0]?.status
       } : null,
       alternatives: alternativesData
     };

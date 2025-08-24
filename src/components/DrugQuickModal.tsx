@@ -69,9 +69,19 @@ type ResolveResp = {
   formulary: null | {
     bnf_chapter?: string;
     section?: string;
-    preferred: { item_name: string; rank: number; notes?: string }[];
+    preferred: { 
+      item_name: string; 
+      rank: number; 
+      notes?: string;
+      status?: string;
+      source_document?: string;
+      last_reviewed_date?: string;
+    }[];
     page_url?: string;
     last_published?: string;
+    therapeutic_area?: string;
+    source_document?: string;
+    formulary_status?: string;
   };
   alternatives: { name: string; notes?: string; status: Status; detail_url?: string }[];
 };
@@ -125,19 +135,33 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     }
   }, [sel]);
 
-  const results = useMemo(() => {
-    if (!q) return [];
-    const n = q.toLowerCase();
-    return vocab.filter(v => v.name.toLowerCase().includes(n)).slice(0, 10);
-  }, [q, vocab]);
+   const results = useMemo(() => {
+     if (!q) return [];
+     const n = q.toLowerCase();
+     return vocab.filter(v => v.name.toLowerCase().includes(n)).slice(0, 10);
+   }, [q, vocab]);
 
-  const canInitiate = (() => {
-    const s = data?.traffic_light?.status;
-    if (!s) return "UNKNOWN";
-    if (s === "DOUBLE_RED" || s === "RED") return "NO";
-    if (s === "SPECIALIST_INITIATED") return "ONLY_IF_SPECIALIST";
-    return "YES";
-  })();
+   // Enhanced logic for "Can GP initiate" based on formulary data
+   const canInitiate = useMemo(() => {
+     // If we have formulary data with status, use that first
+     if (data?.formulary?.formulary_status) {
+       const status = data.formulary.formulary_status.toLowerCase();
+       if (status.includes('green')) return 'YES';
+       if (status.includes('formulary') && !status.includes('red')) return 'YES';
+       if (status.includes('amber')) return 'ONLY_IF_SPECIALIST';
+       if (status.includes('double red') || status.includes('red')) return 'NO';
+     }
+     
+     // Fall back to traffic light logic
+     if (!data?.traffic_light?.status) return 'UNKNOWN';
+     
+     const status = data.traffic_light.status;
+     if (status === 'GREEN' || status === 'GREY') return 'YES';
+     if (status === 'AMBER_1' || status === 'AMBER_2' || status === 'SPECIALIST_RECOMMENDED') return 'ONLY_IF_SPECIALIST';
+     if (status === 'DOUBLE_RED' || status === 'RED' || status === 'SPECIALIST_INITIATED') return 'NO';
+     
+     return 'UNKNOWN';
+   }, [data]);
 
   const modalSizeClass = expandMode === 'expanded' ? "max-w-[90vw] max-h-[95vh]" : "max-w-[1170px] max-h-[85vh]";
 
@@ -300,21 +324,54 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 )}
 
-                {/* Formulary */}
+                {/* Therapeutic Area */}
+                {data.formulary?.therapeutic_area && (
+                  <div className="rounded-xl border p-3 bg-background">
+                    <div className="mb-1 text-sm font-semibold">Therapeutic Area</div>
+                    <div className="text-sm">
+                      <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                        {data.formulary.therapeutic_area}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Enhanced Formulary */}
                 {data.formulary && (
                   <div className="rounded-xl border p-3 bg-background">
-                    <div className="mb-1 text-sm font-semibold">Formulary (Northamptonshire)</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="mb-1 text-sm font-semibold">Formulary Status (Northamptonshire ICB)</div>
+                    <div className="mb-2 text-sm text-muted-foreground">
                       {data.formulary.bnf_chapter} — {data.formulary.section}
                     </div>
+                    
+                    {/* Show formulary status if available */}
+                    {data.formulary.formulary_status && (
+                      <div className="mb-3">
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                          data.formulary.formulary_status.toLowerCase().includes('green') ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
+                          data.formulary.formulary_status.toLowerCase().includes('formulary') ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
+                          data.formulary.formulary_status.toLowerCase().includes('amber') ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100' :
+                          data.formulary.formulary_status.toLowerCase().includes('red') ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
+                          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100'
+                        }`}>
+                          {data.formulary.formulary_status}
+                        </span>
+                      </div>
+                    )}
+                    
                     <ol className="mt-2 list-decimal pl-5 text-sm">
                       {data.formulary.preferred.map((p, i) => (
                         <li key={i}>
-                          <strong>{p.item_name}</strong>{p.notes ? ` — ${p.notes}` : ""}
+                          <strong>{p.item_name}</strong>
+                          {p.status && (
+                            <span className="ml-2 text-xs text-muted-foreground">({p.status})</span>
+                          )}
+                          {p.notes && <div className="mt-1 text-xs text-muted-foreground">{p.notes}</div>}
                         </li>
                       ))}
                     </ol>
-                    <div className="mt-2 flex items-center gap-4">
+                    
+                    <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
                       {data.formulary.page_url && (
                         <a 
                           className="inline-flex items-center gap-2 text-primary hover:underline" 
@@ -322,12 +379,17 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                           rel="noreferrer" 
                           href={data.formulary.page_url}
                         >
-                          <ExternalLink className="h-4 w-4" /> Open Formulary
+                          <ExternalLink className="h-3 w-3" /> Open Formulary
                         </a>
                       )}
+                      {data.formulary.source_document && (
+                        <span className="text-muted-foreground">
+                          Source: {data.formulary.source_document}
+                        </span>
+                      )}
                       {data.formulary.last_published && (
-                        <span className="text-xs text-muted-foreground">
-                          Last published: {format(new Date(data.formulary.last_published), "do MMMM yyyy")}
+                        <span className="text-muted-foreground">
+                          Last reviewed: {format(new Date(data.formulary.last_published), "do MMM yyyy")}
                         </span>
                       )}
                     </div>
