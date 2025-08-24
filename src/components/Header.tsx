@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -186,13 +186,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            Mic Test Service
                          </DropdownMenuItem>
                        )}
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/deepgram-test')}
-                         className="cursor-pointer py-3"
-                       >
-                         <Zap className="h-4 w-4 mr-2" />
-                         Deepgram Service
-                       </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/deepgram-test')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Zap className="h-4 w-4 mr-2" />
+                          Deepgram Service
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/multi-service-mic-test')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Mic className="h-4 w-4 mr-2" />
+                          Multi-Service Test
+                        </DropdownMenuItem>
                  </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -393,12 +400,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </Button>
                             </DrawerClose>
                           )}
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
-                              <Zap className="h-4 w-4 mr-2" />
-                              Deepgram Service
-                            </Button>
-                          </DrawerClose>
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
+                               <Zap className="h-4 w-4 mr-2" />
+                               Deepgram Service
+                             </Button>
+                           </DrawerClose>
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
+                               <Mic className="h-4 w-4 mr-2" />
+                               Multi-Service Test
+                             </Button>
+                           </DrawerClose>
                       </>
                     )}
 
