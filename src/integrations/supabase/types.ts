@@ -2094,6 +2094,51 @@ export type Database = {
           },
         ]
       }
+      icb_formulary: {
+        Row: {
+          created_at: string
+          drug_name: string
+          icb_region: string
+          id: string
+          last_reviewed_date: string | null
+          notes_restrictions: string | null
+          prior_approval_required: boolean
+          source_document: string | null
+          source_page: string | null
+          status: string
+          therapeutic_area: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          drug_name: string
+          icb_region?: string
+          id?: string
+          last_reviewed_date?: string | null
+          notes_restrictions?: string | null
+          prior_approval_required?: boolean
+          source_document?: string | null
+          source_page?: string | null
+          status: string
+          therapeutic_area?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          drug_name?: string
+          icb_region?: string
+          id?: string
+          last_reviewed_date?: string | null
+          notes_restrictions?: string | null
+          prior_approval_required?: boolean
+          source_document?: string | null
+          source_page?: string | null
+          status?: string
+          therapeutic_area?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       icn_formulary: {
         Row: {
           bnf_chapter_name: string | null

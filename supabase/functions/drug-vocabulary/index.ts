@@ -36,11 +36,11 @@ serve(async (req) => {
       console.error('Error fetching traffic light vocabulary:', tlError);
     }
 
-    // Get additional drugs from formulary
+    // Get additional drugs from ICB formulary
     const { data: formularyData, error: formularyError } = await supabase
-      .from('icn_formulary')
-      .select('item_name')
-      .order('item_name', { ascending: true });
+      .from('icb_formulary')
+      .select('drug_name, status')
+      .order('drug_name', { ascending: true });
 
     if (formularyError) {
       console.error('Error fetching formulary vocabulary:', formularyError);
@@ -62,15 +62,16 @@ serve(async (req) => {
       });
     }
 
-    // Add formulary drugs (without overriding existing traffic light status)
+    // Add ICB formulary drugs (without overriding existing traffic light status)
     if (formularyData) {
       formularyData.forEach(item => {
-        if (item.item_name) {
-          const key = item.item_name.toLowerCase();
+        if (item.drug_name) {
+          const key = item.drug_name.toLowerCase();
           if (!vocabMap.has(key)) {
             vocabMap.set(key, {
-              id: item.item_name,
-              name: item.item_name
+              id: item.drug_name,
+              name: item.drug_name,
+              tl_status: mapFormularyStatusToTrafficLight(item.status)
             });
           }
         }
@@ -98,3 +99,24 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to map formulary status to traffic light status
+function mapFormularyStatusToTrafficLight(status: string): string {
+  const statusLower = status.toLowerCase();
+  
+  if (statusLower.includes('green')) {
+    return 'GREEN';
+  } else if (statusLower.includes('amber')) {
+    if (statusLower.includes('2')) {
+      return 'AMBER_2';
+    } else {
+      return 'AMBER_1';
+    }
+  } else if (statusLower.includes('red')) {
+    return 'RED';
+  } else if (statusLower.includes('formulary')) {
+    return 'GREEN'; // Assume formulary items are generally green
+  } else {
+    return 'UNKNOWN';
+  }
+}

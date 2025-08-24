@@ -8,6 +8,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
 import { DrugQuickModal } from '@/components/DrugQuickModal';
+import { FormularyImportButton } from '@/components/FormularyImportButton';
 import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -148,18 +149,25 @@ const AI4GP = () => {
       {/* Drug Quick Lookup Button */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-2 sm:px-4 py-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDrugModalOpen(true)}
-            className="gap-2"
-          >
-            <Search className="h-4 w-4" />
-            Drug Quick Lookup
-            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-              <span className="text-xs">Ctrl</span>K
-            </kbd>
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDrugModalOpen(true)}
+              className="gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Drug Quick Lookup
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">Ctrl</span>K
+              </kbd>
+            </Button>
+            
+            {/* Admin Tools - Development */}
+            <div className="ml-auto">
+              <FormularyImportButton />
+            </div>
+          </div>
         </div>
       </div>
       

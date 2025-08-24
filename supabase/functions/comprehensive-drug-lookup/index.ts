@@ -99,76 +99,65 @@ serve(async (req) => {
       }
     }
 
-    // Step 4: Search formulary table
+    // Step 4: Search ICB formulary table
     let formularyData: any[] = [];
     
-    // First, get direct matches
+    // First, get direct matches from ICB formulary
     const { data: directMatches, error: directError } = await supabase
-      .from('icn_formulary')
+      .from('icb_formulary')
       .select('*')
-      .ilike('name_norm', `${normalizedName}%`)
-      .order('preference_rank', { ascending: true, nullsFirst: false })
-      .order('item_name', { ascending: true });
+      .ilike('drug_name', `%${name}%`)
+      .order('drug_name', { ascending: true });
 
     if (directError) {
-      console.error('Error fetching direct formulary matches:', directError);
-    }
-
-    // If we have direct matches, also get items from the same section
-    if (directMatches && directMatches.length > 0) {
-      const sections = [...new Set(directMatches.map(item => item.section))];
-      
-      const { data: sectionMatches, error: sectionError } = await supabase
-        .from('icn_formulary')
-        .select('*')
-        .in('section', sections)
-        .order('preference_rank', { ascending: true, nullsFirst: false })
-        .order('item_name', { ascending: true });
-
-      if (sectionError) {
-        console.error('Error fetching section formulary matches:', sectionError);
-      } else {
-        // Combine and deduplicate
-        const allMatches = [...(directMatches || []), ...(sectionMatches || [])];
-        const uniqueMatches = allMatches.filter((item, index, self) => 
-          index === self.findIndex(t => t.id === item.id)
-        );
-        formularyData = uniqueMatches;
-      }
+      console.error('Error fetching ICB formulary matches:', directError);
     } else {
       formularyData = directMatches || [];
     }
 
-    // Step 5: Get alternatives from the same formulary section
+    // If no direct matches, try normalized search
+    if (formularyData.length === 0) {
+      const { data: normalizedMatches, error: normError } = await supabase
+        .from('icb_formulary')
+        .select('*')
+        .ilike('drug_name', `%${normalizedName}%`)
+        .order('drug_name', { ascending: true });
+
+      if (!normError && normalizedMatches) {
+        formularyData = normalizedMatches;
+      }
+    }
+
+    // Step 5: Get alternatives from the same therapeutic area
     let alternativesData: any[] = [];
     if (formularyData && formularyData.length > 0) {
-      const sections = [...new Set(formularyData.map(item => item.section))];
+      const therapeuticAreas = [...new Set(formularyData.map(item => item.therapeutic_area))];
       
-      for (const section of sections) {
-        const { data: sectionAlternatives, error: altError } = await supabase
-          .from('icn_formulary')
+      for (const area of therapeuticAreas) {
+        const { data: areaAlternatives, error: altError } = await supabase
+          .from('icb_formulary')
           .select('*')
-          .eq('section', section)
-          .neq('name_norm', normalizedName)
-          .order('preference_rank', { ascending: true, nullsFirst: false })
+          .eq('therapeutic_area', area)
+          .neq('drug_name', name)
+          .order('drug_name', { ascending: true })
           .limit(5);
           
         if (altError) {
           console.error('Error fetching alternatives:', altError);
-        } else if (sectionAlternatives) {
+        } else if (areaAlternatives) {
           // Look up traffic light status for each alternative
-          for (const alt of sectionAlternatives) {
+          for (const alt of areaAlternatives) {
             const { data: altTlData } = await supabase
               .from('icn_tl_norm')
               .select('*')
-              .ilike('name_norm', `${alt.name_norm}%`)
+              .ilike('drug_name', `${alt.drug_name}%`)
               .limit(1)
               .maybeSingle();
               
             alternativesData.push({
-              name: alt.item_name,
-              notes: alt.notes,
-              status: altTlData?.status_enum || 'UNKNOWN',
+              name: alt.drug_name,
+              notes: alt.notes_restrictions,
+              status: altTlData?.status_enum || mapFormularyStatusToTrafficLight(alt.status),
               detail_url: altTlData?.detail_url
             });
           }
@@ -181,16 +170,15 @@ serve(async (req) => {
       traffic_light: trafficLightData,
       prior_approval: priorApprovalData,
       formulary: formularyData.length > 0 ? {
-        bnf_chapter: formularyData[0]?.bnf_chapter,
-        section: formularyData[0]?.section,
-        preferred: formularyData.map(item => ({
-          item_name: item.item_name,
-          rank: item.preference_rank || 999,
-          notes: item.notes,
-          otc: item.otc
+        bnf_chapter: "ICB Formulary",
+        section: formularyData[0]?.therapeutic_area,
+        preferred: formularyData.map((item, index) => ({
+          item_name: item.drug_name,
+          rank: index + 1,
+          notes: item.notes_restrictions
         })),
-        page_url: formularyData[0]?.page_url || 'https://www.icnorthamptonshire.org.uk/mo-formulary',
-        last_published: formularyData[0]?.last_published,
+        page_url: 'https://www.icnorthamptonshire.org.uk/mo-formulary',
+        last_published: formularyData[0]?.last_reviewed_date,
         found_exact_match: true
       } : null,
       alternatives: alternativesData
@@ -218,3 +206,24 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to map formulary status to traffic light status
+function mapFormularyStatusToTrafficLight(status: string): string {
+  const statusLower = status.toLowerCase();
+  
+  if (statusLower.includes('green')) {
+    return 'GREEN';
+  } else if (statusLower.includes('amber')) {
+    if (statusLower.includes('2')) {
+      return 'AMBER_2';
+    } else {
+      return 'AMBER_1';
+    }
+  } else if (statusLower.includes('red')) {
+    return 'RED';
+  } else if (statusLower.includes('formulary')) {
+    return 'GREEN'; // Assume formulary items are generally green
+  } else {
+    return 'UNKNOWN';
+  }
+}
