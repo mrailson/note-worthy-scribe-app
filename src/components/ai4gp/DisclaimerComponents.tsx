@@ -36,8 +36,14 @@ export const ShortCard: React.FC<ShortCardProps> = ({ className }) => (
           <p className="mb-2">
             This service provides NHS primary-care decision-support (NICE, BNF, MHRA, NHS.uk, local ICB). 
             Outputs may be incomplete or inaccurate. You remain responsible for all clinical decisions, 
-            prescribing and documentation. Verify against the cited source material and your local 
-            formulary before acting.
+            prescribing and documentation. Verify against the cited source material and your <a 
+              href="https://www.icnorthamptonshire.org.uk/mo-formulary" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              local formulary
+            </a> before acting.
           </p>
           <p>
             GP Portal: <a 
