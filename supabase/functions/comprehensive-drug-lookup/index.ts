@@ -12,7 +12,12 @@ interface DrugLookupResponse {
     searched_term?: string;
   };
   traffic_light: any;
-  prior_approval: any[];
+  prior_approval: {
+    status: string;
+    route: "PRIOR_APPROVAL" | "IFR" | "BLUETEQ";
+    bullets?: string[];
+    link?: string;
+  } | null;
   formulary: {
     bnf_chapter?: string;
     section?: string;
@@ -83,20 +88,43 @@ serve(async (req) => {
       console.error('Error fetching traffic light data:', tlError);
     }
 
-    // Step 3: Search prior approval table (if we found a traffic light drug)
-    let priorApprovalData: any[] = [];
-    if (trafficLightData?.drug_name) {
-      const firstWord = trafficLightData.drug_name.split(' ')[0];
-      const { data: paData, error: paError } = await supabase
-        .from('icn_prior_approval')
-        .select('*')
-        .ilike('drug_name', `%${firstWord}%`);
+    // Step 3: Search prior approval table using ICB formulary data
+    let priorApprovalData: any = null;
+    
+    // First check ICB formulary for prior approval status
+    const { data: icbFormularyPA, error: icbError } = await supabase
+      .from('icb_formulary')
+      .select('*')
+      .ilike('drug_name', `%${name}%`)
+      .eq('prior_approval_required', 'Yes')
+      .limit(1)
+      .maybeSingle();
 
-      if (paError) {
-        console.error('Error fetching prior approval data:', paError);
-      } else {
-        priorApprovalData = paData || [];
+    if (icbError) {
+      console.error('Error fetching ICB formulary prior approval:', icbError);
+    }
+
+    if (icbFormularyPA) {
+      // Determine route based on status
+      let route: "PRIOR_APPROVAL" | "IFR" | "BLUETEQ" = "PRIOR_APPROVAL";
+      let bullets: string[] = [];
+      
+      if (icbFormularyPA.status.includes('IFR')) {
+        route = "IFR";
+      } else if (icbFormularyPA.status.includes('Blueteq')) {
+        route = "BLUETEQ";
       }
+      
+      if (icbFormularyPA.notes_restrictions) {
+        bullets.push(icbFormularyPA.notes_restrictions);
+      }
+      
+      priorApprovalData = {
+        status: icbFormularyPA.status,
+        route: route,
+        bullets: bullets,
+        link: "https://www.icnorthamptonshire.org.uk/download.cfm?doc=docm93jijm4n22499&ver=66342"
+      };
     }
 
     // Step 4: Search ICB formulary table
@@ -186,7 +214,7 @@ serve(async (req) => {
 
     console.log('Lookup complete:', {
       traffic_light_found: !!trafficLightData,
-      prior_approval_count: priorApprovalData.length,
+      prior_approval_found: !!priorApprovalData,
       formulary_count: formularyData.length
     });
 

@@ -277,16 +277,26 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                         ))}
                       </ul>
                     )}
-                    {data.prior_approval.link && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {data.prior_approval.link && (
+                        <a 
+                          className="inline-flex items-center gap-2 text-primary hover:underline" 
+                          href={data.prior_approval.link} 
+                          target="_blank" 
+                          rel="noreferrer"
+                        >
+                          <ExternalLink className="h-4 w-4" /> Open form/policy
+                        </a>
+                      )}
                       <a 
-                        className="mt-2 inline-flex items-center gap-2 text-primary hover:underline" 
-                        href={data.prior_approval.link} 
+                        className="inline-flex items-center gap-2 text-primary hover:underline text-xs" 
+                        href="https://www.icnorthamptonshire.org.uk/download.cfm?doc=docm93jijm4n22499&ver=66342" 
                         target="_blank" 
                         rel="noreferrer"
                       >
-                        <ExternalLink className="h-4 w-4" /> Open form/policy
+                        <ExternalLink className="h-3 w-3" /> Prior Approval Criteria (NHS Northamptonshire ICB)
                       </a>
-                    )}
+                    </div>
                   </div>
                 )}
 
