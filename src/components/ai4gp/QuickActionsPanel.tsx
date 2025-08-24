@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Minus, ChevronDown, Shield } from 'lucide-react';
+import { Plus, Minus, ChevronDown } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
-import TrafficLightBrowser from '@/components/TrafficLightBrowser';
-import { TrafficLightImporter } from '@/components/TrafficLightImporter';
-import { FormularyImporter } from '@/components/FormularyImporter';
-import TrafficLightSearch from '@/components/TrafficLightSearch';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -31,10 +27,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
-  const [isTrafficLightModalOpen, setIsTrafficLightModalOpen] = useState(false);
-  const [isTrafficLightImporterOpen, setIsTrafficLightImporterOpen] = useState(false);
-  const [isTrafficLightSearchOpen, setIsTrafficLightSearchOpen] = useState(false);
-  const [isFormularyImporterOpen, setIsFormularyImporterOpen] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -119,14 +111,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 } else {
                   setIsAITestModalOpen(true);
                 }
-              } else if (action.action === 'open-traffic-light-modal') {
-                setIsTrafficLightModalOpen(true);
-              } else if (action.action === 'open-traffic-light-importer') {
-                setIsTrafficLightImporterOpen(true);
-              } else if (action.action === 'open-traffic-light-search') {
-                setIsTrafficLightSearchOpen(true);
-              } else if (action.action === 'open-formulary-importer') {
-                setIsFormularyImporterOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -165,12 +149,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             } else {
                               setIsAITestModalOpen(true);
                             }
-                          } else if (subItem.action === 'open-traffic-light-importer') {
-                            setIsTrafficLightImporterOpen(true);
-                          } else if (subItem.action === 'open-traffic-light-search') {
-                            setIsTrafficLightSearchOpen(true);
-                          } else if (subItem.action === 'open-formulary-importer') {
-                            setIsFormularyImporterOpen(true);
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt));
                           }
@@ -198,20 +176,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               </Button>
             );
           })}
-        </div>
-
-        {/* Special tiles row - Traffic Light Tools */}
-        <div className="grid grid-cols-1 gap-2">
-          <TrafficLightBrowser onInsertIntoChat={onInsertIntoChat}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="justify-start text-left h-auto py-2 px-3"
-            >
-              <Shield className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span className="truncate">Browse All Medicines</span>
-            </Button>
-          </TrafficLightBrowser>
         </div>
         
         {/* Show expand button if there are more actions than visible */}
@@ -242,95 +206,6 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         open={isAITestModalOpen} 
         onOpenChange={setIsAITestModalOpen} 
       />
-
-      {/* Traffic Light Importer Modal */}
-      {isTrafficLightImporterOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Traffic Light Medicines Importer</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsTrafficLightImporterOpen(false)}
-                >
-                  ×
-                </Button>
-              </div>
-              <TrafficLightImporter />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Traffic Light Search Modal */}
-      {isTrafficLightSearchOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg border shadow-lg w-full max-w-2xl mx-auto">
-            <div className="flex flex-col max-h-[85vh]">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-lg font-semibold">Search Traffic Light Medicines</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsTrafficLightSearchOpen(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  ×
-                </Button>
-              </div>
-              
-              {/* Content */}
-              <div className="flex-1 overflow-hidden p-4">
-                <div className="space-y-4 h-full">
-                  <div className="relative">
-                    <TrafficLightSearch
-                      onInsertIntoChat={(message) => {
-                        if (onInsertIntoChat) {
-                          onInsertIntoChat(message);
-                        }
-                        setIsTrafficLightSearchOpen(false);
-                      }}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  {/* Help text */}
-                  <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 space-y-1">
-                    <p>💡 <strong>How to use:</strong></p>
-                    <p>• Type to search for medicines in the local formulary</p>
-                    <p>• Click a result to view detailed policy information</p>
-                    <p>• Use Ctrl/Cmd + Click to insert directly into chat</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Formulary Importer Modal */}
-      {isFormularyImporterOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">ICN Formulary Importer</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsFormularyImporterOpen(false)}
-                >
-                  ×
-                </Button>
-              </div>
-              <FormularyImporter />
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };
