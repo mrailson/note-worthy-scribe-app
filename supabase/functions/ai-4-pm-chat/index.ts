@@ -1121,7 +1121,35 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
 
-  // Removed tools - direct response only
+  // Define tools for function calls
+  const tools = [
+    {
+      "type": "function",
+      "function": {
+        "name": "tavily_search",
+        "description": "Search for current information using Tavily API. Use this for recent medical guidelines, NHS updates, policy changes, or current events.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "q": {
+              "type": "string",
+              "description": "Search query - be specific about what you're looking for"
+            },
+            "recencyDays": {
+              "type": "integer", 
+              "description": "How many days back to search (e.g. 30 for last month, 90 for last 3 months)"
+            },
+            "siteLimit": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Limit search to specific sites like ['gov.uk', 'england.nhs.uk', 'nice.org.uk']"
+            }
+          },
+          "required": ["q"]
+        }
+      }
+    }
+  ];
 
   const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }

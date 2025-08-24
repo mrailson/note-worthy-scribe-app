@@ -61,7 +61,7 @@ const AI_MODELS = [
     recommended: true
   },
   {
-    id: 'deepseek-v3',
+    id: 'deepseek-chat',
     name: 'Deepseek V3',
     provider: 'Deepseek',
     description: 'High-performance reasoning and code understanding'
@@ -123,7 +123,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const testApiServices = async () => {
     setIsTesting(true);
     const testPrompt = "What day is it today?";
-    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4-turbo', 'deepseek-v3', 'grok-beta', 'gemini-1.5-pro'];
+    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro'];
     
     // Initialize test results
     const initialResults: ApiTestResult[] = modelsToTest.map(model => ({
