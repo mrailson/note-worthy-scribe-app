@@ -125,15 +125,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        GP Scribe
                      </DropdownMenuItem>
                    )}
-                   <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Consultation Summary
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50 p-0">
-                        <ConsultationSummaryPreview />
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
                    {hasModuleAccess('complaints_system') && (
                      <DropdownMenuItem 
                        onClick={() => navigate('/complaints')}
@@ -341,12 +332,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              </Button>
                            </DrawerClose>
                          )}
-                         <DrawerClose asChild>
-                           <Button variant="ghost" className="justify-start" onClick={() => navigate('/consultation/summary')}>
-                             <FileText className="h-4 w-4 mr-2" />
-                             Consultation Summary
-                           </Button>
-                         </DrawerClose>
                         {hasModuleAccess('complaints_system') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
