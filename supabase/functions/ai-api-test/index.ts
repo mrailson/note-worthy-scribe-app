@@ -30,12 +30,14 @@ serve(async (req) => {
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
     
     console.log('🔑 API Keys status (recreated function):', {
       openai: OPENAI_API_KEY ? 'Present' : 'Missing',
       anthropic: ANTHROPIC_API_KEY ? 'Present' : 'Missing',
       grok: GROK_API_KEY ? 'Present' : 'Missing',
-      gemini: GEMINI_API_KEY ? 'Present' : 'Missing'
+      gemini: GEMINI_API_KEY ? 'Present' : 'Missing',
+      deepseek: DEEPSEEK_API_KEY ? 'Present' : 'Missing'
     });
 
     const startTime = Date.now();
@@ -148,6 +150,24 @@ serve(async (req) => {
         } else {
           response = await testGemini(prompt, GEMINI_API_KEY);
           modelUsed = 'gemini-1.5-pro-latest';
+        }
+        break;
+        
+      case 'deepseek-chat':
+        if (!DEEPSEEK_API_KEY) {
+          console.log('⚠️ DeepSeek API key not found, falling back to available API');
+          if (OPENAI_API_KEY) {
+            response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+            modelUsed = 'gpt-4o (fallback from deepseek)';
+          } else if (ANTHROPIC_API_KEY) {
+            response = await testClaude(prompt, ANTHROPIC_API_KEY);
+            modelUsed = 'claude-3-5-sonnet-20241022 (fallback from deepseek)';
+          } else {
+            throw new Error('DeepSeek API key not configured and no fallback available');
+          }
+        } else {
+          response = await testDeepSeek(prompt, DEEPSEEK_API_KEY);
+          modelUsed = 'deepseek-chat';
         }
         break;
         
@@ -308,4 +328,31 @@ async function testGemini(prompt: string, apiKey: string): Promise<string> {
 
   const data = await response.json();
   return data.candidates[0].content.parts[0].text;
+}
+
+async function testDeepSeek(prompt: string, apiKey: string): Promise<string> {
+  console.log('🔥 Testing DeepSeek API');
+  
+  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`DeepSeek API error (${response.status}):`, errorText);
+    throw new Error(`DeepSeek API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }

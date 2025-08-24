@@ -44,6 +44,7 @@ const AI_MODELS = [
   { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', service: 'anthropic' },
   { id: 'grok-beta', name: 'Grok Beta', service: 'grok' },
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', service: 'google' },
+  { id: 'deepseek-chat', name: 'DeepSeek', service: 'deepseek' },
 ];
 
 const CLINICAL_TEST_QUERY = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology. Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Metformin.";
@@ -317,7 +318,8 @@ const AITestModal: React.FC<AITestModalProps> = ({ open, onOpenChange }) => {
         testClinicalModelDirect('gpt-4o-mini'),
         testClinicalModelDirect('claude-4-sonnet'),
         testClinicalModelDirect('grok-beta'),
-        testClinicalModelDirect('gemini-1.5-pro')
+        testClinicalModelDirect('gemini-1.5-pro'),
+        testClinicalModelDirect('deepseek-chat')
       ];
 
       const results = await Promise.all(testPromises);
