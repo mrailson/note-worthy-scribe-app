@@ -182,33 +182,38 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className={`${modalSizeClass} overflow-hidden p-0 z-50 bg-background`} onOpenAutoFocus={(e) => e.preventDefault()}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b p-4">
-          <div className="flex items-center gap-2 flex-1">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <Input
-              autoFocus
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search local drug policies..."
-              className="flex-1 border-0 focus-visible:ring-0 shadow-none"
-            />
+        <div className="border-b">
+          <div className="px-4 py-3 border-b">
+            <h1 className="text-lg font-semibold text-foreground">Northants Medicines Lookup</h1>
           </div>
-          
-          {/* Expansion Control */}
-          <div className="flex items-center gap-2 ml-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleExpand}
-              title={expandMode === 'expanded' ? "Minimize modal" : "Expand modal"}
-              className={expandMode === 'expanded' ? 'bg-muted' : ''}
-            >
-              {expandMode === 'expanded' ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search local drug policies..."
+                className="flex-1 border-0 focus-visible:ring-0 shadow-none"
+              />
+            </div>
+            
+            {/* Expansion Control */}
+            <div className="flex items-center gap-2 ml-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleExpand}
+                title={expandMode === 'expanded' ? "Minimize modal" : "Expand modal"}
+                className={expandMode === 'expanded' ? 'bg-muted' : ''}
+              >
+                {expandMode === 'expanded' ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
