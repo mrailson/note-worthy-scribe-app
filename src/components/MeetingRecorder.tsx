@@ -29,7 +29,6 @@ import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucination
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
-import { RawChunksDisplay } from "@/components/RawChunksDisplay";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 
@@ -86,7 +85,6 @@ export const MeetingRecorder = ({
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
-  const [rawChunks, setRawChunks] = useState<Array<{id: number, text: string, timestamp: string, confidence?: number}>>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
@@ -202,7 +200,6 @@ export const MeetingRecorder = ({
     setDuration(0);
     setTranscript("");
     setRealtimeTranscripts([]);
-    setRawChunks([]);
     setChunkCounter(0);
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
@@ -737,20 +734,6 @@ export const MeetingRecorder = ({
           addDebugLog(`📝 Chunk ${chunkId}: "${transcriptionText.substring(0, 30)}..." (${Math.round(confidence * 100)}%)`);
           
           const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
-          
-          // Add to raw chunks for display
-          const newChunk = {
-            id: chunkCounter + 1,
-            text: transcriptionText,
-            timestamp: chunkTimestamp,
-            confidence: confidence
-          };
-          console.log('🔍 Adding raw chunk:', newChunk);
-          setRawChunks(prev => {
-            const updated = [...prev, newChunk];
-            console.log('🔍 Raw chunks updated, total:', updated.length);
-            return updated;
-          });
           setChunkCounter(prev => prev + 1);
 
           // Save raw chunk to database
@@ -760,8 +743,8 @@ export const MeetingRecorder = ({
               .from('raw_transcript_chunks')
               .insert({
                 meeting_id: meetingId,
-                chunk_id: newChunk.id,
-                text: newChunk.text,
+                chunk_id: chunkCounter + 1,
+                text: transcriptionText,
                 timestamp: chunkTimestamp,
                 confidence: confidence
               })
@@ -3952,12 +3935,6 @@ export const MeetingRecorder = ({
                     transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
                   }));
                 }}
-              />
-              
-              {/* Raw Chunks Display */}
-              <RawChunksDisplay
-                chunks={rawChunks}
-                isRecording={isRecording}
               />
             </CardContent>
           </Card>
