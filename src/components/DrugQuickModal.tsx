@@ -345,7 +345,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                       )}
                       <a 
                         className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href="/MHRA-Compliance-Documentation.md" 
+                        href={localStorage.getItem('uploaded_prior_approval_pdf') || "/MHRA-Compliance-Documentation.md"} 
                         target="_blank" 
                         rel="noreferrer"
                         title="Verify prior approval requirements manually"
@@ -373,7 +373,7 @@ export function DrugQuickModal({ open, onClose }: { open: boolean; onClose: () =
                     <div className="mt-3">
                       <a 
                         className="inline-flex items-center gap-2 text-primary hover:underline" 
-                        href="/MHRA-Compliance-Documentation.md" 
+                        href={localStorage.getItem('uploaded_prior_approval_pdf') || "/MHRA-Compliance-Documentation.md"} 
                         target="_blank" 
                         rel="noreferrer"
                         title="Verify prior approval requirements manually"
