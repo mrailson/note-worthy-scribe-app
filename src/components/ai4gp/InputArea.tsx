@@ -2,11 +2,10 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Zap } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { OpenAIRealtimeModal } from '@/components/OpenAIRealtimeModal';
 import { DeepgramStreamingMic } from './DeepgramStreamingMic';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,7 +37,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
-  const [showRealtimeModal, setShowRealtimeModal] = useState(false);
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const { toast } = useToast();
 
@@ -67,16 +65,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
   const handleRemoveFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleTranscriptionComplete = (text: string) => {
-    if (text.trim()) {
-      setInput(input + (input ? ' ' : '') + text);
-      toast({
-        title: "Transcription complete",
-        description: `Added ${text.split(' ').length} words to your message`,
-      });
-    }
   };
 
   const handleDeepgramTranscriptUpdate = (text: string) => {
@@ -136,26 +124,13 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
               <Paperclip className="w-4 h-4" />
             </Button>
             
-            {isClinical ? (
-              <div className="flex flex-col gap-1">
-                <DeepgramStreamingMic
-                  onTranscriptUpdate={handleDeepgramTranscriptUpdate}
-                  disabled={isLoading}
-                  className="justify-center"
-                />
-              </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-accent rounded-md"
-                onClick={() => setShowRealtimeModal(true)}
+            <div className="flex flex-col gap-1">
+              <DeepgramStreamingMic
+                onTranscriptUpdate={handleDeepgramTranscriptUpdate}
                 disabled={isLoading}
-                title="OpenAI Realtime Transcription"
-              >
-                <Zap className="w-4 h-4" />
-              </Button>
-            )}
+                className="justify-center"
+              />
+            </div>
           </div>
         </div>
         
@@ -176,19 +151,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        {isClinical ? (
-          <span className="text-blue-600 font-medium">🎙️ Live clinical transcription via Deepgram</span>
-        ) : (
-          <span className="text-primary font-medium">⚡ Real-time transcription available</span>
-        )}
+        <span className="text-blue-600 font-medium">🎙️ Live transcription via Deepgram - click mic to toggle</span>
       </div>
     </div>
-
-    <OpenAIRealtimeModal
-      isOpen={showRealtimeModal}
-      onClose={() => setShowRealtimeModal(false)}
-      onTranscriptionComplete={handleTranscriptionComplete}
-    />
     </>
   );
 });
