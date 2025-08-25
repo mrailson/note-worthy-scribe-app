@@ -368,7 +368,7 @@ export default function MeetingNotesGenerator() {
             {detailLevel === 5 && "Very detailed"}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Affects the single-run "Generate Meeting Notes".</p>
+        <p className="text-xs text-muted-foreground mt-1">Affects the single-run “Generate Meeting Notes”.</p>
       </div>
 
       {/* Generate */}
