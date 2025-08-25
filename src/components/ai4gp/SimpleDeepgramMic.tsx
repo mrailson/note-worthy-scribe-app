@@ -14,6 +14,8 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
   disabled = false,
   className = ''
 }) => {
+  console.log('🚀 SimpleDeepgramMic component mounted');
+  
   const [isStreaming, setIsStreaming] = useState(false);
   const [status, setStatus] = useState('idle');
   const [pendingText, setPendingText] = useState('');
@@ -22,6 +24,11 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔧 SimpleDeepgramMic useEffect - component ready');
+  }, []);
 
   const startStreaming = async () => {
     if (isStreaming || disabled) return;
@@ -234,6 +241,7 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
   };
 
   const toggleStreaming = () => {
+    console.log('🎛️ Toggle streaming clicked, current state:', isStreaming);
     if (isStreaming) {
       stopStreaming();
     } else {
