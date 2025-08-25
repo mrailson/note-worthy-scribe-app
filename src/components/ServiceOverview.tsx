@@ -26,45 +26,45 @@ export const ServiceOverview = () => {
   const navigate = useNavigate();
   const services = [
     {
+      icon: <MessageSquare className="h-6 w-6" />,
+      title: "AI4GP Service",
+      description: "Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical support",
+      benefits: ["NICE guidance finder", "BNF drug lookups", "Clinical decision support", "NHS-compliant responses", "Voice-activated queries"]
+    },
+    {
+      icon: <Users className="h-6 w-6" />,
+      title: "AI4PM Service", 
+      description: "Intelligent Practice Manager assistant with specialized NHS administrative knowledge",
+      benefits: ["ARRS claim guidance", "PCN DES support", "CQC compliance help", "Staff management", "Policy interpretation"]
+    },
+    {
       icon: <Stethoscope className="h-6 w-6" />,
       title: "GP Scribe",
       description: "AI-powered consultation recording and note generation",
       benefits: ["Real-time transcription", "Auto-generated clinical notes", "Time-saving documentation"]
     },
     {
-      icon: <MessageSquare className="h-6 w-6" />,
-      title: "AI Practice Manager",
-      description: "Intelligent assistant for practice management tasks with voice interaction",
-      benefits: ["Voice-activated queries", "Administrative guidance", "Policy support", "Workflow optimization"]
-    },
-    {
-      icon: <Users className="h-6 w-6" />,
+      icon: <FileText className="h-6 w-6" />,
       title: "Meeting Recorder",
       description: "Professional meeting transcription and summarization",
       benefits: ["Audio transcription", "Action item extraction", "Meeting summaries"]
     },
     {
-      icon: <FileText className="h-6 w-6" />,
+      icon: <BarChart3 className="h-6 w-6" />,
       title: "Complaints Management",
       description: "Streamlined patient complaint handling and response",
       benefits: ["Automated tracking", "Response templates", "Compliance monitoring"]
     },
     {
-      icon: <BarChart3 className="h-6 w-6" />,
+      icon: <FolderOpen className="h-6 w-6" />,
       title: "CQC Compliance",
       description: "Care Quality Commission readiness and monitoring",
       benefits: ["Compliance tracking", "Documentation support", "Inspection preparation"]
-    },
-    {
-      icon: <FolderOpen className="h-6 w-6" />,
-      title: "Shared Drive",
-      description: "Secure document management and collaboration",
-      benefits: ["Centralized storage", "Team collaboration", "Version control"]
     }
   ];
 
   // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI Practice Manager','Meeting Recorder','Complaints Management']);
+  const allowedServices = new Set(['AI4GP Service','AI4PM Service','GP Scribe']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
   // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
@@ -162,10 +162,10 @@ export const ServiceOverview = () => {
       {/* Hero Section - Moved below services */}
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">
-          Intelligent Healthcare Administration Platform
+          AI-Powered Primary Care Support
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Designed specifically for Primary Care teams by healthcare professionals who understand your daily challenges
+          Revolutionary AI4GP and AI4PM services designed specifically for UK NHS professionals, providing instant access to clinical guidance and practice management support
         </p>
         <div className="flex flex-wrap justify-center gap-2 mt-4">
           <Badge variant="secondary" className="text-sm">
