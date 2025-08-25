@@ -40,10 +40,12 @@ import {
   AlertCircle,
   TrendingUp,
   Upload,
-  FileJson
+  FileJson,
+  TestTube
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
+import AITestModal from '@/components/AITestModal';
 
 interface User {
   user_id: string;
@@ -99,6 +101,7 @@ const SystemAdmin = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isFetchingICB, setIsFetchingICB] = useState(false);
   const [showUploadSection, setShowUploadSection] = useState(false);
+  const [showAITestModal, setShowAITestModal] = useState(false);
 
   // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
@@ -1980,8 +1983,29 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   </AlertDescription>
                 </Alert>
               </CardContent>
-            </Card>
-          </TabsContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="w-5 h-5" />
+              AI Model Tester
+            </CardTitle>
+            <CardDescription>
+              Test and compare AI model performance across different services
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => setShowAITestModal(true)}
+              className="w-full"
+            >
+              <TestTube className="w-4 h-4 mr-2" />
+              Open AI Model Tester
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
 
           {/* System Monitoring Tab */}
           <TabsContent value="monitoring" className="space-y-6">
@@ -2625,6 +2649,12 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* AI Test Modal */}
+      <AITestModal 
+        open={showAITestModal} 
+        onOpenChange={setShowAITestModal} 
+      />
     </div>
   );
 };

@@ -26,7 +26,6 @@ import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
-import AITestModal from '@/components/AITestModal';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 
 // Hook imports
@@ -64,7 +63,6 @@ const AI4GPService = () => {
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
   const [showVerificationChart, setShowVerificationChart] = useState(false);
-  const [showAITestModal, setShowAITestModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
@@ -288,10 +286,6 @@ const AI4GPService = () => {
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                        <DropdownMenuItem onClick={() => setShowAITestModal(true)}>
-                          <TestTube className="w-4 h-4 mr-2" />
-                          AI Model Tester
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -391,7 +385,6 @@ const AI4GPService = () => {
                           setShowAllQuickActions={setShowAllQuickActions}
                           setInput={setInput}
                           selectedRole={selectedRole}
-                          onOpenAITestModal={() => setShowAITestModal(true)}
                           onInsertIntoChat={setInput}
                         />
                         
@@ -469,7 +462,6 @@ const AI4GPService = () => {
             // Trigger drug modal through parent component
             window.dispatchEvent(new CustomEvent('openDrugModal'));
           }}
-          onOpenAITestModal={() => setShowAITestModal(true)}
           onOpenNews={() => setShowNews(true)}
           onOpenImageService={() => setShowImageService(true)}
           onOpenQuickImageModal={() => setShowQuickImageModal(true)}
@@ -558,12 +550,6 @@ const AI4GPService = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* AI Test Modal */}
-      <AITestModal 
-        open={showAITestModal} 
-        onOpenChange={setShowAITestModal} 
-      />
 
       {/* Disclaimer Modal - First Time Use */}
       <FullModal 
