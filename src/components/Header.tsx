@@ -260,13 +260,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Wrench className="h-4 w-4 mr-2" />
                             Admin Dashboard
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/compliance-docs')}
-                            className="cursor-pointer py-3"
-                          >
-                            <BookOpen className="h-4 w-4 mr-2" />
-                            Security Documentation
-                          </DropdownMenuItem>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/security-compliance')}
+                             className="cursor-pointer py-3"
+                           >
+                             <BookOpen className="h-4 w-4 mr-2" />
+                             Security Documentation
+                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => navigate('/deepgram-test')}
                             className="cursor-pointer py-3"
@@ -438,11 +438,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   Admin Dashboard
                                 </Button>
                               </DrawerClose>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Security Documentation
-                                </Button>
+                               <DrawerClose asChild>
+                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/security-compliance')}>
+                                   <BookOpen className="h-4 w-4 mr-2" />
+                                   Security Documentation
+                                 </Button>
                               </DrawerClose>
                               <DrawerClose asChild>
                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
