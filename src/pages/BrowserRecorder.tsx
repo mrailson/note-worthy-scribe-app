@@ -226,18 +226,57 @@ const BrowserRecorder = () => {
           })
           .eq('id', meetingId);
         
-        // Save consolidated transcript
+        // Save consolidated transcript with detailed error handling
         const consolidatedText = transcriptSegments.map(segment => segment.text).join(' ');
+        console.log('Consolidated transcript length:', consolidatedText.length);
+        console.log('Meeting ID for transcript:', meetingId);
+        console.log('User ID:', user?.id);
+        
         if (consolidatedText.trim()) {
-          await supabase
-            .from('meeting_transcripts')
-            .insert({
-              meeting_id: meetingId,
-              content: consolidatedText,
-              timestamp_seconds: 0,
-              speaker_name: null,
-              confidence_score: 0.95
-            });
+          try {
+            console.log('Attempting to insert transcript...');
+            const { data, error } = await supabase
+              .from('meeting_transcripts')
+              .insert({
+                meeting_id: meetingId,
+                content: consolidatedText,
+                timestamp_seconds: 0,
+                speaker_name: null,
+                confidence_score: 0.95
+              })
+              .select();
+
+            if (error) {
+              console.error('Error inserting transcript:', error);
+              toast.error(`Failed to save transcript: ${error.message}`);
+            } else {
+              console.log('Transcript inserted successfully:', data);
+              
+              // Verify the transcript was saved by querying it back
+              const { data: verifyData, error: verifyError } = await supabase
+                .from('meeting_transcripts')
+                .select('id, content')
+                .eq('meeting_id', meetingId)
+                .limit(1);
+              
+              if (verifyError) {
+                console.error('Error verifying transcript:', verifyError);
+                toast.warning('Transcript may not have been saved properly');
+              } else if (verifyData && verifyData.length > 0) {
+                console.log('Transcript verified successfully:', verifyData[0]);
+                toast.success('Transcript saved and verified');
+              } else {
+                console.warn('Transcript not found after insert');
+                toast.warning('Transcript may not have been saved');
+              }
+            }
+          } catch (error) {
+            console.error('Exception during transcript insert:', error);
+            toast.error('Failed to save transcript due to unexpected error');
+          }
+        } else {
+          console.log('No transcript content to save');
+          toast.info('No transcript content was recorded');
         }
       }
       
