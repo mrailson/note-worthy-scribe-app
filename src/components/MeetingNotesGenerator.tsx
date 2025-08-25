@@ -175,19 +175,29 @@ export default function MeetingNotesGenerator() {
 
   async function runCompare() {
     console.log('runCompare called with transcript length:', transcript?.length);
+    console.log('About to check transcript.trim()');
     
-    if (!transcript.trim()) {
-      console.log('No transcript, showing error');
-      toast.error("Please enter a transcript");
+    try {
+      const trimmedTranscript = transcript.trim();
+      console.log('Trimmed transcript length:', trimmedTranscript.length);
+      
+      if (!trimmedTranscript) {
+        console.log('No transcript after trim, showing error');
+        toast.error("Please enter a transcript");
+        return;
+      }
+
+      console.log('Setting busy state and clearing results');
+      setCompareBusy(true);
+      setError(null);
+      setCompareResult(null);
+      setCompareOverrides({});
+      setCompareIsEditing(false);
+    } catch (e) {
+      console.error('Error in transcript processing:', e);
+      toast.error('Error processing transcript');
       return;
     }
-
-    console.log('Setting busy state and clearing results');
-    setCompareBusy(true);
-    setError(null);
-    setCompareResult(null);
-    setCompareOverrides({});
-    setCompareIsEditing(false);
     
     try {
       console.log('Processing levels from:', compareLevels);
