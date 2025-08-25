@@ -28,6 +28,7 @@ import PracticeImageMaker from "./pages/PracticeImageMaker";
 import MultiServiceMicTest from "./pages/MultiServiceMicTest";
 import DeepgramTest from "./pages/DeepgramTest";
 import BrowserRecorder from "./pages/BrowserRecorder";
+import NHSMeetingNotes from "./pages/NHSMeetingNotes";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -79,6 +80,7 @@ const App = () => (
         <Route path="/deepgram-test" element={<DeepgramTest />} />
         <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />
         <Route path="/browser-recorder" element={<BrowserRecorder />} />
+        <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
         
         <Route path="/reset-password" element={<ResetPassword />} />
         
