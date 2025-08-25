@@ -41,9 +41,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const { toast } = useToast();
 
-  // Debug logging
+  // Debug logging - force refresh
   useEffect(() => {
-    console.log('🔍 InputArea component rendered - testing Deepgram connection');
+    console.log('🔍 InputArea component rendered - testing Deepgram connection (forced refresh)');
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -131,7 +131,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             </Button>
             
             <div className="flex flex-col gap-1">
+              {/* Force refresh - using Deepgram */}
               <SimpleDeepgramMic
+                key="deepgram-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 disabled={isLoading}
                 className="justify-center"
