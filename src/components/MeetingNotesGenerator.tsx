@@ -28,7 +28,7 @@ type ApiResponse = {
 type CompareResponse = {
   comparisons: Record<
     string, // "1".."5"
-    { styles: Record<ViewKey, StyleUnion> }
+    Record<ViewKey, StyleUnion>
   >;
 };
 
@@ -334,7 +334,7 @@ export default function MeetingNotesGenerator() {
   const activeText = overrides[activeView] ?? baseActive;
 
   // === Compare effective text (respect overrides at that level)
-  const compStyles = compareResult?.comparisons?.[compareActiveLevel]?.styles || undefined;
+  const compStyles = compareResult?.comparisons?.[compareActiveLevel] || undefined;
   const compBaseText = compStyles ? readBlock(compStyles[compareActiveView]) : "";
   const thisLevelOverrides = compareOverrides[compareActiveLevel] || {};
   const compActiveText = thisLevelOverrides[compareActiveView] ?? compBaseText;

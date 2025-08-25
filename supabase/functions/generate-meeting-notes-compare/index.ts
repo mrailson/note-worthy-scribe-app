@@ -60,10 +60,27 @@ COMPARE MODE
 If settings.controls.compare_levels is provided (array of integers 1..5), return a top-level object:
 {
   "comparisons": {
-    "<level>": { "styles": { ...six styles as strings } }
+    "<level>": { 
+      "formal_minutes": "...",
+      "action_notes": "...", 
+      "headline_summary": "...",
+      "narrative_newsletter": "...",
+      "decision_log": "...",
+      "annotated_summary": "..."
+    }
   }
 }
-For each requested level, scale the depth/length per the detail rules.
+
+CRITICAL: For each requested level (1-5), you MUST generate ALL SIX styles at that detail level:
+- formal_minutes
+- action_notes  
+- headline_summary
+- narrative_newsletter
+- decision_log
+- annotated_summary
+
+Each level should contain the same content types but with different levels of detail/depth based on the level number (1=minimal, 5=very detailed).
+
 Omit the single-level "styles" key in compare mode; only return "comparisons".
 Keep outputs in Markdown (GFM) with tables where applicable.
 `;
