@@ -46,6 +46,7 @@ type Settings = {
 };
 
 export default function MeetingNotesGenerator() {
+  // NHS Meeting Notes Generator Component
   // Ingest
   const [ingestTab, setIngestTab] = useState<IngestTab>("paste");
   const [ingestBusy, setIngestBusy] = useState(false);
