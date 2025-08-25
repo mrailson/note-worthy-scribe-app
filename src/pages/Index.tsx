@@ -223,7 +223,6 @@ const Index = () => {
             onDurationUpdate={setDuration}
             onWordCountUpdate={setWordCount}
             initialSettings={meetingSettings}
-            initialActiveTab={location.state?.activeTab}
           />
 
         </>

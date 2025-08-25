@@ -70,15 +70,13 @@ interface MeetingRecorderProps {
       deepgram: number;
     };
   };
-  initialActiveTab?: string;
 }
 
 export const MeetingRecorder = ({ 
   onTranscriptUpdate, 
   onDurationUpdate, 
   onWordCountUpdate,
-  initialSettings,
-  initialActiveTab
+  initialSettings
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
@@ -3546,7 +3544,7 @@ export const MeetingRecorder = ({
   return (
     <div className="space-y-6">
       {/* Tabbed Interface */}
-      <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
+      <Tabs defaultValue="recorder" className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
