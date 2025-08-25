@@ -22,6 +22,7 @@ const AI4GP = () => {
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string }>>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingICB, setIsFetchingICB] = useState(false);
   const [showUploadSection, setShowUploadSection] = useState(false);
 
   // Keyboard shortcut for Drug Quick Lookup (Ctrl+K)
@@ -140,6 +141,56 @@ const AI4GP = () => {
     }
   };
 
+  const fetchICBData = async () => {
+    setIsFetchingICB(true);
+    
+    try {
+      toast.info('Fetching ICB traffic light drugs data... This may take a few minutes.');
+      
+      const { data, error } = await supabase.functions.invoke('fetch-icb-traffic-light-drugs');
+
+      if (error) {
+        console.error('Error fetching ICB data:', error);
+        toast.error('Failed to fetch ICB data');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(`Successfully fetched ${data.totalItems} drugs from ICB`);
+        
+        // Optionally auto-import the fetched data
+        const importData = {
+          files: [{
+            name: 'ICB_Traffic_Light_Drugs.json',
+            content: JSON.stringify(data.data)
+          }]
+        };
+        
+        const { data: importResult, error: importError } = await supabase.functions.invoke('import-prior-approval-data', {
+          body: importData
+        });
+        
+        if (importError) {
+          console.error('Error importing ICB data:', importError);
+          toast.error('Fetched data but failed to import');
+          return;
+        }
+        
+        if (importResult?.success) {
+          toast.success(`ICB import completed: ${importResult.totalInserted} inserted, ${importResult.totalUpdated} updated`);
+        }
+        
+      } else {
+        toast.error('Failed to fetch ICB data');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('An error occurred while fetching ICB data');
+    } finally {
+      setIsFetchingICB(false);
+    }
+  };
+
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -255,27 +306,52 @@ const AI4GP = () => {
                   Upload up to 3 JSON files containing prior approval data to update the medicine lookup database.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* File Upload Input */}
-                <div>
-                  <input
-                    type="file"
-                    accept=".json,application/json"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="json-file-upload"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('json-file-upload')?.click()}
-                    className="w-full gap-2"
-                    disabled={isUploading}
-                  >
-                    <Upload className="h-4 w-4" />
-                    Select JSON Files
-                  </Button>
-                </div>
+               <CardContent className="space-y-4">
+                 {/* ICB Data Fetch Button */}
+                 <div className="space-y-2">
+                   <Button
+                     onClick={fetchICBData}
+                     disabled={isFetchingICB || isUploading}
+                     className="w-full gap-2"
+                     variant="default"
+                   >
+                     <FileJson className="h-4 w-4" />
+                     {isFetchingICB ? 'Fetching ICB Data...' : 'Fetch Latest ICB Traffic Light Drugs'}
+                   </Button>
+                   <p className="text-xs text-muted-foreground text-center">
+                     Automatically fetch and import the latest traffic light medicines from NHS Northamptonshire ICB (886 drugs)
+                   </p>
+                 </div>
+
+                 <div className="flex items-center gap-4">
+                   <div className="flex-1 h-px bg-border"></div>
+                   <span className="text-xs text-muted-foreground uppercase tracking-wider">OR</span>
+                   <div className="flex-1 h-px bg-border"></div>
+                 </div>
+
+                 {/* File Upload Input */}
+                 <div className="space-y-2">
+                   <input
+                     type="file"
+                     accept=".json,application/json"
+                     multiple
+                     onChange={handleFileUpload}
+                     className="hidden"
+                     id="json-file-upload"
+                   />
+                   <Button
+                     variant="outline"
+                     onClick={() => document.getElementById('json-file-upload')?.click()}
+                     className="w-full gap-2"
+                     disabled={isUploading || isFetchingICB}
+                   >
+                     <Upload className="h-4 w-4" />
+                     Upload Your Own JSON Files
+                   </Button>
+                   <p className="text-xs text-muted-foreground text-center">
+                     Upload custom JSON files with drug information
+                   </p>
+                 </div>
 
                 {/* Uploaded Files List */}
                 {uploadedFiles.length > 0 && (

@@ -68,3 +68,6 @@ verify_jwt = true
 
 [functions.serve-pdf]
 verify_jwt = false
+
+[functions.fetch-icb-traffic-light-drugs]
+verify_jwt = true
