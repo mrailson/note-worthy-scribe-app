@@ -43,26 +43,52 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
 
     try {
       setStatus('connecting...');
+      console.log('🎙️ Starting Deepgram transcription...');
 
+      // First check if we have microphone access
+      console.log('🔍 Checking microphone permissions...');
+      
       // Get secure token from our edge function
+      console.log('🔑 Requesting Deepgram token...');
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke('deepgram-token');
       
-      if (tokenError || !tokenData?.token) {
-        throw new Error('Failed to get Deepgram token: ' + (tokenError?.message || 'No token received'));
+      if (tokenError) {
+        console.error('❌ Deepgram token error:', tokenError);
+        throw new Error('Failed to get Deepgram token: ' + tokenError.message);
+      }
+      
+      if (!tokenData?.token) {
+        console.error('❌ No token received from edge function');
+        throw new Error('No Deepgram token received from server');
       }
 
-      console.log('✅ Got Deepgram token, connecting...');
+      console.log('✅ Got Deepgram token, requesting microphone...');
 
-      // Get microphone access
-      mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 48000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+      // Get microphone access with better error handling
+      try {
+        mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 48000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        console.log('✅ Microphone access granted');
+      } catch (micError: any) {
+        console.error('❌ Microphone access error:', micError);
+        
+        if (micError.name === 'NotAllowedError') {
+          throw new Error('Microphone access denied. Please allow microphone access and try again.');
+        } else if (micError.name === 'NotFoundError') {
+          throw new Error('No microphone found. Please connect a microphone and try again.');
+        } else if (micError.name === 'NotReadableError') {
+          throw new Error('Microphone is busy or unavailable. Please close other apps using the microphone.');
+        } else {
+          throw new Error('Microphone error: ' + micError.message);
         }
-      });
+      }
 
       // Connect to Deepgram WebSocket
       const wsUrl = `wss://api.deepgram.com/v1/listen?${DG_PARAMS.toString()}`;
@@ -134,10 +160,19 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
       // Start recording with small chunks for low latency
       mediaRecorderRef.current.start(250);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error starting Deepgram streaming:', error);
-      setStatus('mic blocked/unavailable');
+      setStatus(error.message || 'connection failed');
       stopStreaming();
+      
+      // Show user-friendly error message
+      if (error.message?.includes('Microphone access denied')) {
+        alert('🎙️ Microphone Access Required\n\nPlease:\n1. Click the microphone icon in your browser address bar\n2. Select "Allow" for microphone access\n3. Refresh the page and try again');
+      } else if (error.message?.includes('No microphone found')) {
+        alert('🎙️ No Microphone Detected\n\nPlease:\n1. Connect a microphone to your device\n2. Refresh the page and try again');
+      } else if (error.message?.includes('Microphone is busy')) {
+        alert('🎙️ Microphone Unavailable\n\nPlease:\n1. Close other apps using the microphone (Zoom, Teams, etc.)\n2. Try again');
+      }
     }
   };
 
