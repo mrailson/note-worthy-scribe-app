@@ -7,7 +7,7 @@ import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { DeepgramStreamingMic } from './DeepgramStreamingMic';
-import { SimpleBrowserMic } from './SimpleBrowserMic';
+import { SimpleDeepgramMic } from './SimpleDeepgramMic';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -43,7 +43,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 InputArea component rendered - using browser speech recognition');
+    console.log('🔍 InputArea component rendered - testing Deepgram connection');
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -131,7 +131,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             </Button>
             
             <div className="flex flex-col gap-1">
-              <SimpleBrowserMic
+              <SimpleDeepgramMic
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 disabled={isLoading}
                 className="justify-center"
@@ -157,7 +157,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Live transcription via browser - click mic to toggle</span>
+        <span className="text-blue-600 font-medium">🎙️ Live transcription via Deepgram - click mic to toggle</span>
       </div>
     </div>
     </>
