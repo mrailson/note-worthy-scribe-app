@@ -91,13 +91,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               
               {!user && (
                 <Button 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/security-compliance')}
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Login</span>
+                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Security</span>
                 </Button>
               )}
             
@@ -333,10 +333,10 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Button 
                           variant="default" 
                           className="justify-start bg-primary text-primary-foreground"
-                          onClick={() => navigate('/auth')}
+                          onClick={() => navigate('/security-compliance')}
                         >
-                          <User className="h-4 w-4 mr-2" />
-                          Login
+                          <Shield className="h-4 w-4 mr-2" />
+                          Security & Compliance
                         </Button>
                       </DrawerClose>
                     )}
