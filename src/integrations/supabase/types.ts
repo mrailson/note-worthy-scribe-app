@@ -3126,6 +3126,45 @@ export type Database = {
           },
         ]
       }
+      policy_templates: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          policy_type: string
+          region: string
+          updated_at: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          policy_type: string
+          region?: string
+          updated_at?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          policy_type?: string
+          region?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       practice_details: {
         Row: {
           address: string | null
@@ -3191,6 +3230,47 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      practice_policy_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          configuration_overrides: Json | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          policy_template_id: string
+          practice_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          configuration_overrides?: Json | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          policy_template_id: string
+          practice_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          configuration_overrides?: Json | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          policy_template_id?: string
+          practice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_policy_assignments_policy_template_id_fkey"
+            columns: ["policy_template_id"]
+            isOneToOne: false
+            referencedRelation: "policy_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       primary_care_networks: {
         Row: {
@@ -4663,6 +4743,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_policy_to_all_practices: {
+        Args: { p_assigned_by?: string; p_policy_template_id: string }
+        Returns: number
+      }
       assign_user_to_practice: {
         Args: {
           p_assigned_by?: string
@@ -4803,6 +4887,17 @@ export type Database = {
       get_practice_manager_practice_id: {
         Args: { _user_id?: string }
         Returns: string
+      }
+      get_practice_policy_status: {
+        Args: { p_practice_id: string }
+        Returns: {
+          assigned_at: string
+          configuration: Json
+          is_active: boolean
+          policy_name: string
+          policy_type: string
+          region: string
+        }[]
       }
       get_practice_role_display_name: {
         Args: { role_enum: Database["public"]["Enums"]["practice_role"] }

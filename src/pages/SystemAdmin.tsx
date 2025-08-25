@@ -41,7 +41,8 @@ import {
   TrendingUp,
   Upload,
   FileJson,
-  TestTube
+  TestTube,
+  FileCheck
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
@@ -98,6 +99,11 @@ const SystemAdmin = () => {
   
   // File upload state for prior approval data
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  
+  // Policy management state
+  const [policyTemplates, setPolicyTemplates] = useState<any[]>([]);
+  const [practiceAssignments, setPracticeAssignments] = useState<any[]>([]);
+  const [assigningPolicy, setAssigningPolicy] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isFetchingICB, setIsFetchingICB] = useState(false);
   const [showUploadSection, setShowUploadSection] = useState(false);
@@ -242,6 +248,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       fetchSupplierIncidents();
       fetchSecurityEvents();
       fetchEnhancedSecurityData();
+      fetchPolicyTemplates();
+      fetchPracticeAssignments();
     }
   }, [isAdmin]);
 
@@ -518,6 +526,74 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       { id: 1, scan_date: '2024-01-14', type: 'Network Security', status: 'completed', findings: 3, critical: 0, high: 1, medium: 2 },
       { id: 2, scan_date: '2024-01-13', type: 'Application Security', status: 'completed', findings: 5, critical: 1, high: 2, medium: 2 }
     ]);
+  };
+  
+  // Policy management functions
+  const fetchPolicyTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('policy_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPolicyTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching policy templates:', error);
+      toast.error("Failed to fetch policy templates");
+    }
+  };
+
+  const fetchPracticeAssignments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('practice_policy_assignments')
+        .select(`
+          *,
+          policy_templates (
+            name,
+            description,
+            policy_type,
+            region,
+            configuration
+          )
+        `)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setPracticeAssignments(data || []);
+    } catch (error) {
+      console.error('Error fetching practice assignments:', error);
+      toast.error("Failed to fetch practice assignments");
+    }
+  };
+
+  const assignPolicyToAllPractices = async (policyTemplateId: string, policyName: string) => {
+    if (assigningPolicy) return;
+    
+    setAssigningPolicy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('assign-policy-to-practices', {
+        body: {
+          policy_template_id: policyTemplateId,
+          policy_name: policyName
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(data.message);
+        fetchPracticeAssignments(); // Refresh the assignments
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error assigning policy to practices:', error);
+      toast.error(`Failed to assign policy: ${error.message}`);
+    } finally {
+      setAssigningPolicy(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -1358,11 +1434,12 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* User Management Tab */}
           <TabsContent value="user-management" className="space-y-6">
             <Tabs defaultValue="users" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto">
                 <TabsTrigger value="users" className="text-xs sm:text-sm p-2">Users</TabsTrigger>
                 <TabsTrigger value="practices" className="text-xs sm:text-sm p-2">Practices</TabsTrigger>
                 <TabsTrigger value="pcns" className="text-xs sm:text-sm p-2">PCNs</TabsTrigger>
                 <TabsTrigger value="neighbourhoods" className="text-xs sm:text-sm p-2">Areas</TabsTrigger>
+                <TabsTrigger value="policies" className="text-xs sm:text-sm p-2">Policies</TabsTrigger>
               </TabsList>
               
               <TabsContent value="users" className="space-y-6">
@@ -1601,6 +1678,132 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     </TableBody>
                   </Table>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="policies" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Policy Management</h3>
+                </div>
+
+                <div className="grid gap-6">
+                  {/* Policy Templates */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileCheck className="h-5 w-5" />
+                        Available Policy Templates
+                      </CardTitle>
+                      <CardDescription>
+                        Manage and assign policy templates to practices
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {policyTemplates.map((template) => (
+                          <div key={template.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{template.name}</h4>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {template.description}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2">
+                                  <Badge variant="outline">
+                                    {template.policy_type.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                  <span className="text-sm text-muted-foreground">
+                                    Region: {template.region}
+                                  </span>
+                                  {template.configuration?.status && (
+                                    <Badge 
+                                      variant={template.configuration.status === 'Active' ? 'default' : 'secondary'}
+                                    >
+                                      {template.configuration.status}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {template.configuration?.description && (
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    📋 {template.configuration.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Button
+                                  onClick={() => assignPolicyToAllPractices(template.id, template.name)}
+                                  disabled={assigningPolicy}
+                                  className="min-w-[140px]"
+                                >
+                                  {assigningPolicy ? (
+                                    "Assigning..."
+                                  ) : (
+                                    "Assign to All Practices"
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {policyTemplates.length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No policy templates found
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Practice Assignments Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Practice Policy Assignments</CardTitle>
+                      <CardDescription>
+                        Overview of policy assignments across all practices
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {practiceAssignments.length > 0 ? (
+                          <>
+                            <div className="text-sm text-muted-foreground">
+                              Total assignments: {practiceAssignments.length}
+                            </div>
+                            
+                            {/* Group assignments by policy template */}
+                            {policyTemplates.map((template) => {
+                              const templateAssignments = practiceAssignments.filter(
+                                assignment => assignment.policy_template_id === template.id
+                              );
+                              
+                              if (templateAssignments.length === 0) return null;
+                              
+                              return (
+                                <div key={template.id} className="p-3 border rounded">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h5 className="font-medium">{template.name}</h5>
+                                      <p className="text-sm text-muted-foreground">
+                                        Assigned to {templateAssignments.length} practices
+                                      </p>
+                                    </div>
+                                    <Badge variant="outline">
+                                      {templateAssignments.length} assignments
+                                    </Badge>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No practice assignments found
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </TabsContent>
