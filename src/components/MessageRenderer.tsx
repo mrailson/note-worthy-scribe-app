@@ -701,14 +701,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           // Code blocks `code`
           .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>');
         
-        // Check if this text part contains policy badges
-        if (part.includes('✦POLICY_BADGE:')) {
-          return (
-            <span key={`text-${index}`} className="inline">
-              {renderContentWithBadges(processedText.replace(/<[^>]*>/g, ''))}
-            </span>
-          );
-        }
+        // Check if this text part contains policy badges - DISABLED by user request
+        // if (part.includes('✦POLICY_BADGE:')) {
+        //   return (
+        //     <span key={`text-${index}`} className="inline">
+        //       {renderContentWithBadges(processedText.replace(/<[^>]*>/g, ''))}
+        //     </span>
+        //   );
+        // }
 
         return (
           <span 
