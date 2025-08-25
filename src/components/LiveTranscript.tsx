@@ -322,19 +322,24 @@ export const LiveTranscript = ({
   const subscribedRef = useRef(false);
   const processedSeqRef = useRef(new Set<number>());
 
-  // Debounce logic for inferring finality when is_final is missing
+  // Debounce logic for inferring finality when is_final is missing (improved responsiveness)
   const stableTimer = useRef<number | null>(null);
   const pendingRef = useRef<string>("");
-  const FLUSH_MS = 1500;
+  const FLUSH_MS = 500; // Reduced from 1500ms to 500ms for better UX
 
   const queueFlushChunk = (text: string) => {
+    console.log("⏰ Queuing chunk for debounce flush in", FLUSH_MS, "ms");
     pendingRef.current = text;
     if (stableTimer.current) window.clearTimeout(stableTimer.current);
     stableTimer.current = window.setTimeout(() => {
+      console.log("🔄 Debounce timer fired - processing queued chunk");
       const cleanedChunk = lightCleanChunk(pendingRef.current);
       const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
       if (dedupedChunk) {
+        console.log("📝 Debounce processed chunk into AI-Enhanced Transcript");
         setCleanedTranscript(prev => mergeLive(prev, dedupedChunk));
+      } else {
+        console.log("🔄 Debounce chunk was empty after deduplication");
       }
       pendingRef.current = "";
     }, FLUSH_MS);
@@ -408,19 +413,26 @@ export const LiveTranscript = ({
         },
         (payload) => {
           const r = payload.new;
-          console.log("[chunk]", {
+          console.log("🔄 [ENHANCED CHUNK PROCESSING]", {
             seq: r.seq,
             is_final: r.is_final,
             len: r?.transcription_text?.length,
             head: r?.transcription_text?.slice(0,40),
-            session_id: r.session_id
+            session_id: r.session_id,
+            chunk_number: r.chunk_number
           });
 
-          if (!r?.transcription_text) return;
+          if (!r?.transcription_text) {
+            console.warn("⚠️ Empty transcription text received, skipping chunk");
+            return;
+          }
 
           // replay/duplicate guard (StrictMode + reconnect safe)
           if (typeof r.seq === 'number') {
-            if (processedSeqRef.current.has(r.seq)) return;
+            if (processedSeqRef.current.has(r.seq)) {
+              console.log("🔄 Duplicate chunk detected, skipping seq:", r.seq);
+              return;
+            }
             processedSeqRef.current.add(r.seq);
           }
 
@@ -431,15 +443,22 @@ export const LiveTranscript = ({
           const cleanedChunk = lightCleanChunk(r.transcription_text);
           const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
 
-          // Robust final chunk handling with three paths
+          // Enhanced final chunk handling with improved logging
           if (typeof r.is_final === "boolean") {
+            console.log("✅ Chunk has is_final field:", r.is_final);
             if (r.is_final && dedupedChunk) {
-              setCleanedTranscript(prev => mergeLive(prev, dedupedChunk));
+              console.log("🔥 Processing FINAL chunk immediately into AI-Enhanced Transcript");
+              setCleanedTranscript(prev => {
+                const merged = mergeLive(prev, dedupedChunk);
+                console.log("📝 AI-Enhanced Transcript updated, length:", merged.length);
+                return merged;
+              });
             } else if (dedupedChunk) {
-              queueFlushChunk(dedupedChunk); // safety fallback
+              console.log("⚡ Queuing non-final chunk for debounce processing");
+              queueFlushChunk(dedupedChunk);
             }
           } else if (dedupedChunk) {
-            // no is_final field in DB — infer with debounce
+            console.warn("⚠️ No is_final field found - using fallback debounce logic");
             queueFlushChunk(dedupedChunk);
           }
         }

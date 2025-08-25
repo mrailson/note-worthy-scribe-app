@@ -386,6 +386,7 @@ export class DesktopWhisperTranscriber {
                 chunk_number: currentChunkNumber,
                 transcription_text: cleanText,
                 confidence: 0.9,
+                is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
                 user_id: (await supabase.auth.getUser()).data.user?.id
               });
 

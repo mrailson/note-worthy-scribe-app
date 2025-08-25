@@ -262,6 +262,7 @@ export class iPhoneWhisperTranscriber {
                 chunk_number: currentChunkNumber,
                 transcription_text: t,
                 confidence: 0.9,
+                is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
                 user_id: user,
               });
             if (dbError) {
