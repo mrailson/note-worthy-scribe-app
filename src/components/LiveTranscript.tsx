@@ -53,6 +53,7 @@ interface Speaker {
 interface LiveTranscriptProps {
   transcript: string;
   confidence?: number; // Add confidence prop
+  isFinal?: boolean; // Add isFinal prop from client recorder
   showTimestamps: boolean;
   onTimestampsToggle: (show: boolean) => void;
   attendees?: string; // Comma-separated attendee names from meeting settings
@@ -80,6 +81,7 @@ interface LiveTranscriptProps {
 export const LiveTranscript = ({ 
   transcript, 
   confidence,
+  isFinal,
   showTimestamps, 
   onTimestampsToggle,
   attendees,
@@ -204,6 +206,20 @@ export const LiveTranscript = ({
   const subscribedRef = useRef(false);
   const processedSeqRef = useRef(new Set<number>());
 
+  // Debounce logic for inferring finality when is_final is missing
+  const stableTimer = useRef<number | null>(null);
+  const pendingRef = useRef<string>("");
+  const FLUSH_MS = 1500;
+
+  const queueFlushChunk = (text: string) => {
+    pendingRef.current = text;
+    if (stableTimer.current) window.clearTimeout(stableTimer.current);
+    stableTimer.current = window.setTimeout(() => {
+      setCleanedTranscript(prev => mergeLive(prev, pendingRef.current));
+      pendingRef.current = "";
+    }, FLUSH_MS);
+  };
+
   // Subscribe to transcription chunks for AI enhancement updates
   useEffect(() => {
     if (!user?.id) return;
@@ -226,8 +242,15 @@ export const LiveTranscript = ({
           filter: `session_id=eq.${currentSessionId}`
         },
         (payload) => {
-          console.log('📝 New transcription chunk received:', payload);
           const r = payload.new;
+          console.log("[chunk]", {
+            seq: r.seq,
+            is_final: r.is_final,
+            len: r?.transcription_text?.length,
+            head: r?.transcription_text?.slice(0,40),
+            session_id: r.session_id
+          });
+
           if (!r?.transcription_text) return;
 
           // replay/duplicate guard (StrictMode + reconnect safe)
@@ -236,13 +259,20 @@ export const LiveTranscript = ({
             processedSeqRef.current.add(r.seq);
           }
 
-          // Always show latest raw text (interim or final) in the tiny box
+          // Always show latest raw text (interim or final) in the live box
           setLiveTranscriptText(r.transcription_text);
 
-          // Only merge finals into the clean buffer
-          if (r.is_final === false) return;
-
-          setCleanedTranscript(prev => mergeLive(prev, r.transcription_text));
+          // Robust final chunk handling with three paths
+          if (typeof r.is_final === "boolean") {
+            if (r.is_final) {
+              setCleanedTranscript(prev => mergeLive(prev, r.transcription_text));
+            } else {
+              queueFlushChunk(r.transcription_text); // safety fallback
+            }
+          } else {
+            // no is_final field in DB — infer with debounce
+            queueFlushChunk(r.transcription_text);
+          }
         }
       )
       .subscribe();
@@ -291,6 +321,24 @@ export const LiveTranscript = ({
       setLiveTranscriptText(processedTranscript);
     }
   }, [transcript]);
+
+  // Handle client prop integration for isFinal
+  useEffect(() => {
+    if (!transcript) return;
+    
+    // Always show interim in live box
+    const processedTranscript = filterSystemMessages(transcript);
+    setLiveTranscriptText(processedTranscript);
+
+    // Handle finality from client props
+    if (typeof isFinal === "boolean") {
+      if (isFinal) {
+        setCleanedTranscript(prev => mergeLive(prev, processedTranscript));
+      } else {
+        queueFlushChunk(processedTranscript);
+      }
+    }
+  }, [transcript, isFinal]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {
@@ -681,9 +729,13 @@ export const LiveTranscript = ({
                     {cleanedTranscript ? (
                       <div className="text-foreground">{cleanedTranscript}</div>
                     ) : (
-                      <span className="text-muted-foreground italic">
-                        Final transcript will appear here once chunks are confirmed…
-                      </span>
+                      <div className="text-muted-foreground italic">
+                        <div>Final transcript will appear here once chunks are confirmed…</div>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          Waiting for finalised chunks… If they don't arrive from your STT,
+                          we'll auto-commit stable text after ~1.5s of silence.
+                        </div>
+                      </div>
                     )}
                   </div>
 
