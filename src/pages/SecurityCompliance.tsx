@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { onDownloadCqcEvidencePack, onDownloadAdvancedEvidencePack } from "@/utils/evidencePackExport";
+import { Header } from "@/components/Header";
 import { 
   Shield, 
   CheckCircle, 
@@ -232,27 +233,8 @@ export default function SecurityCompliance() {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
+      <Header />
       <div className="container mx-auto px-4 py-8">
-        {/* Navigation Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            onClick={() => navigate('/')}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-          <Button
-            onClick={() => navigate('/')}
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </Button>
-        </div>
         {/* Header */}
         <div className="text-center space-y-4 mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
