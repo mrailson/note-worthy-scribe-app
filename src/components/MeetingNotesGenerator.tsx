@@ -177,10 +177,12 @@ export default function MeetingNotesGenerator() {
     console.log('runCompare called with transcript length:', transcript?.length);
     
     if (!transcript.trim()) {
+      console.log('No transcript, showing error');
       toast.error("Please enter a transcript");
       return;
     }
 
+    console.log('Setting busy state and clearing results');
     setCompareBusy(true);
     setError(null);
     setCompareResult(null);
@@ -188,15 +190,21 @@ export default function MeetingNotesGenerator() {
     setCompareIsEditing(false);
     
     try {
+      console.log('Processing levels from:', compareLevels);
       const levels = Object.entries(compareLevels)
         .filter(([, v]) => v)
         .map(([k]) => Number(k))
         .sort((a, b) => a - b);
 
+      console.log('Filtered levels:', levels);
+
       if (!levels.length) {
+        console.log('No levels selected, showing error');
         toast.error("Select at least one level");
         return;
       }
+
+      console.log('About to call Supabase function with:', { transcript: transcript.substring(0, 100) + '...', settings, levels });
 
       const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-compare', {
         body: { transcript, settings, levels }
