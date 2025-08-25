@@ -24,13 +24,19 @@ function addNorthantsFormularyLink(output: string): string {
   // Already present?
   if (output.includes(LINK_LINE)) return output;
 
-  // Phrases to look for (case-insensitive)
+  // Phrases to look for (case-insensitive) - expanded to catch more variations
   const formularyVariants = [
     /check (with|the)\s+(your\s+)?local\s+fo?r?m(u|o)lary/i,
     /refer\s+to\s+(the\s+)?local\s+fo?r?m(u|o)lary/i,
     /consult\s+(the\s+)?local\s+fo?r?m(u|o)lary/i,
     /local\s+fo?r?m(u|o)lary\s+guidance/i,
-    /local\s+fo?r?m(u|o)lary/i
+    /local\s+fo?r?m(u|o)lary/i,
+    /refer\s+to.*local\s+guidelines/i,
+    /check.*local\s+guidelines/i,
+    /consult.*local\s+guidelines/i,
+    /local\s+guidelines/i,
+    /local\s+prescribing\s+guidance/i,
+    /local\s+prescribing\s+guidelines/i
   ];
 
   const found = formularyVariants.some(rx => rx.test(output));
