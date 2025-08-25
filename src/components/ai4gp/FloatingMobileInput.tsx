@@ -39,7 +39,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
-  const [deepgramTranscript, setDeepgramTranscript] = useState('');
+  const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -81,17 +81,15 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   };
 
   const handleSend = () => {
-    // Clear Deepgram transcript state when sending
-    setDeepgramTranscript('');
+    // Clear browser transcript state when sending
+    setBrowserTranscript('');
     onSend();
     // Keep expanded after sending so user can see the response and send follow-ups
   };
 
-  const handleDeepgramTranscriptUpdate = (text: string) => {
-    // Update the input field in real-time during Deepgram streaming
-    const baseInput = input.replace(deepgramTranscript, ''); // Remove previous Deepgram text
-    setInput(baseInput + (baseInput && text ? ' ' : '') + text);
-    setDeepgramTranscript(text);
+  const handleBrowserTranscriptUpdate = (text: string) => {
+    setBrowserTranscript(text);
+    setInput(text);
   };
 
   const toggleExpanded = () => {
@@ -199,7 +197,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               <div className="absolute right-1 top-1 flex gap-1">
                 <div className="flex flex-col gap-1">
                   <SimpleBrowserMic
-                    onTranscriptUpdate={handleDeepgramTranscriptUpdate}
+                    onTranscriptUpdate={handleBrowserTranscriptUpdate}
                     disabled={isLoading}
                     className="justify-center"
                   />

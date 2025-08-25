@@ -6,7 +6,6 @@ import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-reac
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { DeepgramStreamingMic } from './DeepgramStreamingMic';
 import { SimpleBrowserMic } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,13 +37,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
-  const [deepgramTranscript, setDeepgramTranscript] = useState('');
+  const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
-
-  // Debug logging - force refresh
-  useEffect(() => {
-    console.log('🔍 InputArea component rendered - testing Deepgram connection (forced refresh)');
-  }, []);
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -74,10 +68,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   };
 
   const handleBrowserTranscriptUpdate = (text: string) => {
-    // Update the input field in real-time during browser speech recognition
-    const baseInput = input.replace(deepgramTranscript, ''); // Remove previous transcript text
-    setInput(baseInput + (baseInput && text ? ' ' : '') + text);
-    setDeepgramTranscript(text);
+    setBrowserTranscript(text);
+    // Apply the transcript to input, preserving any existing text
+    setInput(text);
   };
 
 
@@ -131,7 +124,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             </Button>
             
             <div className="flex flex-col gap-1">
-              {/* Force refresh - using Deepgram */}
               <SimpleBrowserMic
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
@@ -145,7 +137,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         <Button 
           onClick={() => {
             // Clear transcript state when sending
-            setDeepgramTranscript('');
+            setBrowserTranscript('');
             onSend();
           }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
