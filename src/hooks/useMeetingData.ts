@@ -103,12 +103,28 @@ export const useMeetingData = () => {
         const startDate = data.start_time ? new Date(data.start_time) : null;
         const pad = (n: number) => n.toString().padStart(2, '0');
 
+        // Fetch transcript from meeting_transcripts table
+        let transcriptContent = '';
+        try {
+          const { data: transcriptData } = await supabase
+            .from('meeting_transcripts')
+            .select('content')
+            .eq('meeting_id', data.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          
+          transcriptContent = transcriptData?.content || '';
+        } catch (transcriptError) {
+          console.log('No transcript found in meeting_transcripts table');
+        }
+
         setMeetingData({
           id: data.id,
           title: data.title || 'Meeting',
           duration: data.duration_minutes?.toString() || '00:00',
-          wordCount: 0,
-          transcript: '', // Will be loaded from transcript chunks
+          wordCount: transcriptContent.split(' ').filter(word => word.trim()).length,
+          transcript: transcriptContent,
           speakerCount: 1,
           startTime: data.start_time || '',
           practiceName: '',
