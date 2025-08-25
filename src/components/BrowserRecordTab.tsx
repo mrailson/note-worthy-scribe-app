@@ -324,8 +324,8 @@ export const BrowserRecordTab = () => {
         </Badge>
       </div>
       
-      {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Stats Dashboard with Recording Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Duration Card - Animated */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
@@ -370,53 +370,51 @@ export const BrowserRecordTab = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Recording Controls */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground">
+              <span>Recording Controls</span>
+              <Badge variant="outline" className="text-xs">
+                {transcriptSegments.length} segments
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              {!isRecording ? (
+                <Button
+                  onClick={startRecording}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 w-full"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                  {isLoading ? 'Connecting...' : 'Start'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={stopRecording}
+                  disabled={isLoading}
+                  variant="destructive"
+                  className="flex items-center gap-2 w-full"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MicOff className="w-4 h-4" />
+                  )}
+                  {isLoading ? 'Stopping...' : 'Stop'}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      
-      {/* Recording Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Recording Controls</span>
-            <Badge variant="outline" className="flex items-center gap-1">
-              {transcriptSegments.length} segments
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            {!isRecording ? (
-              <Button
-                onClick={startRecording}
-                disabled={isLoading}
-                size="lg"
-                className="flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Mic className="w-5 h-5" />
-                )}
-                {isLoading ? 'Connecting...' : 'Start Recording'}
-              </Button>
-            ) : (
-              <Button
-                onClick={stopRecording}
-                disabled={isLoading}
-                variant="destructive"
-                size="lg"
-                className="flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <MicOff className="w-5 h-5" />
-                )}
-                {isLoading ? 'Stopping...' : 'Stop Recording'}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
       
       {/* Live Transcript */}
       {(isRecording || liveTranscript) && (
