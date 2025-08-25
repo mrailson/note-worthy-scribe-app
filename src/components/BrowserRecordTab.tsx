@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Loader2, Activity, Volume2, Sparkles } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Mic, MicOff, Loader2, Activity, Volume2, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +23,10 @@ export const BrowserRecordTab = () => {
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptData[]>([]);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [wordCount, setWordCount] = useState(0);
+  
+  // Collapsible state
+  const [segmentsOpen, setSegmentsOpen] = useState(false);
+  const [consolidatedOpen, setConsolidatedOpen] = useState(false);
   
   // Meeting data
   const [meetingId, setMeetingId] = useState<string | null>(null);
@@ -432,68 +437,100 @@ export const BrowserRecordTab = () => {
         </Card>
       )}
       
-      {/* Transcript Segments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Transcript Segments</span>
-            <Badge variant="outline">
-              {transcriptSegments.length} segments
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {transcriptSegments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No transcriptions yet. Start recording to see results.
-              </p>
-            ) : (
-              transcriptSegments.map((segment, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-card border rounded-lg space-y-2 animate-fade-in"
-                >
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      Segment {index + 1}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {(segment.confidence * 100).toFixed(0)}% confidence
-                    </Badge>
-                  </div>
-                  <p className="text-sm leading-relaxed">{segment.text}</p>
+      {/* Transcript Segments - Collapsible */}
+      <Collapsible 
+        open={segmentsOpen} 
+        onOpenChange={setSegmentsOpen}
+      >
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {segmentsOpen ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                  <span>Transcript Segments</span>
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                <Badge variant="outline">
+                  {transcriptSegments.length} segments
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {transcriptSegments.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    No transcriptions yet. Start recording to see results.
+                  </p>
+                ) : (
+                  transcriptSegments.map((segment, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-card border rounded-lg space-y-2 animate-fade-in"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="text-xs">
+                          Segment {index + 1}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {(segment.confidence * 100).toFixed(0)}% confidence
+                        </Badge>
+                      </div>
+                      <p className="text-sm leading-relaxed">{segment.text}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
       
-      {/* Consolidated Transcript */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Consolidated Transcript</span>
-            <Badge variant="outline">
-              {getConsolidatedTranscript().split(/\s+/).filter(w => w.length > 0).length} total words
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-muted/30 rounded-lg min-h-[200px] max-h-[500px] overflow-y-auto border">
-            {getConsolidatedTranscript() ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {getConsolidatedTranscript()}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                Complete transcript will appear here as you record.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Consolidated Transcript - Collapsible */}
+      <Collapsible 
+        open={consolidatedOpen} 
+        onOpenChange={setConsolidatedOpen}
+      >
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {consolidatedOpen ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                  <span>Consolidated Transcript</span>
+                </div>
+                <Badge variant="outline">
+                  {getConsolidatedTranscript().split(/\s+/).filter(w => w.length > 0).length} total words
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="p-4 bg-muted/30 rounded-lg min-h-[200px] max-h-[500px] overflow-y-auto border">
+                {getConsolidatedTranscript() ? (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {getConsolidatedTranscript()}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">
+                    Complete transcript will appear here as you record.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };
