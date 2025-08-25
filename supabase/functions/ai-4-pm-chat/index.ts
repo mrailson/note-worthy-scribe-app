@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
@@ -15,6 +16,35 @@ const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
 // Removed Tavily API key
 
 // Removed Tavily search functionality to fix response errors
+
+// Formulary link post-processor
+function addNorthantsFormularyLink(output: string): string {
+  const LINK_LINE = `Northamptonshire ICB Medicines Optimisation: https://www.icnorthamptonshire.org.uk/pcp-medicines-optimisation`;
+  
+  // Already present?
+  if (output.includes(LINK_LINE)) return output;
+
+  // Phrases to look for (case-insensitive)
+  const formularyVariants = [
+    /check (with|the)\s+(your\s+)?local\s+fo?r?m(u|o)lary/i,
+    /refer\s+to\s+(the\s+)?local\s+fo?r?m(u|o)lary/i,
+    /consult\s+(the\s+)?local\s+fo?r?m(u|o)lary/i,
+    /local\s+fo?r?m(u|o)lary\s+guidance/i,
+    /local\s+fo?r?m(u|o)lary/i
+  ];
+
+  const found = formularyVariants.some(rx => rx.test(output));
+
+  if (!found) return output;
+
+  // Add a neat Resources line. If output looks like markdown, use a list; else plain text.
+  const isMarkdown = /(^|\n)#{1,6}\s|\* |\d+\.\s|```/.test(output);
+  const addition = isMarkdown
+    ? `\n\n**Resources**\n- ${LINK_LINE}\n`
+    : `\n\nResources: ${LINK_LINE}\n`;
+
+  return output.trimEnd() + addition;
+}
 
 interface Message {
   id: string;
@@ -1105,6 +1135,11 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
   const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
 Today is ${today} (Europe/London).
 
+When advising to "check the local formulary," always append this exact line (once only):
+Northamptonshire ICB Medicines Optimisation: https://www.icnorthamptonshire.org.uk/pcp-medicines-optimisation
+
+Do not invent alternative URLs. Use this even if the user is outside Northamptonshire (the app is scoped to Northants).
+
 You have comprehensive knowledge of UK NHS primary care, including BNF guidance, NICE recommendations, and current prescribing practices. Use your existing knowledge to provide accurate, up-to-date information for GP queries.
 
 ${systemPrompt}
@@ -1181,8 +1216,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   console.log('Tool calls detected:', toolCalls.length);
 
   // No tool calls handling needed since tools are disabled
-  // Return the response directly
-  return choice.message.content;
+  // Apply formulary link post-processor and return the response
+  return addNorthantsFormularyLink(choice.message.content || "");
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
