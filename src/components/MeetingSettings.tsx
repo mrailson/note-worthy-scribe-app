@@ -83,12 +83,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     attendees: "",
     agenda: "",
     date: format(new Date(), 'yyyy-MM-dd'),
-    startTime: generateRoundedStartTime(),
-    transcriberService: "whisper" as "whisper" | "deepgram",
-    transcriberThresholds: {
-      whisper: 0.75,
-      deepgram: 0.80
-    }
+    startTime: generateRoundedStartTime()
   });
 
   // Fetch user's associated practices
@@ -410,60 +405,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <p className="text-xs text-muted-foreground">
                 Choose the formatting style for your meeting minutes
               </p>
-            </div>
-
-            {/* Transcription Service */}
-            <div className="space-y-2">
-              <Label htmlFor="transcriber-service">Transcription Service</Label>
-              <Select value={settings.transcriberService} onValueChange={(value) => updateSetting('transcriberService', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select transcription service" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whisper">Whisper (OpenAI)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Using Whisper (OpenAI) for high-quality speech-to-text transcription.
-              </p>
-            </div>
-
-            {/* Confidence Thresholds */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Confidence Threshold</Label>
-              <p className="text-xs text-muted-foreground">
-                Set minimum confidence level to filter out low-quality transcriptions (0.0 - 1.0)
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="whisper-threshold" className="text-xs">Whisper Min Confidence</Label>
-                <Input
-                  id="whisper-threshold"
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={settings.transcriberThresholds?.whisper || 0.75}
-                  onChange={(e) => {
-                    const newValue = Number(e.target.value);
-                    setSettings(prev => ({
-                      ...prev,
-                      transcriberThresholds: {
-                        ...prev.transcriberThresholds,
-                        whisper: newValue,
-                        deepgram: prev.transcriberThresholds?.deepgram || 0.80
-                      }
-                    }));
-                    onSettingsChange({
-                      ...settings,
-                      transcriberThresholds: {
-                        ...settings.transcriberThresholds,
-                        whisper: newValue,
-                      }
-                    });
-                  }}
-                  className="text-xs"
-                />
-              </div>
             </div>
 
             {/* Meeting Description */}

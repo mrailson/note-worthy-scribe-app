@@ -37,11 +37,6 @@ export interface MeetingSettingsState {
   location?: string;
   practiceId?: string;
   meetingFormat?: string;
-  transcriberService: 'whisper' | 'deepgram';
-  transcriberThresholds: {
-    whisper: number;
-    deepgram: number;
-  };
 }
 
 export interface SummaryContent {

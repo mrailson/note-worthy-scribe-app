@@ -25,12 +25,7 @@ export const useMeetingData = () => {
     format: "",
     location: "",
     practiceId: "",
-    meetingFormat: "teams",
-    transcriberService: "whisper",
-    transcriberThresholds: {
-      whisper: 0.75,
-      deepgram: 0.80
-    }
+    meetingFormat: "teams"
   });
 
   const [summaryContent, setSummaryContent] = useState<SummaryContent>({
@@ -160,108 +155,14 @@ export const useMeetingData = () => {
   // Load meeting settings from localStorage/user preferences
   const loadMeetingSettings = useCallback(async () => {
     if (!user?.id) return;
-
-    console.log('🔄 Loading meeting transcriber settings for user:', user.id);
-
-    try {
-      // Try to load from user_settings table first
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('setting_value')
-        .eq('user_id', user.id)
-        .eq('setting_key', 'meeting_transcriber_preferences')
-        .single();
-
-      if (!error && data?.setting_value) {
-        const savedSettings = data.setting_value as any;
-        console.log('✅ Loaded transcriber settings from database:', savedSettings);
-        
-        setMeetingSettings(prev => ({
-          ...prev,
-          transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
-          transcriberThresholds: {
-            whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
-            deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
-          }
-        }));
-      } else {
-        console.log('📝 No saved transcriber settings found in database, trying localStorage...');
-      }
-    } catch (error) {
-      console.warn('⚠️ Database load failed, falling back to localStorage:', error);
-      // Fallback to localStorage if database fails
-      try {
-        const saved = localStorage.getItem(`meeting_settings_${user.id}`);
-        if (saved) {
-          const savedSettings = JSON.parse(saved);
-          console.log('✅ Loaded transcriber settings from localStorage:', savedSettings);
-          
-          setMeetingSettings(prev => ({
-            ...prev,
-            transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
-            transcriberThresholds: {
-              whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
-              deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
-            }
-          }));
-        } else {
-          console.log('📝 No saved transcriber settings found in localStorage either');
-        }
-      } catch (localError) {
-        console.error('❌ Error loading settings from localStorage:', localError);
-      }
-    }
+    // Settings loading removed - no transcriber settings needed
   }, [user?.id]);
 
   // Save meeting settings 
   const saveMeetingSettings = useCallback(async (settings: Partial<MeetingSettingsState>) => {
     if (!user?.id) return;
-
-    const settingsToSave = {
-      transcriberService: settings.transcriberService,
-      transcriberThresholds: settings.transcriberThresholds
-    };
-
-    console.log('💾 Saving meeting transcriber settings:', settingsToSave);
-
-    try {
-      // Save to database
-      await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          setting_key: 'meeting_transcriber_preferences',
-          setting_value: settingsToSave
-        });
-
-      // Also save to localStorage as backup
-      localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
-      
-      console.log('✅ Transcriber settings saved successfully to both database and localStorage');
-    } catch (error) {
-      console.error('❌ Error saving meeting settings to database:', error);
-      // Fallback to localStorage only
-      try {
-        localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
-        console.log('✅ Transcriber settings saved to localStorage as fallback');
-      } catch (localError) {
-        console.error('❌ Error saving to localStorage:', localError);
-      }
-    }
+    // Settings saving removed - no transcriber settings needed
   }, [user?.id]);
-
-  // Auto-save settings when transcriber settings change
-  useEffect(() => {
-    if (meetingSettings.transcriberService !== "whisper" || 
-        meetingSettings.transcriberThresholds.whisper !== 0.75 ||
-        meetingSettings.transcriberThresholds.deepgram !== 0.80) {
-      console.log('🔄 Auto-saving transcriber settings due to change:', {
-        service: meetingSettings.transcriberService,
-        thresholds: meetingSettings.transcriberThresholds
-      });
-      saveMeetingSettings(meetingSettings);
-    }
-  }, [meetingSettings.transcriberService, meetingSettings.transcriberThresholds, saveMeetingSettings]);
 
   // Load settings on mount
   useEffect(() => {
