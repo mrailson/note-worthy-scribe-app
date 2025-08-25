@@ -1,299 +1,174 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");          // optional (2nd pass)
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!; // needed to read table
+const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type CleanOptions = {
-  finalThreshold?: number;
-  finalWindow?: number;
-  use_llm?: boolean;
-};
-
-type CorrectionRow = {
-  id: string;
-  user_id: string | null;
-  practice_id?: string | null; // add this column if you want practice scoping
-  incorrect_term: string;
-  correct_term: string;
-  context_phrase?: string | null;
-  is_global: boolean;
-  usage_count?: number | null;
-};
-
-const correctionsCache = new Map<string, { ts: number; rows: CorrectionRow[] }>();
-const CACHE_TTL_MS = 60_000; // 1 minute
-
-// ---------------- Deterministic cleaner (same as before) ----------------
-
-function normWS(t: string) { return t.replace(/\s+/g, " ").trim(); }
-
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?…])\s+(?=[A-Z""('[])/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-function joinHalfSentences(sents: string[]): string[] {
-  const out: string[] = [];
-  for (const s of sents) {
-    if (!out.length) { out.push(s); continue; }
-    const prev = out[out.length - 1];
-    const prevOpen = !/[.!?…]$/.test(prev);
-    const startsLower = /^[a-z""(]/.test(s);
-    if (prevOpen && startsLower) out[out.length - 1] = (prev + " " + s).replace(/\s+/g, " ");
-    else out.push(s);
-  }
-  return out;
-}
-function grams(text: string, n: number): Set<string> {
-  const w = text.toLowerCase().split(/\s+/);
-  const set = new Set<string>();
-  for (let i = 0; i <= w.length - n; i++) set.add(w.slice(i, i + n).join(" "));
-  return set;
-}
-function jacc(A: Set<string>, B: Set<string>): number {
-  const inter = [...A].filter(x => B.has(x)).length;
-  const uni = new Set([...A, ...B]).size || 1;
-  return inter / uni;
-}
-function sim(a: string, b: string): number {
-  return Math.max(jacc(grams(a, 2), grams(b, 2)), jacc(grams(a, 3), grams(b, 3)));
-}
-function dedupeSentences(text: string, threshold: number, window: number): string {
-  const sents = splitSentences(text);
-  const out: string[] = [];
-  for (const s of sents) {
-    const recent = out.slice(-window);
-    const isDup = recent.some(r => sim(r, s) >= threshold);
-    if (!isDup) out.push(s);
-  }
-  return out.join(" ");
-}
-function applyNHSCorrections(text: string): string {
-  const fixes: Array<[RegExp, string]> = [
-    [/\bARS\b/gi, "ARRS"], [/\bIRS\b/gi, "ARRS"], [/\bARRS\b/gi, "ARRS"],
-    [/\bPCN\s*DES\b/gi, "PCN DES"], [/\bPCM\s*D(AS|ES)?\b/gi, "PCN DES"],
-    [/\bIIF\b/gi, "IIF"], [/\bQOF\b/gi, "QOF"], [/\bICB\b/gi, "ICB"], [/\bCQC\b/gi, "CQC"],
-    [/\bDoc\s*man\b/gi, "Docman"], [/\bSystem\s*One\b/gi, "SystmOne"], [/\bSyst(?:em)?\s*1\b/gi, "SystmOne"],
-    [/\bNHS app\b/gi, "NHS App"],
-    [/\bcall\s*cues\b/gi, "call queues"], [/\bcool\s*cues\b/gi, "call queues"], [/\bcall\s+que+e?s?\b/gi, "call queues"],
-    [/\bsalary doctor\b/gi, "salaried doctor"], [/\bsalarictor\b/gi, "salaried doctor"],
-    [/\bsmiles\b/gi, "SMRs"], [/\bsame day\b/gi, "same-day"], [/\bneighbo(u)?rhood\b/gi, "neighbourhood"],
-    [/\bdocument workflow\b/gi, "Docman workflow"], [/\bstudy evil\b/gi, "study leave"], [/\bred(u|)ctions\b/gi, "redactions"],
-    [/\bfridge(s)?\b/gi, "fridges"],
-    [/\bfastest paramedic\b/gi, "pharmacist paramedic"],
-    [/\bfundamental health practitioner\b/gi, "first contact mental health practitioner"],
-    [/\bSystem 1\b/g, "SystmOne"]
-  ];
-  let out = text;
-  for (const [pat, rep] of fixes) out = out.replace(pat, rep);
-  return out;
-}
-function microTidy(text: string): string {
-  return text
-    .replace(/\b(No\?\s+){2,}/gi, "No? ")
-    .replace(/\s+,/g, ",")
-    .replace(/\(\s+/g, "(")
-    .replace(/\s+\)/g, ")")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-function finalPolish(text: string): string {
-  return text
-    .replace(/(\baround\s+120 new registrations[^.]*\.)\s+\1/gi, "$1")
-    .replace(/(list size is now just over\s*12,?600[^.]*\.)\s+\1/gi, "$1")
-    .replace(/(we can'?t create more same-?day appointments[^.]*\.)\s+\1/gi, "$1")
-    .trim();
-}
-
-// ---------------- Custom glossary (DB) ----------------
-
-// Preserve casing of replacement to match source token style
-function preserveCase(replacement: string, source: string): string {
-  if (source.toUpperCase() === source) return replacement.toUpperCase();
-  if (source.toLowerCase() === source) return replacement.toLowerCase();
-  if (source[0] === source[0]?.toUpperCase()) {
-    return replacement[0].toUpperCase() + replacement.slice(1);
-  }
-  return replacement;
-}
-
-// Safer than \b for hyphenated/numbered terms
-const WB = String.raw`(?<![A-Za-z0-9])`;
-const WE = String.raw`(?![A-Za-z0-9])`;
-
-function buildRegex(term: string): RegExp {
-  const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`${WB}${esc}${WE}`, "gi");
-}
-
-async function fetchCorrections(practiceId?: string, userId?: string): Promise<CorrectionRow[]> {
-  const key = `${practiceId || "_"}|${userId || "_"}`;
-  const now = Date.now();
-  const cached = correctionsCache.get(key);
-  if (cached && now - cached.ts < CACHE_TTL_MS) return cached.rows;
-
-  const url = new URL(`/rest/v1/medical_term_corrections`, supabaseUrl);
-  // Build OR filter: global OR practice OR user
-  // If you don't have practice_id column, drop that part.
-  const orParts = [`is_global.eq.true`];
-  if (practiceId) orParts.push(`practice_id.eq.${practiceId}`);
-  if (userId) orParts.push(`user_id.eq.${userId}`);
-  url.searchParams.set("select", "*");
-  url.searchParams.set("or", `(${orParts.join(",")})`);
-  url.searchParams.set("order", "usage_count.desc.nullslast");
-
-  const resp = await fetch(url.toString(), {
-    headers: {
-      apikey: supabaseServiceKey,
-      Authorization: `Bearer ${supabaseServiceKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-  });
-
-  if (!resp.ok) {
-    console.error("Failed to fetch corrections:", await resp.text());
-    correctionsCache.set(key, { ts: now, rows: [] });
-    return [];
-  }
-
-  const rows = await resp.json() as CorrectionRow[];
-  console.log(`🔄 Loaded ${rows.length} corrections for practice:${practiceId}, user:${userId}`);
-  correctionsCache.set(key, { ts: now, rows });
-  return rows;
-}
-
-function applyUserCorrections(
-  text: string,
-  rows: CorrectionRow[],
-): string {
-  if (!rows?.length) return text;
-  let out = text;
-  let appliedCount = 0;
-
-  for (const row of rows) {
-    const from = row.incorrect_term?.trim();
-    const to = row.correct_term?.trim();
-    if (!from || !to) continue;
-    // Avoid over-correcting single-letter "terms"
-    if (from.length < 2) continue;
-
-    const re = buildRegex(from);
-    const initialText = out;
-
-    if (row.context_phrase && row.context_phrase.trim().length >= 3) {
-      // Only replace if context appears within ±80 chars
-      const ctx = row.context_phrase.trim();
-      const ctxRe = new RegExp(ctx.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      out = out.replace(re, (m, ...rest) => {
-        const offset = (rest[rest.length - 2] as number) ?? 0;
-        const windowStart = Math.max(0, offset - 80);
-        const windowEnd = Math.min(out.length, offset + m.length + 80);
-        const window = out.slice(windowStart, windowEnd);
-        return ctxRe.test(window) ? preserveCase(to, m) : m;
-      });
-    } else {
-      out = out.replace(re, (m) => preserveCase(to, m));
-    }
-    
-    if (out !== initialText) {
-      appliedCount++;
-      console.log(`✅ Applied correction: "${from}" → "${to}"${row.context_phrase ? ` (context: "${row.context_phrase}")` : ''}`);
-    }
-  }
-  
-  console.log(`📝 Applied ${appliedCount}/${rows.length} custom corrections`);
-  return out;
-}
-
-// ---------------- Optional LLM 2nd pass ----------------
-
-async function maybeLLMSecondPass(cleaned: string): Promise<string> {
-  if (!openAIApiKey) return cleaned;
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${openAIApiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are a transcript de-duplicator. Remove remaining duplicates only. Do not paraphrase or invent content." },
-        { role: "user", content: `Transcript:\n${cleaned}\n\nReturn the transcript with duplicates removed. Do not add or change words.` }
-      ],
-      temperature: 0,
-      max_completion_tokens: 4000
-    }),
-  });
-  if (!resp.ok) return cleaned;
-  const data = await resp.json();
-  const out = data?.choices?.[0]?.message?.content;
-  return typeof out === "string" ? out.trim() : cleaned;
-}
-
-// ---------------- HTTP handler ----------------
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    const body = await req.json();
-    const transcript: string | undefined = body?.transcript;
-    const options: CleanOptions | undefined = body?.options;
-    const practiceId: string | undefined = body?.practiceId;
-    const userId: string | undefined = body?.userId;
+    if (!openAIApiKey) throw new Error("OpenAI API key not configured");
 
-    if (!transcript || !transcript.trim()) throw new Error("Missing required field: transcript");
-
-    const startLen = transcript.length;
-    const thresh = options?.finalThreshold ?? 0.97;
-    const win = options?.finalWindow ?? 15;
-    const useLLM = options?.use_llm === true;
-
-    console.log(`🧹 Deterministic cleaning transcript, length: ${startLen}, threshold: ${thresh}, window: ${win}, useLLM: ${useLLM}, practice: ${practiceId}, user: ${userId}`);
-
-    // 1) Normalize
-    let text = normWS(transcript);
-
-    // 2) Join halves, strict dedupe
-    const joined = joinHalfSentences(splitSentences(text)).join(" ");
-    let deduped = dedupeSentences(joined, thresh, win);
-
-    // 3) NHS corrections
-    deduped = applyNHSCorrections(deduped);
-
-    // 4) Per-practice/user corrections
-    const rows = await fetchCorrections(practiceId, userId);
-    let corrected = applyUserCorrections(deduped, rows);
-
-    // 5) Tidy/polish
-    let cleaned = finalPolish(microTidy(corrected));
-
-    // 6) Optional LLM sweep (off by default)
-    if (useLLM) {
-      console.log("🤖 Running optional GPT second pass");
-      cleaned = await maybeLLMSecondPass(cleaned);
+    const { transcript } = await req.json();
+    if (!transcript || typeof transcript !== "string") {
+      throw new Error("Missing required field: transcript");
     }
 
-    console.log(`✅ Cleaning completed, output length: ${cleaned.length}, reduction: ${((1 - cleaned.length / startLen) * 100).toFixed(1)}%, custom corrections: ${rows.length}`);
+    // Light normalisation only (we're still a "prompt-only" solution):
+    // - collapse excessive whitespace
+    // - strip zero-width and control chars
+    const input = transcript
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
 
-    return new Response(JSON.stringify({
-      cleanedTranscript: cleaned,
-      originalLength: startLen,
-      cleanedLength: cleaned.length,
-      usedLLM: !!useLLM,
-      appliedCustomCorrections: rows.length
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const SYSTEM_PROMPT = `
+You are a **professional transcript cleaner** for UK NHS GP meetings.
 
-  } catch (err: any) {
-    console.error("Cleaner error:", err);
-    return new Response(JSON.stringify({ error: err?.message || "Unknown error" }), {
+Your objective:
+- Remove duplicated or near-duplicated content caused by streaming/Whisper joins.
+- Keep chronology and the speaker's meaning intact.
+- Fix clear mistranscriptions of **known NHS terms**, keep UK spelling.
+- Only minimal grammar/punctuation fixes to aid readability.
+- **Do not paraphrase** beyond necessary fixes. Do not invent content.
+- Output **only** the final cleaned transcript text (no headings, no commentary).
+
+Cleaning rules (apply in order):
+
+1) Sentence segmentation
+   - Work sentence-by-sentence. Treat sentences split across lines as one if they clearly continue.
+   - If a line ends mid-phrase and a near-identical complete sentence follows, keep the complete one.
+
+2) Near-duplicate removal (Whisper joins)
+   - Consider two sentences near-duplicates if they convey the same meaning with small wording changes.
+   - If near-duplicates appear within ~5 sentences of each other, **keep one** (prefer the longer/clearer one) and drop the rest.
+   - Examples of near-duplicates to collapse:
+     • "We'll try to keep this to about half an hour…" vs "I'd like to keep this to about half an hour…"
+     • "Does anyone have any urgent items to add…" vs "Any urgent items to add…"
+     • "around 120 new registrations…" repeated twice with slight wording differences.
+
+3) Fragment & filler filtering
+   - Drop short stray fragments like isolated "No?" / "Okay." when they don't add content.
+   - Keep genuine Q&A if the question/answer is meaningful.
+
+4) NHS glossary fixes (case-sensitive where appropriate)
+   - ARRS / ARS / ARR → **ARRS**
+   - PCN DES / PCMDS / PCN DES payment / PCMDRS → **PCN DES**
+   - CQC → **CQC**
+   - ICB → **ICB**
+   - DocMan / Docman → **Docman**
+   - Systm One / System 1 / System One → **SystmOne**
+   - PCN → **PCN**
+   - same day → **same-day**
+   - "repeat procedures" (when context is meds) → **repeat prescribing**
+   - "duty doctor house" → **duty doctor hours**
+   - Remove garbled tail words like "LTE" when tacked onto "frailty" ("home visiting and frailty").
+
+5) Numbers & units
+   - Keep numeric values as spoken (e.g., **12,600**, **£7,800**). Add commas/pound sign if clearly intended.
+
+6) Tone
+   - Keep the original voice. Minimal polish only. UK spelling.
+
+Output format:
+- **Plain text only.**
+- Paragraphs separated by single blank lines.
+- No preamble, no bullet list unless the input clearly contains one.
+`;
+
+    // Few-shot exemplars (greatly helps model consistency)
+    const FEW_SHOT = `
+[Example 1]
+Input:
+"We'll try to keep this to about half an hour if we can... First, just to check... First, just to check, does anyone have any urgent items to add to the agenda before we start? No? Okay, great, let's begin."
+
+Output:
+"We'll try to keep this to about half an hour if we can, though there are quite a few things to get through today. First, just to check, does anyone have any urgent items to add to the agenda before we start? No? Okay, great—let's begin."
+
+[Example 2]
+Input:
+"Our current same day capacity is stretched already... Our current same-day capacity is stretched already, and last week we had days where we were well over the safe limits."
+
+Output:
+"Our current same-day capacity is already stretched, and last week we had days where we were well over the safe limits."
+
+[Example 3]
+Input:
+"We've been trialling the new cloud-based telephony... the queuing system seems to be confusing patients. They think they're being cut off... We might need to add a clearer message or update the callback option."
+
+Output:
+"We've been trialling the new cloud-based telephony, and while call quality is better, the queuing system seems to be confusing patients. They think they're being cut off when actually they're in the queue. We might need to add a clearer message or update the callback option."
+
+[Example 4]
+Input:
+"Systm One / System 1 alerts" → Output must be "SystmOne alerts".
+`;
+
+    const USER_PROMPT = `
+Clean the following transcript according to the system rules. 
+Return only the cleaned transcript between the delimiters.
+
+<<<TRANSCRIPT>>
+${input}
+<<</TRANSCRIPT>>
+`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        presence_penalty: 0.0,
+        frequency_penalty: 0.1,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: FEW_SHOT },
+          { role: "user", content: USER_PROMPT },
+        ],
+        // keep token budget reasonable; we only need the polished text
+        max_completion_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error("OpenAI API error:", err);
+      throw new Error(err?.error?.message || "OpenAI API error");
+    }
+
+    const data = await response.json();
+    let cleanedTranscript: string = data?.choices?.[0]?.message?.content ?? "";
+
+    // Final trim & sanity cleanup (remove model-added fences if any)
+    cleanedTranscript = cleanedTranscript
+      .replace(/^\s*```(?:text)?/i, "")
+      .replace(/```$/i, "")
+      .replace(/^\s*Cleaned transcript:\s*/i, "")
+      .trim();
+
+    return new Response(
+      JSON.stringify({
+        cleanedTranscript,
+        originalLength: transcript.length,
+        cleanedLength: cleanedTranscript.length,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    console.error("Error in gpt-clean-transcript function:", error);
+    return new Response(JSON.stringify({ error: String(error?.message || error) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
