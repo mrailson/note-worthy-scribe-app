@@ -32,7 +32,8 @@ serve(async (req) => {
       const { socket, response } = Deno.upgradeWebSocket(req);
       
       // Connect to Deepgram
-      const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2-conversationalai&language=en-GB&punctuate=true&interim_results=true&smart_format=true&vad_events=true&endpointing=300&encoding=opus&keywords=NHS:2,clinical:2,prescription:2,medication:2,patient:2,treatment:2,diagnosis:2,referral:2`;
+      // Update Deepgram URL to expect WebM format instead of raw opus
+      const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2-conversationalai&language=en-GB&punctuate=true&interim_results=true&smart_format=true&vad_events=true&endpointing=300&encoding=webm&keywords=NHS:2,clinical:2,prescription:2,medication:2,patient:2,treatment:2,diagnosis:2,referral:2`;
       
       let deepgramSocket: WebSocket;
       
@@ -47,6 +48,7 @@ serve(async (req) => {
         };
         
         deepgramSocket.onmessage = (event) => {
+          console.log('📥 Received from Deepgram:', event.data);
           // Forward Deepgram response to client
           socket.send(event.data);
         };
@@ -63,9 +65,12 @@ serve(async (req) => {
       };
       
       socket.onmessage = (event) => {
+        console.log('📤 Forwarding audio data to Deepgram, size:', event.data?.size || event.data?.byteLength || 'unknown');
         // Forward client audio data to Deepgram
         if (deepgramSocket && deepgramSocket.readyState === WebSocket.OPEN) {
           deepgramSocket.send(event.data);
+        } else {
+          console.warn('⚠️ Deepgram socket not ready, state:', deepgramSocket?.readyState);
         }
       };
       

@@ -197,8 +197,12 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
           console.log('Sending audio chunk, size:', event.data.size, 'type:', event.data.type);
+          
+          // Convert WebM/Opus to raw binary for Deepgram
           event.data.arrayBuffer().then(buffer => {
-            console.log('Sending buffer to WebSocket, size:', buffer.byteLength);
+            console.log('Converting WebM buffer to raw audio, size:', buffer.byteLength);
+            
+            // Send raw binary data directly to Deepgram via our proxy
             wsRef.current?.send(buffer);
           }).catch(error => {
             console.error('Error converting to buffer:', error);
