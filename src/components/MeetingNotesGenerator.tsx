@@ -588,9 +588,12 @@ export default function MeetingNotesGenerator() {
           <button
             onClick={() => {
               console.log('Button clicked - starting runCompare');
+              console.log('transcript length:', transcript?.length);
+              console.log('transcript content:', transcript?.substring(0, 100));
+              console.log('compareBusy:', compareBusy);
               runCompare();
             }}
-            disabled={compareBusy || !transcript.trim()}
+            disabled={false}
             className="ml-auto px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
           >
             {compareBusy ? "Comparing…" : "Run Comparison"}
