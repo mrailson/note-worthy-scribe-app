@@ -17,7 +17,7 @@ type ViewKey =
 type IngestTab = "paste" | "audio" | "file";
 type StyleUnion = string | { markdown?: string; table_markdown?: string; title?: string; suggested_filename?: string };
 
-// === Single-run response (unchanged, but tolerant to strings)
+// === Single-run response (tolerates strings OR objects)
 type ApiResponse = {
   meta?: any;
   cleaned_transcript?: string;
@@ -28,15 +28,13 @@ type ApiResponse = {
 type CompareResponse = {
   comparisons: Record<
     string, // "1".."5"
-    {
-      styles: Record<ViewKey, StyleUnion>;
-    }
+    { styles: Record<ViewKey, StyleUnion> }
   >;
 };
 
 type Settings = {
   title?: string;
-  date?: string;
+  date?: string; // YYYY-MM-DD
   time?: string;
   venue?: string;
   chair?: string;
@@ -66,16 +64,21 @@ export default function MeetingNotesGenerator() {
   const [settings, setSettings] = useState<Settings>({});
   const [detailLevel, setDetailLevel] = useState<number>(3);
 
-  // Generation
+  // Generation (single-run)
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewKey>("formal_minutes");
 
-  // Display
+  // Display mode
   const [renderMode, setRenderMode] = useState<"rendered" | "raw">("rendered");
 
-  // Compare
+  // === Edit state (single-run)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [overrides, setOverrides] = useState<Partial<Record<ViewKey, string>>>({});
+
+  // === Compare state
   const [compareBusy, setCompareBusy] = useState(false);
   const [compareLevels, setCompareLevels] = useState<Record<number, boolean>>({
     1: true,
@@ -88,6 +91,13 @@ export default function MeetingNotesGenerator() {
   const [compareActiveLevel, setCompareActiveLevel] = useState<"1" | "2" | "3" | "4" | "5">("3");
   const [compareActiveView, setCompareActiveView] = useState<ViewKey>("formal_minutes");
   const [compareRenderMode, setCompareRenderMode] = useState<"rendered" | "raw">("rendered");
+
+  // === Edit state (compare)
+  const [compareIsEditing, setCompareIsEditing] = useState(false);
+  const [compareEditText, setCompareEditText] = useState("");
+  // overrides per level: { "3": {formal_minutes: "..."} }
+  const [compareOverrides, setCompareOverrides] =
+    useState<Record<string, Partial<Record<ViewKey, string>>>>({});
 
   // Helpers
   function readBlock(block: StyleUnion | undefined): string {
@@ -110,16 +120,27 @@ export default function MeetingNotesGenerator() {
     ["annotated_summary", "Annotated Summary"],
   ];
 
+  // Suggested filename builder
+  function suggestFilename(view: ViewKey, level?: string) {
+    const base = settings?.title || "Meeting Notes";
+    const date = settings?.date ? `-${settings.date}` : "";
+    const viewPart = `-${view.replace(/_/g, "-")}`;
+    const lvl = level ? `-L${level}` : "";
+    return `${base}${date}${viewPart}${lvl}`.toLowerCase().replace(/[^a-z0-9\-]+/g, "-");
+  }
+
   // Actions
   async function generate() {
     if (!transcript.trim()) {
-      toast.error('Please enter a transcript');
+      toast.error("Please enter a transcript");
       return;
     }
 
     setLoading(true);
     setError(null);
     setResult(null);
+    setOverrides({});
+    setIsEditing(false);
     
     try {
       const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-six-styles', {
@@ -139,11 +160,11 @@ export default function MeetingNotesGenerator() {
       }
 
       setResult(data as ApiResponse);
-      toast.success('Meeting notes generated successfully');
+      toast.success("Meeting notes generated successfully");
     } catch (e: any) {
       console.error('Generation error:', e);
       setError(e?.message || "Unexpected error");
-      toast.error('Failed to generate meeting notes');
+      toast.error("Failed to generate meeting notes");
     } finally {
       setLoading(false);
     }
@@ -151,13 +172,15 @@ export default function MeetingNotesGenerator() {
 
   async function runCompare() {
     if (!transcript.trim()) {
-      toast.error('Please enter a transcript');
+      toast.error("Please enter a transcript");
       return;
     }
 
     setCompareBusy(true);
     setError(null);
     setCompareResult(null);
+    setCompareOverrides({});
+    setCompareIsEditing(false);
     
     try {
       const levels = Object.entries(compareLevels)
@@ -166,7 +189,7 @@ export default function MeetingNotesGenerator() {
         .sort((a, b) => a - b);
 
       if (!levels.length) {
-        toast.error('Select at least one level');
+        toast.error("Select at least one level");
         return;
       }
 
@@ -182,14 +205,13 @@ export default function MeetingNotesGenerator() {
         throw new Error(data.error);
       }
 
-      // Pick first selected tab as active
       setCompareActiveLevel(String(levels[0]) as any);
       setCompareResult(data as CompareResponse);
-      toast.success('Comparison generated successfully');
+      toast.success("Comparison generated successfully");
     } catch (e: any) {
       console.error('Compare error:', e);
       setError(e?.message || "Unexpected error");
-      toast.error('Failed to generate comparison');
+      toast.error("Failed to generate comparison");
     } finally {
       setCompareBusy(false);
     }
@@ -241,13 +263,48 @@ export default function MeetingNotesGenerator() {
   async function copy(text: string) {
     if (text) {
       await navigator.clipboard.writeText(text);
-      toast.success('Copied to clipboard');
+      toast.success("Copied to clipboard");
     }
   }
 
-  const activeText = getActiveMarkdown();
-  const comp = compareResult?.comparisons?.[compareActiveLevel]?.styles;
-  const compareText = comp ? readBlock(comp[compareActiveView]) : "";
+  async function downloadDocx(markdown: string, filename: string) {
+    try {
+      const { data, error: functionError } = await supabase.functions.invoke('export-docx', {
+        body: { markdown, filename }
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      // Since our edge function returns text for now, create a blob and download
+      const blob = new Blob([data], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${filename}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      
+      toast.success("Document downloaded successfully");
+    } catch (e: any) {
+      console.error('Download error:', e);
+      setError(`Export failed: ${e?.message}`);
+      toast.error("Failed to download document");
+    }
+  }
+
+  // === Single-run effective text (respect overrides)
+  const baseActive = getActiveMarkdown();
+  const activeText = overrides[activeView] ?? baseActive;
+
+  // === Compare effective text (respect overrides at that level)
+  const compStyles = compareResult?.comparisons?.[compareActiveLevel]?.styles || undefined;
+  const compBaseText = compStyles ? readBlock(compStyles[compareActiveView]) : "";
+  const thisLevelOverrides = compareOverrides[compareActiveLevel] || {};
+  const compActiveText = thisLevelOverrides[compareActiveView] ?? compBaseText;
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-5">
@@ -368,14 +425,14 @@ export default function MeetingNotesGenerator() {
             {detailLevel === 5 && "Very detailed"}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Affects the single-run “Generate Meeting Notes”.</p>
+        <p className="text-xs text-muted-foreground mt-1">Affects the single-run "Generate Meeting Notes".</p>
       </div>
 
       {/* Generate */}
       <button
         onClick={generate}
         disabled={loading || !transcript.trim()}
-        className="w-fit px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary-hover transition-colors"
+        className="w-fit px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
       >
         {loading ? "Generating…" : "Generate Meeting Notes"}
       </button>
@@ -389,7 +446,10 @@ export default function MeetingNotesGenerator() {
             {tabs.map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setActiveView(key)}
+                onClick={() => {
+                  setActiveView(key);
+                  setIsEditing(false);
+                }}
                 className={`px-3 py-1 rounded ${activeView === key ? "bg-primary text-primary-foreground" : "bg-muted"}`}
               >
                 {label}
@@ -397,6 +457,51 @@ export default function MeetingNotesGenerator() {
             ))}
             <div className="flex-1" />
             <div className="flex gap-2">
+              {!isEditing && (
+                <button
+                  onClick={() => {
+                    setEditText(activeText);
+                    setIsEditing(true);
+                  }}
+                  className="px-3 py-1 rounded bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
+              {isEditing && (
+                <>
+                  <button
+                    onClick={() => {
+                      setOverrides((o) => ({ ...o, [activeView]: editText }));
+                      setIsEditing(false);
+                      toast.success("Changes saved");
+                    }}
+                    className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setIsEditing(false)} 
+                    className="px-3 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const copy = { ...overrides };
+                      delete copy[activeView];
+                      setOverrides(copy);
+                      setIsEditing(false);
+                      setEditText("");
+                      toast.success("Edits reset");
+                    }}
+                    className="px-3 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                    title="Remove edits for this tab"
+                  >
+                    Reset
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setRenderMode(renderMode === "rendered" ? "raw" : "rendered")}
                 className="px-3 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
@@ -409,10 +514,24 @@ export default function MeetingNotesGenerator() {
               >
                 Copy
               </button>
+              <button
+                onClick={() => downloadDocx(activeText, suggestFilename(activeView))}
+                className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                Download
+              </button>
             </div>
           </div>
+
           <div className="p-4">
-            {renderMode === "rendered" ? (
+            {isEditing ? (
+              <textarea
+                className="w-full border rounded p-3 min-h-[320px] font-mono text-sm bg-background text-foreground"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="Edit the markdown content here..."
+              />
+            ) : renderMode === "rendered" ? (
               <article className="prose prose-slate max-w-none dark:prose-invert">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeText}</ReactMarkdown>
               </article>
@@ -456,7 +575,10 @@ export default function MeetingNotesGenerator() {
                 .map((n) => (
                   <button
                     key={n}
-                    onClick={() => setCompareActiveLevel(String(n) as any)}
+                    onClick={() => {
+                      setCompareActiveLevel(String(n) as any);
+                      setCompareIsEditing(false);
+                    }}
                     className={`px-3 py-1 rounded ${compareActiveLevel === String(n) ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                   >
                     Level {n}
@@ -464,6 +586,61 @@ export default function MeetingNotesGenerator() {
                 ))}
               <div className="flex-1" />
               <div className="flex gap-2">
+                {!compareIsEditing && (
+                  <button
+                    onClick={() => {
+                      setCompareEditText(compActiveText);
+                      setCompareIsEditing(true);
+                    }}
+                    className="px-3 py-1 rounded bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+                {compareIsEditing && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setCompareOverrides((o) => ({
+                          ...o,
+                          [compareActiveLevel]: {
+                            ...(o[compareActiveLevel] || {}),
+                            [compareActiveView]: compareEditText,
+                          },
+                        }));
+                        setCompareIsEditing(false);
+                        toast.success("Changes saved");
+                      }}
+                      className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setCompareIsEditing(false)} 
+                      className="px-3 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCompareOverrides((o) => {
+                          const copy = { ...(o || {}) };
+                          const levelMap = { ...(copy[compareActiveLevel] || {}) };
+                          delete levelMap[compareActiveView];
+                          copy[compareActiveLevel] = levelMap;
+                          return copy;
+                        });
+                        setCompareIsEditing(false);
+                        setCompareEditText("");
+                        toast.success("Edits reset");
+                      }}
+                      className="px-3 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      title="Remove edits for this level & tab"
+                    >
+                      Reset
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() =>
                     setCompareRenderMode(compareRenderMode === "rendered" ? "raw" : "rendered")
@@ -473,10 +650,18 @@ export default function MeetingNotesGenerator() {
                   {compareRenderMode === "rendered" ? "Show Raw" : "Show Rendered"}
                 </button>
                 <button 
-                  onClick={() => copy(compareText)} 
+                  onClick={() => copy(compActiveText)} 
                   className="px-3 py-1 rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
                 >
                   Copy
+                </button>
+                <button
+                  onClick={() =>
+                    downloadDocx(compActiveText, suggestFilename(compareActiveView, compareActiveLevel))
+                  }
+                  className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Download
                 </button>
               </div>
             </div>
@@ -486,7 +671,10 @@ export default function MeetingNotesGenerator() {
               {tabs.map(([key, label]) => (
                 <button
                   key={key}
-                  onClick={() => setCompareActiveView(key)}
+                  onClick={() => {
+                    setCompareActiveView(key);
+                    setCompareIsEditing(false);
+                  }}
                   className={`px-3 py-1 rounded ${compareActiveView === key ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                 >
                   {label}
@@ -496,12 +684,19 @@ export default function MeetingNotesGenerator() {
 
             {/* Content */}
             <div className="p-4">
-              {compareRenderMode === "rendered" ? (
+              {compareIsEditing ? (
+                <textarea
+                  className="w-full border rounded p-3 min-h-[320px] font-mono text-sm bg-background text-foreground"
+                  value={compareEditText}
+                  onChange={(e) => setCompareEditText(e.target.value)}
+                  placeholder="Edit the markdown content here..."
+                />
+              ) : compareRenderMode === "rendered" ? (
                 <article className="prose prose-slate max-w-none dark:prose-invert">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{compareText}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{compActiveText}</ReactMarkdown>
                 </article>
               ) : (
-                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded overflow-x-auto">{compareText}</pre>
+                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded overflow-x-auto">{compActiveText}</pre>
               )}
             </div>
           </div>
