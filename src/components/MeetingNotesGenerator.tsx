@@ -42,12 +42,12 @@ interface ApiResponse {
   meta?: any;
   cleaned_transcript?: string;
   styles: {
-    formal_minutes: StyleBlock;
-    action_notes: StyleBlock;
-    headline_summary: StyleBlock;
-    narrative_newsletter: StyleBlock;
-    decision_log: { title?: string; table_markdown: string; suggested_filename?: string };
-    annotated_summary: StyleBlock;
+    formal_minutes: string;
+    action_notes: string;
+    headline_summary: string;
+    narrative_newsletter: string;
+    decision_log: string;
+    annotated_summary: string;
   };
 }
 
@@ -136,10 +136,7 @@ export const MeetingNotesGenerator = () => {
 
   const getActiveMarkdown = () => {
     if (!result) return '';
-    if (activeTab === 'decision_log') {
-      return result.styles.decision_log.table_markdown || '';
-    }
-    return (result.styles as any)[activeTab]?.markdown || '';
+    return result.styles[activeTab] || '';
   };
 
   const handleCopy = async () => {
