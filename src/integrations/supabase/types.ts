@@ -4154,37 +4154,70 @@ export type Database = {
       }
       traffic_light_medicines: {
         Row: {
+          antimicrobial_data: Json | null
           bnf_chapter: string | null
+          bnf_data: Json | null
           created_at: string | null
           detail_url: string | null
+          devices_vaccines_data: Json | null
+          formulary_data: Json | null
+          icb_region: string | null
           id: string
+          last_reviewed_date: string | null
+          links_data: Json | null
+          monitoring_data: Json | null
           name: string
           notes: string | null
+          populations_data: Json | null
+          prior_approval_data: Json | null
           prior_approval_url: string | null
+          source_document: string | null
           status_enum: string
           status_raw: string | null
           updated_at: string | null
         }
         Insert: {
+          antimicrobial_data?: Json | null
           bnf_chapter?: string | null
+          bnf_data?: Json | null
           created_at?: string | null
           detail_url?: string | null
+          devices_vaccines_data?: Json | null
+          formulary_data?: Json | null
+          icb_region?: string | null
           id?: string
+          last_reviewed_date?: string | null
+          links_data?: Json | null
+          monitoring_data?: Json | null
           name: string
           notes?: string | null
+          populations_data?: Json | null
+          prior_approval_data?: Json | null
           prior_approval_url?: string | null
+          source_document?: string | null
           status_enum: string
           status_raw?: string | null
           updated_at?: string | null
         }
         Update: {
+          antimicrobial_data?: Json | null
           bnf_chapter?: string | null
+          bnf_data?: Json | null
           created_at?: string | null
           detail_url?: string | null
+          devices_vaccines_data?: Json | null
+          formulary_data?: Json | null
+          icb_region?: string | null
           id?: string
+          last_reviewed_date?: string | null
+          links_data?: Json | null
+          monitoring_data?: Json | null
           name?: string
           notes?: string | null
+          populations_data?: Json | null
+          prior_approval_data?: Json | null
           prior_approval_url?: string | null
+          source_document?: string | null
           status_enum?: string
           status_raw?: string | null
           updated_at?: string | null
@@ -4687,6 +4720,26 @@ export type Database = {
           staff_email: string
           staff_name: string
           staff_role: string
+        }[]
+      }
+      get_comprehensive_drug_info: {
+        Args: { drug_name_param: string }
+        Returns: {
+          antimicrobial_data: Json
+          bnf_chapter: string
+          bnf_data: Json
+          devices_vaccines_data: Json
+          drug_name: string
+          formulary_data: Json
+          icb_region: string
+          last_reviewed_date: string
+          links_data: Json
+          monitoring_data: Json
+          notes: string
+          populations_data: Json
+          prior_approval_data: Json
+          source_document: string
+          traffic_light_status: string
         }[]
       }
       get_current_user_id: {
