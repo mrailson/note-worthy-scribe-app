@@ -173,28 +173,77 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
     if (!mediaStreamRef.current) return;
 
     try {
-      const options = { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 64000 };
+      console.log('🎵 Starting MediaRecorder...');
+      
+      // Try different codec options for better browser compatibility
+      let options;
+      
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options = { mimeType: 'audio/webm;codecs=opus', bitsPerSecond: 64000 };
+        console.log('✅ Using webm/opus codec');
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm', bitsPerSecond: 64000 };
+        console.log('✅ Using webm codec');
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4', bitsPerSecond: 64000 };
+        console.log('✅ Using mp4 codec');
+      } else {
+        options = { bitsPerSecond: 64000 };
+        console.log('⚠️ Using default codec');
+      }
+      
       mediaRecorderRef.current = new MediaRecorder(mediaStreamRef.current, options);
+      console.log('📹 MediaRecorder created with options:', options);
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          console.log('🎵 Sending audio chunk, size:', event.data.size);
+          console.log('🎵 Sending audio chunk, size:', event.data.size, 'type:', event.data.type);
           // Send audio chunks directly to WebSocket
           event.data.arrayBuffer().then(buffer => {
             console.log('📤 Sending buffer to WebSocket, size:', buffer.byteLength);
             wsRef.current?.send(buffer);
+          }).catch(error => {
+            console.error('❌ Error converting to buffer:', error);
           });
         } else {
-          console.warn('⚠️ Audio data available but WebSocket not ready or no data');
+          console.warn('⚠️ Audio data available but WebSocket not ready or no data, WS state:', wsRef.current?.readyState);
         }
+      };
+
+      mediaRecorderRef.current.onstart = () => {
+        console.log('▶️ MediaRecorder started');
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        console.log('⏹️ MediaRecorder stopped');
+      };
+
+      mediaRecorderRef.current.onerror = (error) => {
+        console.error('❌ MediaRecorder error:', error);
       };
 
       // Start recording with small chunks for low latency
       mediaRecorderRef.current.start(250);
-      console.log('🎵 Started recording audio');
+      console.log('🎵 Started recording audio with 250ms chunks');
 
     } catch (error) {
       console.error('❌ Error starting recording:', error);
+      // Fallback: try with no options
+      try {
+        console.log('🔄 Trying MediaRecorder fallback without options...');
+        mediaRecorderRef.current = new MediaRecorder(mediaStreamRef.current);
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+            event.data.arrayBuffer().then(buffer => {
+              wsRef.current?.send(buffer);
+            });
+          }
+        };
+        mediaRecorderRef.current.start(250);
+        console.log('✅ Fallback MediaRecorder started');
+      } catch (fallbackError) {
+        console.error('❌ Fallback MediaRecorder also failed:', fallbackError);
+      }
     }
   };
 
