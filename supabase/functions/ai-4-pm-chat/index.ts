@@ -37,7 +37,10 @@ function addNorthantsFormularyLink(output: string): string {
     /local\s+guidelines/i,
     /local\s+prescribing\s+guidance/i,
     /local\s+prescribing\s+guidelines/i,
-    /BNF\s+and\s+local\s+guidelines/i  // Specifically for "BNF and local guidelines"
+    /BNF\s+and\s+local\s+guidelines/i,  // Specifically for "BNF and local guidelines"
+    /local\s+protocols/i,  // Add local protocols
+    /review[\s\w,]*local\s+protocols/i,  // Review local protocols
+    /latest\s+guidelines\s+and\s+local\s+protocols/i  // Latest guidelines and local protocols
   ];
 
   const found = formularyVariants.some(rx => rx.test(output));
@@ -57,8 +60,8 @@ function addNorthantsFormularyLink(output: string): string {
 function cleanBNFOutput(output: string): string {
   // 1. Strip out incorrect traffic light tags (Green, Red, Double Red, Amber, emojis)
   let cleaned = output
-    .replace(/\b(Green|Red|Double Red|Amber)\b/gi, "")
-    .replace(/🟢|🔴|🟠/g, "")
+    .replace(/\b(Green|Red|Double Red|Amber|Red)\b/gi, "")
+    .replace(/🟢|🔴|🟠|⚫|🟡/g, "")
     .replace(/\s{2,}/g, " ")   // collapse multiple spaces
     .trim();
 
