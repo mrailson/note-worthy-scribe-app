@@ -1,0 +1,344 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+
+export default function Auth() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Form states
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: ''
+  });
+  
+  const [signupForm, setSignupForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: "Login Failed",
+            description: "Invalid email or password. Please check your credentials and try again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+        navigate('/');
+      }
+    } catch (error) {
+      toast({
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (signupForm.password !== signupForm.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please check and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (signupForm.password.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email: signupForm.email,
+        password: signupForm.password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account Exists",
+            description: "An account with this email already exists. Please try logging in instead.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Registration Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Registration Successful!",
+          description: "Please check your email for a confirmation link to complete your registration.",
+        });
+        // Clear the form
+        setSignupForm({ email: '', password: '', confirmPassword: '' });
+      }
+    } catch (error) {
+      toast({
+        title: "Registration Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <Button
+            onClick={() => navigate('/')}
+            variant="ghost"
+            className="mb-4 gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+          
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Shield className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              NoteWell AI
+            </h1>
+          </div>
+          <p className="text-muted-foreground">
+            Secure NHS-compliant practice management platform
+          </p>
+        </div>
+
+        {/* Auth Tabs */}
+        <Card>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            {/* Login Tab */}
+            <TabsContent value="login">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Welcome Back
+                </CardTitle>
+                <CardDescription>
+                  Enter your credentials to access your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="your.email@nhs.uk"
+                        value={loginForm.email}
+                        onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing In..." : "Sign In"}
+                  </Button>
+                </form>
+              </CardContent>
+            </TabsContent>
+            
+            {/* Signup Tab */}
+            <TabsContent value="signup">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Create Account
+                </CardTitle>
+                <CardDescription>
+                  Register for secure access to NoteWell AI services
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your.email@nhs.uk"
+                        value={signupForm.email}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a secure password"
+                        value={signupForm.password}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={signupForm.confirmPassword}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </form>
+              </CardContent>
+            </TabsContent>
+          </Tabs>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-sm text-muted-foreground">
+          <p>Secure • NHS-Compliant • GDPR Protected</p>
+        </div>
+      </div>
+    </div>
+  );
+}

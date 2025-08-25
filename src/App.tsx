@@ -14,6 +14,7 @@ import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
 import SharedDrive from "./pages/SharedDrive";
+import Auth from "./pages/Auth";
 
 import AI4PMService from "./pages/AI4PMService";
 import EnhancedAccess from "./pages/EnhancedAccess";
@@ -38,6 +39,7 @@ const App = () => (
     <div className="mobile-keyboard-adjust">
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
             <Route path="/ai4gp" element={<AI4GP />} />
             <Route path="/gp-scribe" element={<GPScribe />} />
         <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
