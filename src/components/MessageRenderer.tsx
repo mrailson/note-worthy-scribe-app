@@ -659,10 +659,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       .replace(/^\s+$/gm, '') // Remove lines with only whitespace
       .trim();
 
-    // Inject policy badges if this is an assistant message
-    if (message.role === 'assistant') {
-      cleanedContent = injectPolicyBadges(cleanedContent);
-    }
+    // Policy badges disabled - user requested removal
+    // if (message.role === 'assistant') {
+    //   cleanedContent = injectPolicyBadges(cleanedContent);
+    // }
     
     // Process markdown formatting
     const processMarkdown = (text: string) => {
