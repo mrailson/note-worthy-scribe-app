@@ -789,7 +789,7 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
   }
 
   const data = await response.json();
-  return data.content[0].text;
+  return cleanBNFOutput(data.content[0].text);
 }
 
 async function callGPT(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -845,7 +845,7 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  return cleanBNFOutput(data.choices[0].message.content);
 }
 
 async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -1069,7 +1069,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       }
       
       const fallbackData = await fallbackResponse.json();
-      return fallbackData.choices[0].message.content;
+      return cleanBNFOutput(fallbackData.choices[0].message.content);
     }
     
     throw new Error(`OpenAI API error: ${initial.status}`);
@@ -1297,7 +1297,7 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
       throw new Error('Unexpected response structure from Grok API');
     }
     
-    return data.choices[0].message.content;
+    return cleanBNFOutput(data.choices[0].message.content);
   } catch (error) {
     console.error('Error calling Grok API:', error);
     throw error;
@@ -1363,7 +1363,7 @@ async function callGemini(messages: Message[], systemPrompt: string, model: stri
     throw new Error('Invalid response structure from Gemini API');
   }
   
-  return data.candidates[0].content.parts[0].text || 'No response generated';
+  return cleanBNFOutput(data.candidates[0].content.parts[0].text || 'No response generated');
 }
 
 async function callDeepseek(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -1424,7 +1424,7 @@ async function callDeepseek(messages: Message[], systemPrompt: string, files?: U
     throw new Error('Invalid response structure from DeepSeek API');
   }
   
-  return data.choices[0].message.content || 'No response generated';
+  return cleanBNFOutput(data.choices[0].message.content || 'No response generated');
 }
 
 serve(async (req) => {
