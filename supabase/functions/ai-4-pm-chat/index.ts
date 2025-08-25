@@ -31,12 +31,13 @@ function addNorthantsFormularyLink(output: string): string {
     /consult\s+(the\s+)?local\s+fo?r?m(u|o)lary/i,
     /local\s+fo?r?m(u|o)lary\s+guidance/i,
     /local\s+fo?r?m(u|o)lary/i,
-    /refer\s+to.*local\s+guidelines/i,
-    /check.*local\s+guidelines/i,
-    /consult.*local\s+guidelines/i,
+    /refer\s+to[\s\w,]*local\s+guidelines/i,  // More flexible matching
+    /check[\s\w,]*local\s+guidelines/i,
+    /consult[\s\w,]*local\s+guidelines/i,
     /local\s+guidelines/i,
     /local\s+prescribing\s+guidance/i,
-    /local\s+prescribing\s+guidelines/i
+    /local\s+prescribing\s+guidelines/i,
+    /BNF\s+and\s+local\s+guidelines/i  // Specifically for "BNF and local guidelines"
   ];
 
   const found = formularyVariants.some(rx => rx.test(output));
