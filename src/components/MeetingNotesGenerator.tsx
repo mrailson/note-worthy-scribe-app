@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from '@/integrations/supabase/client';
@@ -236,8 +236,10 @@ export default function MeetingNotesGenerator() {
       }
 
       console.log('Setting compare result:', data);
+      console.log('Selected levels:', levels);
       setCompareActiveLevel(String(levels[0]) as any);
       setCompareResult(data as CompareResponse);
+      console.log('Compare result set successfully');
       toast.success("Comparison generated successfully");
     } catch (e: any) {
       console.error('Compare error:', e);
@@ -336,6 +338,17 @@ export default function MeetingNotesGenerator() {
   const compBaseText = compStyles ? readBlock(compStyles[compareActiveView]) : "";
   const thisLevelOverrides = compareOverrides[compareActiveLevel] || {};
   const compActiveText = thisLevelOverrides[compareActiveView] ?? compBaseText;
+
+  // Debug useEffect for compareResult
+  useEffect(() => {
+    console.log('compareResult changed:', { 
+      compareResult,
+      availableLevels: compareResult ? Object.keys(compareResult.comparisons || {}) : [],
+      compareActiveLevel,
+      compareActiveView,
+      compActiveText: compActiveText.substring(0, 100) + '...'
+    });
+  }, [compareResult, compareActiveLevel, compareActiveView]);
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-5">
