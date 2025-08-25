@@ -87,29 +87,36 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
       // Handle transcription results
       wsRef.current.onmessage = (event) => {
         try {
+          console.log('📨 Received message from Deepgram:', event.data);
           const data = JSON.parse(event.data);
+          console.log('📊 Parsed Deepgram data:', data);
           
           if (data.error) {
             console.error('❌ Deepgram error:', data.error);
             return;
           }
           
-          if (!data?.channel?.alternatives?.[0]) return;
+          if (!data?.channel?.alternatives?.[0]) {
+            console.log('⚠️ No transcript data in response');
+            return;
+          }
 
           const transcript = data.channel.alternatives[0].transcript || '';
+          console.log('📝 Transcript received:', transcript, 'is_final:', data.is_final);
           
           if (data.is_final === false) {
             // Interim results - show live preview
             setPendingText(transcript);
             const fullText = committedText + (transcript ? (committedText ? ' ' : '') + transcript : '');
+            console.log('🔄 Updating with interim:', fullText);
             onTranscriptUpdate(fullText);
           } else if (data.is_final === true && transcript.trim()) {
             // Final results - commit to permanent text
             const newCommittedText = (committedText ? committedText + ' ' : '') + transcript.trim();
             setCommittedText(newCommittedText);
             setPendingText('');
+            console.log('✅ Final transcript committed:', newCommittedText);
             onTranscriptUpdate(newCommittedText);
-            console.log('✅ Final transcript:', transcript);
           }
 
           // Handle speech detection events
@@ -117,7 +124,7 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
             console.log('🎯 Speech segment completed');
           }
         } catch (error) {
-          console.error('❌ Error parsing Deepgram message:', error);
+          console.error('❌ Error parsing Deepgram message:', error, 'Raw data:', event.data);
         }
       };
 
@@ -146,10 +153,14 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          console.log('🎵 Sending audio chunk, size:', event.data.size);
           // Send audio chunks directly to WebSocket
           event.data.arrayBuffer().then(buffer => {
+            console.log('📤 Sending buffer to WebSocket, size:', buffer.byteLength);
             wsRef.current?.send(buffer);
           });
+        } else {
+          console.warn('⚠️ Audio data available but WebSocket not ready or no data');
         }
       };
 
