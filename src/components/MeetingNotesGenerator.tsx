@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,6 +51,7 @@ interface ApiResponse {
 }
 
 type ActiveTab = 'formal_minutes' | 'action_notes' | 'headline_summary' | 'narrative_newsletter' | 'decision_log' | 'annotated_summary';
+type IngestTab = 'paste' | 'audio' | 'file';
 
 const tabConfig = [
   { key: 'formal_minutes' as ActiveTab, label: 'Formal Minutes', description: 'For governance meetings' },
@@ -72,6 +73,14 @@ export const MeetingNotesGenerator = () => {
   const [attendeesInput, setAttendeesInput] = useState('');
   const [agendaInput, setAgendaInput] = useState('');
   const [keyDatesInput, setKeyDatesInput] = useState('');
+
+  // New ingestion states
+  const [ingestTab, setIngestTab] = useState<IngestTab>('paste');
+  const [ingestBusy, setIngestBusy] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = async () => {
     if (!transcript.trim()) {
@@ -134,6 +143,51 @@ export const MeetingNotesGenerator = () => {
     }
   };
 
+  const handleUpload = async (kind: 'audio' | 'doc', file: File) => {
+    setIngestBusy(true);
+    setIngestMsg(kind === 'audio' ? 'Transcribing audio…' : 'Extracting text…');
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      if (kind === 'audio') {
+        formData.append('audio', file);
+      } else {
+        formData.append('doc', file);
+      }
+
+      const { data, error: functionError } = await supabase.functions.invoke('upload-to-text', {
+        body: formData
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const extractedText = (data?.text || '').trim();
+      if (!extractedText) {
+        throw new Error('No text returned from file.');
+      }
+
+      // Replace the transcript with extracted text
+      setTranscript(extractedText);
+      setIngestMsg('Done. Transcript inserted.');
+      toast.success(`${kind === 'audio' ? 'Audio transcribed' : 'Text extracted'} successfully`);
+      
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setError(err.message || 'Upload failed');
+      setIngestMsg(null);
+      toast.error(`Failed to ${kind === 'audio' ? 'transcribe audio' : 'extract text'}`);
+    } finally {
+      setIngestBusy(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
@@ -141,6 +195,7 @@ export const MeetingNotesGenerator = () => {
         <p className="text-muted-foreground">Generate six professional note styles for NHS primary care meetings</p>
       </div>
 
+      {/* Ingestion Tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -149,12 +204,117 @@ export const MeetingNotesGenerator = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            placeholder="Paste your raw meeting transcript here..."
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            className="min-h-[200px] resize-y"
-          />
+          <Tabs value={ingestTab} onValueChange={(value) => setIngestTab(value as IngestTab)}>
+            <div className="flex items-center justify-between mb-4">
+              <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsTrigger value="paste" className="text-sm">
+                  Paste Text
+                </TabsTrigger>
+                <TabsTrigger value="audio" className="text-sm">
+                  Upload Audio
+                </TabsTrigger>
+                <TabsTrigger value="file" className="text-sm">
+                  Upload Document
+                </TabsTrigger>
+              </TabsList>
+              {ingestBusy && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                  {ingestMsg}
+                </div>
+              )}
+            </div>
+
+            <TabsContent value="paste" className="space-y-4">
+              <div className="space-y-2">
+                <Label>Paste or type your meeting transcript</Label>
+                <Textarea
+                  placeholder="Paste your raw meeting transcript here..."
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  className="min-h-[200px] resize-y"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="audio" className="space-y-4">
+              <div className="space-y-2">
+                <Label>Upload audio file for transcription</Label>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                  <input
+                    ref={audioInputRef}
+                    type="file"
+                    accept=".mp3,.wav,.m4a,.webm,.ogg,audio/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpload('audio', file);
+                    }}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => audioInputRef.current?.click()}
+                    disabled={ingestBusy}
+                    className="mb-2"
+                  >
+                    Choose Audio File
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Supported formats: MP3, WAV, M4A, WebM, OGG
+                  </p>
+                </div>
+              </div>
+              {transcript && (
+                <div className="space-y-2">
+                  <Label>Transcribed text (editable)</Label>
+                  <Textarea
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    className="min-h-[150px] resize-y"
+                  />
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="file" className="space-y-4">
+              <div className="space-y-2">
+                <Label>Upload document file for text extraction</Label>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".docx,.pdf,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpload('doc', file);
+                    }}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={ingestBusy}
+                    className="mb-2"
+                  >
+                    Choose Document File
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Supported formats: DOCX, PDF, TXT
+                  </p>
+                </div>
+              </div>
+              {transcript && (
+                <div className="space-y-2">
+                  <Label>Extracted text (editable)</Label>
+                  <Textarea
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    className="min-h-[150px] resize-y"
+                  />
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
