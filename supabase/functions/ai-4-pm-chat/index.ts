@@ -1105,12 +1105,7 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
   const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
 Today is ${today} (Europe/London).
 
-If a question is time-sensitive (BNF/NICE updates, DHSC/NHSE policy, Wes Streeting announcements, ARRS, vaccination programmes),
-CALL tavily_search first with a recency window and an allow-list:
-["gov.uk","england.nhs.uk","nhs.uk","nice.org.uk","bnf.nice.org.uk","ukhsa.gov.uk"].
-
-Never write "I will search now" unless you actually call tavily_search.
-Always include dates + sources. If nothing recent is found, say what you searched.
+You have comprehensive knowledge of UK NHS primary care, including BNF guidance, NICE recommendations, and current prescribing practices. Use your existing knowledge to provide accurate, up-to-date information for GP queries.
 
 ${systemPrompt}
 
@@ -1121,35 +1116,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
 
-  // Define tools for function calls
-  const tools = [
-    {
-      "type": "function",
-      "function": {
-        "name": "tavily_search",
-        "description": "Search for current information using Tavily API. Use this for recent medical guidelines, NHS updates, policy changes, or current events.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "q": {
-              "type": "string",
-              "description": "Search query - be specific about what you're looking for"
-            },
-            "recencyDays": {
-              "type": "integer", 
-              "description": "How many days back to search (e.g. 30 for last month, 90 for last 3 months)"
-            },
-            "siteLimit": {
-              "type": "array",
-              "items": {"type": "string"},
-              "description": "Limit search to specific sites like ['gov.uk', 'england.nhs.uk', 'nice.org.uk']"
-            }
-          },
-          "required": ["q"]
-        }
-      }
-    }
-  ];
+  // No tools defined - using direct model responses only
 
   const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }
@@ -1186,8 +1153,6 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
       model: 'gpt-4o-mini',
       temperature: 0.2,
       max_tokens: maxTokens, // Use dynamic token allocation
-      tools,
-      tool_choice: "auto",
       messages: gptMessages
     })
   });
@@ -1215,67 +1180,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   }));
   console.log('Tool calls detected:', toolCalls.length);
 
-  if (toolCalls.length > 0) {
-    // Handle tool calls
-    for (const call of toolCalls) {
-      if (call.function.name === "tavily_search") {
-        console.log('Executing tavily_search...');
-        const args = JSON.parse(call.function.arguments);
-        console.log('Search args:', args);
-        
-        try {
-          const tavilyResults = await runTavilySearch(args.q, args.recencyDays, args.siteLimit);
-          
-          // Add the assistant message with tool call
-          gptMessages.push({
-            role: "assistant",
-            content: choice.message.content ?? "",
-            tool_calls: toolCalls
-          });
-
-          // Add the tool result
-          gptMessages.push({
-            role: "tool",
-            name: "tavily_search",
-            tool_call_id: call.id,
-            content: JSON.stringify(tavilyResults)
-          });
-
-          // Second completion with tool results
-          console.log('Running final completion with search results...');
-          const final = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              temperature: 0.2,
-              max_tokens: maxTokens, // Use dynamic token allocation
-              tools,
-              messages: gptMessages
-            })
-          });
-
-          if (!final.ok) {
-            const error = await final.text();
-            console.error('OpenAI final API error:', error);
-            throw new Error(`OpenAI API error: ${final.status}`);
-          }
-
-          const finalData = await final.json();
-          return finalData.choices[0].message.content;
-        } catch (searchError) {
-          console.error('Error in tavily search:', searchError);
-          // Continue with original response if search fails
-          return choice.message.content || "I encountered an error while searching for recent information.";
-        }
-      }
-    }
-  }
-
-  // No tool calls, return the initial response
+  // No tool calls handling needed since tools are disabled
+  // Return the response directly
   return choice.message.content;
 }
 
