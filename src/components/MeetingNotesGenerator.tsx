@@ -15,15 +15,23 @@ type ViewKey =
   | "annotated_summary";
 
 type IngestTab = "paste" | "audio" | "file";
-
-// ✅ Styles can be returned as either a plain string OR an object with markdown/table_markdown
 type StyleUnion = string | { markdown?: string; table_markdown?: string; title?: string; suggested_filename?: string };
 
-// ✅ Match the *actual* API response where styles are strings, but stay backward-compatible
+// === Single-run response (unchanged, but tolerant to strings)
 type ApiResponse = {
   meta?: any;
   cleaned_transcript?: string;
   styles: Record<ViewKey, StyleUnion>;
+};
+
+// === Compare response
+type CompareResponse = {
+  comparisons: Record<
+    string, // "1".."5"
+    {
+      styles: Record<ViewKey, StyleUnion>;
+    }
+  >;
 };
 
 type Settings = {
@@ -46,7 +54,6 @@ type Settings = {
 };
 
 export default function MeetingNotesGenerator() {
-  // NHS Meeting Notes Generator Component
   // Ingest
   const [ingestTab, setIngestTab] = useState<IngestTab>("paste");
   const [ingestBusy, setIngestBusy] = useState(false);
@@ -68,15 +75,42 @@ export default function MeetingNotesGenerator() {
   // Display
   const [renderMode, setRenderMode] = useState<"rendered" | "raw">("rendered");
 
-  // ✅ Robustly read current tab content whether API returned a string or an object
-  function getActiveMarkdown(): string {
-    if (!result) return "";
-    const block = result.styles?.[activeView];
+  // Compare
+  const [compareBusy, setCompareBusy] = useState(false);
+  const [compareLevels, setCompareLevels] = useState<Record<number, boolean>>({
+    1: true,
+    2: true,
+    3: true,
+    4: true,
+    5: true,
+  });
+  const [compareResult, setCompareResult] = useState<CompareResponse | null>(null);
+  const [compareActiveLevel, setCompareActiveLevel] = useState<"1" | "2" | "3" | "4" | "5">("3");
+  const [compareActiveView, setCompareActiveView] = useState<ViewKey>("formal_minutes");
+  const [compareRenderMode, setCompareRenderMode] = useState<"rendered" | "raw">("rendered");
+
+  // Helpers
+  function readBlock(block: StyleUnion | undefined): string {
     if (!block) return "";
     if (typeof block === "string") return block;
     return block.markdown || block.table_markdown || "";
   }
 
+  function getActiveMarkdown(): string {
+    if (!result) return "";
+    return readBlock(result.styles?.[activeView]);
+  }
+
+  const tabs: Array<[ViewKey, string]> = [
+    ["formal_minutes", "Formal Minutes"],
+    ["action_notes", "Action Notes"],
+    ["headline_summary", "Headline Summary"],
+    ["narrative_newsletter", "Newsletter"],
+    ["decision_log", "Decision Log"],
+    ["annotated_summary", "Annotated Summary"],
+  ];
+
+  // Actions
   async function generate() {
     if (!transcript.trim()) {
       toast.error('Please enter a transcript');
@@ -92,7 +126,7 @@ export default function MeetingNotesGenerator() {
         body: { 
           transcript,
           settings: { ...settings, controls: { detail_level: detailLevel } },
-          detail_level: detailLevel, // some backends read it at top level
+          detail_level: detailLevel,
         }
       });
 
@@ -112,6 +146,52 @@ export default function MeetingNotesGenerator() {
       toast.error('Failed to generate meeting notes');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runCompare() {
+    if (!transcript.trim()) {
+      toast.error('Please enter a transcript');
+      return;
+    }
+
+    setCompareBusy(true);
+    setError(null);
+    setCompareResult(null);
+    
+    try {
+      const levels = Object.entries(compareLevels)
+        .filter(([, v]) => v)
+        .map(([k]) => Number(k))
+        .sort((a, b) => a - b);
+
+      if (!levels.length) {
+        toast.error('Select at least one level');
+        return;
+      }
+
+      const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-compare', {
+        body: { transcript, settings, levels }
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Pick first selected tab as active
+      setCompareActiveLevel(String(levels[0]) as any);
+      setCompareResult(data as CompareResponse);
+      toast.success('Comparison generated successfully');
+    } catch (e: any) {
+      console.error('Compare error:', e);
+      setError(e?.message || "Unexpected error");
+      toast.error('Failed to generate comparison');
+    } finally {
+      setCompareBusy(false);
     }
   }
 
@@ -165,22 +245,15 @@ export default function MeetingNotesGenerator() {
     }
   }
 
-  const tabs: Array<[ViewKey, string]> = [
-    ["formal_minutes", "Formal Minutes"],
-    ["action_notes", "Action Notes"],
-    ["headline_summary", "Headline Summary"],
-    ["narrative_newsletter", "Newsletter"],
-    ["decision_log", "Decision Log"],
-    ["annotated_summary", "Annotated Summary"],
-  ];
-
   const activeText = getActiveMarkdown();
+  const comp = compareResult?.comparisons?.[compareActiveLevel]?.styles;
+  const compareText = comp ? readBlock(comp[compareActiveView]) : "";
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-4">
+    <div className="max-w-6xl mx-auto p-4 space-y-5">
       <h1 className="text-2xl font-semibold">NHS Meeting Notes Generator</h1>
 
-      {/* Ingestion */}
+      {/* Ingest */}
       <div className="border rounded">
         <div className="flex gap-2 border-b p-2">
           {(["paste", "audio", "file"] as IngestTab[]).map((k) => (
@@ -295,7 +368,7 @@ export default function MeetingNotesGenerator() {
             {detailLevel === 5 && "Very detailed"}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Scales bullets/sections/actions/risks across all styles.</p>
+        <p className="text-xs text-muted-foreground mt-1">Affects the single-run "Generate Meeting Notes".</p>
       </div>
 
       {/* Generate */}
@@ -309,20 +382,11 @@ export default function MeetingNotesGenerator() {
 
       {error && <div className="text-destructive bg-destructive/10 p-3 rounded border border-destructive/20">{error}</div>}
 
-      {/* Output */}
+      {/* Single-run output */}
       {result && (
         <div className="border rounded">
           <div className="flex flex-wrap gap-2 border-b p-2">
-            {(
-              [
-                ["formal_minutes", "Formal Minutes"],
-                ["action_notes", "Action Notes"],
-                ["headline_summary", "Headline Summary"],
-                ["narrative_newsletter", "Newsletter"],
-                ["decision_log", "Decision Log"],
-                ["annotated_summary", "Annotated Summary"],
-              ] as Array<[ViewKey, string]>
-            ).map(([key, label]) => (
+            {tabs.map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveView(key)}
@@ -347,7 +411,6 @@ export default function MeetingNotesGenerator() {
               </button>
             </div>
           </div>
-
           <div className="p-4">
             {renderMode === "rendered" ? (
               <article className="prose prose-slate max-w-none dark:prose-invert">
@@ -359,6 +422,91 @@ export default function MeetingNotesGenerator() {
           </div>
         </div>
       )}
+
+      {/* === Compare panel === */}
+      <div className="border rounded p-3 space-y-3">
+        <h2 className="text-lg font-semibold">Compare Detail Levels</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <label key={n} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!compareLevels[n]}
+                onChange={(e) => setCompareLevels((s) => ({ ...s, [n]: e.target.checked }))}
+                className="rounded border-border"
+              />
+              <span className="text-sm">Level {n}</span>
+            </label>
+          ))}
+          <button
+            onClick={runCompare}
+            disabled={compareBusy || !transcript.trim()}
+            className="ml-auto px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
+          >
+            {compareBusy ? "Comparing…" : "Run Comparison"}
+          </button>
+        </div>
+
+        {compareResult && (
+          <div className="border rounded">
+            {/* Level tabs */}
+            <div className="flex flex-wrap gap-2 border-b p-2">
+              {([1, 2, 3, 4, 5] as const)
+                .filter((n) => compareResult.comparisons[String(n)])
+                .map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setCompareActiveLevel(String(n) as any)}
+                    className={`px-3 py-1 rounded ${compareActiveLevel === String(n) ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    Level {n}
+                  </button>
+                ))}
+              <div className="flex-1" />
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    setCompareRenderMode(compareRenderMode === "rendered" ? "raw" : "rendered")
+                  }
+                  className="px-3 py-1 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                >
+                  {compareRenderMode === "rendered" ? "Show Raw" : "Show Rendered"}
+                </button>
+                <button 
+                  onClick={() => copy(compareText)} 
+                  className="px-3 py-1 rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Style tabs */}
+            <div className="flex flex-wrap gap-2 border-b p-2">
+              {tabs.map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setCompareActiveView(key)}
+                  className={`px-3 py-1 rounded ${compareActiveView === key ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              {compareRenderMode === "rendered" ? (
+                <article className="prose prose-slate max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{compareText}</ReactMarkdown>
+                </article>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded overflow-x-auto">{compareText}</pre>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
