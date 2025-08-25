@@ -1,4 +1,4 @@
-import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search } from 'lucide-react';
+import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -26,12 +26,6 @@ export const quickActions: QuickAction[] = [
     label: 'BNF Drug Lookup - Metformin', 
     icon: Shield, 
     prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name metformin`,
-    requiresFile: false 
-  },
-  { 
-    label: 'Red Flag Symptom Checker', 
-    icon: AlertTriangle, 
-    prompt: `${nhsSafetyPreamble} List red flag symptoms for [insert symptom/condition] that require urgent or 2WW referral according to NICE/NHS pathways. Include pathway names and recommended referral timeframes.`,
     requiresFile: false 
   },
   { 
@@ -93,12 +87,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     label: 'Practice Policy & Protocol Finder', 
     icon: Settings, 
     prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
-    requiresFile: false 
-  },
-  { 
-    label: 'Referral Criteria & Forms', 
-    icon: FileText, 
-    prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
   },
 ];
