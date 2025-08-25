@@ -1,4 +1,4 @@
-import { MeetingNotesGenerator } from '@/components/MeetingNotesGenerator';
+import MeetingNotesGenerator from '@/components/MeetingNotesGenerator';
 
 const NHSMeetingNotes = () => {
   return <MeetingNotesGenerator />;
