@@ -235,17 +235,22 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
         )}
       </Button>
 
-      {/* Status indicator */}
-      <span className={cn(
-        'text-xs transition-colors duration-200',
-        isStreaming 
-          ? 'text-red-600 font-medium' 
-          : status === 'connecting...' 
-            ? 'text-amber-600' 
-            : 'text-muted-foreground'
-      )}>
-        {status}
-      </span>
+      {/* Service indicator tag */}
+      <div className="flex flex-col items-start gap-1">
+        <span className={cn(
+          'text-xs transition-colors duration-200',
+          isStreaming 
+            ? 'text-red-600 font-medium' 
+            : status === 'connecting...' 
+              ? 'text-amber-600' 
+              : 'text-muted-foreground'
+        )}>
+          {status}
+        </span>
+        <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md font-medium border border-blue-200">
+          Deepgram
+        </span>
+      </div>
 
       {/* Clear button when there's committed text */}
       {committedText && (
