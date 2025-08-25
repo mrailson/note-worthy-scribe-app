@@ -200,14 +200,22 @@ export default function MeetingNotesGenerator() {
         body: { transcript, settings, levels }
       });
 
+      console.log('Compare response:', { data, functionError });
+
       if (functionError) {
         throw new Error(functionError.message);
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
 
+      if (!data?.comparisons) {
+        console.error('No comparisons in response:', data);
+        throw new Error('No comparison data returned');
+      }
+
+      console.log('Setting compare result:', data);
       setCompareActiveLevel(String(levels[0]) as any);
       setCompareResult(data as CompareResponse);
       toast.success("Comparison generated successfully");
