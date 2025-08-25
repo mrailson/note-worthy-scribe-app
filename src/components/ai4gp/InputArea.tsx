@@ -7,7 +7,7 @@ import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { DeepgramStreamingMic } from './DeepgramStreamingMic';
-import { SimpleDeepgramMic } from './SimpleDeepgramMic';
+import { SimpleBrowserMic } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -132,8 +132,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             
             <div className="flex flex-col gap-1">
               {/* Force refresh - using Deepgram */}
-              <SimpleDeepgramMic
-                key="deepgram-mic-component"
+              <SimpleBrowserMic
+                key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 disabled={isLoading}
                 className="justify-center"
@@ -159,7 +159,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Live transcription via Deepgram - click mic to toggle</span>
+        <span className="text-blue-600 font-medium">🎙️ Live transcription via Browser Speech - click mic to toggle</span>
       </div>
     </div>
     </>
