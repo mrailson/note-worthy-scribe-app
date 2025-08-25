@@ -25,17 +25,22 @@ export interface MeetingData {
 }
 
 export interface MeetingSettingsState {
-  roomName: string;
-  participants: string[];
-  reminderTime: number;
-  enableAutoEmail: boolean;
-  emailTemplate: string;
-  emailRecipients: string[];
-  transcriberService: 'deepgram' | 'whisper' | 'browser';
+  title: string;
+  description: string;
+  meetingType: string;
+  meetingStyle: string;
+  attendees: string;
+  agenda: string;
+  date?: string;
+  startTime?: string;
+  format?: 'face-to-face' | 'online' | 'hybrid' | 'phone' | '' | undefined;
+  location?: string;
+  practiceId?: string;
+  meetingFormat?: string;
+  transcriberService: 'whisper' | 'deepgram';
   transcriberThresholds: {
-    deepgram: number;
     whisper: number;
-    browser: number;
+    deepgram: number;
   };
 }
 

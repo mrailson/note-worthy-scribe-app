@@ -13,22 +13,25 @@ export const useMeetingData = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [practiceData, setPracticeData] = useState<any>(null);
 
-  const defaultSettings: MeetingSettingsState = {
-    roomName: '',
-    participants: [],
-    reminderTime: 5,
-    enableAutoEmail: false,
-    emailTemplate: '',
-    emailRecipients: [],
-    transcriberService: 'deepgram' as const,
+  const [meetingSettings, setMeetingSettings] = useState<MeetingSettingsState>({
+    title: "",
+    description: "",
+    meetingType: "general",
+    meetingStyle: "standard",
+    attendees: "",
+    agenda: "",
+    date: "",
+    startTime: "",
+    format: "",
+    location: "",
+    practiceId: "",
+    meetingFormat: "teams",
+    transcriberService: "whisper",
     transcriberThresholds: {
-      deepgram: 0.6,
-      whisper: 0.7,
-      browser: 0.8,
-    },
-  };
-
-  const [meetingSettings, setMeetingSettings] = useState<MeetingSettingsState>(defaultSettings);
+      whisper: 0.75,
+      deepgram: 0.80
+    }
+  });
 
   const [summaryContent, setSummaryContent] = useState<SummaryContent>({
     attendees: "",
@@ -122,8 +125,13 @@ export const useMeetingData = () => {
 
         setMeetingSettings(prev => ({
           ...prev,
-          roomName: data.title || 'Meeting',
-          participants: data.participants || []
+          title: data.title || 'Meeting',
+          date: startDate ? `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}` : "",
+          startTime: startDate ? `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}` : "",
+          attendees: (data.participants || []).join(', '),
+          agenda: data.agenda || '',
+          format: (data.meeting_format as "" | "face-to-face" | "online" | "hybrid" | "phone") || "",
+          location: data.meeting_location || ''
         }));
       }
     } catch (error) {
@@ -152,50 +160,108 @@ export const useMeetingData = () => {
   // Load meeting settings from localStorage/user preferences
   const loadMeetingSettings = useCallback(async () => {
     if (!user?.id) return;
-    
+
+    console.log('🔄 Loading meeting transcriber settings for user:', user.id);
+
     try {
-      const saved = localStorage.getItem(`meetingSettings_${user.id}`);
-      if (saved) {
-        const parsedSettings = JSON.parse(saved);
-        setMeetingSettings({
-          roomName: parsedSettings.roomName || '',
-          participants: parsedSettings.participants || [],
-          reminderTime: parsedSettings.reminderTime || 5,
-          enableAutoEmail: parsedSettings.enableAutoEmail || false,
-          emailTemplate: parsedSettings.emailTemplate || '',
-          emailRecipients: parsedSettings.emailRecipients || [],
-          transcriberService: parsedSettings.transcriberService || 'deepgram',
-          transcriberThresholds: parsedSettings.transcriberThresholds || {
-            deepgram: 0.6,
-            whisper: 0.7,
-            browser: 0.8,
-          },
-        });
+      // Try to load from user_settings table first
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_key', 'meeting_transcriber_preferences')
+        .single();
+
+      if (!error && data?.setting_value) {
+        const savedSettings = data.setting_value as any;
+        console.log('✅ Loaded transcriber settings from database:', savedSettings);
+        
+        setMeetingSettings(prev => ({
+          ...prev,
+          transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
+          transcriberThresholds: {
+            whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+            deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
+          }
+        }));
+      } else {
+        console.log('📝 No saved transcriber settings found in database, trying localStorage...');
       }
     } catch (error) {
-      console.error('Error loading meeting settings:', error);
+      console.warn('⚠️ Database load failed, falling back to localStorage:', error);
+      // Fallback to localStorage if database fails
+      try {
+        const saved = localStorage.getItem(`meeting_settings_${user.id}`);
+        if (saved) {
+          const savedSettings = JSON.parse(saved);
+          console.log('✅ Loaded transcriber settings from localStorage:', savedSettings);
+          
+          setMeetingSettings(prev => ({
+            ...prev,
+            transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
+            transcriberThresholds: {
+              whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+              deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
+            }
+          }));
+        } else {
+          console.log('📝 No saved transcriber settings found in localStorage either');
+        }
+      } catch (localError) {
+        console.error('❌ Error loading settings from localStorage:', localError);
+      }
     }
   }, [user?.id]);
 
   // Save meeting settings 
   const saveMeetingSettings = useCallback(async (settings: Partial<MeetingSettingsState>) => {
     if (!user?.id) return;
-    
+
+    const settingsToSave = {
+      transcriberService: settings.transcriberService,
+      transcriberThresholds: settings.transcriberThresholds
+    };
+
+    console.log('💾 Saving meeting transcriber settings:', settingsToSave);
+
     try {
-      const currentSettings = localStorage.getItem(`meetingSettings_${user.id}`);
-      const existing = currentSettings ? JSON.parse(currentSettings) : defaultSettings;
+      // Save to database
+      await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'meeting_transcriber_preferences',
+          setting_value: settingsToSave
+        });
+
+      // Also save to localStorage as backup
+      localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
       
-      const updatedSettings = {
-        ...existing,
-        ...settings
-      };
-      
-      localStorage.setItem(`meetingSettings_${user.id}`, JSON.stringify(updatedSettings));
-      setMeetingSettings(updatedSettings);
+      console.log('✅ Transcriber settings saved successfully to both database and localStorage');
     } catch (error) {
-      console.error('Error saving meeting settings:', error);
+      console.error('❌ Error saving meeting settings to database:', error);
+      // Fallback to localStorage only
+      try {
+        localStorage.setItem(`meeting_settings_${user.id}`, JSON.stringify(settingsToSave));
+        console.log('✅ Transcriber settings saved to localStorage as fallback');
+      } catch (localError) {
+        console.error('❌ Error saving to localStorage:', localError);
+      }
     }
   }, [user?.id]);
+
+  // Auto-save settings when transcriber settings change
+  useEffect(() => {
+    if (meetingSettings.transcriberService !== "whisper" || 
+        meetingSettings.transcriberThresholds.whisper !== 0.75 ||
+        meetingSettings.transcriberThresholds.deepgram !== 0.80) {
+      console.log('🔄 Auto-saving transcriber settings due to change:', {
+        service: meetingSettings.transcriberService,
+        thresholds: meetingSettings.transcriberThresholds
+      });
+      saveMeetingSettings(meetingSettings);
+    }
+  }, [meetingSettings.transcriberService, meetingSettings.transcriberThresholds, saveMeetingSettings]);
 
   // Load settings on mount
   useEffect(() => {
@@ -207,11 +273,13 @@ export const useMeetingData = () => {
     setSummaryContent(prev => {
       const next = { ...prev } as typeof prev;
       let changed = false;
-      const mAtt = (meetingSettings.participants || []).join(', ');
+      const mAtt = (meetingSettings.attendees || '').trim();
+      const mAg = (meetingSettings.agenda || '').trim();
       if (mAtt && mAtt !== prev.attendees) { next.attendees = mAtt; changed = true; }
+      if (mAg && mAg !== prev.agenda) { next.agenda = mAg; changed = true; }
       return changed ? next : prev;
     });
-  }, [meetingSettings.participants]);
+  }, [meetingSettings.attendees, meetingSettings.agenda]);
 
   return {
     meetingData,

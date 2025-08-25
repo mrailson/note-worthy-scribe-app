@@ -26,12 +26,7 @@ import { toast } from "sonner";
 import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 
-import { Badge } from "./ui/badge";
-import { Slider } from "./ui/slider";
-import { MeetingSettingsState } from "../types/meetingTypes";
-
 interface MeetingSettingsProps {
-  settings?: MeetingSettingsState;
   onSettingsChange: (settings: any) => void;
   onAudioImported?: (audioFile: File) => void;
   onTranscriptImported?: (importedTranscript: ImportedTranscript) => void;
@@ -41,10 +36,9 @@ interface MeetingSettingsProps {
     meetingType: string;
     practiceId?: string;
   };
-  isLive?: boolean;
 }
 
-export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, onTranscriptImported, initialSettings, isLive }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
@@ -78,7 +72,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
     return format(roundedTime, 'HH:mm');
   };
 
-  const [localSettings, setLocalSettings] = useState({
+  const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
     meetingType: initialSettings?.meetingType || "general",
@@ -89,7 +83,12 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
     attendees: "",
     agenda: "",
     date: format(new Date(), 'yyyy-MM-dd'),
-    startTime: generateRoundedStartTime()
+    startTime: generateRoundedStartTime(),
+    transcriberService: "whisper" as "whisper" | "deepgram",
+    transcriberThresholds: {
+      whisper: 0.75,
+      deepgram: 0.80
+    }
   });
 
   // Fetch user's associated practices
@@ -123,11 +122,11 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
           // If only one practice, auto-select it
           if (practices.length === 1) {
             const newSettings = { 
-              ...localSettings, 
+              ...settings, 
               practiceId: practices[0].id,
               location: practices[0].name 
             };
-            setLocalSettings(newSettings);
+            setSettings(newSettings);
             onSettingsChange(newSettings);
           }
         }
@@ -158,8 +157,8 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
         }
 
         if (data?.practice_name) {
-          const newSettings = { ...localSettings, location: data.practice_name };
-          setLocalSettings(newSettings);
+          const newSettings = { ...settings, location: data.practice_name };
+          setSettings(newSettings);
           onSettingsChange(newSettings);
         }
       } catch (error) {
@@ -251,14 +250,14 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
       // Update settings with extracted data
       if (importedTranscript.extractedSettings) {
         const newSettings = {
-          ...localSettings,
-          title: importedTranscript.extractedSettings.title || localSettings.title,
-          description: importedTranscript.extractedSettings.description || localSettings.description,
-          attendees: importedTranscript.extractedSettings.attendees || localSettings.attendees,
-          agenda: importedTranscript.extractedSettings.agenda || localSettings.agenda,
-          date: importedTranscript.extractedSettings.date || localSettings.date
+          ...settings,
+          title: importedTranscript.extractedSettings.title || settings.title,
+          description: importedTranscript.extractedSettings.description || settings.description,
+          attendees: importedTranscript.extractedSettings.attendees || settings.attendees,
+          agenda: importedTranscript.extractedSettings.agenda || settings.agenda,
+          date: importedTranscript.extractedSettings.date || settings.date
         };
-        setLocalSettings(newSettings);
+        setSettings(newSettings);
         onSettingsChange(newSettings);
         console.log('📝 Settings updated with extracted data');
       }
@@ -345,8 +344,8 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
   };
 
   const updateSetting = (key: string, value: any) => {
-    const newSettings = { ...localSettings, [key]: value };
-    setLocalSettings(newSettings);
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
     onSettingsChange(newSettings);
   };
 
@@ -372,7 +371,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
             {/* Meeting Type */}
             <div className="space-y-2">
               <Label htmlFor="meeting-type">Meeting Type</Label>
-              <Select value={localSettings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
+              <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting type" />
                 </SelectTrigger>
@@ -396,7 +395,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
             {/* Meeting Style */}
             <div className="space-y-2">
               <Label htmlFor="meeting-style">Meeting Style</Label>
-              <Select value={localSettings.meetingStyle || 'standard'} onValueChange={(value) => updateSetting('meetingStyle', value)}>
+              <Select value={settings.meetingStyle || 'standard'} onValueChange={(value) => updateSetting('meetingStyle', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting style" />
                 </SelectTrigger>
@@ -413,13 +412,67 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
               </p>
             </div>
 
+            {/* Transcription Service */}
+            <div className="space-y-2">
+              <Label htmlFor="transcriber-service">Transcription Service</Label>
+              <Select value={settings.transcriberService} onValueChange={(value) => updateSetting('transcriberService', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select transcription service" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whisper">Whisper (OpenAI)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Using Whisper (OpenAI) for high-quality speech-to-text transcription.
+              </p>
+            </div>
+
+            {/* Confidence Thresholds */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Confidence Threshold</Label>
+              <p className="text-xs text-muted-foreground">
+                Set minimum confidence level to filter out low-quality transcriptions (0.0 - 1.0)
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="whisper-threshold" className="text-xs">Whisper Min Confidence</Label>
+                <Input
+                  id="whisper-threshold"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={settings.transcriberThresholds?.whisper || 0.75}
+                  onChange={(e) => {
+                    const newValue = Number(e.target.value);
+                    setSettings(prev => ({
+                      ...prev,
+                      transcriberThresholds: {
+                        ...prev.transcriberThresholds,
+                        whisper: newValue,
+                        deepgram: prev.transcriberThresholds?.deepgram || 0.80
+                      }
+                    }));
+                    onSettingsChange({
+                      ...settings,
+                      transcriberThresholds: {
+                        ...settings.transcriberThresholds,
+                        whisper: newValue,
+                      }
+                    });
+                  }}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
             {/* Meeting Description */}
             <div className="space-y-2">
               <Label htmlFor="meeting-description">Meeting Description</Label>
               <Input
                 id="meeting-description"
                 placeholder="Enter meeting description"
-                value={localSettings.title}
+                value={settings.title}
                 onChange={(e) => updateSetting('title', e.target.value)}
               />
             </div>
@@ -431,7 +484,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                 <Input
                   id="meeting-date"
                   type="date"
-                  value={localSettings.date}
+                  value={settings.date}
                   onChange={(e) => updateSetting('date', e.target.value)}
                 />
               </div>
@@ -440,7 +493,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                 <Input
                   id="start-time"
                   type="time"
-                  value={localSettings.startTime}
+                  value={settings.startTime}
                   onChange={(e) => updateSetting('startTime', e.target.value)}
                 />
               </div>
@@ -451,7 +504,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
               <div className="space-y-2">
                 <Label htmlFor="practice-selection">Practice</Label>
                 <Select 
-                  value={localSettings.practiceId} 
+                  value={settings.practiceId} 
                   onValueChange={(value) => {
                     const selectedPractice = userPractices.find(p => p.id === value);
                     updateSetting('practiceId', value);
@@ -480,7 +533,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
               <Label>Meeting Format</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
-                  variant={localSettings.format === 'face-to-face' ? 'default' : 'outline'}
+                  variant={settings.format === 'face-to-face' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'face-to-face')}
                   className="flex-1 text-xs sm:text-sm"
                 >
@@ -488,7 +541,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                   Face to Face
                 </Button>
                 <Button
-                  variant={localSettings.format === 'online' ? 'default' : 'outline'}
+                  variant={settings.format === 'online' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'online')}
                   className="flex-1 text-xs sm:text-sm"
                 >
@@ -499,7 +552,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
             </div>
 
             {/* Site/Location - Only show for Face to Face meetings */}
-            {localSettings.format === 'face-to-face' && (
+            {settings.format === 'face-to-face' && (
               <div className="space-y-2">
                 <Label htmlFor="location">Site/Location</Label>
                 <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
@@ -510,7 +563,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                       aria-expanded={practiceSearchOpen}
                       className="w-full justify-between"
                     >
-                      {localSettings.location || "Search by Practice Name or K Code"}
+                      {settings.location || "Search by Practice Name or K Code"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -532,7 +585,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                             >
                               <Check
                                 className={`mr-2 h-4 w-4 ${
-                                  localSettings.location === practice.name ? "opacity-100" : "opacity-0"
+                                  settings.location === practice.name ? "opacity-100" : "opacity-0"
                                 }`}
                               />
                               <div>
@@ -546,7 +599,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {!localSettings.location && (
+                {!settings.location && (
                   <p className="text-xs text-muted-foreground">
                     Select your GP practice from the dropdown above
                   </p>
@@ -570,7 +623,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
               <Textarea
                 id="attendees"
                 placeholder="Example: Dr. Smith, Nurse Johnson, Admin Manager Brown"
-                value={localSettings.attendees}
+                value={settings.attendees}
                 onChange={(e) => updateSetting('attendees', e.target.value)}
                 rows={3}
               />
@@ -592,7 +645,7 @@ export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, o
               <Textarea
                 id="agenda"
                 placeholder="Example:&#10;1. Review of previous actions&#10;2. Financial update&#10;3. Staffing matters&#10;4. Any other business"
-                value={localSettings.agenda}
+                value={settings.agenda}
                 onChange={(e) => updateSetting('agenda', e.target.value)}
                 rows={5}
               />
