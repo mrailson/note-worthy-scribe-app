@@ -180,38 +180,24 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            CQC Compliance
                          </DropdownMenuItem>
                        )}
-                      {hasModuleAccess('shared_drive_access') && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/shared-drive')}
-                          className="cursor-pointer py-3"
-                        >
-                          <FolderOpen className="h-4 w-4 mr-2" />
-                          Shared Drive
-                        </DropdownMenuItem>
-                      )}
+                       {hasModuleAccess('shared_drive_access') && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/shared-drive')}
+                           className="cursor-pointer py-3"
+                         >
+                           <FolderOpen className="h-4 w-4 mr-2" />
+                           Shared Drive
+                         </DropdownMenuItem>
+                       )}
                        {hasModuleAccess('mic_test_service_access') && (
                          <DropdownMenuItem 
-                           onClick={() => navigate('/meetings')}
+                           onClick={() => navigate('/mic-test')}
                            className="cursor-pointer py-3"
                          >
                            <Wrench className="h-4 w-4 mr-2" />
                            Mic Test Service
                          </DropdownMenuItem>
                        )}
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/deepgram-test')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Zap className="h-4 w-4 mr-2" />
-                          Deepgram Service
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/multi-service-mic-test')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Mic className="h-4 w-4 mr-2" />
-                          Multi-Service Test
-                        </DropdownMenuItem>
                  </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -266,22 +252,36 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          <Shield className="h-4 w-4 mr-2" />
                          System Admin
                        </DropdownMenuSubTrigger>
-                       <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/admin')}
-                           className="cursor-pointer py-3"
-                         >
-                           <Wrench className="h-4 w-4 mr-2" />
-                           Admin Dashboard
-                         </DropdownMenuItem>
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/compliance-docs')}
-                           className="cursor-pointer py-3"
-                         >
-                           <BookOpen className="h-4 w-4 mr-2" />
-                           Security Documentation
-                         </DropdownMenuItem>
-                       </DropdownMenuSubContent>
+                        <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/admin')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Wrench className="h-4 w-4 mr-2" />
+                            Admin Dashboard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/compliance-docs')}
+                            className="cursor-pointer py-3"
+                          >
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            Security Documentation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/deepgram-test')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Zap className="h-4 w-4 mr-2" />
+                            Deepgram Service
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/multi-service-mic-test')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Mic className="h-4 w-4 mr-2" />
+                            Multi-Service Test
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
                      </DropdownMenuSub>
                    )}
                    <DropdownMenuSeparator />
@@ -341,95 +341,81 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       </DrawerClose>
                     )}
 
-                    {/* Testing Services - Featured at top */}
-                    {user && (
-                      <>
-                        <DrawerClose asChild>
-                          <Button variant="default" className="justify-start bg-primary text-primary-foreground" onClick={() => navigate('/multi-service-mic-test')}>
-                            <Mic className="h-4 w-4 mr-2" />
-                            Multi-Service Test
-                          </Button>
-                        </DrawerClose>
-                        <DrawerClose asChild>
-                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
-                            <Zap className="h-4 w-4 mr-2" />
-                            Deepgram Service
-                          </Button>
-                        </DrawerClose>
-                        
-                        {/* Main Services */}
-                         {hasModuleAccess('meeting_recorder') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
-                               <FileText className="h-4 w-4 mr-2" />
-                               Meeting Notes
-                             </Button>
-                           </DrawerClose>
-                         )}
-                         {hasModuleAccess('gp_scribe') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
-                               <Stethoscope className="h-4 w-4 mr-2" />
-                               GP Scribe
-                             </Button>
-                           </DrawerClose>
-                         )}
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                               <Sparkles className="h-4 w-4 mr-2" />
-                               AI4GP Service
-                             </Button>
-                           </DrawerClose>
-                        {hasModuleAccess('complaints_system') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
-                              <MessageSquareWarning className="h-4 w-4 mr-2" />
-                              Complaints System
-                            </Button>
-                          </DrawerClose>
-                        )}
-                        {hasModuleAccess('ai_4_pm') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai-4-pm')}>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              AI 4 PM Assistant
-                            </Button>
-                          </DrawerClose>
-                         )}
-                          {hasModuleAccess('enhanced_access') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
-                              <Clock className="h-4 w-4 mr-2" />
-                              Enhanced Access
-                            </Button>
-                          </DrawerClose>
-                        )}
-                         {hasModuleAccess('cqc_compliance_access') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
-                               <Shield className="h-4 w-4 mr-2" />
-                               CQC Compliance
-                             </Button>
-                           </DrawerClose>
-                         )}
-                         {hasModuleAccess('shared_drive_access') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
-                               <FolderOpen className="h-4 w-4 mr-2" />
-                               Shared Drive
-                             </Button>
-                           </DrawerClose>
-                         )}
-                          {hasModuleAccess('mic_test_service_access') && (
+                     {/* Main Services */}
+                     {user && (
+                       <>
+                          {hasModuleAccess('meeting_recorder') && (
                             <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
-                                <Wrench className="h-4 w-4 mr-2" />
-                                Mic Test Service
+                              <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
+                                <FileText className="h-4 w-4 mr-2" />
+                                Meeting Notes
                               </Button>
                             </DrawerClose>
                           )}
-                      </>
-                    )}
+                          {hasModuleAccess('gp_scribe') && (
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
+                                <Stethoscope className="h-4 w-4 mr-2" />
+                                GP Scribe
+                              </Button>
+                            </DrawerClose>
+                          )}
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              AI4GP Service
+                            </Button>
+                          </DrawerClose>
+                         {hasModuleAccess('complaints_system') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
+                               <MessageSquareWarning className="h-4 w-4 mr-2" />
+                               Complaints System
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         {hasModuleAccess('ai_4_pm') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai-4-pm')}>
+                               <Sparkles className="h-4 w-4 mr-2" />
+                               AI 4 PM Assistant
+                             </Button>
+                           </DrawerClose>
+                          )}
+                           {hasModuleAccess('enhanced_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
+                               <Clock className="h-4 w-4 mr-2" />
+                               Enhanced Access
+                             </Button>
+                           </DrawerClose>
+                         )}
+                          {hasModuleAccess('cqc_compliance_access') && (
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
+                                <Shield className="h-4 w-4 mr-2" />
+                                CQC Compliance
+                              </Button>
+                            </DrawerClose>
+                          )}
+                          {hasModuleAccess('shared_drive_access') && (
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
+                                <FolderOpen className="h-4 w-4 mr-2" />
+                                Shared Drive
+                              </Button>
+                            </DrawerClose>
+                          )}
+                           {hasModuleAccess('mic_test_service_access') && (
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
+                                 <Wrench className="h-4 w-4 mr-2" />
+                                 Mic Test Service
+                               </Button>
+                             </DrawerClose>
+                           )}
+                       </>
+                     )}
 
                     {/* Settings and Admin */}
                     {user && (
@@ -444,22 +430,34 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            </DrawerClose>
                          )}
                          
-                         {isSystemAdmin && (
-                           <>
-                             <DrawerClose asChild>
-                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
-                                 <Wrench className="h-4 w-4 mr-2" />
-                                 Admin Dashboard
-                               </Button>
-                             </DrawerClose>
-                             <DrawerClose asChild>
-                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
-                                 <BookOpen className="h-4 w-4 mr-2" />
-                                 Security Documentation
-                               </Button>
-                             </DrawerClose>
-                           </>
-                          )}
+                          {isSystemAdmin && (
+                            <>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                                  <Wrench className="h-4 w-4 mr-2" />
+                                  Admin Dashboard
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Security Documentation
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
+                                  <Zap className="h-4 w-4 mr-2" />
+                                  Deepgram Service
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
+                                  <Mic className="h-4 w-4 mr-2" />
+                                  Multi-Service Test
+                                </Button>
+                              </DrawerClose>
+                            </>
+                           )}
 
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
