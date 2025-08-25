@@ -349,7 +349,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover border border-border z-[9999]">
                     {AI_MODELS.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
                         <div className="flex items-center justify-between w-full">
