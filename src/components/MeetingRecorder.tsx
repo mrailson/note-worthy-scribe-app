@@ -1080,39 +1080,114 @@ export const MeetingRecorder = ({
     checkUnsavedMeeting();
   }, [navigate]);
 
-  // Auto-save every 30 seconds while recording
+  // Wake lock management for recording
+  const wakeLockRef = useRef<any>(null);
+  
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('🔒 Wake lock activated to prevent device sleep during recording');
+      }
+    } catch (error) {
+      console.warn('⚠️ Wake lock not supported or failed:', error);
+    }
+  };
+
+  const releaseWakeLock = () => {
+    try {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log('🔓 Wake lock released');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error releasing wake lock:', error);
+    }
+  };
+
+  // Handle visibility changes to maintain wake lock during recording
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRecording) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRecording]);
+
+  // Auto-save every 15 seconds for drafts, 30 seconds while recording
   useEffect(() => {
     if (isRecording) {
       autoSaveRef.current = setInterval(autoSaveMeeting, 30000);
-      
-      // Set up beforeunload event to handle browser close/refresh
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        if (isRecording && duration > 5) {
-          autoSaveMeeting();
-          e.preventDefault();
-          e.returnValue = 'You have an active recording. Are you sure you want to leave?';
-          return 'You have an active recording. Are you sure you want to leave?';
+      requestWakeLock();
+    } else {
+      // Auto-save drafts every 15 seconds when not recording
+      autoSaveRef.current = setInterval(() => {
+        try {
+          const draft = transcript;
+          if (draft?.length > 50) {
+            localStorage.setItem('meetingTranscriptDraft', draft);
+            localStorage.setItem('meetingDraftTimestamp', Date.now().toString());
+          }
+        } catch (error) {
+          console.warn('Draft save failed:', error);
         }
-      };
-
-      const handleUnload = () => {
-        if (isRecording && duration > 5) {
-          autoSaveMeeting();
-        }
-      };
-
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('unload', handleUnload);
-      
-      return () => {
-        if (autoSaveRef.current) {
-          clearInterval(autoSaveRef.current);
-        }
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        window.removeEventListener('unload', handleUnload);
-      };
+      }, 15000);
     }
-  }, [isRecording, duration, transcript, wordCount, speakerCount, startTime, meetingSettings.title]);
+
+    return () => {
+      if (autoSaveRef.current) {
+        clearInterval(autoSaveRef.current);
+      }
+      if (!isRecording) {
+        releaseWakeLock();
+      }
+    };
+  }, [isRecording, transcript, duration, wordCount, speakerCount, startTime, meetingSettings.title]);
+
+  // Clean unload handler - stop recording without prompts
+  useEffect(() => {
+    const handleUnload = () => {
+      try {
+        // Stop the recorder fast
+        if (browserTranscriberRef.current) {
+          browserTranscriberRef.current.stopTranscription();
+        }
+        if (iPhoneTranscriberRef.current) {
+          iPhoneTranscriberRef.current.stopTranscription();
+        }
+        if (desktopTranscriberRef.current) {
+          desktopTranscriberRef.current.stopTranscription();
+        }
+        if (deepgramTranscriberRef.current) {
+          deepgramTranscriberRef.current.stopTranscription();
+        }
+        
+        // Send last buffered text to server (best-effort)
+        const currentSessionId = sessionStorage.getItem('currentSessionId');
+        if (transcript && currentSessionId) {
+          navigator.sendBeacon(
+            '/api/transcripts/flush',
+            new Blob([JSON.stringify({ 
+              sessionId: currentSessionId, 
+              transcript: transcript,
+              timestamp: new Date().toISOString()
+            })], { type: 'application/json' })
+          );
+        }
+        
+        releaseWakeLock();
+      } catch (error) {
+        console.warn('Unload cleanup failed:', error);
+      }
+    };
+
+    window.addEventListener('unload', handleUnload);
+    return () => window.removeEventListener('unload', handleUnload);
+  }, [transcript]);
 
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {

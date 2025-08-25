@@ -110,6 +110,10 @@ export const LiveTranscript = ({
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   
+  // Recording and editing state management
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
+  
   // Meeting settings state
   const { user } = useAuth();
   const { toast } = useToast();
@@ -122,6 +126,32 @@ export const LiveTranscript = ({
   // Editing state for cleaned transcript
   const [isEditingCleaned, setIsEditingCleaned] = useState(false);
   const [editedCleanedText, setEditedCleanedText] = useState("");
+  
+  // Wake lock management for recording sessions
+  const wakeLockRef = useRef<any>(null);
+  
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('🔒 LiveTranscript wake lock activated');
+      }
+    } catch (error) {
+      console.warn('⚠️ Wake lock failed:', error);
+    }
+  };
+
+  const releaseWakeLock = () => {
+    try {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log('🔓 LiveTranscript wake lock released');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error releasing wake lock:', error);
+    }
+  };
   
   // Load user's practices (with refetch when selector opens)
   const fetchUserPractices = async () => {
@@ -201,6 +231,92 @@ export const LiveTranscript = ({
 
     loadMedicalCorrections();
   }, []);
+
+  // Handle recording state management
+  useEffect(() => {
+    // Detect if we're actively recording by checking session storage
+    const currentSessionId = sessionStorage.getItem('currentSessionId');
+    const recordingStatus = currentSessionId ? true : false;
+    setIsRecording(recordingStatus);
+    
+    if (recordingStatus) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, []);
+
+  // Auto-save transcript drafts every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const draft = cleanedTranscript || liveTranscriptText;
+        if (draft?.length > 20) {
+          localStorage.setItem('liveTranscriptDraft', draft);
+          localStorage.setItem('liveTranscriptDraftTimestamp', Date.now().toString());
+        }
+      } catch (error) {
+        console.warn('Draft auto-save failed:', error);
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [cleanedTranscript, liveTranscriptText]);
+
+  // Smart beforeunload handler - only warn on manual edits, not during recording
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // ONLY warn if user has unsaved manual edits and is NOT recording
+      if (hasUnsavedEdits && !isRecording) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes to your transcript. Are you sure you want to leave?';
+        return 'You have unsaved changes to your transcript. Are you sure you want to leave?';
+      }
+      // Otherwise, allow navigation without prompt
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedEdits, isRecording]);
+
+  // Clean unload handler for recording sessions
+  useEffect(() => {
+    const handleUnload = () => {
+      try {
+        // Send final transcript data if available
+        const currentSessionId = sessionStorage.getItem('currentSessionId');
+        const finalText = cleanedTranscript || liveTranscriptText;
+        if (finalText && currentSessionId) {
+          navigator.sendBeacon(
+            '/api/transcripts/flush',
+            new Blob([JSON.stringify({ 
+              sessionId: currentSessionId, 
+              transcript: finalText,
+              timestamp: new Date().toISOString()
+            })], { type: 'application/json' })
+          );
+        }
+        releaseWakeLock();
+      } catch (error) {
+        console.warn('Unload cleanup failed:', error);
+      }
+    };
+
+    window.addEventListener('unload', handleUnload);
+    return () => window.removeEventListener('unload', handleUnload);
+  }, [cleanedTranscript, liveTranscriptText]);
+
+  // Handle visibility changes to maintain wake lock during recording
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRecording) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRecording]);
 
   // Guard against double subscription (StrictMode)
   const subscribedRef = useRef(false);

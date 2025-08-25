@@ -19,6 +19,7 @@ export const useGPScribeRecording = () => {
   const [currentConfidence, setCurrentConfidence] = useState<number | undefined>(undefined);
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const pauseDetectionRef = useRef<NodeJS.Timeout | null>(null);
@@ -27,6 +28,7 @@ export const useGPScribeRecording = () => {
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const chromiumTranscriberRef = useRef<ChromiumMicTranscriber | null>(null);
+  const wakeLockRef = useRef<any>(null);
 
   // Natural pause detection based on transcript activity
   useEffect(() => {
@@ -65,6 +67,114 @@ export const useGPScribeRecording = () => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Wake lock management
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('🔒 GPScribe wake lock activated');
+      }
+    } catch (error) {
+      console.warn('⚠️ GPScribe wake lock failed:', error);
+    }
+  };
+
+  const releaseWakeLock = () => {
+    try {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.log('🔓 GPScribe wake lock released');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error releasing GPScribe wake lock:', error);
+    }
+  };
+
+  // Auto-save drafts every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const draft = cleanedTranscript || transcript;
+        if (draft?.length > 20) {
+          localStorage.setItem('gpscribeTranscriptDraft', draft);
+          localStorage.setItem('gpscribeTranscriptDraftTimestamp', Date.now().toString());
+        }
+      } catch (error) {
+        console.warn('GPScribe draft auto-save failed:', error);
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [cleanedTranscript, transcript]);
+
+  // Smart beforeunload handler - only warn on manual edits, not during recording
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // ONLY warn if user has unsaved manual edits and is NOT recording
+      if (hasUnsavedEdits && !isRecording) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes to your consultation transcript. Are you sure you want to leave?';
+        return 'You have unsaved changes to your consultation transcript. Are you sure you want to leave?';
+      }
+      // Otherwise, allow navigation without prompt during recording
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedEdits, isRecording]);
+
+  // Clean unload handler
+  useEffect(() => {
+    const handleUnload = () => {
+      try {
+        // Stop transcribers fast
+        if (iPhoneTranscriberRef.current) {
+          iPhoneTranscriberRef.current.stopTranscription();
+        }
+        if (desktopTranscriberRef.current) {
+          desktopTranscriberRef.current.stopTranscription();
+        }
+        if (chromiumTranscriberRef.current) {
+          chromiumTranscriberRef.current.stopTranscription();
+        }
+        
+        // Send final transcript data if available
+        const finalText = cleanedTranscript || transcript;
+        if (finalText) {
+          navigator.sendBeacon(
+            '/api/gpscribe/flush',
+            new Blob([JSON.stringify({ 
+              transcript: finalText,
+              timestamp: new Date().toISOString(),
+              wordCount,
+              duration
+            })], { type: 'application/json' })
+          );
+        }
+        
+        releaseWakeLock();
+      } catch (error) {
+        console.warn('GPScribe unload cleanup failed:', error);
+      }
+    };
+
+    window.addEventListener('unload', handleUnload);
+    return () => window.removeEventListener('unload', handleUnload);
+  }, [cleanedTranscript, transcript, wordCount, duration]);
+
+  // Handle visibility changes to maintain wake lock during recording
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRecording) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRecording]);
 
   const handleTranscriptUpdate = useCallback((newTranscriptData: TranscriptData) => {
     // Update timestamp for pause detection
@@ -155,6 +265,10 @@ export const useGPScribeRecording = () => {
       setIsPaused(false);
       setDuration(0);
       setConnectionStatus("Connecting...");
+      setHasUnsavedEdits(false); // Clear unsaved edits flag when starting new recording
+      
+      // Request wake lock to prevent device sleep
+      await requestWakeLock();
 
       // Start timer
       intervalRef.current = setInterval(() => {
@@ -304,6 +418,10 @@ export const useGPScribeRecording = () => {
       setIsRecording(false);
       setIsPaused(false);
       setConnectionStatus("Disconnected");
+      setHasUnsavedEdits(false); // Clear unsaved edits flag when stopping
+      
+      // Release wake lock
+      releaseWakeLock();
 
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -424,6 +542,7 @@ export const useGPScribeRecording = () => {
     currentConfidence,
     cleanedTranscript,
     isCleaningTranscript,
+    hasUnsavedEdits,
     
     // Actions
     startRecording,
@@ -434,6 +553,7 @@ export const useGPScribeRecording = () => {
     setTranscript,
     setCleanedTranscript,
     setIsCleaningTranscript,
+    setHasUnsavedEdits,
     
     // Utils
     formatDuration

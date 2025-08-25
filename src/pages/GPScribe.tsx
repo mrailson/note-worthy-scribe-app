@@ -437,9 +437,15 @@ const Index = () => {
                 isCleaningTranscript={recording.isCleaningTranscript}
                 showTranscriptTimestamps={false}
                 isRecording={recording.isRecording}
-                onTranscriptChange={recording.setTranscript}
+                onTranscriptChange={(newTranscript) => {
+                  recording.setTranscript(newTranscript);
+                  recording.setHasUnsavedEdits(true); // Mark as having unsaved edits
+                }}
                 onCleanTranscript={handleCleanTranscript}
-                onClearTranscript={recording.clearTranscript}
+                onClearTranscript={() => {
+                  recording.clearTranscript();
+                  recording.setHasUnsavedEdits(false); // Clear unsaved edits flag
+                }}
               />
             )}
           </TabsContent>
