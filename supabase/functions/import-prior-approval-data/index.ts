@@ -133,8 +133,47 @@ serve(async (req) => {
             }
           }
 
+          // Helper function to map status values to enum values
+          const mapStatusToEnum = (status) => {
+            if (!status) return null;
+            const statusStr = status.toString().toLowerCase().trim();
+            
+            switch (statusStr) {
+              case 'double red':
+              case 'double_red':
+                return 'DOUBLE_RED';
+              case 'red':
+                return 'RED';
+              case 'specialist initiated':
+              case 'specialist_initiated':
+                return 'SPECIALIST_INITIATED';
+              case 'specialist recommended':
+              case 'specialist_recommended':
+                return 'SPECIALIST_RECOMMENDED';
+              case 'amber 1':
+              case 'amber_1':
+              case 'amber1':
+                return 'AMBER_1';
+              case 'amber 2':
+              case 'amber_2':
+              case 'amber2':
+                return 'AMBER_2';
+              case 'green':
+                return 'GREEN';
+              case 'grey':
+              case 'gray':
+                return 'GREY';
+              case 'unknown':
+                return 'UNKNOWN';
+              default:
+                console.warn(`Unknown status value: ${status}, defaulting to UNKNOWN`);
+                return 'UNKNOWN';
+            }
+          };
+
           // Update or insert traffic light data if provided
-          const trafficLightStatus = item.traffic_light_status || item.status || item.traffic_light
+          const rawTrafficLightStatus = item.traffic_light_status || item.status || item.traffic_light
+          const trafficLightStatus = mapStatusToEnum(rawTrafficLightStatus)
           if (trafficLightStatus) {
             const { data: existingTL, error: tlCheckError } = await supabase
               .from('traffic_light_medicines')
@@ -148,6 +187,7 @@ serve(async (req) => {
                 .from('traffic_light_medicines')
                 .update({
                   status_enum: trafficLightStatus,
+                  status_raw: rawTrafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
                   detail_url: item.detail_url,
@@ -167,7 +207,7 @@ serve(async (req) => {
                 .insert({
                   name: drugName,
                   status_enum: trafficLightStatus,
-                  status_raw: trafficLightStatus,
+                  status_raw: rawTrafficLightStatus,
                   notes: item.notes,
                   bnf_chapter: item.bnf_chapter,
                   detail_url: item.detail_url
