@@ -234,7 +234,9 @@ const BrowserRecorder = () => {
             .insert({
               meeting_id: meetingId,
               content: consolidatedText,
-              user_id: user?.id
+              timestamp_seconds: 0,
+              speaker_name: null,
+              confidence_score: 0.95
             });
         }
       }
