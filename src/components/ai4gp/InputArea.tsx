@@ -40,6 +40,11 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const { toast } = useToast();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 InputArea component rendered - should show Deepgram mic, not OpenAI modal');
+  }, []);
+
   useImperativeHandle(ref, () => ({
     focus: () => {
       textareaRef.current?.focus();
