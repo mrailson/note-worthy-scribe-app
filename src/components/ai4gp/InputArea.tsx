@@ -7,6 +7,7 @@ import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { OpenAIRealtimeModal } from '@/components/OpenAIRealtimeModal';
+import { DeepgramStreamingMic } from './DeepgramStreamingMic';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -38,6 +39,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
   const [showRealtimeModal, setShowRealtimeModal] = useState(false);
+  const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -77,6 +79,13 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     }
   };
 
+  const handleDeepgramTranscriptUpdate = (text: string) => {
+    // Update the input field in real-time during Deepgram streaming
+    const baseInput = input.replace(deepgramTranscript, ''); // Remove previous Deepgram text
+    setInput(baseInput + (baseInput && text ? ' ' : '') + text);
+    setDeepgramTranscript(text);
+  };
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -100,8 +109,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-20 rounded-lg leading-relaxed py-4"
+            placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
+            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-32 rounded-lg leading-relaxed py-4"
             disabled={isLoading}
             style={{ minHeight: '120px' }}
           />
@@ -119,29 +128,43 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             <Button
               variant="ghost"
               size="sm"
-              className="h-12 w-12 p-0 hover:bg-accent rounded-md"
+              className="h-8 w-8 p-0 hover:bg-accent rounded-md"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               title="Attach files"
             >
-              <Paperclip className="w-6 h-6" />
+              <Paperclip className="w-4 h-4" />
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-12 w-12 p-0 hover:bg-accent rounded-md"
-              onClick={() => setShowRealtimeModal(true)}
-              disabled={isLoading}
-              title="OpenAI Realtime Transcription"
-            >
-              <Zap className="w-6 h-6" />
-            </Button>
+            {isClinical ? (
+              <div className="flex flex-col gap-1">
+                <DeepgramStreamingMic
+                  onTranscriptUpdate={handleDeepgramTranscriptUpdate}
+                  disabled={isLoading}
+                  className="justify-center"
+                />
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-accent rounded-md"
+                onClick={() => setShowRealtimeModal(true)}
+                disabled={isLoading}
+                title="OpenAI Realtime Transcription"
+              >
+                <Zap className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
         
         <Button 
-          onClick={onSend} 
+          onClick={() => {
+            // Clear Deepgram transcript state when sending
+            setDeepgramTranscript('');
+            onSend();
+          }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
           size="default"
           className="h-[120px] px-6 flex-shrink-0 rounded-lg"
@@ -153,7 +176,11 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-primary font-medium">⚡ Real-time transcription available</span>
+        {isClinical ? (
+          <span className="text-blue-600 font-medium">🎙️ Live clinical transcription via Deepgram</span>
+        ) : (
+          <span className="text-primary font-medium">⚡ Real-time transcription available</span>
+        )}
       </div>
     </div>
 
