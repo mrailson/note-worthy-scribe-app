@@ -46,35 +46,43 @@ Each style should be professionally formatted in Markdown with appropriate heade
 const COMPARE_ADDENDUM = `
 COMPARE MODE - CRITICAL INSTRUCTIONS
 
-You MUST generate ALL 6 styles for EACH detail level requested.
+You MUST generate ALL 6 styles for EACH detail level requested with SIGNIFICANT DIFFERENCES between levels.
+
+DETAIL LEVEL REQUIREMENTS:
+Level 1 (Ultra-brief): 2-3 bullet points max, key decisions only, no background
+Level 2 (Brief): 4-6 bullet points, essential info, minimal context  
+Level 3 (Standard): Normal meeting notes, balanced detail, some context
+Level 4 (Detailed): Comprehensive coverage, full discussions, background context
+Level 5 (Very detailed): Exhaustive documentation, all discussions, full context, quotes
+
+EXAMPLE - Formal Minutes differences:
+Level 1: "Meeting held. Discussed ICB pilot sites. Decision: Submit bid by October."
+Level 3: "Meeting Minutes\n## Agenda\n1. ICB pilot sites discussion\n2. Bid submission timeline\n## Decisions\n- Agreed to submit expression of interest\n- Deadline: End of September"  
+Level 5: "Meeting Minutes\n**Date:** [date]\n**Chair:** [name]\n**Attendees:** [full list]\n## 1. Welcome & Apologies\n[full section]\n## 2. ICB New Orders of Care Program\n[detailed discussion with quotes and concerns]\n## 3. Pilot Hub Sites\n[comprehensive coverage of all viewpoints]\n## Actions\n[detailed action items with owners and dates]"
 
 Return format:
 {
   "comparisons": {
     "1": {
-      "formal_minutes": "Level 1 formal minutes content...",
-      "action_notes": "Level 1 action notes content...", 
-      "headline_summary": "Level 1 headline summary content...",
-      "narrative_newsletter": "Level 1 newsletter content...",
-      "decision_log": "Level 1 decision log content...",
-      "annotated_summary": "Level 1 annotated summary content..."
+      "formal_minutes": "[Ultra-brief formal minutes]",
+      "action_notes": "[Ultra-brief action notes]", 
+      "headline_summary": "[Ultra-brief summary]",
+      "narrative_newsletter": "[Ultra-brief newsletter]",
+      "decision_log": "[Ultra-brief decision log]",
+      "annotated_summary": "[Ultra-brief annotated summary]"
     },
-    "2": {
-      "formal_minutes": "Level 2 formal minutes content...",
-      "action_notes": "Level 2 action notes content...", 
-      "headline_summary": "Level 2 headline summary content...",
-      "narrative_newsletter": "Level 2 newsletter content...",
-      "decision_log": "Level 2 decision log content...",
-      "annotated_summary": "Level 2 annotated summary content..."
+    "5": {
+      "formal_minutes": "[Very detailed formal minutes]",
+      "action_notes": "[Very detailed action notes]", 
+      "headline_summary": "[Very detailed summary]",
+      "narrative_newsletter": "[Very detailed newsletter]",
+      "decision_log": "[Very detailed decision log]",
+      "annotated_summary": "[Very detailed annotated summary]"
     }
   }
 }
 
-ABSOLUTELY REQUIRED: 
-- Every level MUST contain all 6 styles
-- Level 1 = most concise, Level 5 = most detailed
-- Do NOT skip any styles for any level
-- Each level should have the same content types but different detail depth
+CRITICAL: Each level must be VISIBLY different in length and depth. Level 1 should be 10-20% the length of Level 5.
 `;
 
 serve(async (req) => {
