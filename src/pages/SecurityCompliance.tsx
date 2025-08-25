@@ -1054,7 +1054,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;`}
                 </div>
 
                 <div className="p-4 bg-success/10 rounded-lg border border-success/30">
-                  <h4 className="font-semibold mb-2 text-success-foreground">Infrastructure Specifications</h4>
+                  <h4 className="font-semibold mb-2 text-foreground">Infrastructure Specifications</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <h5 className="font-medium mb-1">Primary Hosting</h5>
