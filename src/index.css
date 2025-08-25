@@ -471,4 +471,16 @@ tbody tr:hover {
 .qp-more-nudge:hover {
   color: hsl(var(--foreground));
 }
+
+/* Coming Soon badge for NHS compliance */
+.badge-coming-soon {
+  display: inline-block;
+  background: hsl(38 92% 50%); /* NHS Yellow accent */
+  color: hsl(0 0% 0%);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-left: 8px;
+}
 }

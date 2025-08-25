@@ -314,29 +314,133 @@ export default function SecurityCompliance() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {securityControls.map((control, index) => (
-                    <Card key={index} className="border-primary/20">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                            {control.icon}
-                          </div>
-                          {control.title}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">{control.description}</p>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-1">
-                          {control.details.map((detail, idx) => (
-                            <li key={idx} className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                              <span>{detail}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <Card className="border-primary/20">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Lock className="h-5 w-5 text-primary" />
+                        </div>
+                        Authentication & Access
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">Secure logins, staff-specific roles, account lockout protection</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-1">
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Multi-factor authentication</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Role-based access controls</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Session management with automatic timeout</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Account lockout protection</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-primary/20">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        Data Protection
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">GDPR and NHS-compliant data handling at all times</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-1">
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Data minimization and purpose limitation</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Right to access, rectification, and erasure</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Data portability features</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Consent management systems</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-primary/20">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Eye className="h-5 w-5 text-primary" />
+                        </div>
+                        Audit & Monitoring
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">Automatic logs of activity, with alerts for anything unusual</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-1">
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Complete audit trails for all data changes</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Failed login attempt tracking</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Role change auditing</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Real-time security monitoring</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-primary/20">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Database className="h-5 w-5 text-primary" />
+                        </div>
+                        Database Security
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">UK-only encrypted hosting, data separated by practice</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-1">
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>User-based data isolation</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Practice-specific access controls</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Encrypted data transmission via HTTPS/TLS 1.3</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <span>Automated data retention policies</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>
@@ -1086,60 +1190,60 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;`}
 
             <Card>
               <CardHeader>
-                <CardTitle>MHRA Medical Device Compliance</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  🩺 GP Scribe – Coming Soon
+                  <span className="badge-coming-soon">Coming Soon</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <h4 className="font-semibold text-amber-800">Application Status</h4>
-                  </div>
-                  <p className="text-sm text-amber-700">
-                    <strong>MHRA Class 1 Medical Device Registration:</strong> Application submitted and approval expected within the coming weeks. 
-                    GP Scribe will remain in controlled beta testing and will not be launched for general use without MHRA Class 1 approval.
-                  </p>
-                </div>
+                <p className="text-muted-foreground">
+                  We have developed a fully functional GP Scribe.
+                </p>
+                
                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                  <h4 className="font-semibold mb-2">Target Classification: Class 1 Medical Device</h4>
+                  <h4 className="font-semibold mb-2">Current Focus</h4>
                   <p className="text-sm text-muted-foreground">
-                    NoteWell AI GP Scribe is being classified as a Class 1 Software as a Medical Device (SaMD) under MHRA regulations.
+                    Our immediate launch priority is the Practice Management and Clinical Support tools (non–patient-facing modules) which have fewer governance hurdles.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h5 className="font-semibold mb-2">ISO 14971 Risk Management</h5>
-                    <ul className="space-y-1 text-sm">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Risk assessment and evaluation
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Risk control implementation
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Post-market surveillance
-                      </li>
-                    </ul>
+
+                <div className="p-4 bg-success/10 rounded-lg border border-success/30">
+                  <h4 className="font-semibold mb-2">Future Release</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The GP Scribe will form part of the wider platform in due course.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <h4 className="font-semibold mb-2">Regulatory Status</h4>
+                  <p className="text-sm text-amber-700">
+                    We have submitted registration with the MHRA as a Class I Medical Device, fully aligned with NHS Digital standards and DCB0129/0160.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-semibold">What this means:</h4>
+                  
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">Practice Managers:</h5>
+                    <p className="text-sm text-muted-foreground">
+                      You can use all management and compliance tools now, with no extra governance burden.
+                    </p>
                   </div>
-                  <div>
-                    <h5 className="font-semibold mb-2">IEC 62304 Software Lifecycle</h5>
-                    <ul className="space-y-1 text-sm">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Software development planning
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Software requirements analysis
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-success" />
-                        Software testing and validation
-                      </li>
-                    </ul>
+
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h5 className="font-medium text-sm mb-1">Governance Professionals (DPO/CSO/IT):</h5>
+                    <p className="text-sm text-muted-foreground">
+                      GP Scribe is complete and under MHRA review. It will only be enabled once Class I device status is confirmed, ensuring safe deployment.
+                    </p>
                   </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <strong>✨ Teaser:</strong> If you{"'"}d like a sneak peek of the GP Scribe, let us know — we{"'"}d be delighted to give you an early look at what{"'"}s coming.
+                  </p>
                 </div>
               </CardContent>
             </Card>
