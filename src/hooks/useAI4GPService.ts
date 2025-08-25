@@ -426,46 +426,46 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         } catch (error) {
           console.error('GPT-5 Fast Clinical failed:', error);
           
-          // Don't remove the message, instead show an error in it and fall back to Grok
+          // Don't remove the message, instead show an error in it and fall back to ChatGPT 4o
           setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? { 
                   ...msg, 
-                  content: 'GPT-5 service encountered an error. Switching to Grok (Speed) mode...', 
+                  content: 'GPT-5 service encountered an error. Switching to ChatGPT 4o...', 
                   isStreaming: false 
                 }
               : msg
           ));
           
-          // Fall back to Grok instead of failing completely
-          const grokRequestBody = {
+          // Fall back to ChatGPT 4o instead of failing completely
+          const chatgptRequestBody = {
             messages: messagesForAPI,
-            model: 'grok-beta',
+            model: 'gpt-4o',
             systemPrompt: systemPrompt,
             files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
             verificationLevel: verificationLevel
           };
 
           try {
-            const { data: grokData, error: grokError } = await supabase.functions.invoke('ai-4-pm-chat', {
-              body: grokRequestBody
+            const { data: chatgptData, error: chatgptError } = await supabase.functions.invoke('ai-4-pm-chat', {
+              body: chatgptRequestBody
             });
 
-            if (grokError) {
-              throw grokError;
+            if (chatgptError) {
+              throw chatgptError;
             }
 
-            const grokResponse = grokData?.response || grokData?.content || 'No response received from Grok';
+            const chatgptResponse = chatgptData?.response || chatgptData?.content || 'No response received from ChatGPT 4o';
             const endTime = Date.now();
             const responseTime = endTime - startTime;
             
             const finalMessage = {
               ...assistantMessage,
-              content: `${grokResponse}\n\n_Note: Response generated using Grok due to GPT-5 service unavailability._`,
+              content: `${chatgptResponse}\n\n_Note: Response generated using ChatGPT 4o due to GPT-5 service unavailability._`,
               isStreaming: false,
               responseTime,
               apiResponseTime: responseTime,
-              model: 'grok-beta'
+              model: 'gpt-4o'
             };
 
             setMessages(prev => prev.map(msg => 
@@ -481,13 +481,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             }, 100);
 
           } catch (fallbackError) {
-            console.error('Fallback to Grok also failed:', fallbackError);
+            console.error('Fallback to ChatGPT 4o also failed:', fallbackError);
             
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { 
                     ...msg, 
-                    content: 'Both GPT-5 and Grok services are currently unavailable. Please try again later or check your connection.', 
+                    content: 'Both GPT-5 and ChatGPT 4o services are currently unavailable. Please try again later or check your connection.', 
                     isStreaming: false 
                   }
                 : msg
