@@ -42,7 +42,19 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
             autoGainControl: true
           }
         });
-        console.log('✅ Microphone access granted');
+        console.log('✅ Microphone access granted, tracks:', mediaStreamRef.current.getTracks().length);
+        
+        // Check if tracks are active
+        mediaStreamRef.current.getTracks().forEach((track, i) => {
+          console.log(`🎵 Track ${i}:`, track.kind, track.enabled, track.readyState);
+          
+          // Listen for track ending
+          track.onended = () => {
+            console.log('❌ Audio track ended unexpectedly');
+            stopStreaming();
+          };
+        });
+        
       } catch (micError: any) {
         console.error('❌ Microphone access error:', micError);
         
@@ -82,6 +94,12 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
         console.log('🔌 WebSocket closed:', event.code, event.reason);
         setStatus('idle');
         setIsStreaming(false);
+        
+        // Auto-stop streaming when WebSocket closes
+        if (isStreaming) {
+          console.log('🛑 Auto-stopping due to WebSocket close');
+          stopStreaming();
+        }
       };
 
       // Handle transcription results
@@ -177,18 +195,30 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
     if (!isStreaming) return;
 
     try {
-      console.log('🛑 Stopping Deepgram streaming');
+      console.log('🛑 Stopping Deepgram streaming, current state:', {
+        isStreaming,
+        mediaRecorderState: mediaRecorderRef.current?.state,
+        wsReadyState: wsRef.current?.readyState,
+        trackCount: mediaStreamRef.current?.getTracks().length
+      });
 
       // Stop MediaRecorder
       if (mediaRecorderRef.current?.state !== 'inactive') {
+        console.log('🔴 Stopping MediaRecorder');
         mediaRecorderRef.current?.stop();
       }
 
       // Stop media stream tracks
-      mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track, i) => {
+          console.log(`🔇 Stopping track ${i}:`, track.kind);
+          track.stop();
+        });
+      }
 
       // Close WebSocket
       if (wsRef.current?.readyState === WebSocket.OPEN) {
+        console.log('🔌 Closing WebSocket');
         wsRef.current.close(1000);
       }
 
@@ -199,6 +229,7 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
       setStatus('idle');
       // Keep committed text but clear pending
       setPendingText('');
+      console.log('✅ Streaming stopped, final state: idle');
     }
   };
 
