@@ -356,64 +356,75 @@ export const BrowserRecordTab = () => {
                   onClick={stopRecording}
                   disabled={isLoading}
                   variant="destructive"
-                  className="flex items-center gap-2 w-full"
+                  className="flex items-center justify-between w-full px-4 py-6 animate-pulse"
                 >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <MicOff className="w-4 h-4" />
-                  )}
-                  {isLoading ? 'Stopping...' : 'Stop'}
+                  <div className="flex items-center gap-2">
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <MicOff className="w-4 h-4" />
+                    )}
+                    <span className="font-mono text-lg">
+                      {formatDuration(duration)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">
+                      {wordCount} words
+                    </span>
+                    {!isLoading && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                  </div>
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
         
-        {/* Duration Card - Animated */}
-        <Card className="relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Activity className={`w-4 h-4 ${isRecording ? 'animate-pulse text-red-500' : ''}`} />
-              Recording Duration
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-4xl font-bold text-primary transition-all duration-300 ${isRecording ? 'animate-pulse' : ''}`}>
-              {formatDuration(duration)}
-            </div>
-            {isRecording && (
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent animate-pulse" />
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Word Count Card - Progress Ring */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Volume2 className="w-4 h-4" />
-              Word Count Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
+        {/* Duration Card - Only shown when not recording */}
+        {!isRecording && (
+          <Card className="relative overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Activity className="w-4 h-4" />
+                Recording Duration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="text-4xl font-bold text-primary">
-                {wordCount}
+                {formatDuration(duration)}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                  <span>Expected: {getExpectedWords(duration)}</span>
-                  <span>{getWordProgress().toFixed(0)}%</span>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Word Count Card - Only shown when not recording */}
+        {!isRecording && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Volume2 className="w-4 h-4" />
+                Word Count Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="text-4xl font-bold text-primary">
+                  {wordCount}
                 </div>
-                <Progress 
-                  value={getWordProgress()} 
-                  className="h-2"
-                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                    <span>Expected: {getExpectedWords(duration)}</span>
+                    <span>{getWordProgress().toFixed(0)}%</span>
+                  </div>
+                  <Progress 
+                    value={getWordProgress()} 
+                    className="h-2"
+                  />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
       
       {/* Live Transcript */}
