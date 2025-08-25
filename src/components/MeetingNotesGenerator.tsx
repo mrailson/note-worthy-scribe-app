@@ -174,6 +174,8 @@ export default function MeetingNotesGenerator() {
   }
 
   async function runCompare() {
+    console.log('runCompare called with transcript length:', transcript?.length);
+    
     if (!transcript.trim()) {
       toast.error("Please enter a transcript");
       return;
