@@ -3635,15 +3635,8 @@ export const MeetingRecorder = ({
               <CardContent className="pt-4 pb-4">
                 <div className="text-center space-y-4">
                    {!isRecording ? (
-                      <div className="space-y-4">
-                        {/* Transcription Service Indicator */}
-                        <div className="flex justify-center">
-                          <Badge variant="outline" className="text-xs font-mono">
-                            Service: {(meetingSettings.transcriberService === "whisper" || !meetingSettings.transcriberService) ? "WHISPER" : meetingSettings.transcriberService?.toUpperCase()}
-                          </Badge>
-                        </div>
-                       
-                       <Button 
+                       <div className="space-y-4">
+                        <Button
                          onClick={startRecording}
                          size="lg"
                          className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
