@@ -14,7 +14,7 @@ import { ImportedTranscript } from "@/utils/FileImporter";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasModuleAccess } = useAuth();
   
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -63,6 +63,13 @@ const Index = () => {
       loadMeetingForEditing(editMeetingId);
     }
   }, [editMeetingId, user]);
+
+  // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
+  useEffect(() => {
+    if (user && !loading && !editMeetingId && hasModuleAccess('ai4gp_access')) {
+      navigate('/ai4gp', { replace: true });
+    }
+  }, [user, loading, editMeetingId, hasModuleAccess, navigate]);
 
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
