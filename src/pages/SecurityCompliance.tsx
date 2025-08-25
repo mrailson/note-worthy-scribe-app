@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { onDownloadCqcEvidencePack, onDownloadAdvancedEvidencePack } from "@/utils/evidencePackExport";
 import { 
   Shield, 
   CheckCircle, 
@@ -38,12 +39,30 @@ export default function SecurityCompliance() {
     }));
   };
 
-  const downloadEvidencePack = (type: 'cqc' | 'advanced') => {
+  const downloadEvidencePack = async (type: 'cqc' | 'advanced') => {
     toast({
       title: `${type === 'cqc' ? 'CQC' : 'Advanced'} Evidence Pack`,
       description: `Generating ${type === 'cqc' ? 'CQC' : 'Advanced'} evidence pack for download...`,
     });
-    // Implementation would generate PDF/Word export
+    
+    try {
+      if (type === 'cqc') {
+        await onDownloadCqcEvidencePack();
+      } else {
+        await onDownloadAdvancedEvidencePack();
+      }
+      
+      toast({
+        title: "Evidence Pack Generated",
+        description: `${type === 'cqc' ? 'CQC' : 'Advanced'} evidence pack is ready for download.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Error",
+        description: "Failed to generate evidence pack. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const complianceStandards = [
