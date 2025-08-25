@@ -6,7 +6,7 @@ import { Send, Paperclip, Mic, MicOff, Stethoscope, MessageSquare, X, ChevronUp 
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import { DeepgramStreamingMic } from './DeepgramStreamingMic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +39,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
-  const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
+  const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -81,8 +81,17 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   };
 
   const handleSend = () => {
+    // Clear Deepgram transcript state when sending
+    setDeepgramTranscript('');
     onSend();
     // Keep expanded after sending so user can see the response and send follow-ups
+  };
+
+  const handleDeepgramTranscriptUpdate = (text: string) => {
+    // Update the input field in real-time during Deepgram streaming
+    const baseInput = input.replace(deepgramTranscript, ''); // Remove previous Deepgram text
+    setInput(baseInput + (baseInput && text ? ' ' : '') + text);
+    setDeepgramTranscript(text);
   };
 
   const toggleExpanded = () => {
@@ -188,31 +197,13 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               />
               
               <div className="absolute right-1 top-1 flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-8 w-8 p-0 transition-all duration-200",
-                    isRecording 
-                      ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
-                      : isProcessing 
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                        : 'hover:bg-accent'
-                  )}
-                  onClick={async () => {
-                    const text = await toggleRecording();
-                    if (text) {
-                      setInput(input + (input ? ' ' : '') + text);
-                    }
-                  }}
-                  disabled={isLoading}
-                >
-                  {isRecording ? (
-                    <MicOff className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </Button>
+                <div className="flex flex-col gap-1">
+                  <DeepgramStreamingMic
+                    onTranscriptUpdate={handleDeepgramTranscriptUpdate}
+                    disabled={isLoading}
+                    className="justify-center"
+                  />
+                </div>
                 
                 <Button
                   variant="ghost"
@@ -228,12 +219,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
             
             <div className="flex justify-between items-center">
               <div className="text-xs text-muted-foreground">
-                {isRecording 
-                  ? '🔴 Recording...' 
-                  : isProcessing 
-                    ? '⏳ Processing...' 
-                    : 'Ctrl+Enter to send'
-                }
+                Ctrl+Enter to send • <span className="text-blue-600 font-medium">🎙️ Deepgram live transcription</span>
               </div>
               
               <Button 
