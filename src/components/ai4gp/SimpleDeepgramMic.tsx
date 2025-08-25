@@ -92,19 +92,18 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
+        console.error('WebSocket connection failed:', error);
         stopStreaming();
-        setStatus('connection error');
+        setStatus('connection failed');
       };
 
       wsRef.current.onclose = (event) => {
-        console.log('🔌 WebSocket closed:', event.code, event.reason);
+        console.log('WebSocket closed, code:', event.code, 'reason:', event.reason);
         setStatus('idle');
         setIsStreaming(false);
         
-        // Auto-stop streaming when WebSocket closes
         if (isStreaming) {
-          console.log('🛑 Auto-stopping due to WebSocket close');
+          console.log('Auto-stopping due to WebSocket close');
           stopStreaming();
         }
       };
