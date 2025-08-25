@@ -54,6 +54,12 @@ const AI_MODELS = [
     description: 'Superior reasoning and medical knowledge'
   },
   {
+    id: 'gpt-4o',
+    name: 'GPT-4o (Omni)',
+    provider: 'OpenAI',
+    description: 'Advanced multimodal AI with vision capabilities'
+  },
+  {
     id: 'gpt-4-turbo',
     name: 'GPT-4 Turbo',
     provider: 'OpenAI',
@@ -123,7 +129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const testApiServices = async () => {
     setIsTesting(true);
     const testPrompt = "What day is it today?";
-    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro'];
+    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4o', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro'];
     
     // Initialize test results
     const initialResults: ApiTestResult[] = modelsToTest.map(model => ({
