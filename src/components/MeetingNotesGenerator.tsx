@@ -5,9 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Copy, FileText, Users, Calendar, MapPin, Clock, Settings } from 'lucide-react';
+import { Copy, FileText, Users, Calendar, MapPin, Clock, Settings, ChevronDown } from 'lucide-react';
 
 interface MeetingSettings {
   title?: string;
@@ -78,6 +79,9 @@ export const MeetingNotesGenerator = () => {
   const [ingestTab, setIngestTab] = useState<IngestTab>('paste');
   const [ingestBusy, setIngestBusy] = useState(false);
   const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+
+  // Meeting settings collapsible state
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const audioInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -319,152 +323,162 @@ export const MeetingNotesGenerator = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Meeting Settings (Optional)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Meeting Title
-              </Label>
-              <Input
-                id="title"
-                placeholder="e.g., PCN Clinical Review Meeting"
-                value={settings.title || ''}
-                onChange={(e) => setSettings(s => ({ ...s, title: e.target.value }))}
-              />
-            </div>
+        <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Meeting Settings (Optional)
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Meeting Title
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., PCN Clinical Review Meeting"
+                    value={settings.title || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, title: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="date" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Date
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={settings.date || ''}
-                onChange={(e) => setSettings(s => ({ ...s, date: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Date
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={settings.date || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, date: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Time
-              </Label>
-              <Input
-                id="time"
-                placeholder="e.g., 14:00"
-                value={settings.time || ''}
-                onChange={(e) => setSettings(s => ({ ...s, time: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Time
+                  </Label>
+                  <Input
+                    id="time"
+                    placeholder="e.g., 14:00"
+                    value={settings.time || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, time: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="venue" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Venue
-              </Label>
-              <Input
-                id="venue"
-                placeholder="e.g., Wootton Health Centre"
-                value={settings.venue || ''}
-                onChange={(e) => setSettings(s => ({ ...s, venue: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="venue" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Venue
+                  </Label>
+                  <Input
+                    id="venue"
+                    placeholder="e.g., Wootton Health Centre"
+                    value={settings.venue || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, venue: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="chair" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Chair
-              </Label>
-              <Input
-                id="chair"
-                placeholder="e.g., Dr. Smith"
-                value={settings.chair || ''}
-                onChange={(e) => setSettings(s => ({ ...s, chair: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="chair" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Chair
+                  </Label>
+                  <Input
+                    id="chair"
+                    placeholder="e.g., Dr. Smith"
+                    value={settings.chair || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, chair: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="minute_taker">Minute Taker</Label>
-              <Input
-                id="minute_taker"
-                placeholder="e.g., Jane Doe"
-                value={settings.minute_taker || ''}
-                onChange={(e) => setSettings(s => ({ ...s, minute_taker: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="minute_taker">Minute Taker</Label>
+                  <Input
+                    id="minute_taker"
+                    placeholder="e.g., Jane Doe"
+                    value={settings.minute_taker || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, minute_taker: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="locality">Locality</Label>
-              <Input
-                id="locality"
-                placeholder="e.g., Northamptonshire"
-                value={settings.locality || ''}
-                onChange={(e) => setSettings(s => ({ ...s, locality: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="locality">Locality</Label>
+                  <Input
+                    id="locality"
+                    placeholder="e.g., Northamptonshire"
+                    value={settings.locality || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, locality: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pcn">PCN Name</Label>
-              <Input
-                id="pcn"
-                placeholder="e.g., Wootton Vale PCN"
-                value={settings.pcn || ''}
-                onChange={(e) => setSettings(s => ({ ...s, pcn: e.target.value }))}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pcn">PCN Name</Label>
+                  <Input
+                    id="pcn"
+                    placeholder="e.g., Wootton Vale PCN"
+                    value={settings.pcn || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, pcn: e.target.value }))}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="icb">ICB Name</Label>
-              <Input
-                id="icb"
-                placeholder="e.g., Northamptonshire ICB"
-                value={settings.icb || ''}
-                onChange={(e) => setSettings(s => ({ ...s, icb: e.target.value }))}
-              />
-            </div>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="icb">ICB Name</Label>
+                  <Input
+                    id="icb"
+                    placeholder="e.g., Northamptonshire ICB"
+                    value={settings.icb || ''}
+                    onChange={(e) => setSettings(s => ({ ...s, icb: e.target.value }))}
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="attendees">Attendees (comma separated)</Label>
-              <Input
-                id="attendees"
-                placeholder="e.g., Dr. Smith (Chair), Jane Doe (Practice Manager), John Brown (Pharmacist)"
-                value={attendeesInput}
-                onChange={(e) => setAttendeesInput(e.target.value)}
-              />
-            </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="attendees">Attendees (comma separated)</Label>
+                  <Input
+                    id="attendees"
+                    placeholder="e.g., Dr. Smith (Chair), Jane Doe (Practice Manager), John Brown (Pharmacist)"
+                    value={attendeesInput}
+                    onChange={(e) => setAttendeesInput(e.target.value)}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="agenda">Agenda Items (comma separated)</Label>
-              <Input
-                id="agenda"
-                placeholder="e.g., Welcome, QOF Review, Prescribing Updates, Any Other Business"
-                value={agendaInput}
-                onChange={(e) => setAgendaInput(e.target.value)}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="agenda">Agenda Items (comma separated)</Label>
+                  <Input
+                    id="agenda"
+                    placeholder="e.g., Welcome, QOF Review, Prescribing Updates, Any Other Business"
+                    value={agendaInput}
+                    onChange={(e) => setAgendaInput(e.target.value)}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="key_dates">Key Dates (comma separated)</Label>
-              <Input
-                id="key_dates"
-                placeholder="e.g., QOF Submission: 31 March 2024, Annual Review: 15 April 2024"
-                value={keyDatesInput}
-                onChange={(e) => setKeyDatesInput(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="key_dates">Key Dates (comma separated)</Label>
+                  <Input
+                    id="key_dates"
+                    placeholder="e.g., QOF Submission: 31 March 2024, Annual Review: 15 April 2024"
+                    value={keyDatesInput}
+                    onChange={(e) => setKeyDatesInput(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       <div className="flex justify-center">
