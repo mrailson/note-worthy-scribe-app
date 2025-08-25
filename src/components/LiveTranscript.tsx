@@ -331,9 +331,58 @@ export const LiveTranscript = ({
     pendingRef.current = text;
     if (stableTimer.current) window.clearTimeout(stableTimer.current);
     stableTimer.current = window.setTimeout(() => {
-      setCleanedTranscript(prev => mergeLive(prev, pendingRef.current));
+      const cleanedChunk = lightCleanChunk(pendingRef.current);
+      const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
+      if (dedupedChunk) {
+        setCleanedTranscript(prev => mergeLive(prev, dedupedChunk));
+      }
       pendingRef.current = "";
     }, FLUSH_MS);
+  };
+
+  // Light cleaning function for real-time processing
+  const lightCleanChunk = (text: string): string => {
+    if (!text) return '';
+    
+    return text
+      .trim()
+      .replace(/\s+/g, ' ') // normalize whitespace
+      .replace(/\b(ARRS?|ARS)\b/gi, 'ARRS')
+      .replace(/\b(PCN DES|PCMDS|PCMDA|PCMDRS)\b/gi, 'PCN DES')
+      .replace(/\b(Systm One|System 1|system one)\b/gi, 'SystmOne')
+      .replace(/\b(DocMan|document workflow)\b/gi, 'Docman')
+      .replace(/\bCQC\b/gi, 'CQC')
+      .replace(/\bQOF\b/gi, 'QOF')
+      .replace(/\bsame day\b/gi, 'same-day')
+      .replace(/\brepeat procedures\b/gi, 'repeat prescribing')
+      .replace(/\bduty doctor house\b/gi, 'duty doctor hours');
+  };
+
+  // Remove duplicate consecutive sentences
+  const removeDuplicateSentences = (newText: string, existingText: string): string => {
+    if (!newText || !existingText) return newText;
+    
+    const newSentences = newText.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+    const existingSentences = existingText.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+    
+    if (existingSentences.length === 0) return newText;
+    
+    const lastExisting = existingSentences[existingSentences.length - 1]?.trim().toLowerCase();
+    
+    // Filter out sentences that are too similar to the last existing sentence
+    const filteredSentences = newSentences.filter(sentence => {
+      const normalized = sentence.trim().toLowerCase();
+      if (!normalized || normalized.length < 10) return false; // Skip very short fragments
+      
+      // Check if this sentence is very similar to the last existing sentence
+      if (lastExisting && normalized.includes(lastExisting.substring(0, Math.min(20, lastExisting.length)))) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    return filteredSentences.join(' ');
   };
 
   // Subscribe to transcription chunks for AI enhancement updates
@@ -378,16 +427,20 @@ export const LiveTranscript = ({
           // Always show latest raw text (interim or final) in the live box
           setLiveTranscriptText(r.transcription_text);
 
+          // Apply lightweight cleaning for real-time processing
+          const cleanedChunk = lightCleanChunk(r.transcription_text);
+          const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
+
           // Robust final chunk handling with three paths
           if (typeof r.is_final === "boolean") {
-            if (r.is_final) {
-              setCleanedTranscript(prev => mergeLive(prev, r.transcription_text));
-            } else {
-              queueFlushChunk(r.transcription_text); // safety fallback
+            if (r.is_final && dedupedChunk) {
+              setCleanedTranscript(prev => mergeLive(prev, dedupedChunk));
+            } else if (dedupedChunk) {
+              queueFlushChunk(dedupedChunk); // safety fallback
             }
-          } else {
+          } else if (dedupedChunk) {
             // no is_final field in DB — infer with debounce
-            queueFlushChunk(r.transcription_text);
+            queueFlushChunk(dedupedChunk);
           }
         }
       )
@@ -398,7 +451,7 @@ export const LiveTranscript = ({
       processedSeqRef.current.clear();
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
+  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
 
   // Filter out system messages (silence detection, etc.)
   const filterSystemMessages = (text: string): string => {
@@ -820,13 +873,14 @@ export const LiveTranscript = ({
                   </div>
                 </div>
 
-                {/* Final (Clean) Transcript – authoritative */}
+                {/* AI-Enhanced Transcript – Live sentence-by-sentence display */}
                 <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium text-foreground uppercase tracking-wide">
-                      Final Transcript (Clean)
+                      AI-Enhanced Transcript
                     </span>
-                    <Badge variant="default" className="text-xs">Finalised chunks</Badge>
+                    <Badge variant="default" className="text-xs">Live cleaning</Badge>
                   </div>
 
                   <div className="mb-2 flex items-center gap-2 flex-wrap">
@@ -836,27 +890,69 @@ export const LiveTranscript = ({
                     <Button size="sm" variant="outline" onClick={handleDownloadWord}>
                       Download Word
                     </Button>
+                    {cleanedTranscript && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={async () => {
+                          try {
+                            const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
+                              body: { transcript: cleanedTranscript }
+                            });
+                            
+                            if (error) throw error;
+                            
+                            if (data?.cleanedTranscript) {
+                              setCleanedTranscript(data.cleanedTranscript);
+                              toast({
+                                title: "Deep Clean Complete",
+                                description: `Processed ${data.originalLength} → ${data.cleanedLength} characters`
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Deep Clean Failed",
+                              description: "Could not clean transcript. Please try again.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Deep Clean
+                      </Button>
+                    )}
                   </div>
 
                   <div
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[220px] max-h-[70vh] overflow-y-auto p-3 bg-background/80 rounded-md border"
+                    className="text-sm leading-relaxed min-h-[220px] max-h-[80vh] overflow-y-auto p-3 bg-background/80 rounded-md border scroll-smooth"
                     style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                    onMouseUp={handleTextSelection}
                   >
                     {cleanedTranscript ? (
-                      <div className="text-foreground">{cleanedTranscript}</div>
+                      <div className="space-y-2">
+                        {cleanedTranscript
+                          .split(/(?<=[.!?])\s+/) // sentence boundaries
+                          .filter(sentence => sentence.trim().length > 0) // filter empty sentences
+                          .map((sentence, idx) => (
+                            <p key={idx} className="leading-relaxed text-foreground">
+                              {sentence.trim()}
+                            </p>
+                          ))}
+                      </div>
                     ) : (
                       <div className="text-muted-foreground italic">
-                        <div>Final transcript will appear here once chunks are confirmed…</div>
+                        <div>AI-enhanced transcript will appear here sentence by sentence…</div>
                         <div className="text-xs text-muted-foreground mt-2">
-                          Waiting for finalised chunks… If they don't arrive from your STT,
-                          we'll auto-commit stable text after ~1.5s of silence.
+                          Real-time cleaning and NHS term standardisation active.
+                          Sentences appear as they're finalised.
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Updated when chunks are finalised. May lag the live feed by ~1 minute.
+                    Live-cleaned transcript with NHS term corrections. Updated continuously during meetings.
                   </div>
                 </div>
 
