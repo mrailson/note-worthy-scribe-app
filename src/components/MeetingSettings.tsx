@@ -26,7 +26,12 @@ import { toast } from "sonner";
 import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 
+import { Badge } from "./ui/badge";
+import { Slider } from "./ui/slider";
+import { MeetingSettingsState } from "../types/meetingTypes";
+
 interface MeetingSettingsProps {
+  settings?: MeetingSettingsState;
   onSettingsChange: (settings: any) => void;
   onAudioImported?: (audioFile: File) => void;
   onTranscriptImported?: (importedTranscript: ImportedTranscript) => void;
@@ -36,9 +41,10 @@ interface MeetingSettingsProps {
     meetingType: string;
     practiceId?: string;
   };
+  isLive?: boolean;
 }
 
-export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ settings, onSettingsChange, onAudioImported, onTranscriptImported, initialSettings, isLive }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
@@ -72,7 +78,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     return format(roundedTime, 'HH:mm');
   };
 
-  const [settings, setSettings] = useState({
+  const [localSettings, setLocalSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
     meetingType: initialSettings?.meetingType || "general",
@@ -117,11 +123,11 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
           // If only one practice, auto-select it
           if (practices.length === 1) {
             const newSettings = { 
-              ...settings, 
+              ...localSettings, 
               practiceId: practices[0].id,
               location: practices[0].name 
             };
-            setSettings(newSettings);
+            setLocalSettings(newSettings);
             onSettingsChange(newSettings);
           }
         }
@@ -152,8 +158,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
         }
 
         if (data?.practice_name) {
-          const newSettings = { ...settings, location: data.practice_name };
-          setSettings(newSettings);
+          const newSettings = { ...localSettings, location: data.practice_name };
+          setLocalSettings(newSettings);
           onSettingsChange(newSettings);
         }
       } catch (error) {
@@ -245,14 +251,14 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
       // Update settings with extracted data
       if (importedTranscript.extractedSettings) {
         const newSettings = {
-          ...settings,
-          title: importedTranscript.extractedSettings.title || settings.title,
-          description: importedTranscript.extractedSettings.description || settings.description,
-          attendees: importedTranscript.extractedSettings.attendees || settings.attendees,
-          agenda: importedTranscript.extractedSettings.agenda || settings.agenda,
-          date: importedTranscript.extractedSettings.date || settings.date
+          ...localSettings,
+          title: importedTranscript.extractedSettings.title || localSettings.title,
+          description: importedTranscript.extractedSettings.description || localSettings.description,
+          attendees: importedTranscript.extractedSettings.attendees || localSettings.attendees,
+          agenda: importedTranscript.extractedSettings.agenda || localSettings.agenda,
+          date: importedTranscript.extractedSettings.date || localSettings.date
         };
-        setSettings(newSettings);
+        setLocalSettings(newSettings);
         onSettingsChange(newSettings);
         console.log('📝 Settings updated with extracted data');
       }
@@ -339,8 +345,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   };
 
   const updateSetting = (key: string, value: any) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
+    const newSettings = { ...localSettings, [key]: value };
+    setLocalSettings(newSettings);
     onSettingsChange(newSettings);
   };
 
@@ -366,7 +372,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {/* Meeting Type */}
             <div className="space-y-2">
               <Label htmlFor="meeting-type">Meeting Type</Label>
-              <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
+              <Select value={localSettings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting type" />
                 </SelectTrigger>
@@ -390,7 +396,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {/* Meeting Style */}
             <div className="space-y-2">
               <Label htmlFor="meeting-style">Meeting Style</Label>
-              <Select value={settings.meetingStyle || 'standard'} onValueChange={(value) => updateSetting('meetingStyle', value)}>
+              <Select value={localSettings.meetingStyle || 'standard'} onValueChange={(value) => updateSetting('meetingStyle', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting style" />
                 </SelectTrigger>
@@ -413,7 +419,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <Input
                 id="meeting-description"
                 placeholder="Enter meeting description"
-                value={settings.title}
+                value={localSettings.title}
                 onChange={(e) => updateSetting('title', e.target.value)}
               />
             </div>
@@ -425,7 +431,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 <Input
                   id="meeting-date"
                   type="date"
-                  value={settings.date}
+                  value={localSettings.date}
                   onChange={(e) => updateSetting('date', e.target.value)}
                 />
               </div>
@@ -434,7 +440,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 <Input
                   id="start-time"
                   type="time"
-                  value={settings.startTime}
+                  value={localSettings.startTime}
                   onChange={(e) => updateSetting('startTime', e.target.value)}
                 />
               </div>
@@ -445,7 +451,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <div className="space-y-2">
                 <Label htmlFor="practice-selection">Practice</Label>
                 <Select 
-                  value={settings.practiceId} 
+                  value={localSettings.practiceId} 
                   onValueChange={(value) => {
                     const selectedPractice = userPractices.find(p => p.id === value);
                     updateSetting('practiceId', value);
@@ -474,7 +480,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <Label>Meeting Format</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
-                  variant={settings.format === 'face-to-face' ? 'default' : 'outline'}
+                  variant={localSettings.format === 'face-to-face' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'face-to-face')}
                   className="flex-1 text-xs sm:text-sm"
                 >
@@ -482,7 +488,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   Face to Face
                 </Button>
                 <Button
-                  variant={settings.format === 'online' ? 'default' : 'outline'}
+                  variant={localSettings.format === 'online' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'online')}
                   className="flex-1 text-xs sm:text-sm"
                 >
@@ -493,7 +499,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             </div>
 
             {/* Site/Location - Only show for Face to Face meetings */}
-            {settings.format === 'face-to-face' && (
+            {localSettings.format === 'face-to-face' && (
               <div className="space-y-2">
                 <Label htmlFor="location">Site/Location</Label>
                 <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
@@ -504,7 +510,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                       aria-expanded={practiceSearchOpen}
                       className="w-full justify-between"
                     >
-                      {settings.location || "Search by Practice Name or K Code"}
+                      {localSettings.location || "Search by Practice Name or K Code"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -526,7 +532,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                             >
                               <Check
                                 className={`mr-2 h-4 w-4 ${
-                                  settings.location === practice.name ? "opacity-100" : "opacity-0"
+                                  localSettings.location === practice.name ? "opacity-100" : "opacity-0"
                                 }`}
                               />
                               <div>
@@ -540,7 +546,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {!settings.location && (
+                {!localSettings.location && (
                   <p className="text-xs text-muted-foreground">
                     Select your GP practice from the dropdown above
                   </p>
@@ -564,7 +570,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <Textarea
                 id="attendees"
                 placeholder="Example: Dr. Smith, Nurse Johnson, Admin Manager Brown"
-                value={settings.attendees}
+                value={localSettings.attendees}
                 onChange={(e) => updateSetting('attendees', e.target.value)}
                 rows={3}
               />
@@ -586,7 +592,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               <Textarea
                 id="agenda"
                 placeholder="Example:&#10;1. Review of previous actions&#10;2. Financial update&#10;3. Staffing matters&#10;4. Any other business"
-                value={settings.agenda}
+                value={localSettings.agenda}
                 onChange={(e) => updateSetting('agenda', e.target.value)}
                 rows={5}
               />

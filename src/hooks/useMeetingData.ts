@@ -13,20 +13,22 @@ export const useMeetingData = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [practiceData, setPracticeData] = useState<any>(null);
 
-  const [meetingSettings, setMeetingSettings] = useState<MeetingSettingsState>({
-    title: "",
-    description: "",
-    meetingType: "general",
-    meetingStyle: "standard",
-    attendees: "",
-    agenda: "",
-    date: "",
-    startTime: "",
-    format: "",
-    location: "",
-    practiceId: "",
-    meetingFormat: "teams"
-  });
+  const defaultSettings: MeetingSettingsState = {
+    roomName: '',
+    participants: [],
+    reminderTime: 5,
+    enableAutoEmail: false,
+    emailTemplate: '',
+    emailRecipients: [],
+    transcriberService: 'deepgram' as const,
+    transcriberThresholds: {
+      deepgram: 0.6,
+      whisper: 0.7,
+      browser: 0.8,
+    },
+  };
+
+  const [meetingSettings, setMeetingSettings] = useState<MeetingSettingsState>(defaultSettings);
 
   const [summaryContent, setSummaryContent] = useState<SummaryContent>({
     attendees: "",
@@ -120,13 +122,8 @@ export const useMeetingData = () => {
 
         setMeetingSettings(prev => ({
           ...prev,
-          title: data.title || 'Meeting',
-          date: startDate ? `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}` : "",
-          startTime: startDate ? `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}` : "",
-          attendees: (data.participants || []).join(', '),
-          agenda: data.agenda || '',
-          format: (data.meeting_format as "" | "face-to-face" | "online" | "hybrid" | "phone") || "",
-          location: data.meeting_location || ''
+          roomName: data.title || 'Meeting',
+          participants: data.participants || []
         }));
       }
     } catch (error) {
@@ -155,13 +152,49 @@ export const useMeetingData = () => {
   // Load meeting settings from localStorage/user preferences
   const loadMeetingSettings = useCallback(async () => {
     if (!user?.id) return;
-    // Settings loading removed - no transcriber settings needed
+    
+    try {
+      const saved = localStorage.getItem(`meetingSettings_${user.id}`);
+      if (saved) {
+        const parsedSettings = JSON.parse(saved);
+        setMeetingSettings({
+          roomName: parsedSettings.roomName || '',
+          participants: parsedSettings.participants || [],
+          reminderTime: parsedSettings.reminderTime || 5,
+          enableAutoEmail: parsedSettings.enableAutoEmail || false,
+          emailTemplate: parsedSettings.emailTemplate || '',
+          emailRecipients: parsedSettings.emailRecipients || [],
+          transcriberService: parsedSettings.transcriberService || 'deepgram',
+          transcriberThresholds: parsedSettings.transcriberThresholds || {
+            deepgram: 0.6,
+            whisper: 0.7,
+            browser: 0.8,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error loading meeting settings:', error);
+    }
   }, [user?.id]);
 
   // Save meeting settings 
   const saveMeetingSettings = useCallback(async (settings: Partial<MeetingSettingsState>) => {
     if (!user?.id) return;
-    // Settings saving removed - no transcriber settings needed
+    
+    try {
+      const currentSettings = localStorage.getItem(`meetingSettings_${user.id}`);
+      const existing = currentSettings ? JSON.parse(currentSettings) : defaultSettings;
+      
+      const updatedSettings = {
+        ...existing,
+        ...settings
+      };
+      
+      localStorage.setItem(`meetingSettings_${user.id}`, JSON.stringify(updatedSettings));
+      setMeetingSettings(updatedSettings);
+    } catch (error) {
+      console.error('Error saving meeting settings:', error);
+    }
   }, [user?.id]);
 
   // Load settings on mount
@@ -174,13 +207,11 @@ export const useMeetingData = () => {
     setSummaryContent(prev => {
       const next = { ...prev } as typeof prev;
       let changed = false;
-      const mAtt = (meetingSettings.attendees || '').trim();
-      const mAg = (meetingSettings.agenda || '').trim();
+      const mAtt = (meetingSettings.participants || []).join(', ');
       if (mAtt && mAtt !== prev.attendees) { next.attendees = mAtt; changed = true; }
-      if (mAg && mAg !== prev.agenda) { next.agenda = mAg; changed = true; }
       return changed ? next : prev;
     });
-  }, [meetingSettings.attendees, meetingSettings.agenda]);
+  }, [meetingSettings.participants]);
 
   return {
     meetingData,

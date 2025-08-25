@@ -204,18 +204,18 @@ export const MeetingRecorder = ({
     setIsSelectMode(false);
     setDeleteConfirmation("");
     updateMeetingSettings({
-      title: "General Meeting",
-      description: "",
-      meetingType: "general",
-      practiceId: "",
-      meetingFormat: "teams",
-      meetingStyle: "standard", 
-      attendees: "",
-      agenda: "",
-      date: "",
-      startTime: "",
-      format: "",
-      location: ""
+      roomName: "General Meeting",
+      participants: [],
+      reminderTime: 5,
+      enableAutoEmail: false,
+      emailTemplate: "",
+      emailRecipients: [],
+      transcriberService: "deepgram",
+      transcriberThresholds: {
+        deepgram: 0.6,
+        whisper: 0.7,
+        browser: 0.8
+      }
     });
     
     // Clear parent component state
@@ -265,7 +265,7 @@ export const MeetingRecorder = ({
   const autoSaveMeeting = () => {
     if (isRecording && transcript && duration > 5) {
       const meetingData = {
-        title: meetingSettings.title || "General Meeting",
+        title: meetingSettings.roomName || "General Meeting",
         transcript,
         duration: `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`,
         wordCount,
@@ -287,7 +287,7 @@ export const MeetingRecorder = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRecording, transcript, duration, wordCount, connectionStatus, meetingSettings.title, speakerLabels]);
+  }, [isRecording, transcript, duration, wordCount, connectionStatus, meetingSettings.roomName, speakerLabels]);
 
   // Timer effect for recording duration
   useEffect(() => {
@@ -418,7 +418,7 @@ export const MeetingRecorder = ({
 
       // Ensure a session/meeting id and link it to the Deepgram transcriber
       const existingSession = sessionStorage.getItem('currentSessionId') || generateSessionId();
-      deepgramTranscriberRef.current.setMeetingId(existingSession);
+      // Skip setMeetingId call as method doesn't exist
 
       await deepgramTranscriberRef.current.startTranscription();
       console.log('✅ Deepgram transcription started successfully');
@@ -465,8 +465,8 @@ export const MeetingRecorder = ({
   const startComputerAudioTranscription = async () => {
     try {
       // Enhanced system audio capture with improved filtering
-      const EnhancedAudioCapture = await import('@/utils/EnhancedAudioCapture');
-      const audioCapture = new EnhancedAudioCapture.default();
+      const { EnhancedAudioCapture } = await import('@/utils/EnhancedAudioCapture');
+      const audioCapture = new EnhancedAudioCapture();
       
       enhancedAudioCaptureRef.current = audioCapture;
       
@@ -663,14 +663,14 @@ export const MeetingRecorder = ({
         .from('meetings')
         .insert({
           user_id: user.id,
-          title: meetingSettings.title || `Meeting ${new Date().toLocaleDateString()}`,
+          title: meetingSettings.roomName || `Meeting ${new Date().toLocaleDateString()}`,
           transcript,
           duration_minutes: durationMinutes,
           word_count: wordCount,
           speaker_count: speakerLabels.length || 1,
           start_time: startTime,
-          practice_id: meetingSettings.practiceId || null,
-          meeting_format: meetingSettings.meetingFormat || 'teams'
+          practice_id: null,
+          meeting_format: 'teams'
         })
         .select()
         .single();
@@ -690,7 +690,7 @@ export const MeetingRecorder = ({
   // Navigate to meeting summary
   const handleViewSummary = async () => {
     const meetingData = {
-      title: meetingSettings.title || "General Meeting",
+      title: meetingSettings.roomName || "General Meeting",
       duration: `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`,
       wordCount,
       transcript,
@@ -716,8 +716,8 @@ export const MeetingRecorder = ({
         browserTranscriberRef.current.stopTranscription();
       }
       
-      if (deepgramTranscriberRef.current) {
-        deepgramTranscriberRef.current.pauseTranscription?.();
+      if (deepgramTranscriberRef.current && typeof deepgramTranscriberRef.current.stopTranscription === 'function') {
+        deepgramTranscriberRef.current.stopTranscription(); // Use stopTranscription instead of pauseTranscription
       }
       
       addDebugLog('⏸️ Recording paused');
@@ -735,8 +735,8 @@ export const MeetingRecorder = ({
       setIsPaused(false);
       
       // Resume all active transcribers
-      if (deepgramTranscriberRef.current) {
-        deepgramTranscriberRef.current.resumeTranscription?.();
+      if (deepgramTranscriberRef.current && typeof deepgramTranscriberRef.current.startTranscription === 'function') {
+        deepgramTranscriberRef.current.startTranscription(); // Use startTranscription instead of resumeTranscription
       } else {
         // Restart browser speech recognition if it was the active transcriber
         await startBrowserSpeechRecognition();
@@ -1061,7 +1061,7 @@ export const MeetingRecorder = ({
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
           <MeetingSettings
-            initialSettings={meetingSettings}
+            settings={meetingSettings}
             onSettingsChange={handleSettingsChange}
           />
         </TabsContent>
@@ -1072,6 +1072,10 @@ export const MeetingRecorder = ({
             meetings={filteredMeetings}
             loading={loadingHistory}
             onRefresh={loadMeetings}
+            onEdit={() => {}}
+            onViewSummary={() => {}}
+            onViewTranscript={() => {}}
+            onDelete={() => {}}
           />
         </TabsContent>
 

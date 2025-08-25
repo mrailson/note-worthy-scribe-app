@@ -138,22 +138,17 @@ export default function MeetingSummary() {
       const dt = data.startTime ? new Date(data.startTime) : null;
       const pad = (n: number) => n.toString().padStart(2, '0');
       setMeetingSettings({
-        title: data.title || 'Meeting',
-        description: data.extractedSettings?.description || "",
-        meetingType: data.extractedSettings?.meetingType || "general",
-        meetingStyle: "standard",
-        attendees: data.extractedSettings?.attendees || "",
-        agenda: data.extractedSettings?.agenda || "",
-        date: dt ? `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}` : "",
-        startTime: dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : "",
-        format: "",
-        location: "",
-        practiceId: "",
-        meetingFormat: "teams",
+        roomName: data.title || 'Meeting',
+        participants: data.extractedSettings?.attendees ? data.extractedSettings.attendees.split(',').map((p: string) => p.trim()) : [],
+        reminderTime: 5,
+        enableAutoEmail: false,
+        emailTemplate: "",
+        emailRecipients: [],
         transcriberService: "whisper",
         transcriberThresholds: {
           whisper: 0.75,
-          deepgram: 0.80
+          deepgram: 0.80,
+          browser: 0.75
         }
       });
       

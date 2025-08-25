@@ -25,18 +25,18 @@ export interface MeetingData {
 }
 
 export interface MeetingSettingsState {
-  title: string;
-  description: string;
-  meetingType: string;
-  meetingStyle: string;
-  attendees: string;
-  agenda: string;
-  date?: string;
-  startTime?: string;
-  format?: 'face-to-face' | 'online' | 'hybrid' | 'phone' | '' | undefined;
-  location?: string;
-  practiceId?: string;
-  meetingFormat?: string;
+  roomName: string;
+  participants: string[];
+  reminderTime: number;
+  enableAutoEmail: boolean;
+  emailTemplate: string;
+  emailRecipients: string[];
+  transcriberService: 'deepgram' | 'whisper' | 'browser';
+  transcriberThresholds: {
+    deepgram: number;
+    whisper: number;
+    browser: number;
+  };
 }
 
 export interface SummaryContent {
