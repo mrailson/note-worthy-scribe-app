@@ -7,19 +7,27 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('=== import-prior-approval-data function started ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Attempting to parse request body...');
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { files } = await req.json()
+    const requestBody = await req.json()
+    console.log('Request body keys:', Object.keys(requestBody));
+    const { files } = requestBody
     
     if (!files || !Array.isArray(files) || files.length === 0) {
       return new Response(
