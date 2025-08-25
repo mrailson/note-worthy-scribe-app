@@ -73,6 +73,9 @@ export default function MeetingNotesGenerator() {
   // Display mode
   const [renderMode, setRenderMode] = useState<"rendered" | "raw">("rendered");
 
+  // Collapsible ingest section
+  const [isIngestCollapsed, setIsIngestCollapsed] = useState(false);
+
   // === Edit state (single-run)
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
@@ -313,58 +316,73 @@ export default function MeetingNotesGenerator() {
       {/* Ingest */}
       <div className="border rounded">
         <div className="flex gap-2 border-b p-2">
-          {(["paste", "audio", "file"] as IngestTab[]).map((k) => (
-            <button
-              key={k}
-              onClick={() => setIngestTab(k)}
-              className={`px-3 py-1 rounded ${ingestTab === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-            >
-              {k === "paste" ? "Paste Text" : k === "audio" ? "Upload Audio (Whisper)" : "Upload Document"}
-            </button>
-          ))}
-          <div className="flex-1" />
-          {ingestBusy && <span className="text-sm italic text-muted-foreground">{ingestMsg}</span>}
-        </div>
-        <div className="p-3 space-y-2">
-          {ingestTab === "paste" && (
-            <textarea
-              className="w-full border rounded p-3 min-h-[180px] bg-background text-foreground"
-              placeholder="Paste or type your meeting transcript"
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-            />
-          )}
-          {ingestTab === "audio" && (
+          <button
+            onClick={() => setIsIngestCollapsed(!isIngestCollapsed)}
+            className="px-3 py-1 rounded bg-muted hover:bg-muted/80 transition-colors flex items-center gap-2"
+          >
+            <span className={`transform transition-transform ${isIngestCollapsed ? 'rotate-90' : 'rotate-0'}`}>
+              ▶
+            </span>
+            Input
+          </button>
+          {!isIngestCollapsed && (
             <>
-              <input
-                ref={audioInputRef}
-                type="file"
-                accept=".mp3,.wav,.m4a,.webm,.ogg,audio/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleUpload("audio", f);
-                }}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">MP3, WAV, M4A, WebM, OGG supported.</p>
-            </>
-          )}
-          {ingestTab === "file" && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".docx,.pdf,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleUpload("doc", f);
-                }}
-                className="w-full"
-              />
-              <p className="text-sm text-muted-foreground">DOCX, PDF, TXT supported.</p>
+              {(["paste", "audio", "file"] as IngestTab[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setIngestTab(k)}
+                  className={`px-3 py-1 rounded ${ingestTab === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
+                  {k === "paste" ? "Paste Text" : k === "audio" ? "Upload Audio (Whisper)" : "Upload Document"}
+                </button>
+              ))}
+              <div className="flex-1" />
+              {ingestBusy && <span className="text-sm italic text-muted-foreground">{ingestMsg}</span>}
             </>
           )}
         </div>
+        {!isIngestCollapsed && (
+          <div className="p-3 space-y-2">
+            {ingestTab === "paste" && (
+              <textarea
+                className="w-full border rounded p-3 min-h-[180px] bg-background text-foreground"
+                placeholder="Paste or type your meeting transcript"
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+              />
+            )}
+            {ingestTab === "audio" && (
+              <>
+                <input
+                  ref={audioInputRef}
+                  type="file"
+                  accept=".mp3,.wav,.m4a,.webm,.ogg,audio/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUpload("audio", f);
+                  }}
+                  className="w-full"
+                />
+                <p className="text-sm text-muted-foreground">MP3, WAV, M4A, WebM, OGG supported.</p>
+              </>
+            )}
+            {ingestTab === "file" && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".docx,.pdf,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUpload("doc", f);
+                  }}
+                  className="w-full"
+                />
+                <p className="text-sm text-muted-foreground">DOCX, PDF, TXT supported.</p>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Settings */}
