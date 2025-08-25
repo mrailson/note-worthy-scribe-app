@@ -6,7 +6,7 @@ import { Send, Paperclip, Mic, MicOff, Stethoscope, MessageSquare, X, ChevronUp 
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { DeepgramStreamingMic } from './DeepgramStreamingMic';
+import { SimpleBrowserMic } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -198,7 +198,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               
               <div className="absolute right-1 top-1 flex gap-1">
                 <div className="flex flex-col gap-1">
-                  <DeepgramStreamingMic
+                  <SimpleBrowserMic
                     onTranscriptUpdate={handleDeepgramTranscriptUpdate}
                     disabled={isLoading}
                     className="justify-center"
@@ -219,7 +219,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
             
             <div className="flex justify-between items-center">
               <div className="text-xs text-muted-foreground">
-                Ctrl+Enter to send • <span className="text-blue-600 font-medium">🎙️ Deepgram live transcription</span>
+                Ctrl+Enter to send • <span className="text-blue-600 font-medium">🎙️ Browser live transcription</span>
               </div>
               
               <Button 
