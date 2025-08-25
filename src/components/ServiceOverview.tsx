@@ -38,10 +38,10 @@ export const ServiceOverview = () => {
       benefits: ["ARRS claim guidance", "PCN DES support", "CQC compliance help", "Staff management", "Policy interpretation"]
     },
     {
-      icon: <Stethoscope className="h-6 w-6" />,
-      title: "GP Scribe",
-      description: "AI-powered consultation recording and note generation",
-      benefits: ["Real-time transcription", "Auto-generated clinical notes", "Time-saving documentation"]
+      icon: <FileText className="h-6 w-6" />,
+      title: "Meeting Recording & Management",
+      description: "Professional meeting transcription and management for Practice Managers and administrative teams",
+      benefits: ["Partnership meeting transcription", "Action item tracking", "Automated meeting summaries", "Staff meeting documentation", "PCN meeting support"]
     },
     {
       icon: <FileText className="h-6 w-6" />,
@@ -64,7 +64,7 @@ export const ServiceOverview = () => {
   ];
 
   // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI4GP Service','AI4PM Service','GP Scribe']);
+  const allowedServices = new Set(['AI4GP Service','AI4PM Service','Meeting Recording & Management']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
   // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
