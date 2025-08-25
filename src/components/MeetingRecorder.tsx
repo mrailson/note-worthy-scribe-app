@@ -31,6 +31,7 @@ import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
+import { BrowserRecordTab } from "@/components/BrowserRecordTab";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -3569,7 +3570,6 @@ export const MeetingRecorder = ({
           <TabsTrigger 
             value="browser-record" 
             className="flex items-center gap-2"
-            onClick={() => navigate('/browser-recorder')}
           >
             <Monitor className="h-5 w-5" />
             <span className="hidden sm:inline">Browser Record</span>
@@ -4299,6 +4299,11 @@ export const MeetingRecorder = ({
             </Tabs>
           </TabsContent>
         )}
+
+        {/* Browser Record Tab */}
+        <TabsContent value="browser-record" className="space-y-4 mt-6">
+          <BrowserRecordTab />
+        </TabsContent>
 
       </Tabs>
       
