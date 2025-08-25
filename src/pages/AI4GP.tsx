@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Lock, Search, Upload, FileJson, Trash2 } from 'lucide-react';
+import { AlertCircle, Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
@@ -19,11 +19,6 @@ const AI4GP = () => {
   const [loading, setLoading] = useState(false);
   const [drugModalOpen, setDrugModalOpen] = useState(false);
   
-  // File upload state
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string }>>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isFetchingICB, setIsFetchingICB] = useState(false);
-  const [showUploadSection, setShowUploadSection] = useState(false);
 
   // Keyboard shortcut for Drug Quick Lookup (Ctrl+K)
   useEffect(() => {
@@ -82,114 +77,6 @@ const AI4GP = () => {
     }
   };
 
-  // File upload handlers
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    
-    files.forEach(file => {
-      if (file.type === 'application/json' || file.name.endsWith('.json')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const content = e.target?.result as string;
-          setUploadedFiles(prev => [...prev, { name: file.name, content }]);
-        };
-        reader.readAsText(file);
-      } else {
-        toast.error(`File ${file.name} is not a JSON file`);
-      }
-    });
-    
-    // Reset the input
-    event.target.value = '';
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const processJsonFiles = async () => {
-    if (uploadedFiles.length === 0) {
-      toast.error('Please upload at least one JSON file');
-      return;
-    }
-
-    setIsUploading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('import-prior-approval-data', {
-        body: { files: uploadedFiles }
-      });
-
-      if (error) {
-        console.error('Error processing files:', error);
-        toast.error('Failed to process files');
-        return;
-      }
-
-      if (data?.success) {
-        toast.success(`Import completed: ${data.totalInserted} inserted, ${data.totalUpdated} updated`);
-        setUploadedFiles([]);
-        setShowUploadSection(false);
-      } else {
-        toast.error('Failed to process files');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('An error occurred while processing files');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const fetchICBData = async () => {
-    setIsFetchingICB(true);
-    
-    try {
-      toast.info('Fetching ICB traffic light drugs data... This may take a few minutes.');
-      
-      const { data, error } = await supabase.functions.invoke('fetch-icb-traffic-light-drugs');
-
-      if (error) {
-        console.error('Error fetching ICB data:', error);
-        toast.error('Failed to fetch ICB data');
-        return;
-      }
-
-      if (data?.success) {
-        toast.success(`Successfully fetched ${data.totalItems} drugs from ICB`);
-        
-        // Optionally auto-import the fetched data
-        const importData = {
-          files: [{
-            name: 'ICB_Traffic_Light_Drugs.json',
-            content: JSON.stringify(data.data)
-          }]
-        };
-        
-        const { data: importResult, error: importError } = await supabase.functions.invoke('import-prior-approval-data', {
-          body: importData
-        });
-        
-        if (importError) {
-          console.error('Error importing ICB data:', importError);
-          toast.error('Fetched data but failed to import');
-          return;
-        }
-        
-        if (importResult?.success) {
-          toast.success(`ICB import completed: ${importResult.totalInserted} inserted, ${importResult.totalUpdated} updated`);
-        }
-        
-      } else {
-        toast.error('Failed to fetch ICB data');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('An error occurred while fetching ICB data');
-    } finally {
-      setIsFetchingICB(false);
-    }
-  };
 
   if (authLoading || profileLoading) {
     return (
@@ -262,151 +149,6 @@ const AI4GP = () => {
     <div className="min-h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
       <Header onNewMeeting={() => {}} />
       
-      {/* Drug Quick Lookup Button */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-2 sm:px-4 py-2">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDrugModalOpen(true)}
-              className="gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Drug Quick Lookup
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">Ctrl</span>K
-              </kbd>
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUploadSection(!showUploadSection)}
-              className="gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              Update Prior Approval Data
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Prior Approval Data Upload Section */}
-      {showUploadSection && (
-        <div className="border-b bg-muted/50">
-          <div className="container mx-auto px-2 sm:px-4 py-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileJson className="h-5 w-5" />
-                  Upload Prior Approval JSON Files
-                </CardTitle>
-                <CardDescription>
-                  Upload up to 3 JSON files containing prior approval data to update the medicine lookup database.
-                </CardDescription>
-              </CardHeader>
-               <CardContent className="space-y-4">
-                 {/* ICB Data Fetch Button */}
-                 <div className="space-y-2">
-                   <Button
-                     onClick={fetchICBData}
-                     disabled={isFetchingICB || isUploading}
-                     className="w-full gap-2"
-                     variant="default"
-                   >
-                     <FileJson className="h-4 w-4" />
-                     {isFetchingICB ? 'Fetching ICB Data...' : 'Fetch Latest ICB Traffic Light Drugs'}
-                   </Button>
-                   <p className="text-xs text-muted-foreground text-center">
-                     Automatically fetch and import the latest traffic light medicines from NHS Northamptonshire ICB (886 drugs)
-                   </p>
-                 </div>
-
-                 <div className="flex items-center gap-4">
-                   <div className="flex-1 h-px bg-border"></div>
-                   <span className="text-xs text-muted-foreground uppercase tracking-wider">OR</span>
-                   <div className="flex-1 h-px bg-border"></div>
-                 </div>
-
-                 {/* File Upload Input */}
-                 <div className="space-y-2">
-                   <input
-                     type="file"
-                     accept=".json,application/json"
-                     multiple
-                     onChange={handleFileUpload}
-                     className="hidden"
-                     id="json-file-upload"
-                   />
-                   <Button
-                     variant="outline"
-                     onClick={() => document.getElementById('json-file-upload')?.click()}
-                     className="w-full gap-2"
-                     disabled={isUploading || isFetchingICB}
-                   >
-                     <Upload className="h-4 w-4" />
-                     Upload Your Own JSON Files
-                   </Button>
-                   <p className="text-xs text-muted-foreground text-center">
-                     Upload custom JSON files with drug information
-                   </p>
-                 </div>
-
-                {/* Uploaded Files List */}
-                {uploadedFiles.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Uploaded Files:</h4>
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                        <div className="flex items-center gap-2">
-                          <FileJson className="h-4 w-4" />
-                          <span className="text-sm">{file.name}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          disabled={isUploading}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Process Button */}
-                {uploadedFiles.length > 0 && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={processJsonFiles}
-                      disabled={isUploading}
-                      className="flex-1"
-                    >
-                      {isUploading ? 'Processing...' : `Process ${uploadedFiles.length} File${uploadedFiles.length !== 1 ? 's' : ''}`}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setUploadedFiles([])}
-                      disabled={isUploading}
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                )}
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    JSON files should contain an array of objects with drug information including prior_approval_criteria and traffic_light_status fields.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
       
       <Separator />
       

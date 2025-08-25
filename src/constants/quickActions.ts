@@ -89,6 +89,13 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
     requiresFile: false 
   },
+  { 
+    label: 'Drug Quick Lookup', 
+    icon: Search, 
+    prompt: '', 
+    requiresFile: false,
+    action: 'open-drug-lookup-modal'
+  },
 ];
 
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";

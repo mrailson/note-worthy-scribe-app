@@ -38,8 +38,11 @@ import {
   Key,
   UserCheck,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Upload,
+  FileJson
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 
 interface User {
@@ -91,6 +94,12 @@ const SystemAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   
+  // File upload state for prior approval data
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingICB, setIsFetchingICB] = useState(false);
+  const [showUploadSection, setShowUploadSection] = useState(false);
+
   // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
     totalUsers: 0,
@@ -748,6 +757,118 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
     toast.error(`Failed to auto-save ${moduleKey}`);
   }
 };
+
+  // Prior approval data upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    files.forEach(file => {
+      if (file.type === 'application/json' || file.name.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          setUploadedFiles(prev => [...prev, { name: file.name, content }]);
+        };
+        reader.readAsText(file);
+      } else {
+        toast.error(`File ${file.name} is not a JSON file`);
+      }
+    });
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const processJsonFiles = async () => {
+    if (uploadedFiles.length === 0) {
+      toast.error('No files selected');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const allData: any[] = [];
+      
+      // Parse all JSON files
+      for (const file of uploadedFiles) {
+        try {
+          const parsed = JSON.parse(file.content);
+          if (Array.isArray(parsed)) {
+            allData.push(...parsed);
+          } else {
+            allData.push(parsed);
+          }
+        } catch (error) {
+          console.error(`Error parsing ${file.name}:`, error);
+          toast.error(`Error parsing ${file.name}: Invalid JSON`);
+          continue;
+        }
+      }
+
+      if (allData.length === 0) {
+        toast.error('No valid data found in uploaded files');
+        return;
+      }
+
+      // Call the Supabase function to process the data
+      const { data, error } = await supabase.functions.invoke('import-prior-approval-data', {
+        body: { medicines: allData }
+      });
+
+      if (error) {
+        console.error('Error processing files:', error);
+        toast.error('Failed to process files: ' + error.message);
+        return;
+      }
+
+      toast.success(`Successfully processed ${allData.length} records from ${uploadedFiles.length} files`);
+      setUploadedFiles([]);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      toast.error('Failed to process files');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const fetchICBData = async () => {
+    setIsFetchingICB(true);
+    try {
+      toast.info('Fetching latest ICB traffic light medicines...');
+      
+      // Call the fetch function first
+      const { data: fetchData, error: fetchError } = await supabase.functions.invoke('fetch-icb-traffic-light-drugs');
+      
+      if (fetchError) {
+        console.error('Error fetching ICB data:', fetchError);
+        toast.error('Failed to fetch ICB data: ' + fetchError.message);
+        return;
+      }
+
+      if (fetchData && fetchData.medicines && fetchData.medicines.length > 0) {
+        // Now import the fetched data
+        const { data: importData, error: importError } = await supabase.functions.invoke('import-prior-approval-data', {
+          body: { medicines: fetchData.medicines }
+        });
+
+        if (importError) {
+          console.error('Error importing ICB data:', importError);
+          toast.error('Failed to import ICB data: ' + importError.message);
+          return;
+        }
+
+        toast.success(`Successfully imported ${fetchData.medicines.length} ICB traffic light medicines`);
+      } else {
+        toast.warning('No medicines data received from ICB');
+      }
+    } catch (error) {
+      console.error('Error fetching ICB data:', error);
+      toast.error('Failed to fetch ICB data');
+    } finally {
+      setIsFetchingICB(false);
+    }
+  };
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1748,6 +1869,118 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </div>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* Data Management Tab */}
+          <TabsContent value="data" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileJson className="h-5 w-5" />
+                  Prior Approval Data Management
+                </CardTitle>
+                <CardDescription>
+                  Update and manage prior approval and traffic light medicine data for the AI4GP service.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* ICB Data Fetch Button */}
+                <div className="space-y-2">
+                  <Button
+                    onClick={fetchICBData}
+                    disabled={isFetchingICB || isUploading}
+                    className="w-full gap-2"
+                    variant="default"
+                  >
+                    <FileJson className="h-4 w-4" />
+                    {isFetchingICB ? 'Fetching ICB Data...' : 'Fetch Latest ICB Traffic Light Drugs'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Automatically fetch and import the latest traffic light medicines from NHS Northamptonshire ICB (886 drugs)
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-border"></div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">OR</span>
+                  <div className="flex-1 h-px bg-border"></div>
+                </div>
+
+                {/* File Upload Input */}
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="json-file-upload-admin"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('json-file-upload-admin')?.click()}
+                    className="w-full gap-2"
+                    disabled={isUploading || isFetchingICB}
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Your Own JSON Files
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Upload custom JSON files with drug information
+                  </p>
+                </div>
+
+                {/* Uploaded Files List */}
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Uploaded Files:</h4>
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                        <div className="flex items-center gap-2">
+                          <FileJson className="h-4 w-4" />
+                          <span className="text-sm">{file.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          disabled={isUploading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Process Button */}
+                {uploadedFiles.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={processJsonFiles}
+                      disabled={isUploading}
+                      className="flex-1"
+                    >
+                      {isUploading ? 'Processing...' : `Process ${uploadedFiles.length} File${uploadedFiles.length !== 1 ? 's' : ''}`}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setUploadedFiles([])}
+                      disabled={isUploading}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    JSON files should contain an array of objects with drug information including prior_approval_criteria and traffic_light_status fields.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* System Monitoring Tab */}

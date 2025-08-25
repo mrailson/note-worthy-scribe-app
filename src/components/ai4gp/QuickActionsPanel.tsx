@@ -111,6 +111,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 } else {
                   setIsAITestModalOpen(true);
                 }
+              } else if (action.action === 'open-drug-lookup-modal') {
+                // Trigger the drug lookup modal
+                window.dispatchEvent(new CustomEvent('openDrugModal'));
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -149,6 +152,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             } else {
                               setIsAITestModalOpen(true);
                             }
+                          } else if (subItem.action === 'open-drug-lookup-modal') {
+                            // Trigger the drug lookup modal
+                            window.dispatchEvent(new CustomEvent('openDrugModal'));
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt));
                           }
