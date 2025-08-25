@@ -46,6 +46,19 @@ function addNorthantsFormularyLink(output: string): string {
   return output.trimEnd() + addition;
 }
 
+// BNF output cleaner - strips traffic light tags and adds formulary link
+function cleanBNFOutput(output: string): string {
+  // 1. Strip out incorrect traffic light tags (Green, Red, Double Red, Amber, emojis)
+  let cleaned = output
+    .replace(/\b(Green|Red|Double Red|Amber)\b/gi, "")
+    .replace(/🟢|🔴|🟠/g, "")
+    .replace(/\s{2,}/g, " ")   // collapse multiple spaces
+    .trim();
+
+  // 2. Add Northamptonshire ICB formulary link if model advises to "check local formulary"
+  return addNorthantsFormularyLink(cleaned);
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -1216,8 +1229,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   console.log('Tool calls detected:', toolCalls.length);
 
   // No tool calls handling needed since tools are disabled
-  // Apply formulary link post-processor and return the response
-  return addNorthantsFormularyLink(choice.message.content || "");
+  // Apply BNF output cleaner and formulary link post-processor
+  return cleanBNFOutput(choice.message.content || "");
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
