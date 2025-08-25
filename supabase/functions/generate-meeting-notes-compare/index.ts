@@ -20,18 +20,6 @@ RULES:
 5. Format in clean Markdown with tables where appropriate
 6. Ensure outputs are distinct in style and purpose
 
-INPUTS: JSON with transcript + optional settings (title, date, attendees, etc.)
-
-OUTPUT: JSON object with 6 styles as plain strings (not nested objects):
-{
-  "formal_minutes": "...",
-  "action_notes": "...", 
-  "headline_summary": "...",
-  "narrative_newsletter": "...",
-  "decision_log": "...",
-  "annotated_summary": "..."
-}
-
 DETAIL SCALING (1-5):
 - Level 1: Ultra-brief, key points only
 - Level 2: Brief, essential information
@@ -56,33 +44,37 @@ SIX STYLES:
 Each style should be professionally formatted in Markdown with appropriate headers, lists, tables, and NHS-relevant structure.`;
 
 const COMPARE_ADDENDUM = `
-COMPARE MODE
-If settings.controls.compare_levels is provided (array of integers 1..5), return a top-level object:
+COMPARE MODE - CRITICAL INSTRUCTIONS
+
+You MUST generate ALL 6 styles for EACH detail level requested.
+
+Return format:
 {
   "comparisons": {
-    "<level>": { 
-      "formal_minutes": "...",
-      "action_notes": "...", 
-      "headline_summary": "...",
-      "narrative_newsletter": "...",
-      "decision_log": "...",
-      "annotated_summary": "..."
+    "1": {
+      "formal_minutes": "Level 1 formal minutes content...",
+      "action_notes": "Level 1 action notes content...", 
+      "headline_summary": "Level 1 headline summary content...",
+      "narrative_newsletter": "Level 1 newsletter content...",
+      "decision_log": "Level 1 decision log content...",
+      "annotated_summary": "Level 1 annotated summary content..."
+    },
+    "2": {
+      "formal_minutes": "Level 2 formal minutes content...",
+      "action_notes": "Level 2 action notes content...", 
+      "headline_summary": "Level 2 headline summary content...",
+      "narrative_newsletter": "Level 2 newsletter content...",
+      "decision_log": "Level 2 decision log content...",
+      "annotated_summary": "Level 2 annotated summary content..."
     }
   }
 }
 
-CRITICAL: For each requested level (1-5), you MUST generate ALL SIX styles at that detail level:
-- formal_minutes
-- action_notes  
-- headline_summary
-- narrative_newsletter
-- decision_log
-- annotated_summary
-
-Each level should contain the same content types but with different levels of detail/depth based on the level number (1=minimal, 5=very detailed).
-
-Omit the single-level "styles" key in compare mode; only return "comparisons".
-Keep outputs in Markdown (GFM) with tables where applicable.
+ABSOLUTELY REQUIRED: 
+- Every level MUST contain all 6 styles
+- Level 1 = most concise, Level 5 = most detailed
+- Do NOT skip any styles for any level
+- Each level should have the same content types but different detail depth
 `;
 
 serve(async (req) => {
@@ -131,12 +123,12 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-2025-08-07',
         messages: [
           { role: 'system', content: BASE_PROMPT + "\n" + COMPARE_ADDENDUM },
           { role: 'user', content: JSON.stringify(payload) },
         ],
-        temperature: 0.2,
+        max_completion_tokens: 4000,
         response_format: { type: "json_object" },
       }),
     });

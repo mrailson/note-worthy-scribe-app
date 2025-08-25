@@ -174,53 +174,31 @@ export default function MeetingNotesGenerator() {
   }
 
   async function runCompare() {
-    console.log('runCompare called with transcript length:', transcript?.length);
-    console.log('About to check transcript.trim()');
-    
-    try {
-      const trimmedTranscript = transcript.trim();
-      console.log('Trimmed transcript length:', trimmedTranscript.length);
-      
-      if (!trimmedTranscript) {
-        console.log('No transcript after trim, showing error');
-        toast.error("Please enter a transcript");
-        return;
-      }
-
-      console.log('Setting busy state and clearing results');
-      setCompareBusy(true);
-      setError(null);
-      setCompareResult(null);
-      setCompareOverrides({});
-      setCompareIsEditing(false);
-    } catch (e) {
-      console.error('Error in transcript processing:', e);
-      toast.error('Error processing transcript');
+    if (!transcript.trim()) {
+      toast.error("Please enter a transcript");
       return;
     }
+
+    setCompareBusy(true);
+    setError(null);
+    setCompareResult(null);
+    setCompareOverrides({});
+    setCompareIsEditing(false);
     
     try {
-      console.log('Processing levels from:', compareLevels);
       const levels = Object.entries(compareLevels)
         .filter(([, v]) => v)
         .map(([k]) => Number(k))
         .sort((a, b) => a - b);
 
-      console.log('Filtered levels:', levels);
-
       if (!levels.length) {
-        console.log('No levels selected, showing error');
         toast.error("Select at least one level");
         return;
       }
 
-      console.log('About to call Supabase function with:', { transcript: transcript.substring(0, 100) + '...', settings, levels });
-
       const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-compare', {
         body: { transcript, settings, levels }
       });
-
-      console.log('Compare response:', { data, functionError });
 
       if (functionError) {
         throw new Error(functionError.message);
@@ -231,15 +209,11 @@ export default function MeetingNotesGenerator() {
       }
 
       if (!data?.comparisons) {
-        console.error('No comparisons in response:', data);
         throw new Error('No comparison data returned');
       }
 
-      console.log('Setting compare result:', data);
-      console.log('Selected levels:', levels);
       setCompareActiveLevel(String(levels[0]) as any);
       setCompareResult(data as CompareResponse);
-      console.log('Compare result set successfully');
       toast.success("Comparison generated successfully");
     } catch (e: any) {
       console.error('Compare error:', e);
@@ -617,14 +591,8 @@ export default function MeetingNotesGenerator() {
             </label>
           ))}
           <button
-            onClick={() => {
-              console.log('Button clicked - starting runCompare');
-              console.log('transcript length:', transcript?.length);
-              console.log('transcript content:', transcript?.substring(0, 100));
-              console.log('compareBusy:', compareBusy);
-              runCompare();
-            }}
-            disabled={false}
+            onClick={runCompare}
+            disabled={compareBusy || !transcript.trim()}
             className="ml-auto px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors"
           >
             {compareBusy ? "Comparing…" : "Run Comparison"}
