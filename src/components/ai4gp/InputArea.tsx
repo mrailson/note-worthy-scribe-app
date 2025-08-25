@@ -7,6 +7,7 @@ import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { DeepgramStreamingMic } from './DeepgramStreamingMic';
+import { SimpleDeepgramMic } from './SimpleDeepgramMic';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -130,7 +131,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             </Button>
             
             <div className="flex flex-col gap-1">
-              <DeepgramStreamingMic
+              <SimpleDeepgramMic
                 onTranscriptUpdate={handleDeepgramTranscriptUpdate}
                 disabled={isLoading}
                 className="justify-center"
