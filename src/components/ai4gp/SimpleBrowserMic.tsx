@@ -130,7 +130,7 @@ export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
   }, [isRecording]);
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center', className)}>
       <Button
         variant={isRecording ? "default" : "ghost"}
         size="sm"
@@ -166,30 +166,12 @@ export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
         )}
       </Button>
 
-      <div className="flex flex-col items-start gap-1">
-        <span className={cn(
-          'text-xs transition-colors duration-200',
-          isRecording 
-            ? 'text-red-600 font-medium' 
-            : status === 'connecting...' 
-              ? 'text-amber-600' 
-              : status === 'error'
-                ? 'text-red-600'
-                : 'text-muted-foreground'
-        )}>
-          {status === 'recording' ? 'listening...' : status}
-        </span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md font-medium border border-blue-200">
-          Browser Speech
-        </span>
-      </div>
-
       {fullTranscript && (
         <Button
           variant="ghost"
           size="sm"
           onClick={clearTranscript}
-          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground ml-2"
           disabled={disabled}
         >
           Clear
