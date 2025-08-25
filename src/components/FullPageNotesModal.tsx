@@ -9,6 +9,7 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
+import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -33,7 +34,8 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
-  Undo2
+  Undo2,
+  FolderOpen
 } from "lucide-react";
 
 interface Meeting {
@@ -1530,9 +1532,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               setActiveTab(value);
             }} className="h-full flex flex-col">
               <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
                   <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                  <TabsTrigger value="templates" className="gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Templates & Instructions
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
@@ -1641,14 +1647,28 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       </div>
                     ) : (
                       <div 
-                        className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                        dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
-                      />
-                    )}
+                         className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                         dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
+                       />
+                     )}
+                   </div>
                   </div>
-                 </div>
-               </TabsContent>
-            </Tabs>
+                </TabsContent>
+                
+                <TabsContent value="templates" className="flex-1 overflow-hidden mt-0 bg-white">
+                  <div className="h-full flex flex-col">
+                    <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <FolderOpen className="h-5 w-5" />
+                        Templates & Instructions
+                      </h3>
+                    </div>
+                    <div className="flex-1 overflow-auto px-6 pb-6">
+                      <MeetingTemplatesTab />
+                    </div>
+                  </div>
+                </TabsContent>
+             </Tabs>
           </div>
         </div>
       </DialogContent>
