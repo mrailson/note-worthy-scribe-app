@@ -62,6 +62,12 @@ serve(async (req) => {
         let fileUpdated = 0
 
         console.log(`File ${actualFileName} contains ${jsonData.length} items`)
+        
+        // Log first item structure to help with debugging
+        if (jsonData.length > 0) {
+          console.log(`First item structure:`, Object.keys(jsonData[0]))
+          console.log(`First item sample:`, JSON.stringify(jsonData[0]).substring(0, 300))
+        }
 
         // Process each item in the JSON array
         for (const item of jsonData) {
