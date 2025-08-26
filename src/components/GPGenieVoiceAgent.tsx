@@ -23,7 +23,8 @@ import {
   Shield,
   Building2,
   Users,
-  FileText
+  FileText,
+  PhoneCall
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,13 +42,13 @@ const GPGenieVoiceAgent = () => {
 
   const conversation = useConversation({
     onConnect: () => {
-      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Connected to ${serviceName}`);
       toast.success(`Connected to ${serviceName}`);
       setError(null);
     },
     onDisconnect: () => {
-      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Disconnected from ${serviceName}`);
       toast.info(`Disconnected from ${serviceName}`);
     },
@@ -86,7 +87,9 @@ const GPGenieVoiceAgent = () => {
       // Select agent ID based on active tab
       const agentId = activeTab === 'gp-genie' 
         ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
-        : 'agent_01jzsg04q1fwy9bfydkhszan7s';  // PM Genie
+        : activeTab === 'pm-genie'
+        ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
+        : 'agent_01jzsg04q1fwy9bfydkhszan7s';  // Oak Lane Patient Line (placeholder - needs real agent ID)
 
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId }
@@ -98,7 +101,7 @@ const GPGenieVoiceAgent = () => {
       return data.signed_url;
     } catch (err: any) {
       console.error('Failed to generate signed URL:', err);
-      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       setError(`Failed to connect to ${serviceName}. Please check your ElevenLabs API key.`);
       toast.error(`Failed to connect to ${serviceName}`);
       return null;
@@ -119,7 +122,7 @@ const GPGenieVoiceAgent = () => {
       // Generate signed URL first (required for authorized agents)
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
         setError(`Failed to get authorization for ${serviceName}`);
         return;
       }
@@ -135,7 +138,7 @@ const GPGenieVoiceAgent = () => {
       
     } catch (err: any) {
       console.error('Failed to start conversation:', err);
-      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       setError(`Failed to start conversation with ${serviceName}`);
       toast.error('Failed to start conversation');
     } finally {
@@ -228,17 +231,22 @@ const GPGenieVoiceAgent = () => {
                 <Stethoscope className="h-6 w-6 text-primary" />
                 GP Genie Voice Assistant
               </>
-            ) : (
+            ) : activeTab === 'pm-genie' ? (
               <>
                 <Building2 className="h-6 w-6 text-primary" />
                 PM Genie Voice Assistant
+              </>
+            ) : (
+              <>
+                <PhoneCall className="h-6 w-6 text-primary" />
+                Oak Lane Patient Line
               </>
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
               <Sparkles className="h-3 w-3 mr-1" />
-              {activeTab === 'gp-genie' ? 'Clinical Voice AI' : 'Practice Management AI'}
+              {activeTab === 'gp-genie' ? 'Clinical Voice AI' : activeTab === 'pm-genie' ? 'Practice Management AI' : 'Patient Telephone Triage'}
             </Badge>
             {conversation.status === 'connected' && (
               <Badge variant="default" className="text-xs">
@@ -251,7 +259,7 @@ const GPGenieVoiceAgent = () => {
         
         {/* Service Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="gp-genie" className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4" />
               GP Genie
@@ -260,13 +268,19 @@ const GPGenieVoiceAgent = () => {
               <Building2 className="h-4 w-4" />
               PM Genie
             </TabsTrigger>
+            <TabsTrigger value="patient-line" className="flex items-center gap-2">
+              <PhoneCall className="h-4 w-4" />
+              Oak Lane Patient Line
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         
         <p className="text-sm text-muted-foreground mt-3">
           {activeTab === 'gp-genie' 
             ? 'Speak naturally with GP Genie, your AI assistant for clinical guidance, patient reassurance advice, and evidence-based medicine support.'
-            : 'Speak with PM Genie, your calm and knowledgeable voice assistant for GP Practice Management in Northamptonshire, providing operational, HR, and practice management guidance.'
+            : activeTab === 'pm-genie'
+            ? 'Speak with PM Genie, your calm and knowledgeable voice assistant for GP Practice Management in Northamptonshire, providing operational, HR, and practice management guidance.'
+            : 'Oak Lane Patient Line - Accessible telephone triage for all patients using any phone line. Perfect for those who prefer traditional telephone communication, have limited IT skills, or need multilingual support.'
           }
         </p>
       </CardHeader>
@@ -306,8 +320,8 @@ const GPGenieVoiceAgent = () => {
               <p className="font-medium">
                 {conversation.status === 'connected' 
                   ? conversation.isSpeaking 
-                    ? `${activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie'} is speaking...` 
-                    : `Listening for your ${activeTab === 'gp-genie' ? 'clinical' : 'practice management'} question...`
+                    ? `${activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line'} is speaking...` 
+                    : `Listening for your ${activeTab === 'gp-genie' ? 'clinical' : activeTab === 'pm-genie' ? 'practice management' : 'patient triage'} question...`
                   : 'Ready to connect'
                 }
               </p>
@@ -421,6 +435,39 @@ const GPGenieVoiceAgent = () => {
               </div>
             </div>
           </TabsContent>
+          <TabsContent value="patient-line" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <PhoneCall className="h-4 w-4 text-primary" />
+                  Oak Lane Patient Line Features
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>No Smartphone Required:</strong> Works with any landline or mobile phone</p>
+                  <p>• <strong>Simple to Use:</strong> Just dial and speak - no apps or internet needed</p>
+                  <p>• <strong>Multilingual Support:</strong> Available in multiple languages for diverse communities</p>
+                  <p>• <strong>24/7 Availability:</strong> Accessible any time of day for urgent triage</p>
+                  <p>• <strong>IT-Free Experience:</strong> Perfect for elderly patients and those with limited tech skills</p>
+                  <p>• <strong>Clear Audio Quality:</strong> Optimized for older telephone systems and hearing aids</p>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-primary" />
+                  Patient Accessibility Benefits
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>Language Barriers:</strong> Helps non-English speakers access healthcare guidance</p>
+                  <p>• <strong>Digital Divide:</strong> Bridges the gap for patients without modern technology</p>
+                  <p>• <strong>Hearing Impairments:</strong> Compatible with traditional hearing aids and amplified phones</p>
+                  <p>• <strong>Elderly-Friendly:</strong> Familiar telephone interface reduces anxiety and confusion</p>
+                  <p>• <strong>Rural Communities:</strong> Works with basic phone infrastructure in remote areas</p>
+                  <p>• <strong>Economic Accessibility:</strong> No data charges or app downloads required</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* Features */}
@@ -472,6 +519,32 @@ const GPGenieVoiceAgent = () => {
                 <h4 className="font-medium text-sm mb-1">NHS Frameworks</h4>
                 <p className="text-xs text-muted-foreground">
                   QOF, IIF, ARRS roles, and PCN funding guidance with latest NHS updates
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="patient-line" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <PhoneCall className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Universal Access</h4>
+                <p className="text-xs text-muted-foreground">
+                  Any phone works - landline, mobile, or payphone. No internet or apps required
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Language Support</h4>
+                <p className="text-xs text-muted-foreground">
+                  Multi-language triage service supporting diverse community healthcare needs
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Heart className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Inclusive Design</h4>
+                <p className="text-xs text-muted-foreground">
+                  Designed for elderly, disabled, and digitally excluded patients
                 </p>
               </div>
             </div>
