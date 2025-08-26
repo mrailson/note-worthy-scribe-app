@@ -157,6 +157,16 @@ All colors MUST be HSL.
   }
 }
 
+/* Animation keyframes */
+@keyframes wave {
+  0%, 40%, 100% {
+    transform: scaleY(0.4);
+  }
+  20% {
+    transform: scaleY(1);
+  }
+}
+
 /* Message content styling for proper formatting */
 .message-content p { 
   margin: 0 0 1rem; 

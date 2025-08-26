@@ -22,6 +22,7 @@ import CQCCompliance from "./pages/CQCCompliance";
 import ComplianceDocumentation from "./pages/ComplianceDocumentation";
 import SecurityCompliance from "./pages/SecurityCompliance";
 import AIAnimationPreview from "./pages/AIAnimationPreview";
+import LoadingAnimationDemo from "./pages/LoadingAnimationDemo";
 import APITesting from "./pages/APITesting";
 import ImageCreate from "./pages/ImageCreate";
 import PracticeImageMaker from "./pages/PracticeImageMaker";
@@ -74,6 +75,7 @@ const App = () => (
         <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
         <Route path="/security-compliance" element={<SecurityCompliance />} />
         <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
+        <Route path="/loading-animation-demo" element={<LoadingAnimationDemo />} />
         <Route path="/api-testing" element={<APITesting />} />
         <Route path="/image-create" element={<ImageCreate />} />
         <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
