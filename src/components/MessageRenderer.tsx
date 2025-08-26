@@ -679,8 +679,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 )}
               </div>
             ) : (
-              <div className="whitespace-pre-wrap text-sm">
-                {linkifyContent(displayContent)}
+              <div className="text-sm">
+                <SafeMessageRenderer 
+                  content={displayContent}
+                  className="w-full user-message-content"
+                  enableNHSStyling={true}
+                />
               </div>
             )}
           </div>
