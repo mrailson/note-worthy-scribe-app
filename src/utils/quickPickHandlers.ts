@@ -460,45 +460,89 @@ FORMATTING RULES
 }
 
 async function formatText(ctx: QuickPickContext): Promise<string> {
-  const template = `🚨 EMERGENCY FORMATTING FIX - MANDATORY RESTRUCTURE 🚨
+  const template = `You are **NHS Clean Formatter** for UK GP content.
 
-The text below is POORLY FORMATTED and UNREADABLE. You MUST completely restructure it with proper markdown.
+TASK
+- Take the RAW TEXT and output a tidy, human-readable version.
+- Produce two formats: (1) Markdown, (2) HTML fallback (minimal inline CSS).
+- Do NOT change clinical meaning. Do NOT invent content.
 
-UNFORMATTED TEXT:
-{{text}}
+FORMATTING RULES
+1) Headings must be on their own line. Convert "Overview", "Diagnosis", "Management", "Inhaler Technique", "Monitoring", "Education", "Emergency Action Plan", "Referral", "Summary", "Special Considerations", "Key Takeaway", "Action Required" into proper headings.
+   - H1 for the document title.
+   - H2 for top sections, H3 for subsections.
+2) Insert a **blank line before and after** every heading and before each list.
+3) Convert inline dashes into true lists:
+   - Any run of " - ", "—", or "; " items becomes bullet points.
+   - Keep each bullet on its own line.
+4) Keep labels short and bold where helpful (e.g., **Scope:**, **Source:**).
+5) Use UK spelling and NICE/NHS terminology.
+6) If the RAW TEXT says *asthma* and mentions **NG24**, correct the citation to:
+   **NICE NG245 (BTS/NICE/SIGN, 27 Nov 2024)**.
+7) Links: if a NICE guideline is named, link to the official NICE page; otherwise omit links. Never invent non-NHS sources.
+8) No giant blocks: wrap at natural sentence boundaries; avoid line lengths > 120 chars.
 
-YOUR TASK: Transform the above into PERFECT markdown structure. NO CONTENT CHANGES - ONLY FORMATTING.
+OUTPUT TEMPLATE
+Return exactly these two blocks:
 
-MANDATORY OUTPUT FORMAT - FOLLOW EXACTLY:
+[MARKDOWN]
+# {Clear title}
 
-## Main Topic Header
-**Key concept:** Brief explanation
+**Scope:** …
+**Source:** …
 
-- **Important point:** Clear details with proper spacing
-- **Another point:** More details with spacing
+## Diagnosis
+- …
 
-## Next Major Section  
-**Key concept:** Brief explanation
+## Management
+- …
 
-- **Medical term:** Definition or explanation  
-- **Another term:** More details
-- **Third point:** Additional information
+## Inhaler technique
+- …
 
-## Additional Sections
-**Key concept:** Brief explanation
+## Monitoring
+- …
 
-- **Structured point:** Clear information
-- **Well-spaced point:** More details
+## Education
+- …
 
-ABSOLUTE REQUIREMENTS:
-- Every section MUST start with ## Header
-- Every list item MUST start with - (dash and space)  
-- Key terms MUST be **bolded**
-- BLANK LINES between all sections
-- NO paragraph text - everything must be bulleted
-- NO walls of text - break everything into bullets
+## Emergency action plan
+- …
 
-CRITICAL: Apply this exact structure to reorganize the poorly formatted text above. Keep all the medical content but make it readable with proper headers, bullets, and spacing.`;
+## Referral
+- …
+
+## Summary
+- …
+
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:720px;">
+  <h1>{Clear title}</h1>
+  <p><strong>Scope:</strong> …<br><strong>Source:</strong> …</p>
+  <h2>Diagnosis</h2>
+  <ul>
+    <li>…</li>
+  </ul>
+  <h2>Management</h2>
+  <ul>
+    <li>…</li>
+  </ul>
+  <h2>Inhaler technique</h2>
+  <ul><li>…</li></ul>
+  <h2>Monitoring</h2>
+  <ul><li>…</li></ul>
+  <h2>Education</h2>
+  <ul><li>…</li></ul>
+  <h2>Emergency action plan</h2>
+  <ul><li>…</li></ul>
+  <h2>Referral</h2>
+  <ul><li>…</li></ul>
+  <h2>Summary</h2>
+  <ul><li>…</li></ul>
+</section>
+
+RAW TEXT:
+{{text}}`;
 
   return processTemplate(template, ctx);
 }
