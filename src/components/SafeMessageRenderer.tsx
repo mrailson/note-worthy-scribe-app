@@ -154,8 +154,8 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         
         // Handle bullet points and numbered lists - preserve original format
         // Exclude section headers from bullet point processing
-        // First mark list items (but not section headers that start with **text**)
-        html = html.replace(/^[•\-\*] (?!\*\*[^*:]+\*\*:)(.+)$/gm, '<li-bullet>$1</li-bullet>');
+        // Don't process lines that contain bold text followed by colon (section headers)
+        html = html.replace(/^[•\-\*] (?!.*\*\*[^*:]+\*\*:)(.+)$/gm, '<li-bullet>$1</li-bullet>');
         html = html.replace(/^\d+\. (.+)$/gm, '<li-numbered>$1</li-numbered>');
         
         // Group consecutive bullet list items
