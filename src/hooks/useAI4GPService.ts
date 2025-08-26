@@ -25,7 +25,7 @@ export const useAI4GPService = () => {
   // Display Settings
   const [textSize, setTextSize] = useState<'small' | 'default' | 'medium' | 'large' | 'xl' | 'double'>('default');
   const [interfaceDensity, setInterfaceDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
-  const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('standard');
+  const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('full');
   const [highContrast, setHighContrast] = useState(false);
   const [readingFont, setReadingFont] = useState(false);
 
@@ -815,7 +815,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           // Load display settings
           setTextSize(preferences.textSize ?? 'default');
           setInterfaceDensity(preferences.interfaceDensity ?? 'comfortable');
-          setContainerWidth(preferences.containerWidth ?? 'standard');
+          setContainerWidth(preferences.containerWidth ?? 'full');
           setHighContrast(preferences.highContrast ?? false);
           setReadingFont(preferences.readingFont ?? false);
           
