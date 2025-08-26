@@ -82,7 +82,7 @@ export const quickActions: QuickAction[] = [
     action: 'scribe-consultation-checker'
   },
   {
-    label: 'Drug Quick Lookup',
+    label: 'Northamptonshire Prescribing Guidance',
     icon: Search,
     prompt: '', 
     requiresFile: false,

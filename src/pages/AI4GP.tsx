@@ -19,7 +19,7 @@ const AI4GP = () => {
   const [drugModalOpen, setDrugModalOpen] = useState(false);
   
 
-  // Keyboard shortcut for Drug Quick Lookup (Ctrl+K)
+  // Keyboard shortcut for Northamptonshire Prescribing Guidance (Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'k') {
@@ -158,7 +158,7 @@ const AI4GP = () => {
         
       </main>
 
-      {/* Drug Quick Lookup Modal */}
+      {/* Northamptonshire Prescribing Guidance Modal */}
       <DrugQuickModal 
         open={drugModalOpen} 
         onClose={() => setDrugModalOpen(false)} 
