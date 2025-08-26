@@ -6,6 +6,7 @@ import { quickActions, practiceManagerQuickActions, QuickAction } from '@/consta
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
+import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -27,6 +28,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
+  const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -99,6 +101,23 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
 
   return (
     <>
+      {/* Meeting Notes Interface - Show when activated */}
+      {showMeetingNotesInterface && (
+        <div className="mb-6 p-4 border rounded-lg bg-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">Meeting Notes Summariser</h3>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowMeetingNotesInterface(false)}
+            >
+              ✕
+            </Button>
+          </div>
+          <MeetingNotesInterface />
+        </div>
+      )}
+
       <div className="space-y-2">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {visibleActions.map((action, index) => {
@@ -114,6 +133,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               } else if (action.action === 'open-drug-lookup-modal') {
                 // Trigger the drug lookup modal
                 window.dispatchEvent(new CustomEvent('openDrugModal'));
+              } else if (action.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
+                // Show the Meeting Notes Interface instead of just inserting a prompt
+                setShowMeetingNotesInterface(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt));
               }
@@ -155,6 +177,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                           } else if (subItem.action === 'open-drug-lookup-modal') {
                             // Trigger the drug lookup modal
                             window.dispatchEvent(new CustomEvent('openDrugModal'));
+                          } else if (subItem.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
+                            // Show the Meeting Notes Interface instead of just inserting a prompt
+                            setShowMeetingNotesInterface(true);
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt));
                           }

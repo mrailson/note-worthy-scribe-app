@@ -1,21 +1,17 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Copy, Download, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ApiResult = {
   meta?: Record<string, any>;
   styles: {
-    decisions_and_actions?: string;
-    secretariat_resolution?: string;
-    formal_minutes?: string;
-    action_notes?: string;
-    headline_summary?: string;
-    narrative_newsletter?: string;
-    decision_log?: string;
-    annotated_summary?: string;
+    decisions_and_actions: string;
+    secretariat_resolution: string;
   };
 };
 
@@ -34,33 +30,38 @@ Right, thanks everyone for staying on after surgery. We'll try to keep this to a
 
 First: patient list numbers, +~120 this month, list now ~12,600…
 
-Winter planning: ICB expects high demand (children resp., frail elderly). We need to ensure adequate staffing levels and consider locum coverage for peak periods.
+Winter planning: ICB expects high demand (children resp., frail elderly)…
 
-Complaints & telephony: 3 formal complaints this month + ~10 informal concerns. One patient waited 45 minutes on hold. Queue message is confusing patients. Reception team received complaint about tone and manner.
+Complaints & telephony: 3 formal + ~10 informal; one 45-min call wait; queue message confusing; reception tone complaint…
 
-Finance/workforce: PCN DES Q1 targets still outstanding - need to submit by end of month. Locum costs were £7,800 in July which is above budget. Salaried GP recruitment remains challenging. Should we consider recruiting a Nurse Practitioner instead?
+Finance/workforce: PCN DES Q1 outstanding; locum £7,800 (July); salaried GP recruitment weak; consider Nurse Practitioner…
 
-Energy costs: Running at ~£1,500 per month, need to factor this into Q3 forecast. Explore solar panel installation and energy efficiency grants.
+Energy: ~£1,500/m; factor into forecast; explore solar/efficiency grants…
 
-Clinical governance: Docman workflow delay identified but no patient harm. Prescribing error - wrong formulation dispensed but caught before patient harm. Implement daily safety huddles and additional prescription checks.
+Clinical governance: Docman workflow delay (no harm); prescribing wrong formulation (no harm); safety huddle + daily checks…
 
-CQC compliance: Missing admin training certificates for 2 staff members. Infection control audits outstanding - must upload evidence by month-end to avoid compliance issues.
+CQC: missing admin training certificates; infection control audits outstanding — upload by month-end.
 
-Action items:
-- Sarah to submit PCN DES targets by Friday
-- Dr Smith to review energy efficiency grant applications
-- All partners to attend mandatory training update next week
-- Reception team training on telephone manner scheduled for Monday
-- Daily safety huddles to commence immediately
+Regarding the prescribing incident - Dr Jones mentioned it was caught by our double-check system before dispensing. We should update the training schedule for the new locums on formulation selection. Sarah will coordinate with the clinical lead.
+
+For the energy costs, Dr Smith suggested we review the heating schedule and possibly invest in programmable thermostats. This could save us 10-15% according to the NHS sustainability team guidelines.
+
+The CQC preparation is critical - we have 3 weeks to complete all outstanding training certificates and upload the infection control audit results. All partners need to review their mandatory training status by Friday.
+
+Next meeting scheduled for September 15th, same time. Meeting closed at 19:28.
 `.trim();
 
+interface ExampleMeetingFlyoutProps {
+  buttonClassName?: string;
+}
+
 export default function ExampleMeetingFlyout({
-  buttonClassName = "px-3 py-2 rounded bg-background border hover:bg-accent hover:text-accent-foreground"
-}: { buttonClassName?: string }) {
+  buttonClassName = "px-3 py-2 rounded bg-muted hover:bg-muted/80 text-sm"
+}: ExampleMeetingFlyoutProps) {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"action_notes" | "formal_minutes">("action_notes");
+  const [activeTab, setActiveTab] = useState<"decisions_and_actions" | "secretariat_resolution">("decisions_and_actions");
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ApiResult | null>(null);
 
   useEffect(() => {
@@ -68,20 +69,24 @@ export default function ExampleMeetingFlyout({
     
     const fetchExample = async () => {
       setLoading(true);
-      setErr(null);
+      setError(null);
+      
       try {
-        const { data: result, error } = await supabase.functions.invoke('generate-meeting-notes-six-styles', {
+        const { data: result, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-six-styles', {
           body: {
             transcript: SAMPLE_TRANSCRIPT,
             settings: SETTINGS
           }
         });
 
-        if (error) throw error;
+        if (functionError) {
+          throw new Error(functionError.message || 'Failed to generate example meeting notes');
+        }
+
         setData(result as ApiResult);
       } catch (e: any) {
-        console.error('Error fetching example:', e);
-        setErr(e?.message || "Unexpected error");
+        console.error('Error generating example meeting notes:', e);
+        setError(e?.message || "Unexpected error generating example");
       } finally {
         setLoading(false);
       }
@@ -90,36 +95,40 @@ export default function ExampleMeetingFlyout({
     fetchExample();
   }, [open, data, loading]);
 
-  const activeText =
-    activeTab === "action_notes"
-      ? data?.styles?.action_notes || ""
-      : data?.styles?.formal_minutes || "";
+  const activeText = data?.styles?.[activeTab] || "";
 
-  async function copy() {
+  const copy = async () => {
     if (activeText) {
-      await navigator.clipboard.writeText(activeText);
+      try {
+        await navigator.clipboard.writeText(activeText);
+        toast.success("Copied to clipboard");
+      } catch (e) {
+        toast.error("Failed to copy to clipboard");
+      }
     }
-  }
+  };
 
-  async function downloadDocx() {
+  const downloadDocx = async () => {
     if (!activeText) return;
     
-    const filename =
-      activeTab === "action_notes" ? "oak-lane-action-notes" : "oak-lane-formal-minutes";
-    
     try {
-      const { data: result, error } = await supabase.functions.invoke('export-docx', {
+      const filename = activeTab === "decisions_and_actions" 
+        ? "oak-lane-decisions-and-actions" 
+        : "oak-lane-secretariat-resolution";
+
+      const { data: blob, error } = await supabase.functions.invoke('export-docx', {
         body: { 
           markdown: activeText, 
-          filename: `${filename}.docx`
+          filename 
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
 
-      // Create blob and download
-      const blob = new Blob([result], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      const url = URL.createObjectURL(blob);
+      // Create download link
+      const url = URL.createObjectURL(new Blob([blob]));
       const a = document.createElement("a");
       a.href = url;
       a.download = `${filename}.docx`;
@@ -127,96 +136,91 @@ export default function ExampleMeetingFlyout({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      
+      toast.success("Document downloaded");
     } catch (e: any) {
-      console.error('Download error:', e);
-      setErr(`Export failed: ${e.message}`);
+      console.error('Export error:', e);
+      toast.error(`Export failed: ${e.message}`);
     }
-  }
+  };
 
   return (
     <>
-      {/* Trigger */}
-      <button className={buttonClassName} onClick={() => setOpen(true)}>
+      {/* Trigger Button */}
+      <Button 
+        variant="outline" 
+        size="sm"
+        className={buttonClassName}
+        onClick={() => setOpen(true)}
+      >
         Show Example Meeting
-      </button>
+      </Button>
 
-      {/* Overlay */}
-      {open && (
-        <div className="fixed inset-0 z-40">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
-          {/* Fly-out */}
-          <aside className="absolute right-0 top-0 h-full w-full max-w-3xl bg-background shadow-xl z-50 flex flex-col border-l">
-            {/* Header */}
-            <div className="border-b p-3 flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Example Meeting – Oak Lane Medical Practice</h2>
-              <div className="ml-auto flex gap-2">
-                <button
-                  onClick={() => setActiveTab("action_notes")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    activeTab === "action_notes" 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted hover:bg-muted-foreground/10"
-                  }`}
-                >
-                  Action Notes
-                </button>
-                <button
-                  onClick={() => setActiveTab("formal_minutes")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    activeTab === "formal_minutes" 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted hover:bg-muted-foreground/10"
-                  }`}
-                >
-                  Formal Minutes
-                </button>
-                <button 
-                  onClick={copy} 
-                  className="px-3 py-1 rounded text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Copy
-                </button>
-                <button 
-                  onClick={downloadDocx} 
-                  className="px-3 py-1 rounded text-sm bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  Download Word
-                </button>
-                <button 
-                  onClick={() => setOpen(false)} 
-                  className="px-3 py-1 rounded text-sm bg-muted hover:bg-muted-foreground/10"
-                >
-                  Close
-                </button>
-              </div>
+      {/* Sheet/Flyout */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-hidden flex flex-col">
+          <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <SheetTitle className="text-lg font-semibold">
+              Example Meeting – Oak Lane Medical Practice
+            </SheetTitle>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </SheetHeader>
+          
+          {/* Tab Controls */}
+          <div className="flex flex-wrap items-center gap-2 pb-4 border-b">
+            <Button
+              variant={activeTab === "decisions_and_actions" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab("decisions_and_actions")}
+            >
+              Decisions & Actions
+            </Button>
+            <Button
+              variant={activeTab === "secretariat_resolution" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab("secretariat_resolution")}
+            >
+              Resolution Minutes
+            </Button>
+            
+            <div className="ml-auto flex gap-2">
+              <Button variant="outline" size="sm" onClick={copy} disabled={!activeText}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+              <Button variant="outline" size="sm" onClick={downloadDocx} disabled={!activeText}>
+                <Download className="w-4 h-4 mr-2" />
+                Download Word
+              </Button>
             </div>
+          </div>
 
-            {/* Body */}
-            <div className="p-4 overflow-y-auto flex-1">
-              {loading && (
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            {loading && (
+              <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-muted-foreground">Loading example meeting notes...</div>
-              )}
-              {err && (
-                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded border">
-                  {err}
-                </div>
-              )}
-              {!loading && !err && activeText && (
-                <article className="prose prose-slate dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeText}</ReactMarkdown>
-                </article>
-              )}
-              {!loading && !err && !activeText && (
-                <div className="text-sm text-muted-foreground">No content available for this format.</div>
-              )}
-            </div>
-          </aside>
-        </div>
-      )}
+              </div>
+            )}
+            
+            {error && (
+              <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-md">
+                {error}
+              </div>
+            )}
+            
+            {!loading && !error && activeText && (
+              <article className="prose prose-slate max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {activeText}
+                </ReactMarkdown>
+              </article>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
