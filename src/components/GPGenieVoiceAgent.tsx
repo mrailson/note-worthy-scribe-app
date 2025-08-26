@@ -89,7 +89,7 @@ const GPGenieVoiceAgent = () => {
         ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
         : activeTab === 'pm-genie'
         ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
-        : 'agent_01jzsg04q1fwy9bfydkhszan7s';  // Oak Lane Patient Line (placeholder - needs real agent ID)
+        : 'agent_01jwrz44tyefdvhtvt7c622rj7';  // Oak Lane Patient Line
 
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId }
