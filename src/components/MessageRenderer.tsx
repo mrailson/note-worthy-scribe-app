@@ -930,17 +930,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <Copy className="h-3 w-3" />
                     </Button>
 
-                    {/* Format button - Emergency formatting fix */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleQuickPickAction('format-text')}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Fix formatting - Apply proper markdown structure"
-                    >
-                      <WandSparkles className="h-3 w-3" />
-                    </Button>
-
                     {/* Quick Pick (QP) dropdown - only show in regular chat */}
                     {!isModal && onQuickResponse && (
                       <DropdownMenu>
