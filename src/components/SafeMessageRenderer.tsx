@@ -138,6 +138,10 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         // Handle patterns like: "- **Text1**: content. - **Text2**: content."
         html = html.replace(/(- \*\*[^*:]+\*\*:[^.]*\. )(- \*\*[^*:]+\*\*:)/g, '$1\n$2');
         
+        // PRE-PROCESS: Split lines with multiple dash items
+        // Handle patterns like: "- Item1: content - Item2: content"
+        html = html.replace(/(- [^-]*?)( - )/g, '$1\n$2');
+        
         // PROCESS SECTION HEADERS: Convert dash-prefixed bold headers to clean format
         // Convert "- **Text**: content" to "**Text**:\ncontent" (remove dash, add line break)
         html = html.replace(/^- \*\*([^*:]+)\*\*:\s*(.*)$/gm, '**$1:**\n$2');
