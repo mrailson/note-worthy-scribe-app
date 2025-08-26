@@ -13,7 +13,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   // Convert markdown to HTML
   let html = content
     // SOAP note sections (handle first to avoid bullet point processing)
-    .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
+    .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
     // Headers (handle #### first, then work down)
     .replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-primary mb-2 mt-3">$1</h4>')
@@ -28,7 +28,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     
     // List items (exclude already processed SOAP sections)
-    .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-foreground list-none before:content-["-"] before:mr-2 before:text-primary">$1</li>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-inherit list-none before:content-["-"] before:mr-2 before:text-current">$1</li>')
     
     // Wrap consecutive list items
     .replace(/(<li[^>]*>.*<\/li>\s*)+/gs, (match) => {
@@ -36,11 +36,11 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     })
     
     // Line breaks for paragraphs
-    .replace(/\n\n/g, '</p><p class="mb-3 text-foreground leading-relaxed">')
+    .replace(/\n\n/g, '</p><p class="mb-3 text-inherit leading-relaxed">')
     .replace(/^(.+)$/gm, (match, p1) => {
       // Don't wrap if it's already HTML
       if (match.includes('<')) return match;
-      return `<p class="mb-3 text-foreground leading-relaxed">${p1}</p>`;
+      return `<p class="mb-3 text-inherit leading-relaxed">${p1}</p>`;
     })
     
     // Clean up empty paragraphs and double wrapping
