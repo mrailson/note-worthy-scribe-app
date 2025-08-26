@@ -3,12 +3,13 @@ import DOMPurify from 'dompurify';
 export interface RenderOptions {
   enableNHSStyling?: boolean;
   className?: string;
+  isUserMessage?: boolean;
 }
 
 export function renderNHSMarkdown(content: string, options: RenderOptions = {}): string {
   if (!content) return '';
 
-  const { enableNHSStyling = true } = options;
+  const { enableNHSStyling = true, isUserMessage = false } = options;
   
   // Convert markdown to HTML
   let html = content
@@ -22,10 +23,10 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mb-4 mt-6">$1</h1>')
     
     // Bold text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, `<strong class="font-semibold ${isUserMessage ? 'text-white' : 'text-foreground'}">$1</strong>`)
     
     // Italic text
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    .replace(/\*(.*?)\*/g, `<em class="italic ${isUserMessage ? 'text-white' : ''}">$1</em>`)
     
     // List items (exclude already processed SOAP sections)
     .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-inherit list-none before:content-["-"] before:mr-2 before:text-current">$1</li>')
@@ -36,11 +37,11 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     })
     
     // Line breaks for paragraphs
-    .replace(/\n\n/g, '</p><p class="mb-3 text-inherit leading-relaxed">')
+    .replace(/\n\n/g, `</p><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)
     .replace(/^(.+)$/gm, (match, p1) => {
       // Don't wrap if it's already HTML
       if (match.includes('<')) return match;
-      return `<p class="mb-3 text-inherit leading-relaxed">${p1}</p>`;
+      return `<p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${p1}</p>`;
     })
     
     // Clean up empty paragraphs and double wrapping
