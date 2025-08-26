@@ -208,8 +208,12 @@ const AI4GPService = () => {
                             >
                               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
                               <div className="flex flex-col">
-                                <span className="hidden sm:inline">AI 4 GP Service</span>
-                                <span className="sm:hidden">AI4GP</span>
+                                <span className="hidden sm:inline">
+                                  {selectedRole === 'practice-manager' ? 'AI 4 PM Service' : 'AI 4 GP Service'}
+                                </span>
+                                <span className="sm:hidden">
+                                  {selectedRole === 'practice-manager' ? 'AI4PM' : 'AI4GP'}
+                                </span>
                                 <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
                               </div>
                             </button>
