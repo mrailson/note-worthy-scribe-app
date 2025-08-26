@@ -5,6 +5,13 @@ import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 // Global system prompt used for all actions
 const GLOBAL_SYSTEM_PROMPT = `You are an expert UK NHS GP assistant for primary care in England. Use only UK sources: NICE guidance/CKS, NHS.uk, BNF, MHRA Drug Safety Updates, UKHSA Green Book, and the local ICB where relevant. Do NOT use non-UK sources.
 
+FORMATTING REQUIREMENTS:
+- Use proper markdown structure with clear headers (##, ###) to organize sections
+- Use bullet points (-) for lists with proper spacing between items
+- Use **bold text** for emphasis and key terms
+- Ensure proper line breaks between sections for readability
+- Structure your response for maximum clarity and professional presentation
+
 Write UK English. Prefer concise bullet points. State uncertainty clearly. Never invent citations. If a required UK source cannot be found, say "Not found in UK sources".
 
 When producing patient-facing content: keep reading age 9–12, avoid jargon, no diagnosis wording, include clear safety-netting and NHS 111/999 advice.
@@ -34,22 +41,22 @@ function processTemplate(template: string, ctx: QuickPickContext, additionalVars
 
 // Act on reply handlers
 async function approveAndSave(ctx: QuickPickContext): Promise<string> {
-  const template = "Take {{text}}. Final tidy only: fix minor grammar/formatting; keep meaning identical. Output the polished version in markdown. No extra commentary.";
+  const template = "Take {{text}}. Final tidy only: fix minor grammar/formatting; keep meaning identical. Output the polished version with proper markdown structure including clear headers, bullet points, and formatting. Ensure professional presentation and readability.";
   return processTemplate(template, ctx);
 }
 
 async function rejectAndRedo(ctx: QuickPickContext): Promise<string> {
-  const template = "Regenerate a NEW answer to the original request using the GLOBAL_SYSTEM_PROMPT. Avoid the phrasing used previously. Provide a concise version first, then an expanded version. End with 'Key risks/unknowns'.";
+  const template = "Regenerate a NEW answer to the original request using the GLOBAL_SYSTEM_PROMPT. Avoid the phrasing used previously. Use proper markdown structure with clear headers (## Concise Version, ## Expanded Version, ## Key Risks/Unknowns). Format with bullet points and proper spacing for maximum readability.";
   return processTemplate(template, ctx);
 }
 
 async function askAlternatives(ctx: QuickPickContext): Promise<string> {
-  const template = "Provide 3 distinct alternative drafts for {{purpose}} based on {{text}}. Vary structure and emphasis. Output as: Option 1, Option 2, Option 3.";
+  const template = "Provide 3 distinct alternative drafts for {{purpose}} based on {{text}}. Vary structure and emphasis. Use clear markdown headers (## Option 1, ## Option 2, ## Option 3) and proper formatting with bullet points and spacing for readability.";
   return processTemplate(template, ctx, { purpose: "clinical guidance" });
 }
 
 async function markForClinicalReview(ctx: QuickPickContext): Promise<string> {
-  const template = "Convert {{text}} into a short checklist for clinician review. Extract any assumptions, dosing decisions, guideline dependencies, and legal/safety items. Output sections: 'Items to verify', 'Missing info to obtain', 'Escalation triggers', 'Suggested reviewer/role'.";
+  const template = "Convert {{text}} into a short checklist for clinician review. Extract any assumptions, dosing decisions, guideline dependencies, and legal/safety items. Use proper markdown structure with clear headers: ## Items to Verify, ## Missing Info to Obtain, ## Escalation Triggers, ## Suggested Reviewer/Role. Format with bullet points and proper spacing.";
   return processTemplate(template, ctx);
 }
 
@@ -86,17 +93,17 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = "make more detailed (at least 50%) and give more relevant details and breakdown and examples if appropriate\n\n{{text}}";
+  const template = "Expand {{text}} with more detailed information (at least 50% more content). Add relevant details, breakdown, and examples where appropriate. Use proper markdown structure with clear headers, bullet points, and formatting. Ensure excellent readability with proper spacing between sections.";
   return processTemplate(template, ctx);
 }
 
 async function summarise(ctx: QuickPickContext, maxWords: number = 100): Promise<string> {
-  const template = "Summarise {{text}} to a maximum of {{max_words}} words, preserving key decisions, red flags, and actions. Output in 5–8 bullet points.";
+  const template = "Summarise {{text}} to a maximum of {{max_words}} words, preserving key decisions, red flags, and actions. Use proper markdown formatting with a clear header (## Summary) and well-structured bullet points (5–8 points) with proper spacing.";
   return processTemplate(template, ctx, { max_words: maxWords.toString() });
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = "Rewrite {{text}} for the general public (reading age 9–12). Remove jargon, explain terms briefly, keep a calm supportive tone. Preserve any URLs and appointment instructions.";
+  const template = "Rewrite {{text}} for the general public (reading age 9–12). Remove jargon, explain terms briefly, keep a calm supportive tone. Use clear markdown formatting with proper headers, bullet points, and spacing. Preserve any URLs and appointment instructions.";
   return processTemplate(template, ctx);
 }
 
@@ -106,7 +113,7 @@ async function addSnomedAndBnfSummary(ctx: QuickPickContext): Promise<string> {
 }
 
 async function formatForSystem(ctx: QuickPickContext, system: string = "emis"): Promise<string> {
-  const template = "Reformat {{text}} for {{system}}. \nFor EMIS: headings (HPI, Exam, Impression, Plan), short lines, medication lines as 'Drug – dose – route – frequency – duration'. \nFor SystmOne: GP shorthand (e.g., '2/7', 'O/E', 'Mx', 'Sx'), compact bulleting, and 'Dx:'/'Rx:'/'FU:' tags. No extra commentary—output only the formatted note.";
+  const template = "Reformat {{text}} for {{system}} with clear markdown structure. \nFor EMIS: use proper headers (## HPI, ## Exam, ## Impression, ## Plan), short lines, medication lines as 'Drug – dose – route – frequency – duration'. \nFor SystmOne: use headers and GP shorthand (e.g., '2/7', 'O/E', 'Mx', 'Sx'), compact bulleting with proper spacing, and 'Dx:'/'Rx:'/'FU:' tags. Ensure professional formatting throughout.";
   return processTemplate(template, ctx, { system });
 }
 
@@ -120,7 +127,7 @@ async function insertFormularyAndPriorApproval(ctx: QuickPickContext): Promise<s
 
 // Audience handlers
 async function createPatientLeaflet(ctx: QuickPickContext): Promise<string> {
-  const template = "Create a one-page patient leaflet from {{text}}. Reading age 9–12. Sections: 'What this is', 'How to use/take', 'What to look out for', 'When to get help', 'Where to read more'. Include short safety-netting: 'Call 999 for …, use NHS 111 for …'. Add official links only (NHS.uk/NICE).";
+  const template = "Create a one-page patient leaflet from {{text}}. Reading age 9–12. Use clear markdown structure with headers: ## What This Is, ## How to Use/Take, ## What to Look Out For, ## When to Get Help, ## Where to Read More. Include short safety-netting with bullet points: 'Call 999 for …, use NHS 111 for …'. Add official links only (NHS.uk/NICE). Ensure professional formatting with proper spacing.";
   return processTemplate(template, ctx);
 }
 
