@@ -41,7 +41,6 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
-import GPScribeSoapMock from "@/components/GPSoapUI";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
@@ -452,9 +451,32 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
-            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
-              <GPScribeSoapMock />
-            </div>
+            <SummaryPanel
+              transcript={recording.transcript}
+              isGenerating={documents.isGenerating}
+              gpSummary={documents.gpSummary}
+              gpShorthand={documents.gpShorthand}
+              standardDetail={documents.standardDetail}
+              fullNote={documents.fullNote}
+              patientCopy={documents.patientCopy}
+              traineeFeedback={documents.traineeFeedback}
+              referralLetter={documents.referralLetter}
+              editStates={documents.editStates}
+              editContent={documents.editContent}
+              expandDialog={expandDialog}
+              recordingDuration={recording.formatDuration(recording.duration)}
+              onGenerateSummary={handleGenerateSummary}
+              onGenerateReferralLetter={handleGenerateReferralLetter}
+              onStartEdit={documents.startEdit}
+              onCancelEdit={documents.cancelEdit}
+              onSaveEdit={documents.saveEdit}
+              onEditContentChange={handleEditContentChange}
+              onExportPDF={documents.exportToPDF}
+              onExportWord={documents.exportToWord}
+              onExpandContent={handleExpandContent}
+              onCloseExpandDialog={handleCloseExpandDialog}
+              onUpdateMainSummary={handleUpdateMainSummary}
+            />
           </TabsContent>
 
           {/* Examples Tab */}
@@ -475,6 +497,30 @@ const Index = () => {
           <TabsContent value="chat" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
             <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <GPGenieVoiceAgent />
+            </div>
+          </TabsContent>
+
+          {/* Settings Tab - Added back */}
+          <TabsContent value="settings" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className="space-y-6">
+              <SettingsPanel
+                consultationType={settings.consultationType}
+                outputLevel={settings.outputLevel}
+                showSnomedCodes={settings.showSnomedCodes}
+                formatForEmis={settings.formatForEmis}
+                formatForSystmOne={settings.formatForSystmOne}
+                tickerEnabled={settings.tickerEnabled}
+                showTranscriptTimestamps={settings.showTranscriptTimestamps}
+                onConsultationTypeChange={settings.setConsultationType}
+                onOutputLevelChange={settings.setOutputLevel}
+                onShowSnomedCodesChange={settings.setShowSnomedCodes}
+                onFormatForEmisChange={settings.setFormatForEmis}
+                onFormatForSystmOneChange={settings.setFormatForSystmOne}
+                onTickerEnabledChange={settings.setTickerEnabled}
+                onShowTranscriptTimestampsChange={settings.setShowTranscriptTimestamps}
+                onSaveSettings={settings.saveUserSettings}
+                onResetSettings={settings.resetSettings}
+              />
             </div>
           </TabsContent>
 

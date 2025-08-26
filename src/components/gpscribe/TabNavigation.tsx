@@ -21,12 +21,13 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
     { id: "consultation" as ActiveTab, label: "Consultation", icon: Stethoscope },
     { id: "summary" as ActiveTab, label: "Summary", icon: FileText },
     { id: "examples" as ActiveTab, label: "Examples", icon: BookOpen },
-    { id: "history" as ActiveTab, label: "History", icon: History }
+    { id: "history" as ActiveTab, label: "History", icon: History },
+    { id: "settings" as ActiveTab, label: "Settings", icon: Settings }
   ];
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
