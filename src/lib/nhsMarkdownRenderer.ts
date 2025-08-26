@@ -28,7 +28,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     
     // List items (exclude already processed SOAP sections)
-    .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-foreground">$1</li>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-foreground list-none before:content-["-"] before:mr-2 before:text-primary">$1</li>')
     
     // Wrap consecutive list items
     .replace(/(<li[^>]*>.*<\/li>\s*)+/gs, (match) => {
