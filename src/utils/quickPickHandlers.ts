@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { QuickPickContext, TranslatePayload, SummarisePayload, FormatPayload } from '@/types/quickPick';
 import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
+import { supabase } from '@/integrations/supabase/client';
 
 // Global system prompt used for all actions - simplified for cleaner output
 const GLOBAL_SYSTEM_PROMPT = `You are an NHS AI assistant. Provide clean, accurate responses using UK NHS sources only (NICE/CKS, NHS.uk, BNF). Use proper UK spelling and NHS terminology.`;
@@ -123,13 +124,39 @@ async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string
 }
 
 async function translate(ctx: QuickPickContext, options: any): Promise<string> {
+  // For auto mode, fall back to AI prompt since we don't know the target language
   if (options.mode === 'auto') {
     return `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
-  } else if (options.mode === 'patient') {
-    return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
-  } else if (options.mode === 'clinician') {
-    return `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
   }
+  
+  // For specific languages, use the translation service directly
+  if (options.targetLang && ctx.text) {
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: { 
+          text: ctx.text, 
+          targetLanguage: options.targetLang,
+          sourceLanguage: 'en',
+          preserveFormatting: true
+        }
+      });
+
+      if (error) throw error;
+      
+      // Return the translated text directly
+      return data.translatedText;
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Translation failed');
+      // Fall back to AI prompt on error
+      if (options.mode === 'patient') {
+        return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon. IMPORTANT: Preserve all markdown formatting.`;
+      } else {
+        return `Translate the above into ${options.targetLang}, in literal clinical style for doctors. Preserve medical terms exactly. IMPORTANT: Preserve all markdown formatting.`;
+      }
+    }
+  }
+  
   return "Translating content...";
 }
 
