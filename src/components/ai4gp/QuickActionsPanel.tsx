@@ -133,6 +133,19 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               } else if (action.action === 'open-drug-lookup-modal') {
                 // Trigger the drug lookup modal
                 window.dispatchEvent(new CustomEvent('openDrugModal'));
+              } else if (action.action === 'scribe-consultation-checker') {
+                // Insert the scribe consultation checker prompt
+                const scribePrompt = `Please paste your GP consultation transcript below. I'll analyze it and provide:
+
+• Clean SOAP notes + timeline
+• Documentation quality check  
+• Follow-up actions & tests
+• Patient letter & SMS
+• EHR-ready paste blocks
+• Clinical scores (where applicable)
+
+**Paste your consultation transcript here:**`;
+                setInput(scribePrompt);
               } else if (action.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
                 // Show the Meeting Notes Interface instead of just inserting a prompt
                 setShowMeetingNotesInterface(true);
@@ -177,6 +190,19 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                           } else if (subItem.action === 'open-drug-lookup-modal') {
                             // Trigger the drug lookup modal
                             window.dispatchEvent(new CustomEvent('openDrugModal'));
+                          } else if (subItem.action === 'scribe-consultation-checker') {
+                            // Insert the scribe consultation checker prompt
+                            const scribePrompt = `Please paste your GP consultation transcript below. I'll analyze it and provide:
+
+• Clean SOAP notes + timeline
+• Documentation quality check  
+• Follow-up actions & tests
+• Patient letter & SMS
+• EHR-ready paste blocks
+• Clinical scores (where applicable)
+
+**Paste your consultation transcript here:**`;
+                            setInput(scribePrompt);
                           } else if (subItem.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
                             // Show the Meeting Notes Interface instead of just inserting a prompt
                             setShowMeetingNotesInterface(true);
