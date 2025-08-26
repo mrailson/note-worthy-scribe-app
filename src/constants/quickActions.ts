@@ -28,6 +28,13 @@ export const quickActions: QuickAction[] = [
     prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name metformin`,
     requiresFile: false 
   },
+  {
+    label: 'Scribe Consultation Checker',
+    icon: FileHeart,
+    prompt: '',
+    requiresFile: false,
+    action: 'scribe-consultation-checker'
+  },
   { 
     label: 'Complaint Response Helper', 
     icon: MessageSquare, 
@@ -95,13 +102,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: '', 
     requiresFile: false,
     action: 'open-drug-lookup-modal'
-  },
-  {
-    label: 'Scribe Consultation Checker',
-    icon: FileHeart,
-    prompt: '',
-    requiresFile: false,
-    action: 'scribe-consultation-checker'
   },
 ];
 
