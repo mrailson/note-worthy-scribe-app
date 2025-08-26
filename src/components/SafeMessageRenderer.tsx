@@ -119,7 +119,7 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
           .trim();
       };
 
-      // Convert markdown to HTML - focused on alignment fixes only
+      // Convert markdown to HTML - using improved regex approach
       const markdownToHtml = (text: string): string => {
         let html = text;
         
@@ -140,16 +140,21 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
         html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
         
-        // Handle bullet points - only convert actual markdown bullets
-        html = html.replace(/^[\s]*[•\-\*]\s+(.+)$/gm, '<li>$1</li>');
-        html = html.replace(/^[\s]*(\d+)[\.\)]\s+(.+)$/gm, '<li>$2</li>');
+        // Handle bullet points and numbered lists - preserve original format
+        // First mark list items
+        html = html.replace(/^[•\-\*] (.+)$/gm, '<li-bullet>$1</li-bullet>');
+        html = html.replace(/^\d+\. (.+)$/gm, '<li-numbered>$1</li-numbered>');
         
-        // Group consecutive list items properly
-        html = html.replace(/(<li>.*?<\/li>(\s*\n\s*<li>.*?<\/li>)*)/gs, (match) => {
-          // Check if this should be a numbered or bulleted list based on original content
-          const hasNumbers = text.includes('1.') || text.includes('2.') || text.includes('3.');
-          const wrapper = hasNumbers ? 'ol' : 'ul';
-          return `<${wrapper}>${match}</${wrapper}>`;
+        // Group consecutive bullet list items
+        html = html.replace(/(<li-bullet>.*?<\/li-bullet>(\n<li-bullet>.*?<\/li-bullet>)*)/gs, (match) => {
+          const items = match.replace(/<li-bullet>/g, '<li>').replace(/<\/li-bullet>/g, '</li>');
+          return `<ul>${items}</ul>`;
+        });
+        
+        // Group consecutive numbered list items
+        html = html.replace(/(<li-numbered>.*?<\/li-numbered>(\n<li-numbered>.*?<\/li-numbered>)*)/gs, (match) => {
+          const items = match.replace(/<li-numbered>/g, '<li>').replace(/<\/li-numbered>/g, '</li>');
+          return `<ol>${items}</ol>`;
         });
         
         // Handle paragraphs - split by double line breaks and wrap non-HTML content
