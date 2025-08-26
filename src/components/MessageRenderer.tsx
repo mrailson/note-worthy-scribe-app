@@ -666,7 +666,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     content={displayContent}
                     className="w-full"
                   />
-                  {message.isStreaming && (
+                  {message.isStreaming && !displayContent && (
                     <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
                       <span className="text-sm">Notewell AI is thinking</span>
                       <span className="inline-flex items-center gap-0.5">

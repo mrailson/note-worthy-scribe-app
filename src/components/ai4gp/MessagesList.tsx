@@ -68,20 +68,14 @@ export const MessagesList: React.FC<MessagesListProps> = ({
         
         {isLoading && (
           <div className="flex items-center justify-center py-4">
-            <div className="relative w-8 h-8 mr-3">
-              {/* Main rotating gear */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-primary rounded-full p-1.5 animate-spin" style={{ animationDuration: '3s' }}>
-                  <Bot className="h-4 w-4 text-primary-foreground" />
-                </div>
-              </div>
-              
-              {/* Secondary rotating gear */}
-              <div className="absolute top-0 right-0 flex items-center justify-center">
-                <div className="bg-primary/70 rounded-full p-1 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
-                  <Sparkles className="h-2.5 w-2.5 text-primary-foreground" />
-                </div>
-              </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="text-sm">Notewell AI is thinking</span>
+              <span className="inline-flex items-center gap-0.5">
+                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
+                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
+                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
+                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
+              </span>
             </div>
           </div>
         )}
