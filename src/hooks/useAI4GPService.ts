@@ -21,6 +21,13 @@ export const useAI4GPService = () => {
   const [showAIService, setShowAIService] = useState(false);
   const [isClinical, setIsClinical] = useState(false);
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
+  
+  // Display Settings
+  const [textSize, setTextSize] = useState<'small' | 'default' | 'medium' | 'large' | 'xl'>('default');
+  const [interfaceDensity, setInterfaceDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
+  const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('standard');
+  const [highContrast, setHighContrast] = useState(false);
+  const [readingFont, setReadingFont] = useState(false);
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
@@ -805,6 +812,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setShowAIService(preferences.showAIService ?? false);
           setNorthamptonshireICB(preferences.northamptonshireICB ?? false);
           
+          // Load display settings
+          setTextSize(preferences.textSize ?? 'default');
+          setInterfaceDensity(preferences.interfaceDensity ?? 'comfortable');
+          setContainerWidth(preferences.containerWidth ?? 'standard');
+          setHighContrast(preferences.highContrast ?? false);
+          setReadingFont(preferences.readingFont ?? false);
+          
           console.log('AI4GP settings loaded successfully');
         } else {
           console.log('No saved AI4GP preferences found, using defaults');
@@ -835,7 +849,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         useOpenAI,
         showRenderTimes,
         showAIService,
-        northamptonshireICB
+        northamptonshireICB,
+        // Display settings
+        textSize,
+        interfaceDensity,
+        containerWidth,
+        highContrast,
+        readingFont
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -858,7 +878,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -869,7 +889,53 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, saveUserSettings]);
+  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, saveUserSettings]);
+
+  // Use Display Settings Effect to apply CSS classes
+  useEffect(() => {
+    const applyDisplaySettings = () => {
+      const body = document.body;
+      
+      // Remove existing display setting classes
+      body.classList.remove(
+        'ai4gp-text-small', 'ai4gp-text-default', 'ai4gp-text-medium', 'ai4gp-text-large', 'ai4gp-text-xl',
+        'ai4gp-compact', 'ai4gp-comfortable', 'ai4gp-spacious',
+        'ai4gp-narrow', 'ai4gp-standard', 'ai4gp-wide', 'ai4gp-full',
+        'ai4gp-high-contrast', 'ai4gp-reading-font'
+      );
+      
+      // Apply new classes
+      body.classList.add(`ai4gp-text-${textSize}`);
+      body.classList.add(`ai4gp-${interfaceDensity}`);
+      body.classList.add(`ai4gp-${containerWidth}`);
+      
+      if (highContrast) {
+        body.classList.add('ai4gp-high-contrast');
+      }
+      
+      if (readingFont) {
+        body.classList.add('ai4gp-reading-font');
+      }
+
+      // Update CSS custom properties for real-time changes
+      const root = document.documentElement;
+      const textScales = { small: 0.875, default: 1, medium: 1.125, large: 1.25, xl: 1.5 };
+      const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
+      const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
+      
+      root.style.setProperty('--ai4gp-text-scale', textScales[textSize].toString());
+      root.style.setProperty('--ai4gp-spacing-scale', spacingScales[interfaceDensity].toString());
+      root.style.setProperty('--ai4gp-container-width', containerWidths[containerWidth]);
+      
+      if (readingFont) {
+        root.style.setProperty('--ai4gp-reading-font', "'Comic Sans MS', 'Trebuchet MS', cursive");
+      } else {
+        root.style.setProperty('--ai4gp-reading-font', 'inherit');
+      }
+    };
+
+    applyDisplaySettings();
+  }, [textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -1098,6 +1164,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       setCurrentSearchId(null); // Reset search ID when clearing messages
     },
     northamptonshireICB,
-    setNorthamptonshireICB
+    setNorthamptonshireICB,
+    // Display Settings
+    textSize,
+    setTextSize,
+    interfaceDensity,
+    setInterfaceDensity,
+    containerWidth,
+    setContainerWidth,
+    highContrast,
+    setHighContrast,
+    readingFont,
+    setReadingFont
   };
 };

@@ -57,6 +57,12 @@ All colors MUST be HSL.
     --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
     --shadow-strong: 0 8px 25px hsl(213 100% 50% / 0.2);
 
+    /* Display Settings Variables */
+    --ai4gp-text-scale: 1;
+    --ai4gp-spacing-scale: 1;
+    --ai4gp-container-width: 1024px; /* max-w-4xl equivalent */
+    --ai4gp-reading-font: inherit;
+
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
@@ -75,6 +81,62 @@ All colors MUST be HSL.
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+}
+
+/* Display Settings Classes */
+.ai4gp-text-small { --ai4gp-text-scale: 0.875; }
+.ai4gp-text-default { --ai4gp-text-scale: 1; }
+.ai4gp-text-medium { --ai4gp-text-scale: 1.125; }
+.ai4gp-text-large { --ai4gp-text-scale: 1.25; }
+.ai4gp-text-xl { --ai4gp-text-scale: 1.5; }
+
+.ai4gp-compact { --ai4gp-spacing-scale: 0.75; }
+.ai4gp-comfortable { --ai4gp-spacing-scale: 1; }
+.ai4gp-spacious { --ai4gp-spacing-scale: 1.25; }
+
+.ai4gp-narrow { --ai4gp-container-width: 672px; } /* max-w-2xl */
+.ai4gp-standard { --ai4gp-container-width: 896px; } /* max-w-4xl */
+.ai4gp-wide { --ai4gp-container-width: 1152px; } /* max-w-6xl */
+.ai4gp-full { --ai4gp-container-width: 100%; } /* max-w-none */
+
+.ai4gp-high-contrast {
+  --foreground: 0 0% 0%;
+  --background: 0 0% 100%;
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 20%;
+  --border: 0 0% 85%;
+}
+
+.ai4gp-reading-font {
+  --ai4gp-reading-font: 'Comic Sans MS', 'Trebuchet MS', cursive;
+}
+
+.dark .ai4gp-high-contrast {
+  --foreground: 0 0% 100%;
+  --background: 0 0% 0%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 80%;
+  --border: 0 0% 20%;
+}
+
+/* Apply display settings to text elements */
+.ai4gp-text-scaled {
+  font-size: calc(1em * var(--ai4gp-text-scale));
+  line-height: calc(1.5 * var(--ai4gp-text-scale));
+}
+
+.ai4gp-spacing-scaled {
+  padding: calc(1rem * var(--ai4gp-spacing-scale));
+  margin: calc(0.5rem * var(--ai4gp-spacing-scale));
+}
+
+.ai4gp-container-sized {
+  max-width: var(--ai4gp-container-width);
+  width: 100%;
+}
+
+.ai4gp-font-applied {
+  font-family: var(--ai4gp-reading-font);
 }
 
 /* Ticker tape animation */

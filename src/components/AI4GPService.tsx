@@ -99,7 +99,18 @@ const AI4GPService = () => {
     setIsClinical,
     saveUserSettings,
     northamptonshireICB,
-    setNorthamptonshireICB
+    setNorthamptonshireICB,
+    // Display Settings
+    textSize,
+    setTextSize,
+    interfaceDensity,
+    setInterfaceDensity,
+    containerWidth,
+    setContainerWidth,
+    highContrast,
+    setHighContrast,
+    readingFont,
+    setReadingFont
   } = useAI4GPService();
 
   const { practiceContext } = usePracticeContext();
@@ -171,9 +182,13 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className="flex-1 flex flex-col bg-background relative h-full overflow-hidden" 
+        className="flex-1 flex flex-col bg-background relative h-full overflow-hidden ai4gp-container-sized ai4gp-font-applied" 
         data-component="ai4gp-service"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          maxWidth: 'var(--ai4gp-container-width)',
+          margin: '0 auto'
+        }}
       >
         <div className="flex flex-1 min-h-0">
           {/* Search History Sidebar */}
@@ -504,27 +519,37 @@ const AI4GPService = () => {
 
 
       {/* Settings Modal */}
-      <SettingsModal
-        open={showSettings}
-        onOpenChange={setShowSettings}
-        sessionMemory={sessionMemory}
-        onSessionMemoryChange={setSessionMemory}
-        verificationLevel={verificationLevel}
-        onVerificationLevelChange={setVerificationLevel}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        showResponseMetrics={showResponseMetrics}
-        onShowResponseMetricsChange={setShowResponseMetrics}
-        showRenderTimes={showRenderTimes}
-        onShowRenderTimesChange={setShowRenderTimes}
-        showAIService={showAIService}
-        onShowAIServiceChange={setShowAIService}
-        useOpenAI={useOpenAI}
-        onUseOpenAIChange={setUseOpenAI}
-        northamptonshireICB={northamptonshireICB}
-        onNorthamptonshireICBChange={setNorthamptonshireICB}
-        onSaveSettings={saveUserSettings}
-      />
+        <SettingsModal
+          open={showSettings}
+          onOpenChange={setShowSettings}
+          sessionMemory={sessionMemory}
+          onSessionMemoryChange={setSessionMemory}
+          verificationLevel={verificationLevel}
+          onVerificationLevelChange={setVerificationLevel}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          showResponseMetrics={showResponseMetrics}
+          onShowResponseMetricsChange={setShowResponseMetrics}
+          showRenderTimes={showRenderTimes}
+          onShowRenderTimesChange={setShowRenderTimes}
+          showAIService={showAIService}
+          onShowAIServiceChange={setShowAIService}
+          useOpenAI={useOpenAI}
+          onUseOpenAIChange={setUseOpenAI}
+          northamptonshireICB={northamptonshireICB}
+          onNorthamptonshireICBChange={setNorthamptonshireICB}
+          onSaveSettings={saveUserSettings}
+          textSize={textSize}
+          onTextSizeChange={setTextSize}
+          interfaceDensity={interfaceDensity}
+          onInterfaceDensityChange={setInterfaceDensity}
+          containerWidth={containerWidth}
+          onContainerWidthChange={setContainerWidth}
+          highContrast={highContrast}
+          onHighContrastChange={setHighContrast}
+          readingFont={readingFont}
+          onReadingFontChange={setReadingFont}
+        />
 
       {/* Quick Image Modal */}
       <QuickImageModal 

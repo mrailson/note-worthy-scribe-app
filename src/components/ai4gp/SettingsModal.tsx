@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin } from 'lucide-react';
+import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -30,6 +30,17 @@ interface SettingsModalProps {
   northamptonshireICB: boolean;
   onNorthamptonshireICBChange: (enabled: boolean) => void;
   onSaveSettings?: () => void;
+  // Display Settings
+  textSize: 'small' | 'default' | 'medium' | 'large' | 'xl';
+  onTextSizeChange: (size: 'small' | 'default' | 'medium' | 'large' | 'xl') => void;
+  interfaceDensity: 'compact' | 'comfortable' | 'spacious';
+  onInterfaceDensityChange: (density: 'compact' | 'comfortable' | 'spacious') => void;
+  containerWidth: 'narrow' | 'standard' | 'wide' | 'full';
+  onContainerWidthChange: (width: 'narrow' | 'standard' | 'wide' | 'full') => void;
+  highContrast: boolean;
+  onHighContrastChange: (enabled: boolean) => void;
+  readingFont: boolean;
+  onReadingFontChange: (enabled: boolean) => void;
 }
 
 interface ApiTestResult {
@@ -105,7 +116,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUseOpenAIChange,
   northamptonshireICB,
   onNorthamptonshireICBChange,
-  onSaveSettings
+  onSaveSettings,
+  textSize,
+  onTextSizeChange,
+  interfaceDensity,
+  onInterfaceDensityChange,
+  containerWidth,
+  onContainerWidthChange,
+  highContrast,
+  onHighContrastChange,
+  readingFont,
+  onReadingFontChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
   const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
@@ -312,6 +333,131 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   checked={showAIService}
                   onCheckedChange={onShowAIServiceChange}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Display & Accessibility Settings */}
+          <Card className="border-blue-200 bg-gradient-to-r from-background to-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Monitor className="h-4 w-4 text-blue-600" />
+                Display & Accessibility
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Text Size */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Type className="h-3 w-3" />
+                  Text Size
+                </Label>
+                <Select value={textSize} onValueChange={onTextSizeChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border z-[9999]">
+                    <SelectItem value="small">Small (0.875x)</SelectItem>
+                    <SelectItem value="default">Default (1x)</SelectItem>
+                    <SelectItem value="medium">Medium (1.125x)</SelectItem>
+                    <SelectItem value="large">Large (1.25x)</SelectItem>
+                    <SelectItem value="xl">Extra Large (1.5x)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Interface Density */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Layout className="h-3 w-3" />
+                  Interface Density
+                </Label>
+                <Select value={interfaceDensity} onValueChange={onInterfaceDensityChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border z-[9999]">
+                    <SelectItem value="compact">Compact</SelectItem>
+                    <SelectItem value="comfortable">Comfortable</SelectItem>
+                    <SelectItem value="spacious">Spacious</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Adjust spacing and padding for your preferred workflow
+                </p>
+              </div>
+
+              {/* Container Width */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Monitor className="h-3 w-3" />
+                  Container Width
+                </Label>
+                <Select value={containerWidth} onValueChange={onContainerWidthChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border z-[9999]">
+                    <SelectItem value="narrow">Narrow</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="wide">Wide</SelectItem>
+                    <SelectItem value="full">Full Width</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Optimize content width for your screen and preferences
+                </p>
+              </div>
+
+              {/* Accessibility Options */}
+              <div className="space-y-4 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="high-contrast" className="text-sm font-medium flex items-center gap-2">
+                      <Eye className="h-3 w-3" />
+                      High Contrast Mode
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enhanced contrast for better visibility
+                    </p>
+                  </div>
+                  <Switch
+                    id="high-contrast"
+                    checked={highContrast}
+                    onCheckedChange={onHighContrastChange}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="reading-font" className="text-sm font-medium flex items-center gap-2">
+                      <BookOpen className="h-3 w-3" />
+                      Reading Font
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Dyslexia-friendly font for better readability
+                    </p>
+                  </div>
+                  <Switch
+                    id="reading-font"
+                    checked={readingFont}
+                    onCheckedChange={onReadingFontChange}
+                  />
+                </div>
+              </div>
+
+              {/* Display Preview */}
+              <div className="p-3 bg-muted rounded-lg border">
+                <div className="text-sm font-medium mb-2">Preview</div>
+                <div 
+                  className={`text-xs ai4gp-text-scaled ${readingFont ? 'ai4gp-font-applied' : ''}`}
+                  style={{ fontSize: `calc(0.75rem * var(--ai4gp-text-scale))` }}
+                >
+                  This is how text will appear with your current settings. 
+                  The interface will use {interfaceDensity} spacing on a {containerWidth} container.
+                  {highContrast && ' High contrast mode is enabled.'} 
+                  {readingFont && ' Reading font is active.'}
+                </div>
               </div>
             </CardContent>
           </Card>
