@@ -471,6 +471,17 @@ const GPGenieVoiceAgent = () => {
                   <p>• <strong>Rural Communities:</strong> Works with basic phone infrastructure in remote areas</p>
                   <p>• <strong>Economic Accessibility:</strong> No data charges or app downloads required</p>
                 </div>
+                <div className="mt-3 pt-2 border-t border-muted">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => window.open('https://elevenlabs.io/app/talk-to?agent_id=agent_01jws2qhv2essav25m8cfq2h0v', '_blank')}
+                  >
+                    <PhoneCall className="h-3 w-3 mr-1" />
+                    Test Language Support Service
+                  </Button>
+                </div>
               </div>
             </div>
           </TabsContent>
