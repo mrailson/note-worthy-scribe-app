@@ -32,20 +32,6 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   onSetDrugName
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [loadingText, setLoadingText] = useState("AI is thinking...");
-  
-  const impatientMessages = [
-    "....come on then, I dont have all day....",
-    "....seriously, I could have written this myself by now....",
-    "....checking if the hamsters are still running in their wheels....",
-    "....did someone unplug the AI? Hello? Anyone there?....",
-    "....I've made three cups of tea waiting for this....",
-    "....even my dial-up internet was faster than this....",
-    "....the AI is probably googling 'how to be an AI'....",
-    "....I could have walked to the library and back by now....",
-    "....maybe the AI is having an existential crisis....",
-    "....tick tock, tick tock... still waiting...."
-  ];
 
   const scrollToBottom = () => {
     if (messagesEndRef.current && messages.length > 0) {
@@ -61,36 +47,6 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       scrollToBottom();
     }
   }, [messages]);
-
-  useEffect(() => {
-    if (isLoading) {
-      setLoadingText("AI is thinking...");
-      
-      const timer1 = setTimeout(() => {
-        setLoadingText("...receiving and processing the reply...");
-      }, 5000);
-      
-      const timer2 = setTimeout(() => {
-        setLoadingText("....nearly there.....");
-      }, 10000);
-      
-      const timer3 = setTimeout(() => {
-        setLoadingText("... I hope its worth the wait...");
-      }, 15000);
-      
-      const timer4 = setTimeout(() => {
-        const randomMessage = impatientMessages[Math.floor(Math.random() * impatientMessages.length)];
-        setLoadingText(randomMessage);
-      }, 25000);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-        clearTimeout(timer4);
-      };
-    }
-  }, [isLoading]);
 
   return (
     <ScrollArea className="flex-1 px-2 sm:p-2">
@@ -127,7 +83,6 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                 </div>
               </div>
             </div>
-            <span className="text-muted-foreground">{loadingText}</span>
           </div>
         )}
         
