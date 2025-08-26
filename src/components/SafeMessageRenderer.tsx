@@ -134,6 +134,10 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
         html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
         
+        // Process section headers (bold text followed by colon) first
+        // Convert **Text**: content to **Text**:\n content for proper line breaks
+        html = html.replace(/\*\*([^*:]+?):\*\*\s*([^\n])/g, '**$1:**\n$2');
+        
         // Process inline formatting before lists
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
