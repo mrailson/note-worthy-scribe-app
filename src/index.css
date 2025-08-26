@@ -122,8 +122,35 @@ All colors MUST be HSL.
 
 /* Apply display settings to text elements */
 .ai4gp-text-scaled {
-  font-size: calc(1em * var(--ai4gp-text-scale));
-  line-height: calc(1.5 * var(--ai4gp-text-scale));
+  font-size: calc(1rem * var(--ai4gp-text-scale, 1));
+  line-height: calc(1.5 * var(--ai4gp-text-scale, 1));
+}
+
+/* Scope: user bubble only */
+.ai4gp-user-bubble .prose {
+  /* Force white text everywhere inside prose */
+  --tw-prose-body: theme(colors.white);
+  --tw-prose-headings: theme(colors.white);
+  --tw-prose-lead: theme(colors.white);
+  --tw-prose-links: theme(colors.white);
+  --tw-prose-bold: theme(colors.white);
+  --tw-prose-counters: theme(colors.white);
+  --tw-prose-bullets: theme(colors.white);
+  --tw-prose-hr: rgba(255,255,255,0.2);
+  --tw-prose-quotes: theme(colors.white);
+  --tw-prose-quote-borders: rgba(255,255,255,0.2);
+  --tw-prose-captions: rgba(255,255,255,0.7);
+
+  /* Let the bubble control size + line-height */
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Make sure EVERYTHING inside inherits (belt-and-braces) */
+.ai4gp-user-bubble .prose :where(*) {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .ai4gp-spacing-scaled {
