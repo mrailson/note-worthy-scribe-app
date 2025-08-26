@@ -3,56 +3,67 @@ import { QuickPickContext, TranslatePayload, SummarisePayload, FormatPayload } f
 import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 
 // Global system prompt used for all actions
-const GLOBAL_SYSTEM_PROMPT = `You are **NHS Clean Formatter** for UK GP content.
+const GLOBAL_SYSTEM_PROMPT = `You are NHS Clean Formatter (UK GP).
 
-TASK
-- Take the content and output a tidy, human-readable version.
-- Produce properly formatted responses with clear structure.
-- Use only UK sources: NICE guidance/CKS, NHS.uk, BNF, MHRA Drug Safety Updates, UKHSA Green Book, and local ICB.
-- Do NOT change clinical meaning. Do NOT invent content or citations.
+GOAL
+Return clean, human-readable output with correct spacing and headings. Never change clinical meaning. Never invent content or links.
 
-FORMATTING RULES
-1) Headings must be on their own line. Use clear section headers.
-   - H1 for the document title.
-   - H2 for top sections, H3 for subsections.
-2) Insert a **blank line before and after** every heading and before each list.
-3) Convert inline content into true lists:
-   - Any run of related items becomes bullet points.
-   - Keep each bullet on its own line.
-4) Keep labels short and bold where helpful (e.g., **Scope:**, **Source:**).
-5) Use UK spelling and NICE/NHS terminology.
-6) No giant blocks: wrap at natural sentence boundaries; avoid line lengths > 120 chars.
+SOURCES
+Use only UK sources (NICE/CKS, NHS.uk, BNF, MHRA DSU, UKHSA Green Book, local ICB) if/when citing. If not found, say "Not found in UK sources".
 
-MANDATORY OUTPUT STRUCTURE
-Every response MUST follow this template:
+RENDERING RULES (MARKDOWN MODE)
+- Do NOT use code fences.
+- Use H1/H2/H3 headings; each heading must have a blank line before and after it.
+- Insert a blank line before every list and between all paragraphs.
+- Each bullet on a single line; no wrapped lines inside a bullet.
+- Use **bold labels** for short signposts (e.g., **Scope:**).
+- UK spelling and NHS terminology only.
+- No giant blocks: break at sentence boundaries (target ≤ 120 chars/line).
 
-## {Clear Section Title}
+MANDATORY OUTPUT
+Return EXACTLY TWO blocks in this order (no extra prose):
+[MARKDOWN]
+# {Title}
 
-**Key concept:** Brief explanation
+**Scope:** …
+**Source:** …
 
-- **Important point:** Clear details with proper spacing
-- **Another point:** More details with spacing
+## {Section}
+- …
 
-## {Next Section}
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h1>{Title}</h1>
+  <p><strong>Scope:</strong> …<br><strong>Source:</strong> …</p>
+  <h2>{Section}</h2>
+  <ul>
+    <li>…</li>
+  </ul>
+</section>
+[/HTML]
 
-**Key concept:** Brief explanation
-
-- **Medical term:** Definition or explanation  
-- **Another term:** More details
-- **Action required:** What to do next
-
-❌ FORBIDDEN: Walls of unformatted text, missing headers, no bullet points, paragraph blocks
-✅ REQUIRED: Clear headers (##), bullet points (-), **bold terms**, proper line spacing
-
-Write UK English. Prefer concise bullet points. State uncertainty clearly. Never invent citations. If a required UK source cannot be found, say "Not found in UK sources".
-
-When producing patient-facing content: keep reading age 9–12, avoid jargon, no diagnosis wording, include clear safety-netting and NHS 111/999 advice.
-
-When producing clinician content: include necessary clinical detail, doses in mg/micrograms with units, ranges, renal/hepatic adjustments, interactions, contraindications, monitoring and when to seek senior review.
-
-Always preserve numbers, medicine names, URLs, and local details exactly as provided.
+FALLBACK BEHAVIOUR
+- If content includes "asthma" and "NG24", correct reference to: NICE NG245 (BTS/NICE/SIGN, 27 Nov 2024).
+- If a NICE guideline is named, link to the official NICE page; never invent non-NHS links.
+- Always preserve numbers, medicine names, URLs, and local details exactly.
 
 ${NHS_LINKING_POLICY}`;
+
+// Post-processor for force HTML
+const FORCE_HTML_PROCESSOR = `POST-PROCESSOR (FORCE HTML)
+Convert the input text into clean HTML with explicit tags and spacing.
+
+REQUIREMENTS
+- Return HTML ONLY (no markdown, no fences, no extra text).
+- Use <section>, <h1>.., <h2>.., <h3>.., <p>, <ul><li>, <table><thead><tbody><tr><th><td>.
+- Insert a blank line as <p style="margin:0 0 12px"></p> between paragraphs if needed.
+- Never rely on double-space line breaks; always use explicit tags.
+
+INPUT:
+{{text}}
+
+OUTPUT: [HTML only]`;
 
 // Template substitution helper
 function processTemplate(template: string, ctx: QuickPickContext, additionalVars: Record<string, string> = {}): string {
@@ -73,58 +84,134 @@ function processTemplate(template: string, ctx: QuickPickContext, additionalVars
 
 // Act on reply handlers
 async function approveAndSave(ctx: QuickPickContext): Promise<string> {
-  const template = `Take {{text}}. Final tidy only: fix minor grammar/formatting; keep meaning identical. 
+  const template = `Take {{text}}. Fix grammar/formatting only; do not change meaning.
 
-Apply NHS Clean Formatter approach:
+NO CODE FENCES. Return two blocks exactly:
 
+[MARKDOWN]
 ## {Appropriate Title}
 
 **Key concept:** Brief explanation
 
-- **Important point:** Clear details with proper spacing
-- **Another point:** More details with spacing
+- **Important point:** Clear detail
+- **Another point:** More detail
 
 ## {Next Section}
 
-**Key concept:** Brief explanation  
+**Key concept:** Brief explanation
 
-- **Medical term:** Definition or explanation
+- **Medical term:** Definition
 - **Action required:** What to do next
-
-CRITICAL: Output the polished version with MANDATORY proper markdown structure including clear headers (##), bullet points (-), and formatting. MUST ensure professional presentation and maximum readability with proper spacing between ALL sections.`;
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>{Appropriate Title}</h2>
+  <p><strong>Key concept:</strong> Brief explanation</p>
+  <ul>
+    <li><strong>Important point:</strong> Clear detail</li>
+    <li><strong>Another point:</strong> More detail</li>
+  </ul>
+  <h2>{Next Section}</h2>
+  <p><strong>Key concept:</strong> Brief explanation</p>
+  <ul>
+    <li><strong>Medical term:</strong> Definition</li>
+    <li><strong>Action required:</strong> What to do next</li>
+  </ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
 async function rejectAndRedo(ctx: QuickPickContext): Promise<string> {
   const template = `Regenerate a NEW answer to the original request. Avoid the phrasing used previously.
 
-MANDATORY NHS Clean Formatter structure:
+NO CODE FENCES. Return two blocks exactly:
 
-## {Clear Title}
+[MARKDOWN]
+## {Appropriate Title}
 
 **Key concept:** Brief explanation
 
-- **Important point:** Clear details with proper spacing  
-- **Another point:** More details with spacing
+- **Important point:** Clear detail
+- **Another point:** More detail
 
 ## {Next Section}
 
 **Key concept:** Brief explanation
 
-- **Medical term:** Definition or explanation
+- **Medical term:** Definition
 - **Action required:** What to do next
-
-CRITICAL: Use proper markdown structure with clear headers, bullet points, and proper spacing for maximum readability - NO walls of text allowed.`;
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>{Appropriate Title}</h2>
+  <p><strong>Key concept:</strong> Brief explanation</p>
+  <ul>
+    <li><strong>Important point:</strong> Clear detail</li>
+    <li><strong>Another point:</strong> More detail</li>
+  </ul>
+  <h2>{Next Section}</h2>
+  <p><strong>Key concept:</strong> Brief explanation</p>
+  <ul>
+    <li><strong>Medical term:</strong> Definition</li>
+    <li><strong>Action required:</strong> What to do next</li>
+  </ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
 async function askAlternatives(ctx: QuickPickContext): Promise<string> {
-  const template = "Provide 3 distinct alternative drafts for {{purpose}} based on {{text}}. Vary structure and emphasis. MANDATORY: Use clear markdown headers (## Option 1, ## Option 2, ## Option 3) and proper formatting with bullet points and spacing for readability. MUST separate each option with clear line breaks.";
+  const template = `Provide 3 distinct alternatives based on {{purpose}} and {{text}}.
+
+NO CODE FENCES. Two blocks:
+
+[MARKDOWN]
+## Option 1
+- …
+
+## Option 2
+- …
+
+## Option 3
+- …
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>Option 1</h2><ul><li>…</li></ul>
+  <h2>Option 2</h2><ul><li>…</li></ul>
+  <h2>Option 3</h2><ul><li>…</li></ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx, { purpose: "clinical guidance" });
 }
 
 async function markForClinicalReview(ctx: QuickPickContext): Promise<string> {
-  const template = "Convert {{text}} into a short checklist for clinician review. Extract any assumptions, dosing decisions, guideline dependencies, and legal/safety items. MANDATORY: Use proper markdown structure with clear headers: ## Items to Verify, ## Missing Info to Obtain, ## Escalation Triggers, ## Suggested Reviewer/Role. MUST format with bullet points and proper spacing between ALL sections.";
+  const template = `Convert {{text}} into a short checklist for clinician review. Extract any assumptions, dosing decisions, guideline dependencies, and legal/safety items.
+
+NO CODE FENCES. Return two blocks exactly:
+
+[MARKDOWN]
+## Items to Verify
+- …
+
+## Missing Info to Obtain
+- …
+
+## Escalation Triggers
+- …
+
+## Suggested Reviewer/Role
+- …
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>Items to Verify</h2><ul><li>…</li></ul>
+  <h2>Missing Info to Obtain</h2><ul><li>…</li></ul>
+  <h2>Escalation Triggers</h2><ul><li>…</li></ul>
+  <h2>Suggested Reviewer/Role</h2><ul><li>…</li></ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
@@ -145,7 +232,27 @@ async function runRedAmberFlagScreen(ctx: QuickPickContext): Promise<string> {
 }
 
 async function runInteractionCheck(ctx: QuickPickContext): Promise<string> {
-  const template = "From {{text}}, list all medicines mentioned and check BNF interactions/contraindications and common cautions. MANDATORY FORMAT:\n\n## Drug Interaction Analysis\n\n| **Drug** | **Interaction/Caution** | **Severity** | **Action** | **UK Source** |\n|----------|-------------------------|--------------|------------|---------------|\n| [drug name] | [interaction details] | minor/moderate/major | avoid/monitor/adjust | [BNF/NICE link] |\n\nCRITICAL: Use proper markdown table format with headers and proper spacing.";
+  const template = `From {{text}}, list all medicines mentioned and check BNF interactions/contraindications and common cautions.
+
+NO CODE FENCES. Return two blocks exactly:
+
+[MARKDOWN]
+## Drug Interaction Analysis
+
+| **Drug** | **Interaction/Caution** | **Severity** | **Action** | **UK Source** |
+|---|---|---|---|---|
+| [drug name] | [interaction details] | minor/moderate/major | avoid/monitor/adjust | [BNF/NICE link] |
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>Drug Interaction Analysis</h2>
+  <table><thead><tr>
+    <th>Drug</th><th>Interaction/Caution</th><th>Severity</th><th>Action</th><th>UK Source</th>
+  </tr></thead><tbody>
+    <tr><td>[drug name]</td><td>[interaction details]</td><td>minor/moderate/major</td><td>avoid/monitor/adjust</td><td>[BNF/NICE link]</td></tr>
+  </tbody></table>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
@@ -161,13 +268,15 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = `🚨 EXPAND WITH MANDATORY FORMATTING 🚨
+  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
+
+Insert a blank line before/after every heading and before lists (in markdown).
+
+In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
 
 Expand {{text}} with detailed information. Add relevant breakdown, examples, and context.
 
-ABSOLUTE FORMATTING REQUIREMENTS - NO EXCEPTIONS:
-
-MUST follow this exact structure:
+[MARKDOWN]
 ## Overview
 - **Main point:** Clear explanation
 - **Key details:** Supporting information
@@ -183,21 +292,44 @@ MUST follow this exact structure:
 ## Summary
 - **Key takeaway:** Main message
 - **Action required:** Next steps
-
-❌ VIOLATION: Any paragraph text without headers and bullets will be REJECTED
-✅ REQUIRED: Headers (##), bullets (-), **bold terms**, proper spacing
-
-FORMAT OR YOUR RESPONSE FAILS - NO WALLS OF TEXT ALLOWED`;
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>Overview</h2>
+  <ul>
+    <li><strong>Main point:</strong> Clear explanation</li>
+    <li><strong>Key details:</strong> Supporting information</li>
+  </ul>
+  <h2>Detailed Breakdown</h2>
+  <ul>
+    <li><strong>Specific aspect:</strong> Expanded details</li>
+    <li><strong>Another aspect:</strong> More information</li>
+  </ul>
+  <h2>Clinical Considerations</h2>
+  <ul>
+    <li><strong>Important factor:</strong> Explanation</li>
+    <li><strong>Monitoring:</strong> What to watch for</li>
+  </ul>
+  <h2>Summary</h2>
+  <ul>
+    <li><strong>Key takeaway:</strong> Main message</li>
+    <li><strong>Action required:</strong> Next steps</li>
+  </ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
 async function summarise(ctx: QuickPickContext, maxWords: number = 100): Promise<string> {
-  const template = `🚨 SUMMARY WITH MANDATORY FORMATTING 🚨
+  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
+
+Insert a blank line before/after every heading and before lists (in markdown).
+
+In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
 
 Summarise {{text}} to maximum {{max_words}} words. Preserve key decisions, red flags, actions.
 
-REQUIRED FORMAT - NO EXCEPTIONS:
-
+[MARKDOWN]
 ## Summary
 
 - **Key decision:** Brief explanation
@@ -205,21 +337,32 @@ REQUIRED FORMAT - NO EXCEPTIONS:
 - **Actions required:** What to do
 - **Follow-up:** When to review
 - **Safety:** Important considerations
-
-❌ FORBIDDEN: Paragraph text, missing bullets, no headers
-✅ REQUIRED: ## Summary header, bullet points (-), **bold terms**
-
-FORMAT CORRECTLY OR RESPONSE FAILS`;
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>Summary</h2>
+  <ul>
+    <li><strong>Key decision:</strong> Brief explanation</li>
+    <li><strong>Red flags:</strong> Critical warnings</li>
+    <li><strong>Actions required:</strong> What to do</li>
+    <li><strong>Follow-up:</strong> When to review</li>
+    <li><strong>Safety:</strong> Important considerations</li>
+  </ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx, { max_words: maxWords.toString() });
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = `🚨 PLAIN ENGLISH WITH MANDATORY FORMATTING 🚨
+  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
+
+Insert a blank line before/after every heading and before lists (in markdown).
+
+In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
 
 Rewrite {{text}} for general public (reading age 9-12). Remove jargon, explain terms, calm tone. Preserve URLs and appointments.
 
-REQUIRED FORMAT - NO EXCEPTIONS:
-
+[MARKDOWN]
 ## What This Means
 - **Simple explanation:** Easy to understand
 - **Key points:** Most important information
@@ -231,11 +374,26 @@ REQUIRED FORMAT - NO EXCEPTIONS:
 ## When to Get Help
 - **Emergency signs:** Call 999 if you have these
 - **Urgent help:** Contact NHS 111 for these
-
-❌ FORBIDDEN: Long paragraphs, medical jargon, missing structure
-✅ REQUIRED: ## headers, bullet points (-), **bold terms**, simple words
-
-FORMAT CORRECTLY OR RESPONSE FAILS - NO WALL OF TEXT`;
+[/MARKDOWN]
+[HTML]
+<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
+  <h2>What This Means</h2>
+  <ul>
+    <li><strong>Simple explanation:</strong> Easy to understand</li>
+    <li><strong>Key points:</strong> Most important information</li>
+  </ul>
+  <h2>What You Need to Do</h2>
+  <ul>
+    <li><strong>Action steps:</strong> Clear instructions</li>
+    <li><strong>Important notes:</strong> Things to remember</li>
+  </ul>
+  <h2>When to Get Help</h2>
+  <ul>
+    <li><strong>Emergency signs:</strong> Call 999 if you have these</li>
+    <li><strong>Urgent help:</strong> Contact NHS 111 for these</li>
+  </ul>
+</section>
+[/HTML]`;
   return processTemplate(template, ctx);
 }
 
@@ -615,6 +773,7 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "format-system": (ctx) => formatForSystem(ctx, "emis"),
   "add-formulary-prior-approval": insertFormularyAndPriorApproval,
   "format-text": formatText,
+  "force-html": (ctx) => processTemplate(FORCE_HTML_PROCESSOR, ctx),
 
   "patient-leaflet": createPatientLeaflet,
   "patient-safetynetting": addSafetyNetting,
