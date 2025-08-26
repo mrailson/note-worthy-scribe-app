@@ -124,11 +124,11 @@ async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string
 
 async function translate(ctx: QuickPickContext, options: any): Promise<string> {
   if (options.mode === 'auto') {
-    return `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple.`;
+    return `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
   } else if (options.mode === 'patient') {
-    return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon.`;
+    return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
   } else if (options.mode === 'clinician') {
-    return `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly.`;
+    return `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
   }
   return "Translating content...";
 }
