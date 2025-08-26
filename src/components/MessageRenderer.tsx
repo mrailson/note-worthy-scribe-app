@@ -667,11 +667,15 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     className="w-full"
                   />
                   {message.isStreaming && (
-                    <span className="inline-flex items-center gap-1 text-muted-foreground">
-                      <span className="animate-pulse">●</span>
-                      <span className="animate-pulse delay-100">●</span>
-                      <span className="animate-pulse delay-200">●</span>
-                    </span>
+                    <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
+                      <span className="text-sm">Notewell AI is thinking</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
+                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
+                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
+                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
+                      </span>
+                    </div>
                   )}
                 </div>
               ) : (
