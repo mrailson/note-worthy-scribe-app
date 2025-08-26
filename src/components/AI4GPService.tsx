@@ -280,26 +280,6 @@ const AI4GPService = () => {
                         </DropdownMenuItem>
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
-                            <TestTube className="w-4 h-4 mr-2" />
-                            Test Transcripts
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => window.open('/test-transcripts#consultations', '_blank')}>
-                              Patient Consultations
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.open('/test-transcripts#partnership', '_blank')}>
-                              GP Partnership Meetings
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.open('/test-transcripts#pcn', '_blank')}>
-                              PCN Meetings
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => window.open('/test-transcripts#lmc', '_blank')}>
-                              LMC Meetings
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
                             <Palette className="w-4 h-4 mr-2" />
                             Image Service
                           </DropdownMenuSubTrigger>
