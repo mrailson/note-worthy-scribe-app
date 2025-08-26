@@ -885,7 +885,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       role: 'user',
       content: quickResponse,
       timestamp: new Date(),
-      files: []
+      files: [],
+      isQuickPick: true // Mark as quick pick message for auto-collapse
     };
 
     setMessages(prev => [...prev, userMessage]);

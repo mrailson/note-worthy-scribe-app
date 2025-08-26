@@ -46,28 +46,7 @@ import { quickPickConfig } from '@/constants/quickPickConfig';
 import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
 import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  files?: UploadedFile[];
-  responseTime?: number;
-  timeToFirstWords?: number;
-  apiResponseTime?: number;
-  model?: string;
-  isStreaming?: boolean;
-  isClinical?: boolean;
-  clinicalVerification?: any;
-}
-
-interface UploadedFile {
-  name: string;
-  type: string;
-  content: string;
-  size: number;
-}
+import { Message, UploadedFile } from '@/types/ai4gp';
 
 interface MessageRendererProps {
   message: Message;
@@ -104,7 +83,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [verificationData, setVerificationData] = useState(null);
   const [policyHits, setPolicyHits] = useState<any[]>([]);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
-  const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(false);
+  const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
+    // Auto-collapse if it's a quick pick message
+    message.role === 'user' && message.isQuickPick === true
+  );
   const { user } = useAuth();
   // Toggle user message collapse
   const toggleUserMessageCollapse = () => {

@@ -11,6 +11,7 @@ export interface Message {
   isStreaming?: boolean;
   isClinical?: boolean;
   clinicalVerification?: ClinicalVerificationData;
+  isQuickPick?: boolean; // Flag to identify messages from quick pick actions
 }
 
 export interface ClinicalVerificationData {
