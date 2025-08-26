@@ -78,6 +78,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       onSend();
+      // Clear both transcript state and input text after sending for smooth mic workflow
+      setBrowserTranscript('');
+      setInput('');
     }
   };
 
@@ -137,9 +140,10 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
         
         <Button 
           onClick={() => {
-            // Clear transcript state when sending
-            setBrowserTranscript('');
             onSend();
+            // Clear both transcript state and input text after sending for smooth mic workflow
+            setBrowserTranscript('');
+            setInput('');
           }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
           size="default"
