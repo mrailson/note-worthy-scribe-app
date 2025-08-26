@@ -30,7 +30,7 @@ export const quickActions: QuickAction[] = [
     submenu: [
       {
         label: 'I will insert the drug name...',
-        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for [INSERT DRUG NAME] including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects for [INSERT DRUG NAME]`
       },
       {
         label: 'Metformin',
