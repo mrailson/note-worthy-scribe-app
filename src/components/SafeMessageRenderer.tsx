@@ -225,7 +225,7 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
   }, [content]);
 
   if (!sanitizedContent) {
-    return <Tag className={nhsClassName}>Loading...</Tag>;
+    return <Tag className={nhsClassName}></Tag>;
   }
 
   return (
