@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Save, Edit2, Check, X, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface TranscriptSpeakerManagerProps {
   transcript: string;
@@ -131,8 +131,10 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
               {fullContent.split('\n').map((line, lineIndex) => (
                 <div 
                   key={lineIndex} 
-                  className={`whitespace-pre-wrap ${lineIndex > 0 ? 'mt-2' : ''}`}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(line)) }}
+                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderNHSMarkdown(parseMarkdown(line), { enableNHSStyling: true })
+                  }}
                 />
               ))}
             </div>
@@ -153,8 +155,10 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
               {segment.split('\n').map((line, lineIndex) => (
                 <div 
                   key={lineIndex} 
-                  className={`whitespace-pre-wrap ${lineIndex > 0 ? 'mt-2' : ''}`}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(line)) }}
+                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderNHSMarkdown(parseMarkdown(line), { enableNHSStyling: true })
+                  }}
                 />
               ))}
             </div>

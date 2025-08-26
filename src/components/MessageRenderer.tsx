@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { 
   ChevronDown, 
   ChevronsUp, 
@@ -664,8 +664,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   }}
                 >
                   <div 
-                    className="w-full whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayContent) }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true })
+                    }}
                   />
                   {message.isStreaming && !displayContent && (
                     <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
@@ -682,8 +683,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               ) : (
                 <div className="text-sm ai4gp-text-scaled">
                   <div 
-                    className="w-full user-message-content whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayContent) }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true })
+                    }}
                   />
                 </div>
               )}

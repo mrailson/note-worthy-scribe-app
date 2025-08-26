@@ -1,5 +1,5 @@
 import React from 'react';
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface FormattedReviewContentProps {
   content: string;
@@ -84,8 +84,9 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({ 
         >
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div 
-              className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
+              dangerouslySetInnerHTML={{ 
+                __html: renderNHSMarkdown(section.content, { enableNHSStyling: true })
+              }}
             />
           </div>
         </div>

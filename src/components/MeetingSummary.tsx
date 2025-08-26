@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { 
   FileText, 
   Mail, 
@@ -665,8 +665,9 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           ) : (
             <div className="border rounded-lg p-4 min-h-[300px] bg-background">
               <div 
-                className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notes) }}
+                dangerouslySetInnerHTML={{ 
+                  __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
+                }}
               />
             </div>
           )}
@@ -799,8 +800,9 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
                 ) : (
                   <div className="prose prose-sm max-w-none text-sm">
                     <div 
-                      className="prose prose-sm max-w-none text-sm whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(claudeNotes) }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: renderNHSMarkdown(claudeNotes, { enableNHSStyling: true })
+                      }}
                     />
                   </div>
                 )

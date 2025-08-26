@@ -34,7 +34,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Header } from "@/components/Header";
 import { FormattedReviewContent } from "@/components/FormattedReviewContent";
 import { AIResponsePanel } from "@/components/AIResponsePanel";
@@ -1359,8 +1359,9 @@ P: Plan discussed with patient`;
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-4 border">
                     <div 
-                      className="whitespace-pre-wrap" 
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getCurrentGPSummary()) }} 
+                      dangerouslySetInnerHTML={{ 
+                        __html: renderNHSMarkdown(getCurrentGPSummary(), { enableNHSStyling: true })
+                      }}
                     />
                   </div>
                 )}
@@ -1437,8 +1438,9 @@ P: Plan discussed with patient`;
                     
                     <div className="bg-muted/30 rounded-lg p-4 border">
                       <div 
-                        className="whitespace-pre-wrap" 
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(generateEmailVersion(content.patientCopy)) }} 
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(generateEmailVersion(content.patientCopy), { enableNHSStyling: true })
+                        }}
                       />
                     </div>
                   </TabsContent>
@@ -1483,8 +1485,9 @@ P: Plan discussed with patient`;
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <div 
-                        className="whitespace-pre-wrap" 
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(referralContent) }} 
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(referralContent, { enableNHSStyling: true })
+                        }}
                       />
                     </div>
                   </div>
@@ -1720,15 +1723,17 @@ P: Plan discussed with patient`;
                                   <div className="prose prose-sm max-w-none dark:prose-invert">
                                     <div className="ai-response-content space-y-4">
                                       <div 
-                                        className="whitespace-pre-wrap"
-                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(
-                                          scoringSection
-                                            .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
-                                            .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
-                                            .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
-                                            .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
-                                            .trim()
-                                        ) }}
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: renderNHSMarkdown(
+                                            scoringSection
+                                              .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
+                                              .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
+                                              .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                              .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                              .trim(),
+                                            { enableNHSStyling: true }
+                                          )
+                                        }}
                                       />
                                     </div>
                                   </div>

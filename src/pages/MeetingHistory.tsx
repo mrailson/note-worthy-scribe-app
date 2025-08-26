@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import DOMPurify from 'dompurify';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
@@ -1597,8 +1597,9 @@ const MeetingHistory = () => {
                     {meetingSummary ? (
                       <div className="prose max-w-none">
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderFormattedText(meetingSummary)) }}
+                          dangerouslySetInnerHTML={{ 
+                            __html: renderNHSMarkdown(renderFormattedText(meetingSummary), { enableNHSStyling: true })
+                          }}
                         />
                       </div>
                     ) : (
