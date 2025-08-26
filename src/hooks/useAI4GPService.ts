@@ -23,7 +23,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   
   // Display Settings
-  const [textSize, setTextSize] = useState<'small' | 'default' | 'medium' | 'large' | 'xl' | 'double'>('default');
+  const [textSize, setTextSize] = useState<'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest'>('default');
   const [interfaceDensity, setInterfaceDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
   const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('full');
   const [highContrast, setHighContrast] = useState(false);
@@ -898,7 +898,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       
       // Remove existing display setting classes
       body.classList.remove(
-        'ai4gp-text-small', 'ai4gp-text-default', 'ai4gp-text-medium', 'ai4gp-text-large', 'ai4gp-text-xl',
+        'ai4gp-text-smallest', 'ai4gp-text-smaller', 'ai4gp-text-small', 'ai4gp-text-default', 'ai4gp-text-medium', 'ai4gp-text-large', 'ai4gp-text-larger', 'ai4gp-text-largest',
         'ai4gp-compact', 'ai4gp-comfortable', 'ai4gp-spacious',
         'ai4gp-narrow', 'ai4gp-standard', 'ai4gp-wide', 'ai4gp-full',
         'ai4gp-high-contrast', 'ai4gp-reading-font'
@@ -919,7 +919,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       // Update CSS custom properties for real-time changes
       const root = document.documentElement;
-      const textScales = { small: 0.75, default: 1.25, medium: 1.5, large: 2.0, xl: 2.5, double: 3.0 };
+      const textScales = { smallest: 0.75, smaller: 0.875, small: 1.0, default: 1.125, medium: 1.25, large: 1.375, larger: 1.5, largest: 1.625 };
       const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
       const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
       

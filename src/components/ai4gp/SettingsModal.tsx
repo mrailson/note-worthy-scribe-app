@@ -31,8 +31,8 @@ interface SettingsModalProps {
   onNorthamptonshireICBChange: (enabled: boolean) => void;
   onSaveSettings?: () => void;
   // Display Settings
-  textSize: 'small' | 'default' | 'medium' | 'large' | 'xl' | 'double';
-  onTextSizeChange: (size: 'small' | 'default' | 'medium' | 'large' | 'xl' | 'double') => void;
+  textSize: 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
+  onTextSizeChange: (size: 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest') => void;
   interfaceDensity: 'compact' | 'comfortable' | 'spacious';
   onInterfaceDensityChange: (density: 'compact' | 'comfortable' | 'spacious') => void;
   containerWidth: 'narrow' | 'standard' | 'wide' | 'full';
@@ -357,12 +357,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border border-border z-[9999]">
-                    <SelectItem value="small">Small (0.875x)</SelectItem>
-                    <SelectItem value="default">Default (1x)</SelectItem>
-                    <SelectItem value="medium">Medium (1.125x)</SelectItem>
-                    <SelectItem value="large">Large (1.25x)</SelectItem>
-                    <SelectItem value="xl">Extra Large (1.5x)</SelectItem>
-                    <SelectItem value="double">Double (2x)</SelectItem>
+                    <SelectItem value="smallest">Smallest (0.75x)</SelectItem>
+                    <SelectItem value="smaller">Smaller (0.875x)</SelectItem>
+                    <SelectItem value="small">Small (1.0x)</SelectItem>
+                    <SelectItem value="default">Default (1.125x)</SelectItem>
+                    <SelectItem value="medium">Medium (1.25x)</SelectItem>
+                    <SelectItem value="large">Large (1.375x)</SelectItem>
+                    <SelectItem value="larger">Larger (1.5x)</SelectItem>
+                    <SelectItem value="largest">Largest (1.625x)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

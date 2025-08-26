@@ -182,12 +182,14 @@ const AI4GPService = () => {
   // Helper function to get text scaling class
   const getTextScaleClass = (size: string) => {
     switch (size) {
+      case 'smallest': return 'ai4gp-text-smallest';
+      case 'smaller': return 'ai4gp-text-smaller';
       case 'small': return 'ai4gp-text-small';
       case 'default': return 'ai4gp-text-default';
       case 'medium': return 'ai4gp-text-medium';
       case 'large': return 'ai4gp-text-large';
-      case 'xl': return 'ai4gp-text-xl';
-      case 'double': return 'ai4gp-text-double';
+      case 'larger': return 'ai4gp-text-larger';
+      case 'largest': return 'ai4gp-text-largest';
       default: return 'ai4gp-text-default';
     }
   };
