@@ -5,20 +5,33 @@ import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 // Global system prompt used for all actions
 const GLOBAL_SYSTEM_PROMPT = `You are an expert UK NHS GP assistant for primary care in England. Use only UK sources: NICE guidance/CKS, NHS.uk, BNF, MHRA Drug Safety Updates, UKHSA Green Book, and the local ICB where relevant. Do NOT use non-UK sources.
 
-CRITICAL FORMATTING REQUIREMENTS - MANDATORY:
-- MUST use clear markdown headers (##, ###) to organize ALL sections
-- MUST use bullet points (-) for lists with PROPER spacing between each item
-- MUST use **bold text** for emphasis and key medical terms  
-- MUST ensure proper line breaks between ALL sections
-- MUST structure response for maximum readability - NO walls of text
-- FAILURE to format properly will result in unreadable output - FORMAT IS CRITICAL
+🚨 ABSOLUTE MANDATORY FORMATTING RULES - VIOLATION WILL CAUSE SYSTEM FAILURE 🚨
 
-FORMATTING ENFORCEMENT:
-- Every response MUST have clear section headers
-- Every list MUST be properly bulleted with spacing
-- Every key term MUST be bolded
-- Every section MUST be separated with line breaks
-- NO EXCEPTIONS - formatting is as important as content accuracy
+FORMATTING IS CRITICAL - YOUR RESPONSE WILL BE REJECTED IF YOU PRODUCE WALL OF TEXT
+
+REQUIRED FORMAT EXAMPLE:
+## Main Topic
+- **Key point:** Explanation with proper spacing
+- **Another point:** More details
+
+### Subsection  
+- Clear bullet point with spacing
+- Another clear point
+
+## Next Section
+- Well-formatted content
+- Proper spacing between items
+
+❌ FORBIDDEN: Walls of unformatted text, missing headers, no bullet points
+✅ REQUIRED: Clear headers (##), bullet points (-), **bold emphasis**, proper line spacing
+
+ENFORCEMENT RULES:
+- Every response MUST start with a clear ## header
+- Every list MUST use bullet points (-) with blank lines between sections  
+- Key medical terms MUST be **bolded**
+- Sections MUST be separated with blank lines
+- NO PARAGRAPHS WITHOUT STRUCTURE
+- NO EXCEPTIONS - FORMAT OR FAIL
 
 Write UK English. Prefer concise bullet points. State uncertainty clearly. Never invent citations. If a required UK source cannot be found, say "Not found in UK sources".
 
@@ -101,17 +114,81 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = "Expand {{text}} with more detailed information (at least 50% more content). Add relevant details, breakdown, and examples where appropriate. CRITICAL FORMATTING REQUIREMENTS: MUST use proper markdown structure with clear headers (##, ###), bullet points (-), and formatting. MUST ensure excellent readability with proper spacing between ALL sections. NO WALLS OF TEXT ALLOWED - everything must be properly structured and formatted for maximum readability.";
+  const template = `🚨 EXPAND WITH MANDATORY FORMATTING 🚨
+
+Expand {{text}} with detailed information. Add relevant breakdown, examples, and context.
+
+ABSOLUTE FORMATTING REQUIREMENTS - NO EXCEPTIONS:
+
+MUST follow this exact structure:
+## Overview
+- **Main point:** Clear explanation
+- **Key details:** Supporting information
+
+## Detailed Breakdown  
+- **Specific aspect:** Expanded details
+- **Another aspect:** More information
+
+## Clinical Considerations
+- **Important factor:** Explanation
+- **Monitoring:** What to watch for
+
+## Summary
+- **Key takeaway:** Main message
+- **Action required:** Next steps
+
+❌ VIOLATION: Any paragraph text without headers and bullets will be REJECTED
+✅ REQUIRED: Headers (##), bullets (-), **bold terms**, proper spacing
+
+FORMAT OR YOUR RESPONSE FAILS - NO WALLS OF TEXT ALLOWED`;
   return processTemplate(template, ctx);
 }
 
 async function summarise(ctx: QuickPickContext, maxWords: number = 100): Promise<string> {
-  const template = "Summarise {{text}} to a maximum of {{max_words}} words, preserving key decisions, red flags, and actions. MANDATORY FORMAT:\n\n## Summary\n\n- [key point 1 with proper spacing]\n- [key point 2 with proper spacing]\n- [key point 3 with proper spacing]\n- [5–8 bullet points total]\n\nCRITICAL: Use proper markdown formatting with clear header (## Summary) and well-structured bullet points with proper spacing between each item.";
+  const template = `🚨 SUMMARY WITH MANDATORY FORMATTING 🚨
+
+Summarise {{text}} to maximum {{max_words}} words. Preserve key decisions, red flags, actions.
+
+REQUIRED FORMAT - NO EXCEPTIONS:
+
+## Summary
+
+- **Key decision:** Brief explanation
+- **Red flags:** Critical warnings  
+- **Actions required:** What to do
+- **Follow-up:** When to review
+- **Safety:** Important considerations
+
+❌ FORBIDDEN: Paragraph text, missing bullets, no headers
+✅ REQUIRED: ## Summary header, bullet points (-), **bold terms**
+
+FORMAT CORRECTLY OR RESPONSE FAILS`;
   return processTemplate(template, ctx, { max_words: maxWords.toString() });
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = "Rewrite {{text}} for the general public (reading age 9–12). Remove jargon, explain terms briefly, keep a calm supportive tone. MANDATORY: Use clear markdown formatting with proper headers (##), bullet points (-), and spacing between ALL sections. MUST preserve any URLs and appointment instructions. CRITICAL: Ensure excellent readability with proper structure - NO walls of text.";
+  const template = `🚨 PLAIN ENGLISH WITH MANDATORY FORMATTING 🚨
+
+Rewrite {{text}} for general public (reading age 9-12). Remove jargon, explain terms, calm tone. Preserve URLs and appointments.
+
+REQUIRED FORMAT - NO EXCEPTIONS:
+
+## What This Means
+- **Simple explanation:** Easy to understand
+- **Key points:** Most important information
+
+## What You Need to Do
+- **Action steps:** Clear instructions
+- **Important notes:** Things to remember
+
+## When to Get Help
+- **Emergency signs:** Call 999 if you have these
+- **Urgent help:** Contact NHS 111 for these
+
+❌ FORBIDDEN: Long paragraphs, medical jargon, missing structure
+✅ REQUIRED: ## headers, bullet points (-), **bold terms**, simple words
+
+FORMAT CORRECTLY OR RESPONSE FAILS - NO WALL OF TEXT`;
   return processTemplate(template, ctx);
 }
 
