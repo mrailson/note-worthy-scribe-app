@@ -192,6 +192,12 @@ All colors MUST be HSL.
   font-weight: 600;
 }
 
+/* User message specific styling - white bold text */
+.user-message-content strong {
+  color: white !important;
+  font-weight: 600;
+}
+
 .message-content blockquote {
   margin: 1.5rem 0;
   padding: 1rem;
