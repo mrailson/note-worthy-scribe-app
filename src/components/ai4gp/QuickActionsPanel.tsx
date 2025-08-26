@@ -7,6 +7,7 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
+import { ConsultationCheckerModal } from '@/components/ConsultationCheckerModal';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -29,6 +30,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
+  const [showConsultationChecker, setShowConsultationChecker] = useState(false);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -134,18 +136,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 // Trigger the drug lookup modal
                 window.dispatchEvent(new CustomEvent('openDrugModal'));
               } else if (action.action === 'scribe-consultation-checker') {
-                // Insert the scribe consultation checker prompt
-                const scribePrompt = `Please paste your GP consultation transcript below. I'll analyze it and provide:
-
-• Clean SOAP notes + timeline
-• Documentation quality check  
-• Follow-up actions & tests
-• Patient letter & SMS
-• EHR-ready paste blocks
-• Clinical scores (where applicable)
-
-**Paste your consultation transcript here:**`;
-                setInput(scribePrompt);
+                // Open the consultation checker modal
+                setShowConsultationChecker(true);
               } else if (action.action && action.action.startsWith('open-test-transcripts')) {
                 // Navigate to test transcripts page with appropriate tab
                 const tab = action.action.replace('open-test-transcripts-', '');
@@ -195,18 +187,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             // Trigger the drug lookup modal
                             window.dispatchEvent(new CustomEvent('openDrugModal'));
                           } else if (subItem.action === 'scribe-consultation-checker') {
-                            // Insert the scribe consultation checker prompt
-                            const scribePrompt = `Please paste your GP consultation transcript below. I'll analyze it and provide:
-
-• Clean SOAP notes + timeline
-• Documentation quality check  
-• Follow-up actions & tests
-• Patient letter & SMS
-• EHR-ready paste blocks
-• Clinical scores (where applicable)
-
-**Paste your consultation transcript here:**`;
-                            setInput(scribePrompt);
+                            // Open the consultation checker modal
+                            setShowConsultationChecker(true);
                           } else if (subItem.action && subItem.action.startsWith('open-test-transcripts')) {
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');
@@ -265,6 +247,18 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Consultation Checker Modal */}
+      <ConsultationCheckerModal
+        isOpen={showConsultationChecker}
+        onClose={() => setShowConsultationChecker(false)}
+        onSubmit={(prompt) => {
+          setInput(prompt);
+          if (onInsertIntoChat) {
+            onInsertIntoChat(prompt);
+          }
+        }}
+      />
 
       {/* AI Test Modal */}
       <AITestModal 
