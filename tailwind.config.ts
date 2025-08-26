@@ -102,11 +102,23 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'wave': {
+					'0%': {
+						transform: 'scaleY(1)'
+					},
+					'50%': {
+						transform: 'scaleY(1.5)'
+					},
+					'100%': {
+						transform: 'scaleY(1)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'wave': 'wave 1s ease-in-out infinite'
 			},
 			animationDelay: {
 				'200': '200ms',

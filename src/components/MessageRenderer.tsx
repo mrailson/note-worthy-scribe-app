@@ -773,9 +773,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
                       title="Run clinical verification"
                     >
-                      {isVerifying ? (
-                        <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
-                      ) : (
+                       {isVerifying ? (
+                         <div className="flex items-center gap-0.5">
+                           <div className="w-0.5 h-3 bg-current animate-wave"></div>
+                           <div className="w-0.5 h-3 bg-current animate-wave" style={{ animationDelay: '0.1s' }}></div>
+                           <div className="w-0.5 h-3 bg-current animate-wave" style={{ animationDelay: '0.2s' }}></div>
+                         </div>
+                       ) : (
                         <ShieldCheck className="h-3 w-3" />
                       )}
                     </Button>
@@ -901,9 +905,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                         className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
                         title="Run clinical verification"
                       >
-                        {isVerifying ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b border-current" />
-                        ) : (
+                         {isVerifying ? (
+                           <div className="flex items-center gap-0.5">
+                             <div className="w-0.5 h-3 bg-current animate-wave"></div>
+                             <div className="w-0.5 h-3 bg-current animate-wave" style={{ animationDelay: '0.1s' }}></div>
+                             <div className="w-0.5 h-3 bg-current animate-wave" style={{ animationDelay: '0.2s' }}></div>
+                           </div>
+                         ) : (
                           <ShieldCheck className="h-3 w-3" />
                         )}
                       </Button>
