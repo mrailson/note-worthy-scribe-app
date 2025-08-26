@@ -84,95 +84,122 @@ function processTemplate(template: string, ctx: QuickPickContext, additionalVars
 
 // Act on reply handlers
 async function approveAndSave(ctx: QuickPickContext): Promise<string> {
-  const template = `Approve and save this content.`;
+  const template = `Output as final approved text. No further edits needed. Save in clean formatted form.`;
   return processTemplate(template, ctx);
 }
 
 async function rejectAndRedo(ctx: QuickPickContext): Promise<string> {
-  const template = `Please regenerate a new answer to the original request.`;
+  const template = `Discard the above output and regenerate a fresh improved version, following NHS NICE/BNF standards.`;
   return processTemplate(template, ctx);
 }
 
 async function askAlternatives(ctx: QuickPickContext): Promise<string> {
-  const template = `Please provide 3 alternative approaches.`;
+  const template = `Give me 3 alternative phrasings of the above output, concise and compliant with UK NHS guidance.`;
   return processTemplate(template, ctx);
 }
 
-// Simple placeholder functions for other handlers
 async function markForClinicalReview(ctx: QuickPickContext): Promise<string> {
-  return "Marked for clinical review.";
+  const template = `Flag this text for GP clinical review. Highlight any areas where clinical judgement is required.`;
+  return processTemplate(template, ctx);
 }
 
 async function validateWithCitations(ctx: QuickPickContext): Promise<string> {
-  return "Please validate with citations.";
+  const template = `Validate the above output against NICE CKS, NHS.uk, and BNF. Add inline references where applicable.`;
+  return processTemplate(template, ctx);
 }
 
 async function flagAsSuspect(ctx: QuickPickContext): Promise<string> {
-  return "This has been flagged for review.";
+  const template = `Re-check the above carefully. Identify any incorrect or misleading statements. Correct them with NHS NICE/BNF sources.`;
+  return processTemplate(template, ctx);
 }
 
 async function runRedAmberFlagScreen(ctx: QuickPickContext): Promise<string> {
-  return "Running safety flag screen...";
+  const template = `Screen the above for NHS111 red/amber flags. Highlight any urgent or safety-critical concerns.`;
+  return processTemplate(template, ctx);
 }
 
 async function runInteractionCheck(ctx: QuickPickContext): Promise<string> {
-  return "Checking for interactions...";
+  const template = `Check the above for drug interactions or contraindications using BNF guidance. List any relevant findings.`;
+  return processTemplate(template, ctx);
 }
 
 async function showConfidenceChecklist(ctx: QuickPickContext): Promise<string> {
-  return "Confidence checklist displayed.";
+  const template = `State confidence level in the above answer (High/Medium/Low). List what a GP should independently verify.`;
+  return processTemplate(template, ctx);
 }
 
 async function roundTripCheck(ctx: QuickPickContext, options: any): Promise<string> {
-  return "Running round-trip check...";
+  const template = `Translate the text into the target language and back to English. Show both versions and highlight any meaning changes.`;
+  return processTemplate(template, ctx);
 }
 
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  return "Please expand with more details.";
+  const template = `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.`;
+  return processTemplate(template, ctx);
 }
 
 async function summarise(ctx: QuickPickContext, words: number): Promise<string> {
-  return "Please summarise this content.";
+  const template = `Produce a concise summary of the above in bullet points suitable for quick GP reference.`;
+  return processTemplate(template, ctx);
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  return "Please rewrite in plain English.";
+  const template = `Rewrite the above in plain, patient-friendly English with no jargon. Keep accuracy.`;
+  return processTemplate(template, ctx);
 }
 
 async function addSnomedAndBnfSummary(ctx: QuickPickContext): Promise<string> {
-  return "Please add SNOMED/BNF summary.";
+  const template = `Add a structured SNOMED and BNF-style summary for GP coding and prescribing.`;
+  return processTemplate(template, ctx);
 }
 
 async function formatForSystem(ctx: QuickPickContext, system: string): Promise<string> {
-  return `Please format for ${system}.`;
+  const template = `Format the above text in a structured template suitable for pasting into EMIS or SystmOne patient record.`;
+  return processTemplate(template, ctx);
 }
 
 async function insertFormularyAndPriorApproval(ctx: QuickPickContext): Promise<string> {
-  return "Adding formulary and prior approval information.";
+  const template = `Check the ICB Northamptonshire formulary and prior-approval status for this drug/condition. Insert notes with web link.`;
+  return processTemplate(template, ctx);
 }
 
 async function formatText(ctx: QuickPickContext): Promise<string> {
-  return "Formatting text...";
+  const template = `Apply proper markdown structure and formatting to the above text.`;
+  return processTemplate(template, ctx);
 }
 
 async function createPatientLeaflet(ctx: QuickPickContext): Promise<string> {
-  return "Creating patient leaflet.";
+  const template = `Convert the above into a short patient leaflet (plain English, NHS.uk tone, with headings).`;
+  return processTemplate(template, ctx);
 }
 
 async function addSafetyNetting(ctx: QuickPickContext): Promise<string> {
-  return "Adding safety netting.";
+  const template = `Add clear NHS safety-netting advice for patients — when to seek urgent care, follow-up advice, and self-care tips.`;
+  return processTemplate(template, ctx);
 }
 
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
-  return "Creating staff training pack.";
+  const template = `Turn the above into a structured SOP/training guide for GP practice staff.`;
+  return processTemplate(template, ctx);
 }
 
 async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string> {
-  return "Creating manager briefing slide.";
+  const template = `Summarise the above into 3–5 concise bullet points suitable for a GP Partner/Board slide.`;
+  return processTemplate(template, ctx);
 }
 
 async function translate(ctx: QuickPickContext, options: any): Promise<string> {
-  return "Translating content...";
+  if (options.mode === 'auto') {
+    const template = `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple.`;
+    return processTemplate(template, ctx);
+  } else if (options.mode === 'patient') {
+    const template = `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon.`;
+    return processTemplate(template, ctx, { targetLang: options.targetLang });
+  } else if (options.mode === 'clinician') {
+    const template = `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly.`;
+    return processTemplate(template, ctx, { targetLang: options.targetLang });
+  }
+  return processTemplate("Translating content...", ctx);
 }
 
 function openLanguagePicker(options: any): string {
@@ -180,47 +207,58 @@ function openLanguagePicker(options: any): string {
 }
 
 function backToEnglish(ctx: QuickPickContext): string {
-  return "Converting back to English...";
+  const template = `Re-translate the last translation back into English so I can check accuracy.`;
+  return processTemplate(template, ctx);
 }
 
 function copyToClipboard(ctx: QuickPickContext): string {
-  return "Copied to clipboard.";
+  const template = `Output only the cleaned final text, ready for copy/paste.`;
+  return processTemplate(template, ctx);
 }
 
 function saveToRecord(ctx: QuickPickContext): string {
-  return "Saved to record.";
+  const template = `Format and output as structured GP consultation note ready to paste into EMIS/SystmOne.`;
+  return processTemplate(template, ctx);
 }
 
 function exportPDF(ctx: QuickPickContext): string {
-  return "Exporting PDF...";
+  const template = `Generate a PDF version of the above text with clear NHS-style formatting.`;
+  return processTemplate(template, ctx);
 }
 
 function exportDOCX(ctx: QuickPickContext): string {
-  return "Exporting DOCX...";
+  const template = `Generate a Word (.docx) version of the above with NHS Blue headings.`;
+  return processTemplate(template, ctx);
 }
 
 function exportEmailHTML(ctx: QuickPickContext): string {
-  return "Exporting as email HTML...";
+  const template = `Format the above as an HTML email with NHS branding.`;
+  return processTemplate(template, ctx);
 }
 
 function printDocument(ctx: QuickPickContext): string {
-  return "Printing document...";
+  const template = `Output the above in a clean print-friendly format.`;
+  return processTemplate(template, ctx);
 }
 
 function combineWithPracticeInfo(ctx: QuickPickContext): string {
-  return "Combining with practice information...";
+  const template = `Add my practice header/footer (Blue PCN, Northamptonshire, local phone/email) to the above.`;
+  return processTemplate(template, ctx);
 }
 
 function insertLocalICBLinks(ctx: QuickPickContext): string {
-  return "Inserting local ICB links...";
+  const template = `Insert relevant local referral form links and ICB guidance links for Northamptonshire.`;
+  return processTemplate(template, ctx);
 }
 
 function openPriorApprovalModal(ctx: QuickPickContext): string {
-  return "Opening prior approval modal...";
+  const template = `Check prior-approval status of any drugs mentioned. Return a formatted table of approval requirements with ICB link.`;
+  return processTemplate(template, ctx);
 }
 
 function addPracticeSafetyNetting(ctx: QuickPickContext): string {
-  return "Adding practice safety netting template...";
+  const template = `Insert our standard GP practice safety-netting template text into the above.`;
+  return processTemplate(template, ctx);
 }
 
 
