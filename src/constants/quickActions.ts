@@ -1,4 +1,4 @@
-import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search } from 'lucide-react';
+import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search, FileText } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -102,6 +102,34 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: '', 
     requiresFile: false,
     action: 'open-drug-lookup-modal'
+  },
+  {
+    label: 'Test Transcripts',
+    icon: FileText,
+    prompt: '',
+    requiresFile: false,
+    submenu: [
+      {
+        label: 'Patient Consultations',
+        prompt: '',
+        action: 'open-test-transcripts-consultations'
+      },
+      {
+        label: 'GP Partnership Meetings',
+        prompt: '',
+        action: 'open-test-transcripts-partnership'
+      },
+      {
+        label: 'PCN Meetings',
+        prompt: '',
+        action: 'open-test-transcripts-pcn'
+      },
+      {
+        label: 'LMC Meetings',
+        prompt: '',
+        action: 'open-test-transcripts-lmc'
+      }
+    ]
   },
 ];
 

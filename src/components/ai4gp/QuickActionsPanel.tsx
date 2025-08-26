@@ -146,6 +146,10 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
 
 **Paste your consultation transcript here:**`;
                 setInput(scribePrompt);
+              } else if (action.action && action.action.startsWith('open-test-transcripts')) {
+                // Navigate to test transcripts page with appropriate tab
+                const tab = action.action.replace('open-test-transcripts-', '');
+                window.open(`/test-transcripts#${tab}`, '_blank');
               } else if (action.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
                 // Show the Meeting Notes Interface instead of just inserting a prompt
                 setShowMeetingNotesInterface(true);
@@ -203,6 +207,10 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
 
 **Paste your consultation transcript here:**`;
                             setInput(scribePrompt);
+                          } else if (subItem.action && subItem.action.startsWith('open-test-transcripts')) {
+                            // Navigate to test transcripts page with appropriate tab
+                            const tab = subItem.action.replace('open-test-transcripts-', '');
+                            window.open(`/test-transcripts#${tab}`, '_blank');
                           } else if (subItem.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
                             // Show the Meeting Notes Interface instead of just inserting a prompt
                             setShowMeetingNotesInterface(true);
