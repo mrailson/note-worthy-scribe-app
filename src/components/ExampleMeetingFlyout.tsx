@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Copy, Download, X } from "lucide-react";
+import { Copy, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -159,13 +159,10 @@ export default function ExampleMeetingFlyout({
       {/* Sheet/Flyout */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-hidden flex flex-col">
-          <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <SheetHeader className="pb-4">
             <SheetTitle className="text-lg font-semibold">
               Example Meeting – Oak Lane Medical Practice
             </SheetTitle>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
           </SheetHeader>
           
           {/* Tab Controls */}
