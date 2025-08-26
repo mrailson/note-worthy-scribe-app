@@ -13,7 +13,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   // Convert markdown to HTML
   let html = content
     // SOAP note sections (handle first to avoid bullet point processing)
-    .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/10 border-l-4 border-primary p-3 my-4 rounded-r-lg"><strong class="text-primary text-lg block mb-2">$1:</strong>')
+    .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
     // Headers (handle #### first, then work down)
     .replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-primary mb-2 mt-3">$1</h4>')
@@ -50,7 +50,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/<p[^>]*>(<ul[^>]*>.*?<\/ul>)<\/p>/g, '$1')
     
     // Close SOAP sections
-    .replace(/(<div class="bg-primary\/10[^>]*>.*?)(?=<div class="bg-primary\/10|$)/gs, '$1</div>')
+    .replace(/(<div class="bg-primary\/20[^>]*>.*?)(?=<div class="bg-primary\/20|$)/gs, '$1</div>')
     
     // URLs to links
     .replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary/80 underline">$1</a>');
