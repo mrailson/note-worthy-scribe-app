@@ -12,7 +12,11 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Convert markdown to HTML
   let html = content
-    // Headers
+    // SOAP note sections (handle first to avoid bullet point processing)
+    .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/10 border-l-4 border-primary p-3 my-4 rounded-r-lg"><strong class="text-primary text-lg block mb-2">$1:</strong>')
+    
+    // Headers (handle #### first, then work down)
+    .replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-primary mb-2 mt-3">$1</h4>')
     .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-primary mb-3 mt-4">$1</h3>')
     .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold text-primary mb-4 mt-5">$1</h2>')
     .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mb-4 mt-6">$1</h1>')
@@ -23,10 +27,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Italic text
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     
-    // SOAP note sections (special handling)
-    .replace(/^(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/10 border-l-4 border-primary p-3 my-4 rounded-r-lg"><strong class="text-primary text-lg block mb-2">$1:</strong>')
-    
-    // List items
+    // List items (exclude already processed SOAP sections)
     .replace(/^[-•]\s+(.+)$/gm, '<li class="ml-4 mb-1 text-foreground">$1</li>')
     
     // Wrap consecutive list items
