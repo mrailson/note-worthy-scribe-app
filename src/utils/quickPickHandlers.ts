@@ -39,122 +39,98 @@ function processTemplate(template: string, ctx: QuickPickContext, additionalVars
 
 // Act on reply handlers
 async function approveAndSave(ctx: QuickPickContext): Promise<string> {
-  const template = `Output as final approved text. No further edits needed. Save in clean formatted form.`;
-  return processTemplate(template, ctx);
+  return `Output as final approved text. No further edits needed. Save in clean formatted form.`;
 }
 
 async function rejectAndRedo(ctx: QuickPickContext): Promise<string> {
-  const template = `Discard the above output and regenerate a fresh improved version, following NHS NICE/BNF standards.`;
-  return processTemplate(template, ctx);
+  return `Discard the above output and regenerate a fresh improved version, following NHS NICE/BNF standards.`;
 }
 
 async function askAlternatives(ctx: QuickPickContext): Promise<string> {
-  const template = `Give me 3 alternative phrasings of the above output, concise and compliant with UK NHS guidance.`;
-  return processTemplate(template, ctx);
+  return `Give me 3 alternative phrasings of the above output, concise and compliant with UK NHS guidance.`;
 }
 
 async function markForClinicalReview(ctx: QuickPickContext): Promise<string> {
-  const template = `Flag this text for GP clinical review. Highlight any areas where clinical judgement is required.`;
-  return processTemplate(template, ctx);
+  return `Flag this text for GP clinical review. Highlight any areas where clinical judgement is required.`;
 }
 
 async function validateWithCitations(ctx: QuickPickContext): Promise<string> {
-  const template = `Validate the above output against NICE CKS, NHS.uk, and BNF. Add inline references where applicable.`;
-  return processTemplate(template, ctx);
+  return `Validate the above output against NICE CKS, NHS.uk, and BNF. Add inline references where applicable.`;
 }
 
 async function flagAsSuspect(ctx: QuickPickContext): Promise<string> {
-  const template = `Re-check the above carefully. Identify any incorrect or misleading statements. Correct them with NHS NICE/BNF sources.`;
-  return processTemplate(template, ctx);
+  return `Re-check the above carefully. Identify any incorrect or misleading statements. Correct them with NHS NICE/BNF sources.`;
 }
 
 async function runRedAmberFlagScreen(ctx: QuickPickContext): Promise<string> {
-  const template = `Screen the above for NHS111 red/amber flags. Highlight any urgent or safety-critical concerns.`;
-  return processTemplate(template, ctx);
+  return `Screen the above for NHS111 red/amber flags. Highlight any urgent or safety-critical concerns.`;
 }
 
 async function runInteractionCheck(ctx: QuickPickContext): Promise<string> {
-  const template = `Check the above for drug interactions or contraindications using BNF guidance. List any relevant findings.`;
-  return processTemplate(template, ctx);
+  return `Check the above for drug interactions or contraindications using BNF guidance. List any relevant findings.`;
 }
 
 async function showConfidenceChecklist(ctx: QuickPickContext): Promise<string> {
-  const template = `State confidence level in the above answer (High/Medium/Low). List what a GP should independently verify.`;
-  return processTemplate(template, ctx);
+  return `State confidence level in the above answer (High/Medium/Low). List what a GP should independently verify.`;
 }
 
 async function roundTripCheck(ctx: QuickPickContext, options: any): Promise<string> {
-  const template = `Translate the text into the target language and back to English. Show both versions and highlight any meaning changes.`;
-  return processTemplate(template, ctx);
+  return `Translate the text into the target language and back to English. Show both versions and highlight any meaning changes.`;
 }
 
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.`;
-  return processTemplate(template, ctx);
+  return `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.`;
 }
 
 async function summarise(ctx: QuickPickContext, words: number): Promise<string> {
-  const template = `Produce a concise summary of the above in bullet points suitable for quick GP reference.`;
-  return processTemplate(template, ctx);
+  return `Produce a concise summary of the above in bullet points suitable for quick GP reference.`;
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = `Rewrite the above in plain, patient-friendly English with no jargon. Keep accuracy.`;
-  return processTemplate(template, ctx);
+  return `Rewrite the above in plain, patient-friendly English with no jargon. Keep accuracy.`;
 }
 
 async function addSnomedAndBnfSummary(ctx: QuickPickContext): Promise<string> {
-  const template = `Add a structured SNOMED and BNF-style summary for GP coding and prescribing.`;
-  return processTemplate(template, ctx);
+  return `Add a structured SNOMED and BNF-style summary for GP coding and prescribing.`;
 }
 
 async function formatForSystem(ctx: QuickPickContext, system: string): Promise<string> {
-  const template = `Format the above text in a structured template suitable for pasting into EMIS or SystmOne patient record.`;
-  return processTemplate(template, ctx);
+  return `Format the above text in a structured template suitable for pasting into EMIS or SystmOne patient record.`;
 }
 
 async function insertFormularyAndPriorApproval(ctx: QuickPickContext): Promise<string> {
-  const template = `Check the ICB Northamptonshire formulary and prior-approval status for this drug/condition. Insert notes with web link.`;
-  return processTemplate(template, ctx);
+  return `Check the ICB Northamptonshire formulary and prior-approval status for this drug/condition. Insert notes with web link.`;
 }
 
 async function formatText(ctx: QuickPickContext): Promise<string> {
-  const template = `Apply proper markdown structure and formatting to the above text.`;
-  return processTemplate(template, ctx);
+  return `Apply proper markdown structure and formatting to the above text.`;
 }
 
 async function createPatientLeaflet(ctx: QuickPickContext): Promise<string> {
-  const template = `Convert the above into a short patient leaflet (plain English, NHS.uk tone, with headings).`;
-  return processTemplate(template, ctx);
+  return `Convert the above into a short patient leaflet (plain English, NHS.uk tone, with headings).`;
 }
 
 async function addSafetyNetting(ctx: QuickPickContext): Promise<string> {
-  const template = `Add clear NHS safety-netting advice for patients — when to seek urgent care, follow-up advice, and self-care tips.`;
-  return processTemplate(template, ctx);
+  return `Add clear NHS safety-netting advice for patients — when to seek urgent care, follow-up advice, and self-care tips.`;
 }
 
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
-  const template = `Turn the above into a structured SOP/training guide for GP practice staff.`;
-  return processTemplate(template, ctx);
+  return `Turn the above into a structured SOP/training guide for GP practice staff.`;
 }
 
 async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string> {
-  const template = `Summarise the above into 3–5 concise bullet points suitable for a GP Partner/Board slide.`;
-  return processTemplate(template, ctx);
+  return `Summarise the above into 3–5 concise bullet points suitable for a GP Partner/Board slide.`;
 }
 
 async function translate(ctx: QuickPickContext, options: any): Promise<string> {
   if (options.mode === 'auto') {
-    const template = `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple.`;
-    return processTemplate(template, ctx);
+    return `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple.`;
   } else if (options.mode === 'patient') {
-    const template = `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon.`;
-    return processTemplate(template, ctx, { targetLang: options.targetLang });
+    return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon.`;
   } else if (options.mode === 'clinician') {
-    const template = `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly.`;
-    return processTemplate(template, ctx, { targetLang: options.targetLang });
+    return `Translate the above into ${options.targetLang}, in literal clinical style for use by doctors. Preserve medical terms exactly.`;
   }
-  return processTemplate("Translating content...", ctx);
+  return "Translating content...";
 }
 
 function openLanguagePicker(options: any): string {
@@ -162,58 +138,47 @@ function openLanguagePicker(options: any): string {
 }
 
 function backToEnglish(ctx: QuickPickContext): string {
-  const template = `Re-translate the last translation back into English so I can check accuracy.`;
-  return processTemplate(template, ctx);
+  return `Re-translate the last translation back into English so I can check accuracy.`;
 }
 
 function copyToClipboard(ctx: QuickPickContext): string {
-  const template = `Output only the cleaned final text, ready for copy/paste.`;
-  return processTemplate(template, ctx);
+  return `Output only the cleaned final text, ready for copy/paste.`;
 }
 
 function saveToRecord(ctx: QuickPickContext): string {
-  const template = `Format and output as structured GP consultation note ready to paste into EMIS/SystmOne.`;
-  return processTemplate(template, ctx);
+  return `Format and output as structured GP consultation note ready to paste into EMIS/SystmOne.`;
 }
 
 function exportPDF(ctx: QuickPickContext): string {
-  const template = `Generate a PDF version of the above text with clear NHS-style formatting.`;
-  return processTemplate(template, ctx);
+  return `Generate a PDF version of the above text with clear NHS-style formatting.`;
 }
 
 function exportDOCX(ctx: QuickPickContext): string {
-  const template = `Generate a Word (.docx) version of the above with NHS Blue headings.`;
-  return processTemplate(template, ctx);
+  return `Generate a Word (.docx) version of the above with NHS Blue headings.`;
 }
 
 function exportEmailHTML(ctx: QuickPickContext): string {
-  const template = `Format the above as an HTML email with NHS branding.`;
-  return processTemplate(template, ctx);
+  return `Format the above as an HTML email with NHS branding.`;
 }
 
 function printDocument(ctx: QuickPickContext): string {
-  const template = `Output the above in a clean print-friendly format.`;
-  return processTemplate(template, ctx);
+  return `Output the above in a clean print-friendly format.`;
 }
 
 function combineWithPracticeInfo(ctx: QuickPickContext): string {
-  const template = `Add my practice header/footer (Blue PCN, Northamptonshire, local phone/email) to the above.`;
-  return processTemplate(template, ctx);
+  return `Add my practice header/footer (Blue PCN, Northamptonshire, local phone/email) to the above.`;
 }
 
 function insertLocalICBLinks(ctx: QuickPickContext): string {
-  const template = `Insert relevant local referral form links and ICB guidance links for Northamptonshire.`;
-  return processTemplate(template, ctx);
+  return `Insert relevant local referral form links and ICB guidance links for Northamptonshire.`;
 }
 
 function openPriorApprovalModal(ctx: QuickPickContext): string {
-  const template = `Check prior-approval status of any drugs mentioned. Return a formatted table of approval requirements with ICB link.`;
-  return processTemplate(template, ctx);
+  return `Check prior-approval status of any drugs mentioned. Return a formatted table of approval requirements with ICB link.`;
 }
 
 function addPracticeSafetyNetting(ctx: QuickPickContext): string {
-  const template = `Insert our standard GP practice safety-netting template text into the above.`;
-  return processTemplate(template, ctx);
+  return `Insert our standard GP practice safety-netting template text into the above.`;
 }
 
 
