@@ -154,7 +154,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const testApiServices = async () => {
     setIsTesting(true);
-    const testPrompt = "What day is it today?";
+    const testPrompt = "show me the BNF for Metformin";
     const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4o', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro'];
     
     // Initialize test results
@@ -519,7 +519,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     Test All API Services
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Verify all AI services are working with the prompt "What day is it today?"
+                    Verify all AI services are working with the prompt "show me the BNF for Metformin"
                   </p>
                 </div>
                 <Button 
