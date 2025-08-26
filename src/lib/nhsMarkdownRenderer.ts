@@ -11,16 +11,31 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
 
   const { enableNHSStyling = true, isUserMessage = false } = options;
   
+  // Debug: Log the original content to see what we're processing
+  console.log('🔍 MARKDOWN INPUT:', content);
+  
   // Convert markdown to HTML
   let html = content
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
-    // Headers (handle #### first, then work down)
-    .replace(/^#### (.*$)/gm, `<h4 class="text-base font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-2 mt-3">$1</h4>`)
-    .replace(/^### (.*$)/gm, `<h3 class="text-lg font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-3 mt-4">$1</h3>`)
-    .replace(/^## (.*$)/gm, `<h2 class="text-xl font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-5">$1</h2>`)
-    .replace(/^# (.*$)/gm, `<h1 class="text-2xl font-bold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-6">$1</h1>`)
+    // Headers (handle #### first, then work down) - Debug these replacements
+    .replace(/^#### (.*$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H4:', match, '→', p1);
+      return `<h4 class="text-base font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-2 mt-3">${p1}</h4>`;
+    })
+    .replace(/^### (.*$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H3:', match, '→', p1);
+      return `<h3 class="text-lg font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-3 mt-4">${p1}</h3>`;
+    })
+    .replace(/^## (.*$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H2:', match, '→', p1);
+      return `<h2 class="text-xl font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-5">${p1}</h2>`;
+    })
+    .replace(/^# (.*$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H1:', match, '→', p1);
+      return `<h1 class="text-2xl font-bold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-6">${p1}</h1>`;
+    })
     
     // Bold text
     .replace(/\*\*(.*?)\*\*/g, `<strong class="font-semibold ${isUserMessage ? 'text-white' : 'text-foreground'}">$1</strong>`)
@@ -61,6 +76,10 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     html = `<div class="nhs-content prose prose-sm max-w-none dark:prose-invert">${html}</div>`;
   }
 
+  
+  // Debug: Log the final HTML output
+  console.log('🔍 MARKDOWN OUTPUT:', html);
+  
   // Sanitize the HTML
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br'],
