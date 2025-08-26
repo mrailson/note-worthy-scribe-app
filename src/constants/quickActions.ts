@@ -75,13 +75,6 @@ export const quickActions: QuickAction[] = [
     ]
   },
   {
-    label: 'Scribe Consultation Checker',
-    icon: FileHeart,
-    prompt: '',
-    requiresFile: false,
-    action: 'scribe-consultation-checker'
-  },
-  {
     label: 'Northamptonshire Prescribing Guidance',
     icon: Search,
     prompt: '', 

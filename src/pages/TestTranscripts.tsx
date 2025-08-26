@@ -501,7 +501,7 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
           <div>
             <h1 className="text-3xl font-bold">Test Transcripts</h1>
             <p className="text-muted-foreground">
-              Realistic example transcripts for testing the Scribe Consultation Checker and other AI tools
+              Realistic example transcripts for testing AI tools and transcription services
             </p>
           </div>
         </div>
