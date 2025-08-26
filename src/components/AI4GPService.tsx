@@ -392,10 +392,12 @@ const AI4GPService = () => {
                           onInsertIntoChat={setInput}
                         />
                         
-                        {/* Short Card Disclaimer */}
-                        <div className="mt-6">
-                          <ShortCard />
-                        </div>
+                        {/* Short Card Disclaimer - Only show for GP role */}
+                        {selectedRole === 'gp' && (
+                          <div className="mt-6">
+                            <ShortCard />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -555,24 +557,28 @@ const AI4GPService = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Disclaimer Modal - First Time Use */}
-      <FullModal 
-        open={showDisclaimerModal}
-        onOpenChange={setShowDisclaimerModal}
-        onAccept={handleDisclaimerAccept}
-        onDoNotShowAgain={handleDisclaimerDoNotShowAgain}
-      />
+      {/* Disclaimer Modal - First Time Use - Only show for GP role */}
+      {selectedRole === 'gp' && (
+        <FullModal 
+          open={showDisclaimerModal}
+          onOpenChange={setShowDisclaimerModal}
+          onAccept={handleDisclaimerAccept}
+          onDoNotShowAgain={handleDisclaimerDoNotShowAgain}
+        />
+      )}
 
-      {/* About Modal - Manual Access */}
-      <FullModal 
-        open={showAboutModal}
-        onOpenChange={setShowAboutModal}
-        onAccept={() => setShowAboutModal(false)}
-        onDoNotShowAgain={() => {
-          hideDisclaimer();
-          setShowAboutModal(false);
-        }}
-      />
+      {/* About Modal - Manual Access - Only show for GP role */}
+      {selectedRole === 'gp' && (
+        <FullModal 
+          open={showAboutModal}
+          onOpenChange={setShowAboutModal}
+          onAccept={() => setShowAboutModal(false)}
+          onDoNotShowAgain={() => {
+            hideDisclaimer();
+            setShowAboutModal(false);
+          }}
+        />
+      )}
     </>
   );
 };
