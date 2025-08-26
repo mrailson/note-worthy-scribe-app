@@ -268,8 +268,7 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = `expand with more detail`;
-  return processTemplate(template, ctx);
+  return "expand with more detail";
 }
 
 async function summarise(ctx: QuickPickContext, maxWords: number = 100): Promise<string> {
