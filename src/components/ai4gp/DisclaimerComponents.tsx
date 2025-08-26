@@ -2,8 +2,9 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Shield, FileText, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Shield, FileText, CheckCircle, Shell } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MicroBannerProps {
   className?: string;
@@ -22,6 +23,12 @@ export const MicroBanner: React.FC<MicroBannerProps> = ({ className }) => (
 
 interface ShortCardProps {
   className?: string;
+}
+
+interface CollapsibleShortCardProps {
+  className?: string;
+  isCollapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
 }
 
 export const ShortCard: React.FC<ShortCardProps> = ({ className }) => (
@@ -167,6 +174,65 @@ export const FullModal: React.FC<FullModalProps> = ({
     </Dialog>
   );
 };
+
+export const CollapsibleShortCard: React.FC<CollapsibleShortCardProps> = ({ 
+  className, 
+  isCollapsed, 
+  onCollapsedChange 
+}) => (
+  <Collapsible open={!isCollapsed} onOpenChange={(open) => onCollapsedChange(!open)}>
+    <Card className={`border-l-4 border-blue-400 bg-blue-50 dark:bg-blue-950/30 ${className}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3 flex-1">
+            <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-800 dark:text-blue-200">
+              <p className="font-medium mb-2">
+                AI 4 GP Service - Disclaimer
+              </p>
+              <CollapsibleContent>
+                <div className="space-y-2">
+                  <p>
+                    This service provides NHS primary-care decision-support (NICE, BNF, MHRA, NHS.uk, local ICB). 
+                    Outputs may be incomplete or inaccurate. You remain responsible for all clinical decisions, 
+                    prescribing and documentation. Verify against the cited source material and your <a 
+                      href="https://www.icnorthamptonshire.org.uk/mo-formulary" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      local formulary
+                    </a> before acting.
+                  </p>
+                  <p>
+                    GP Portal: <a 
+                      href="https://www.icnorthamptonshire.org.uk/primarycareportal/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                    >
+                      Northamptonshire ICB Primary Care Portal
+                    </a>
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </div>
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              title={isCollapsed ? "Expand disclaimer" : "Collapse disclaimer"}
+            >
+              <Shell className={`h-4 w-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+      </CardContent>
+    </Card>
+  </Collapsible>
+);
 
 export const getAuditLine = () => {
   return "Clinical decision-support (AI 4 GP) consulted; advice cross-checked with NICE/BNF/local guidance. Management/prescribing decision made by clinician.";
