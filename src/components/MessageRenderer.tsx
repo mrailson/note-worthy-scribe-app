@@ -641,7 +641,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           ref={messageRef}
           className={`rounded-lg flex flex-col ${
             message.role === 'user' 
-              ? 'bg-primary text-primary-foreground ai4gp-text-scaled ai4gp-user-bubble' 
+              ? 'bg-primary text-primary-foreground ai4gp-user-bubble' 
               : isModal ? 'bg-transparent border-0' : 'bg-muted border border-border'
           } ${isModal ? 'p-0' : 'p-2 sm:p-4'}`}
           style={{
