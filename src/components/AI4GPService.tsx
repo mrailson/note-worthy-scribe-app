@@ -179,10 +179,23 @@ const AI4GPService = () => {
     return <LoginForm />;
   }
 
+  // Helper function to get text scaling class
+  const getTextScaleClass = (size: string) => {
+    switch (size) {
+      case 'small': return 'ai4gp-text-small';
+      case 'default': return 'ai4gp-text-default';
+      case 'medium': return 'ai4gp-text-medium';
+      case 'large': return 'ai4gp-text-large';
+      case 'xl': return 'ai4gp-text-xl';
+      case 'double': return 'ai4gp-text-double';
+      default: return 'ai4gp-text-default';
+    }
+  };
+
   return (
     <>
       <div 
-        className="flex-1 flex flex-col bg-background relative h-full overflow-hidden ai4gp-container-sized ai4gp-font-applied" 
+        className={`flex-1 flex flex-col bg-background relative h-full overflow-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)}`}
         data-component="ai4gp-service"
         style={{ 
           WebkitOverflowScrolling: 'touch',
