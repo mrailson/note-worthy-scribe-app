@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SafeMessageRenderer } from '@/components/SafeMessageRenderer';
 import { 
   ChevronDown, 
   ChevronsUp, 
@@ -573,61 +574,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     });
   };
 
-  // Function to inject policy badges into content
-  const injectPolicyBadges = (content: string) => {
-    if (policyHits.length === 0) return content;
-    
-    let modifiedContent = content;
-    
-    policyHits.forEach(hit => {
-      // Create a case-insensitive regex to find medicine names
-      const medicineRegex = new RegExp(`\\b${hit.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-      
-      modifiedContent = modifiedContent.replace(medicineRegex, (match) => {
-        return `${match} ✦POLICY_BADGE:${hit.name}:${hit.status_enum}✦`;
-      });
-    });
-    
-    return modifiedContent;
-  };
-
-  // Function to render policy badges within text
-  const renderContentWithBadges = (content: string) => {
-    const badgeRegex = /✦POLICY_BADGE:([^:]+):([^✦]+)✦/g;
-    const parts = content.split(badgeRegex);
-    
-    return parts.map((part, index) => {
-      // Every third part starting from index 1 is a medicine name, and index 2 is the status
-      if ((index - 1) % 3 === 0 && index + 1 < parts.length) {
-        const medicineName = part;
-        const status = parts[index + 1];
-        const policyHit = policyHits.find(hit => hit.name === medicineName);
-        
-        if (policyHit) {
-          return (
-            <EvidenceDrawer key={`badge-${index}`} policyHit={policyHit}>
-              <PolicyBadge 
-                status={status as any} 
-                medicineName={medicineName}
-                detailUrl={policyHit.detail_url}
-                onSetDrugName={onSetDrugName}
-                className="ml-1 cursor-pointer"
-              />
-            </EvidenceDrawer>
-          );
-        }
-      }
-      
-      // Skip the status parts
-      if ((index - 2) % 3 === 0) {
-        return null;
-      }
-      
-      return part;
-    }).filter(Boolean);
-  };
-
-  // Simple function to convert URLs to clickable links
+  // Simple function to convert URLs to clickable links (kept for user messages)
   const linkifyContent = (content: string) => {
     const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
     const parts = content.split(urlRegex);
@@ -648,196 +595,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       }
       return part;
     });
-  };
-
-  const formatContent = (content: string) => {
-    // Clean AI response content by removing separators and extra blank lines
-    let cleanedContent = content
-      .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
-      .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
-      .replace(/^\s+$/gm, '') // Remove lines with only whitespace
-      .trim();
-
-    // Policy badges disabled - user requested removal
-    // if (message.role === 'assistant') {
-    //   cleanedContent = injectPolicyBadges(cleanedContent);
-    // }
-    
-    // Process markdown formatting
-    const processMarkdown = (text: string) => {
-      // Split text by URLs first to avoid processing URLs
-      const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
-      const parts = text.split(urlRegex);
-      
-      return parts.map((part, index) => {
-        if (urlRegex.test(part)) {
-          return (
-            <a 
-              key={`url-${index}`}
-              href={part} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-600 underline break-all"
-            >
-              {part}
-            </a>
-          );
-        }
-        
-        // Process markdown in non-URL parts
-        const processedText = part
-          // Bold text **text**
-          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-          // Italic text *text*
-          .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          // Headers ######, #####, ####, ###, ##, #
-          .replace(/^###### (.+)$/gm, '<h6 class="text-xs font-semibold mt-3 mb-1">$1</h6>')
-          .replace(/^##### (.+)$/gm, '<h5 class="text-sm font-semibold mt-3 mb-1">$1</h5>')
-          .replace(/^#### (.+)$/gm, '<h4 class="text-sm font-semibold mt-3 mb-2">$1</h4>')
-          .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
-          .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
-          .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
-          // Code blocks `code`
-          .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>');
-        
-        // Check if this text part contains policy badges - DISABLED by user request
-        // if (part.includes('✦POLICY_BADGE:')) {
-        //   return (
-        //     <span key={`text-${index}`} className="inline">
-        //       {renderContentWithBadges(processedText.replace(/<[^>]*>/g, ''))}
-        //     </span>
-        //   );
-        // }
-
-        return (
-          <span 
-            key={`text-${index}`} 
-            dangerouslySetInnerHTML={{ __html: processedText }}
-          />
-        );
-      });
-    };
-
-    // Function to detect and format tables
-    const formatTable = (tableText: string) => {
-      const lines = tableText.split('\n').map(line => line.trim()).filter(Boolean);
-      
-      // Check if this looks like a table (multiple lines with | separators)
-      const tableLines = lines.filter(line => line.includes('|') && line.split('|').length > 2);
-      
-      if (tableLines.length < 2) {
-        return null; // Not a valid table
-      }
-
-      // Parse table rows
-      const rows = tableLines.map(line => {
-        return line.split('|')
-          .map(cell => cell.trim())
-          .filter(cell => cell !== '') // Remove empty cells from start/end
-      });
-
-      // Skip header separator lines (lines with just dashes and pipes)
-      const dataRows = rows.filter(row => 
-        !row.every(cell => /^[-\s]*$/.test(cell))
-      );
-
-      if (dataRows.length === 0) return null;
-
-      const headerRow = dataRows[0];
-      const bodyRows = dataRows.slice(1);
-
-      return (
-        <div className="my-4 overflow-x-auto">
-          <table className="min-w-full border-collapse border border-border">
-            <thead>
-              <tr className="bg-muted/50">
-                {headerRow.map((header, index) => (
-                  <th 
-                    key={index} 
-                    className="border border-border px-3 py-2 text-left font-semibold text-xs"
-                  >
-                    {processMarkdown(header)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {bodyRows.map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                  {row.map((cell, cellIndex) => (
-                    <td 
-                      key={cellIndex} 
-                      className="border border-border px-3 py-2 text-xs"
-                    >
-                      {processMarkdown(cell)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    };
-
-    // Split cleanedContent into paragraphs
-    const paragraphs = cleanedContent.split('\n\n');
-    
-    return paragraphs.map((paragraph, index) => {
-      if (!paragraph.trim()) return null;
-      
-      // Check if paragraph contains a table (multiple lines with | separators)
-      const lines = paragraph.split('\n');
-      const pipeLines = lines.filter(line => line.includes('|') && line.split('|').length > 2);
-      
-      if (pipeLines.length >= 2) {
-        const table = formatTable(paragraph);
-        if (table) {
-          return <div key={`table-${index}`}>{table}</div>;
-        }
-      }
-      
-      // Check if it's a list
-      if (paragraph.includes('\n-') || paragraph.includes('\n•') || paragraph.includes('\n*')) {
-        const lines = paragraph.split('\n');
-        const title = lines[0];
-        const listItems = lines.slice(1).filter(line => 
-          line.trim().startsWith('-') || 
-          line.trim().startsWith('•') || 
-          line.trim().startsWith('*')
-        );
-        
-        if (listItems.length > 0) {
-          return (
-            <div key={`list-${index}`} className="mb-4">
-              {title && (
-                <div className="font-medium mb-2">
-                  {processMarkdown(title)}
-                </div>
-              )}
-              <ul className="space-y-1 ml-4">
-                {listItems.map((item, itemIndex) => (
-                  <li key={`item-${itemIndex}`} className="flex items-start gap-2">
-                    <CheckSquare className="h-3 w-3 mt-1 flex-shrink-0 text-muted-foreground" />
-                    <span className="text-sm">
-                      {processMarkdown(item.replace(/^[-•*]\s*/, ''))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        }
-      }
-      
-      // Regular paragraph with markdown processing
-      return (
-        <p key={`para-${index}`} className="text-sm mb-3 leading-relaxed whitespace-pre-wrap">
-          {processMarkdown(paragraph)}
-        </p>
-      );
-    }).filter(Boolean);
   };
 
   return (
@@ -901,7 +658,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             {message.role === 'assistant' ? (
               <div 
                 ref={contentRef}
-                className={`ai-response-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
+                className={`message-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
                 style={{
                   maxWidth: 'none',
                   width: '100%',
@@ -909,7 +666,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   overflowWrap: 'break-word'
                 }}
               >
-                {formatContent(displayContent)}
+                <SafeMessageRenderer 
+                  content={displayContent}
+                  className="w-full"
+                />
                 {message.isStreaming && (
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <span className="animate-pulse">●</span>

@@ -151,6 +151,27 @@ All colors MUST be HSL.
   }
 }
 
+/* Message content styling for proper formatting */
+.message-content p { 
+  margin: 0 0 0.5rem; 
+  line-height: 1.5; 
+}
+
+.message-content ul,
+.message-content ol { 
+  margin: 0.5rem 0 0.5rem 1.25rem; 
+}
+
+.message-content li { 
+  margin: 0.25rem 0; 
+}
+
+.message-content h1,
+.message-content h2,
+.message-content h3 { 
+  margin: 0.75rem 0 0.5rem; 
+}
+
 /* AI Response Content Styling */
 .ai-response-content {
   line-height: 1.6;
