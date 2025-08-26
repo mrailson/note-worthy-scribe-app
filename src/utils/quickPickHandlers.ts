@@ -460,27 +460,46 @@ FORMATTING RULES
 }
 
 async function formatText(ctx: QuickPickContext): Promise<string> {
-  const template = `🚨 FORMAT ENFORCEMENT - EMERGENCY FIX 🚨
+  const template = `🚨 EMERGENCY FORMATTING FIX - MANDATORY RESTRUCTURE 🚨
 
-Take the following unformatted text and apply MANDATORY proper markdown formatting:
+The text below is POORLY FORMATTED and UNREADABLE. You MUST completely restructure it with proper markdown.
 
+UNFORMATTED TEXT:
 {{text}}
 
-ABSOLUTE REQUIREMENTS - NO EXCEPTIONS:
+YOUR TASK: Transform the above into PERFECT markdown structure. NO CONTENT CHANGES - ONLY FORMATTING.
 
-## Formatted Response
+MANDATORY OUTPUT FORMAT - FOLLOW EXACTLY:
 
-Transform the above into properly structured content with:
-- **Clear headers (##)** for main sections
-- **Bullet points (-)** for all lists with proper spacing  
-- **Bold terms** for key medical information
-- **Proper line breaks** between sections
-- **NO paragraph walls** - everything must be structured
+## Main Topic Header
+**Key concept:** Brief explanation
 
-❌ FORBIDDEN: Walls of text, missing headers, no bullets
-✅ REQUIRED: Perfect markdown structure with headers and bullets
+- **Important point:** Clear details with proper spacing
+- **Another point:** More details with spacing
 
-APPLY FORMATTING NOW - NO CONTENT CHANGES, JUST STRUCTURE`;
+## Next Major Section  
+**Key concept:** Brief explanation
+
+- **Medical term:** Definition or explanation  
+- **Another term:** More details
+- **Third point:** Additional information
+
+## Additional Sections
+**Key concept:** Brief explanation
+
+- **Structured point:** Clear information
+- **Well-spaced point:** More details
+
+ABSOLUTE REQUIREMENTS:
+- Every section MUST start with ## Header
+- Every list item MUST start with - (dash and space)  
+- Key terms MUST be **bolded**
+- BLANK LINES between all sections
+- NO paragraph text - everything must be bulleted
+- NO walls of text - break everything into bullets
+
+CRITICAL: Apply this exact structure to reorganize the poorly formatted text above. Keep all the medical content but make it readable with proper headers, bullets, and spacing.`;
+
   return processTemplate(template, ctx);
 }
 
