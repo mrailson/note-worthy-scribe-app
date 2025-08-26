@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -112,6 +112,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Persist Local Policy settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('ai4gp-northamptonshire-icb', JSON.stringify(northamptonshireICB));
+  }, [northamptonshireICB]);
+
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
@@ -218,79 +223,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* API Testing Section */}
-          <Card className="border-amber-200 bg-gradient-to-r from-background to-amber-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TestTube className="h-4 w-4 text-amber-600" />
-                API Services Test
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-sm font-medium">
-                    Test All API Services
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Verify all AI services are working with the prompt "What day is it today?"
-                  </p>
-                </div>
-                <Button 
-                  onClick={testApiServices}
-                  disabled={isTesting}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  {isTesting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <TestTube className="h-4 w-4" />
-                  )}
-                  {isTesting ? 'Testing...' : 'Test APIs'}
-                </Button>
-              </div>
-              
-              {testResults.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Test Results:</Label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {testResults.map((result) => (
-                      <div key={result.model} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {getStatusIcon(result.status)}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm">
-                              {AI_MODELS.find(m => m.id === result.model)?.name || result.model}
-                            </div>
-                            {result.responseTime && (
-                              <div className="text-xs text-muted-foreground">
-                                {result.responseTime}ms
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground max-w-xs">
-                          {result.status === 'success' && result.response && (
-                            <div className="text-green-600 truncate">
-                              {result.response.substring(0, 50)}...
-                            </div>
-                          )}
-                          {result.status === 'error' && result.error && (
-                            <div className="text-destructive">
-                              {result.error}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* OpenAI Toggle */}
           <Card className="border-primary/20 bg-gradient-to-r from-background to-primary/5">
             <CardHeader>
@@ -525,6 +457,79 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="text-sm font-medium text-green-800">🏥 Northamptonshire ICB Active</div>
                   <div className="text-xs text-green-700 mt-1">
                     Local medicines policies, pathways, and traffic-light guidance enabled
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* API Testing Section - Moved to bottom */}
+          <Card className="border-amber-200 bg-gradient-to-r from-background to-amber-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TestTube className="h-4 w-4 text-amber-600" />
+                API Services Test
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    Test All API Services
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Verify all AI services are working with the prompt "What day is it today?"
+                  </p>
+                </div>
+                <Button 
+                  onClick={testApiServices}
+                  disabled={isTesting}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  {isTesting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4" />
+                  )}
+                  {isTesting ? 'Testing...' : 'Test APIs'}
+                </Button>
+              </div>
+              
+              {testResults.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Test Results:</Label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {testResults.map((result) => (
+                      <div key={result.model} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {getStatusIcon(result.status)}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-sm">
+                              {AI_MODELS.find(m => m.id === result.model)?.name || result.model}
+                            </div>
+                            {result.responseTime && (
+                              <div className="text-xs text-muted-foreground">
+                                {result.responseTime}ms
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground max-w-xs">
+                          {result.status === 'success' && result.response && (
+                            <div className="text-green-600 truncate">
+                              {result.response.substring(0, 50)}...
+                            </div>
+                          )}
+                          {result.status === 'error' && result.error && (
+                            <div className="text-destructive">
+                              {result.error}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
