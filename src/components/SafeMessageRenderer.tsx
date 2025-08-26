@@ -152,23 +152,11 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
         html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
         
-        // Handle bullet points and numbered lists - preserve original format
+        // Handle bullet points and numbered lists - use dashes instead of HTML bullets
         // Exclude section headers from bullet point processing
         // Don't process lines that contain bold text followed by colon (section headers)
-        html = html.replace(/^[•\-\*] (?!.*\*\*[^*:]+\*\*:)(.+)$/gm, '<li-bullet>$1</li-bullet>');
-        html = html.replace(/^\d+\. (.+)$/gm, '<li-numbered>$1</li-numbered>');
-        
-        // Group consecutive bullet list items
-        html = html.replace(/(<li-bullet>.*?<\/li-bullet>(\n<li-bullet>.*?<\/li-bullet>)*)/gs, (match) => {
-          const items = match.replace(/<li-bullet>/g, '<li>').replace(/<\/li-bullet>/g, '</li>');
-          return `<ul>${items}</ul>`;
-        });
-        
-        // Group consecutive numbered list items
-        html = html.replace(/(<li-numbered>.*?<\/li-numbered>(\n<li-numbered>.*?<\/li-numbered>)*)/gs, (match) => {
-          const items = match.replace(/<li-numbered>/g, '<li>').replace(/<\/li-numbered>/g, '</li>');
-          return `<ol>${items}</ol>`;
-        });
+        html = html.replace(/^[•\-\*] (?!.*\*\*[^*:]+\*\*:)(.+)$/gm, '- $1');
+        html = html.replace(/^\d+\. (.+)$/gm, '$1'); // Remove numbering, just use plain text
         
         // Handle paragraphs - split by double line breaks and wrap non-HTML content
         const blocks = html.split(/\n\s*\n/);
