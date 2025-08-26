@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import DOMPurify from 'dompurify';
 import { 
   FileText, 
   Mail, 
@@ -664,9 +664,9 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
             />
           ) : (
             <div className="border rounded-lg p-4 min-h-[300px] bg-background">
-              <SafeMessageRenderer 
-                content={notes} 
-                className="prose prose-sm max-w-none dark:prose-invert"
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notes) }}
               />
             </div>
           )}
@@ -798,7 +798,10 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
                   />
                 ) : (
                   <div className="prose prose-sm max-w-none text-sm">
-                    <SafeMessageRenderer content={claudeNotes} />
+                    <div 
+                      className="prose prose-sm max-w-none text-sm whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(claudeNotes) }}
+                    />
                   </div>
                 )
               ) : (

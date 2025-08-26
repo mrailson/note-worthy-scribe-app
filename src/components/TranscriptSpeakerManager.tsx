@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { User, Save, Edit2, Check, X, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SafeMessageRenderer } from '@/components/SafeMessageRenderer';
+import DOMPurify from 'dompurify';
 
 interface TranscriptSpeakerManagerProps {
   transcript: string;
@@ -129,10 +129,10 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
             </div>
             <div className="ml-6 text-sm leading-relaxed">
               {fullContent.split('\n').map((line, lineIndex) => (
-                <SafeMessageRenderer 
+                <div 
                   key={lineIndex} 
-                  content={parseMarkdown(line)}
-                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  className={`whitespace-pre-wrap ${lineIndex > 0 ? 'mt-2' : ''}`}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(line)) }}
                 />
               ))}
             </div>
@@ -151,10 +151,10 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
             </div>
             <div className="text-sm leading-relaxed">
               {segment.split('\n').map((line, lineIndex) => (
-                <SafeMessageRenderer 
+                <div 
                   key={lineIndex} 
-                  content={parseMarkdown(line)}
-                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  className={`whitespace-pre-wrap ${lineIndex > 0 ? 'mt-2' : ''}`}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(line)) }}
                 />
               ))}
             </div>

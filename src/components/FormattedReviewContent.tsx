@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeMessageRenderer } from './SafeMessageRenderer';
+import DOMPurify from 'dompurify';
 
 interface FormattedReviewContentProps {
   content: string;
@@ -83,7 +83,10 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({ 
           `}
         >
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <SafeMessageRenderer content={section.content} />
+            <div 
+              className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
+            />
           </div>
         </div>
       ))}

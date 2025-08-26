@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { SafeMessageRenderer } from './SafeMessageRenderer';
+import DOMPurify from 'dompurify';
 import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -180,15 +180,20 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
           <ScrollArea className="flex-1 h-full min-h-0 pr-2 sm:pr-4">
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <div className="ai-response-content space-y-4 p-4 bg-muted/30 rounded-lg border">
-                <SafeMessageRenderer content={
-                  response
-                    .replace(/^```html\s*/i, '')     // Remove opening ```html
-                    .replace(/^```\s*/i, '')         // Remove opening ```
-                    .replace(/\s*```\s*$/i, '')      // Remove closing ```
-                    .replace(/^html\s*/i, '')        // Remove standalone "html" at start
-                    .replace(/\s*```[a-z]*\s*$/gi, '') // Remove any trailing ``` with optional language
-                    .trim()
-                } />
+                <div 
+                  className="whitespace-pre-wrap" 
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(
+                      response
+                        .replace(/^```html\s*/i, '')     // Remove opening ```html
+                        .replace(/^```\s*/i, '')         // Remove opening ```
+                        .replace(/\s*```\s*$/i, '')      // Remove closing ```
+                        .replace(/^html\s*/i, '')        // Remove standalone "html" at start
+                        .replace(/\s*```[a-z]*\s*$/gi, '') // Remove any trailing ``` with optional language
+                        .trim()
+                    ) 
+                  }} 
+                />
               </div>
             </div>
           </ScrollArea>

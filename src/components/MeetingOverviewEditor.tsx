@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Edit, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import DOMPurify from 'dompurify';
 
 interface MeetingOverviewEditorProps {
   meetingId: string;
@@ -93,9 +93,9 @@ export const MeetingOverviewEditor = ({
         </div>
         <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[60px]">
           {currentOverview ? (
-            <SafeMessageRenderer 
-              content={currentOverview} 
-              className="prose prose-sm max-w-none prose-headings:text-muted-foreground prose-p:text-muted-foreground prose-strong:text-muted-foreground prose-li:text-muted-foreground"
+            <div 
+              className="prose prose-sm max-w-none prose-headings:text-muted-foreground prose-p:text-muted-foreground prose-strong:text-muted-foreground prose-li:text-muted-foreground whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentOverview) }}
             />
           ) : (
             "No overview yet. Click Edit to add one."

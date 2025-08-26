@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import DOMPurify from 'dompurify';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
@@ -322,7 +322,10 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                   ) : (
                     <div className="p-4 border rounded-lg bg-muted/20 min-h-[200px]">
                       <div className="prose prose-sm max-w-none">
-                        <SafeMessageRenderer content={claudeNotes} />
+                        <div 
+                          className="prose prose-sm max-w-none whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(claudeNotes) }}
+                        />
                       </div>
                     </div>
                   )}
@@ -349,7 +352,10 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 p-6 bg-white overflow-auto">
               <div className="prose prose-sm max-w-none">
-                <SafeMessageRenderer content={claudeNotes} />
+                <div 
+                  className="prose prose-sm max-w-none whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(claudeNotes) }}
+                />
               </div>
             </div>
           </div>

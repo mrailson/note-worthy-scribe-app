@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import DOMPurify from 'dompurify';
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
@@ -1596,7 +1596,10 @@ const MeetingHistory = () => {
                    <h3 className="text-lg font-semibold">Meeting Notes</h3>
                     {meetingSummary ? (
                       <div className="prose max-w-none">
-                        <SafeMessageRenderer content={renderFormattedText(meetingSummary)} />
+                        <div 
+                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderFormattedText(meetingSummary)) }}
+                        />
                       </div>
                     ) : (
                     <div className="text-center py-8 bg-muted/50 rounded-lg border">

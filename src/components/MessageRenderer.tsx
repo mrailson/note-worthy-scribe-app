@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SafeMessageRenderer } from '@/components/SafeMessageRenderer';
+import DOMPurify from 'dompurify';
 import { 
   ChevronDown, 
   ChevronsUp, 
@@ -663,9 +663,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     overflowWrap: 'break-word'
                   }}
                 >
-                  <SafeMessageRenderer 
-                    content={displayContent}
-                    className="w-full"
+                  <div 
+                    className="w-full whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayContent) }}
                   />
                   {message.isStreaming && !displayContent && (
                     <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
@@ -681,10 +681,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 </div>
               ) : (
                 <div className="text-sm ai4gp-text-scaled">
-                  <SafeMessageRenderer 
-                    content={displayContent}
-                    className="w-full user-message-content"
-                    enableNHSStyling={true}
+                  <div 
+                    className="w-full user-message-content whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(displayContent) }}
                   />
                 </div>
               )}

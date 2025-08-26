@@ -34,7 +34,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import DOMPurify from 'dompurify';
 import { Header } from "@/components/Header";
 import { FormattedReviewContent } from "@/components/FormattedReviewContent";
 import { AIResponsePanel } from "@/components/AIResponsePanel";
@@ -1358,7 +1358,10 @@ P: Plan discussed with patient`;
                   />
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-4 border">
-                    <SafeMessageRenderer content={getCurrentGPSummary()} />
+                    <div 
+                      className="whitespace-pre-wrap" 
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getCurrentGPSummary()) }} 
+                    />
                   </div>
                 )}
               </TabsContent>
@@ -1433,7 +1436,10 @@ P: Plan discussed with patient`;
                     </div>
                     
                     <div className="bg-muted/30 rounded-lg p-4 border">
-                      <SafeMessageRenderer content={generateEmailVersion(content.patientCopy)} />
+                      <div 
+                        className="whitespace-pre-wrap" 
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(generateEmailVersion(content.patientCopy)) }} 
+                      />
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -1476,7 +1482,10 @@ P: Plan discussed with patient`;
                 ) : referralContent ? (
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                     <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <SafeMessageRenderer content={referralContent} className="ai-response-content space-y-3" />
+                      <div 
+                        className="whitespace-pre-wrap" 
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(referralContent) }} 
+                      />
                     </div>
                   </div>
                 ) : (
@@ -1710,33 +1719,17 @@ P: Plan discussed with patient`;
                                   {/* Detailed breakdown text */}
                                   <div className="prose prose-sm max-w-none dark:prose-invert">
                                     <div className="ai-response-content space-y-4">
-                                      <SafeMessageRenderer content={
-                                        scoringSection
-                                          .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
-                                          .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
-                                          .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
-                                          .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
-                                          // Remove the detailed scoring breakdown block
-                                          .replace(/\*\*HISTORY TAKING[\s\S]*?\*\*FINAL SCORE:\s*\*\*\[\d+\/100\]\*\*\s*\*\*/i, '')
-                                          .replace(/\*\*HISTORY TAKING[\s\S]*?FINAL SCORE:\s*\[\d+\/100\]/i, '')
-                                          // Remove all bold markdown formatting
-                                          .replace(/\*\*(.*?)\*\*/g, '$1')
-                                          // Add clear section breaks
-                                          .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n---\n\n$1\n')
-                                          .replace(/(=== [A-Z\s]+ ===)/g, '\n\n---\n\n$1\n')
-                                          // Format subtotals with better spacing
-                                          .replace(/Subtotal: <strong>\[\d+\/\d+\]<\/strong>/g, '\n\n**$&**\n\n---\n')
-                                          .replace(/Subtotal: \[\d+\/\d+\]/g, '\n\n**$&**\n\n---\n')
-                                          // Format bullet points and criteria
-                                          .replace(/^(\s*)-\s+([A-Z][^:]+:)/gm, '\n• **$2**')
-                                          .replace(/^(\s*)-\s+/gm, '\n• ')
-                                          // Add spacing around scores and assessments
-                                          .replace(/(\[\d+\/\d+\])/g, ' **$1** ')
-                                          // Clean up multiple line breaks but preserve intentional spacing
-                                          .replace(/\n{4,}/g, '\n\n\n')
-                                          .replace(/---\n+---/g, '---')
-                                          .trim()
-                                      } />
+                                      <div 
+                                        className="whitespace-pre-wrap"
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(
+                                          scoringSection
+                                            .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
+                                            .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
+                                            .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                            .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                            .trim()
+                                        ) }}
+                                      />
                                     </div>
                                   </div>
                                 </>
