@@ -119,26 +119,9 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
           .trim();
       };
 
-      // Normalize content for better markdown processing
-      const normalizeContent = (text: string): string => {
-        return text
-          // Normalize bullet point patterns
-          .replace(/^[\s]*[•\-\*\+]\s+/gm, '- ')
-          // Normalize numbered list patterns
-          .replace(/^[\s]*(\d+)[\.\)]\s+/gm, '$1. ')
-          // Ensure proper line breaks before list items
-          .replace(/([^\n])\n([\s]*[\-\*\+•])/gm, '$1\n\n$2')
-          .replace(/([^\n])\n([\s]*\d+[\.\)])/gm, '$1\n\n$2')
-          // Clean up multiple consecutive spaces
-          .replace(/[ \t]+/g, ' ')
-          // Normalize line endings
-          .replace(/\r\n/g, '\n')
-          .replace(/\r/g, '\n');
-      };
-
-      // Convert markdown to HTML - enhanced processing
+      // Convert markdown to HTML - focused on alignment fixes only
       const markdownToHtml = (text: string): string => {
-        let html = normalizeContent(text);
+        let html = text;
         
         // Process tables first (before other processing)
         html = processMarkdownTables(html);
@@ -157,92 +140,32 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
         html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
         
-        // Enhanced list processing
-        // Split into blocks first to handle lists properly
-        const blocks = html.split(/\n\s*\n/);
-        const processedBlocks = blocks.map(block => {
-          const lines = block.split('\n');
-          let result = '';
-          let currentListType = null;
-          let listItems = [];
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            
-            // Check for bullet points
-            const bulletMatch = line.match(/^[\-\*\+•]\s+(.+)$/);
-            const numberMatch = line.match(/^(\d+)\.\s+(.+)$/);
-            
-            if (bulletMatch) {
-              if (currentListType !== 'bullet') {
-                // Finish previous list
-                if (currentListType === 'number' && listItems.length > 0) {
-                  result += `<ol>${listItems.join('')}</ol>\n`;
-                }
-                currentListType = 'bullet';
-                listItems = [];
-              }
-              listItems.push(`<li>${bulletMatch[1]}</li>`);
-            } else if (numberMatch) {
-              if (currentListType !== 'number') {
-                // Finish previous list
-                if (currentListType === 'bullet' && listItems.length > 0) {
-                  result += `<ul>${listItems.join('')}</ul>\n`;
-                }
-                currentListType = 'number';
-                listItems = [];
-              }
-              listItems.push(`<li>${numberMatch[2]}</li>`);
-            } else {
-              // Finish any current list
-              if (currentListType === 'bullet' && listItems.length > 0) {
-                result += `<ul>${listItems.join('')}</ul>\n`;
-              } else if (currentListType === 'number' && listItems.length > 0) {
-                result += `<ol>${listItems.join('')}</ol>\n`;
-              }
-              currentListType = null;
-              listItems = [];
-              
-              // Add non-list line
-              if (line && !line.match(/^<(h[1-6]|table|ul|ol)/)) {
-                result += `${line}\n`;
-              } else if (line.match(/^<(h[1-6]|table|ul|ol)/)) {
-                result += `${line}\n`;
-              }
-            }
-          }
-          
-          // Finish any remaining list
-          if (currentListType === 'bullet' && listItems.length > 0) {
-            result += `<ul>${listItems.join('')}</ul>`;
-          } else if (currentListType === 'number' && listItems.length > 0) {
-            result += `<ol>${listItems.join('')}</ol>`;
-          }
-          
-          return result.trim();
+        // Handle bullet points - only convert actual markdown bullets
+        html = html.replace(/^[\s]*[•\-\*]\s+(.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^[\s]*(\d+)[\.\)]\s+(.+)$/gm, '<li>$2</li>');
+        
+        // Group consecutive list items properly
+        html = html.replace(/(<li>.*?<\/li>(\s*\n\s*<li>.*?<\/li>)*)/gs, (match) => {
+          // Check if this should be a numbered or bulleted list based on original content
+          const hasNumbers = text.includes('1.') || text.includes('2.') || text.includes('3.');
+          const wrapper = hasNumbers ? 'ol' : 'ul';
+          return `<${wrapper}>${match}</${wrapper}>`;
         });
         
-        // Join processed blocks and handle paragraphs
-        html = processedBlocks.map(block => {
-          if (!block) return '';
-          
+        // Handle paragraphs - split by double line breaks and wrap non-HTML content
+        const blocks = html.split(/\n\s*\n/);
+        html = blocks.map(block => {
+          const trimmed = block.trim();
           // Don't wrap if it's already HTML (headers, lists, tables, etc.)
-          if (block.match(/^<(h[1-6]|ul|ol|table)/)) {
-            return block;
+          if (trimmed.match(/^<(h[1-6]|ul|ol|li|table)/)) {
+            return trimmed;
           }
-          
-          // Split block into lines and process paragraphs
-          const lines = block.split('\n').filter(line => line.trim());
-          if (lines.length === 0) return '';
-          
-          // If all lines are already HTML, return as is
-          if (lines.every(line => line.match(/^<[^>]+>/))) {
-            return lines.join('\n');
+          // Don't wrap empty blocks
+          if (!trimmed) {
+            return '';
           }
-          
-          // Wrap non-HTML content in paragraphs
-          const paragraphContent = lines.join('<br>');
-          return `<p>${paragraphContent}</p>`;
+          // Wrap regular text in paragraphs
+          return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
         }).filter(block => block).join('\n\n');
         
         return html;

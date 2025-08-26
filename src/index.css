@@ -278,10 +278,9 @@ All colors MUST be HSL.
   background: hsl(var(--muted));
 }
 
-/* AI Response Content Styling - Enhanced for BNF formatting */
+/* AI Response Content Styling */
 .ai-response-content {
   line-height: 1.6;
-  font-size: calc(1em * var(--ai4gp-text-scale, 1));
 }
 
 .ai-response-content h3 {
@@ -291,64 +290,32 @@ All colors MUST be HSL.
   margin-bottom: 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid hsl(var(--border));
-  font-size: calc(1.125em * var(--ai4gp-text-scale, 1));
 }
 
 .ai-response-content h4 {
   color: hsl(var(--primary));
   font-weight: 600;
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   margin-bottom: 0.5rem;
-  font-size: calc(1.1em * var(--ai4gp-text-scale, 1));
 }
 
-/* Enhanced list styling for consistent BNF formatting */
 .ai-response-content ul {
-  margin: 1rem 0;
-  padding-left: 0;
-  list-style: none;
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
 }
 
-.ai-response-content ul li {
-  position: relative;
-  margin: 0.5rem 0;
-  padding-left: 1.25rem;
+.ai-response-content li {
+  margin: 0.25rem 0;
   line-height: 1.5;
-}
-
-.ai-response-content ul li::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: hsl(var(--primary));
-  font-weight: bold;
-  font-size: 1.1em;
 }
 
 .ai-response-content ol {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   padding-left: 1.5rem;
-  counter-reset: list-counter;
-}
-
-.ai-response-content ol li {
-  margin: 0.5rem 0;
-  line-height: 1.5;
-  counter-increment: list-counter;
 }
 
 .ai-response-content p {
-  margin: 0.75rem 0;
-  line-height: 1.6;
-}
-
-/* Ensure proper spacing between sections */
-.ai-response-content > *:first-child {
-  margin-top: 0;
-}
-
-.ai-response-content > *:last-child {
-  margin-bottom: 0;
+  margin: 0.5rem 0;
 }
 
 .ai-response-content blockquote {
