@@ -27,99 +27,58 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
           .trim();
       };
 
-      // Convert markdown to HTML
+      // Convert markdown to HTML - using improved regex approach
       const markdownToHtml = (text: string): string => {
-        // Split into lines and process
-        const lines = text.split('\n');
-        const result: string[] = [];
-        let inList = false;
-        let listType = '';
+        let html = text;
         
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          
-          // Skip empty lines but preserve them for paragraph breaks
-          if (!line) {
-            // Close any open list
-            if (inList) {
-              result.push(`</${listType}>`);
-              inList = false;
-            }
-            // Add paragraph break for multiple empty lines
-            if (result.length > 0 && !result[result.length - 1].includes('<br/>')) {
-              result.push('<br/>');
-            }
-            continue;
-          }
-          
-          // Headers (process from most specific to least specific)
-          if (line.startsWith('######')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h6>${line.substring(6).trim()}</h6>`);
-          } else if (line.startsWith('#####')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h5>${line.substring(5).trim()}</h5>`);
-          } else if (line.startsWith('####')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h4>${line.substring(4).trim()}</h4>`);
-          } else if (line.startsWith('###')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h3>${line.substring(3).trim()}</h3>`);
-          } else if (line.startsWith('##')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h2>${line.substring(2).trim()}</h2>`);
-          } else if (line.startsWith('#')) {
-            if (inList) { result.push(`</${listType}>`); inList = false; }
-            result.push(`<h1>${line.substring(1).trim()}</h1>`);
-          }
-          // Bullet points
-          else if (line.match(/^[•\-\*]\s/)) {
-            const content = line.replace(/^[•\-\*]\s/, '').trim();
-            if (!inList || listType !== 'ul') {
-              if (inList) result.push(`</${listType}>`);
-              result.push('<ul>');
-              inList = true;
-              listType = 'ul';
-            }
-            result.push(`<li>${content}</li>`);
-          }
-          // Numbered lists
-          else if (line.match(/^\d+\.\s/)) {
-            const content = line.replace(/^\d+\.\s/, '').trim();
-            if (!inList || listType !== 'ol') {
-              if (inList) result.push(`</${listType}>`);
-              result.push('<ol>');
-              inList = true;
-              listType = 'ol';
-            }
-            result.push(`<li>${content}</li>`);
-          }
-          // Regular paragraph text
-          else {
-            if (inList) {
-              result.push(`</${listType}>`);
-              inList = false;
-            }
-            
-            // Process inline formatting
-            let processedLine = line
-              // Bold text
-              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              .replace(/__(.*?)__/g, '<strong>$1</strong>')
-              // Italic text
-              .replace(/(?<!\*)\*([^\*]+?)\*(?!\*)/g, '<em>$1</em>')
-              .replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>');
-            
-            result.push(`<p>${processedLine}</p>`);
-          }
-        }
+        // Process headers first (h6 to h1 to avoid conflicts)
+        html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+        html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
+        html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
         
-        // Close any remaining open list
-        if (inList) {
-          result.push(`</${listType}>`);
-        }
+        // Process inline formatting before lists
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+        html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
         
-        return result.join('\n');
+        // Handle bullet points and numbered lists
+        // First mark list items
+        html = html.replace(/^[•\-\*] (.+)$/gm, '<li-bullet>$1</li-bullet>');
+        html = html.replace(/^\d+\. (.+)$/gm, '<li-numbered>$1</li-numbered>');
+        
+        // Group consecutive bullet list items
+        html = html.replace(/(<li-bullet>.*?<\/li-bullet>(\n<li-bullet>.*?<\/li-bullet>)*)/gs, (match) => {
+          const items = match.replace(/<li-bullet>/g, '<li>').replace(/<\/li-bullet>/g, '</li>');
+          return `<ul>${items}</ul>`;
+        });
+        
+        // Group consecutive numbered list items
+        html = html.replace(/(<li-numbered>.*?<\/li-numbered>(\n<li-numbered>.*?<\/li-numbered>)*)/gs, (match) => {
+          const items = match.replace(/<li-numbered>/g, '<li>').replace(/<\/li-numbered>/g, '</li>');
+          return `<ol>${items}</ol>`;
+        });
+        
+        // Handle paragraphs - split by double line breaks and wrap non-HTML content
+        const blocks = html.split(/\n\s*\n/);
+        html = blocks.map(block => {
+          const trimmed = block.trim();
+          // Don't wrap if it's already HTML (headers, lists, etc.)
+          if (trimmed.match(/^<(h[1-6]|ul|ol|li)/)) {
+            return trimmed;
+          }
+          // Don't wrap empty blocks
+          if (!trimmed) {
+            return '';
+          }
+          // Wrap regular text in paragraphs
+          return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+        }).filter(block => block).join('\n\n');
+        
+        return html;
       };
 
       // Function to convert URLs to clickable links
@@ -132,7 +91,7 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
       // Apply content cleaning, markdown conversion, and linkification
       const cleanedContent = cleanAIContent(content);
       const markdownContent = markdownToHtml(cleanedContent);
-      const linkedContent = linkifyContent(markdownContent.replace(/\n/g, '<br/>'));
+      const linkedContent = linkifyContent(markdownContent);
 
       // Sanitize links to only allow NHS-approved URLs
       const linkSanitized = await sanitizeLinks(linkedContent, 'health information');
