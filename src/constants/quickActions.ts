@@ -120,6 +120,12 @@ OUTPUTS with headings; plain English; short and expanded versions for A & B; sig
     requiresFile: true
   },
   {
+    label: 'Meeting Notes Summariser',
+    icon: NotebookPen,
+    prompt: `${pmSafetyPreamble} Summarise the attached/pasted transcript into: (1) executive summary, (2) decisions, (3) actions with owner/due date, (4) risks/issues log. Keep neutral, no hallucinations; mark any unclear sections for review.`,
+    requiresFile: true
+  },
+  {
     label: 'ARRS Claim Checker',
     icon: ClipboardCheck,
     prompt: `${pmSafetyPreamble} Validate an ARRS claim for [role title] in [PCN name]. Assess: eligibility, reimbursable cost elements, WTE/hours calc, supervisor requirements, claim window, evidence needed (contract, JD, payroll), common rejection reasons, and back-claim options. Provide a checklist and a ready-to-send query email to the ICB if needed.`,
@@ -166,11 +172,5 @@ OUTPUTS with headings; plain English; short and expanded versions for A & B; sig
     icon: Megaphone,
     prompt: `${pmSafetyPreamble} From this core message: [message], generate: (1) 160-char SMS, (2) patient letter, (3) website news post, (4) phone/IVR script, (5) social post. Keep consistent tone; add accessibility/readability improvements.`,
     requiresFile: false
-  },
-  {
-    label: 'Meeting Notes Summariser',
-    icon: NotebookPen,
-    prompt: `${pmSafetyPreamble} Summarise the attached/pasted transcript into: (1) executive summary, (2) decisions, (3) actions with owner/due date, (4) risks/issues log. Keep neutral, no hallucinations; mark any unclear sections for review.`,
-    requiresFile: true
   },
 ];
