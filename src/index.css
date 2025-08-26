@@ -126,6 +126,12 @@ All colors MUST be HSL.
   line-height: calc(1.5 * var(--ai4gp-text-scale, 1));
 }
 
+/* User bubble specific sizing - fixed small size */
+.ai4gp-user-bubble .ai4gp-text-scaled {
+  font-size: 0.75rem !important;
+  line-height: 1.4 !important;
+}
+
 /* Scope: user bubble only */
 .ai4gp-user-bubble .prose {
   /* Force white text everywhere inside prose */
