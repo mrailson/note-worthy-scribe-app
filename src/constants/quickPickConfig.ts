@@ -53,12 +53,12 @@ export const quickPickConfig = {
           "id": "translate-patient",
           "label": "Patient-friendly →",
           "children": [
-            {"id": "t-patient-pl", "label": "Polish (pl)"},
-            {"id": "t-patient-ro", "label": "Romanian (ro)"},
-            {"id": "t-patient-lt", "label": "Lithuanian (lt)"},
-            {"id": "t-patient-uk", "label": "Ukrainian (uk)"},
-            {"id": "t-patient-ar", "label": "Arabic (ar)"},
-            {"id": "t-patient-pt", "label": "Portuguese (pt)"},
+            {"id": "t-patient-pl", "label": "Polski / Polish (pl)"},
+            {"id": "t-patient-ro", "label": "Română / Romanian (ro)"},
+            {"id": "t-patient-lt", "label": "Lietuvių / Lithuanian (lt)"},
+            {"id": "t-patient-uk", "label": "Українська / Ukrainian (uk)"},
+            {"id": "t-patient-ar", "label": "العربية / Arabic (ar)"},
+            {"id": "t-patient-pt", "label": "Português / Portuguese (pt)"},
             {"id": "t-patient-more", "label": "More languages…"}
           ]
         },
@@ -66,12 +66,12 @@ export const quickPickConfig = {
           "id": "translate-clinician",
           "label": "Clinician-literal →",
           "children": [
-            {"id": "t-clinician-pl", "label": "Polish (pl)"},
-            {"id": "t-clinician-ro", "label": "Romanian (ro)"},
-            {"id": "t-clinician-lt", "label": "Lithuanian (lt)"},
-            {"id": "t-clinician-uk", "label": "Ukrainian (uk)"},
-            {"id": "t-clinician-ar", "label": "Arabic (ar)"},
-            {"id": "t-clinician-pt", "label": "Portuguese (pt)"},
+            {"id": "t-clinician-pl", "label": "Polski / Polish (pl)"},
+            {"id": "t-clinician-ro", "label": "Română / Romanian (ro)"},
+            {"id": "t-clinician-lt", "label": "Lietuvių / Lithuanian (lt)"},
+            {"id": "t-clinician-uk", "label": "Українська / Ukrainian (uk)"},
+            {"id": "t-clinician-ar", "label": "العربية / Arabic (ar)"},
+            {"id": "t-clinician-pt", "label": "Português / Portuguese (pt)"},
             {"id": "t-clinician-more", "label": "More languages…"}
           ]
         },
