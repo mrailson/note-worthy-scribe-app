@@ -8,7 +8,6 @@ import { LoginForm } from '@/components/LoginForm';
 import { Header } from '@/components/Header';
 import AI4GPService from '@/components/AI4GPService';
 import { DrugQuickModal } from '@/components/DrugQuickModal';
-import { FloatingQuickActions } from '@/components/ai4gp/FloatingQuickActions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -157,17 +156,6 @@ const AI4GP = () => {
           <AI4GPService />
         </div>
         
-        {/* Floating Quick Actions */}
-        {user && profile?.ai4gp_access && (
-          <FloatingQuickActions
-            setInput={() => {}}
-            onOpenDrugModal={() => setDrugModalOpen(true)}
-            onOpenAITestModal={() => {}}
-            onOpenNews={() => {}}
-            onOpenImageService={() => {}}
-            onOpenQuickImageModal={() => {}}
-          />
-        )}
       </main>
 
       {/* Drug Quick Lookup Modal */}
