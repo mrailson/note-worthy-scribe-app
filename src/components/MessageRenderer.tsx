@@ -681,7 +681,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="text-sm ai4gp-text-scaled">
+                <div className="ai4gp-text-scaled">
                   <div 
                     dangerouslySetInnerHTML={{ 
                       __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true, isUserMessage: message.role === 'user' })
