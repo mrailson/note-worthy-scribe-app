@@ -325,14 +325,20 @@ const GPGenieVoiceAgent = () => {
                   : 'Ready to connect'
                 }
               </p>
-              <p className="text-sm text-muted-foreground">
-                {conversation.status === 'connected'
-                  ? activeTab === 'gp-genie'
-                    ? 'Ask about patient care, clinical protocols, or consultation guidance'
-                    : 'Ask about operational matters, HR guidance, or practice management'
-                  : `Click start to talk with ${activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie'}`
-                }
-              </p>
+               <p className="text-sm text-muted-foreground">
+                 {conversation.status === 'connected'
+                   ? activeTab === 'gp-genie'
+                     ? 'Ask about patient care, clinical protocols, or consultation guidance'
+                     : activeTab === 'pm-genie'
+                     ? 'Ask about operational matters, HR guidance, or practice management'
+                     : 'Ask about symptoms, health concerns, or medical guidance'
+                   : activeTab === 'gp-genie'
+                   ? `Click start to talk with GP Genie`
+                   : activeTab === 'pm-genie'
+                   ? `Click start to talk with PM Genie`
+                   : `Click start to talk with Patient Triage service Demo`
+                 }
+               </p>
             </div>
           </div>
 
