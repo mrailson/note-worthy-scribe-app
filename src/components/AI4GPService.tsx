@@ -344,7 +344,7 @@ const AI4GPService = () => {
                       ✕
                     </button>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-[70vh] overflow-y-auto">
                     <GPGenieVoiceAgent />
                   </div>
                 </div>
