@@ -21,7 +21,8 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
       const cleanAIContent = (text: string): string => {
         return text
           .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
-          .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
+          .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace only
+          .replace(/^---+\s+(.+)$/gm, '$1') // Remove leading dashes from content lines
           .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
           .replace(/^\s+$/gm, '') // Remove lines with only whitespace
           .trim();
