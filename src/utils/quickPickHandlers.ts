@@ -86,7 +86,7 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = "Expand {{text}} with concrete, UK-specific detail. Keep bullets. Add examples, thresholds, and timeframes. For medicines, add monitoring and counselling points. Keep it within +30% length.";
+  const template = "make more detailed (at least 50%) and give more relevant details and breakdown and examples if appropriate";
   return processTemplate(template, ctx);
 }
 
