@@ -254,18 +254,7 @@ const AI4GPService = () => {
 
                   
                    <div className="flex items-center gap-1 sm:gap-2">
-                    {/* Settings Button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSettings(true)}
-                      className="px-2 sm:px-3"
-                    >
-                      <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">Settings</span>
-                    </Button>
-                    
-                    <DropdownMenu>
+                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
@@ -325,9 +314,20 @@ const AI4GPService = () => {
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                     
+                     {/* Settings Button */}
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => setShowSettings(true)}
+                       className="px-2 sm:px-3"
+                     >
+                       <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                       <span className="hidden sm:inline text-xs">Settings</span>
+                     </Button>
+                   </div>
                 </div>
               </CardHeader>
 
