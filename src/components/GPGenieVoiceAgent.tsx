@@ -39,6 +39,14 @@ const GPGenieVoiceAgent = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
+
+  const languageRotation = [
+    { code: 'en', text: 'Test Language Support Service' },
+    { code: 'de', text: 'Testen Sie den Sprachunterstützungsdienst' },
+    { code: 'fr', text: 'Tester le service d\'assistance linguistique' },
+    { code: 'ar', text: 'اختبار خدمة الدعم اللغوي' }
+  ];
 
   const conversation = useConversation({
     onConnect: () => {
@@ -219,6 +227,15 @@ const GPGenieVoiceAgent = () => {
     navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
       setHasPermission(result.state === 'granted');
     });
+  }, []);
+
+  useEffect(() => {
+    // Language rotation for the test button
+    const interval = setInterval(() => {
+      setCurrentLanguageIndex((prevIndex) => (prevIndex + 1) % languageRotation.length);
+    }, 3000); // Rotate every 3 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -475,11 +492,11 @@ const GPGenieVoiceAgent = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs"
+                    className="w-full text-xs transition-all duration-300"
                     onClick={() => window.open('https://elevenlabs.io/app/talk-to?agent_id=agent_01jws2qhv2essav25m8cfq2h0v', '_blank')}
                   >
                     <PhoneCall className="h-3 w-3 mr-1" />
-                    Test Language Support Service
+                    {languageRotation[currentLanguageIndex].text}
                   </Button>
                 </div>
               </div>
