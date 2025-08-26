@@ -69,7 +69,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
         {isLoading && (
           <div className="flex items-center justify-center py-4">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-sm">Notewell AI is thinking</span>
+              <span className="text-sm">Working on it...</span>
               <span className="inline-flex items-center gap-0.5">
                 <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
                 <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
