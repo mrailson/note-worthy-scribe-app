@@ -32,6 +32,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
   
+  // Force cache refresh - removed ConsultationCheckerModal completely
+  console.log('QuickActionsPanel rendered - cache refresh');
+  
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
   
