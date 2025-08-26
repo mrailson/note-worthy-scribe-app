@@ -115,53 +115,53 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  className="bg-background border border-border shadow-lg w-48"
-                >
-                   {hasModuleAccess('meeting_recorder') && (
+                 <DropdownMenuContent 
+                   align="end" 
+                   className="bg-background border border-border shadow-lg w-48 z-50"
+                 >
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/ai4gp')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Sparkles className="h-4 w-4 mr-2" />
+                         AI4GP Service
+                       </DropdownMenuItem>
+                    {hasModuleAccess('meeting_recorder') && (
+                       <DropdownMenuItem 
+                         onClick={() => window.location.href = '/'}
+                         className="cursor-pointer py-3"
+                       >
+                         <FileText className="h-4 w-4 mr-2" />
+                         Meeting Notes
+                       </DropdownMenuItem>
+                     )}
+                    {hasModuleAccess('gp_scribe') && (
                       <DropdownMenuItem 
-                        onClick={() => window.location.href = '/'}
+                        onClick={() => navigate('/gp-scribe')}
                         className="cursor-pointer py-3"
                       >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Meeting Notes
+                        <Stethoscope className="h-4 w-4 mr-2" />
+                        GP Scribe
                       </DropdownMenuItem>
                     )}
-                   {hasModuleAccess('gp_scribe') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/gp-scribe')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Stethoscope className="h-4 w-4 mr-2" />
-                       GP Scribe
-                     </DropdownMenuItem>
-                   )}
-                   {hasModuleAccess('complaints_system') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/complaints')}
-                       className="cursor-pointer py-3"
-                     >
-                       <MessageSquareWarning className="h-4 w-4 mr-2" />
-                       Complaints System
-                     </DropdownMenuItem>
-                   )}
-                   {hasModuleAccess('ai_4_pm') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/ai-4-pm')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Sparkles className="h-4 w-4 mr-2" />
-                       AI 4 PM Assistant
-                     </DropdownMenuItem>
-                     )}
+                    {hasModuleAccess('complaints_system') && (
                       <DropdownMenuItem 
-                        onClick={() => navigate('/ai4gp')}
+                        onClick={() => navigate('/complaints')}
+                        className="cursor-pointer py-3"
+                      >
+                        <MessageSquareWarning className="h-4 w-4 mr-2" />
+                        Complaints System
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('ai_4_pm') && (
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/ai-4-pm')}
                         className="cursor-pointer py-3"
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        AI4GP Service
+                        AI 4 PM Assistant
                       </DropdownMenuItem>
+                      )}
                       {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
@@ -341,31 +341,31 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       </DrawerClose>
                     )}
 
-                     {/* Main Services */}
-                     {user && (
-                       <>
-                          {hasModuleAccess('meeting_recorder') && (
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
-                                <FileText className="h-4 w-4 mr-2" />
-                                Meeting Notes
-                              </Button>
-                            </DrawerClose>
-                          )}
-                          {hasModuleAccess('gp_scribe') && (
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
-                                <Stethoscope className="h-4 w-4 mr-2" />
-                                GP Scribe
-                              </Button>
-                            </DrawerClose>
-                          )}
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              AI4GP Service
-                            </Button>
-                          </DrawerClose>
+                      {/* Main Services */}
+                      {user && (
+                        <>
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
+                               <Sparkles className="h-4 w-4 mr-2" />
+                               AI4GP Service
+                             </Button>
+                           </DrawerClose>
+                           {hasModuleAccess('meeting_recorder') && (
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
+                                 <FileText className="h-4 w-4 mr-2" />
+                                 Meeting Notes
+                               </Button>
+                             </DrawerClose>
+                           )}
+                           {hasModuleAccess('gp_scribe') && (
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
+                                 <Stethoscope className="h-4 w-4 mr-2" />
+                                 GP Scribe
+                               </Button>
+                             </DrawerClose>
+                           )}
                          {hasModuleAccess('complaints_system') && (
                            <DrawerClose asChild>
                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
