@@ -89,12 +89,19 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
     requiresFile: false 
   },
-  { 
-    label: 'Drug Quick Lookup', 
-    icon: Search, 
+  {
+    label: 'Drug Quick Lookup',
+    icon: Search,
     prompt: '', 
     requiresFile: false,
     action: 'open-drug-lookup-modal'
+  },
+  {
+    label: 'Scribe Consultation Checker',
+    icon: FileHeart,
+    prompt: '',
+    requiresFile: false,
+    action: 'scribe-consultation-checker'
   },
 ];
 
