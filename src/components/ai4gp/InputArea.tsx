@@ -127,6 +127,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
               <SimpleBrowserMic
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
+                onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
                 className="justify-center"
               />

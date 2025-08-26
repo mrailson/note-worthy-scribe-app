@@ -6,12 +6,14 @@ import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechT
 
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
+  onRecordingStart?: () => void;
   disabled?: boolean;
   className?: string;
 }
 
 export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
   onTranscriptUpdate,
+  onRecordingStart,
   disabled = false,
   className = ''
 }) => {
@@ -76,6 +78,9 @@ export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
 
       await transcriberRef.current.startTranscription();
       setIsRecording(true);
+      
+      // Focus the input when recording starts
+      onRecordingStart?.();
       
     } catch (error: any) {
       console.error('Error starting browser speech recognition:', error);
