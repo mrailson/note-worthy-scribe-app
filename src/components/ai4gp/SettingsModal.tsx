@@ -282,32 +282,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <Label htmlFor="response-metrics" className="text-sm font-medium">
-                    Show Response Metrics
+                    Show Performance Metrics
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Display response time and token usage
+                    Display response time, token usage, and performance metrics
                   </p>
                 </div>
                 <Switch
                   id="response-metrics"
                   checked={showResponseMetrics}
-                  onCheckedChange={onShowResponseMetricsChange}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="render-times" className="text-sm font-medium">
-                    Show Render Times
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Display response timing metrics
-                  </p>
-                </div>
-                <Switch
-                  id="render-times"
-                  checked={showRenderTimes}
-                  onCheckedChange={onShowRenderTimesChange}
+                  onCheckedChange={(checked) => {
+                    onShowResponseMetricsChange(checked);
+                    onShowRenderTimesChange(checked);
+                  }}
                 />
               </div>
 
