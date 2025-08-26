@@ -104,7 +104,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [verificationData, setVerificationData] = useState(null);
   const [policyHits, setPolicyHits] = useState<any[]>([]);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
+  const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(false);
   const { user } = useAuth();
+  // Toggle user message collapse
+  const toggleUserMessageCollapse = () => {
+    if (message.role === 'user') {
+      setIsUserMessageCollapsed(!isUserMessageCollapsed);
+    }
+  };
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   const { resolveMedicines } = useTrafficLightResolver();
   
@@ -618,9 +625,15 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               </button>
             )}
             
-            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-              message.role === 'user' ? 'bg-primary' : 'bg-muted'
-            }`}>
+            <div 
+              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                message.role === 'user' 
+                  ? 'bg-primary cursor-pointer hover:bg-primary/80 transition-colors' 
+                  : 'bg-muted'
+              }`}
+              onClick={message.role === 'user' ? toggleUserMessageCollapse : undefined}
+              title={message.role === 'user' ? (isUserMessageCollapsed ? 'Expand message' : 'Collapse message') : undefined}
+            >
               {message.role === 'user' ? (
                 <User className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
               ) : (
@@ -654,40 +667,50 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           }}
         >
           {/* Message Content */}
-          <div className="space-y-2 flex-1 min-h-0">
-            {message.role === 'assistant' ? (
-              <div 
-                ref={contentRef}
-                className={`message-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
-                style={{
-                  maxWidth: 'none',
-                  width: '100%',
-                  wordBreak: 'break-word',
-                  overflowWrap: 'break-word'
-                }}
-              >
-                <SafeMessageRenderer 
-                  content={displayContent}
-                  className="w-full"
-                />
-                {message.isStreaming && (
-                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <span className="animate-pulse">●</span>
-                    <span className="animate-pulse delay-100">●</span>
-                    <span className="animate-pulse delay-200">●</span>
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm">
-                <SafeMessageRenderer 
-                  content={displayContent}
-                  className="w-full user-message-content"
-                  enableNHSStyling={true}
-                />
-              </div>
-            )}
-          </div>
+          {!(message.role === 'user' && isUserMessageCollapsed) && (
+            <div className="space-y-2 flex-1 min-h-0">
+              {message.role === 'assistant' ? (
+                <div 
+                  ref={contentRef}
+                  className={`message-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
+                  style={{
+                    maxWidth: 'none',
+                    width: '100%',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word'
+                  }}
+                >
+                  <SafeMessageRenderer 
+                    content={displayContent}
+                    className="w-full"
+                  />
+                  {message.isStreaming && (
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <span className="animate-pulse">●</span>
+                      <span className="animate-pulse delay-100">●</span>
+                      <span className="animate-pulse delay-200">●</span>
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <SafeMessageRenderer 
+                    content={displayContent}
+                    className="w-full user-message-content"
+                    enableNHSStyling={true}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Collapsed indicator for user messages */}
+          {message.role === 'user' && isUserMessageCollapsed && (
+            <div className="flex items-center gap-2 text-sm opacity-70 py-2">
+              <span className="text-primary-foreground/70">Message collapsed</span>
+              <ChevronDown className="h-3 w-3 text-primary-foreground/70" />
+            </div>
+          )}
           
           {/* File attachments */}
           {message.files && message.files.length > 0 && (
