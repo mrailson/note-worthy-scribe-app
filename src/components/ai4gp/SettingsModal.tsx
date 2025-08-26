@@ -223,47 +223,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* OpenAI Toggle */}
-          <Card className="border-primary/20 bg-gradient-to-r from-background to-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4 text-primary" />
-                Use OpenAI Models
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="use-openai" className="text-sm font-medium">
-                    OpenAI Integration
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Switch to OpenAI's powerful models for enhanced performance
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {useOpenAI ? 'OpenAI' : 'Default'}
-                  </span>
-                  <Switch
-                    id="use-openai"
-                    checked={useOpenAI}
-                    onCheckedChange={onUseOpenAIChange}
-                  />
-                </div>
-              </div>
-              
-              {useOpenAI && (
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <div className="text-sm font-medium text-primary">✨ OpenAI Active</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Using advanced OpenAI models for superior AI responses
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* AI Model Selection */}
           <Card>
             <CardHeader>
@@ -320,58 +279,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="session-memory" className="text-sm font-medium">
-                    Session Memory
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Remember conversation context across messages
-                  </p>
-                </div>
-                <Switch
-                  id="session-memory"
-                  checked={sessionMemory}
-                  onCheckedChange={onSessionMemoryChange}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="verification-level" className="text-sm font-medium">
-                  Data Verification Level
-                </Label>
-                <Select value={verificationLevel} onValueChange={onVerificationLevelChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">
-                      <div className="space-y-1">
-                        <div className="font-medium">Standard</div>
-                        <div className="text-xs text-muted-foreground">Cached knowledge + basic search</div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="latest">
-                      <div className="space-y-1">
-                        <div className="font-medium">Latest Updates</div>
-                        <div className="text-xs text-muted-foreground">Real-time trusted source fetching</div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="maximum">
-                      <div className="space-y-1">
-                        <div className="font-medium">Maximum Verification</div>
-                        <div className="text-xs text-muted-foreground">Cross-reference multiple live sources</div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {verificationLevel === 'standard' && 'Fast responses using AI knowledge base with basic web search'}
-                  {verificationLevel === 'latest' && 'Live data from NHS, NICE, BNF, MHRA with verification panels'}
-                  {verificationLevel === 'maximum' && 'Multiple source cross-referencing with confidence scoring'}
-                </p>
-              </div>
-              
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <Label htmlFor="response-metrics" className="text-sm font-medium">
