@@ -505,7 +505,7 @@ const AI4GPService = () => {
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {expandedMessage && (
-              <div className="prose prose-sm w-full pb-20" style={{ maxWidth: 'none' }}>
+              <div className={`prose prose-sm w-full pb-20 ai4gp-text-scaled ${getTextScaleClass(textSize)}`} style={{ maxWidth: 'none' }}>
                 <MessageRenderer
                   message={expandedMessage}
                   onExpandMessage={() => {}}
