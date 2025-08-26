@@ -238,24 +238,6 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "staff-training-pack": createStaffTrainingPack,
   "manager-briefing": createManagerBriefingSlide,
 
-  "translate-auto": (ctx) => translate(ctx, { mode: "auto" }),
-  "t-patient-pl": (ctx) => translate(ctx, { mode: "patient", targetLang: "pl" }),
-  "t-patient-ro": (ctx) => translate(ctx, { mode: "patient", targetLang: "ro" }),
-  "t-patient-lt": (ctx) => translate(ctx, { mode: "patient", targetLang: "lt" }),
-  "t-patient-uk": (ctx) => translate(ctx, { mode: "patient", targetLang: "uk" }),
-  "t-patient-ar": (ctx) => translate(ctx, { mode: "patient", targetLang: "ar" }),
-  "t-patient-pt": (ctx) => translate(ctx, { mode: "patient", targetLang: "pt" }),
-  "t-patient-more": () => openLanguagePicker({ mode: "patient" }),
-
-  "t-clinician-pl": (ctx) => translate(ctx, { mode: "clinician", targetLang: "pl" }),
-  "t-clinician-ro": (ctx) => translate(ctx, { mode: "clinician", targetLang: "ro" }),
-  "t-clinician-lt": (ctx) => translate(ctx, { mode: "clinician", targetLang: "lt" }),
-  "t-clinician-uk": (ctx) => translate(ctx, { mode: "clinician", targetLang: "uk" }),
-  "t-clinician-ar": (ctx) => translate(ctx, { mode: "clinician", targetLang: "ar" }),
-  "t-clinician-pt": (ctx) => translate(ctx, { mode: "clinician", targetLang: "pt" }),
-  "t-clinician-more": () => openLanguagePicker({ mode: "clinician" }),
-
-  "translate-back-to-en": backToEnglish,
 
   "copy-clipboard": copyToClipboard,
   "save-to-record": saveToRecord,

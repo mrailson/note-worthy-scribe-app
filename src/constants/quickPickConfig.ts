@@ -45,40 +45,6 @@ export const quickPickConfig = {
       ]
     },
     {
-      "id": "translate",
-      "label": "Translate",
-      "children": [
-        {"id": "translate-auto", "label": "Quick translate (auto)"},
-        {
-          "id": "translate-patient",
-          "label": "Patient-friendly →",
-          "children": [
-            {"id": "t-patient-pl", "label": "Polski / Polish (pl)"},
-            {"id": "t-patient-ro", "label": "Română / Romanian (ro)"},
-            {"id": "t-patient-lt", "label": "Lietuvių / Lithuanian (lt)"},
-            {"id": "t-patient-uk", "label": "Українська / Ukrainian (uk)"},
-            {"id": "t-patient-ar", "label": "العربية / Arabic (ar)"},
-            {"id": "t-patient-pt", "label": "Português / Portuguese (pt)"},
-            {"id": "t-patient-more", "label": "More languages…"}
-          ]
-        },
-        {
-          "id": "translate-clinician",
-          "label": "Clinician-literal →",
-          "children": [
-            {"id": "t-clinician-pl", "label": "Polski / Polish (pl)"},
-            {"id": "t-clinician-ro", "label": "Română / Romanian (ro)"},
-            {"id": "t-clinician-lt", "label": "Lietuvių / Lithuanian (lt)"},
-            {"id": "t-clinician-uk", "label": "Українська / Ukrainian (uk)"},
-            {"id": "t-clinician-ar", "label": "العربية / Arabic (ar)"},
-            {"id": "t-clinician-pt", "label": "Português / Portuguese (pt)"},
-            {"id": "t-clinician-more", "label": "More languages…"}
-          ]
-        },
-        {"id": "translate-back-to-en", "label": "Back to English (show me the English)"}
-      ]
-    },
-    {
       "id": "export-share",
       "label": "Export & share",
       "children": [
