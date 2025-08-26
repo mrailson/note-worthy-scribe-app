@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Stethoscope } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { FileText, Stethoscope, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ConsultationCheckerModalProps {
   isOpen: boolean;
@@ -222,6 +223,7 @@ export const ConsultationCheckerModal: React.FC<ConsultationCheckerModalProps> =
   const [selectedType, setSelectedType] = useState<string>('');
   const [customNotes, setCustomNotes] = useState('');
   const [useCustom, setUseCustom] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
 
   const handleSubmit = () => {
     let consultationText = '';
@@ -344,12 +346,30 @@ ${consultationText}`;
                 </Select>
 
                 {selectedType && (
-                  <div className="bg-muted/30 p-4 rounded-lg border">
-                    <div className="font-medium text-sm mb-2">Preview:</div>
-                    <div className="text-xs font-mono text-muted-foreground max-h-32 overflow-y-auto">
-                      {consultationTypes[selectedType as keyof typeof consultationTypes].notes.substring(0, 300)}...
-                    </div>
-                  </div>
+                  <Collapsible open={previewExpanded} onOpenChange={setPreviewExpanded}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        {previewExpanded ? (
+                          <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3" />
+                        )}
+                        {previewExpanded ? 'Hide' : 'Show'} consultation preview
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="bg-muted/30 p-4 rounded-lg border mt-2">
+                        <div className="font-medium text-sm mb-2">Preview:</div>
+                        <div className="text-xs font-mono text-muted-foreground max-h-32 overflow-y-auto">
+                          {consultationTypes[selectedType as keyof typeof consultationTypes].notes.substring(0, 300)}...
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </div>
             )}
