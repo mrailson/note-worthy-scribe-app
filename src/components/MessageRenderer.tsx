@@ -654,7 +654,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               {message.role === 'assistant' ? (
                 <div 
                   ref={contentRef}
-                  className={`message-content overflow-x-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
+                  className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
                   style={{
                     maxWidth: 'none',
                     width: '100%',
@@ -679,7 +679,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="text-sm">
+                <div className="text-sm ai4gp-text-scaled">
                   <SafeMessageRenderer 
                     content={displayContent}
                     className="w-full user-message-content"

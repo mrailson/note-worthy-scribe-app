@@ -100,7 +100,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-32 rounded-lg leading-relaxed py-4"
+            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-32 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '120px' }}
           />

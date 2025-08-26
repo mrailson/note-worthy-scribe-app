@@ -23,7 +23,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   
   // Display Settings
-  const [textSize, setTextSize] = useState<'small' | 'default' | 'medium' | 'large' | 'xl'>('default');
+  const [textSize, setTextSize] = useState<'small' | 'default' | 'medium' | 'large' | 'xl' | 'double'>('default');
   const [interfaceDensity, setInterfaceDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
   const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('standard');
   const [highContrast, setHighContrast] = useState(false);
@@ -919,7 +919,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       // Update CSS custom properties for real-time changes
       const root = document.documentElement;
-      const textScales = { small: 0.875, default: 1, medium: 1.125, large: 1.25, xl: 1.5 };
+      const textScales = { small: 0.875, default: 1, medium: 1.125, large: 1.25, xl: 1.5, double: 2 };
       const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
       const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
       

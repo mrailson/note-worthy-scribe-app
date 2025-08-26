@@ -31,8 +31,8 @@ interface SettingsModalProps {
   onNorthamptonshireICBChange: (enabled: boolean) => void;
   onSaveSettings?: () => void;
   // Display Settings
-  textSize: 'small' | 'default' | 'medium' | 'large' | 'xl';
-  onTextSizeChange: (size: 'small' | 'default' | 'medium' | 'large' | 'xl') => void;
+  textSize: 'small' | 'default' | 'medium' | 'large' | 'xl' | 'double';
+  onTextSizeChange: (size: 'small' | 'default' | 'medium' | 'large' | 'xl' | 'double') => void;
   interfaceDensity: 'compact' | 'comfortable' | 'spacious';
   onInterfaceDensityChange: (density: 'compact' | 'comfortable' | 'spacious') => void;
   containerWidth: 'narrow' | 'standard' | 'wide' | 'full';
@@ -362,6 +362,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <SelectItem value="medium">Medium (1.125x)</SelectItem>
                     <SelectItem value="large">Large (1.25x)</SelectItem>
                     <SelectItem value="xl">Extra Large (1.5x)</SelectItem>
+                    <SelectItem value="double">Double (2x)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

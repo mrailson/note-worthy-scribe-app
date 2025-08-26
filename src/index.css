@@ -89,6 +89,7 @@ All colors MUST be HSL.
 .ai4gp-text-medium { --ai4gp-text-scale: 1.125; }
 .ai4gp-text-large { --ai4gp-text-scale: 1.25; }
 .ai4gp-text-xl { --ai4gp-text-scale: 1.5; }
+.ai4gp-text-double { --ai4gp-text-scale: 2; }
 
 .ai4gp-compact { --ai4gp-spacing-scale: 0.75; }
 .ai4gp-comfortable { --ai4gp-spacing-scale: 1; }
