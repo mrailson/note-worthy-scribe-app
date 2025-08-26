@@ -23,10 +23,56 @@ export const quickActions: QuickAction[] = [
     requiresFile: false 
   },
   { 
-    label: 'BNF Drug Lookup - Metformin', 
+    label: 'BNF Drug Lookup', 
     icon: Shield, 
-    prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name metformin`,
-    requiresFile: false 
+    prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`,
+    requiresFile: false,
+    submenu: [
+      {
+        label: 'I will insert the drug name...',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for [INSERT DRUG NAME] including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Metformin',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Metformin including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Amlodipine',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Amlodipine including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Atorvastatin',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Atorvastatin including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Ramipril',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Ramipril including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Omeprazole',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Omeprazole including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Amoxicillin',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Amoxicillin including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Levothyroxine',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Levothyroxine including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Prednisolone',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Prednisolone including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Bisoprolol',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Bisoprolol including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      },
+      {
+        label: 'Warfarin',
+        prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for Warfarin including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`
+      }
+    ]
   },
   {
     label: 'Scribe Consultation Checker',
