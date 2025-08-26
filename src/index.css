@@ -43,6 +43,9 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
+    --nhs-blue: 202.5 100% 40%;
+    --nhs-blue-light: 202.5 100% 50%;
+
     --gradient-primary: linear-gradient(135deg, hsl(213 100% 50%), hsl(213 100% 45%));
     --gradient-background: linear-gradient(180deg, hsl(240 10% 96%), hsl(240 5% 94%));
     
@@ -134,6 +137,9 @@ All colors MUST be HSL.
     --warning: 38 92% 60%;
     --warning-foreground: 0 0% 100%;
 
+    --nhs-blue: 202.5 100% 50%;
+    --nhs-blue-light: 202.5 100% 60%;
+
     --gradient-primary: linear-gradient(135deg, hsl(213 100% 60%), hsl(213 100% 55%));
     --gradient-background: linear-gradient(180deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
     
@@ -169,7 +175,14 @@ All colors MUST be HSL.
 .message-content h1,
 .message-content h2,
 .message-content h3 { 
-  margin: 0.75rem 0 0.5rem; 
+  margin: 0.75rem 0 0.5rem;
+  color: hsl(var(--nhs-blue));
+  font-weight: 600;
+}
+
+.message-content strong {
+  color: hsl(var(--nhs-blue));
+  font-weight: 600;
 }
 
 /* AI Response Content Styling */
