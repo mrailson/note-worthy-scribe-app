@@ -19,22 +19,22 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
-    // Headers (handle #### first, then work down) - Debug these replacements
-    .replace(/^#### (.*$)/gm, (match, p1) => {
-      console.log('🔍 FOUND H4:', match, '→', p1);
-      return `<h4 class="text-base font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-2 mt-3">${p1}</h4>`;
+    // Headers - Make regex more robust to handle different line endings and spacing
+    .replace(/^####\s*(.*?)(?:\r?\n|$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H4:', match.trim(), '→', p1.trim());
+      return `<h4 class="text-base font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-2 mt-3">${p1.trim()}</h4>`;
     })
-    .replace(/^### (.*$)/gm, (match, p1) => {
-      console.log('🔍 FOUND H3:', match, '→', p1);
-      return `<h3 class="text-lg font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-3 mt-4">${p1}</h3>`;
+    .replace(/^###\s*(.*?)(?:\r?\n|$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H3:', match.trim(), '→', p1.trim());
+      return `<h3 class="text-lg font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-3 mt-4">${p1.trim()}</h3>`;
     })
-    .replace(/^## (.*$)/gm, (match, p1) => {
-      console.log('🔍 FOUND H2:', match, '→', p1);
-      return `<h2 class="text-xl font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-5">${p1}</h2>`;
+    .replace(/^##\s*(.*?)(?:\r?\n|$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H2:', match.trim(), '→', p1.trim());
+      return `<h2 class="text-xl font-semibold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-5">${p1.trim()}</h2>`;
     })
-    .replace(/^# (.*$)/gm, (match, p1) => {
-      console.log('🔍 FOUND H1:', match, '→', p1);
-      return `<h1 class="text-2xl font-bold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-6">${p1}</h1>`;
+    .replace(/^#\s*(.*?)(?:\r?\n|$)/gm, (match, p1) => {
+      console.log('🔍 FOUND H1:', match.trim(), '→', p1.trim());
+      return `<h1 class="text-2xl font-bold ${isUserMessage ? 'text-white' : 'text-primary'} mb-4 mt-6">${p1.trim()}</h1>`;
     })
     
     // Bold text
