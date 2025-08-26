@@ -84,9 +84,9 @@ All colors MUST be HSL.
 }
 
 /* Display Settings Classes */
-.ai4gp-text-small { --ai4gp-text-scale: 0.875; }
-.ai4gp-text-default { --ai4gp-text-scale: 1; }
-.ai4gp-text-medium { --ai4gp-text-scale: 1.125; }
+.ai4gp-text-small { --ai4gp-text-scale: 0.5; }
+.ai4gp-text-default { --ai4gp-text-scale: 0.75; }
+.ai4gp-text-medium { --ai4gp-text-scale: 1.0; }
 .ai4gp-text-large { --ai4gp-text-scale: 1.25; }
 .ai4gp-text-xl { --ai4gp-text-scale: 1.5; }
 .ai4gp-text-double { --ai4gp-text-scale: 2; }

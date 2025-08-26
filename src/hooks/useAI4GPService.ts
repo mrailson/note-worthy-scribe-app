@@ -919,7 +919,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       // Update CSS custom properties for real-time changes
       const root = document.documentElement;
-      const textScales = { small: 0.875, default: 1, medium: 1.125, large: 1.25, xl: 1.5, double: 2 };
+      const textScales = { small: 0.5, default: 0.75, medium: 1.0, large: 1.25, xl: 1.5, double: 2 };
       const spacingScales = { compact: 0.75, comfortable: 1, spacious: 1.25 };
       const containerWidths = { narrow: '672px', standard: '896px', wide: '1152px', full: '100%' };
       
