@@ -134,9 +134,17 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
         html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
         
-        // Process section headers (bold text followed by colon) first
-        // Convert **Text**: content to **Text**:\n content for proper line breaks
-        html = html.replace(/\*\*([^*:]+?):\*\*\s*([^\n])/g, '**$1:**\n$2');
+        // PRE-PROCESS: Split complex lines with multiple section headers
+        // Handle patterns like: "- **Text1**: content. - **Text2**: content."
+        html = html.replace(/(- \*\*[^*:]+\*\*:[^.]*\. )(- \*\*[^*:]+\*\*:)/g, '$1\n$2');
+        
+        // PROCESS SECTION HEADERS: Convert dash-prefixed bold headers to clean format
+        // Convert "- **Text**: content" to "**Text**:\ncontent" (remove dash, add line break)
+        html = html.replace(/^- \*\*([^*:]+)\*\*:\s*(.*)$/gm, '**$1:**\n$2');
+        
+        // PROCESS STANDALONE SECTION HEADERS: Convert **Text**: content to **Text**:\ncontent
+        // Handle remaining section headers that don't have dash prefixes
+        html = html.replace(/\*\*([^*:]+)\*\*:\s*([^\n])/g, '**$1:**\n$2');
         
         // Process inline formatting before lists
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -145,8 +153,9 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
         
         // Handle bullet points and numbered lists - preserve original format
-        // First mark list items
-        html = html.replace(/^[•\-\*] (.+)$/gm, '<li-bullet>$1</li-bullet>');
+        // Exclude section headers from bullet point processing
+        // First mark list items (but not section headers that start with **text**)
+        html = html.replace(/^[•\-\*] (?!\*\*[^*:]+\*\*:)(.+)$/gm, '<li-bullet>$1</li-bullet>');
         html = html.replace(/^\d+\. (.+)$/gm, '<li-numbered>$1</li-numbered>');
         
         // Group consecutive bullet list items
