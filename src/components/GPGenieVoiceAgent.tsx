@@ -154,6 +154,40 @@ const GPGenieVoiceAgent = () => {
     }
   };
 
+  // Start language support test conversation
+  const startLanguageTestConversation = async () => {
+    const permitted = hasPermission ? true : await requestMicrophonePermission();
+    if (!permitted) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Generate signed URL for language support agent
+      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
+        body: { agentId: 'agent_01jws2qhv2essav25m8cfq2h0v' }
+      });
+
+      if (error) throw error;
+      
+      console.log('Starting language test conversation with signed URL');
+      const conversationId = await conversation.startSession({ 
+        signedUrl: data.signed_url
+      });
+
+      // Apply current volume immediately after connect
+      await conversation.setVolume({ volume: isMuted ? 0 : volume });
+      console.log('Language test conversation started:', conversationId);
+      
+    } catch (err: any) {
+      console.error('Failed to start language test conversation:', err);
+      setError(`Failed to start language test conversation`);
+      toast.error('Failed to start language test conversation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // End conversation
   const endConversation = async () => {
     try {
@@ -493,7 +527,8 @@ const GPGenieVoiceAgent = () => {
                     variant="outline"
                     size="sm"
                     className="w-full text-xs transition-all duration-300"
-                    onClick={() => window.open('https://elevenlabs.io/app/talk-to?agent_id=agent_01jws2qhv2essav25m8cfq2h0v', '_blank')}
+                    onClick={startLanguageTestConversation}
+                    disabled={!hasPermission || isLoading}
                   >
                     <PhoneCall className="h-3 w-3 mr-1" />
                     {languageRotation[currentLanguageIndex].text}
