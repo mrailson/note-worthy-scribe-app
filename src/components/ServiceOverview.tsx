@@ -129,7 +129,7 @@ export const ServiceOverview = () => {
   ];
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="w-full space-y-8">
       {/* Services Grid - Moved to top */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayedServices.map((service, index) => (

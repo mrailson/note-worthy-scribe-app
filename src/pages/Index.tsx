@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const Index = () => {
   const { user, loading, hasModuleAccess } = useAuth();
@@ -20,7 +20,6 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const editMeetingId = searchParams.get('edit');
-  const isMobile = useIsMobile();
   
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
   const [transcript, setTranscript] = useState("");
@@ -50,10 +49,7 @@ const Index = () => {
         practiceId: "",
         meetingFormat: "teams"
       });
-      // Only show meeting session restored toast on desktop
-      if (!isMobile) {
-        toast.success("Meeting session restored. You can continue recording.");
-      }
+      toast.success("Meeting session restored. You can continue recording.");
     }
   }, [location.state]);
 

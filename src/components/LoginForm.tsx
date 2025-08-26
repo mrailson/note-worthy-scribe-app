@@ -58,7 +58,7 @@ export const LoginForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Service Overview - Takes up 2/3 of the screen on large devices */}
           <div className="lg:col-span-2 order-2 lg:order-1">
