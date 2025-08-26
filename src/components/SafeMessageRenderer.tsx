@@ -2,17 +2,108 @@ import React, { useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { sanitizeLinks } from '@/utils/nhsUrlValidation';
 
+// Function to process markdown tables
+const processMarkdownTables = (text: string): string => {
+  // Split text into lines
+  const lines = text.split('\n');
+  let result: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    
+    // Check if this line looks like a table header (contains |)
+    if (line.includes('|') && line.trim().length > 0) {
+      // Look ahead to see if next line is a separator (contains - and |)
+      const nextLine = lines[i + 1];
+      if (nextLine && nextLine.includes('|') && nextLine.includes('-')) {
+        // Found a table - process it
+        const tableLines = [line];
+        let j = i + 2; // Skip the separator line
+        
+        // Collect all subsequent table rows
+        while (j < lines.length && lines[j].includes('|') && lines[j].trim().length > 0) {
+          tableLines.push(lines[j]);
+          j++;
+        }
+        
+        // Convert to HTML table
+        const htmlTable = convertMarkdownTableToHTML(tableLines);
+        result.push(htmlTable);
+        i = j; // Skip processed lines
+      } else {
+        result.push(line);
+        i++;
+      }
+    } else {
+      result.push(line);
+      i++;
+    }
+  }
+  
+  return result.join('\n');
+};
+
+// Convert markdown table to HTML
+const convertMarkdownTableToHTML = (tableLines: string[]): string => {
+  if (tableLines.length === 0) return '';
+  
+  const [headerLine, ...bodyLines] = tableLines;
+  
+  // Parse header
+  const headers = headerLine.split('|').map(h => h.trim()).filter(h => h.length > 0);
+  
+  // Parse body rows
+  const rows = bodyLines.map(line => 
+    line.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0)
+  );
+  
+  // Build HTML table
+  let html = '<table>';
+  
+  // Add header
+  if (headers.length > 0) {
+    html += '<thead><tr>';
+    headers.forEach(header => {
+      html += `<th>${header}</th>`;
+    });
+    html += '</tr></thead>';
+  }
+  
+  // Add body
+  if (rows.length > 0) {
+    html += '<tbody>';
+    rows.forEach(row => {
+      html += '<tr>';
+      row.forEach(cell => {
+        html += `<td>${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+  }
+  
+  html += '</table>';
+  return html;
+};
+
 interface SafeMessageRendererProps {
   content: string;
   className?: string;
   tag?: keyof JSX.IntrinsicElements;
+  enableNHSStyling?: boolean;
 }
 
 export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({ 
   content, 
   className = "",
-  tag: Tag = "div" 
+  tag: Tag = "div",
+  enableNHSStyling = true
 }) => {
+  // Automatically add NHS styling classes if enabled
+  const nhsClassName = enableNHSStyling 
+    ? `message-content ai-response-content ${className}`.trim()
+    : className;
   const [sanitizedContent, setSanitizedContent] = useState<string>('');
 
   useEffect(() => {
@@ -31,6 +122,9 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
       // Convert markdown to HTML - using improved regex approach
       const markdownToHtml = (text: string): string => {
         let html = text;
+        
+        // Process tables first (before other processing)
+        html = processMarkdownTables(html);
         
         // Process headers first (h6 to h1 to avoid conflicts)
         html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
@@ -67,8 +161,8 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
         const blocks = html.split(/\n\s*\n/);
         html = blocks.map(block => {
           const trimmed = block.trim();
-          // Don't wrap if it's already HTML (headers, lists, etc.)
-          if (trimmed.match(/^<(h[1-6]|ul|ol|li)/)) {
+          // Don't wrap if it's already HTML (headers, lists, tables, etc.)
+          if (trimmed.match(/^<(h[1-6]|ul|ol|li|table)/)) {
             return trimmed;
           }
           // Don't wrap empty blocks
@@ -126,12 +220,12 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
   }, [content]);
 
   if (!sanitizedContent) {
-    return <Tag className={className}>Loading...</Tag>;
+    return <Tag className={nhsClassName}>Loading...</Tag>;
   }
 
   return (
     <Tag 
-      className={className}
+      className={nhsClassName}
       dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
   );
