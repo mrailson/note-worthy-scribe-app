@@ -19,58 +19,58 @@ export const quickActions: QuickAction[] = [
   { 
     label: 'NICE Guidance Finder',
     icon: BookOpen, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nFind the latest NICE guidance on [medical condition/topic]. Include key recommendations, implementation timeline, and links to full guidance.',
     requiresFile: false 
   },
   { 
     label: 'BNF Drug Lookup', 
     icon: Shield, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for [drug name] including indications, dosing, contraindications, interactions, and monitoring requirements.',
     requiresFile: false,
     submenu: [
       {
         label: 'I will insert the drug name...',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for [drug name] including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Metformin',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Metformin including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Amlodipine',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Amlodipine including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Atorvastatin',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Atorvastatin including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Ramipril',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Ramipril including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Omeprazole',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Omeprazole including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Amoxicillin',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Amoxicillin including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Levothyroxine',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Levothyroxine including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Prednisolone',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Prednisolone including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Bisoprolol',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Bisoprolol including indications, dosing, contraindications, interactions, and monitoring requirements.'
       },
       {
         label: 'Warfarin',
-        prompt: ''
+        prompt: nhsSafetyPreamble + '\n\nProvide comprehensive BNF information for Warfarin including indications, dosing, contraindications, interactions, and monitoring requirements.'
       }
     ]
   },
@@ -84,37 +84,37 @@ export const quickActions: QuickAction[] = [
   { 
     label: 'Complaint Response Helper', 
     icon: MessageSquare, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.',
     requiresFile: true 
   },
   { 
     label: 'QOF Indicator Quick Check', 
     icon: CheckSquare, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nCheck QOF achievement for [indicator] and provide guidance on improving performance and meeting targets.',
     requiresFile: false 
   },
   { 
     label: 'Patient Leaflet Finder', 
     icon: HelpCircle, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nFind patient information leaflets for [condition/treatment] from NHS.uk or NICE patient decision aids.',
     requiresFile: false 
   },
   { 
     label: 'Immunisation Schedule Lookup', 
     icon: Activity, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nProvide current UK immunisation schedule information for [age group/vaccine] from the Green Book.',
     requiresFile: false 
   },
   { 
     label: 'Primary Care Prescribing Alerts', 
     icon: TrendingUp, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nCheck for current MHRA Drug Safety Updates and prescribing alerts relevant to [drug/condition].',
     requiresFile: false 
   },
   { 
     label: 'Practice Policy & Protocol Finder', 
     icon: Settings, 
-    prompt: '',
+    prompt: nhsSafetyPreamble + '\n\nHelp find NHS policy and guidance on [practice management topic] including implementation requirements.',
     requiresFile: false 
   },
 ];
@@ -125,61 +125,61 @@ export const practiceManagerQuickActions: QuickAction[] = [
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.',
     requiresFile: true
   },
   {
     label: 'Meeting Notes Summariser',
     icon: NotebookPen,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nSummarise meeting notes into key decisions, actions, and follow-up items with responsible parties and deadlines.',
     requiresFile: true
   },
   {
     label: 'ARRS Claim Checker',
     icon: ClipboardCheck,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nReview ARRS workforce claim documentation for accuracy and compliance with current PCN DES requirements.',
     requiresFile: true
   },
   {
     label: 'PCN DES / Contract Finder',
     icon: Building,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nFind current PCN DES specifications and contract requirements for [service/topic].',
     requiresFile: false
   },
   {
     label: 'Staff Rota & Leave Planner',
     icon: Calendar,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nHelp plan staff rotas and manage leave requests while maintaining service requirements and TUPE obligations.',
     requiresFile: false
   },
   {
     label: 'CQC Evidence Pack Builder',
     icon: Database,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nOrganise and structure evidence for CQC inspection across all key domains with clear documentation.',
     requiresFile: true
   },
   {
     label: 'DPIA / IG Helper',
     icon: Scale,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nAssist with Data Protection Impact Assessment and Information Governance compliance requirements.',
     requiresFile: true
   },
   {
     label: 'Subject Access Request (SAR) Assistant',
     icon: UserCheck,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nGuide through Subject Access Request process including timelines, exemptions, and required documentation.',
     requiresFile: true
   },
   {
     label: 'Vaccine Clinic Planner',
     icon: Syringe,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nPlan vaccine clinic logistics including staffing, scheduling, and resource requirements.',
     requiresFile: false
   },
   {
     label: 'Practice Comms Builder',
     icon: Megaphone,
-    prompt: '',
+    prompt: pmSafetyPreamble + '\n\nCreate professional practice communications for patients, staff, or external stakeholders.',
     requiresFile: false
   },
 ];

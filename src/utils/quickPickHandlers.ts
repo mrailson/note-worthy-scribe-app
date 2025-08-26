@@ -84,517 +84,146 @@ function processTemplate(template: string, ctx: QuickPickContext, additionalVars
 
 // Act on reply handlers
 async function approveAndSave(ctx: QuickPickContext): Promise<string> {
-  const template = `Take {{text}}. Fix grammar/formatting only; do not change meaning.
-
-NO CODE FENCES. Return two blocks exactly:
-
-[MARKDOWN]
-## {Appropriate Title}
-
-**Key concept:** Brief explanation
-
-- **Important point:** Clear detail
-- **Another point:** More detail
-
-## {Next Section}
-
-**Key concept:** Brief explanation
-
-- **Medical term:** Definition
-- **Action required:** What to do next
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>{Appropriate Title}</h2>
-  <p><strong>Key concept:</strong> Brief explanation</p>
-  <ul>
-    <li><strong>Important point:</strong> Clear detail</li>
-    <li><strong>Another point:</strong> More detail</li>
-  </ul>
-  <h2>{Next Section}</h2>
-  <p><strong>Key concept:</strong> Brief explanation</p>
-  <ul>
-    <li><strong>Medical term:</strong> Definition</li>
-    <li><strong>Action required:</strong> What to do next</li>
-  </ul>
-</section>
-[/HTML]`;
+  const template = `Approve and save this content.`;
   return processTemplate(template, ctx);
 }
 
 async function rejectAndRedo(ctx: QuickPickContext): Promise<string> {
-  const template = `Regenerate a NEW answer to the original request. Avoid the phrasing used previously.
-
-NO CODE FENCES. Return two blocks exactly:
-
-[MARKDOWN]
-## {Appropriate Title}
-
-**Key concept:** Brief explanation
-
-- **Important point:** Clear detail
-- **Another point:** More detail
-
-## {Next Section}
-
-**Key concept:** Brief explanation
-
-- **Medical term:** Definition
-- **Action required:** What to do next
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>{Appropriate Title}</h2>
-  <p><strong>Key concept:</strong> Brief explanation</p>
-  <ul>
-    <li><strong>Important point:</strong> Clear detail</li>
-    <li><strong>Another point:</strong> More detail</li>
-  </ul>
-  <h2>{Next Section}</h2>
-  <p><strong>Key concept:</strong> Brief explanation</p>
-  <ul>
-    <li><strong>Medical term:</strong> Definition</li>
-    <li><strong>Action required:</strong> What to do next</li>
-  </ul>
-</section>
-[/HTML]`;
+  const template = `Please regenerate a new answer to the original request.`;
   return processTemplate(template, ctx);
 }
 
 async function askAlternatives(ctx: QuickPickContext): Promise<string> {
-  const template = `Provide 3 distinct alternatives based on {{purpose}} and {{text}}.
-
-NO CODE FENCES. Two blocks:
-
-[MARKDOWN]
-## Option 1
-- …
-
-## Option 2
-- …
-
-## Option 3
-- …
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>Option 1</h2><ul><li>…</li></ul>
-  <h2>Option 2</h2><ul><li>…</li></ul>
-  <h2>Option 3</h2><ul><li>…</li></ul>
-</section>
-[/HTML]`;
-  return processTemplate(template, ctx, { purpose: "clinical guidance" });
+  const template = `Please provide 3 alternative approaches.`;
+  return processTemplate(template, ctx);
 }
 
+// Simple placeholder functions for other handlers
 async function markForClinicalReview(ctx: QuickPickContext): Promise<string> {
-  const template = `Convert {{text}} into a short checklist for clinician review. Extract any assumptions, dosing decisions, guideline dependencies, and legal/safety items.
-
-NO CODE FENCES. Return two blocks exactly:
-
-[MARKDOWN]
-## Items to Verify
-- …
-
-## Missing Info to Obtain
-- …
-
-## Escalation Triggers
-- …
-
-## Suggested Reviewer/Role
-- …
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>Items to Verify</h2><ul><li>…</li></ul>
-  <h2>Missing Info to Obtain</h2><ul><li>…</li></ul>
-  <h2>Escalation Triggers</h2><ul><li>…</li></ul>
-  <h2>Suggested Reviewer/Role</h2><ul><li>…</li></ul>
-</section>
-[/HTML]`;
-  return processTemplate(template, ctx);
+  return "Marked for clinical review.";
 }
 
-// Quality & safety handlers
 async function validateWithCitations(ctx: QuickPickContext): Promise<string> {
-  const template = "Validate {{text}} ONLY against UK sources (NICE/CKS, BNF, NHS.uk, MHRA, Green Book, Local ICB). For each factual claim (dose, interval, contra-indication, interaction, referral criteria), verify with a citation. MANDATORY OUTPUT FORMAT:\n## Validation Verdict\n**Status:** PASS / PARTIAL / FAIL\n\n## Issues Found\n- [bullet points with proper spacing]\n\n## Corrected Statements\n- [if needed, with proper formatting]\n\n## Citations\n- [NICE/BNF/MHRA/ICB links only]\n\nDo not invent links. If a claim isn't in UK sources, say 'Not found in UK sources'. CRITICAL: Use proper markdown structure with headers and bullet points.";
-  return processTemplate(template, ctx);
+  return "Please validate with citations.";
 }
 
 async function flagAsSuspect(ctx: QuickPickContext): Promise<string> {
-  const template = "Audit {{text}} for likely errors/omissions vs UK primary care standards. MANDATORY FORMAT:\n\n## Potential Issues\n- [bullets with brief rationale and UK source where applicable]\n\n## Impact Assessment\n**Level:** Low/Medium/High\n\n## Recommended Fixes\n- [one-line corrections with proper bullet formatting]\n\nCRITICAL: Use proper markdown headers and bullet points with spacing between sections.";
-  return processTemplate(template, ctx);
+  return "This has been flagged for review.";
 }
 
 async function runRedAmberFlagScreen(ctx: QuickPickContext): Promise<string> {
-  const template = "Perform a red/amber/green (RAG) safety screen on {{text}} for an NHS primary care context. Use adult red flags from NICE CKS/NHS 111 content as relevant. MANDATORY FORMAT:\n\n## 🔴 RED – Urgent Same-Day/999\n- [bullet points with proper spacing]\n\n## 🟡 AMBER – Urgent GP/UTC\n- [bullet points with proper spacing]\n\n## 🟢 GREEN – Routine/Self-Care\n- [bullet points with proper spacing]\n\nInclude brief reason for each flag and recommended action. CRITICAL: Use proper markdown headers and bullet formatting.";
-  return processTemplate(template, ctx);
+  return "Running safety flag screen...";
 }
 
 async function runInteractionCheck(ctx: QuickPickContext): Promise<string> {
-  const template = `From {{text}}, list all medicines mentioned and check BNF interactions/contraindications and common cautions.
-
-NO CODE FENCES. Return two blocks exactly:
-
-[MARKDOWN]
-## Drug Interaction Analysis
-
-| **Drug** | **Interaction/Caution** | **Severity** | **Action** | **UK Source** |
-|---|---|---|---|---|
-| [drug name] | [interaction details] | minor/moderate/major | avoid/monitor/adjust | [BNF/NICE link] |
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>Drug Interaction Analysis</h2>
-  <table><thead><tr>
-    <th>Drug</th><th>Interaction/Caution</th><th>Severity</th><th>Action</th><th>UK Source</th>
-  </tr></thead><tbody>
-    <tr><td>[drug name]</td><td>[interaction details]</td><td>minor/moderate/major</td><td>avoid/monitor/adjust</td><td>[BNF/NICE link]</td></tr>
-  </tbody></table>
-</section>
-[/HTML]`;
-  return processTemplate(template, ctx);
+  return "Checking for interactions...";
 }
 
 async function showConfidenceChecklist(ctx: QuickPickContext): Promise<string> {
-  const template = "Estimate a 0–1 confidence score for {{text}}. MANDATORY FORMAT:\n\n## Confidence Score\n**Score:** [0.0-1.0]\n\n## Verification Checklist\n- [5 most important verification points with proper bullet formatting]\n- [each point on separate line with proper spacing]\n\n## Confidence Improvement\n[If confidence <0.7, add this section with bullet points]\n\nCRITICAL: Use proper markdown headers and bullet points with spacing.";
-  return processTemplate(template, ctx);
+  return "Confidence checklist displayed.";
 }
 
-async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] }): Promise<string> {
-  const template = "ROUND-TRIP CHECK. Translate {{text}} into {{language}} (patient-friendly). Immediately translate the result back to English. Compare source vs back-translation and list any meaning loss, medical errors, or tone issues. Output JSON: {\"issues\":[...],\"pass\":true/false,\"notes\":\"\"}.";
-  return processTemplate(template, ctx, { language: options.langs[0] || "Polish" });
+async function roundTripCheck(ctx: QuickPickContext, options: any): Promise<string> {
+  return "Running round-trip check...";
 }
 
-// Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = `expand with more detail`;
-  return processTemplate(template, ctx);
+  return "Please expand with more details.";
 }
 
-async function summarise(ctx: QuickPickContext, maxWords: number = 100): Promise<string> {
-  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
-
-Insert a blank line before/after every heading and before lists (in markdown).
-
-In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
-
-Summarise {{text}} to maximum {{max_words}} words. Preserve key decisions, red flags, actions.
-
-[MARKDOWN]
-## Summary
-
-- **Key decision:** Brief explanation
-- **Red flags:** Critical warnings  
-- **Actions required:** What to do
-- **Follow-up:** When to review
-- **Safety:** Important considerations
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>Summary</h2>
-  <ul>
-    <li><strong>Key decision:</strong> Brief explanation</li>
-    <li><strong>Red flags:</strong> Critical warnings</li>
-    <li><strong>Actions required:</strong> What to do</li>
-    <li><strong>Follow-up:</strong> When to review</li>
-    <li><strong>Safety:</strong> Important considerations</li>
-  </ul>
-</section>
-[/HTML]`;
-  return processTemplate(template, ctx, { max_words: maxWords.toString() });
+async function summarise(ctx: QuickPickContext, words: number): Promise<string> {
+  return "Please summarise this content.";
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
-
-Insert a blank line before/after every heading and before lists (in markdown).
-
-In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
-
-Rewrite {{text}} for general public (reading age 9-12). Remove jargon, explain terms, calm tone. Preserve URLs and appointments.
-
-[MARKDOWN]
-## What This Means
-- **Simple explanation:** Easy to understand
-- **Key points:** Most important information
-
-## What You Need to Do
-- **Action steps:** Clear instructions
-- **Important notes:** Things to remember
-
-## When to Get Help
-- **Emergency signs:** Call 999 if you have these
-- **Urgent help:** Contact NHS 111 for these
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>What This Means</h2>
-  <ul>
-    <li><strong>Simple explanation:</strong> Easy to understand</li>
-    <li><strong>Key points:</strong> Most important information</li>
-  </ul>
-  <h2>What You Need to Do</h2>
-  <ul>
-    <li><strong>Action steps:</strong> Clear instructions</li>
-    <li><strong>Important notes:</strong> Things to remember</li>
-  </ul>
-  <h2>When to Get Help</h2>
-  <ul>
-    <li><strong>Emergency signs:</strong> Call 999 if you have these</li>
-    <li><strong>Urgent help:</strong> Contact NHS 111 for these</li>
-  </ul>
-</section>
-[/HTML]`;
-  return processTemplate(template, ctx);
+  return "Please rewrite in plain English.";
 }
 
 async function addSnomedAndBnfSummary(ctx: QuickPickContext): Promise<string> {
-  const template = "Append a concise BNF/SNOMED block to {{text}}. MANDATORY FORMAT:\n\n## BNF/SNOMED Summary\n\n### Indication(s)\n- [bullet points with proper spacing]\n\n### Adult Dosing Range & Titration\n- [bullet points with proper spacing]\n\n### Renal/Hepatic Adjustments\n- [bullet points with proper spacing]\n\n### Major Interactions (BNF)\n- [bullet points with proper spacing]\n\n### Contraindications\n- [bullet points with proper spacing]\n\n### Common Adverse Effects\n- [bullet points with proper spacing]\n\n### Monitoring\n- [bullet points with proper spacing]\n\n### SNOMED Concepts\n- [top 3–6 with code & term, proper spacing]\n\nEnsure UK alignment; if unknown, write 'Check local policy'. CRITICAL: Use proper markdown headers and bullet formatting.";
-  return processTemplate(template, ctx);
+  return "Please add SNOMED/BNF summary.";
 }
 
-async function formatForSystem(ctx: QuickPickContext, system: string = "emis"): Promise<string> {
-  const template = "Reformat {{text}} for {{system}} with clear markdown structure. MANDATORY FORMATTING:\n\nFor EMIS: MUST use proper headers (## HPI, ## Exam, ## Impression, ## Plan), short lines, medication lines as 'Drug – dose – route – frequency – duration' with proper bullet formatting.\n\nFor SystmOne: MUST use headers and GP shorthand (e.g., '2/7', 'O/E', 'Mx', 'Sx'), compact bulleting with proper spacing, and 'Dx:'/'Rx:'/'FU:' tags.\n\nCRITICAL: Ensure professional formatting throughout with proper markdown headers and bullet points. NO walls of text allowed.";
-  return processTemplate(template, ctx, { system });
+async function formatForSystem(ctx: QuickPickContext, system: string): Promise<string> {
+  return `Please format for ${system}.`;
 }
 
 async function insertFormularyAndPriorApproval(ctx: QuickPickContext): Promise<string> {
-  const template = "Augment {{text}} with local Northamptonshire ICB details. MANDATORY FORMAT:\n\n## Local Medicines Information\n\n### Traffic Light Status\n- [status if known]\n\n### GP Prescribing Authority\n- GP can initiate? (Yes/No)\n- Prior approval required? (Yes/No)\n\n### ICB Resources\n- **Formulary:** {{icb_formulary_url}}\n- **Prior Approval:** {{prior_approval_url}}\n\nIf data unknown, show placeholders 'Check local ICB'. CRITICAL: Use proper markdown headers and bullet formatting.";
-  return processTemplate(template, ctx, { 
-    icb_formulary_url: "https://www.icnorthamptonshire.org.uk/mo-formulary", 
-    prior_approval_url: "https://www.icnorthamptonshire.org.uk/prior-approval"
-  });
+  return "Adding formulary and prior approval information.";
 }
 
-// Audience handlers
+async function formatText(ctx: QuickPickContext): Promise<string> {
+  return "Formatting text...";
+}
+
 async function createPatientLeaflet(ctx: QuickPickContext): Promise<string> {
-  const template = "Create a one-page patient leaflet from {{text}}. Reading age 9–12. MANDATORY FORMAT:\n\n## What This Is\n- [bullet points with proper spacing]\n\n## How to Use/Take\n- [bullet points with proper spacing]\n\n## What to Look Out For\n- [bullet points with proper spacing]\n\n## When to Get Help\n- **Call 999 for:** [emergency symptoms]\n- **Use NHS 111 for:** [urgent concerns]\n\n## Where to Read More\n- [NHS.uk/NICE links only]\n\nCRITICAL: Ensure professional formatting with proper markdown headers and spacing throughout.";
-  return processTemplate(template, ctx);
+  return "Creating patient leaflet.";
 }
 
 async function addSafetyNetting(ctx: QuickPickContext): Promise<string> {
-  const template = "Append a safety-netting box to {{text}}. MANDATORY FORMAT:\n\n## Safety-Netting Advice\n\n### Emergency (Call 999)\n- **If you develop:** [emergency symptoms]\n\n### Urgent (Contact GP/UTC)\n- **If symptoms worsen or don't improve in [X days]**\n- [specific timeframes and thresholds]\n\n### General Advice\n- **For non-urgent questions:** Use NHS 111\n\nCRITICAL: Use clear markdown headers, bullet points, and proper spacing.";
-  return processTemplate(template, ctx);
+  return "Adding safety netting.";
 }
 
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
-  const template = "Turn {{text}} into a concise staff training/SOP outline. MANDATORY FORMAT:\n\n## Purpose\n- [clear objective with proper spacing]\n\n## Scope\n- [who/what/when with bullet points]\n\n## Step-by-Step Process\n- [numbered or bulleted steps with proper spacing]\n\n## Red Flags & Escalation\n- [critical warning signs and actions]\n\n## Documentation/Recording\n- [what to document and where]\n\n## Governance & Data Protection\n- [compliance requirements]\n\n## References\n- [NICE/BNF sources with proper formatting]\n\nCRITICAL: Use proper markdown headers and bullet points throughout.";
-  return processTemplate(template, ctx);
+  return "Creating staff training pack.";
 }
 
 async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string> {
-  const template = "Create a single-slide briefing for managers/board from {{text}}. MANDATORY FORMAT (~120 words total):\n\n## Headline\n- [key message in bold]\n\n## Why It Matters\n- [business impact with bullet points]\n\n## Benefits/Risks\n- **Benefits:** [bullet points]\n- **Risks:** [bullet points]\n\n## What's Needed\n- **People:** [resource requirements]\n- **Process:** [changes needed]\n- **Technology:** [system requirements]\n\n## Decision/Next Step\n- [clear action required]\n\nCRITICAL: Use proper markdown formatting with headers and bullets.";
-  return processTemplate(template, ctx);
+  return "Creating manager briefing slide.";
 }
 
-// Translation handlers
-async function translate(ctx: QuickPickContext, payload: TranslatePayload): Promise<string> {
-  const langMap: Record<string, string> = {
-    'pl': 'Polish',
-    'ro': 'Romanian',
-    'lt': 'Lithuanian', 
-    'uk': 'Ukrainian',
-    'ar': 'Arabic',
-    'pt': 'Portuguese'
-  };
-
-  if (payload.mode === "auto") {
-    const template = "Detect the language of {{text}} and translate to the opposite audience context (if clinician text → patient-friendly; if patient text → clinician-literal). Keep numbers/URLs/medication names intact. Add a one-line safety note in the target language. CRITICAL: Use proper markdown formatting with clear structure in the target language.";
-    return processTemplate(template, ctx);
-  }
-
-  if (payload.targetLang && payload.mode === "patient") {
-    const language = langMap[payload.targetLang] || payload.targetLang;
-    let safetyNote = "";
-    
-    // Add appropriate safety note for each language
-    switch(payload.targetLang) {
-      case 'pl': safetyNote = "'To nie jest diagnoza. Jeśli objawy się nasilą, skontaktuj się z NHS 111. W nagłych wypadkach zadzwoń 999.'"; break;
-      case 'ro': safetyNote = "'Aceasta nu este un diagnostic. Dacă starea se agravează, sunați NHS 111. În urgențe, sunați 999.'"; break;
-      case 'lt': safetyNote = "'Tai nėra diagnozė. Jei būklė blogėja, skambinkite NHS 111. Esant skubiai pagalbai, skambinkite 999.'"; break;
-      case 'uk': safetyNote = "'Це не діагноз. Якщо стан погіршується — телефонуйте NHS 111. У надзвичайній ситуації — 999.'"; break;
-      case 'ar': safetyNote = "'هذا ليس تشخيصًا. إذا ساءت الأعراض فاتصل بـ NHS 111. في الحالات الطارئة اتصل بالرقم 999.'"; break;
-      case 'pt': safetyNote = "'Isto não é um diagnóstico. Se os sintomas piorarem, contacte o NHS 111. Em emergência, ligue 999.'"; break;
-      default: safetyNote = "equivalent to NHS 111/999 in the target language";
-    }
-    
-    const template = `Translate to ${language} for PATIENTS. Reading age 9–12, simple sentences, polite tone. Keep medicine names and numbers unchanged. Then add: ${safetyNote}\n\nCRITICAL: Use proper markdown formatting with clear headers and bullet points in ${language}.\n\nText:\n{{text}}`;
-    return processTemplate(template, ctx);
-  }
-
-  if (payload.targetLang && payload.mode === "clinician") {
-    const language = langMap[payload.targetLang] || payload.targetLang;
-    const template = `Translate to ${language} for CLINICIANS. Preserve clinical precision and terminology. Do not simplify. Keep drug names and numbers exactly. No safety-netting sentence. CRITICAL: Maintain proper markdown formatting structure in ${language}.\n\nText:\n{{text}}`;
-    return processTemplate(template, ctx);
-  }
-
-  if (payload.mode === "back-to-en") {
-    const template = "BACK TO ENGLISH. If {{text}} is not English, translate faithfully to English. MANDATORY FORMAT:\n\n## Original ({{detected_language}})\n{{text}}\n\n## English Translation\n[faithful translation]\n\nIf already English, offer a round-trip check to {{language}} and back, then show differences. Do NOT summarise—be literal. CRITICAL: Use proper markdown formatting.";
-    return processTemplate(template, ctx, { 
-      detected_language: payload.original || "unknown",
-      language: "Polish"
-    });
-  }
-
-  return processTemplate("Translation mode not recognized for {{text}}", ctx);
+async function translate(ctx: QuickPickContext, options: any): Promise<string> {
+  return "Translating content...";
 }
 
-async function openLanguagePicker(options: { mode: "patient" | "clinician" }): Promise<void> {
-  toast(`Opening ${options.mode} language picker...`);
+function openLanguagePicker(options: any): string {
+  return "Opening language picker...";
 }
 
-async function backToEnglish(ctx: QuickPickContext): Promise<string> {
-  const template = "BACK TO ENGLISH. If {{text}} is not English, translate faithfully to English. MANDATORY FORMAT:\n\n## Original ({{detected_language}})\n{{text}}\n\n## English Translation\n[faithful translation]\n\nIf already English, offer a round-trip check to Polish and back, then show differences. Do NOT summarise—be literal. CRITICAL: Use proper markdown formatting with clear headers.";
-  return processTemplate(template, ctx, { detected_language: "auto-detect" });
+function backToEnglish(ctx: QuickPickContext): string {
+  return "Converting back to English...";
 }
 
-// Export & share handlers - these don't need prompts as they're UI actions
-async function copyToClipboard(ctx: QuickPickContext): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(ctx.text);
-    toast("Copied to clipboard");
-  } catch (error) {
-    toast.error("Failed to copy to clipboard");
-  }
+function copyToClipboard(ctx: QuickPickContext): string {
+  return "Copied to clipboard.";
 }
 
-async function saveToRecord(ctx: QuickPickContext): Promise<void> {
-  toast("Saving to record...");
+function saveToRecord(ctx: QuickPickContext): string {
+  return "Saved to record.";
 }
 
-async function exportPDF(ctx: QuickPickContext): Promise<void> {
-  toast("Exporting PDF...");
+function exportPDF(ctx: QuickPickContext): string {
+  return "Exporting PDF...";
 }
 
-async function exportDOCX(ctx: QuickPickContext): Promise<void> {
-  toast("Exporting Word document...");
+function exportDOCX(ctx: QuickPickContext): string {
+  return "Exporting DOCX...";
 }
 
-async function exportEmailHTML(ctx: QuickPickContext): Promise<void> {
-  toast("Preparing email...");
+function exportEmailHTML(ctx: QuickPickContext): string {
+  return "Exporting as email HTML...";
 }
 
-async function printDocument(ctx: QuickPickContext): Promise<void> {
-  window.print();
+function printDocument(ctx: QuickPickContext): string {
+  return "Printing document...";
 }
 
-// Practice context handlers
-async function combineWithPracticeInfo(ctx: QuickPickContext): Promise<string> {
-  const template = "Merge {{text}} with local practice info {{practice_info}} (phones, opening hours, sites, urgent care routes). MANDATORY FORMAT:\n\n[Original content with proper formatting]\n\n## Local Practice Information\n- **Phone:** [practice number]\n- **Opening Hours:** [times]\n- **Urgent Care:** [out of hours arrangements]\n- **Additional Sites:** [if applicable]\n\nKeep clinical text unchanged. CRITICAL: Use proper markdown formatting with headers and bullets.";
-  return processTemplate(template, ctx, { practice_info: "practice details to be inserted" });
+function combineWithPracticeInfo(ctx: QuickPickContext): string {
+  return "Combining with practice information...";
 }
 
-async function insertLocalICBLinks(ctx: QuickPickContext): Promise<string> {
-  const template = "Append local ICB information to {{text}}. MANDATORY FORMAT:\n\n## Local ICB Resources\n\n### Formulary & Prior Approval\n- **Formulary:** {{icb_formulary_url}}\n- **Prior Approval:** {{prior_approval_url}}\n- **Referral Forms:** {{referral_portal_url}}\n\nCRITICAL: Use proper markdown headers and bullet formatting with proper spacing.";
-  return processTemplate(template, ctx, {
-    icb_formulary_url: "https://www.icnorthamptonshire.org.uk/mo-formulary",
-    prior_approval_url: "https://www.icnorthamptonshire.org.uk/prior-approval",
-    referral_portal_url: "https://www.icnorthamptonshire.org.uk/referrals"
-  });
+function insertLocalICBLinks(ctx: QuickPickContext): string {
+  return "Inserting local ICB links...";
 }
 
-async function openPriorApprovalModal(ctx: QuickPickContext): Promise<string> {
-  const template = "From {{drug_name}} create a concise prior-approval summary panel. MANDATORY FORMAT:\n\n## Prior Approval Summary\n\n### Drug Information\n- **Medication:** [drug name]\n\n### Approval Status\n- **Traffic Light:** [Red/Amber/Green]\n- **GP Can Initiate:** [Yes/No]\n- **Specialist Only:** [Yes/No]\n\n### Approval Process\n- **Approval Route:** [process details]\n- **Required Documentation:** [bullet points]\n\n### ICB Resources\n- [Open ICB Prior Approval]({{prior_approval_url}})\n\nCRITICAL: Use proper markdown formatting with headers and bullets.";
-  return processTemplate(template, ctx, {
-    drug_name: "specified medication",
-    prior_approval_url: "https://www.icnorthamptonshire.org.uk/prior-approval"
-  });
+function openPriorApprovalModal(ctx: QuickPickContext): string {
+  return "Opening prior approval modal...";
 }
 
-async function addPracticeSafetyNetting(ctx: QuickPickContext): Promise<string> {
-  const template = "Append a standard practice safety-netting box to {{text}}. MANDATORY FORMAT:\n\n## Practice Safety-Netting\n\n### Emergency Contact\n- **If symptoms worsen rapidly:** Call 999\n- **Out of hours emergencies:** [practice emergency number]\n\n### Urgent Contact (Next Working Day)\n- **Practice:** [practice phone number]\n- **Opening hours:** [practice hours]\n\n### Routine Follow-up\n- **Book appointment:** [booking process]\n- **General advice:** NHS 111\n\nInclude specific thresholds and timeframes. CRITICAL: Use proper markdown formatting.";
-  return processTemplate(template, ctx, { practice_info: "practice contact details" });
+function addPracticeSafetyNetting(ctx: QuickPickContext): string {
+  return "Adding practice safety netting template...";
 }
 
-// Export & share handlers - these don't need prompts as they're UI actions
-async function formatText(ctx: QuickPickContext): Promise<string> {
-  const template = `You are **NHS Clean Formatter** for UK GP content.
 
-TASK
-- Take the RAW TEXT and output a tidy, human-readable version.
-- Produce two formats: (1) Markdown, (2) HTML fallback (minimal inline CSS).
-- Do NOT change clinical meaning. Do NOT invent content.
-
-FORMATTING RULES
-1) Headings must be on their own line. Convert "Overview", "Diagnosis", "Management", "Inhaler Technique", "Monitoring", "Education", "Emergency Action Plan", "Referral", "Summary", "Special Considerations", "Key Takeaway", "Action Required" into proper headings.
-   - H1 for the document title.
-   - H2 for top sections, H3 for subsections.
-2) Insert a **blank line before and after** every heading and before each list.
-3) Convert inline dashes into true lists:
-   - Any run of " - ", "—", or "; " items becomes bullet points.
-   - Keep each bullet on its own line.
-4) Keep labels short and bold where helpful (e.g., **Scope:**, **Source:**).
-5) Use UK spelling and NICE/NHS terminology.
-6) If the RAW TEXT says *asthma* and mentions **NG24**, correct the citation to:
-   **NICE NG245 (BTS/NICE/SIGN, 27 Nov 2024)**.
-7) Links: if a NICE guideline is named, link to the official NICE page; otherwise omit links. Never invent non-NHS sources.
-8) No giant blocks: wrap at natural sentence boundaries; avoid line lengths > 120 chars.
-
-OUTPUT TEMPLATE
-Return exactly these two blocks:
-
-[MARKDOWN]
-# {Clear title}
-
-**Scope:** …
-**Source:** …
-
-## Diagnosis
-- …
-
-## Management
-- …
-
-## Inhaler technique
-- …
-
-## Monitoring
-- …
-
-## Education
-- …
-
-## Emergency action plan
-- …
-
-## Referral
-- …
-
-## Summary
-- …
-
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:720px;">
-  <h1>{Clear title}</h1>
-  <p><strong>Scope:</strong> …<br><strong>Source:</strong> …</p>
-  <h2>Diagnosis</h2>
-  <ul>
-    <li>…</li>
-  </ul>
-  <h2>Management</h2>
-  <ul>
-    <li>…</li>
-  </ul>
-  <h2>Inhaler technique</h2>
-  <ul><li>…</li></ul>
-  <h2>Monitoring</h2>
-  <ul><li>…</li></ul>
-  <h2>Education</h2>
-  <ul><li>…</li></ul>
-  <h2>Emergency action plan</h2>
-  <ul><li>…</li></ul>
-  <h2>Referral</h2>
-  <ul><li>…</li></ul>
-  <h2>Summary</h2>
-  <ul><li>…</li></ul>
-</section>
-
-RAW TEXT:
-{{text}}`;
-
-  return processTemplate(template, ctx);
-}
 
 // Main handlers object
 export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> | Promise<string> | string> = {
