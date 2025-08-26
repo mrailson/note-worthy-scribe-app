@@ -42,34 +42,6 @@ export const quickActions: QuickAction[] = [
     requiresFile: false,
     action: 'open-drug-lookup-modal'
   },
-  {
-    label: 'Test Transcripts',
-    icon: FileText,
-    prompt: '',
-    requiresFile: false,
-    submenu: [
-      {
-        label: 'Patient Consultations',
-        prompt: '',
-        action: 'open-test-transcripts-consultations'
-      },
-      {
-        label: 'GP Partnership Meetings',
-        prompt: '',
-        action: 'open-test-transcripts-partnership'
-      },
-      {
-        label: 'PCN Meetings',
-        prompt: '',
-        action: 'open-test-transcripts-pcn'
-      },
-      {
-        label: 'LMC Meetings',
-        prompt: '',
-        action: 'open-test-transcripts-lmc'
-      }
-    ]
-  },
   { 
     label: 'Complaint Response Helper', 
     icon: MessageSquare, 

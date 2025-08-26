@@ -156,7 +156,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Live transcription via Browser Speech - click mic to toggle</span>
+        <span className="text-blue-600 font-medium">🎙️ Bored of Typing? - click mic to talk!</span>
       </div>
     </div>
     </>
