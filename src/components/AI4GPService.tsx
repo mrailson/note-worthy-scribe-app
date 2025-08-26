@@ -425,6 +425,7 @@ const AI4GPService = () => {
                           setInput={setInput}
                           selectedRole={selectedRole}
                           onInsertIntoChat={setInput}
+                          onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                         />
                         
                         {/* Collapsible Short Card Disclaimer - Only show for GP role */}

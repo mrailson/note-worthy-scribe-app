@@ -16,6 +16,7 @@ interface QuickActionsPanelProps {
   selectedRole?: 'gp' | 'practice-manager';
   onOpenAITestModal?: () => void;
   onInsertIntoChat?: (message: string) => void;
+  onQuickResponse?: (response: string) => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
@@ -24,7 +25,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   setInput,
   selectedRole = 'gp',
   onOpenAITestModal,
-  onInsertIntoChat
+  onInsertIntoChat,
+  onQuickResponse
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
@@ -253,9 +255,14 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         isOpen={showConsultationChecker}
         onClose={() => setShowConsultationChecker(false)}
         onSubmit={(prompt) => {
-          setInput(prompt);
-          if (onInsertIntoChat) {
-            onInsertIntoChat(prompt);
+          setShowConsultationChecker(false);
+          if (onQuickResponse) {
+            onQuickResponse(prompt);
+          } else {
+            setInput(prompt);
+            if (onInsertIntoChat) {
+              onInsertIntoChat(prompt);
+            }
           }
         }}
       />
