@@ -29,7 +29,8 @@ import {
   Stethoscope,
   ShieldCheck,
   Languages,
-  Printer
+  Printer,
+  WandSparkles
 } from 'lucide-react';
 import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -926,6 +927,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       title="Copy message to clipboard"
                     >
                       <Copy className="h-3 w-3" />
+                    </Button>
+
+                    {/* Format button - Emergency formatting fix */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleQuickPickAction('format-text')}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Fix formatting - Apply proper markdown structure"
+                    >
+                      <WandSparkles className="h-3 w-3" />
                     </Button>
 
                     {/* Quick Pick (QP) dropdown - only show in regular chat */}

@@ -459,6 +459,31 @@ FORMATTING RULES
   return processTemplate(template, ctx);
 }
 
+async function formatText(ctx: QuickPickContext): Promise<string> {
+  const template = `🚨 FORMAT ENFORCEMENT - EMERGENCY FIX 🚨
+
+Take the following unformatted text and apply MANDATORY proper markdown formatting:
+
+{{text}}
+
+ABSOLUTE REQUIREMENTS - NO EXCEPTIONS:
+
+## Formatted Response
+
+Transform the above into properly structured content with:
+- **Clear headers (##)** for main sections
+- **Bullet points (-)** for all lists with proper spacing  
+- **Bold terms** for key medical information
+- **Proper line breaks** between sections
+- **NO paragraph walls** - everything must be structured
+
+❌ FORBIDDEN: Walls of text, missing headers, no bullets
+✅ REQUIRED: Perfect markdown structure with headers and bullets
+
+APPLY FORMATTING NOW - NO CONTENT CHANGES, JUST STRUCTURE`;
+  return processTemplate(template, ctx);
+}
+
 // Main handlers object
 export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> | Promise<string> | string> = {
   "approve-save": approveAndSave,
@@ -479,6 +504,7 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "add-snomed-bnf": addSnomedAndBnfSummary,
   "format-system": (ctx) => formatForSystem(ctx, "emis"),
   "add-formulary-prior-approval": insertFormularyAndPriorApproval,
+  "format-text": formatText,
 
   "patient-leaflet": createPatientLeaflet,
   "patient-safetynetting": addSafetyNetting,
