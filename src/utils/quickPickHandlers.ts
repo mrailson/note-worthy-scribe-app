@@ -268,55 +268,7 @@ async function roundTripCheck(ctx: QuickPickContext, options: { langs: string[] 
 
 // Refine content handlers
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  const template = `NO CODE FENCES. Always return [MARKDOWN]…[/MARKDOWN] and [HTML]…[/HTML] blocks.
-
-Insert a blank line before/after every heading and before lists (in markdown).
-
-In HTML use explicit tags (<p>, <ul>, <li>) — never rely on line breaks.
-
-Expand {{text}} with detailed information. Add relevant breakdown, examples, and context.
-
-[MARKDOWN]
-## Overview
-- **Main point:** Clear explanation
-- **Key details:** Supporting information
-
-## Detailed Breakdown  
-- **Specific aspect:** Expanded details
-- **Another aspect:** More information
-
-## Clinical Considerations
-- **Important factor:** Explanation
-- **Monitoring:** What to watch for
-
-## Summary
-- **Key takeaway:** Main message
-- **Action required:** Next steps
-[/MARKDOWN]
-[HTML]
-<section style="font-family:system-ui,Arial;line-height:1.55;max-width:760px">
-  <h2>Overview</h2>
-  <ul>
-    <li><strong>Main point:</strong> Clear explanation</li>
-    <li><strong>Key details:</strong> Supporting information</li>
-  </ul>
-  <h2>Detailed Breakdown</h2>
-  <ul>
-    <li><strong>Specific aspect:</strong> Expanded details</li>
-    <li><strong>Another aspect:</strong> More information</li>
-  </ul>
-  <h2>Clinical Considerations</h2>
-  <ul>
-    <li><strong>Important factor:</strong> Explanation</li>
-    <li><strong>Monitoring:</strong> What to watch for</li>
-  </ul>
-  <h2>Summary</h2>
-  <ul>
-    <li><strong>Key takeaway:</strong> Main message</li>
-    <li><strong>Action required:</strong> Next steps</li>
-  </ul>
-</section>
-[/HTML]`;
+  const template = `expand with more detail`;
   return processTemplate(template, ctx);
 }
 
