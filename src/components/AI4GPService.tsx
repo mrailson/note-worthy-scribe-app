@@ -19,7 +19,7 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
-import { MicroBanner, ShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
+import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
@@ -48,7 +48,7 @@ const AI4GPService = () => {
   const { toast } = useToast();
   
   // Disclaimer management
-  const { showDisclaimer, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
+  const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   
@@ -407,10 +407,13 @@ const AI4GPService = () => {
                           onInsertIntoChat={setInput}
                         />
                         
-                        {/* Short Card Disclaimer - Only show for GP role */}
+                        {/* Collapsible Short Card Disclaimer - Only show for GP role */}
                         {selectedRole === 'gp' && (
                           <div className="mt-6">
-                            <ShortCard />
+                            <CollapsibleShortCard 
+                              isCollapsed={disclaimerCollapsed}
+                              onCollapsedChange={updateCollapsedPreference}
+                            />
                           </div>
                         )}
                       </div>

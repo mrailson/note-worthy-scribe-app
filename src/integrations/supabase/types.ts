@@ -3347,6 +3347,7 @@ export type Database = {
       profiles: {
         Row: {
           ai4gp_access: boolean | null
+          ai4gp_disclaimer_collapsed: boolean | null
           created_at: string
           department: string | null
           email: string
@@ -3367,6 +3368,7 @@ export type Database = {
         }
         Insert: {
           ai4gp_access?: boolean | null
+          ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
           department?: string | null
           email: string
@@ -3387,6 +3389,7 @@ export type Database = {
         }
         Update: {
           ai4gp_access?: boolean | null
+          ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
           department?: string | null
           email?: string
