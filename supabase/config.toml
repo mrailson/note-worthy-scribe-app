@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.fetch-icb-traffic-light-drugs]
 verify_jwt = true
+
+[functions.amazon-transcribe]
+verify_jwt = true
