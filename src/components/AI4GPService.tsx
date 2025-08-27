@@ -59,6 +59,7 @@ const AI4GPService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [genieTab, setGenieTab] = useState<'gp-genie' | 'pm-genie'>('gp-genie');
   
   const [showNews, setShowNews] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
@@ -352,7 +353,7 @@ const AI4GPService = () => {
               {showAIChat && (
                 <div className="border-b bg-muted/20 p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-sm">GP Genie</h4>
+                    <h4 className="font-medium text-sm">{genieTab === 'gp-genie' ? 'GP Genie' : 'PM Genie'}</h4>
                     <button
                       onClick={() => setShowAIChat(false)}
                       className="text-muted-foreground hover:text-foreground text-sm"
@@ -361,7 +362,7 @@ const AI4GPService = () => {
                     </button>
                   </div>
                   <div className="max-h-[70vh] overflow-y-auto">
-                    <GPGenieVoiceAgent />
+                    <GPGenieVoiceAgent initialTab={genieTab} />
                   </div>
                 </div>
               )}
@@ -491,7 +492,10 @@ const AI4GPService = () => {
                                 </div>
                                 
                                 <Button 
-                                  onClick={() => setShowAIChat(true)}
+                                  onClick={() => {
+                                    setGenieTab('gp-genie');
+                                    setShowAIChat(true);
+                                  }}
                                   size="sm"
                                   className="w-full flex items-center gap-2 text-xs py-2 bg-blue-600 hover:bg-blue-700 text-white"
                                 >
@@ -539,7 +543,10 @@ const AI4GPService = () => {
                                 </div>
                                 
                                 <Button 
-                                  onClick={() => setShowAIChat(true)}
+                                  onClick={() => {
+                                    setGenieTab('pm-genie');
+                                    setShowAIChat(true);
+                                  }}
                                   size="sm"
                                   className="w-full flex items-center gap-2 text-xs py-2 bg-purple-600 hover:bg-purple-700 text-white"
                                 >

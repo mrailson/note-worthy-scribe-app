@@ -29,8 +29,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const GPGenieVoiceAgent = () => {
-  const [activeTab, setActiveTab] = useState('gp-genie');
+const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
