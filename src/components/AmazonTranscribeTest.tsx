@@ -1,152 +1,97 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Mic, MicOff, Loader2, Activity } from 'lucide-react';
-import { AmazonTranscriber } from '@/utils/AmazonTranscriber';
+import { Loader2, Activity, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AmazonTranscribeTest = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [transcription, setTranscription] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  const [transcriber, setTranscriber] = useState<AmazonTranscriber | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const [testing, setTesting] = useState(false);
+  const [credentialsValid, setCredentialsValid] = useState<boolean | null>(null);
+  const [websocketUrl, setWebsocketUrl] = useState('');
+  const [testResults, setTestResults] = useState<string[]>([]);
 
-  const handleStartTest = async () => {
+  const handleTest = async () => {
     try {
-      setIsConnecting(true);
-      setConnectionStatus('connecting');
+      setTesting(true);
+      setTestResults([]);
+      setCredentialsValid(null);
+      setWebsocketUrl('');
       
-      // First, test if we can reach the edge function and get a WebSocket URL
-      const newTranscriber = new AmazonTranscriber({
-        onTranscription: (text: string) => {
-          setTranscription(prev => prev + text + ' ');
-        },
-        onError: (error: string) => {
-          console.error('Transcription error:', error);
-          toast.error(`Transcription error: ${error}`);
-          setConnectionStatus('error');
-          setIsRecording(false);
-        },
-        onConnectionChange: (connected: boolean) => {
-          if (connected) {
-            setConnectionStatus('connected');
-            setIsConnecting(false);
-            toast.success('Connected to Amazon Transcribe');
-            startAudioRecording();
-          } else {
-            setConnectionStatus('disconnected');
-            setIsRecording(false);
-            stopAudioRecording();
-          }
-        }
+      setTestResults(prev => [...prev, '🔄 Testing AWS credentials...']);
+      
+      // Test 1: Check if credentials are configured
+      const { data: credCheck, error: credError } = await supabase.functions.invoke('amazon-transcribe', {
+        body: { action: 'check_credentials' }
       });
 
-      // Test credentials first
-      const isAvailable = await AmazonTranscriber.isAvailable();
-      if (!isAvailable) {
-        throw new Error('AWS credentials not configured or service unavailable');
+      if (credError) {
+        throw new Error(`Credentials check failed: ${credError.message}`);
       }
 
-      toast.success('AWS credentials verified - attempting WebSocket connection...');
-      await newTranscriber.connect();
-      setTranscriber(newTranscriber);
-      
-    } catch (error) {
-      console.error('Failed to start Amazon Transcribe:', error);
-      
-      // Provide more helpful error messages
-      if (error.message.includes('WebSocket connection error')) {
-        toast.error('WebSocket connection failed. Amazon Transcribe WebSocket connections may be blocked by CORS policies or require additional setup.');
-        setTranscription('Note: Amazon Transcribe streaming requires a backend proxy for browser connections due to CORS and WebSocket protocol requirements. Direct browser connections to AWS WebSocket endpoints are typically not supported.');
+      if (credCheck?.available) {
+        setTestResults(prev => [...prev, '✅ AWS credentials are configured and valid']);
+        setCredentialsValid(true);
       } else {
-        toast.error('Failed to start Amazon Transcribe test: ' + error.message);
+        setTestResults(prev => [...prev, '❌ AWS credentials are not configured']);
+        setCredentialsValid(false);
+        return;
       }
-      
-      setConnectionStatus('error');
-      setIsConnecting(false);
-    }
-  };
 
-  const startAudioRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { 
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true
-        } 
-      });
+      setTestResults(prev => [...prev, '🔄 Testing WebSocket URL generation...']);
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-          
-          // Convert blob to ArrayBuffer and send to transcriber
-          event.data.arrayBuffer().then(buffer => {
-            if (transcriber && transcriber.isConnectedToService()) {
-              transcriber.sendAudioData(buffer);
-            }
-          });
+      // Test 2: Generate WebSocket URL (this tests the signing process)
+      const { data: urlData, error: urlError } = await supabase.functions.invoke('amazon-transcribe', {
+        body: { 
+          action: 'get_websocket_url',
+          region: 'us-east-1',
+          languageCode: 'en-US',
+          sampleRate: 16000
         }
-      };
+      });
 
-      mediaRecorder.start(100); // Send data every 100ms
-      setIsRecording(true);
+      if (urlError) {
+        throw new Error(`WebSocket URL generation failed: ${urlError.message}`);
+      }
+
+      if (urlData?.websocketUrl) {
+        setWebsocketUrl(urlData.websocketUrl);
+        setTestResults(prev => [...prev, '✅ WebSocket URL generated successfully']);
+        setTestResults(prev => [...prev, `📋 URL length: ${urlData.websocketUrl.length} characters`]);
+        setTestResults(prev => [...prev, `🌍 Region: ${urlData.region}`]);
+        setTestResults(prev => [...prev, `🗣️ Language: ${urlData.languageCode}`]);
+      } else {
+        setTestResults(prev => [...prev, '❌ Failed to generate WebSocket URL']);
+        return;
+      }
+
+      setTestResults(prev => [...prev, '']);
+      setTestResults(prev => [...prev, '✅ Amazon Transcribe integration test successful!']);
+      setTestResults(prev => [...prev, '']);
+      setTestResults(prev => [...prev, '📝 Note: Direct WebSocket connections from browsers to AWS']);
+      setTestResults(prev => [...prev, '   services are not supported due to CORS policies.']);
+      setTestResults(prev => [...prev, '   Production usage requires a backend WebSocket proxy.']);
+
+      toast.success('Amazon Transcribe credentials verified successfully!');
       
     } catch (error) {
-      console.error('Failed to start audio recording:', error);
-      toast.error('Failed to access microphone');
-      setConnectionStatus('error');
+      console.error('Test failed:', error);
+      setTestResults(prev => [...prev, `❌ Test failed: ${error.message}`]);
+      setCredentialsValid(false);
+      toast.error('Amazon Transcribe test failed: ' + error.message);
+    } finally {
+      setTesting(false);
     }
-  };
-
-  const stopAudioRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  const handleStopTest = () => {
-    if (transcriber) {
-      transcriber.disconnect();
-      setTranscriber(null);
-    }
-    stopAudioRecording();
-    setIsRecording(false);
-    setConnectionStatus('disconnected');
-    toast.success('Amazon Transcribe test stopped');
-  };
-
-  const handleClearTranscription = () => {
-    setTranscription('');
   };
 
   const getStatusBadge = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return <Badge variant="default" className="bg-green-500">Connected</Badge>;
-      case 'connecting':
-        return <Badge variant="secondary">Connecting...</Badge>;
-      case 'error':
-        return <Badge variant="destructive">Error</Badge>;
-      default:
-        return <Badge variant="outline">Disconnected</Badge>;
-    }
+    if (testing) return <Badge variant="secondary">Testing...</Badge>;
+    if (credentialsValid === true) return <Badge variant="default" className="bg-green-500">Valid</Badge>;
+    if (credentialsValid === false) return <Badge variant="destructive">Invalid</Badge>;
+    return <Badge variant="outline">Not Tested</Badge>;
   };
 
   return (
@@ -158,7 +103,7 @@ export const AmazonTranscribeTest = () => {
             Amazon Transcribe Test
           </CardTitle>
           <CardDescription>
-            Test Amazon Transcribe real-time transcription service
+            Test AWS credentials and Amazon Transcribe service integration
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -167,20 +112,20 @@ export const AmazonTranscribeTest = () => {
             className="w-full"
           >
             <Activity className="w-4 h-4 mr-2" />
-            Open Amazon Transcribe Tester
+            Test Amazon Transcribe Integration
           </Button>
         </CardContent>
       </Card>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
-              Amazon Transcribe Test
+              Amazon Transcribe Integration Test
             </DialogTitle>
             <DialogDescription>
-              Test the Amazon Transcribe integration with real-time speech-to-text
+              Verify AWS credentials and service configuration
             </DialogDescription>
           </DialogHeader>
 
@@ -188,71 +133,56 @@ export const AmazonTranscribeTest = () => {
             {/* Status and Controls */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="text-sm font-medium">Status:</div>
+                <div className="text-sm font-medium">Credentials Status:</div>
                 {getStatusBadge()}
               </div>
-              <div className="flex gap-2">
-                {!isRecording ? (
-                  <Button 
-                    onClick={handleStartTest}
-                    disabled={isConnecting}
-                    className="flex items-center gap-2"
-                  >
-                    {isConnecting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                    {isConnecting ? 'Connecting...' : 'Start Test'}
-                  </Button>
+              <Button 
+                onClick={handleTest}
+                disabled={testing}
+                className="flex items-center gap-2"
+              >
+                {testing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Button 
-                    onClick={handleStopTest}
-                    variant="destructive"
-                    className="flex items-center gap-2"
-                  >
-                    <MicOff className="w-4 h-4" />
-                    Stop Test
-                  </Button>
+                  <CheckCircle className="w-4 h-4" />
                 )}
-                <Button 
-                  onClick={handleClearTranscription}
-                  variant="outline"
-                  disabled={!transcription}
-                >
-                  Clear
-                </Button>
-              </div>
+                {testing ? 'Testing...' : 'Run Test'}
+              </Button>
             </div>
 
-            {/* Transcription Output */}
+            {/* Test Results */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Real-time Transcription</h3>
-                <Badge variant="secondary">
-                  {transcription.split(' ').filter(word => word.length > 0).length} words
-                </Badge>
-              </div>
-              <div className="min-h-[200px] p-4 border rounded-lg bg-muted/50">
-                {transcription ? (
-                  <p className="text-sm leading-relaxed">{transcription}</p>
+              <h3 className="text-sm font-medium">Test Results</h3>
+              <div className="min-h-[200px] p-4 border rounded-lg bg-muted/50 font-mono text-sm">
+                {testResults.length > 0 ? (
+                  testResults.map((result, index) => (
+                    <div key={index} className="leading-relaxed">
+                      {result}
+                    </div>
+                  ))
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    {isRecording 
-                      ? 'Speak into your microphone to see transcription...' 
-                      : 'Click "Start Test" and begin speaking to test Amazon Transcribe'
-                    }
+                  <p className="text-muted-foreground italic">
+                    Click "Run Test" to verify Amazon Transcribe integration
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Test Information */}
+            {/* WebSocket URL Preview (for debugging) */}
+            {websocketUrl && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Generated WebSocket URL (for debugging)</h3>
+                <div className="p-3 border rounded-lg bg-muted/30">
+                  <p className="text-xs font-mono break-all">{websocketUrl}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Information */}
             <div className="text-xs text-muted-foreground space-y-1">
               <p>• This test verifies AWS credentials and WebSocket URL generation</p>
               <p>• Amazon Transcribe streaming requires server-side WebSocket proxy for production use</p>
               <p>• Direct browser connections to AWS WebSocket endpoints have CORS limitations</p>
-              <p>• AWS credentials are configured: {connectionStatus === 'error' ? '❌' : '✅'}</p>
             </div>
           </div>
         </DialogContent>
