@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { TranscribeStreamingClient, StartStreamTranscriptionCommand } from "npm:@aws-sdk/client-transcribe-streaming@3";
+import { 
+  TranscribeStreamingClient, 
+  StartStreamTranscriptionCommand,
+  type TranscriptEvent,
+  type Result
+} from "npm:@aws-sdk/client-transcribe-streaming@3.876.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -127,24 +132,26 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`Transcription stream started for session ${id}`);
           
           for await (const ev of resp.TranscriptResultStream ?? []) {
-            // @ts-ignore - AWS SDK types are complex
-            if (!ev.TranscriptEvent) continue;
-            // @ts-ignore
-            const results = ev.TranscriptEvent.Transcript?.Results || [];
+            console.log(`Received event:`, ev);
             
-            for (const r of results) {
-              const isPartial = r?.IsPartial;
-              const alt = r?.Alternatives?.[0];
-              const text = alt?.Transcript || "";
-              if (!text) continue;
+            if ('TranscriptEvent' in ev && ev.TranscriptEvent) {
+              const transcriptEvent = ev.TranscriptEvent as TranscriptEvent;
+              const results = transcriptEvent.Transcript?.Results || [];
               
-              console.log(`Transcription ${isPartial ? 'partial' : 'final'}: ${text}`);
-              
-              for (const controller of session.listeners) {
-                try {
-                  writeSSE(controller, isPartial ? "partial" : "final", { text });
-                } catch (e) {
-                  console.error('Error writing SSE:', e);
+              for (const r of results) {
+                const isPartial = r?.IsPartial || false;
+                const alt = r?.Alternatives?.[0];
+                const text = alt?.Transcript || "";
+                if (!text) continue;
+                
+                console.log(`Transcription ${isPartial ? 'partial' : 'final'}: ${text}`);
+                
+                for (const controller of session.listeners) {
+                  try {
+                    writeSSE(controller, isPartial ? "partial" : "final", { text });
+                  } catch (e) {
+                    console.error('Error writing SSE:', e);
+                  }
                 }
               }
             }
