@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Download, Wand2, Edit, RotateCcw, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePracticeContext } from "@/hooks/usePracticeContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,7 +82,7 @@ const practiceQuickPicks: QuickPick[] = [
 
 export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) => {
   const { user } = useAuth();
-  const { practiceDetails } = usePracticeContext();
+  const { practiceDetails, practiceContext } = usePracticeContext();
   
   const [activeTab, setActiveTab] = useState("quick-picks");
   const [selectedQuickPick, setSelectedQuickPick] = useState<QuickPick | null>(null);
@@ -91,16 +93,18 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
   const [isGenerating, setIsGenerating] = useState(false);
   const [galleryImages, setGalleryImages] = useState<GeneratedImage[]>([]);
   const [generationProgress, setGenerationProgress] = useState("");
+  const [includePracticeDetails, setIncludePracticeDetails] = useState(true);
   
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
+  // Update detailed prompt when practice details toggle changes
   useEffect(() => {
-    if (open && user) {
-      fetchGalleryImages();
+    if (selectedQuickPick) {
+      setDetailedPrompt(enhancePromptWithPractice(selectedQuickPick.basePrompt));
     }
-  }, [open, user]);
+  }, [includePracticeDetails, selectedQuickPick]);
 
   const fetchGalleryImages = async () => {
     try {
@@ -118,14 +122,35 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
   };
 
   const enhancePromptWithPractice = (basePrompt: string): string => {
-    if (!practiceDetails) return basePrompt;
+    if (!includePracticeDetails || (!practiceDetails && !practiceContext)) return basePrompt;
     
     let enhanced = basePrompt;
-    if (practiceDetails.practice_name) {
-      enhanced += ` Include practice name: "${practiceDetails.practice_name}".`;
+    
+    // Add practice name
+    const practiceName = practiceDetails?.practice_name || practiceContext?.practiceName;
+    if (practiceName) {
+      enhanced += ` Include practice name: "${practiceName}".`;
     }
-    if (practiceDetails.contact_phone) {
-      enhanced += ` Contact phone: ${practiceDetails.contact_phone}.`;
+    
+    // Add contact information
+    const phone = practiceDetails?.phone || practiceContext?.practicePhone;
+    if (phone) {
+      enhanced += ` Contact phone: ${phone}.`;
+    }
+    
+    const email = practiceDetails?.email || practiceContext?.practiceEmail;
+    if (email) {
+      enhanced += ` Contact email: ${email}.`;
+    }
+    
+    const website = practiceDetails?.website || practiceContext?.practiceWebsite;
+    if (website) {
+      enhanced += ` Website: ${website}.`;
+    }
+    
+    const address = practiceDetails?.address || practiceContext?.practiceAddress;
+    if (address) {
+      enhanced += ` Address: ${address}.`;
     }
     
     return enhanced;
@@ -166,6 +191,12 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
     setQuickPrompt(quickPick.title);
     setDetailedPrompt(enhancePromptWithPractice(quickPick.basePrompt));
     setActiveTab("generate");
+  };
+
+  const regenerateDetailedPrompt = () => {
+    if (selectedQuickPick) {
+      setDetailedPrompt(enhancePromptWithPractice(selectedQuickPick.basePrompt));
+    }
   };
 
   const handleGenerate = async () => {
@@ -440,6 +471,32 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
                     disabled={!isEditingPrompt}
                     className={`min-h-[120px] ${!isEditingPrompt ? 'bg-muted' : ''}`}
                   />
+                </div>
+
+                {/* Practice Details Toggle */}
+                <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                  <Switch
+                    id="include-practice-details"
+                    checked={includePracticeDetails}
+                    onCheckedChange={(checked) => {
+                      setIncludePracticeDetails(checked);
+                      // Regenerate prompt if a quick pick is selected
+                      if (selectedQuickPick) {
+                        regenerateDetailedPrompt();
+                      }
+                    }}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="include-practice-details" className="text-sm font-medium">
+                      Include My Practice Details
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {practiceDetails?.practice_name || practiceContext?.practiceName
+                        ? `Automatically add details for ${practiceDetails?.practice_name || practiceContext?.practiceName}`
+                        : "Add practice name, contact info, and address to generated images"
+                      }
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
