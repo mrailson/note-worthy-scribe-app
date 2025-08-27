@@ -3133,6 +3133,48 @@ export type Database = {
           },
         ]
       }
+      monitoring_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          current_value: number
+          details: Json | null
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          threshold_value: number
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          current_value: number
+          details?: Json | null
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          threshold_value: number
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          current_value?: number
+          details?: Json | null
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          threshold_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       neighbourhoods: {
         Row: {
           created_at: string
@@ -4336,6 +4378,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_monitoring_status: {
+        Row: {
+          check_details: Json | null
+          created_at: string
+          critical_alerts: number
+          id: string
+          last_check_at: string
+          system_status: string
+          total_alerts: number
+          warning_alerts: number
+        }
+        Insert: {
+          check_details?: Json | null
+          created_at?: string
+          critical_alerts?: number
+          id?: string
+          last_check_at?: string
+          system_status: string
+          total_alerts?: number
+          warning_alerts?: number
+        }
+        Update: {
+          check_details?: Json | null
+          created_at?: string
+          critical_alerts?: number
+          id?: string
+          last_check_at?: string
+          system_status?: string
+          total_alerts?: number
+          warning_alerts?: number
+        }
+        Relationships: []
+      }
       template_attendees: {
         Row: {
           attendee_id: string
@@ -5063,6 +5138,17 @@ export type Database = {
       get_meeting_transcript: {
         Args: { p_meeting_id: string }
         Returns: string
+      }
+      get_monitoring_dashboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          critical_alerts: number
+          last_check: string
+          recent_alerts: Json
+          system_status: string
+          total_active_alerts: number
+          warning_alerts: number
+        }[]
       }
       get_pcn_manager_practice_ids: {
         Args: { _user_id?: string }
