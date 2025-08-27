@@ -2597,6 +2597,59 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_notes_queue: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          detail_level: string
+          error_message: string | null
+          id: string
+          max_attempts: number
+          meeting_id: string
+          priority: number
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          detail_level?: string
+          error_message?: string | null
+          id?: string
+          max_attempts?: number
+          meeting_id: string
+          priority?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          detail_level?: string
+          error_message?: string | null
+          id?: string
+          max_attempts?: number
+          meeting_id?: string
+          priority?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notes_queue_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_overviews: {
         Row: {
           created_at: string
@@ -2859,6 +2912,7 @@ export type Database = {
           meeting_location: string | null
           meeting_type: string
           mixed_audio_url: string | null
+          notes_generation_status: string | null
           participants: string[] | null
           practice_id: string | null
           recording_created_at: string | null
@@ -2889,6 +2943,7 @@ export type Database = {
           meeting_location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          notes_generation_status?: string | null
           participants?: string[] | null
           practice_id?: string | null
           recording_created_at?: string | null
@@ -2919,6 +2974,7 @@ export type Database = {
           meeting_location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          notes_generation_status?: string | null
           participants?: string[] | null
           practice_id?: string | null
           recording_created_at?: string | null

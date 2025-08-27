@@ -77,6 +77,7 @@ interface Meeting {
   left_audio_url?: string | null;
   right_audio_url?: string | null;
   recording_created_at?: string | null;
+  notes_generation_status?: string; // Add this field
   // Sharing fields
   access_type?: 'owner' | 'shared';
   access_level?: 'view' | 'download';
@@ -741,6 +742,26 @@ export const MeetingHistoryList = ({
                 >
                   <FileText className="h-4 w-4" />
                   <span>View Notes</span>
+                  
+                  {/* Notes Status Indicator */}
+                  {meeting.notes_generation_status === 'generating' && (
+                    <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full ml-1" />
+                  )}
+                  {meeting.notes_generation_status === 'queued' && (
+                    <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs">
+                      ⏳
+                    </Badge>
+                  )}
+                  {meeting.notes_generation_status === 'completed' && meeting.summary_exists && (
+                    <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs bg-green-100 text-green-800">
+                      ✅
+                    </Badge>
+                  )}
+                  {meeting.notes_generation_status === 'failed' && (
+                    <Badge variant="destructive" className="ml-1 px-1 py-0 text-xs">
+                      ❌
+                    </Badge>
+                  )}
                 </Button>
                 
                 {/* Audio Backup Button - Only show if audio backup exists */}

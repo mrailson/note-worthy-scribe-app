@@ -57,6 +57,7 @@ interface Meeting {
   summary_exists?: boolean;
   word_count?: number;
   document_count?: number;
+  notes_generation_status?: string; // Add this field
   documents?: Array<{
     file_name: string;
     file_size: number | null;
@@ -196,16 +197,17 @@ const MeetingHistory = () => {
     console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
     
     try {
-      // Fetch meeting details
+      // Fetch meeting details with notes generation status
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup, notes_generation_status')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
         .single();
 
       if (meetingError) throw meetingError;
       console.log('🔍 Meeting data fetched:', meeting);
+      console.log('🔍 Notes generation status:', meeting.notes_generation_status);
 
       // Fetch existing summary if available
       const { data: summaryData, error: summaryError } = await supabase
@@ -216,22 +218,91 @@ const MeetingHistory = () => {
       
       console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
       
+      // Handle different notes generation states
+      let notesToShow = summaryData?.summary || '';
+      let shouldAutoGenerate = false;
+
+      if (!summaryData?.summary) {
+        // No notes exist yet
+        const status = meeting.notes_generation_status || 'not_started';
+        
+        switch (status) {
+          case 'not_started':
+            console.log('🚀 Auto-triggering notes generation');
+            shouldAutoGenerate = true;
+            notesToShow = '⏳ Generating notes automatically...\n\nYour meeting notes are being created in the background. This may take a moment.';
+            break;
+          case 'queued':
+            notesToShow = '⏳ Notes generation queued...\n\nYour meeting notes will be generated shortly.';
+            break;
+          case 'generating':
+            notesToShow = '⏳ Generating notes in progress...\n\nPlease wait while we create your meeting notes.';
+            break;
+          case 'failed':
+            notesToShow = '❌ Notes generation failed\n\nWe encountered an issue generating your notes automatically. You can try regenerating them manually.';
+            break;
+        }
+      }
+      
       // Set all modal states together using React's batching
       console.log('🔍 Setting all modal states together...');
       
       // Use React 18's automatic batching by setting states in sequence
       setModalMeeting(meeting);
-      setModalNotes(summaryData?.summary || '');
+      setModalNotes(notesToShow);
       
       // Use setTimeout to ensure state updates are applied before opening modal
       setTimeout(() => {
         console.log('📝 Opening modal with meeting:', meeting?.title);
         setFullPageModalOpen(true);
+        
+        // Auto-trigger generation if needed
+        if (shouldAutoGenerate) {
+          triggerNotesGeneration(meetingId);
+        }
       }, 100);
       
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error.message);
       toast.error("Failed to load meeting notes");
+    }
+  };
+
+  const triggerNotesGeneration = async (meetingId: string) => {
+    try {
+      console.log('🤖 Triggering notes generation for meeting:', meetingId);
+      
+      // Update meeting status to queued
+      await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'queued' })
+        .eq('id', meetingId);
+
+      // Add to notes generation queue
+      await supabase
+        .from('meeting_notes_queue')
+        .insert({
+          meeting_id: meetingId,
+          status: 'pending',
+          detail_level: 'standard',
+          priority: 1
+        });
+
+      // Call the edge function
+      const { error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { meetingId }
+      });
+
+      if (error) {
+        console.error('❌ Notes generation failed:', error);
+        toast.error('Failed to generate notes automatically');
+      } else {
+        console.log('🎉 Notes generation started successfully');
+        toast.success('Notes are being generated in the background');
+      }
+    } catch (error: any) {
+      console.error('❌ Error triggering notes generation:', error);
+      toast.error('Failed to start notes generation');
     }
   };
 
@@ -854,10 +925,28 @@ const MeetingHistory = () => {
           table: 'meetings',
           filter: `user_id=eq.${user.id}`
         },
+        // Real-time updates for meeting status changes
         (payload) => {
-          console.log('🔄 Meeting updated, refreshing meeting history...', payload);
-          // Refresh meetings when a meeting is updated
-          fetchMeetings();
+          console.log('🔄 Meeting updated, checking notes status...', payload);
+          
+          // Update the specific meeting in our list
+          setMeetings(prev => prev.map(meeting => 
+            meeting.id === payload.new.id 
+              ? { ...meeting, ...payload.new }
+              : meeting
+          ));
+          
+          // Update modal if it's the same meeting and notes completed
+          if (modalMeeting?.id === payload.new.id && 
+              payload.new.notes_generation_status === 'completed') {
+            loadNotesForModal(payload.new.id);
+          }
+          
+          // Show toast for notes completion
+          if (payload.new.notes_generation_status === 'completed' && 
+              payload.old.notes_generation_status !== 'completed') {
+            toast.success('Meeting notes have been generated!');
+          }
         }
       )
       .on(
@@ -927,13 +1016,57 @@ const MeetingHistory = () => {
     }
   }, [filteredMeetings]);
 
+  // Listen for navigation from MeetingRecorder
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'meeting_just_saved' && user?.id) {
+        console.log('🔄 Meeting just saved, refreshing list');
+        localStorage.removeItem('meeting_just_saved');
+        setTimeout(() => fetchMeetings(), 1000); // Small delay to ensure DB is updated
+      }
+    };
+
+    const handleFocus = () => {
+      // Refresh meetings when user returns to the tab
+      if (user?.id) {
+        console.log('🔄 Tab focused, refreshing meetings');
+        fetchMeetings();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user?.id]);
+
+  // Load notes for modal when generation completes
+  const loadNotesForModal = async (meetingId: string) => {
+    try {
+      const { data: summaryData } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meetingId)
+        .single();
+      
+      if (summaryData?.summary) {
+        setModalNotes(summaryData.summary);
+      }
+    } catch (error) {
+      console.error('Error loading updated notes:', error);
+    }
+  };
+
   const fetchMeetings = async () => {
     try {
       setLoading(true);
       
       console.log('🚨 FETCHING MEETINGS - User ID:', user?.id);
       
-      // Get everything in one optimized query using joins
+       // Get everything in one optimized query using joins
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
         .select(`
@@ -955,6 +1088,7 @@ const MeetingHistory = () => {
           left_audio_url,
           right_audio_url,
           recording_created_at,
+          notes_generation_status,
           meeting_overviews(overview)
         `)
         .eq('user_id', user?.id)

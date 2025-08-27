@@ -3023,6 +3023,48 @@ export const MeetingRecorder = ({
       setSavingSteps({ saving: true, securing: true, complete: true });
       await new Promise(resolve => setTimeout(resolve, 200)); // Phase 4 total now 500ms
 
+      // Trigger background notes generation
+      console.log('🤖 Triggering background notes generation for meeting:', savedMeeting.id);
+      try {
+        // Update meeting status to queued
+        await supabase
+          .from('meetings')
+          .update({ notes_generation_status: 'queued' })
+          .eq('id', savedMeeting.id);
+
+        // Add to notes generation queue
+        await supabase
+          .from('meeting_notes_queue')
+          .insert({
+            meeting_id: savedMeeting.id,
+            status: 'pending',
+            detail_level: 'standard',
+            priority: 1
+          });
+
+        // Trigger background generation (fire and forget)
+        supabase.functions
+          .invoke('auto-generate-meeting-notes', {
+            body: { meetingId: savedMeeting.id }
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('❌ Background notes generation failed:', error);
+            } else {
+              console.log('🎉 Background notes generation started successfully');
+            }
+          });
+
+        toast.success('Meeting saved! Notes are being generated in the background.');
+      } catch (noteError) {
+        console.error('⚠️ Failed to queue notes generation:', noteError);
+        // Don't fail the whole save process for this
+        toast.success('Meeting saved successfully!');
+      }
+
+      // Signal that meeting was just saved for auto-refresh
+      localStorage.setItem('meeting_just_saved', 'true');
+      
       // Show final success modal with meeting details
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
       setMeetingEndModal(prev => ({
