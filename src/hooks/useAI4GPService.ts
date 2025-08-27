@@ -184,6 +184,7 @@ export const useAI4GPService = () => {
   };
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
+    console.log('🔧 Building system prompt with practice context:', practiceContext);
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
@@ -201,6 +202,7 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
 
     // Add practice context if available
     if (practiceContext.practiceName) {
+      console.log('✅ Adding practice details to system prompt:', practiceContext.practiceName);
       prompt += `\n\n=== YOUR PRACTICE INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
 Practice Name: ${practiceContext.practiceName}`;
       
@@ -284,6 +286,8 @@ EXAMPLES OF CORRECT USAGE:
 - Reference the user's role when providing role-specific guidance
 - Include contact details when generating practice communications
 - Use available signatures when creating formal documents`;
+    } else {
+      console.log('❌ No practice name found in context:', practiceContext);
     }
 
     prompt += `\n\nKnowledge domains you should reference:
@@ -379,6 +383,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     try {
       const startTime = Date.now();
       const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
+      console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {

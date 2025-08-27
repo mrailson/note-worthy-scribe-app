@@ -113,7 +113,7 @@ const AI4GPService = () => {
     setReadingFont
   } = useAI4GPService();
 
-  const { practiceContext } = usePracticeContext();
+  const { practiceContext, practiceDetails } = usePracticeContext();
   
   const {
     searchHistory,
@@ -123,6 +123,8 @@ const AI4GPService = () => {
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
+    console.log('🏥 Practice context being sent to AI:', practiceContext);
+    console.log('📋 Practice details available:', practiceDetails);
     // Use the selected model from settings
     handleSend(practiceContext, selectedModel);
   };
