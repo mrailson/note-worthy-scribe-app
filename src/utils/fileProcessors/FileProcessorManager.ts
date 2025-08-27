@@ -44,7 +44,10 @@ export class FileProcessorManager {
     '.png': 'image',
     '.gif': 'image',
     '.webp': 'image',
-    '.svg': 'image'
+    '.svg': 'image',
+    '.bmp': 'image',
+    '.tiff': 'image',
+    '.tif': 'image'
   };
 
   static getFileType(fileName: string): string {

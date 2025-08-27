@@ -92,7 +92,7 @@ export function validateFileUpload(file: File): {
   let sanitizedName = file.name;
 
   // Allowed file types for different contexts
-  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/tiff'];
   const allowedDocumentTypes = [
     'application/pdf',
     'application/msword',
