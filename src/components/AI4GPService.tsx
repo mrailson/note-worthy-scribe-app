@@ -505,15 +505,15 @@ const AI4GPService = () => {
                         {/* PM Genie Service Box - Only show for Practice Manager role */}
                         {selectedRole === 'practice-manager' && (
                           <div className="mt-4">
-                            <Card className="w-full bg-gradient-to-br from-green-500/5 to-green-600/10 border-green-500/20 hover:border-green-600/30 transition-all duration-200">
+                            <Card className="w-full bg-gradient-to-br from-purple-500/5 to-purple-600/10 border-purple-500/20 hover:border-purple-600/30 transition-all duration-200">
                               <CardContent className="p-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-green-600" />
+                                    <Building2 className="h-5 w-5 text-purple-600" />
                                     <h4 className="font-semibold text-sm">PM Genie Voice Assistant</h4>
                                   </div>
                                   <div className="flex items-center">
-                                    <span className="inline-flex items-center rounded-full bg-green-600/10 px-2 py-1 text-xs font-medium text-green-600">
+                                    <span className="inline-flex items-center rounded-full bg-purple-600/10 px-2 py-1 text-xs font-medium text-purple-600">
                                       Practice Management AI
                                     </span>
                                   </div>
@@ -541,7 +541,7 @@ const AI4GPService = () => {
                                 <Button 
                                   onClick={() => setShowAIChat(true)}
                                   size="sm"
-                                  className="w-full flex items-center gap-2 text-xs py-2 bg-green-600 hover:bg-green-700 text-white"
+                                  className="w-full flex items-center gap-2 text-xs py-2 bg-purple-600 hover:bg-purple-700 text-white"
                                 >
                                   Start the Conversation
                                 </Button>
