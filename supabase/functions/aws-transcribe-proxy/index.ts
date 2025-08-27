@@ -94,13 +94,27 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Starting transcription session ${id} with region: ${region}, language: ${lang}, sample rate: ${rate}`);
 
-      const client = new TranscribeStreamingClient({ 
-        region,
-        credentials: {
-          accessKeyId: Deno.env.get('AWS_ACCESS_KEY_ID')!,
-          secretAccessKey: Deno.env.get('AWS_SECRET_ACCESS_KEY')!,
-        }
+    console.log(`Checking AWS credentials...`);
+    const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
+    const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
+    
+    if (!accessKeyId || !secretAccessKey) {
+      console.error('Missing AWS credentials');
+      return new Response(JSON.stringify({ 
+        error: "Missing AWS credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY" 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    const client = new TranscribeStreamingClient({ 
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      }
+    });
 
       const { iterator, push, end } = makeAudioStream();
 
@@ -124,11 +138,19 @@ const handler = async (req: Request): Promise<Response> => {
       };
       sessions.set(id, session);
 
-      // Start the transcription stream
+      // Start the transcription stream with timeout
       (async () => {
         try {
           console.log(`Sending StartStreamTranscriptionCommand for session ${id}`);
-          const resp = await client.send(cmd);
+          
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('AWS Transcribe connection timeout')), 30000);
+          });
+          
+          const transcribePromise = client.send(cmd);
+          const resp = await Promise.race([transcribePromise, timeoutPromise]) as any;
+          
           console.log(`Transcription stream started for session ${id}`);
           
           for await (const ev of resp.TranscriptResultStream ?? []) {
