@@ -30,9 +30,22 @@ export const AmazonTranscribeRealtimeTest = () => {
     setConnectionStatus('Connecting to transcription service...');
     
     try {
-      // Connect to our WebSocket proxy - use the correct URL format
-      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket`;
-      console.log('Attempting WebSocket connection to:', wsUrl);
+        // First test if our edge function is working
+        try {
+          const testResponse = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket-test');
+          const testData = await testResponse.json();
+          console.log('Edge function test response:', testData);
+        } catch (testError) {
+          console.error('Edge function test failed:', testError);
+          toast.error('Edge function not accessible');
+          setIsConnecting(false);
+          setConnectionStatus('Edge function test failed');
+          return;
+        }
+        
+        // Connect to our WebSocket proxy - use the correct URL format
+        const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket`;
+        console.log('Attempting WebSocket connection to:', wsUrl);
       
       websocketRef.current = new WebSocket(wsUrl);
       

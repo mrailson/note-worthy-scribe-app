@@ -74,3 +74,9 @@ verify_jwt = true
 
 [functions.amazon-transcribe]
 verify_jwt = true
+
+[functions.amazon-transcribe-websocket]
+verify_jwt = false
+
+[functions.amazon-transcribe-websocket-test]
+verify_jwt = false
