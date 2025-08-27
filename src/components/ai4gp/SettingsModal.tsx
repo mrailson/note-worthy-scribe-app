@@ -152,10 +152,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Persist Local Policy settings to localStorage
-  useEffect(() => {
-    localStorage.setItem('ai4gp-northamptonshire-icb', JSON.stringify(northamptonshireICB));
-  }, [northamptonshireICB]);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
