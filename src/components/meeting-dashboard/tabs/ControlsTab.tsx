@@ -128,7 +128,7 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
               </span>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-[15px]">
               <Button 
                 variant={isRecording ? "destructive" : "default"} 
                 size="sm"
