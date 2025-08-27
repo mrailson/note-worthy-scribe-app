@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useDashboard } from "../utils/DashboardContext";
 import { cn } from "@/lib/utils";
+import { medicalTermCorrector, COMMON_MEDICAL_CORRECTIONS } from "@/utils/MedicalTermCorrector";
 
 interface MeetingData {
   transcript: string;
@@ -60,52 +61,138 @@ export const SmartValidationTab = ({ meetingData }: SmartValidationTabProps) => 
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedSuggestions, setSelectedSuggestions] = useState<Map<string, string>>(new Map());
 
-  // Simulate uncertain terms detection
+  const analyzeTranscriptForUncertainTerms = useCallback(async (transcript: string): Promise<UncertainTerm[]> => {
+    if (!transcript.trim()) return [];
+
+    const words = transcript.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2);
+
+    const wordFrequency = new Map<string, number>();
+    const wordPositions = new Map<string, number[]>();
+    
+    words.forEach((word, index) => {
+      wordFrequency.set(word, (wordFrequency.get(word) || 0) + 1);
+      if (!wordPositions.has(word)) {
+        wordPositions.set(word, []);
+      }
+      wordPositions.get(word)?.push(index);
+    });
+
+    const uncertainTerms: UncertainTerm[] = [];
+    let id = 1;
+
+    for (const [word, frequency] of wordFrequency.entries()) {
+      // Skip common words
+      if (word.length < 4 || /^(the|and|for|are|but|not|you|all|can|had|her|was|one|our|out|day|get|has|him|his|how|its|may|new|now|old|see|two|way|who|boy|did|she|use|her|many|some|what|with|have|from|they|know|want|been|good|much|came|even|also|back|after|came|every|just|name|over|think|where|before|great|right|still|through|turn|three|years|work|life|never|world|down|found|might|away|would|about|people|other|there|their|which|write|more|than|first|could|order|because|does|must|should|while|these|those|said|each|different|well|large|another|little|house|again|home|still|place|around|during|follow|came|help|here|move|play|such|point|end|why|asked|went|men|read|need|land|means)$/i.test(word)) {
+        continue;
+      }
+
+      let suggestions: string[] = [];
+      let confidence = 1.0;
+      let isUncertain = false;
+
+      // Check if word exists in common medical corrections
+      if (COMMON_MEDICAL_CORRECTIONS.has(word)) {
+        suggestions = [COMMON_MEDICAL_CORRECTIONS.get(word)!];
+        confidence = 0.3;
+        isUncertain = true;
+      } else {
+        // Get suggestions from medical term corrector
+        const correctorSuggestions = medicalTermCorrector.getSuggestions(word);
+        if (correctorSuggestions.length > 0) {
+          suggestions = correctorSuggestions.map(s => s.correct).slice(0, 3);
+          confidence = 0.4;
+          isUncertain = true;
+        } else {
+          // Check for potential misspellings using simple heuristics
+          const commonMedicalPatterns = [
+            /tion$/i, /sion$/i, /osis$/i, /itis$/i, /emia$/i, /uria$/i,
+            /^anti/i, /^pre/i, /^post/i, /^sub/i, /^inter/i
+          ];
+          
+          const hasTypicalMedicalEnding = commonMedicalPatterns.some(pattern => pattern.test(word));
+          
+          if (hasTypicalMedicalEnding || word.includes('ph') || word.includes('th') || word.includes('ch')) {
+            // Generate simple spelling suggestions based on common mistakes
+            suggestions = generateSpellingSuggestions(word);
+            if (suggestions.length > 0) {
+              confidence = 0.6;
+              isUncertain = true;
+            }
+          }
+        }
+      }
+
+      if (isUncertain && suggestions.length > 0) {
+        const positions = wordPositions.get(word) || [];
+        const contextStart = Math.max(0, positions[0] - 5);
+        const contextEnd = Math.min(words.length, positions[0] + 6);
+        const context = words.slice(contextStart, contextEnd).join(' ');
+
+        uncertainTerms.push({
+          id: id.toString(),
+          original: word,
+          suggestions,
+          confidence,
+          context: `...${context}...`,
+          position: positions[0] * 6, // Approximate character position
+          frequency
+        });
+        id++;
+      }
+    }
+
+    return uncertainTerms.slice(0, 10); // Limit to 10 most relevant terms
+  }, []);
+
+  const generateSpellingSuggestions = (word: string): string[] => {
+    const suggestions: string[] = [];
+    
+    // Common medical term corrections
+    const commonReplacements = new Map([
+      ['ph', 'f'], ['f', 'ph'], ['th', 't'], ['tion', 'sion'], 
+      ['sion', 'tion'], ['c', 'k'], ['k', 'c']
+    ]);
+    
+    for (const [from, to] of commonReplacements) {
+      if (word.includes(from)) {
+        suggestions.push(word.replace(new RegExp(from, 'g'), to));
+      }
+    }
+    
+    return suggestions.filter(s => s !== word).slice(0, 3);
+  };
+
+  // Real uncertain terms detection
   useEffect(() => {
     if (!meetingData.transcript) return;
 
-    // Mock uncertain terms that would be detected by AI
-    const mockUncertainTerms: UncertainTerm[] = [
-      {
-        id: "1",
-        original: "hipopotamus",
-        suggestions: ["hippopotamus", "hypopotamus", "hippocampus"],
-        confidence: 0.4,
-        context: "...discussing the hipopotamus in the medical context...",
-        position: 125,
-        frequency: 1
-      },
-      {
-        id: "2", 
-        original: "inflamation",
-        suggestions: ["inflammation", "information"],
-        confidence: 0.6,
-        context: "...chronic inflamation of the joint tissue...",
-        position: 256,
-        frequency: 3
-      },
-      {
-        id: "3",
-        original: "pescription",
-        suggestions: ["prescription", "description"],
-        confidence: 0.5,
-        context: "...reviewing the pescription medications...",
-        position: 412,
-        frequency: 2
+    const analyzeTerms = async () => {
+      setIsProcessing(true);
+      try {
+        await medicalTermCorrector.loadCorrections();
+        const detectedTerms = await analyzeTranscriptForUncertainTerms(meetingData.transcript);
+        setUncertainTerms(detectedTerms);
+        
+        // Calculate real stats
+        const totalWords = meetingData.transcript.split(/\s+/).length;
+        setValidationStats({
+          totalTerms: totalWords,
+          correctedTerms: validationCorrections.size,
+          uncertainTerms: detectedTerms.length,
+          confidenceImprovement: Math.round((validationCorrections.size / Math.max(detectedTerms.length, 1)) * 20)
+        });
+      } catch (error) {
+        console.error('Error analyzing transcript:', error);
+      } finally {
+        setIsProcessing(false);
       }
-    ];
+    };
 
-    setUncertainTerms(mockUncertainTerms);
-    
-    // Calculate stats
-    const totalWords = meetingData.transcript.split(' ').length;
-    setValidationStats({
-      totalTerms: totalWords,
-      correctedTerms: validationCorrections.size,
-      uncertainTerms: mockUncertainTerms.length,
-      confidenceImprovement: Math.round((validationCorrections.size / Math.max(mockUncertainTerms.length, 1)) * 15)
-    });
-  }, [meetingData.transcript, validationCorrections.size]);
+    analyzeTerms();
+  }, [meetingData.transcript, validationCorrections.size, analyzeTranscriptForUncertainTerms]);
 
   const handleSuggestionSelect = (termId: string, suggestion: string) => {
     setSelectedSuggestions(prev => new Map(prev.set(termId, suggestion)));
@@ -132,13 +219,26 @@ export const SmartValidationTab = ({ meetingData }: SmartValidationTabProps) => 
     setUncertainTerms(prev => prev.filter(t => t.id !== termId));
   };
 
-  const runSmartValidation = () => {
+  const runSmartValidation = async () => {
+    if (!meetingData.transcript) return;
+    
     setIsProcessing(true);
-    // Simulate AI processing
-    setTimeout(() => {
+    try {
+      await medicalTermCorrector.refreshCorrections();
+      const detectedTerms = await analyzeTranscriptForUncertainTerms(meetingData.transcript);
+      setUncertainTerms(detectedTerms);
+      
+      const totalWords = meetingData.transcript.split(/\s+/).length;
+      setValidationStats(prev => ({
+        ...prev,
+        uncertainTerms: detectedTerms.length,
+        confidenceImprovement: Math.round((validationCorrections.size / Math.max(detectedTerms.length, 1)) * 20)
+      }));
+    } catch (error) {
+      console.error('Error re-analyzing transcript:', error);
+    } finally {
       setIsProcessing(false);
-      // Would normally trigger re-analysis of transcript
-    }, 2000);
+    }
   };
 
   const applyAllSuggestions = () => {
