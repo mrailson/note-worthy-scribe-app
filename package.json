@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@11labs/react": "^0.1.4",
+    "@aws-sdk/client-transcribe-streaming": "^3.876.0",
     "@emailjs/browser": "^4.4.1",
     "@hookform/resolvers": "^3.9.0",
     "@huggingface/transformers": "^3.7.2",

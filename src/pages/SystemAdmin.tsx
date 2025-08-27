@@ -50,6 +50,7 @@ import AITestModal from '@/components/AITestModal';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AmazonTranscribeTest } from '@/components/AmazonTranscribeTest';
 import { SimpleAmazonTranscribeTest } from '@/components/SimpleAmazonTranscribeTest';
+import { AWSTranscribeTest } from '@/components/AWSTranscribeTest';
 
 interface User {
   user_id: string;
@@ -1929,6 +1930,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
               <AmazonTranscribeTest />
               <SimpleAmazonTranscribeTest />
+              <AWSTranscribeTest />
             </div>
           </TabsContent>
 
@@ -2267,6 +2269,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
         <AmazonTranscribeTest />
         <SimpleAmazonTranscribeTest />
+        <AWSTranscribeTest />
       </TabsContent>
 
           {/* System Monitoring Tab */}
