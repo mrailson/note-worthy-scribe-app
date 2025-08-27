@@ -83,6 +83,28 @@ export const quickPickConfig = {
         {"id": "translate-french", "label": "French 🇫🇷"},
         {"id": "translate-chinese", "label": "Chinese 🇨🇳"}
       ]
+    },
+    {
+      "id": "improve-formatting",
+      "label": "Improve Formatting",
+      "children": [
+        {
+          "id": "improve-layout-screen",
+          "label": "Improve Layout on Screen"
+        },
+        {
+          "id": "improve-layout-email",
+          "label": "Improve Layout for Email"
+        },
+        {
+          "id": "improve-layout-leaflet",
+          "label": "Improve Layout for Leaflet"
+        },
+        {
+          "id": "improve-layout-letter",
+          "label": "Improve Layout for Letter"
+        }
+      ]
     }
   ]
 };

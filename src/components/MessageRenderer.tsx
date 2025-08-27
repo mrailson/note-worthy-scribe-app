@@ -953,19 +953,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </Button>
                     )}
 
-                    {/* Fix Format button - show on all assistant messages */}
-                    {!isModal && onQuickResponse && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleFixFormatting}
-                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                        title="Fix text formatting"
-                      >
-                        <Palette className="h-3 w-3" />
-                      </Button>
-                    )}
-
                     {/* Copy button */}
                     <Button
                       variant="ghost"

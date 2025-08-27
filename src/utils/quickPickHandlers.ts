@@ -300,6 +300,22 @@ function addPracticeSafetyNetting(ctx: QuickPickContext): string {
 
 
 
+async function improveLayoutScreen(ctx: QuickPickContext): Promise<string> {
+  return "Improve the layout and formatting of the above content for better screen readability. Use clear headings, bullet points, proper spacing, and organize information in a logical flow that's easy to scan and read on screen.";
+}
+
+async function improveLayoutEmail(ctx: QuickPickContext): Promise<string> {
+  return "Reformat the above content with proper email layout including clear subject line suggestion, professional email structure with proper spacing, short paragraphs optimized for email reading, and appropriate email formatting.";
+}
+
+async function improveLayoutLeaflet(ctx: QuickPickContext): Promise<string> {
+  return "Convert the above into a patient-friendly leaflet format with clear headings, bullet points, easy-to-scan sections, visual hierarchy, and layout suitable for printing as a patient information leaflet.";
+}
+
+async function improveLayoutLetter(ctx: QuickPickContext): Promise<string> {
+  return "Format the above content as a formal letter with proper letter heading, date, address placeholder, clear paragraphs with appropriate spacing, formal structure, and proper closing signature block.";
+}
+
 // Main handlers object
 export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> | Promise<string> | string> = {
   "approve-save": approveAndSave,
@@ -353,5 +369,11 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "translate-portuguese": (ctx) => translate(ctx, { targetLang: 'pt', mode: 'patient' }),
   "translate-turkish": (ctx) => translate(ctx, { targetLang: 'tr', mode: 'patient' }),
   "translate-french": (ctx) => translate(ctx, { targetLang: 'fr', mode: 'patient' }),
-  "translate-chinese": (ctx) => translate(ctx, { targetLang: 'zh', mode: 'patient' })
+  "translate-chinese": (ctx) => translate(ctx, { targetLang: 'zh', mode: 'patient' }),
+
+  // Improve formatting handlers
+  "improve-layout-screen": improveLayoutScreen,
+  "improve-layout-email": improveLayoutEmail,
+  "improve-layout-leaflet": improveLayoutLeaflet,
+  "improve-layout-letter": improveLayoutLetter
 };
