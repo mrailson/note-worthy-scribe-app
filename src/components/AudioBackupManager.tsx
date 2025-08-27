@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -29,6 +29,7 @@ export const AudioBackupManager = () => {
   const [backups, setBackups] = useState<AudioBackup[]>([]);
   const [loading, setLoading] = useState(true);
   const [reprocessing, setReprocessing] = useState<string | null>(null);
+  const [deletingOld, setDeletingOld] = useState(false);
 
   useEffect(() => {
     fetchAudioBackups();
@@ -70,6 +71,27 @@ export const AudioBackupManager = () => {
     }
   };
 
+  const deleteOldAudioBackups = async () => {
+    if (!confirm('Are you sure you want to delete all audio backups older than 24 hours? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingOld(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-old-audio-backups');
+
+      if (error) throw error;
+
+      toast.success(data.message || 'Old audio backups deleted successfully');
+      await fetchAudioBackups(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting old audio backups:', error);
+      toast.error('Failed to delete old audio backups');
+    } finally {
+      setDeletingOld(false);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
@@ -97,12 +119,28 @@ export const AudioBackupManager = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Audio Backup Manager</h2>
-        <p className="text-muted-foreground">
-          Manage audio backups for meetings with transcription quality issues.
-          Only super administrators can access this feature.
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Audio Backup Manager</h2>
+          <p className="text-muted-foreground">
+            Manage audio backups for meetings with transcription quality issues.
+            Only super administrators can access this feature.
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={deleteOldAudioBackups}
+          disabled={deletingOld || loading}
+          className="flex items-center gap-2"
+        >
+          {deletingOld ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+          Delete Old Files (24h+)
+        </Button>
       </div>
 
       {backups.length === 0 ? (
