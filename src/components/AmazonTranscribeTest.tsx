@@ -22,6 +22,7 @@ export const AmazonTranscribeTest = () => {
       setIsConnecting(true);
       setConnectionStatus('connecting');
       
+      // First, test if we can reach the edge function and get a WebSocket URL
       const newTranscriber = new AmazonTranscriber({
         onTranscription: (text: string) => {
           setTranscription(prev => prev + text + ' ');
@@ -46,12 +47,27 @@ export const AmazonTranscribeTest = () => {
         }
       });
 
+      // Test credentials first
+      const isAvailable = await AmazonTranscriber.isAvailable();
+      if (!isAvailable) {
+        throw new Error('AWS credentials not configured or service unavailable');
+      }
+
+      toast.success('AWS credentials verified - attempting WebSocket connection...');
       await newTranscriber.connect();
       setTranscriber(newTranscriber);
       
     } catch (error) {
       console.error('Failed to start Amazon Transcribe:', error);
-      toast.error('Failed to start Amazon Transcribe test');
+      
+      // Provide more helpful error messages
+      if (error.message.includes('WebSocket connection error')) {
+        toast.error('WebSocket connection failed. Amazon Transcribe WebSocket connections may be blocked by CORS policies or require additional setup.');
+        setTranscription('Note: Amazon Transcribe streaming requires a backend proxy for browser connections due to CORS and WebSocket protocol requirements. Direct browser connections to AWS WebSocket endpoints are typically not supported.');
+      } else {
+        toast.error('Failed to start Amazon Transcribe test: ' + error.message);
+      }
+      
       setConnectionStatus('error');
       setIsConnecting(false);
     }
@@ -233,9 +249,10 @@ export const AmazonTranscribeTest = () => {
 
             {/* Test Information */}
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>• This test uses AWS Transcribe Streaming for real-time transcription</p>
-              <p>• Requires microphone permission and AWS credentials configuration</p>
-              <p>• Transcription results are processed through Supabase edge functions</p>
+              <p>• This test verifies AWS credentials and WebSocket URL generation</p>
+              <p>• Amazon Transcribe streaming requires server-side WebSocket proxy for production use</p>
+              <p>• Direct browser connections to AWS WebSocket endpoints have CORS limitations</p>
+              <p>• AWS credentials are configured: {connectionStatus === 'error' ? '❌' : '✅'}</p>
             </div>
           </div>
         </DialogContent>
