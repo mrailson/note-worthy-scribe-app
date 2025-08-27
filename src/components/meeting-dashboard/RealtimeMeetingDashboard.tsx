@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { X, Settings, Monitor, CheckSquare, FileText } from "lucide-react";
 import { MeetingSetupTab } from "./tabs/MeetingSetupTab";
-import { LiveMonitorTab } from "./tabs/LiveMonitorTab";
 import { SmartValidationTab } from "./tabs/SmartValidationTab";
 import { LiveNotesTab } from "./tabs/LiveNotesTab";
 import { DashboardProvider } from "./utils/DashboardContext";
@@ -31,10 +30,10 @@ export const RealtimeMeetingDashboard = ({
   const [activeTab, setActiveTab] = useState("setup");
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // Auto-switch to monitor tab when recording starts
+  // Auto-switch to validation tab when recording starts
   useEffect(() => {
     if (isRecording && activeTab === "setup") {
-      setActiveTab("monitor");
+      setActiveTab("validation");
     }
   }, [isRecording, activeTab]);
 
@@ -44,12 +43,6 @@ export const RealtimeMeetingDashboard = ({
       label: "Setup", 
       icon: Settings, 
       disabled: false 
-    },
-    { 
-      id: "monitor", 
-      label: "Monitor", 
-      icon: Monitor, 
-      disabled: !isRecording 
     },
     { 
       id: "validation", 
@@ -116,7 +109,7 @@ export const RealtimeMeetingDashboard = ({
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="mt-4 grid grid-cols-4 w-full shrink-0">
+              <TabsList className="mt-4 grid grid-cols-3 w-full shrink-0">
                 {tabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.id}
@@ -137,12 +130,6 @@ export const RealtimeMeetingDashboard = ({
                 <TabsContent value="setup" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
                   <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <MeetingSetupTab />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="monitor" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
-                    <LiveMonitorTab meetingData={meetingData} />
                   </div>
                 </TabsContent>
                 
