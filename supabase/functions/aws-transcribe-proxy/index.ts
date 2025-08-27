@@ -84,6 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
   const sessionId = url.searchParams.get('sessionId');
 
   console.log(`AWS Transcribe Proxy called with action: ${action}, sessionId: ${sessionId}`);
+  console.log(`Current sessions: ${Array.from(sessions.keys()).join(', ')}`);
 
   try {
     if (req.method === "POST" && action === "start") {
@@ -137,6 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
         closed: false 
       };
       sessions.set(id, session);
+      console.log(`Session ${id} created and stored. Total sessions: ${sessions.size}`);
 
       // Start the transcription stream with timeout
       (async () => {
@@ -205,8 +207,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (req.method === "POST" && action === "push" && sessionId) {
+      console.log(`Looking for session: ${sessionId}`);
       const session = sessions.get(sessionId);
       if (!session) {
+        console.log(`Session not found. Available sessions: ${Array.from(sessions.keys()).join(', ')}`);
         return new Response(JSON.stringify({ error: "no such session" }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
