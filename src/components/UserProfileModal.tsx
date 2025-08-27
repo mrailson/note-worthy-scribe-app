@@ -115,10 +115,14 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     if (!user) return;
 
     try {
+      // First, try to get the user's own practice details directly (prioritize records with practice names)
       const { data, error } = await supabase
         .from('practice_details')
         .select('*')
         .eq('user_id', user.id)
+        .not('practice_name', 'is', null)
+        .neq('practice_name', '')
+        .order('updated_at', { ascending: false })
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -127,6 +131,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       }
 
       if (data) {
+        console.log('Found practice details with practice name:', data);
         setPracticeDetails({
           id: data.id,
           practice_name: data.practice_name || '',
@@ -139,6 +144,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           email_signature: (data as any).email_signature || '',
           letter_signature: (data as any).letter_signature || ''
         });
+      } else {
+        console.log('No practice details found with practice name for user');
       }
     } catch (error) {
       console.error('Error fetching practice details:', error);
@@ -502,8 +509,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Textarea
                   id="address"
                   value={practiceDetails.address}
-                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Enter practice address"
+                  disabled
+                  className="bg-muted"
+                  placeholder="Practice address is managed by system administrators"
                   rows={3}
                 />
               </div>
@@ -514,8 +522,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   id="email"
                   type="email"
                   value={practiceDetails.email}
-                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter practice email"
+                  disabled
+                  className="bg-muted"
+                  placeholder="Practice email is managed by system administrators"
                 />
               </div>
 
@@ -524,8 +533,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Input
                   id="website"
                   value={practiceDetails.website}
-                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, website: e.target.value }))}
-                  placeholder="Enter website URL"
+                  disabled
+                  className="bg-muted"
+                  placeholder="Website is managed by system administrators"
                 />
               </div>
 
@@ -535,8 +545,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <Input
                     id="phone"
                     value={practiceDetails.phone}
-                    onChange={(e) => setPracticeDetails(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Enter main phone number"
+                    disabled
+                    className="bg-muted"
+                    placeholder="Phone number is managed by system administrators"
                   />
                 </div>
 
@@ -545,26 +556,17 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <Input
                     id="direct_dial"
                     value={practiceDetails.direct_dial}
-                    onChange={(e) => setPracticeDetails(prev => ({ ...prev, direct_dial: e.target.value }))}
-                    placeholder="Enter direct dial number"
+                    disabled
+                    className="bg-muted"
+                    placeholder="Managed by system administrators"
                   />
                 </div>
               </div>
 
-              <Button 
-                onClick={handleSavePracticeDetails}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Practice Details'
-                )}
-              </Button>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                <p className="font-medium">Practice details are managed by system administrators</p>
+                <p>If you need to update any practice information, please contact your system administrator.</p>
+              </div>
             </CardContent>
           </Card>
 
