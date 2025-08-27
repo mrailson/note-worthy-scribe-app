@@ -182,40 +182,27 @@ async function createManagerBriefingSlide(ctx: QuickPickContext): Promise<string
 }
 
 async function translate(ctx: QuickPickContext, options: any): Promise<string> {
-  // For auto mode, fall back to AI prompt since we don't know the target language
+  // Always return prompts for AI to handle translation
+  const languageNames = {
+    'pl': 'Polish',
+    'ur': 'Urdu', 
+    'ar': 'Arabic',
+    'bn': 'Bengali',
+    'ro': 'Romanian',
+    'es': 'Spanish',
+    'pt': 'Portuguese',
+    'tr': 'Turkish',
+    'fr': 'French',
+    'zh': 'Chinese (Mandarin)'
+  };
+  
+  const languageName = languageNames[options.targetLang] || options.targetLang;
+  
   if (options.mode === 'auto') {
-    return `Translate the above into the patient's language (auto-detect if known). Keep it accurate and simple. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
+    return `Translate the above text into the patient's preferred language (auto-detect if known). Keep it accurate and simple. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
   }
   
-  // For specific languages, use the translation service directly
-  if (options.targetLang && ctx.text) {
-    try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
-        body: { 
-          text: ctx.text, 
-          targetLanguage: options.targetLang,
-          sourceLanguage: 'en',
-          preserveFormatting: true
-        }
-      });
-
-      if (error) throw error;
-      
-      // Return the translated text directly
-      return data.translatedText;
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast.error('Translation failed');
-      // Fall back to AI prompt on error
-      if (options.mode === 'patient') {
-        return `Translate the above into ${options.targetLang}, in plain patient-friendly style. Keep accuracy and avoid jargon. IMPORTANT: Preserve all markdown formatting.`;
-      } else {
-        return `Translate the above into ${options.targetLang}, in literal clinical style for doctors. Preserve medical terms exactly. IMPORTANT: Preserve all markdown formatting.`;
-      }
-    }
-  }
-  
-  return "Translating content...";
+  return `Translate the above text into ${languageName} for a patient consultation. Keep it accurate and patient-friendly. IMPORTANT: Preserve all markdown formatting (headers ###, bold **text**, lists, etc.) exactly as they appear in the original.`;
 }
 
 function openLanguagePicker(options: any): string {
