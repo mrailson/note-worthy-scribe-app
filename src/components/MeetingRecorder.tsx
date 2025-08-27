@@ -3792,12 +3792,6 @@ export const MeetingRecorder = ({
                      </div>
                   ) : (
                       <div className="space-y-1">
-                        {/* Transcription Service Indicator During Recording */}
-                        <div className="flex justify-center mb-2">
-                          <Badge variant="secondary" className="text-xs font-mono">
-                            {meetingSettings.transcriberService?.toUpperCase() || "WHISPER"} Active
-                          </Badge>
-                        </div>
                         
                        <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
                         <div className="flex items-center gap-3">
