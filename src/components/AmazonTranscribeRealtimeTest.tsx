@@ -13,8 +13,9 @@ export const AmazonTranscribeRealtimeTest = () => {
   const [connectionStatus, setConnectionStatus] = useState('');
   
   const websocketRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const workletRef = useRef<AudioWorkletNode | null>(null);
 
   useEffect(() => {
     return () => {
@@ -140,7 +141,7 @@ export const AmazonTranscribeRealtimeTest = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
+          sampleRate: 48000, // Let browser capture at native rate
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -150,31 +151,36 @@ export const AmazonTranscribeRealtimeTest = () => {
       
       streamRef.current = stream;
       
-      // Create MediaRecorder to capture audio
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Create AudioContext for proper audio processing
+      audioContextRef.current = new AudioContext({ sampleRate: 48000 });
+      const source = audioContextRef.current.createMediaStreamSource(stream);
       
-      mediaRecorderRef.current = mediaRecorder;
+      // Create script processor for audio data
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
       
-      mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0 && websocketRef.current?.readyState === WebSocket.OPEN) {
-          // Convert audio data to format expected by Amazon Transcribe
-          const arrayBuffer = await event.data.arrayBuffer();
-          const audioBytes = new Uint8Array(arrayBuffer);
+      processor.onaudioprocess = (event) => {
+        if (websocketRef.current?.readyState === WebSocket.OPEN) {
+          const inputData = event.inputBuffer.getChannelData(0);
+          
+          // Downsample from 48kHz to 16kHz
+          const downsampled = downsampleTo16kHz(inputData, 48000);
+          
+          // Convert to PCM 16-bit
+          const pcmData = float32ToPCM16(downsampled);
           
           // Create Amazon Transcribe audio event
           const audioEvent = {
             MessageType: 'AudioEvent',
-            AudioChunk: Array.from(audioBytes)
+            AudioChunk: Array.from(pcmData)
           };
           
           websocketRef.current.send(JSON.stringify(audioEvent));
         }
       };
       
-      // Start recording with small chunks for real-time processing
-      mediaRecorder.start(100); // 100ms chunks
+      source.connect(processor);
+      processor.connect(audioContextRef.current.destination);
+      
       setIsRecording(true);
       toast.success('Recording started');
       
@@ -184,9 +190,55 @@ export const AmazonTranscribeRealtimeTest = () => {
     }
   };
 
+  // Helper function to downsample audio from source rate to 16kHz
+  const downsampleTo16kHz = (buffer: Float32Array, fromSampleRate: number): Float32Array => {
+    if (fromSampleRate === 16000) {
+      return buffer;
+    }
+    
+    const sampleRateRatio = fromSampleRate / 16000;
+    const newLength = Math.round(buffer.length / sampleRateRatio);
+    const result = new Float32Array(newLength);
+    
+    let offsetResult = 0;
+    let offsetBuffer = 0;
+    
+    while (offsetResult < result.length) {
+      const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+      let accum = 0;
+      let count = 0;
+      
+      for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+        accum += buffer[i];
+        count++;
+      }
+      
+      result[offsetResult] = accum / count;
+      offsetResult++;
+      offsetBuffer = nextOffsetBuffer;
+    }
+    
+    return result;
+  };
+
+  // Helper function to convert Float32Array to PCM 16-bit
+  const float32ToPCM16 = (float32Array: Float32Array): Uint8Array => {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
+    
+    for (let i = 0; i < float32Array.length; i++) {
+      const sample = Math.max(-1, Math.min(1, float32Array[i]));
+      const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+      view.setInt16(i * 2, intSample, true); // true for little-endian
+    }
+    
+    return new Uint8Array(buffer);
+  };
+
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     
     if (streamRef.current) {
