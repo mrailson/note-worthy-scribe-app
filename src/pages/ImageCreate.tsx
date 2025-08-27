@@ -19,7 +19,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Edit3,
-  Check
+  Check,
+  Type
 } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
@@ -288,17 +289,35 @@ const ImageCreate = () => {
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
-                  {uploadedImage ? (
-                    <div className="relative">
-                      <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
-                        <img 
-                          src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
-                            ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
-                            : uploadedImage.content} 
-                          alt="Reference image"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      {uploadedImage ? (
+                        <div className="relative">
+                          <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
+                            {uploadedImage.content.startsWith('EXTRACTED_TEXT_FROM_IMAGE[') ? (
+                              <div className="p-4 text-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Type className="w-4 h-4" />
+                                  <span className="font-medium">Extracted text:</span>
+                                </div>
+                                <div className="whitespace-pre-line text-muted-foreground max-h-32 overflow-y-auto">
+                                  {uploadedImage.content.includes(':\n\n') && uploadedImage.content.includes('\n\n[End of extracted text from') 
+                                    ? uploadedImage.content.substring(
+                                        uploadedImage.content.indexOf(':\n\n') + 3,
+                                        uploadedImage.content.lastIndexOf('\n\n[End of extracted text from')
+                                      )
+                                    : 'Processing...'
+                                  }
+                                </div>
+                              </div>
+                            ) : (
+                              <img 
+                                src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
+                                  ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
+                                  : uploadedImage.content} 
+                                alt="Reference image"
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
                       <Button
                         variant="destructive"
                         size="sm"

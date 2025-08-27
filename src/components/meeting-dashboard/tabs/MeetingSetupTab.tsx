@@ -36,7 +36,17 @@ export const MeetingSetupTab = () => {
         // Extract plain text from various file formats
         let content = file.content;
         
-        if (content.startsWith('POWERPOINT_DATA_URL:') || 
+        // Extract clean text from other formats including OCR results
+        if (content.startsWith('EXTRACTED_TEXT_FROM_IMAGE[')) {
+          // Handle OCR extracted text
+          const textStart = content.indexOf(':\n\n') + 3;
+          const textEnd = content.lastIndexOf('\n\n[End of extracted text from');
+          if (textStart !== -1 && textEnd !== -1) {
+            combinedAgenda += content.substring(textStart, textEnd) + "\n\n";
+          } else {
+            combinedAgenda += content + "\n\n";
+          }
+        } else if (content.startsWith('POWERPOINT_DATA_URL:') || 
             content.startsWith('PDF_DATA_URL:') ||
             content.startsWith('IMAGE_DATA_URL:')) {
           // For now, show a placeholder - these would be processed by edge functions
