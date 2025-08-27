@@ -7,6 +7,7 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
+import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -31,6 +32,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
+  const [isPowerPointOpen, setIsPowerPointOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
@@ -170,6 +172,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               } else if (action.action === 'open-drug-lookup-modal') {
                 // Trigger the drug lookup modal
                 window.dispatchEvent(new CustomEvent('openDrugModal'));
+              } else if (action.action === 'open-powerpoint-generator') {
+                setIsPowerPointOpen(true);
               } else if (action.action && action.action.startsWith('open-test-transcripts')) {
                 // Navigate to test transcripts page with appropriate tab
                 const tab = action.action.replace('open-test-transcripts-', '');
@@ -215,10 +219,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             } else {
                               setIsAITestModalOpen(true);
                             }
-                          } else if (subItem.action === 'open-drug-lookup-modal') {
-                            // Trigger the drug lookup modal
-                            window.dispatchEvent(new CustomEvent('openDrugModal'));
-                          } else if (subItem.action && subItem.action.startsWith('open-test-transcripts')) {
+                           } else if (subItem.action === 'open-drug-lookup-modal') {
+                             // Trigger the drug lookup modal
+                             window.dispatchEvent(new CustomEvent('openDrugModal'));
+                           } else if (subItem.action === 'open-powerpoint-generator') {
+                             setIsPowerPointOpen(true);
+                           } else if (subItem.action && subItem.action.startsWith('open-test-transcripts')) {
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');
                             window.open(`/test-transcripts#${tab}`, '_blank');
@@ -281,6 +287,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <AITestModal 
         open={isAITestModalOpen} 
         onOpenChange={setIsAITestModalOpen} 
+      />
+      
+      {/* PowerPoint Generator Modal */}
+      <PowerPointGenerator
+        open={isPowerPointOpen}
+        onOpenChange={setIsPowerPointOpen}
       />
     </>
   );
