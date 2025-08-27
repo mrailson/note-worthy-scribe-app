@@ -115,37 +115,70 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     if (!user) return;
 
     try {
-      // First, try to get the user's own practice details directly (prioritize records with practice names)
-      const { data, error } = await supabase
+      // First, get user's practice assignments from user_roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      console.log('User roles found:', userRoles);
+
+      if (userRoles && userRoles.length > 0 && userRoles[0].practice_id) {
+        // Get practice details by practice_id
+        const { data: practiceData, error: practiceError } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('id', userRoles[0].practice_id)
+          .single();
+
+        if (practiceError) {
+          console.error('Error fetching practice details by ID:', practiceError);
+          return;
+        }
+
+        if (practiceData) {
+          console.log('Found practice details:', practiceData);
+          setPracticeDetails({
+            id: practiceData.id,
+            practice_name: practiceData.practice_name || '',
+            address: practiceData.address || '',
+            email: practiceData.email || '',
+            website: practiceData.website || '',
+            phone: practiceData.phone || '',
+            direct_dial: '', // This field doesn't exist in the database
+            practice_logo_url: (practiceData as any).practice_logo_url || '',
+            email_signature: (practiceData as any).email_signature || '',
+            letter_signature: (practiceData as any).letter_signature || ''
+          });
+          return;
+        }
+      }
+
+      // Fallback: try to get practice details directly by user_id (for backwards compatibility)
+      const { data: directPracticeData, error: directError } = await supabase
         .from('practice_details')
         .select('*')
         .eq('user_id', user.id)
-        .not('practice_name', 'is', null)
-        .neq('practice_name', '')
         .order('updated_at', { ascending: false })
-        .maybeSingle();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching practice details:', error);
-        return;
-      }
-
-      if (data) {
-        console.log('Found practice details with practice name:', data);
+      if (!directError && directPracticeData && directPracticeData.length > 0) {
+        console.log('Found direct practice details:', directPracticeData[0]);
         setPracticeDetails({
-          id: data.id,
-          practice_name: data.practice_name || '',
-          address: data.address || '',
-          email: data.email || '',
-          website: data.website || '',
-          phone: data.phone || '',
-          direct_dial: '', // This field doesn't exist in the table, so we'll keep it as empty
-          practice_logo_url: (data as any).practice_logo_url || '',
-          email_signature: (data as any).email_signature || '',
-          letter_signature: (data as any).letter_signature || ''
+          id: directPracticeData[0].id,
+          practice_name: directPracticeData[0].practice_name || '',
+          address: directPracticeData[0].address || '',
+          email: directPracticeData[0].email || '',
+          website: directPracticeData[0].website || '',
+          phone: directPracticeData[0].phone || '',
+          direct_dial: '', // This field doesn't exist in the database
+          practice_logo_url: (directPracticeData[0] as any).practice_logo_url || '',
+          email_signature: (directPracticeData[0] as any).email_signature || '',
+          letter_signature: (directPracticeData[0] as any).letter_signature || ''
         });
       } else {
-        console.log('No practice details found with practice name for user');
+        console.log('No practice details found');
       }
     } catch (error) {
       console.error('Error fetching practice details:', error);
