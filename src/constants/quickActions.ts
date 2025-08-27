@@ -104,7 +104,7 @@ export const quickActions: QuickAction[] = [
   { 
     label: 'Complaint Response Helper', 
     icon: MessageSquare, 
-    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps. IMPORTANT: Automatically include our practice details (name, address, contact information) in the response header/footer using the practice context information available to you. Use our practice letterhead format and ensure the response is personalized to our practice.',
+    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.\n\nCRITICAL INSTRUCTION: You have access to my practice details in your system context. DO NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Instead, use the ACTUAL practice information provided to you in the CONTEXT ABOUT THE USER AND PRACTICE section of your system prompt. If specific details are not available in the context, simply omit those fields rather than using placeholders.\n\nFormat the response with proper letterhead using the actual practice name, address, phone, and email from your context. The response should be fully personalized to my specific practice.',
     requiresFile: true 
   },
   { 
@@ -145,7 +145,7 @@ export const practiceManagerQuickActions: QuickAction[] = [
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
-    prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps. IMPORTANT: Automatically include our practice details (name, address, contact information) in the response header/footer using the practice context information available to you. Use our practice letterhead format and ensure the response is personalized to our practice.',
+    prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.\n\nCRITICAL INSTRUCTION: You have access to my practice details in your system context. DO NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Instead, use the ACTUAL practice information provided to you in the CONTEXT ABOUT THE USER AND PRACTICE section of your system prompt. If specific details are not available in the context, simply omit those fields rather than using placeholders.\n\nFormat the response with proper letterhead using the actual practice name, address, phone, and email from your context. The response should be fully personalized to my specific practice.',
     requiresFile: true
   },
   {
