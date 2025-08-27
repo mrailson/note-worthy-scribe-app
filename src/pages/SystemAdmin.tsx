@@ -1522,8 +1522,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(user.last_login).toLocaleTimeString('en-GB', {
                                       hour: '2-digit',
-                                      minute: '2-digit',
-                                      second: '2-digit'
+                                      minute: '2-digit'
                                     })}
                                   </span>
                                 </div>
