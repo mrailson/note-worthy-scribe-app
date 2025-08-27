@@ -25,7 +25,7 @@ export const useAI4GPDisclaimer = () => {
       if (error) throw error;
       
       setShowDisclaimer(data?.show_ai4gp_disclaimer ?? true);
-      setDisclaimerCollapsed(data?.ai4gp_disclaimer_collapsed ?? false);
+      setDisclaimerCollapsed(data?.ai4gp_disclaimer_collapsed ?? true);
     } catch (error) {
       console.error('Error fetching disclaimer preference:', error);
       // Default to showing disclaimer on error
