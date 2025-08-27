@@ -50,11 +50,27 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    // Add loading placeholders immediately
+    const loadingFiles: UploadedFile[] = Array.from(files).map(file => ({
+      name: file.name,
+      type: file.type,
+      content: '',
+      size: file.size,
+      isLoading: true
+    }));
+    setUploadedFiles(prev => [...prev, ...loadingFiles]);
+
     try {
       const processedFiles = await processFiles(files);
-      setUploadedFiles(prev => [...prev, ...processedFiles]);
+      // Replace loading files with processed ones
+      setUploadedFiles(prev => {
+        const withoutLoading = prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading));
+        return [...withoutLoading, ...processedFiles];
+      });
     } catch (error) {
       console.error('Error processing files:', error);
+      // Remove failed loading files
+      setUploadedFiles(prev => prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading)));
     } finally {
       // Clear the input
       if (fileInputRef.current) {
@@ -145,9 +161,11 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             setBrowserTranscript('');
             setInput('');
           }} 
-          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading)}
           size="default"
-          className="h-[120px] px-6 flex-shrink-0 rounded-lg"
+          className={`h-[120px] px-6 flex-shrink-0 rounded-lg ${
+            uploadedFiles.some(file => file.isLoading) ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
           <SendHorizontal className="w-5 h-5" />
         </Button>
