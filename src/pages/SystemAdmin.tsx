@@ -48,6 +48,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
+import { AmazonTranscribeTest } from '@/components/AmazonTranscribeTest';
 
 interface User {
   user_id: string;
@@ -2259,6 +2260,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             </Button>
           </CardContent>
         </Card>
+
+        <AmazonTranscribeTest />
       </TabsContent>
 
           {/* System Monitoring Tab */}
