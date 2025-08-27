@@ -57,13 +57,8 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Italic text
     .replace(/\*(.*?)\*/g, `<em class="italic ${isUserMessage ? 'text-white' : ''}">$1</em>`)
     
-    // List items (improved styling and alignment)
-    .replace(/^[-•]\s+(.+)$/gm, `<li class="ml-6 mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'} list-disc marker:text-primary">$1</li>`)
-    
-    // Wrap consecutive list items
-    .replace(/(<li[^>]*>.*<\/li>\s*)+/gs, (match) => {
-      return `<ul class="ai4gp-list space-y-2 mb-4 pl-4">${match}</ul>`;
-    })
+    // Convert list items to regular paragraphs (no bullets)
+    .replace(/^[-•]\s+(.+)$/gm, `<p class="mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}">$1</p>`)
     
     // Line breaks for paragraphs
     .replace(/\n\n/g, `</p><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)
