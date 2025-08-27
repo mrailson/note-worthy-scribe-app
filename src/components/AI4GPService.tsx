@@ -35,6 +35,7 @@ import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 // Utils and types
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
@@ -44,6 +45,7 @@ import { Message } from '@/types/ai4gp';
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
   const { user, loading } = useAuth();
+  const { profile } = useUserProfile();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   
@@ -182,6 +184,21 @@ const AI4GPService = () => {
   if (!user) {
     return <LoginForm />;
   }
+
+  // Helper function to check if user hasn't logged in for a week or more
+  const shouldShowDisclaimer = () => {
+    if (!profile?.last_login) {
+      // If no last login date, show disclaimer (new user)
+      return true;
+    }
+    
+    const lastLogin = new Date(profile.last_login);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    // Show disclaimer if last login was more than a week ago
+    return lastLogin < oneWeekAgo;
+  };
 
   // Helper function to get text scaling class
   const getTextScaleClass = (size: string) => {
@@ -427,8 +444,8 @@ const AI4GPService = () => {
                           onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                         />
                         
-                        {/* Collapsible Short Card Disclaimer - Only show for GP role */}
-                        {selectedRole === 'gp' && (
+                        {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
+                        {selectedRole === 'gp' && shouldShowDisclaimer() && (
                           <div className="mt-6">
                             <CollapsibleShortCard 
                               isCollapsed={disclaimerCollapsed}
@@ -649,8 +666,8 @@ const AI4GPService = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Disclaimer Modal - First Time Use - Only show for GP role */}
-      {selectedRole === 'gp' && (
+      {/* Disclaimer Modal - First Time Use - Only show for GP role and if user hasn't logged in for a week */}
+      {selectedRole === 'gp' && shouldShowDisclaimer() && (
         <FullModal 
           open={showDisclaimerModal}
           onOpenChange={setShowDisclaimerModal}
@@ -659,8 +676,8 @@ const AI4GPService = () => {
         />
       )}
 
-      {/* About Modal - Manual Access - Only show for GP role */}
-      {selectedRole === 'gp' && (
+      {/* About Modal - Manual Access - Only show for GP role and if user hasn't logged in for a week */}
+      {selectedRole === 'gp' && shouldShowDisclaimer() && (
         <FullModal 
           open={showAboutModal}
           onOpenChange={setShowAboutModal}
