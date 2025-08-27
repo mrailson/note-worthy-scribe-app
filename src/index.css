@@ -114,6 +114,31 @@ All colors MUST be HSL.
   --ai4gp-reading-font: 'Comic Sans MS', 'Trebuchet MS', cursive;
 }
 
+/* AI4GP Content Typography */
+.ai4gp-content {
+  @apply leading-relaxed;
+}
+
+.ai4gp-caution {
+  @apply shadow-sm;
+}
+
+.ai4gp-caution-title {
+  @apply shadow-sm;
+}
+
+.ai4gp-list {
+  @apply text-inherit;
+}
+
+.ai4gp-list li {
+  @apply relative;
+}
+
+.ai4gp-list li::marker {
+  @apply text-primary/70;
+}
+
 .dark .ai4gp-high-contrast {
   --foreground: 0 0% 100%;
   --background: 0 0% 0%;
