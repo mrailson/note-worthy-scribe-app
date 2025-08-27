@@ -209,7 +209,27 @@ async function translate(ctx: QuickPickContext, options: any): Promise<string> {
     'pt': 'Portuguese',
     'tr': 'Turkish',
     'fr': 'French',
-    'zh': 'Chinese (Mandarin)'
+    'zh': 'Chinese (Mandarin)',
+    'hi': 'Hindi',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi',
+    'it': 'Italian',
+    'de': 'German',
+    'ru': 'Russian',
+    'lt': 'Lithuanian',
+    'lv': 'Latvian',
+    'bg': 'Bulgarian',
+    'hu': 'Hungarian',
+    'cs': 'Czech',
+    'sk': 'Slovak',
+    'uk': 'Ukrainian',
+    'so': 'Somali',
+    'ti': 'Tigrinya',
+    'am': 'Amharic',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'ml': 'Malayalam',
+    'fa': 'Farsi/Persian'
   };
   
   const languageName = languageNames[options.targetLang] || options.targetLang;
@@ -328,7 +348,6 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "flag-screen": runRedAmberFlagScreen,
   "interaction-check": runInteractionCheck,
   "confidence-what-to-verify": showConfidenceChecklist,
-  "roundtrip-quality-check": (ctx) => roundTripCheck(ctx, { langs: ["pl","ro","lt","uk","ar","pt"] }),
 
   "expand-details": expandWithDetails,
   "summarise": (ctx) => summarise(ctx, 100),
@@ -370,6 +389,31 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "translate-turkish": (ctx) => translate(ctx, { targetLang: 'tr', mode: 'patient' }),
   "translate-french": (ctx) => translate(ctx, { targetLang: 'fr', mode: 'patient' }),
   "translate-chinese": (ctx) => translate(ctx, { targetLang: 'zh', mode: 'patient' }),
+
+  // Additional languages
+  "translate-hindi": (ctx) => translate(ctx, { targetLang: 'hi', mode: 'patient' }),
+  "translate-gujarati": (ctx) => translate(ctx, { targetLang: 'gu', mode: 'patient' }),
+  "translate-punjabi": (ctx) => translate(ctx, { targetLang: 'pa', mode: 'patient' }),
+  "translate-italian": (ctx) => translate(ctx, { targetLang: 'it', mode: 'patient' }),
+  "translate-german": (ctx) => translate(ctx, { targetLang: 'de', mode: 'patient' }),
+  "translate-russian": (ctx) => translate(ctx, { targetLang: 'ru', mode: 'patient' }),
+  "translate-lithuanian": (ctx) => translate(ctx, { targetLang: 'lt', mode: 'patient' }),
+  "translate-latvian": (ctx) => translate(ctx, { targetLang: 'lv', mode: 'patient' }),
+  "translate-bulgarian": (ctx) => translate(ctx, { targetLang: 'bg', mode: 'patient' }),
+  "translate-hungarian": (ctx) => translate(ctx, { targetLang: 'hu', mode: 'patient' }),
+  "translate-czech": (ctx) => translate(ctx, { targetLang: 'cs', mode: 'patient' }),
+  "translate-slovak": (ctx) => translate(ctx, { targetLang: 'sk', mode: 'patient' }),
+  "translate-ukrainian": (ctx) => translate(ctx, { targetLang: 'uk', mode: 'patient' }),
+  "translate-somali": (ctx) => translate(ctx, { targetLang: 'so', mode: 'patient' }),
+  "translate-tigrinya": (ctx) => translate(ctx, { targetLang: 'ti', mode: 'patient' }),
+  "translate-amharic": (ctx) => translate(ctx, { targetLang: 'am', mode: 'patient' }),
+  "translate-tamil": (ctx) => translate(ctx, { targetLang: 'ta', mode: 'patient' }),
+  "translate-telugu": (ctx) => translate(ctx, { targetLang: 'te', mode: 'patient' }),
+  "translate-malayalam": (ctx) => translate(ctx, { targetLang: 'ml', mode: 'patient' }),
+  "translate-farsi": (ctx) => translate(ctx, { targetLang: 'fa', mode: 'patient' }),
+
+  // Round-trip translation check
+  "roundtrip-quality-check": (ctx) => roundTripCheck(ctx, { langs: ["pl","ro","lt","uk","ar","pt"] }),
 
   // Improve formatting handlers
   "improve-layout-screen": improveLayoutScreen,

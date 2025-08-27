@@ -8,8 +8,7 @@ export const quickPickConfig = {
         {"id": "flag-wrong", "label": "Check this — I think it's wrong"},
         {"id": "flag-screen", "label": "Red/amber-flag screen"},
         {"id": "interaction-check", "label": "Interaction/contraindication check"},
-        {"id": "confidence-what-to-verify", "label": "Confidence & what to verify"},
-        {"id": "roundtrip-quality-check", "label": "Round-trip translation check…"}
+        {"id": "confidence-what-to-verify", "label": "Confidence & what to verify"}
       ]
     },
     {
@@ -59,7 +58,34 @@ export const quickPickConfig = {
         {"id": "translate-portuguese", "label": "Portuguese 🇵🇹"},
         {"id": "translate-turkish", "label": "Turkish 🇹🇷"},
         {"id": "translate-french", "label": "French 🇫🇷"},
-        {"id": "translate-chinese", "label": "Chinese 🇨🇳"}
+        {"id": "translate-chinese", "label": "Chinese 🇨🇳"},
+        {
+          "id": "more-languages",
+          "label": "More Languages",
+          "children": [
+            {"id": "translate-hindi", "label": "Hindi 🇮🇳"},
+            {"id": "translate-gujarati", "label": "Gujarati 🇮🇳"},
+            {"id": "translate-punjabi", "label": "Punjabi 🇮🇳"},
+            {"id": "translate-italian", "label": "Italian 🇮🇹"},
+            {"id": "translate-german", "label": "German 🇩🇪"},
+            {"id": "translate-russian", "label": "Russian 🇷🇺"},
+            {"id": "translate-lithuanian", "label": "Lithuanian 🇱🇹"},
+            {"id": "translate-latvian", "label": "Latvian 🇱🇻"},
+            {"id": "translate-bulgarian", "label": "Bulgarian 🇧🇬"},
+            {"id": "translate-hungarian", "label": "Hungarian 🇭🇺"},
+            {"id": "translate-czech", "label": "Czech 🇨🇿"},
+            {"id": "translate-slovak", "label": "Slovak 🇸🇰"},
+            {"id": "translate-ukrainian", "label": "Ukrainian 🇺🇦"},
+            {"id": "translate-somali", "label": "Somali 🇸🇴"},
+            {"id": "translate-tigrinya", "label": "Tigrinya 🇪🇷"},
+            {"id": "translate-amharic", "label": "Amharic 🇪🇹"},
+            {"id": "translate-tamil", "label": "Tamil 🇮🇳"},
+            {"id": "translate-telugu", "label": "Telugu 🇮🇳"},
+            {"id": "translate-malayalam", "label": "Malayalam 🇮🇳"},
+            {"id": "translate-farsi", "label": "Farsi/Persian 🇮🇷"}
+          ]
+        },
+        {"id": "roundtrip-quality-check", "label": "Round-trip translation check…"}
       ]
     },
     {
