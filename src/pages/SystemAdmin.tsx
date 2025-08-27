@@ -220,6 +220,12 @@ const [passwordTargetUser, setPasswordTargetUser] = useState<User | null>(null);
 const [newPassword, setNewPassword] = useState('');
 const [updatingPassword, setUpdatingPassword] = useState(false);
 
+// Login history modal state
+const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
+const [loginHistoryUser, setLoginHistoryUser] = useState<User | null>(null);
+const [loginHistory, setLoginHistory] = useState<any[]>([]);
+const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
+
 // Enhanced security monitoring state
 const [authenticationLogs, setAuthenticationLogs] = useState([]);
 const [patientDataAccess, setPatientDataAccess] = useState([]);
@@ -718,6 +724,29 @@ const openPasswordModal = (u: User) => {
   setPasswordTargetUser(u);
   setNewPassword('');
   setShowPasswordModal(true);
+};
+
+const openLoginHistoryModal = async (user: User) => {
+  setLoginHistoryUser(user);
+  setShowLoginHistoryModal(true);
+  setLoadingLoginHistory(true);
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('*')
+      .eq('user_id', user.user_id)
+      .order('login_time', { ascending: false })
+      .limit(50);
+    
+    if (error) throw error;
+    setLoginHistory(data || []);
+  } catch (error) {
+    console.error('Error fetching login history:', error);
+    toast.error('Failed to fetch login history');
+  } finally {
+    setLoadingLoginHistory(false);
+  }
 };
 
 const handlePasswordUpdate = async () => {
@@ -1504,6 +1533,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => openPasswordModal(user)} title="Set Password">
                                   <Key className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => openLoginHistoryModal(user)} title="View Login History">
+                                  <Clock className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.user_id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -2852,6 +2884,88 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Login History Modal */}
+      {showLoginHistoryModal && loginHistoryUser && (
+        <Dialog open={showLoginHistoryModal} onOpenChange={setShowLoginHistoryModal}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Login History - {loginHistoryUser.full_name}
+              </DialogTitle>
+              <DialogDescription>
+                Recent login sessions for {loginHistoryUser.email} (showing last 50 sessions)
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {loadingLoginHistory ? (
+                <div className="flex items-center justify-center p-8">
+                  <div className="animate-pulse">Loading login history...</div>
+                </div>
+              ) : loginHistory.length === 0 ? (
+                <div className="text-center p-8 text-muted-foreground">
+                  No login history found for this user.
+                </div>
+              ) : (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Login Time</TableHead>
+                        <TableHead>Last Activity</TableHead>
+                        <TableHead>Logout Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>User Agent</TableHead>
+                        <TableHead>Logout Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loginHistory.map((session) => (
+                        <TableRow key={session.id}>
+                          <TableCell className="font-mono text-sm">
+                            {new Date(session.login_time).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {session.last_activity ? new Date(session.last_activity).toLocaleString() : 'N/A'}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {session.logout_time ? new Date(session.logout_time).toLocaleString() : 'Still active'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={session.is_active ? "default" : "secondary"}>
+                              {session.is_active ? "Active" : "Ended"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {session.ip_address || 'N/A'}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate text-sm" title={session.user_agent}>
+                            {session.user_agent || 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {session.logout_reason || (session.is_active ? 'Active' : 'Unknown')}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowLoginHistoryModal(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       
       {/* AI Test Modal */}
       <AITestModal 
