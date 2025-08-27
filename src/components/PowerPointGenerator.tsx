@@ -66,6 +66,8 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
+  const [editingSlide, setEditingSlide] = useState<SlideContent | null>(null);
 
   const resetState = () => {
     setCurrentStep('input');
@@ -77,6 +79,8 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setGenerationProgress(0);
     setPresentationContent(null);
     setMetadata(null);
+    setEditingSlideIndex(null);
+    setEditingSlide(null);
   };
 
   const handleClose = (newOpen: boolean) => {
@@ -134,10 +138,42 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     }
   };
 
-  const downloadPowerPoint = async () => {
-    if (!presentationContent) return;
+  const startEditSlide = (slideIndex: number) => {
+    if (presentationContent && presentationContent.slides[slideIndex]) {
+      setEditingSlideIndex(slideIndex);
+      setEditingSlide({ ...presentationContent.slides[slideIndex] });
+    }
+  };
 
-    setCurrentStep('download');
+  const cancelEditSlide = () => {
+    setEditingSlideIndex(null);
+    setEditingSlide(null);
+  };
+
+  const saveEditSlide = () => {
+    if (editingSlideIndex !== null && editingSlide && presentationContent) {
+      const updatedSlides = [...presentationContent.slides];
+      updatedSlides[editingSlideIndex] = editingSlide;
+      setPresentationContent({
+        ...presentationContent,
+        slides: updatedSlides
+      });
+      setEditingSlideIndex(null);
+      setEditingSlide(null);
+      toast.success("Slide updated successfully!");
+    }
+  };
+
+  const updateEditingSlideContent = (field: keyof SlideContent, value: any) => {
+    if (editingSlide) {
+      setEditingSlide({
+        ...editingSlide,
+        [field]: value
+      });
+    }
+  };
+
+  const downloadPowerPoint = async () => {
     
     try {
       const pptx = new PptxGenJS();
@@ -321,23 +357,114 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
                   <CardTitle className="text-base">
                     Slide {index + 1}: {slide.title}
                   </CardTitle>
-                  <Badge variant="outline">{slide.type}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{slide.type}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditSlide(index)}
+                      disabled={editingSlideIndex === index}
+                    >
+                      <Edit2 className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  {slide.content.map((point, pointIndex) => (
-                    <div key={pointIndex} className="flex items-start gap-2 text-sm">
-                      <span className="text-muted-foreground">•</span>
-                      <span>{point}</span>
+                {editingSlideIndex === index && editingSlide ? (
+                  // Edit mode
+                  <div className="space-y-4 border-l-4 border-primary pl-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Slide Title</label>
+                      <input
+                        type="text"
+                        value={editingSlide.title}
+                        onChange={(e) => updateEditingSlideContent('title', e.target.value)}
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                      />
                     </div>
-                  ))}
-                </div>
-                {slide.notes && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground font-medium mb-1">Speaker Notes:</p>
-                    <p className="text-xs text-muted-foreground">{slide.notes}</p>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Content Points</label>
+                      {editingSlide.content.map((point, pointIndex) => (
+                        <div key={pointIndex} className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-sm">•</span>
+                          <input
+                            type="text"
+                            value={point}
+                            onChange={(e) => {
+                              const updatedContent = [...editingSlide.content];
+                              updatedContent[pointIndex] = e.target.value;
+                              updateEditingSlideContent('content', updatedContent);
+                            }}
+                            className="flex-1 px-2 py-1 border border-border rounded text-sm"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const updatedContent = editingSlide.content.filter((_, i) => i !== pointIndex);
+                              updateEditingSlideContent('content', updatedContent);
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const updatedContent = [...editingSlide.content, "New bullet point"];
+                          updateEditingSlideContent('content', updatedContent);
+                        }}
+                        className="mt-2"
+                      >
+                        + Add Point
+                      </Button>
+                    </div>
+
+                    {editingSlide.notes && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Speaker Notes</label>
+                        <Textarea
+                          value={editingSlide.notes}
+                          onChange={(e) => updateEditingSlideContent('notes', e.target.value)}
+                          className="text-xs"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                      <Button variant="outline" size="sm" onClick={cancelEditSlide}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={saveEditSlide}>
+                        Save Changes
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  // View mode
+                  <>
+                    <div className="space-y-1">
+                      {slide.content.map((point, pointIndex) => (
+                        <div key={pointIndex} className="flex items-start gap-2 text-sm">
+                          <span className="text-muted-foreground">•</span>
+                          <span>{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {slide.notes && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground font-medium mb-1">Speaker Notes:</p>
+                        <p className="text-xs text-muted-foreground">{slide.notes}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
