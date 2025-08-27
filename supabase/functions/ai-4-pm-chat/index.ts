@@ -1450,8 +1450,9 @@ serve(async (req) => {
   let verificationLevel = 'standard';
 
   try {
-  console.log('🚀 AI-4-PM-Chat function started - v2');
-  console.log('📝 Request method:', req.method);
+    console.log('📝 Environment check - OpenAI key present:', !!openaiApiKey);
+    console.log('🚀 AI-4-PM-Chat function started - v3');
+    console.log('📝 Request method:', req.method);
     console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
     
     const requestBody = await req.json();

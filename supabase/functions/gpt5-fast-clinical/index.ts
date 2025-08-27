@@ -24,7 +24,9 @@ serve(async (req) => {
     });
 
   if (!OPENAI_API_KEY) {
-    return sseError("Missing OPENAI_API_KEY in environment. Set it and redeploy.", 500);
+    console.error('CRITICAL: OPENAI_API_KEY environment variable is not set');
+    console.log('Available env vars:', Object.keys(Deno.env.toObject()));
+    return sseError("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.", 500);
   }
 
   let body: any;
