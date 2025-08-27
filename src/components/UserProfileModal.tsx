@@ -405,6 +405,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         if (error) throw error;
       }
 
+      // Refetch practice details to ensure signatures persist
+      await fetchPracticeDetails();
+      
       toast.success('Signatures saved successfully');
     } catch (error: any) {
       console.error('Error saving signatures:', error);
