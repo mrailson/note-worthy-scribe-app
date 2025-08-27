@@ -5255,6 +5255,14 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      update_user_session_activity: {
+        Args: {
+          p_ip_address?: unknown
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       user_has_meeting_access: {
         Args: { p_meeting_id: string; p_user_id?: string }
         Returns: boolean
