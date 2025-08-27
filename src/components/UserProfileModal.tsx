@@ -113,33 +113,43 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   };
 
   const fetchPracticeDetails = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, skipping practice details fetch');
+      return;
+    }
+
+    console.log('Fetching practice details for user:', user.id);
 
     try {
       // First, get user's practice assignments from user_roles
-      const { data: userRoles } = await supabase
+      const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('practice_id')
-        .eq('user_id', user.id)
-        .limit(1);
+        .eq('user_id', user.id);
 
-      console.log('User roles found:', userRoles);
+      console.log('User roles query result:', { userRoles, rolesError });
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        return;
+      }
 
       if (userRoles && userRoles.length > 0 && userRoles[0].practice_id) {
+        console.log('Found practice_id:', userRoles[0].practice_id);
+        
         // Get practice details by practice_id
         const { data: practiceData, error: practiceError } = await supabase
           .from('practice_details')
           .select('*')
           .eq('id', userRoles[0].practice_id)
-          .single();
+          .maybeSingle();
+
+        console.log('Practice details query result:', { practiceData, practiceError });
 
         if (practiceError) {
           console.error('Error fetching practice details by ID:', practiceError);
-          return;
-        }
-
-        if (practiceData) {
-          console.log('Found practice details:', practiceData);
+        } else if (practiceData) {
+          console.log('Setting practice details from practice_id lookup:', practiceData);
           setPracticeDetails({
             id: practiceData.id,
             practice_name: practiceData.practice_name || '',
@@ -147,25 +157,29 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
             email: practiceData.email || '',
             website: practiceData.website || '',
             phone: practiceData.phone || '',
-            direct_dial: '', // This field doesn't exist in the database
+            direct_dial: '',
             practice_logo_url: (practiceData as any).practice_logo_url || '',
             email_signature: (practiceData as any).email_signature || '',
             letter_signature: (practiceData as any).letter_signature || ''
           });
+          console.log('Practice details state updated successfully');
           return;
         }
       }
 
-      // Fallback: try to get practice details directly by user_id (for backwards compatibility)
+      console.log('No practice found via user_roles, trying direct lookup...');
+      
+      // Fallback: try to get practice details directly by user_id
       const { data: directPracticeData, error: directError } = await supabase
         .from('practice_details')
         .select('*')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1);
+        .order('updated_at', { ascending: false });
+
+      console.log('Direct practice lookup result:', { directPracticeData, directError });
 
       if (!directError && directPracticeData && directPracticeData.length > 0) {
-        console.log('Found direct practice details:', directPracticeData[0]);
+        console.log('Setting practice details from direct lookup:', directPracticeData[0]);
         setPracticeDetails({
           id: directPracticeData[0].id,
           practice_name: directPracticeData[0].practice_name || '',
@@ -173,16 +187,17 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           email: directPracticeData[0].email || '',
           website: directPracticeData[0].website || '',
           phone: directPracticeData[0].phone || '',
-          direct_dial: '', // This field doesn't exist in the database
+          direct_dial: '',
           practice_logo_url: (directPracticeData[0] as any).practice_logo_url || '',
           email_signature: (directPracticeData[0] as any).email_signature || '',
           letter_signature: (directPracticeData[0] as any).letter_signature || ''
         });
+        console.log('Practice details state updated from direct lookup');
       } else {
-        console.log('No practice details found');
+        console.log('No practice details found anywhere');
       }
     } catch (error) {
-      console.error('Error fetching practice details:', error);
+      console.error('Unexpected error fetching practice details:', error);
     }
   };
 
