@@ -19,16 +19,17 @@ export class ImageProcessor {
             });
 
             if (error) {
-              console.error('OCR error:', error);
+              console.error('OCR supabase invoke error:', error);
               // Fallback to basic image data if OCR fails
               resolve(`IMAGE_DATA_URL:${dataUrl}`);
               return;
             }
 
-            if (data.success && data.extractedText) {
+            if (data && data.success && data.extractedText && data.extractedText.trim().length > 0) {
               // Return extracted text with image context
               resolve(`EXTRACTED_TEXT_FROM_IMAGE[${file.name}]:\n\n${data.extractedText}\n\n[End of extracted text from ${file.name}]`);
             } else {
+              console.log('OCR returned no text or failed, using fallback for:', file.name);
               // Fallback to basic image data
               resolve(`IMAGE_DATA_URL:${dataUrl}`);
             }

@@ -15,9 +15,13 @@ Deno.serve(async (req) => {
     if (!openAIApiKey) {
       console.error('OPENAI_API_KEY is not set');
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ 
+          success: false,
+          error: 'OpenAI API key not configured',
+          extractedText: '' 
+        }),
         { 
-          status: 500, 
+          status: 200,  // Return 200 so ImageProcessor can handle gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -78,11 +82,13 @@ Deno.serve(async (req) => {
       console.error('OpenAI API error:', errorData);
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'Failed to process image', 
-          details: errorData.error?.message || 'Unknown error' 
+          details: errorData.error?.message || 'Unknown error',
+          extractedText: ''
         }),
         { 
-          status: response.status, 
+          status: 200,  // Return 200 so ImageProcessor can handle gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -109,11 +115,13 @@ Deno.serve(async (req) => {
     console.error('Error in image-ocr-transcription function:', error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: 'Internal server error', 
-        details: error.message 
+        details: error.message,
+        extractedText: ''
       }),
       {
-        status: 500,
+        status: 200,  // Return 200 so ImageProcessor can handle gracefully
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
