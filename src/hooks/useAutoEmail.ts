@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 export function useAutoEmail() {
   const [isSending, setIsSending] = useState(false);
@@ -57,7 +58,7 @@ export function useAutoEmail() {
       const emailData = {
         to_email: profile.email,
         subject,
-        message: convertMarkdownToHTML(message),
+        message: convertContentToStyledHTML(message),
         template_type: 'ai_generated_content',
         from_name: 'AI4GP Service',
         reply_to: 'noreply@gp-tools.nhs.uk',
@@ -98,27 +99,125 @@ export function useAutoEmail() {
     }
   };
 
-  // Function to convert markdown formatting to HTML
-  const convertMarkdownToHTML = (text: string): string => {
-    return text
-      .replace(/^---+$/gm, '<hr>') // Replace horizontal rules with HTML hr
-      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>') // Convert bold+italic to HTML
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert bold markdown to HTML
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Convert italic formatting to HTML
-      .replace(/`(.*?)`/g, '<code>$1</code>') // Convert inline code to HTML
-      .replace(/#{6}\s+(.*?)$/gm, '<h6>$1</h6>') // Convert h6 headers
-      .replace(/#{5}\s+(.*?)$/gm, '<h5>$1</h5>') // Convert h5 headers
-      .replace(/#{4}\s+(.*?)$/gm, '<h4>$1</h4>') // Convert h4 headers
-      .replace(/#{3}\s+(.*?)$/gm, '<h3>$1</h3>') // Convert h3 headers
-      .replace(/#{2}\s+(.*?)$/gm, '<h2>$1</h2>') // Convert h2 headers
-      .replace(/#{1}\s+(.*?)$/gm, '<h1>$1</h1>') // Convert h1 headers
-      .replace(/^\s*[-*+]\s+(.*?)$/gm, '<li>$1</li>') // Convert markdown lists to HTML li
-      .replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<li>$1. $2</li>') // Convert numbered lists to HTML
-      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>') // Wrap list items in ul tags
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>') // Convert links to HTML
-      .replace(/\n/g, '<br>') // Convert line breaks to HTML br tags
-      .replace(/<ul><\/ul>/g, '') // Remove empty ul tags
-      .trim();
+  // Function to convert content to styled HTML for email (matching on-screen appearance)
+  const convertContentToStyledHTML = (text: string): string => {
+    // Use the same renderer as the on-screen display
+    const renderedHTML = renderNHSMarkdown(text, { enableNHSStyling: false, isUserMessage: false });
+    
+    // Add email-specific CSS styling to match the on-screen appearance
+    const emailCSS = `
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+          line-height: 1.6;
+          color: #1f2937;
+          background-color: #ffffff;
+          margin: 0;
+          padding: 20px;
+        }
+        .message-container {
+          max-width: 700px;
+          margin: 0 auto;
+          background-color: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+          color: #2563eb;
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin-bottom: 1rem;
+          margin-top: 1.5rem;
+        }
+        h2 {
+          color: #2563eb;
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          margin-top: 1.25rem;
+        }
+        h3 {
+          color: #2563eb;
+          font-size: 1.125rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
+          margin-top: 1rem;
+        }
+        h4 {
+          color: #2563eb;
+          font-size: 1rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          margin-top: 0.75rem;
+        }
+        p {
+          margin-bottom: 0.75rem;
+          line-height: 1.6;
+          color: inherit;
+        }
+        strong {
+          font-weight: 600;
+          color: #1f2937;
+        }
+        em {
+          font-style: italic;
+        }
+        .ai4gp-caution {
+          background-color: #fefce8;
+          border-left: 4px solid #eab308;
+          padding: 1rem;
+          margin: 1rem 0;
+          border-radius: 0 8px 8px 0;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .ai4gp-caution-title {
+          color: #92400e;
+          font-weight: bold;
+          font-size: 1.125rem;
+          display: block;
+          margin-bottom: 0.5rem;
+          background-color: #fef3c7;
+          padding: 0.5rem 0.75rem;
+          border-radius: 4px;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        div[class*="bg-primary/20"] {
+          background-color: #dbeafe;
+          border-left: 4px solid #2563eb;
+          padding: 0.75rem;
+          margin: 1rem 0;
+          border-radius: 0 8px 8px 0;
+        }
+        div[class*="bg-primary/20"] strong {
+          color: #ffffff;
+          font-weight: bold;
+          font-size: 1.125rem;
+          display: block;
+          margin-bottom: 0.5rem;
+          background-color: #2563eb;
+          padding: 0.5rem;
+          border-radius: 4px;
+        }
+        a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        a:hover {
+          color: #1d4ed8;
+        }
+        .signature {
+          margin-top: 2rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e2e8f0;
+          color: #6b7280;
+          font-size: 0.875rem;
+        }
+      </style>
+    `;
+    
+    return `${emailCSS}<div class="message-container">${renderedHTML}</div>`;
   };
 
   return { sendEmailAutomatically, isSending };
