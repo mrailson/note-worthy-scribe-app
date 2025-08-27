@@ -65,7 +65,7 @@ export const SystemMonitoringDashboard: React.FC = () => {
           system_status: dashboardData.system_status,
           recent_alerts: typeof dashboardData.recent_alerts === 'string' 
             ? JSON.parse(dashboardData.recent_alerts || '[]')
-            : (dashboardData.recent_alerts || []) as MonitoringAlert[]
+            : (dashboardData.recent_alerts || []) as unknown as MonitoringAlert[]
         });
       }
     } catch (error) {
