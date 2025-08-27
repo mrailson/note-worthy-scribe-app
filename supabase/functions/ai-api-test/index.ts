@@ -31,13 +31,15 @@ serve(async (req) => {
     const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
+    const Z_AI_API_KEY = Deno.env.get('Z_AI_API_KEY');
     
     console.log('🔑 API Keys status (recreated function):', {
       openai: OPENAI_API_KEY ? 'Present' : 'Missing',
       anthropic: ANTHROPIC_API_KEY ? 'Present' : 'Missing',
       grok: GROK_API_KEY ? 'Present' : 'Missing',
       gemini: GEMINI_API_KEY ? 'Present' : 'Missing',
-      deepseek: DEEPSEEK_API_KEY ? 'Present' : 'Missing'
+      deepseek: DEEPSEEK_API_KEY ? 'Present' : 'Missing',
+      zai: Z_AI_API_KEY ? 'Present' : 'Missing'
     });
 
     const startTime = Date.now();
@@ -168,6 +170,24 @@ serve(async (req) => {
         } else {
           response = await testDeepSeek(prompt, DEEPSEEK_API_KEY);
           modelUsed = 'deepseek-chat';
+        }
+        break;
+        
+      case 'z-ai-model':
+        if (!Z_AI_API_KEY) {
+          console.log('⚠️ Z AI API key not found, falling back to available API');
+          if (OPENAI_API_KEY) {
+            response = await testOpenAI(prompt, 'gpt-4o', OPENAI_API_KEY);
+            modelUsed = 'gpt-4o (fallback from z-ai)';
+          } else if (ANTHROPIC_API_KEY) {
+            response = await testClaude(prompt, ANTHROPIC_API_KEY);
+            modelUsed = 'claude-3-5-sonnet-20241022 (fallback from z-ai)';
+          } else {
+            throw new Error('Z AI API key not configured and no fallback available');
+          }
+        } else {
+          response = await testZAI(prompt, Z_AI_API_KEY);
+          modelUsed = 'z-ai-model';
         }
         break;
         
@@ -351,6 +371,35 @@ async function testDeepSeek(prompt: string, apiKey: string): Promise<string> {
     const errorText = await response.text();
     console.error(`DeepSeek API error (${response.status}):`, errorText);
     throw new Error(`DeepSeek API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function testZAI(prompt: string, apiKey: string): Promise<string> {
+  console.log('⚡ Testing Z AI API');
+  
+  // Note: This is a placeholder implementation since the actual Z AI API endpoint is not specified
+  // Please update the endpoint URL and request format according to Z AI's API documentation
+  const response = await fetch('https://api.zai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'z-ai-model',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Z AI API error (${response.status}):`, errorText);
+    throw new Error(`Z AI API error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();

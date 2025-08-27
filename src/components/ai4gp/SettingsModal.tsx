@@ -94,6 +94,12 @@ const AI_MODELS = [
     name: 'Gemini Pro',
     provider: 'Google',
     description: 'Advanced language understanding'
+  },
+  {
+    id: 'z-ai-model',
+    name: 'Z AI',
+    provider: 'Z AI',
+    description: 'Advanced AI with specialized capabilities'
   }
 ];
 
@@ -155,7 +161,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const testApiServices = async () => {
     setIsTesting(true);
     const testPrompt = "what is Metformin";
-    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4o', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro'];
+    const modelsToTest = ['gpt-5-2025-08-07', 'claude-4-opus', 'gpt-4o', 'gpt-4-turbo', 'deepseek-chat', 'grok-beta', 'gemini-1.5-pro', 'z-ai-model'];
     
     // Initialize test results
     const initialResults: ApiTestResult[] = modelsToTest.map(model => ({
