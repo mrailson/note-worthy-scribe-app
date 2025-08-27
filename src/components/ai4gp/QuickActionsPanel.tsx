@@ -142,7 +142,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       {showMeetingNotesInterface && (
         <div className="mb-6 p-4 border rounded-lg bg-card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">Meeting Notes Summariser</h3>
+            <h3 className="font-medium">Meeting Notes Service</h3>
             <Button 
               variant="ghost" 
               size="sm"
@@ -174,9 +174,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 // Navigate to test transcripts page with appropriate tab
                 const tab = action.action.replace('open-test-transcripts-', '');
                 window.open(`/test-transcripts#${tab}`, '_blank');
-              } else if (action.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
-                // Show the Meeting Notes Interface instead of just inserting a prompt
-                setShowMeetingNotesInterface(true);
+              } else if (action.action === 'open-meeting-notes') {
+                // Navigate to Meeting Notes page
+                window.location.href = '/nhs-meeting-notes';
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -222,9 +222,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');
                             window.open(`/test-transcripts#${tab}`, '_blank');
-                          } else if (subItem.label === 'Meeting Notes Summariser' && selectedRole === 'practice-manager') {
-                            // Show the Meeting Notes Interface instead of just inserting a prompt
-                            setShowMeetingNotesInterface(true);
+                           } else if (subItem.action === 'open-meeting-notes') {
+                             // Navigate to Meeting Notes page
+                             window.location.href = '/nhs-meeting-notes';
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }

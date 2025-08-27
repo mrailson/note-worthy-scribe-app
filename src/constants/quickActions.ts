@@ -149,10 +149,11 @@ export const practiceManagerQuickActions: QuickAction[] = [
     requiresFile: true
   },
   {
-    label: 'Meeting Notes Summariser',
+    label: 'Meeting Notes Service',
     icon: NotebookPen,
     prompt: pmSafetyPreamble + '\n\nSummarise meeting notes into key decisions, actions, and follow-up items with responsible parties and deadlines.',
-    requiresFile: true
+    requiresFile: true,
+    action: 'open-meeting-notes'
   },
   {
     label: 'ARRS Claim Checker',
