@@ -2558,6 +2558,53 @@ export type Database = {
           },
         ]
       }
+      meeting_dashboard_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          last_saved_at: string | null
+          live_notes: string | null
+          meeting_id: string | null
+          processing_settings: Json
+          session_data: Json
+          updated_at: string
+          user_id: string
+          validation_corrections: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_saved_at?: string | null
+          live_notes?: string | null
+          meeting_id?: string | null
+          processing_settings?: Json
+          session_data?: Json
+          updated_at?: string
+          user_id: string
+          validation_corrections?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_saved_at?: string | null
+          live_notes?: string | null
+          meeting_id?: string | null
+          processing_settings?: Json
+          session_data?: Json
+          updated_at?: string
+          user_id?: string
+          validation_corrections?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_dashboard_sessions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_documents: {
         Row: {
           created_at: string
@@ -4604,6 +4651,48 @@ export type Database = {
           id?: string
           setting_key?: string
           setting_value?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_validation_corrections: {
+        Row: {
+          confidence_score: number | null
+          context: string | null
+          correct_term: string
+          created_at: string
+          frequency_count: number | null
+          id: string
+          incorrect_term: string
+          last_used_at: string | null
+          practice_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          context?: string | null
+          correct_term: string
+          created_at?: string
+          frequency_count?: number | null
+          id?: string
+          incorrect_term: string
+          last_used_at?: string | null
+          practice_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          context?: string | null
+          correct_term?: string
+          created_at?: string
+          frequency_count?: number | null
+          id?: string
+          incorrect_term?: string
+          last_used_at?: string | null
+          practice_id?: string | null
           updated_at?: string
           user_id?: string
         }
