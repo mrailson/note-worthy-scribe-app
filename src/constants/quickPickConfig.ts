@@ -40,6 +40,8 @@ export const quickPickConfig = {
       "children": [
         {"id": "patient-leaflet", "label": "Patient leaflet…"},
         {"id": "patient-safetynetting", "label": "Add safety-netting"},
+        {"id": "patient-letter", "label": "Patient Letter"},
+        {"id": "patient-email", "label": "Patient Email"},
         {"id": "staff-training-pack", "label": "Staff training pack / SOP"},
         {"id": "manager-briefing", "label": "Manager/Board briefing slide"}
       ]

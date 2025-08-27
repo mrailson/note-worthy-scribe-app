@@ -173,6 +173,30 @@ FORMATTING REQUIREMENTS:
 - Include proper spacing between sections`;
 }
 
+async function createPatientLetter(ctx: QuickPickContext): Promise<string> {
+  return `Convert the above into a formal patient letter format with proper NHS letter structure, including:
+
+FORMATTING REQUIREMENTS:
+- Use clear formal letter heading (#### [Practice Name] Letter)
+- Include proper date and patient address placeholders
+- Use formal but compassionate tone appropriate for patients
+- Structure with clear paragraphs and professional spacing
+- Include closing salutation and signature block
+- Maintain proper letter formatting throughout`;
+}
+
+async function createPatientEmail(ctx: QuickPickContext): Promise<string> {
+  return `Convert the above into a patient-friendly email format with:
+
+FORMATTING REQUIREMENTS:
+- Use clear email subject line suggestion
+- Professional but warm email tone
+- Clear paragraph structure with proper spacing
+- Easy-to-read format suitable for email
+- Include appropriate email signature placeholder
+- Break information into digestible email sections`;
+}
+
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
   return `Turn the above into a structured SOP/training guide for GP practice staff.`;
 }
@@ -309,6 +333,8 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
 
   "patient-leaflet": createPatientLeaflet,
   "patient-safetynetting": addSafetyNetting,
+  "patient-letter": createPatientLetter,
+  "patient-email": createPatientEmail,
   "staff-training-pack": createStaffTrainingPack,
   "manager-briefing": createManagerBriefingSlide,
 
