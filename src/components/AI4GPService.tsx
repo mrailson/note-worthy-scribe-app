@@ -427,6 +427,16 @@ const AI4GPService = () => {
                           onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                         />
                         
+                        {/* Collapsible Short Card Disclaimer - Only show for GP role */}
+                        {selectedRole === 'gp' && (
+                          <div className="mt-6">
+                            <CollapsibleShortCard 
+                              isCollapsed={disclaimerCollapsed}
+                              onCollapsedChange={updateCollapsedPreference}
+                            />
+                          </div>
+                        )}
+                        
                         {/* GP Genie Service Box - Only show for GP role */}
                         {selectedRole === 'gp' && (
                           <div className="mt-4">
@@ -473,16 +483,6 @@ const AI4GPService = () => {
                                 </Button>
                               </CardContent>
                             </Card>
-                          </div>
-                        )}
-                        
-                        {/* Collapsible Short Card Disclaimer - Only show for GP role */}
-                        {selectedRole === 'gp' && (
-                          <div className="mt-6">
-                            <CollapsibleShortCard 
-                              isCollapsed={disclaimerCollapsed}
-                              onCollapsedChange={updateCollapsedPreference}
-                            />
                           </div>
                         )}
                       </div>
