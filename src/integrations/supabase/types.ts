@@ -4398,6 +4398,42 @@ export type Database = {
           },
         ]
       }
+      user_generated_images: {
+        Row: {
+          alt_text: string | null
+          created_at: string | null
+          detailed_prompt: string | null
+          id: string
+          image_settings: Json | null
+          image_url: string
+          prompt: string
+          quick_pick_id: string | null
+          user_id: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string | null
+          detailed_prompt?: string | null
+          id?: string
+          image_settings?: Json | null
+          image_url: string
+          prompt: string
+          quick_pick_id?: string | null
+          user_id: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string | null
+          detailed_prompt?: string | null
+          id?: string
+          image_settings?: Json | null
+          image_url?: string
+          prompt?: string
+          quick_pick_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_modules: {
         Row: {
           created_at: string
