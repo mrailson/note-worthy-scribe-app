@@ -47,6 +47,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
+import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 
 interface User {
   user_id: string;
@@ -2262,6 +2263,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* System Monitoring Tab */}
           <TabsContent value="monitoring" className="space-y-6">
+            <SystemMonitoringDashboard />
+            
+            {/* Legacy Connection Stats and Incidents - Keep for reference */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Connection Stats */}
               <Card>
