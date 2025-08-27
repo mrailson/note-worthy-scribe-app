@@ -5212,6 +5212,15 @@ export type Database = {
         }
         Returns: string
       }
+      log_user_session: {
+        Args: {
+          p_ip_address?: unknown
+          p_session_id?: string
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       purge_expired_data: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -5256,11 +5265,14 @@ export type Database = {
         Returns: unknown
       }
       update_user_session_activity: {
-        Args: {
-          p_ip_address?: unknown
-          p_user_agent?: string
-          p_user_id: string
-        }
+        Args:
+          | {
+              p_ip_address?: unknown
+              p_session_id?: string
+              p_user_agent?: string
+              p_user_id: string
+            }
+          | { p_ip_address?: unknown; p_user_agent?: string; p_user_id: string }
         Returns: undefined
       }
       user_has_meeting_access: {
