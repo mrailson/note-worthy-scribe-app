@@ -119,13 +119,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    align="end" 
                    className="bg-background border border-border shadow-lg w-48 z-50"
                  >
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/ai4gp')}
-                         className="cursor-pointer py-3"
-                       >
-                         <Sparkles className="h-4 w-4 mr-2" />
-                         AI4GP Service
-                       </DropdownMenuItem>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuItem 
+                                onClick={() => navigate('/ai4gp')}
+                                className="cursor-pointer py-3"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                AI4GP Service
+                              </DropdownMenuItem>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">
+                              <p>AI-powered GP consultation assistant with clinical verification</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                     {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
                          onClick={() => window.location.href = '/'}
