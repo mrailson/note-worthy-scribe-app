@@ -3546,7 +3546,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-6' : 'grid-cols-5'}`}>
+        <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
