@@ -208,6 +208,55 @@ function addPracticeSafetyNetting(ctx: QuickPickContext): string {
   return `Insert our standard GP practice safety-netting template text into the above.`;
 }
 
+// Translation handlers
+function translateToPolish(ctx: QuickPickContext): string {
+  return `Translate the previous message into Polish. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToRomanian(ctx: QuickPickContext): string {
+  return `Translate the previous message into Romanian. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToArabic(ctx: QuickPickContext): string {
+  return `Translate the previous message into Arabic. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToPortuguese(ctx: QuickPickContext): string {
+  return `Translate the previous message into Portuguese. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToSpanish(ctx: QuickPickContext): string {
+  return `Translate the previous message into Spanish. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToFrench(ctx: QuickPickContext): string {
+  return `Translate the previous message into French. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToItalian(ctx: QuickPickContext): string {
+  return `Translate the previous message into Italian. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToBengali(ctx: QuickPickContext): string {
+  return `Translate the previous message into Bengali/Bangla. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToHindi(ctx: QuickPickContext): string {
+  return `Translate the previous message into Hindi. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateToUrdu(ctx: QuickPickContext): string {
+  return `Translate the previous message into Urdu. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.`;
+}
+
+function translateBackToEnglish(ctx: QuickPickContext): string {
+  return `Translate the previous message back into English. Ensure medical accuracy and clarity for UK GP practice use.`;
+}
+
+function compareTranslation(ctx: QuickPickContext): string {
+  return `Compare the original text with its translation. Highlight any differences in meaning, medical terminology, or important clinical information that may have been lost or changed in translation.`;
+}
+
 
 
 // Main handlers object
@@ -249,5 +298,19 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "combine-practice-info": combineWithPracticeInfo,
   "insert-icb-links": insertLocalICBLinks,
   "prior-approval-modal": openPriorApprovalModal,
-  "add-safetynetting-template": addPracticeSafetyNetting
+  "add-safetynetting-template": addPracticeSafetyNetting,
+
+  // Translation handlers
+  "translate-polish": translateToPolish,
+  "translate-romanian": translateToRomanian,
+  "translate-arabic": translateToArabic,
+  "translate-portuguese": translateToPortuguese,
+  "translate-spanish": translateToSpanish,
+  "translate-french": translateToFrench,
+  "translate-italian": translateToItalian,
+  "translate-bengali": translateToBengali,
+  "translate-hindi": translateToHindi,
+  "translate-urdu": translateToUrdu,
+  "translate-back-english": translateBackToEnglish,
+  "compare-translation": compareTranslation
 };
