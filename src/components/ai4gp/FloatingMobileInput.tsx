@@ -77,13 +77,17 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       onSend();
+      // Clear both transcript state and input text after sending for smooth mic workflow
+      setBrowserTranscript('');
+      setInput('');
     }
   };
 
   const handleSend = () => {
-    // Clear browser transcript state when sending
-    setBrowserTranscript('');
     onSend();
+    // Clear both transcript state and input text after sending for smooth mic workflow
+    setBrowserTranscript('');
+    setInput('');
     // Keep expanded after sending so user can see the response and send follow-ups
   };
 
