@@ -13,7 +13,7 @@ import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, Mo
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
-import { FloatingMobileInput } from '@/components/ai4gp/FloatingMobileInput';
+import { FloatingMobileInput, FloatingMobileInputRef } from '@/components/ai4gp/FloatingMobileInput';
 
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
@@ -43,7 +43,7 @@ import { Message } from '@/types/ai4gp';
 
 
 const AI4GPService = () => {
-  const inputRef = useRef<InputAreaRef>(null);
+  const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
