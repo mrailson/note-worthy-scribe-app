@@ -25,8 +25,12 @@ export const ForgotPassword = ({ onBackToLogin }: ForgotPasswordProps) => {
     const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const hasValidDomain = validDomains.some(domain => email.toLowerCase().includes(domain));
     
-    setIsValid(isValidFormat && hasValidDomain);
-    return isValidFormat && hasValidDomain;
+    // Special exception for specific Gmail address
+    const isSpecialException = email.toLowerCase() === 'egplearning@gmail.com';
+    
+    const isValid = isValidFormat && (hasValidDomain || isSpecialException);
+    setIsValid(isValid);
+    return isValid;
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
