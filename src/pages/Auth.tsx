@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
@@ -14,8 +15,10 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
   
   // Form states
   const [loginForm, setLoginForm] = useState({
@@ -38,6 +41,21 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Rate limiting check
+    if (!checkRateLimit(`login_${loginForm.email}`)) {
+      return;
+    }
+    
+    // Input validation
+    if (!validateEmail(loginForm.email)) {
+      return;
+    }
+    
+    if (!validateInput(loginForm.password, 'login_password')) {
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -47,6 +65,21 @@ export default function Auth() {
       });
 
       if (error) {
+        setLoginAttempts(prev => prev + 1);
+        
+        // Log security event for failed login
+        await supabase.functions.invoke('log-security-event', {
+          body: {
+            event_type: 'failed_login_attempt',
+            severity: loginAttempts >= 3 ? 'high' : 'medium',
+            event_details: {
+              email: loginForm.email,
+              attempts: loginAttempts + 1,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+
         if (error.message.includes('Invalid login credentials')) {
           toast({
             title: "Login Failed",
@@ -61,6 +94,21 @@ export default function Auth() {
           });
         }
       } else {
+        // Reset login attempts on successful login
+        setLoginAttempts(0);
+        
+        // Log successful login
+        await supabase.functions.invoke('log-security-event', {
+          body: {
+            event_type: 'successful_login',
+            severity: 'low',
+            event_details: {
+              email: loginForm.email,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
@@ -81,6 +129,20 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Rate limiting check
+    if (!checkRateLimit(`signup_${signupForm.email}`)) {
+      return;
+    }
+    
+    // Input validation
+    if (!validateEmail(signupForm.email)) {
+      return;
+    }
+    
+    if (!validateInput(signupForm.password, 'signup_password')) {
+      return;
+    }
+    
     if (signupForm.password !== signupForm.confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -90,10 +152,10 @@ export default function Auth() {
       return;
     }
 
-    if (signupForm.password.length < 6) {
+    if (signupForm.password.length < 8) {
       toast({
         title: "Password Too Short",
-        description: "Password must be at least 6 characters long.",
+        description: "Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and symbols.",
         variant: "destructive",
       });
       return;
@@ -113,6 +175,19 @@ export default function Auth() {
       });
 
       if (error) {
+        // Log security event for failed signup
+        await supabase.functions.invoke('log-security-event', {
+          body: {
+            event_type: 'failed_signup_attempt',
+            severity: 'medium',
+            event_details: {
+              email: signupForm.email,
+              error: error.message,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+
         if (error.message.includes('User already registered')) {
           toast({
             title: "Account Exists",
@@ -127,6 +202,18 @@ export default function Auth() {
           });
         }
       } else {
+        // Log successful signup
+        await supabase.functions.invoke('log-security-event', {
+          body: {
+            event_type: 'successful_signup',
+            severity: 'low',
+            event_details: {
+              email: signupForm.email,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+
         toast({
           title: "Registration Successful!",
           description: "Please check your email for a confirmation link to complete your registration.",

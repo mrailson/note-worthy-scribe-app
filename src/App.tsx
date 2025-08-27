@@ -1,5 +1,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
+import { HelmetProvider } from 'react-helmet-async';
+import { SecurityWrapper } from '@/components/SecurityWrapper';
 import Index from "./pages/Index";
 import AI4GP from "./pages/AI4GP";
 import GPScribe from "./pages/GPScribe";
@@ -40,60 +42,64 @@ import GPSoapUI from "./components/GPSoapUI";
 
 
 const App = () => (
-  <TooltipProvider>
-    <div className="mobile-keyboard-adjust">
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-            <Route path="/ai4gp" element={<AI4GP />} />
-            <Route path="/gp-scribe" element={<GPScribe />} />
-        <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
-        <Route path="/meetings" element={<MeetingHistory />} />
-        <Route path="/meeting-history" element={<MeetingHistory />} />
-        <Route path="/meeting-summary" element={<MeetingSummary />} />
-        <Route path="/meeting-summary/:meetingId" element={<MeetingSummary />} />
-        <Route path="/consultation-summary" element={<GPSoapUI />} />
-        <Route path="/consultation/summary" element={<GPSoapUI />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin" element={<SystemAdmin />} />
-        <Route path="/practice-admin" element={<PracticeAdmin />} />
-        <Route path="/complaints" element={<ComplaintsSystem />} />
-        <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
-        <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
-        <Route path="/shared-drive" element={
-          <ProtectedRoute requiredModule="shared_drive_access">
-            <SharedDrive />
-          </ProtectedRoute>
-        } />
-        
-        
-        <Route path="/ai-4-pm" element={<AI4PMService />} />
-        <Route path="/enhanced-access" element={<EnhancedAccess />} />
-        <Route path="/cqc-compliance" element={
-          <ProtectedRoute requiredModule="cqc_compliance">
-            <CQCCompliance />
-          </ProtectedRoute>
-        } />
-        <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
-        <Route path="/security-compliance" element={<SecurityCompliance />} />
-        <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
-        <Route path="/loading-animation-demo" element={<LoadingAnimationDemo />} />
-        <Route path="/api-testing" element={<APITesting />} />
-        <Route path="/image-create" element={<ImageCreate />} />
-        <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
-        <Route path="/deepgram-test" element={<DeepgramTest />} />
-        <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />
-        <Route path="/browser-recorder" element={<BrowserRecorder />} />
-        <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
-        <Route path="/test-transcripts" element={<TestTranscripts />} />
-        
-        <Route path="/reset-password" element={<ResetPassword />} />
-        
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </div>
-  </TooltipProvider>
+  <HelmetProvider>
+    <SecurityWrapper>
+      <TooltipProvider>
+        <div className="mobile-keyboard-adjust">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+                <Route path="/ai4gp" element={<AI4GP />} />
+                <Route path="/gp-scribe" element={<GPScribe />} />
+            <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
+            <Route path="/meetings" element={<MeetingHistory />} />
+            <Route path="/meeting-history" element={<MeetingHistory />} />
+            <Route path="/meeting-summary" element={<MeetingSummary />} />
+            <Route path="/meeting-summary/:meetingId" element={<MeetingSummary />} />
+            <Route path="/consultation-summary" element={<GPSoapUI />} />
+            <Route path="/consultation/summary" element={<GPSoapUI />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<SystemAdmin />} />
+            <Route path="/practice-admin" element={<PracticeAdmin />} />
+            <Route path="/complaints" element={<ComplaintsSystem />} />
+            <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
+            <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
+            <Route path="/shared-drive" element={
+              <ProtectedRoute requiredModule="shared_drive_access">
+                <SharedDrive />
+              </ProtectedRoute>
+            } />
+            
+            
+            <Route path="/ai-4-pm" element={<AI4PMService />} />
+            <Route path="/enhanced-access" element={<EnhancedAccess />} />
+            <Route path="/cqc-compliance" element={
+              <ProtectedRoute requiredModule="cqc_compliance">
+                <CQCCompliance />
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
+            <Route path="/security-compliance" element={<SecurityCompliance />} />
+            <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
+            <Route path="/loading-animation-demo" element={<LoadingAnimationDemo />} />
+            <Route path="/api-testing" element={<APITesting />} />
+            <Route path="/image-create" element={<ImageCreate />} />
+            <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
+            <Route path="/deepgram-test" element={<DeepgramTest />} />
+            <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />
+            <Route path="/browser-recorder" element={<BrowserRecorder />} />
+            <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
+            <Route path="/test-transcripts" element={<TestTranscripts />} />
+            
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </TooltipProvider>
+    </SecurityWrapper>
+  </HelmetProvider>
 );
 
 export default App;

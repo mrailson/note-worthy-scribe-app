@@ -3027,8 +3027,9 @@ export const MeetingRecorder = ({
     
     setLoadingHistory(true);
     try {
+      // Query meetings directly - RLS policies ensure proper access control
       const { data: meetingsData, error } = await supabase
-        .from('accessible_meetings')
+        .from('meetings')
         .select(`
           id,
           title,
@@ -3045,12 +3046,6 @@ export const MeetingRecorder = ({
           left_audio_url,
           right_audio_url,
           recording_created_at,
-          access_type,
-          access_level,
-          shared_by,
-          shared_at,
-          share_message,
-          share_id,
           meeting_overviews (
             overview
           )
@@ -3105,7 +3100,14 @@ export const MeetingRecorder = ({
             overview: meeting.meeting_overviews?.overview || null,
             word_count: wordCount,
             document_count: documentsData.data?.length || 0,
-            documents: documentsData.data || []
+            documents: documentsData.data || [],
+            // Add default values for compatibility
+            access_type: 'owner',
+            access_level: 'full',
+            shared_by: null,
+            shared_at: null,
+            share_message: null,
+            share_id: null
           };
           
           // Debug log to check overview data

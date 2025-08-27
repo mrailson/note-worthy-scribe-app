@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSecurityValidation } from "@/hooks/useSecurityValidation";
 import { ForgotPassword } from "./ForgotPassword";
 import { ServiceOverview } from "./ServiceOverview";
 
@@ -18,12 +19,13 @@ export const LoginForm = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
+  const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
 
   if (showForgotPassword) {
     return <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />;
   }
 
-  const validateEmail = (email: string) => {
+  const validateNHSEmail = (email: string) => {
     const validDomains = ['@nhs.net', '@nhs.uk', '@nhft.nhs.uk'];
     const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const hasValidDomain = validDomains.some(domain => email.toLowerCase().includes(domain));
@@ -39,13 +41,23 @@ export const LoginForm = () => {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    validateEmail(newEmail);
+    validateNHSEmail(newEmail);
     // Clear error when user starts typing
     if (error) setError(null);
   };
 
   const handleLogin = async () => {
-    if (!validateEmail(email) || !password) return;
+    // Rate limiting check
+    if (!checkRateLimit(`login_${email}`)) {
+      return;
+    }
+    
+    // Security validation
+    if (!validateNHSEmail(email) || !password) return;
+    
+    if (!validateInput(password, 'login_password')) {
+      return;
+    }
     
     setLoading(true);
     setError(null);
