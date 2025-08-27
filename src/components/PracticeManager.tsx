@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database, Upload, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 
 interface PracticeDetail {
@@ -158,12 +159,13 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
         if (error) throw error;
       }
 
-      fetchPractices();
+      await fetchPractices();
       resetForm();
+      toast.success(`Practice ${isEditing ? 'updated' : 'added'} successfully`);
       console.log(`Practice ${isEditing ? 'updated' : 'added'} successfully`);
     } catch (error) {
       console.error('Error saving practice:', error);
-      console.error("Failed to save practice details");
+      toast.error(`Failed to save practice details: ${(error as any)?.message || 'Unknown error'}`);
     }
   };
 
@@ -175,11 +177,12 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
         .eq('id', id);
 
       if (error) throw error;
-      fetchPractices();
+      await fetchPractices();
+      toast.success("Practice deleted successfully");
       console.log("Practice deleted successfully");
     } catch (error) {
       console.error('Error deleting practice:', error);
-      console.error("Failed to delete practice");
+      toast.error("Failed to delete practice");
     }
   };
 
