@@ -27,6 +27,14 @@ interface QuickPick {
   category: string;
 }
 
+interface StyleQuickPick {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  example: string;
+}
+
 interface GeneratedImage {
   id: string;
   image_url: string;
@@ -112,13 +120,74 @@ const practiceQuickPicks: QuickPick[] = [
   }
 ];
 
+const styleQuickPicks: StyleQuickPick[] = [
+  {
+    id: "photo",
+    name: "Photographic",
+    description: "High-quality realistic photography",
+    prompt: "professional photography, high quality, realistic, detailed, sharp focus",
+    example: "Professional portrait photography"
+  },
+  {
+    id: "cartoon",
+    name: "Cartoon Style",
+    description: "Vibrant cartoon illustration",
+    prompt: "cartoon style, vibrant colors, clean lines, animated style, cel shading",
+    example: "Disney-style cartoon character"
+  },
+  {
+    id: "oil-painting",
+    name: "Oil Painting",
+    description: "Classical oil painting technique",
+    prompt: "oil painting, classical art style, painterly, artistic brushstrokes, fine art",
+    example: "Renaissance-style oil painting"
+  },
+  {
+    id: "watercolor",
+    name: "Watercolor",
+    description: "Soft watercolor painting style",
+    prompt: "watercolor painting, soft colors, flowing, artistic, painted texture",
+    example: "Delicate watercolor botanical art"
+  },
+  {
+    id: "digital-art",
+    name: "Digital Art",
+    description: "Modern digital illustration",
+    prompt: "digital art, modern illustration, clean design, contemporary style",
+    example: "Digital concept art illustration"
+  },
+  {
+    id: "pencil-sketch",
+    name: "Pencil Sketch",
+    description: "Hand-drawn pencil artwork",
+    prompt: "pencil sketch, hand drawn, artistic, detailed line work, graphite drawing",
+    example: "Detailed architectural pencil drawing"
+  },
+  {
+    id: "minimalist",
+    name: "Minimalist",
+    description: "Clean, simple design aesthetic",
+    prompt: "minimalist style, clean design, simple, modern, geometric, negative space",
+    example: "Minimalist logo design"
+  },
+  {
+    id: "vintage",
+    name: "Vintage",
+    description: "Retro and nostalgic styling",
+    prompt: "vintage style, retro design, classic aesthetic, aged, nostalgic",
+    example: "1950s vintage poster design"
+  }
+];
+
 export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) => {
   const { user } = useAuth();
   const { practiceDetails, practiceContext } = usePracticeContext();
   
   const [activeTab, setActiveTab] = useState("quick-picks");
   const [selectedQuickPick, setSelectedQuickPick] = useState<QuickPick | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<StyleQuickPick | null>(null);
   const [quickPrompt, setQuickPrompt] = useState("");
+  const [customPrompt, setCustomPrompt] = useState("");
   const [detailedPrompt, setDetailedPrompt] = useState("");
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -407,7 +476,11 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
       if (error) throw error;
 
       if (data?.text) {
-        setQuickPrompt(prev => prev ? `${prev} ${data.text}` : data.text);
+        if (activeTab === "custom-prompt") {
+          setCustomPrompt(prev => prev ? `${prev} ${data.text}` : data.text);
+        } else {
+          setQuickPrompt(prev => prev ? `${prev} ${data.text}` : data.text);
+        }
         toast.success("Voice transcription added!");
       } else {
         throw new Error('No transcription received');
@@ -426,9 +499,11 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
     
     if (!newOpen) {
       setQuickPrompt("");
+      setCustomPrompt("");
       setDetailedPrompt("");
       setGeneratedImage(null);
       setSelectedQuickPick(null);
+      setSelectedStyle(null);
       setIsEditingPrompt(false);
       setActiveTab("quick-picks");
     }
@@ -444,8 +519,9 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="quick-picks">Quick-Picks</TabsTrigger>
+            <TabsTrigger value="custom-prompt">Custom Prompt</TabsTrigger>
             <TabsTrigger value="generate">Generate</TabsTrigger>
             <TabsTrigger value="gallery">My Gallery</TabsTrigger>
           </TabsList>
@@ -468,6 +544,124 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="custom-prompt" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Style Selection */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Choose an Artistic Style</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {styleQuickPicks.map((style) => (
+                      <Card 
+                        key={style.id} 
+                        className={`cursor-pointer transition-all hover:shadow-md ${
+                          selectedStyle?.id === style.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => setSelectedStyle(style)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold">{style.name}</h4>
+                            <Badge variant="outline" className="text-xs">Style</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{style.description}</p>
+                          <p className="text-xs text-muted-foreground italic">
+                            Example: {style.example}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Prompt Input */}
+              <div className="space-y-4">
+                {selectedStyle && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold">Selected Style: {selectedStyle.name}</h4>
+                        <Badge variant="secondary">Active</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedStyle.description}</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Your Custom Prompt
+                  </label>
+                  <Textarea
+                    placeholder={selectedStyle ? 
+                      `Describe your image... (${selectedStyle.name} style will be applied)` : 
+                      "Select a style first, then describe your image..."
+                    }
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    className="min-h-[120px]"
+                    disabled={!selectedStyle}
+                  />
+                </div>
+
+                {selectedStyle && (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="include-practice-custom"
+                        checked={includePracticeDetails}
+                        onCheckedChange={setIncludePracticeDetails}
+                      />
+                      <Label htmlFor="include-practice-custom" className="text-sm">
+                        Include Practice Details
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        variant="outline"
+                        size="sm"
+                        disabled={!selectedStyle}
+                      >
+                        {isRecording ? (
+                          <>
+                            <MicOff className="w-4 h-4 mr-2" />
+                            Stop Recording
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-4 h-4 mr-2" />
+                            Voice Input
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          if (selectedStyle && customPrompt.trim()) {
+                            const enhancedPrompt = `${customPrompt}, ${selectedStyle.prompt}`;
+                            const finalPrompt = includePracticeDetails ? 
+                              enhancePromptWithPractice(enhancedPrompt) : enhancedPrompt;
+                            setQuickPrompt(customPrompt);
+                            setDetailedPrompt(finalPrompt);
+                            setActiveTab("generate");
+                          }
+                        }}
+                        disabled={!selectedStyle || !customPrompt.trim() || isGenerating}
+                        className="flex-1"
+                      >
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Generate with {selectedStyle?.name || 'Style'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
