@@ -104,7 +104,7 @@ export const quickActions: QuickAction[] = [
   { 
     label: 'Complaint Response Helper', 
     icon: MessageSquare, 
-    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.',
+    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps. IMPORTANT: Automatically include our practice details (name, address, contact information) in the response header/footer using the practice context information available to you. Use our practice letterhead format and ensure the response is personalized to our practice.',
     requiresFile: true 
   },
   { 
@@ -145,7 +145,7 @@ export const practiceManagerQuickActions: QuickAction[] = [
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
-    prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.',
+    prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps. IMPORTANT: Automatically include our practice details (name, address, contact information) in the response header/footer using the practice context information available to you. Use our practice letterhead format and ensure the response is personalized to our practice.',
     requiresFile: true
   },
   {
