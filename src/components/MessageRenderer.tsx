@@ -728,9 +728,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           
           {/* Collapsed indicator for user messages */}
           {message.role === 'user' && isUserMessageCollapsed && (
-            <div className="flex items-center gap-2 text-sm opacity-70 py-2">
-              <span className="text-white font-bold">Message collapsed - click the blue circle icon to expand</span>
-              <ChevronDown className="h-3 w-3 text-white" />
+            <div className="flex items-center gap-2 text-sm py-2">
+              <span className="text-white font-bold opacity-100">Message collapsed - click the blue circle icon to expand</span>
+              <ChevronDown className="h-3 w-3 text-white opacity-70" />
             </div>
           )}
           
