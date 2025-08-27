@@ -457,7 +457,7 @@ const AI4GPService = () => {
                         {/* GP Genie Service Box - Only show for GP role */}
                         {selectedRole === 'gp' && (
                           <div className="mt-4">
-                            <Card className="w-full max-w-sm mx-auto bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:border-primary/30 transition-all duration-200">
+                            <Card className="w-full bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:border-primary/30 transition-all duration-200">
                               <CardContent className="p-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center gap-2">
