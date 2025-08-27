@@ -49,7 +49,7 @@ import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AmazonTranscribeTest } from '@/components/AmazonTranscribeTest';
-import { AmazonTranscribeRealtimeTest } from '@/components/AmazonTranscribeRealtimeTest';
+import { SimpleAmazonTranscribeTest } from '@/components/SimpleAmazonTranscribeTest';
 
 interface User {
   user_id: string;
@@ -1928,7 +1928,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </Card>
 
               <AmazonTranscribeTest />
-              <AmazonTranscribeRealtimeTest />
+              <SimpleAmazonTranscribeTest />
             </div>
           </TabsContent>
 
@@ -2266,7 +2266,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </Card>
 
         <AmazonTranscribeTest />
-        <AmazonTranscribeRealtimeTest />
+        <SimpleAmazonTranscribeTest />
       </TabsContent>
 
           {/* System Monitoring Tab */}
