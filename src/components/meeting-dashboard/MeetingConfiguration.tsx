@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { Users, FileText, Upload, Wand2, MapPin, Video, UserCheck, Save, RotateCcw } from 'lucide-react';
 import { AttendeeManager } from '@/components/AttendeeManager';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface Attendee {
@@ -40,6 +42,7 @@ export const MeetingConfiguration: React.FC<MeetingConfigurationProps> = ({
   onLoadTemplate
 }) => {
   const { processFiles, isProcessing } = useFileUpload();
+  const { practiceContext } = usePracticeContext();
   const [showAttendeeManager, setShowAttendeeManager] = useState(false);
   const [agendaPreview, setAgendaPreview] = useState('');
 
@@ -95,28 +98,51 @@ export const MeetingConfiguration: React.FC<MeetingConfigurationProps> = ({
   };
 
   const generateSmartTitle = () => {
-    const { attendees, agenda, format } = config;
+    const { attendees, agenda, format: meetingFormat } = config;
     
     let title = '';
     
-    if (agenda && agenda.length > 10) {
+    // Priority 1: Date & Time + Practice Name format
+    if (practiceContext.practiceName) {
+      const now = new Date();
+      const dateTimeString = format(now, 'dd MMM yyyy, h:mm a');
+      const proposedTitle = `${dateTimeString} - ${practiceContext.practiceName}`;
+      
+      if (proposedTitle.length <= 100) {
+        title = proposedTitle;
+      } else {
+        // Truncate practice name if needed
+        const availableSpace = 100 - dateTimeString.length - 3; // 3 for " - "
+        const truncatedPractice = practiceContext.practiceName.length > availableSpace 
+          ? practiceContext.practiceName.substring(0, availableSpace - 3) + '...'
+          : practiceContext.practiceName;
+        title = `${dateTimeString} - ${truncatedPractice}`;
+      }
+    }
+    // Priority 2: Agenda-based title (existing logic)
+    else if (agenda && agenda.length > 10) {
       const lines = agenda.split('\n').filter(line => line.trim().length > 5);
       const firstTopic = lines[0]?.trim();
       if (firstTopic) {
         title = firstTopic.length > 50 ? firstTopic.substring(0, 47) + '...' : firstTopic;
       }
-    } else if (attendees.length > 0) {
+    }
+    // Priority 3: Attendee-based title (existing logic)
+    else if (attendees.length > 0) {
       const organizations = [...new Set(attendees.map(a => a.organization).filter(Boolean))];
       if (organizations.length > 0) {
-        title = `${organizations[0]} ${format === 'f2f' ? 'Meeting' : 'Virtual Meeting'}`;
+        title = `${organizations[0]} ${meetingFormat === 'f2f' ? 'Meeting' : 'Virtual Meeting'}`;
       } else {
-        title = `${attendees.length} Person ${format.toUpperCase()} Meeting`;
+        title = `${attendees.length} Person ${meetingFormat.toUpperCase()} Meeting`;
       }
-    } else {
+    }
+    // Priority 4: Format-based fallback (existing logic)
+    else {
       const formatLabels = { teams: 'Teams', f2f: 'Face-to-Face', hybrid: 'Hybrid' };
-      title = `${formatLabels[format]} Meeting`;
+      title = `${formatLabels[meetingFormat]} Meeting`;
     }
 
+    // Final length check and truncation
     if (title.length > 97) {
       title = title.substring(0, 97) + '...';
     }
