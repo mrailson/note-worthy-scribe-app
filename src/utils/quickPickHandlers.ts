@@ -186,15 +186,7 @@ FORMATTING REQUIREMENTS:
 }
 
 async function createPatientEmail(ctx: QuickPickContext): Promise<string> {
-  return `Convert the above into a patient-friendly email format with:
-
-FORMATTING REQUIREMENTS:
-- Use clear email subject line suggestion
-- Professional but warm email tone
-- Clear paragraph structure with proper spacing
-- Easy-to-read format suitable for email
-- Include appropriate email signature placeholder
-- Break information into digestible email sections`;
+  return `Convert the above into a patient-friendly email format with clear subject line, professional but warm tone, and proper email structure.`;
 }
 
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
