@@ -201,65 +201,84 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
 
     // Add practice context if available
     if (practiceContext.practiceName) {
-      prompt += `\n\nCONTEXT ABOUT THE USER AND PRACTICE:
-- Practice Name: ${practiceContext.practiceName}`;
+      prompt += `\n\n=== YOUR PRACTICE INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
+Practice Name: ${practiceContext.practiceName}`;
       
       if (practiceContext.practiceAddress) {
-        prompt += `\n- Practice Address: ${practiceContext.practiceAddress}`;
+        prompt += `\nPractice Address: ${practiceContext.practiceAddress}`;
       }
       
       if (practiceContext.practicePhone) {
-        prompt += `\n- Practice Phone: ${practiceContext.practicePhone}`;
+        prompt += `\nPractice Phone: ${practiceContext.practicePhone}`;
       }
       
       if (practiceContext.practiceEmail) {
-        prompt += `\n- Practice Email: ${practiceContext.practiceEmail}`;
+        prompt += `\nPractice Email: ${practiceContext.practiceEmail}`;
       }
       
       if (practiceContext.practiceWebsite) {
-        prompt += `\n- Practice Website: ${practiceContext.practiceWebsite}`;
+        prompt += `\nPractice Website: ${practiceContext.practiceWebsite}`;
       }
       
       if (practiceContext.userFullName) {
-        prompt += `\n- User Name: ${practiceContext.userFullName}`;
+        prompt += `\nUser Name: ${practiceContext.userFullName}`;
       }
       
       if (practiceContext.userEmail) {
-        prompt += `\n- User Email: ${practiceContext.userEmail}`;
+        prompt += `\nUser Email: ${practiceContext.userEmail}`;
       }
       
       if (practiceContext.userRole) {
-        prompt += `\n- User Role: ${practiceContext.userRole}`;
+        prompt += `\nUser Role: ${practiceContext.userRole}`;
       }
       
       if (practiceContext.userRoles && practiceContext.userRoles.length > 1) {
-        prompt += `\n- All User Roles: ${practiceContext.userRoles.join(', ')}`;
+        prompt += `\nAll User Roles: ${practiceContext.userRoles.join(', ')}`;
       }
       
       if (practiceContext.practiceManagerName) {
-        prompt += `\n- Practice Manager: ${practiceContext.practiceManagerName}`;
+        prompt += `\nPractice Manager: ${practiceContext.practiceManagerName}`;
       }
       
       if (practiceContext.pcnName) {
-        prompt += `\n- Primary Care Network (PCN): ${practiceContext.pcnName}`;
+        prompt += `\nPrimary Care Network (PCN): ${practiceContext.pcnName}`;
       }
       
       if (practiceContext.neighbourhoodName) {
-        prompt += `\n- Neighbourhood: ${practiceContext.neighbourhoodName}`;
+        prompt += `\nNeighbourhood: ${practiceContext.neighbourhoodName}`;
       }
       
       if (practiceContext.otherPracticesInPCN?.length > 0) {
-        prompt += `\n- Other practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
+        prompt += `\nOther practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
       }
       
       if (practiceContext.emailSignature) {
-        prompt += `\n- Email Signature Available: Yes (can be used in email drafts when appropriate)`;
+        prompt += `\nEmail Signature Available: Yes (can be used in email drafts when appropriate)`;
       }
       
       if (practiceContext.letterSignature) {
-        prompt += `\n- Letter Signature Available: Yes (can be used in formal letters when appropriate)`;
+        prompt += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
       }
       
+      prompt += `\n=== END PRACTICE INFORMATION ===
+
+CRITICAL: When creating any documents, letters, or responses (especially complaint responses), you MUST use the actual practice information listed above. NEVER use placeholder text like "[Your Practice Address]" or "[Phone Number]". Always use the real practice name, address, phone, and email provided above.
+
+EXAMPLES OF CORRECT USAGE:
+- Use "${practiceContext.practiceName}" not "[Practice Name]"`;
+      
+      if (practiceContext.practiceAddress) {
+        prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your Practice Address]"`;
+      }
+      
+      if (practiceContext.practicePhone) {
+        prompt += `\n- Use "${practiceContext.practicePhone}" not "[Phone Number]"`;
+      }
+      
+      if (practiceContext.practiceEmail) {
+        prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
+      }
+
       prompt += `\n\nWhen relevant to queries, you can reference this practice and user information to provide more personalized and contextual responses. For example:
 - Use the practice name and address when creating letters or referrals
 - Reference the user's role when providing role-specific guidance
