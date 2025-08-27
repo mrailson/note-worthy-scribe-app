@@ -115,7 +115,7 @@ export const MeetingRecorder = ({
   
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
-  const [tickerEnabled, setTickerEnabled] = useState(true);
+  const [tickerEnabled, setTickerEnabled] = useState(false);
   
   // Transcript snippet state
   const [transcriptSnippet, setTranscriptSnippet] = useState<string>("");
