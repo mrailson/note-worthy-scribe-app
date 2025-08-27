@@ -153,7 +153,7 @@ export const practiceManagerQuickActions: QuickAction[] = [
     icon: NotebookPen,
     prompt: pmSafetyPreamble + '\n\nSummarise meeting notes into key decisions, actions, and follow-up items with responsible parties and deadlines.',
     requiresFile: true,
-    action: 'open-meeting-notes'
+    action: 'open-meeting-recorder'
   },
   {
     label: 'ARRS Claim Checker',

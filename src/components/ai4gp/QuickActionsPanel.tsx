@@ -174,9 +174,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 // Navigate to test transcripts page with appropriate tab
                 const tab = action.action.replace('open-test-transcripts-', '');
                 window.open(`/test-transcripts#${tab}`, '_blank');
-              } else if (action.action === 'open-meeting-notes') {
-                // Navigate to Meeting Notes page
-                window.location.href = '/nhs-meeting-notes';
+              } else if (action.action === 'open-meeting-recorder') {
+                // Navigate to Meeting Recorder page (Index)
+                window.location.href = '/';
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -222,9 +222,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');
                             window.open(`/test-transcripts#${tab}`, '_blank');
-                           } else if (subItem.action === 'open-meeting-notes') {
-                             // Navigate to Meeting Notes page
-                             window.location.href = '/nhs-meeting-notes';
+                           } else if (subItem.action === 'open-meeting-recorder') {
+                             // Navigate to Meeting Recorder page (Index)
+                             window.location.href = '/';
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
