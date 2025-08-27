@@ -16,23 +16,26 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Convert markdown to HTML
   let html = content
+    // Preprocess: Move inline headers to new lines
+    .replace(/([^#])(#{1,6}\s+)/g, '$1\n$2')
+    
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
-    // Headers - Unified processing for all header levels (H1-H6)
-    .replace(/^#{1,6}\s+(.*?)(?:\r?\n|$)/gm, (match, p1) => {
-      const level = match.match(/^#+/)?.[0].length || 1;
+    // Headers - Process headers at start of lines
+    .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
+      const level = hashes.length;
       const textColor = isUserMessage ? 'text-white' : 'text-primary';
       const classMap = {
         1: `text-2xl font-bold ${textColor} mb-4 mt-6`,
-        2: `text-xl font-semibold ${textColor} mb-4 mt-5`,
+        2: `text-xl font-semibold ${textColor} mb-4 mt-5`,  
         3: `text-lg font-semibold ${textColor} mb-3 mt-4`,
         4: `text-base font-semibold ${textColor} mb-2 mt-3`,
         5: `text-sm font-semibold ${textColor} mb-2 mt-2`,
         6: `text-xs font-semibold ${textColor} mb-1 mt-1`
       };
-      console.log(`🔍 FOUND H${level}:`, match.trim(), '→', p1.trim());
-      return `<h${level} class="${classMap[level]}">${p1.trim()}</h${level}>`;
+      console.log(`🔍 FOUND H${level}:`, match.trim(), '→', content.trim());
+      return `<h${level} class="${classMap[level]}">${content.trim()}</h${level}>`;
     })
     
     // Caution/Warning sections
@@ -72,6 +75,8 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/<p[^>]*><\/p>/g, '')
     .replace(/<p[^>]*>(<h[1-6][^>]*>.*?<\/h[1-6]>)<\/p>/g, '$1')
     .replace(/<p[^>]*>(<div[^>]*>.*?<\/div>)<\/p>/g, '$1')
+    .replace(/(<\/p>){2,}/g, '</p>')
+    .replace(/(<p[^>]*>){2,}/g, '<p class="mb-3 text-inherit leading-relaxed">')
     .replace(/<p[^>]*>(<ul[^>]*>.*?<\/ul>)<\/p>/g, '$1')
     
     // Close SOAP sections
