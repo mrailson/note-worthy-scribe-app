@@ -1450,8 +1450,8 @@ serve(async (req) => {
   let verificationLevel = 'standard';
 
   try {
-    console.log('🚀 AI-4-PM-Chat function started');
-    console.log('📝 Request method:', req.method);
+  console.log('🚀 AI-4-PM-Chat function started - v2');
+  console.log('📝 Request method:', req.method);
     console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
     
     const requestBody = await req.json();
