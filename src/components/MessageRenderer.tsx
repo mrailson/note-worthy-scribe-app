@@ -953,8 +953,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </Button>
                     )}
 
-                    {/* Fix Format button - only show for poorly formatted text */}
-                    {!isModal && isPoorlyFormatted && onQuickResponse && (
+                    {/* Fix Format button - show on all assistant messages */}
+                    {!isModal && onQuickResponse && (
                       <Button
                         variant="ghost"
                         size="sm"
