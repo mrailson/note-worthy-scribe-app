@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2 } from 'lucide-react';
+import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Mic, MicOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -43,6 +43,11 @@ interface SettingsModalProps {
   onReadingFontChange: (enabled: boolean) => void;
   autoCollapseUserPrompts: boolean;
   onAutoCollapseUserPromptsChange: (enabled: boolean) => void;
+  // Voice Assistant Settings
+  gpGenieVoiceEnabled: boolean;
+  onGpGenieVoiceEnabledChange: (enabled: boolean) => void;
+  pmGenieVoiceEnabled: boolean;
+  onPmGenieVoiceEnabledChange: (enabled: boolean) => void;
 }
 
 interface ApiTestResult {
@@ -136,7 +141,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   readingFont,
   onReadingFontChange,
   autoCollapseUserPrompts,
-  onAutoCollapseUserPromptsChange
+  onAutoCollapseUserPromptsChange,
+  gpGenieVoiceEnabled,
+  onGpGenieVoiceEnabledChange,
+  pmGenieVoiceEnabled,
+  onPmGenieVoiceEnabledChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
   const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
@@ -489,6 +498,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {readingFont && ' Reading font is active.'}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Voice Assistant Settings */}
+          <Card className="border-purple-200 bg-gradient-to-r from-background to-purple-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Mic className="h-4 w-4 text-purple-600" />
+                Voice Assistant Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="gp-genie-voice" className="text-sm font-medium">
+                    GP Genie Voice Assistant
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable voice interactions with GP Genie for clinical consultations
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {gpGenieVoiceEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <Switch
+                    id="gp-genie-voice"
+                    checked={gpGenieVoiceEnabled}
+                    onCheckedChange={onGpGenieVoiceEnabledChange}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="pm-genie-voice" className="text-sm font-medium">
+                    PM Genie Voice Assistant
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable voice interactions with PM Genie for practice management
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {pmGenieVoiceEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <Switch
+                    id="pm-genie-voice"
+                    checked={pmGenieVoiceEnabled}
+                    onCheckedChange={onPmGenieVoiceEnabledChange}
+                  />
+                </div>
+              </div>
+              
+              {(!gpGenieVoiceEnabled || !pmGenieVoiceEnabled) && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="text-sm font-medium text-purple-800 flex items-center gap-2">
+                    <MicOff className="h-3 w-3" />
+                    Voice Assistant Status
+                  </div>
+                  <div className="text-xs text-purple-700 mt-1">
+                    {!gpGenieVoiceEnabled && !pmGenieVoiceEnabled 
+                      ? 'Both voice assistants are disabled' 
+                      : !gpGenieVoiceEnabled 
+                        ? 'GP Genie voice assistant is disabled'
+                        : 'PM Genie voice assistant is disabled'
+                    }
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

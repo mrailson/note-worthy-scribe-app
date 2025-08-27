@@ -115,7 +115,12 @@ const AI4GPService = () => {
     readingFont,
     setReadingFont,
     autoCollapseUserPrompts,
-    setAutoCollapseUserPrompts
+    setAutoCollapseUserPrompts,
+    // Voice Assistant Settings
+    gpGenieVoiceEnabled,
+    setGpGenieVoiceEnabled,
+    pmGenieVoiceEnabled,
+    setPmGenieVoiceEnabled
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -456,7 +461,7 @@ const AI4GPService = () => {
                         )}
                         
                         {/* GP Genie Service Box - Only show for GP role */}
-                        {selectedRole === 'gp' && (
+                        {selectedRole === 'gp' && gpGenieVoiceEnabled && (
                           <div className="mt-4">
                             <Card className="w-full bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:border-primary/30 transition-all duration-200">
                               <CardContent className="p-4">
@@ -493,6 +498,13 @@ const AI4GPService = () => {
                                 
                                 <Button 
                                   onClick={() => {
+                                    if (!gpGenieVoiceEnabled) {
+                                      toast({
+                                        description: 'GP Genie Voice Assistant is disabled in settings',
+                                        variant: 'destructive'
+                                      });
+                                      return;
+                                    }
                                     setGenieTab('gp-genie');
                                     setShowAIChat(true);
                                   }}
@@ -507,7 +519,7 @@ const AI4GPService = () => {
                         )}
                         
                         {/* PM Genie Service Box - Only show for Practice Manager role */}
-                        {selectedRole === 'practice-manager' && (
+                        {selectedRole === 'practice-manager' && pmGenieVoiceEnabled && (
                           <div className="mt-4">
                             <Card className="w-full bg-gradient-to-br from-purple-500/5 to-purple-600/10 border-purple-500/20 hover:border-purple-600/30 transition-all duration-200">
                               <CardContent className="p-4">
@@ -544,6 +556,13 @@ const AI4GPService = () => {
                                 
                                 <Button 
                                   onClick={() => {
+                                    if (!pmGenieVoiceEnabled) {
+                                      toast({
+                                        description: 'PM Genie Voice Assistant is disabled in settings',
+                                        variant: 'destructive'
+                                      });
+                                      return;
+                                    }
                                     setGenieTab('pm-genie');
                                     setShowAIChat(true);
                                   }}
@@ -700,6 +719,10 @@ const AI4GPService = () => {
           onReadingFontChange={setReadingFont}
           autoCollapseUserPrompts={autoCollapseUserPrompts}
           onAutoCollapseUserPromptsChange={setAutoCollapseUserPrompts}
+          gpGenieVoiceEnabled={gpGenieVoiceEnabled}
+          onGpGenieVoiceEnabledChange={setGpGenieVoiceEnabled}
+          pmGenieVoiceEnabled={pmGenieVoiceEnabled}
+          onPmGenieVoiceEnabledChange={setPmGenieVoiceEnabled}
         />
 
       {/* Quick Image Modal */}
