@@ -15,6 +15,6 @@ export const DEFAULT_SETTINGS = {
   formatForSystmOne: false,
   autoGuidance: true,
   autoSpeak: true,
-  tickerEnabled: true,
+  tickerEnabled: false,
   showTranscriptTimestamps: true
 };

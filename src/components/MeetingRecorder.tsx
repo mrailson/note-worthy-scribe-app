@@ -116,6 +116,19 @@ export const MeetingRecorder = ({
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(false);
+
+  // Force reset live transcript to OFF when recording starts
+  useEffect(() => {
+    if (isRecording && tickerEnabled) {
+      console.log('🔄 Recording started - forcing live transcript OFF');
+      setTickerEnabled(false);
+    }
+  }, [isRecording]);
+
+  // Debug logging for tickerEnabled changes
+  useEffect(() => {
+    console.log('🎯 tickerEnabled changed to:', tickerEnabled);
+  }, [tickerEnabled]);
   
   // Transcript snippet state
   const [transcriptSnippet, setTranscriptSnippet] = useState<string>("");
