@@ -1464,19 +1464,13 @@ serve(async (req) => {
     const files = requestData.files;
     verificationLevel = requestData.verificationLevel || 'standard';
 
-    // Check API key availability using the same variable names as ai-api-test
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-    const GROK_API_KEY = Deno.env.get('GROK_API_KEY'); 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
-    
+    // Check API key availability - use consistent variable names
     console.log('API Keys status:', {
-      openai: OPENAI_API_KEY ? 'Set' : 'Missing',
-      anthropic: ANTHROPIC_API_KEY ? 'Set' : 'Missing',
-      grok: GROK_API_KEY ? 'Set' : 'Missing',
-      gemini: GEMINI_API_KEY ? 'Set' : 'Missing',
-      deepseek: DEEPSEEK_API_KEY ? 'Set' : 'Missing'
+      openai: openaiApiKey ? 'Set' : 'Missing',
+      anthropic: anthropicApiKey ? 'Set' : 'Missing',
+      grok: grokApiKey ? 'Set' : 'Missing',
+      gemini: geminiApiKey ? 'Set' : 'Missing',
+      deepseek: deepseekApiKey ? 'Set' : 'Missing'
     });
 
     console.log(`Processing request with model: ${model || 'undefined'}`);
