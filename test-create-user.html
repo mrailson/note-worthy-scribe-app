@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create User Test</title>
+</head>
+<body>
+    <h1>Create User Test</h1>
+    <button onclick="createUser()">Create User</button>
+    <div id="result"></div>
+
+    <script>
+        async function createUser() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Creating user...';
+            
+            try {
+                console.log('Calling create-user-admin function...');
+                const response = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/create-user-admin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+                    },
+                    body: JSON.stringify({
+                        email: 'egplearning@gmail.com',
+                        password: 'SurgeryConnect1',
+                        fullName: 'EGP Learning User',
+                        role: 'system_admin',
+                        moduleAccess: {
+                            ai4gp_access: true,
+                            meeting_recorder_access: true,
+                            ai_meeting_notes_access: true,
+                            practice_manager_access: true
+                        }
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response:', result);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div style="color: green;">✅ User created successfully!</div><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                    
+                    // Now assign practice manager role
+                    await assignPracticeManager(result.user_id);
+                } else {
+                    resultDiv.innerHTML = '<div style="color: red;">❌ Error creating user:</div><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = '<div style="color: red;">❌ Network Error:</div><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        async function assignPracticeManager(userId) {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Assigning practice manager role...');
+                const response = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/create-user-practice-manager', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+                    },
+                    body: JSON.stringify({
+                        email: 'egplearning@gmail.com',
+                        fullName: 'EGP Learning User',
+                        practiceRole: 'practice_manager',
+                        moduleAccess: {
+                            ai4gp_access: true,
+                            meeting_recorder_access: true,
+                            ai_meeting_notes_access: true,
+                            practice_manager_access: true
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Practice manager assignment:', result);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML += '<div style="color: green;">✅ Practice manager role assigned successfully!</div>';
+                } else {
+                    resultDiv.innerHTML += '<div style="color: orange;">⚠️ User created but practice role assignment had issues:</div><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                console.error('Error assigning practice manager:', error);
+                resultDiv.innerHTML += '<div style="color: orange;">⚠️ User created but practice role assignment failed:</div><pre>' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>
