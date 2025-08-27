@@ -501,6 +501,54 @@ const AI4GPService = () => {
                             </Card>
                           </div>
                         )}
+                        
+                        {/* PM Genie Service Box - Only show for Practice Manager role */}
+                        {selectedRole === 'practice-manager' && (
+                          <div className="mt-4">
+                            <Card className="w-full bg-gradient-to-br from-green-500/5 to-green-600/10 border-green-500/20 hover:border-green-600/30 transition-all duration-200">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <Building2 className="h-5 w-5 text-green-600" />
+                                    <h4 className="font-semibold text-sm">PM Genie Voice Assistant</h4>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <span className="inline-flex items-center rounded-full bg-green-600/10 px-2 py-1 text-xs font-medium text-green-600">
+                                      Practice Management AI
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                                  Speak with PM Genie for operational, HR, and practice management guidance in Northamptonshire.
+                                </p>
+                                
+                                <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Patient Complaints
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Staff Management
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>ARRS & QOF
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>CQC Inspections
+                                  </div>
+                                </div>
+                                
+                                <Button 
+                                  onClick={() => setShowAIChat(true)}
+                                  size="sm"
+                                  className="w-full flex items-center gap-2 text-xs py-2 bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  Start the Conversation
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
