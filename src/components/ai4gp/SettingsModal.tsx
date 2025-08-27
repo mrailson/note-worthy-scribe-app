@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen } from 'lucide-react';
+import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -41,6 +41,8 @@ interface SettingsModalProps {
   onHighContrastChange: (enabled: boolean) => void;
   readingFont: boolean;
   onReadingFontChange: (enabled: boolean) => void;
+  autoCollapseUserPrompts: boolean;
+  onAutoCollapseUserPromptsChange: (enabled: boolean) => void;
 }
 
 interface ApiTestResult {
@@ -132,7 +134,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   highContrast,
   onHighContrastChange,
   readingFont,
-  onReadingFontChange
+  onReadingFontChange,
+  autoCollapseUserPrompts,
+  onAutoCollapseUserPromptsChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
   const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
@@ -451,6 +455,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     id="reading-font"
                     checked={readingFont}
                     onCheckedChange={onReadingFontChange}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="auto-collapse-prompts" className="text-sm font-medium flex items-center gap-2">
+                      <Minimize2 className="h-3 w-3" />
+                      Auto-collapse User Prompts
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Automatically collapse your messages to keep interface clean
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-collapse-prompts"
+                    checked={autoCollapseUserPrompts}
+                    onCheckedChange={onAutoCollapseUserPromptsChange}
                   />
                 </div>
               </div>

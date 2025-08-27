@@ -16,6 +16,7 @@ interface MessagesListProps {
   showAIService?: boolean;
   onQuickResponse?: (response: string) => void;
   onSetDrugName?: (drugName: string) => void;
+  autoCollapseUserPrompts?: boolean;
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
@@ -29,7 +30,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   showRenderTimes = false,
   showAIService = false,
   onQuickResponse,
-  onSetDrugName
+  onSetDrugName,
+  autoCollapseUserPrompts = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +65,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
               showAIService={showAIService}
               onQuickResponse={onQuickResponse}
               onSetDrugName={onSetDrugName}
+              autoCollapseUserPrompts={autoCollapseUserPrompts}
             />
         ))}
         

@@ -62,6 +62,7 @@ interface MessageRendererProps {
   showAIService?: boolean; // New prop to show AI service separately
   onQuickResponse?: (response: string) => void; // New prop for quick responses
   onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
+  autoCollapseUserPrompts?: boolean; // New prop to auto-collapse user prompts
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -75,7 +76,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   showRenderTimes = false,
   showAIService = false,
   onQuickResponse,
-  onSetDrugName
+  onSetDrugName,
+  autoCollapseUserPrompts = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -86,8 +88,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [policyHits, setPolicyHits] = useState<any[]>([]);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
   const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
-    // Auto-collapse if it's a quick pick message
-    message.role === 'user' && message.isQuickPick === true
+    // Auto-collapse based on global setting OR if it's a quick pick message  
+    message.role === 'user' && (autoCollapseUserPrompts || message.isQuickPick === true)
   );
   const { user } = useAuth();
   // Toggle user message collapse

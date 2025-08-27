@@ -110,7 +110,9 @@ const AI4GPService = () => {
     highContrast,
     setHighContrast,
     readingFont,
-    setReadingFont
+    setReadingFont,
+    autoCollapseUserPrompts,
+    setAutoCollapseUserPrompts
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -439,7 +441,7 @@ const AI4GPService = () => {
                   ) : (
                     /* Messages Area */
                     <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    <MessagesList
+                     <MessagesList
                         messages={messages}
                         isLoading={isLoading}
                         expandedMessage={expandedMessage}
@@ -449,7 +451,12 @@ const AI4GPService = () => {
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
-                        onSetDrugName={setDrugNameFn}
+                         onSetDrugName={(drugName: string) => {
+                           if (setDrugNameFn) {
+                             setDrugNameFn(drugName);
+                           }
+                         }}
+                        autoCollapseUserPrompts={autoCollapseUserPrompts}
                         onQuickResponse={(response) => {
                           // Use the selected model from settings
                           handleQuickResponse(response, practiceContext, selectedModel);
@@ -518,6 +525,7 @@ const AI4GPService = () => {
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                   showResponseMetrics={showResponseMetrics}
+                  autoCollapseUserPrompts={autoCollapseUserPrompts}
                 />
               </div>
             )}
@@ -570,6 +578,8 @@ const AI4GPService = () => {
           onHighContrastChange={setHighContrast}
           readingFont={readingFont}
           onReadingFontChange={setReadingFont}
+          autoCollapseUserPrompts={autoCollapseUserPrompts}
+          onAutoCollapseUserPromptsChange={setAutoCollapseUserPrompts}
         />
 
       {/* Quick Image Modal */}

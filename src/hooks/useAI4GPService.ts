@@ -28,6 +28,7 @@ export const useAI4GPService = () => {
   const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('full');
   const [highContrast, setHighContrast] = useState(false);
   const [readingFont, setReadingFont] = useState(false);
+  const [autoCollapseUserPrompts, setAutoCollapseUserPrompts] = useState(false);
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
@@ -842,6 +843,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setContainerWidth(preferences.containerWidth ?? 'full');
           setHighContrast(preferences.highContrast ?? false);
           setReadingFont(preferences.readingFont ?? false);
+          setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -879,7 +881,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         interfaceDensity,
         containerWidth,
         highContrast,
-        readingFont
+        readingFont,
+        autoCollapseUserPrompts
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -913,7 +916,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, saveUserSettings]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, saveUserSettings]);
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
@@ -1199,6 +1202,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     highContrast,
     setHighContrast,
     readingFont,
-    setReadingFont
+    setReadingFont,
+    autoCollapseUserPrompts,
+    setAutoCollapseUserPrompts
   };
 };
