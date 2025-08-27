@@ -192,8 +192,37 @@ function printDocument(ctx: QuickPickContext): string {
   return `Output the above in a clean print-friendly format.`;
 }
 
-function combineWithPracticeInfo(ctx: QuickPickContext): string {
-  return `Add my practice header/footer (Blue PCN, Northamptonshire, local phone/email) to the above.`;
+async function combineWithPracticeInfo(ctx: QuickPickContext): Promise<string> {
+  try {
+    // Fetch user's practice information using a simpler query structure
+    const { data: practiceData, error } = await supabase
+      .from('user_roles')
+      .select(`
+        practice_id,
+        gp_practices (
+          name,
+          phone,
+          email
+        )
+      `)
+      .eq('user_id', ctx.userId)
+      .single();
+
+    if (error || !practiceData?.gp_practices) {
+      console.error('Error fetching practice info:', error);
+      return `Add my practice header/footer (practice information) to the above.`;
+    }
+
+    const practice = practiceData.gp_practices;
+    const practiceName = practice.name || 'Your Practice';
+    const practicePhone = practice.phone || '[Practice Phone]';
+    const practiceEmail = practice.email || '[Practice Email]';
+
+    return `Add my practice header/footer (${practiceName}, Phone: ${practicePhone}, Email: ${practiceEmail}) to the above.`;
+  } catch (error) {
+    console.error('Error in combineWithPracticeInfo:', error);
+    return `Add my practice header/footer (practice information) to the above.`;
+  }
 }
 
 function insertLocalICBLinks(ctx: QuickPickContext): string {
