@@ -1451,7 +1451,7 @@ serve(async (req) => {
 
   try {
     console.log('📝 Environment check - OpenAI key present:', !!openaiApiKey);
-    console.log('🚀 AI-4-PM-Chat function started - v3');
+    console.log('🚀 AI-4-PM-Chat function started - v4');
     console.log('📝 Request method:', req.method);
     console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
     
