@@ -44,6 +44,9 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
 
   // Function to replace practice placeholders with actual practice information
   const enhancePromptWithPracticeInfo = (prompt: string, actionLabel?: string) => {
+    console.log('🔧 QuickActions: Enhancing prompt for action:', actionLabel);
+    console.log('🏥 QuickActions: Practice context available:', practiceContext);
+    console.log('📋 QuickActions: Practice details available:', practiceDetails);
     let enhancedPrompt = prompt;
     
     if (practiceContext.practiceName) {
@@ -78,7 +81,14 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                            prompt.toLowerCase().includes('[practice') ||
                            isComplaintResponse;
     
+    console.log('🔍 QuickActions: Detection results:', { 
+      isComplaintResponse, 
+      mentionsPractice, 
+      hasPracticeName: !!practiceContext.practiceName 
+    });
+    
     if ((mentionsPractice || isComplaintResponse) && practiceContext.practiceName) {
+      console.log('✅ QuickActions: Adding practice details to prompt');
       enhancedPrompt += `\n\nYOUR PRACTICE DETAILS (use these actual details, not placeholders):
 - Practice Name: ${practiceContext.practiceName}`;
       
@@ -113,8 +123,16 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       if (isComplaintResponse) {
         enhancedPrompt += `\n\nIMPORTANT: Use the actual practice details above in your response. Do NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Replace all placeholders with the real information provided above.`;
       }
+    } else {
+      console.log('❌ QuickActions: NOT adding practice details because:', {
+        mentionsPractice,
+        isComplaintResponse,
+        hasPracticeName: !!practiceContext.practiceName
+      });
     }
 
+    console.log('📝 QuickActions: Final enhanced prompt length:', enhancedPrompt.length);
+    console.log('📝 QuickActions: Enhanced prompt preview:', enhancedPrompt.substring(0, 200) + '...');
     return enhancedPrompt;
   };
 
