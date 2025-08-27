@@ -129,7 +129,9 @@ const AI4GPService = () => {
     searchHistory,
     clearAllHistory,
     deleteSearch,
-    loadPreviousSearch
+    loadPreviousSearch,
+    toggleSearchFlag,
+    toggleSearchProtection
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
@@ -241,6 +243,8 @@ const AI4GPService = () => {
             onDeleteSearch={deleteSearch}
             onClearAllHistory={clearAllHistory}
             onClose={() => setShowSearchHistory(false)}
+            onToggleFlag={toggleSearchFlag}
+            onToggleProtection={toggleSearchProtection}
           />
           )}
 

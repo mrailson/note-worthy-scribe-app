@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Clock, Trash2, X, Search } from 'lucide-react';
+import { Clock, Trash2, X, Search, Star, Shield } from 'lucide-react';
 import { SearchHistory, Message } from '@/types/ai4gp';
 
 interface SearchHistorySidebarProps {
@@ -12,6 +13,8 @@ interface SearchHistorySidebarProps {
   onDeleteSearch: (searchId: string) => void;
   onClearAllHistory: () => void;
   onClose: () => void;
+  onToggleFlag?: (searchId: string) => void;
+  onToggleProtection?: (searchId: string) => void;
 }
 
 export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
@@ -19,9 +22,13 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
   onLoadSearch,
   onDeleteSearch,
   onClearAllHistory,
-  onClose
+  onClose,
+  onToggleFlag,
+  onToggleProtection
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
+  const [showProtectedOnly, setShowProtectedOnly] = useState(false);
 
   const cleanMarkdown = (text: string) => {
     return text
@@ -188,118 +195,282 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
     });
   };
 
-  const filteredHistory = useMemo(() => {
-    if (!searchQuery.trim()) return searchHistory;
+  // Generate rich preview content for tooltip
+  const generatePreviewContent = (search: SearchHistory) => {
+    const userMessages = search.messages.filter(m => m.role === 'user');
+    const assistantMessages = search.messages.filter(m => m.role === 'assistant');
     
-    const query = searchQuery.toLowerCase();
-    return searchHistory.filter(search => 
-      search.title.toLowerCase().includes(query) ||
-      search.brief_overview?.toLowerCase().includes(query) ||
-      search.messages.some(message => 
-        message.content.toLowerCase().includes(query)
-      )
-    );
-  }, [searchHistory, searchQuery]);
+    const firstUserMessage = userMessages.length > 0 ? cleanMarkdown(userMessages[0].content).substring(0, 120) : '';
+    const lastAssistantMessage = assistantMessages.length > 0 ? cleanMarkdown(assistantMessages[assistantMessages.length - 1].content).substring(0, 120) : '';
+    
+    const estimatedReadTime = Math.max(1, Math.ceil(search.messages.reduce((acc, m) => acc + m.content.length, 0) / 1000));
+    
+    return {
+      title: search.title,
+      overview: getSearchOverview(search),
+      firstUserMessage,
+      lastAssistantMessage,
+      messageCount: search.messages.length,
+      date: formatDateTime(search.created_at),
+      readTime: estimatedReadTime,
+      isProtected: search.is_protected,
+      isFlagged: search.is_flagged
+    };
+  };
+
+  const filteredHistory = useMemo(() => {
+    let filtered = searchHistory;
+    
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(search => 
+        search.title.toLowerCase().includes(query) ||
+        search.brief_overview?.toLowerCase().includes(query) ||
+        search.messages.some(message => 
+          message.content.toLowerCase().includes(query)
+        )
+      );
+    }
+    
+    // Apply flag/protection filters
+    if (showFlaggedOnly) {
+      filtered = filtered.filter(search => search.is_flagged);
+    }
+    
+    if (showProtectedOnly) {
+      filtered = filtered.filter(search => search.is_protected);
+    }
+    
+    return filtered;
+  }, [searchHistory, searchQuery, showFlaggedOnly, showProtectedOnly]);
 
   return (
-    <div className="w-80 border-r bg-muted/30 flex flex-col">
-      <div className="p-4 border-b space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium flex items-center">
-            <Clock className="w-4 h-4 mr-2" />
-            Search History
-          </h3>
-          <div className="flex items-center gap-1">
-            {searchHistory.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Clear All History</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete all your search history. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onClearAllHistory}>
-                      Clear All
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-              <X className="w-3 h-3" />
-            </Button>
+    <TooltipProvider>
+      <div className="w-80 border-r bg-muted/30 flex flex-col">
+        <div className="p-4 border-b space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium flex items-center">
+              <Clock className="w-4 h-4 mr-2" />
+              Search History
+            </h3>
+            <div className="flex items-center gap-1">
+              {searchHistory.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete all non-protected search history. Protected searches will be preserved. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onClearAllHistory}>
+                        Clear All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
-        </div>
-        
-        {searchHistory.length > 0 && (
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-8 text-sm"
-            />
-          </div>
-        )}
-      </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {searchHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-4 text-center">
-              No search history yet. Start a conversation to see it here.
-            </p>
-          ) : filteredHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-4 text-center">
-              No conversations match your search.
-            </p>
-          ) : (
-            filteredHistory.map((search) => (
-              <div key={search.id} className="group relative">
+          
+          {searchHistory.length > 0 && (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-8 text-sm"
+                />
+              </div>
+              
+              {/* Filter toggles */}
+              <div className="flex gap-2 text-xs">
                 <Button
-                  variant="ghost"
+                  variant={showFlaggedOnly ? "secondary" : "ghost"}
                   size="sm"
-                  className="w-full h-auto p-3 text-left justify-start flex-col items-start space-y-1"
-                  onClick={() => onLoadSearch(search)}
-                >
-                  <div className="font-medium text-sm truncate w-full">
-                    {cleanMarkdown(search.title)}
-                  </div>
-                  <div className="text-xs text-muted-foreground line-clamp-2 w-full">
-                    {getSearchOverview(search)}
-                  </div>
-                  <div className="text-xs text-muted-foreground/80 flex items-center gap-2">
-                    <span>{formatDateTime(search.created_at)}</span>
-                    <span>•</span>
-                    <span>{search.messages.length} message{search.messages.length !== 1 ? 's' : ''}</span>
-                  </div>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteSearch(search.id);
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setShowFlaggedOnly(!showFlaggedOnly);
+                    if (!showFlaggedOnly) setShowProtectedOnly(false);
                   }}
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Star className="w-3 h-3 mr-1" />
+                  Flagged
+                </Button>
+                <Button
+                  variant={showProtectedOnly ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setShowProtectedOnly(!showProtectedOnly);
+                    if (!showProtectedOnly) setShowFlaggedOnly(false);
+                  }}
+                >
+                  <Shield className="w-3 h-3 mr-1" />
+                  Protected
                 </Button>
               </div>
-            ))
+            </>
           )}
         </div>
-      </ScrollArea>
-    </div>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-1">
+            {searchHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">
+                No search history yet. Start a conversation to see it here.
+              </p>
+            ) : filteredHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">
+                No conversations match your search.
+              </p>
+            ) : (
+              filteredHistory.map((search) => {
+                const preview = generatePreviewContent(search);
+                
+                return (
+                  <div key={search.id} className="group relative">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full h-auto p-3 text-left justify-start flex-col items-start space-y-1 relative"
+                          onClick={() => onLoadSearch(search)}
+                        >
+                          {/* Status indicators in top-right */}
+                          <div className="absolute top-2 right-2 flex items-center gap-1">
+                            {search.is_flagged && (
+                              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                            )}
+                            {search.is_protected && (
+                              <Shield className="w-3 h-3 text-blue-500 fill-blue-500" />
+                            )}
+                          </div>
+                          
+                          <div className="font-medium text-sm truncate w-full pr-8">
+                            {cleanMarkdown(search.title)}
+                          </div>
+                          <div className="text-xs text-muted-foreground line-clamp-2 w-full pr-8">
+                            {getSearchOverview(search)}
+                          </div>
+                          <div className="text-xs text-muted-foreground/80 flex items-center gap-2">
+                            <span>{formatDateTime(search.created_at)}</span>
+                            <span>•</span>
+                            <span>{search.messages.length} message{search.messages.length !== 1 ? 's' : ''}</span>
+                          </div>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-sm p-3">
+                        <div className="space-y-2">
+                          <div className="font-medium text-sm">{preview.title}</div>
+                          <div className="text-xs text-muted-foreground">{preview.overview}</div>
+                          
+                          {preview.firstUserMessage && (
+                            <div className="text-xs">
+                              <div className="font-medium text-muted-foreground">You asked:</div>
+                              <div className="text-foreground mt-1">{preview.firstUserMessage}...</div>
+                            </div>
+                          )}
+                          
+                          {preview.lastAssistantMessage && (
+                            <div className="text-xs">
+                              <div className="font-medium text-muted-foreground">AI replied:</div>
+                              <div className="text-foreground mt-1">{preview.lastAssistantMessage}...</div>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+                            <span>{preview.date}</span>
+                            <span>{preview.messageCount} messages</span>
+                            <span>~{preview.readTime}min read</span>
+                          </div>
+                          
+                          {(preview.isFlagged || preview.isProtected) && (
+                            <div className="flex items-center gap-2 pt-1">
+                              {preview.isFlagged && (
+                                <div className="flex items-center gap-1 text-xs text-yellow-600">
+                                  <Star className="w-3 h-3 fill-current" />
+                                  Flagged
+                                </div>
+                              )}
+                              {preview.isProtected && (
+                                <div className="flex items-center gap-1 text-xs text-blue-600">
+                                  <Shield className="w-3 h-3 fill-current" />
+                                  Protected
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Action buttons that appear on hover */}
+                    <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded p-1">
+                      {/* Flag toggle */}
+                      {onToggleFlag && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFlag(search.id);
+                          }}
+                        >
+                          <Star className={`w-3 h-3 ${search.is_flagged ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`} />
+                        </Button>
+                      )}
+                      
+                      {/* Protection toggle */}
+                      {onToggleProtection && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleProtection(search.id);
+                          }}
+                        >
+                          <Shield className={`w-3 h-3 ${search.is_protected ? 'text-blue-500 fill-blue-500' : 'text-muted-foreground'}`} />
+                        </Button>
+                      )}
+                      
+                      {/* Delete button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteSearch(search.id);
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive transition-colors" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </TooltipProvider>
   );
 };

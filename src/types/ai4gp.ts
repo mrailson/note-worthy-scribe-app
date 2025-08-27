@@ -55,6 +55,8 @@ export interface SearchHistory {
   messages: Message[];
   created_at: string;
   updated_at: string;
+  is_protected?: boolean;
+  is_flagged?: boolean;
 }
 
 export interface PracticeContext {

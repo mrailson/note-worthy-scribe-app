@@ -19,6 +19,8 @@ export type Database = {
           brief_overview: string | null
           created_at: string
           id: string
+          is_flagged: boolean | null
+          is_protected: boolean | null
           messages: Json
           title: string
           updated_at: string
@@ -28,6 +30,8 @@ export type Database = {
           brief_overview?: string | null
           created_at?: string
           id?: string
+          is_flagged?: boolean | null
+          is_protected?: boolean | null
           messages?: Json
           title: string
           updated_at?: string
@@ -37,6 +41,8 @@ export type Database = {
           brief_overview?: string | null
           created_at?: string
           id?: string
+          is_flagged?: boolean | null
+          is_protected?: boolean | null
           messages?: Json
           title?: string
           updated_at?: string
