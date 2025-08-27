@@ -19,8 +19,12 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Preprocess: Move inline headers to new lines
     .replace(/([^#])(#{1,6}\s+)/g, '$1\n$2')
     
-    // Fix inline sub-headings in dosing/interaction sections
-    .replace(/(-\s+)([A-Z][^:]*:)([^-]+)(-\s+)([A-Z][^:]*:)/g, '$1$2$3\n$4$5')
+    // Fix inline sub-headings in dosing/interaction sections (multi-pass approach)
+    .replace(/(-\s+)([A-Z][^:]*:)([^-]*?)(\s+-\s+[A-Z][^:]*:)/g, '$1$2$3\n$4')
+    // Second pass to catch any remaining inline patterns
+    .replace(/(-\s+)([A-Z][^:]*:)(.{20,}?)(\s+-\s+[A-Z][^:]*:)/g, '$1$2$3\n$4')
+    // Clean up any remaining multiple inline patterns
+    .replace(/^(-\s+[A-Z][^:]*:[^-]+?)(\s+-\s+)/gm, '$1\n$2')
     
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
