@@ -374,38 +374,58 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
 
     setSignatureLoading(true);
     try {
-      const signatureData = {
-        user_id: user.id,
-        email_signature: practiceDetails.email_signature,
-        letter_signature: practiceDetails.letter_signature,
-        updated_at: new Date().toISOString()
-      };
+      console.log('Saving signatures for user:', user.id);
+      console.log('Current practiceDetails.id:', practiceDetails.id);
+      console.log('Email signature length:', practiceDetails.email_signature?.length || 0);
+      console.log('Letter signature length:', practiceDetails.letter_signature?.length || 0);
 
       if (practiceDetails.id) {
         // Update existing record
-        const { error } = await supabase
+        console.log('Updating existing practice record:', practiceDetails.id);
+        const { data, error } = await supabase
           .from('practice_details')
-          .update(signatureData)
-          .eq('id', practiceDetails.id);
+          .update({
+            email_signature: practiceDetails.email_signature || '',
+            letter_signature: practiceDetails.letter_signature || '',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', practiceDetails.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
+        console.log('Update successful:', data);
       } else {
         // Insert new record with minimal required data
-        const { error } = await supabase
+        console.log('Creating new practice record for user:', user.id);
+        const newRecord = {
+          user_id: user.id,
+          practice_name: practiceDetails.practice_name || 'My Practice',
+          address: practiceDetails.address || '',
+          email: practiceDetails.email || user.email || '',
+          website: practiceDetails.website || '',
+          phone: practiceDetails.phone || '',
+          email_signature: practiceDetails.email_signature || '',
+          letter_signature: practiceDetails.letter_signature || ''
+        };
+        
+        console.log('Inserting new record:', newRecord);
+        const { data, error } = await supabase
           .from('practice_details')
-          .insert({
-            ...signatureData,
-            practice_name: practiceDetails.practice_name || 'Default Practice',
-            address: practiceDetails.address || '',
-            email: practiceDetails.email || '',
-            website: practiceDetails.website || '',
-            phone: practiceDetails.phone || ''
-          });
+          .insert(newRecord)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        console.log('Insert successful:', data);
       }
 
       // Refetch practice details to ensure signatures persist
+      console.log('Refetching practice details...');
       await fetchPracticeDetails();
       
       toast.success('Signatures saved successfully');
