@@ -1,16 +1,6 @@
 export const quickPickConfig = {
   "quickPick": [
     {
-      "id": "act-on-reply",
-      "label": "Act on reply",
-      "children": [
-        {"id": "approve-save", "label": "Approve & save"},
-        {"id": "reject-redo", "label": "Reject & redo…"},
-        {"id": "ask-alternatives", "label": "Ask for 3 alternatives"},
-        {"id": "mark-clinical-review", "label": "Mark for clinical review"}
-      ]
-    },
-    {
       "id": "quality-safety",
       "label": "Quality & safety",
       "children": [
@@ -44,18 +34,6 @@ export const quickPickConfig = {
         {"id": "patient-email", "label": "Patient Email"},
         {"id": "staff-training-pack", "label": "Staff training pack / SOP"},
         {"id": "manager-briefing", "label": "Manager/Board briefing slide"}
-      ]
-    },
-    {
-      "id": "export-share",
-      "label": "Export & share",
-      "children": [
-        {"id": "copy-clipboard", "label": "Copy to clipboard"},
-        {"id": "save-to-record", "label": "Save to record (EMIS/S1)"},
-        {"id": "export-pdf", "label": "Export PDF"},
-        {"id": "export-docx", "label": "Export Word (.docx)"},
-        {"id": "export-email", "label": "Email (HTML)"},
-        {"id": "print", "label": "Print"}
       ]
     },
     {
