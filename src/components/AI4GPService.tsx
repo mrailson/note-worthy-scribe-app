@@ -427,6 +427,55 @@ const AI4GPService = () => {
                           onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                         />
                         
+                        {/* GP Genie Service Box - Only show for GP role */}
+                        {selectedRole === 'gp' && (
+                          <div className="mt-4">
+                            <Card className="w-full max-w-sm mx-auto bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:border-primary/30 transition-all duration-200">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <GenieIcon className="h-5 w-5 text-primary" />
+                                    <h4 className="font-semibold text-sm">GP Genie Voice Assistant</h4>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                                      Clinical Voice AI
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                                  Speak naturally for clinical guidance, patient reassurance advice, and evidence-based medicine support.
+                                </p>
+                                
+                                <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Patient Reassurance
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Clinical Guidance
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Safety Netting
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    <span className="font-medium">• </span>Prescribing Support
+                                  </div>
+                                </div>
+                                
+                                <Button 
+                                  onClick={() => setShowAIChat(true)}
+                                  size="sm"
+                                  className="w-full flex items-center gap-2 text-xs py-2"
+                                >
+                                  <GenieIcon className="h-4 w-4" />
+                                  Start Voice Consultation
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+                        
                         {/* Collapsible Short Card Disclaimer - Only show for GP role */}
                         {selectedRole === 'gp' && (
                           <div className="mt-6">
