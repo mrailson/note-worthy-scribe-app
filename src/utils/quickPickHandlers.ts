@@ -3,8 +3,16 @@ import { QuickPickContext, TranslatePayload, SummarisePayload, FormatPayload } f
 import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 import { supabase } from '@/integrations/supabase/client';
 
-// Global system prompt used for all actions - simplified for cleaner output
-const GLOBAL_SYSTEM_PROMPT = `You are an NHS AI assistant. Provide clean, accurate responses using UK NHS sources only (NICE/CKS, NHS.uk, BNF). Use proper UK spelling and NHS terminology.`;
+// Enhanced system prompt with formatting requirements
+const GLOBAL_SYSTEM_PROMPT = `You are an NHS AI assistant. Provide clean, accurate responses using UK NHS sources only (NICE/CKS, NHS.uk, BNF). Use proper UK spelling and NHS terminology.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- ALWAYS preserve markdown formatting with proper line breaks
+- Use clear paragraph spacing with blank lines between sections
+- Maintain proper header structure (### for main headers, #### for sub-headers)
+- Keep lists properly formatted with bullet points or numbers
+- Ensure text is readable with appropriate spacing and structure
+- Never return responses as single continuous blocks of text`;
 
 // Post-processor for force HTML
 const FORCE_HTML_PROCESSOR = `POST-PROCESSOR (FORCE HTML)
@@ -20,6 +28,25 @@ INPUT:
 {{text}}
 
 OUTPUT: [HTML only]`;
+
+// Formatting post-processor to ensure proper structure
+function ensureProperFormatting(text: string): string {
+  if (!text) return text;
+  
+  // Add line breaks after headers if missing
+  text = text.replace(/(#{1,6}\s+[^\n]+)(?!\n\n)/g, '$1\n\n');
+  
+  // Add spacing between paragraphs if missing
+  text = text.replace(/([^\n])\n([^#\n-*+])/g, '$1\n\n$2');
+  
+  // Ensure list items have proper spacing
+  text = text.replace(/([^\n])\n([*+-])/g, '$1\n\n$2');
+  
+  // Clean up excessive spacing
+  text = text.replace(/\n{3,}/g, '\n\n');
+  
+  return text.trim();
+}
 
 // Template substitution helper
 function processTemplate(template: string, ctx: QuickPickContext, additionalVars: Record<string, string> = {}): string {
@@ -80,15 +107,34 @@ async function roundTripCheck(ctx: QuickPickContext, options: any): Promise<stri
 }
 
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
-  return `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.`;
+  return `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.
+
+FORMATTING REQUIREMENTS:
+- Use clear headers (### for main sections, #### for subsections)
+- Separate paragraphs with blank lines
+- Use bullet points for lists
+- Ensure proper spacing and readability
+- Maintain structured, well-formatted output`;
 }
 
 async function summarise(ctx: QuickPickContext, words: number): Promise<string> {
-  return `Produce a concise summary of the above in bullet points suitable for quick GP reference.`;
+  return `Produce a concise summary of the above in bullet points suitable for quick GP reference.
+
+FORMATTING REQUIREMENTS:
+- Use clear bullet points (•) or numbered lists
+- Separate main points with proper spacing
+- Use bold text for key terms (**important**)
+- Ensure each point is on a new line with proper spacing`;
 }
 
 async function rewritePlainEnglish(ctx: QuickPickContext): Promise<string> {
-  return `Rewrite the above in plain, patient-friendly English with no jargon. Keep accuracy.`;
+  return `Rewrite the above in plain, patient-friendly English with no jargon. Keep accuracy.
+
+FORMATTING REQUIREMENTS:
+- Use clear paragraphs separated by blank lines
+- Use simple headings (### for main topics)
+- Break up long text into digestible sections
+- Maintain proper spacing and structure`;
 }
 
 async function addSnomedAndBnfSummary(ctx: QuickPickContext): Promise<string> {
@@ -108,11 +154,23 @@ async function formatText(ctx: QuickPickContext): Promise<string> {
 }
 
 async function createPatientLeaflet(ctx: QuickPickContext): Promise<string> {
-  return `Convert the above into a short patient leaflet (plain English, NHS.uk tone, with headings).`;
+  return `Convert the above into a short patient leaflet (plain English, NHS.uk tone, with headings).
+
+FORMATTING REQUIREMENTS:
+- Use clear main heading (### Patient Information)
+- Organize into well-spaced sections with #### subheadings
+- Use bullet points for key information
+- Separate sections with blank lines for readability`;
 }
 
 async function addSafetyNetting(ctx: QuickPickContext): Promise<string> {
-  return `Add clear NHS safety-netting advice for patients — when to seek urgent care, follow-up advice, and self-care tips.`;
+  return `Add clear NHS safety-netting advice for patients — when to seek urgent care, follow-up advice, and self-care tips.
+
+FORMATTING REQUIREMENTS:
+- Use clear warning headings (#### When to Seek Urgent Care)
+- Separate urgent vs routine advice clearly
+- Use bullet points for action items
+- Include proper spacing between sections`;
 }
 
 async function createStaffTrainingPack(ctx: QuickPickContext): Promise<string> {
