@@ -6,7 +6,7 @@ import { Send, Paperclip, Mic, MicOff, Stethoscope, MessageSquare, X, ChevronUp 
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { SimpleBrowserMic } from './SimpleBrowserMic';
+import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const micRef = useRef<SimpleBrowserMicRef>(null);
   const { processFiles } = useFileUpload();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
@@ -80,6 +81,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
       // Clear both transcript state and input text after sending for smooth mic workflow
       setBrowserTranscript('');
       setInput('');
+      micRef.current?.clearTranscript();
     }
   };
 
@@ -88,6 +90,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
     // Clear both transcript state and input text after sending for smooth mic workflow
     setBrowserTranscript('');
     setInput('');
+    micRef.current?.clearTranscript();
     // Keep expanded after sending so user can see the response and send follow-ups
   };
 
@@ -201,6 +204,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               <div className="absolute right-1 top-1 flex gap-1">
                 <div className="flex flex-col gap-1">
                   <SimpleBrowserMic
+                    ref={micRef}
                     onTranscriptUpdate={handleBrowserTranscriptUpdate}
                     disabled={isLoading}
                     className="justify-center"

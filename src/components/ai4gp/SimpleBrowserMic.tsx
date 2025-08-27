@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,12 +11,16 @@ interface SimpleBrowserMicProps {
   className?: string;
 }
 
-export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
+export interface SimpleBrowserMicRef {
+  clearTranscript: () => void;
+}
+
+export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMicProps>(({
   onTranscriptUpdate,
   onRecordingStart,
   disabled = false,
   className = ''
-}) => {
+}, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState('idle');
   const [fullTranscript, setFullTranscript] = useState('');
@@ -113,6 +117,11 @@ export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
     onTranscriptUpdate('');
   };
 
+  // Expose clearTranscript method through ref
+  useImperativeHandle(ref, () => ({
+    clearTranscript
+  }));
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -184,4 +193,6 @@ export const SimpleBrowserMic: React.FC<SimpleBrowserMicProps> = ({
       )}
     </div>
   );
-};
+});
+
+SimpleBrowserMic.displayName = "SimpleBrowserMic";

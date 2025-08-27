@@ -6,7 +6,7 @@ import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-reac
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { SimpleBrowserMic } from './SimpleBrowserMic';
+import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
@@ -36,6 +36,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const micRef = useRef<SimpleBrowserMicRef>(null);
   const { processFiles } = useFileUpload();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
@@ -97,6 +98,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       // Clear both transcript state and input text after sending for smooth mic workflow
       setBrowserTranscript('');
       setInput('');
+      micRef.current?.clearTranscript();
     }
   };
 
@@ -144,6 +146,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             
             <div className="flex flex-col gap-1">
               <SimpleBrowserMic
+                ref={micRef}
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
@@ -160,6 +163,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             // Clear both transcript state and input text after sending for smooth mic workflow
             setBrowserTranscript('');
             setInput('');
+            micRef.current?.clearTranscript();
           }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading)}
           size="default"
