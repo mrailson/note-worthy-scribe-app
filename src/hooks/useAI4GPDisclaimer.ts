@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useAI4GPDisclaimer = () => {
   const { user } = useAuth();
   const [showDisclaimer, setShowDisclaimer] = useState(true);
-  const [disclaimerCollapsed, setDisclaimerCollapsed] = useState(false);
+  const [disclaimerCollapsed, setDisclaimerCollapsed] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,8 +28,9 @@ export const useAI4GPDisclaimer = () => {
       setDisclaimerCollapsed(data?.ai4gp_disclaimer_collapsed ?? true);
     } catch (error) {
       console.error('Error fetching disclaimer preference:', error);
-      // Default to showing disclaimer on error
+      // Default to showing disclaimer collapsed on error
       setShowDisclaimer(true);
+      setDisclaimerCollapsed(true);
     } finally {
       setLoading(false);
     }

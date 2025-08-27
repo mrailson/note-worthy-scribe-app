@@ -43,11 +43,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const visibleActions = showAllQuickActions ? currentActions : currentActions.slice(0, maxVisibleActions);
 
   // Function to replace practice placeholders with actual practice information
-  const enhancePromptWithPracticeInfo = (prompt: string) => {
-    if (!prompt.toLowerCase().includes('my practice') && !prompt.toLowerCase().includes('[practice')) {
-      return prompt;
-    }
-
+  const enhancePromptWithPracticeInfo = (prompt: string, actionLabel?: string) => {
     let enhancedPrompt = prompt;
     
     if (practiceContext.practiceName) {
@@ -75,8 +71,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
     }
 
     // Add practice context to the end of the prompt if it mentions practice OR is a complaint response
-    const isComplaintResponse = prompt.toLowerCase().includes('complaint response');
-    const mentionsPractice = prompt.toLowerCase().includes('my practice') || prompt.toLowerCase().includes('[practice');
+    const isComplaintResponse = prompt.toLowerCase().includes('complaint response') || 
+                               prompt.toLowerCase().includes('complaint helper') ||
+                               actionLabel?.toLowerCase().includes('complaint');
+    const mentionsPractice = prompt.toLowerCase().includes('my practice') || 
+                           prompt.toLowerCase().includes('[practice') ||
+                           isComplaintResponse;
     
     if ((mentionsPractice || isComplaintResponse) && practiceContext.practiceName) {
       enhancedPrompt += `\n\nYOUR PRACTICE DETAILS (use these actual details, not placeholders):
@@ -160,7 +160,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 // Show the Meeting Notes Interface instead of just inserting a prompt
                 setShowMeetingNotesInterface(true);
               } else if (!action.submenu) {
-                setInput(enhancePromptWithPracticeInfo(action.prompt));
+                setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
             };
 
@@ -208,7 +208,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             // Show the Meeting Notes Interface instead of just inserting a prompt
                             setShowMeetingNotesInterface(true);
                           } else {
-                            setInput(enhancePromptWithPracticeInfo(subItem.prompt));
+                            setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
                         }}
                         className="cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground px-3 py-2"
