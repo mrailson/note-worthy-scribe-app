@@ -18,7 +18,7 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://dphcnbricafkbtizkoal.supabase.co wss://dphcnbricafkbtizkoal.supabase.co https://api.openai.com",
+      "connect-src 'self' https://dphcnbricafkbtizkoal.supabase.co wss://dphcnbricafkbtizkoal.supabase.co https://dphcnbricafkbtizkoal.functions.supabase.co https://api.openai.com",
       "media-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
@@ -82,7 +82,7 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
   return (
     <>
       <Helmet>
-        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://dphcnbricafkbtizkoal.supabase.co wss://dphcnbricafkbtizkoal.supabase.co https://api.openai.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;" />
+        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://dphcnbricafkbtizkoal.supabase.co wss://dphcnbricafkbtizkoal.supabase.co https://dphcnbricafkbtizkoal.functions.supabase.co https://api.openai.com; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;" />
         <meta name="X-Content-Type-Options" content="nosniff" />
         <meta name="X-Frame-Options" content="DENY" />
         <meta name="X-XSS-Protection" content="1; mode=block" />
