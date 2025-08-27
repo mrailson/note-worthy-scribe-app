@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -476,10 +476,10 @@ const AI4GPService = () => {
                                 <Button 
                                   onClick={() => setShowAIChat(true)}
                                   size="sm"
-                                  className="w-full flex items-center gap-2 text-xs py-2"
+                                  className="w-full flex items-center gap-2 text-xs py-2 bg-blue-600 hover:bg-blue-700 text-white"
                                 >
-                                  <GenieIcon className="h-4 w-4" />
-                                  Start Voice Consultation
+                                  <Phone className="h-4 w-4" />
+                                  Start the Conversation
                                 </Button>
                               </CardContent>
                             </Card>
