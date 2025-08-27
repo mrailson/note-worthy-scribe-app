@@ -116,7 +116,7 @@ export const RealtimeMeetingDashboard = ({
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="mt-4 grid grid-cols-4 w-full shrink-0 border-0">
+              <TabsList className="mt-4 grid grid-cols-4 w-full shrink-0">
                 {tabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.id}
