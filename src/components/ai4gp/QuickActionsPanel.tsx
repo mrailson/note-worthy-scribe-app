@@ -74,18 +74,25 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       enhancedPrompt = enhancedPrompt.replace(/\[pcn name\]/gi, practiceContext.pcnName);
     }
 
-    // Add practice context to the end of the prompt if it mentions practice
-    if ((prompt.toLowerCase().includes('my practice') || prompt.toLowerCase().includes('[practice')) && practiceContext.practiceName) {
-      enhancedPrompt += `\n\nPRACTICE CONTEXT:\n- Practice Name: ${practiceContext.practiceName}`;
+    // Add practice context to the end of the prompt if it mentions practice OR is a complaint response
+    const isComplaintResponse = prompt.toLowerCase().includes('complaint response');
+    const mentionsPractice = prompt.toLowerCase().includes('my practice') || prompt.toLowerCase().includes('[practice');
+    
+    if ((mentionsPractice || isComplaintResponse) && practiceContext.practiceName) {
+      enhancedPrompt += `\n\nYOUR PRACTICE DETAILS (use these actual details, not placeholders):
+- Practice Name: ${practiceContext.practiceName}`;
       
-      if (practiceDetails?.address) {
-        enhancedPrompt += `\n- Address: ${practiceDetails.address}`;
+      if (practiceDetails?.address || practiceContext.practiceAddress) {
+        enhancedPrompt += `\n- Practice Address: ${practiceDetails?.address || practiceContext.practiceAddress}`;
       }
-      if (practiceDetails?.email) {
-        enhancedPrompt += `\n- Email: ${practiceDetails.email}`;
+      if (practiceDetails?.phone || practiceContext.practicePhone) {
+        enhancedPrompt += `\n- Practice Phone: ${practiceDetails?.phone || practiceContext.practicePhone}`;
       }
-      if (practiceDetails?.phone) {
-        enhancedPrompt += `\n- Phone: ${practiceDetails.phone}`;
+      if (practiceDetails?.email || practiceContext.practiceEmail) {
+        enhancedPrompt += `\n- Practice Email: ${practiceDetails?.email || practiceContext.practiceEmail}`;
+      }
+      if (practiceDetails?.website || practiceContext.practiceWebsite) {
+        enhancedPrompt += `\n- Practice Website: ${practiceDetails?.website || practiceContext.practiceWebsite}`;
       }
       if (practiceContext.pcnName) {
         enhancedPrompt += `\n- PCN: ${practiceContext.pcnName}`;
@@ -93,11 +100,18 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       if (practiceContext.practiceManagerName) {
         enhancedPrompt += `\n- Practice Manager: ${practiceContext.practiceManagerName}`;
       }
-      if (practiceDetails?.email_signature) {
+      if (practiceContext.userFullName) {
+        enhancedPrompt += `\n- User Name: ${practiceContext.userFullName}`;
+      }
+      if (practiceDetails?.email_signature || practiceContext.emailSignature) {
         enhancedPrompt += `\n- Email Signature: Available in practice settings`;
       }
-      if (practiceDetails?.letter_signature) {
+      if (practiceDetails?.letter_signature || practiceContext.letterSignature) {
         enhancedPrompt += `\n- Letter Signature: Available in practice settings`;
+      }
+      
+      if (isComplaintResponse) {
+        enhancedPrompt += `\n\nIMPORTANT: Use the actual practice details above in your response. Do NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Replace all placeholders with the real information provided above.`;
       }
     }
 
