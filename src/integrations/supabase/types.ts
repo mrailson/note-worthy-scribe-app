@@ -2311,6 +2311,81 @@ export type Database = {
         }
         Relationships: []
       }
+      live_meeting_notes: {
+        Row: {
+          created_at: string
+          current_version: number
+          id: string
+          last_updated_at: string
+          meeting_id: string
+          notes_content: string
+          processing_status: string
+          session_id: string
+          transcript_word_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_version?: number
+          id?: string
+          last_updated_at?: string
+          meeting_id: string
+          notes_content: string
+          processing_status?: string
+          session_id: string
+          transcript_word_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_version?: number
+          id?: string
+          last_updated_at?: string
+          meeting_id?: string
+          notes_content?: string
+          processing_status?: string
+          session_id?: string
+          transcript_word_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_meeting_notes_versions: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          notes_content: string
+          processing_metadata: Json | null
+          session_id: string
+          transcript_word_count: number
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          notes_content: string
+          processing_metadata?: Json | null
+          session_id: string
+          transcript_word_count?: number
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          notes_content?: string
+          processing_metadata?: Json | null
+          session_id?: string
+          transcript_word_count?: number
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       medical_term_corrections: {
         Row: {
           context_phrase: string | null
@@ -4960,6 +5035,15 @@ export type Database = {
           total_large_files: number
           total_large_files_size: number
           total_large_files_size_pretty: string
+        }[]
+      }
+      get_latest_meeting_note_version: {
+        Args: { p_meeting_id: string; p_session_id: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          notes_content: string
+          transcript_word_count: number
+          version_number: number
         }[]
       }
       get_meeting_full_transcript: {
