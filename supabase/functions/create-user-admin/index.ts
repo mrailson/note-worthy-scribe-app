@@ -20,7 +20,11 @@ interface CreateUserRequest {
     complaints_manager_access: boolean;
     complaints_admin_access: boolean;
     replywell_access: boolean;
-    ai_4_pm_access: boolean;
+    enhanced_access: boolean;
+    cqc_compliance_access: boolean;
+    shared_drive_access: boolean;
+    mic_test_service_access: boolean;
+    api_testing_service_access: boolean;
   };
 }
 
@@ -84,7 +88,11 @@ const handler = async (req: Request): Promise<Response> => {
         complaints_manager_access: userData.module_access?.complaints_manager_access ?? false,
         complaints_admin_access: userData.module_access?.complaints_admin_access ?? false,
         replywell_access: userData.module_access?.replywell_access ?? false,
-        ai_4_pm_access: userData.module_access?.ai_4_pm_access ?? false
+        enhanced_access: userData.module_access?.enhanced_access ?? false,
+        cqc_compliance_access: userData.module_access?.cqc_compliance_access ?? false,
+        shared_drive_access: userData.module_access?.shared_drive_access ?? false,
+        mic_test_service_access: userData.module_access?.mic_test_service_access ?? false,
+        api_testing_service_access: userData.module_access?.api_testing_service_access ?? false
       });
 
     if (roleError) {
