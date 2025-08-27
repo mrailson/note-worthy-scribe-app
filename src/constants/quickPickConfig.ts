@@ -57,24 +57,6 @@ export const quickPickConfig = {
       ]
     },
     {
-      "id": "translate",
-      "label": "Translate",
-      "children": [
-        {"id": "translate-polish", "label": "Polish"},
-        {"id": "translate-romanian", "label": "Romanian"},
-        {"id": "translate-arabic", "label": "Arabic"},
-        {"id": "translate-portuguese", "label": "Portuguese"},
-        {"id": "translate-spanish", "label": "Spanish"},
-        {"id": "translate-french", "label": "French"},
-        {"id": "translate-italian", "label": "Italian"},
-        {"id": "translate-bengali", "label": "Bengali/Bangla"},
-        {"id": "translate-hindi", "label": "Hindi"},
-        {"id": "translate-urdu", "label": "Urdu"},
-        {"id": "translate-back-english", "label": "Back to English"},
-        {"id": "compare-translation", "label": "Compare original & translation"}
-      ]
-    },
-    {
       "id": "practice-context",
       "label": "Practice context",
       "children": [

@@ -1,4 +1,4 @@
-import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Languages, Download, Search, FileText, Repeat, ArrowLeftRight } from 'lucide-react';
+import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Download, Search, FileText } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -80,76 +80,6 @@ export const quickActions: QuickAction[] = [
     prompt: '', 
     requiresFile: false,
     action: 'open-drug-lookup-modal'
-  },
-  {
-    label: 'Translate to',
-    icon: Languages,
-    prompt: '',
-    requiresFile: false,
-    submenu: [
-      {
-        label: 'Polish',
-        prompt: 'Translate the previous message into Polish. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-polish'
-      },
-      {
-        label: 'Romanian', 
-        prompt: 'Translate the previous message into Romanian. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-romanian'
-      },
-      {
-        label: 'Arabic',
-        prompt: 'Translate the previous message into Arabic. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-arabic'
-      },
-      {
-        label: 'Portuguese',
-        prompt: 'Translate the previous message into Portuguese. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-portuguese'
-      },
-      {
-        label: 'Spanish',
-        prompt: 'Translate the previous message into Spanish. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-spanish'
-      },
-      {
-        label: 'French',
-        prompt: 'Translate the previous message into French. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-french'
-      },
-      {
-        label: 'Italian',
-        prompt: 'Translate the previous message into Italian. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-italian'
-      },
-      {
-        label: 'Bengali/Bangla',
-        prompt: 'Translate the previous message into Bengali/Bangla. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-bengali'
-      },
-      {
-        label: 'Hindi',
-        prompt: 'Translate the previous message into Hindi. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-hindi'
-      },
-      {
-        label: 'Urdu',
-        prompt: 'Translate the previous message into Urdu. Maintain medical accuracy and use appropriate medical terminology. Present the translation clearly formatted.',
-        action: 'translate-to-urdu'
-      }
-    ]
-  },
-  {
-    label: 'Back to English',
-    icon: Repeat,
-    prompt: 'Translate the previous message back into English. Ensure medical accuracy and clarity for UK GP practice use.',
-    requiresFile: false
-  },
-  {
-    label: 'Compare Text',
-    icon: ArrowLeftRight,
-    prompt: 'Compare the original text with its translation. Highlight any differences in meaning, medical terminology, or important clinical information that may have been lost or changed in translation.',
-    requiresFile: false
   },
   { 
     label: 'Complaint Response Helper', 
