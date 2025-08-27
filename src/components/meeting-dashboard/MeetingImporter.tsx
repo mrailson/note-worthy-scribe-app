@@ -1,0 +1,278 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { AudioImport } from '@/components/gpscribe/AudioImport';
+import { useMeetingImporter } from '@/hooks/useMeetingImporter';
+
+interface MeetingImporterProps {
+  onMeetingCreated?: (meetingId: string) => void;
+  meetingConfig?: {
+    title?: string;
+    attendees: Array<{ name: string; title?: string; organization?: string }>;
+    agenda?: string;
+    format?: string;
+  };
+}
+
+export const MeetingImporter: React.FC<MeetingImporterProps> = ({ 
+  onMeetingCreated, 
+  meetingConfig 
+}) => {
+  const [importText, setImportText] = useState('');
+  const { importMeeting, isImporting, progress, currentStep } = useMeetingImporter();
+
+  const handlePasteTranscript = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast.error('No text found in clipboard');
+        return;
+      }
+      setImportText(text);
+      toast.success('Text pasted from clipboard');
+    } catch (error) {
+      console.error('Failed to read clipboard:', error);
+      toast.error('Failed to read clipboard. Please paste manually.');
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('text/') && !file.name.endsWith('.txt')) {
+      toast.error('Please upload a text file (.txt)');
+      return;
+    }
+
+    if (file.size > 1024 * 1024) {
+      toast.error('File too large. Maximum size is 1MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (text) {
+        setImportText(text);
+        toast.success(`Loaded text from ${file.name}`);
+      }
+    };
+    reader.onerror = () => toast.error('Failed to read file');
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleImportTranscript = async () => {
+    if (!importText.trim()) {
+      toast.error('No text to import');
+      return;
+    }
+
+    const meetingData = {
+      transcript: importText,
+      title: meetingConfig?.title || 'Imported Meeting',
+      attendees: meetingConfig?.attendees || [],
+      agenda: meetingConfig?.agenda || '',
+      format: meetingConfig?.format || 'imported',
+      source: 'text_import' as const
+    };
+
+    try {
+      const meetingId = await importMeeting(meetingData);
+      setImportText('');
+      toast.success('Meeting created and notes are being generated');
+      onMeetingCreated?.(meetingId);
+    } catch (error) {
+      console.error('Import failed:', error);
+      toast.error('Failed to import meeting');
+    }
+  };
+
+  const handleAudioImport = async (transcript: string) => {
+    const meetingData = {
+      transcript,
+      title: meetingConfig?.title || 'Audio Import Meeting',
+      attendees: meetingConfig?.attendees || [],
+      agenda: meetingConfig?.agenda || '',
+      format: meetingConfig?.format || 'imported',
+      source: 'audio_import' as const
+    };
+
+    try {
+      const meetingId = await importMeeting(meetingData);
+      toast.success('Audio imported and notes are being generated');
+      onMeetingCreated?.(meetingId);
+    } catch (error) {
+      console.error('Audio import failed:', error);
+      toast.error('Failed to import audio');
+    }
+  };
+
+  const wordCount = importText.trim().split(/\s+/).filter(word => word.length > 0).length;
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Upload className="h-5 w-5 text-primary" />
+          Import Meeting Content
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Create a meeting from existing content and automatically generate notes
+        </p>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {isImporting && (
+          <div className="border rounded-lg p-4 bg-accent/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="font-medium">Creating Meeting...</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+            <p className="text-sm text-muted-foreground">{currentStep}</p>
+          </div>
+        )}
+
+        <Tabs defaultValue="text" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="text" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Import Text
+            </TabsTrigger>
+            <TabsTrigger value="audio" className="flex items-center gap-2">
+              <FileAudio className="h-4 w-4" />
+              Import Audio
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="text" className="space-y-4 mt-4">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePasteTranscript}
+                disabled={isImporting}
+              >
+                <Clipboard className="h-4 w-4 mr-1" />
+                Paste from Clipboard
+              </Button>
+              
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".txt,text/plain"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={isImporting}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isImporting}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload Text File
+                </Button>
+              </div>
+
+              {importText && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setImportText('')}
+                  disabled={isImporting}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="import-text">Transcript or Meeting Content</Label>
+              <Textarea
+                id="import-text"
+                placeholder="Paste your meeting transcript, consultation notes, or other meeting content here..."
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                className="min-h-[200px] resize-vertical"
+                disabled={isImporting}
+              />
+              
+              {importText && (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{wordCount} words</span>
+                  <span>{importText.length} characters</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleImportTranscript}
+                disabled={!importText.trim() || isImporting}
+                className="px-8"
+                size="lg"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating Meeting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Create Meeting & Generate Notes
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {meetingConfig && (
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <div className="text-sm font-medium mb-1 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-info" />
+                  Meeting Configuration Will Be Applied:
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {meetingConfig.title && <div>• Title: {meetingConfig.title}</div>}
+                  {meetingConfig.attendees.length > 0 && <div>• {meetingConfig.attendees.length} attendees configured</div>}
+                  {meetingConfig.agenda && <div>• Agenda: {meetingConfig.agenda.substring(0, 50)}...</div>}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="audio" className="mt-4">
+            <AudioImport 
+              onTranscriptReady={handleAudioImport}
+              disabled={isImporting}
+            />
+            
+            {meetingConfig && (
+              <div className="border rounded-lg p-3 bg-muted/50 mt-4">
+                <div className="text-sm font-medium mb-1 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-info" />
+                  Meeting Configuration Will Be Applied:
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {meetingConfig.title && <div>• Title: {meetingConfig.title}</div>}
+                  {meetingConfig.attendees.length > 0 && <div>• {meetingConfig.attendees.length} attendees configured</div>}
+                  {meetingConfig.agenda && <div>• Agenda: {meetingConfig.agenda.substring(0, 50)}...</div>}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};

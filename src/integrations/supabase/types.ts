@@ -2905,8 +2905,11 @@ export type Database = {
           end_time: string | null
           format: string | null
           id: string
+          import_metadata: Json | null
+          import_source: string | null
           left_audio_url: string | null
           location: string | null
+          meeting_configuration: Json | null
           meeting_context: Json | null
           meeting_format: string | null
           meeting_location: string | null
@@ -2936,8 +2939,11 @@ export type Database = {
           end_time?: string | null
           format?: string | null
           id?: string
+          import_metadata?: Json | null
+          import_source?: string | null
           left_audio_url?: string | null
           location?: string | null
+          meeting_configuration?: Json | null
           meeting_context?: Json | null
           meeting_format?: string | null
           meeting_location?: string | null
@@ -2967,8 +2973,11 @@ export type Database = {
           end_time?: string | null
           format?: string | null
           id?: string
+          import_metadata?: Json | null
+          import_source?: string | null
           left_audio_url?: string | null
           location?: string | null
+          meeting_configuration?: Json | null
           meeting_context?: Json | null
           meeting_format?: string | null
           meeting_location?: string | null

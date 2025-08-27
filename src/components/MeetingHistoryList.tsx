@@ -23,7 +23,9 @@ import {
   Mic,
   Monitor,
   Share2,
-  ChevronDown
+  ChevronDown,
+  ExternalLink,
+  MapPin
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -77,7 +79,10 @@ interface Meeting {
   left_audio_url?: string | null;
   right_audio_url?: string | null;
   recording_created_at?: string | null;
-  notes_generation_status?: string; // Add this field
+  notes_generation_status?: string;
+  import_source?: string;
+  import_source_display?: string;
+  meeting_config?: any;
   // Sharing fields
   access_type?: 'owner' | 'shared';
   access_level?: 'view' | 'download';
@@ -640,11 +645,8 @@ export const MeetingHistoryList = ({
       {meetings.map((meeting) => (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
-            {/* Mobile-first layout */}
             <div className="space-y-3">
-              {/* Title and Status Row */}
               <div className="flex items-start justify-between gap-2">
-                {/* Checkbox and content */}
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                   {isSelectMode && onSelectMeeting && (
                     <Checkbox
@@ -691,35 +693,25 @@ export const MeetingHistoryList = ({
                         </>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {/* Date, Time, Duration, Word Count, Files - All on same line */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{format(new Date(meeting.start_time), 'do MMMM yyyy')}</span>
-                        <span className="mx-1">•</span>
-                        <Clock className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{format(new Date(meeting.start_time), 'HH:mm')}</span>
-                      </div>
+                    <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{format(new Date(meeting.start_time), 'do MMMM yyyy')}</span>
+                      <span>•</span>
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{format(new Date(meeting.start_time), 'HH:mm')}</span>
                       
-                      {meeting.duration_minutes && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <span className="mx-1">•</span>
-                          <span>{formatDuration(meeting.duration_minutes)}</span>
-                        </div>
+                      {meeting.import_source && (
+                        <Badge variant="outline" className="text-xs">
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          {meeting.import_source_display || meeting.import_source.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </Badge>
                       )}
-
-                      {formatWordCount(meeting.word_count) && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <FileText className="h-3 w-3 flex-shrink-0" />
-                          <span>{formatWordCount(meeting.word_count)}</span>
-                        </div>
-                      )}
-
-                      {meeting.document_count > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Paperclip className="h-3 w-3 flex-shrink-0" />
-                          <span>{meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''}</span>
-                        </div>
+                      
+                      {meeting.meeting_config && Object.keys(meeting.meeting_config).length > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          Configured
+                        </Badge>
                       )}
                     </div>
                   </div>
