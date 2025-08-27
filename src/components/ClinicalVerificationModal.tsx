@@ -45,16 +45,19 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-6xl max-h-[90vh] w-[90vw] h-[85vh] resize overflow-hidden" style={{ resize: 'both', minWidth: '800px', minHeight: '600px' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-600" />
             Clinical Verification Report
+            <span className="text-xs text-muted-foreground ml-auto">
+              Drag corners to resize
+            </span>
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-6">
+        <ScrollArea className="h-full flex-1 pr-4">
+          <div className="space-y-6 pb-4">
             {/* Confidence Score */}
             <div className="flex items-center justify-between p-4 rounded-lg border">
               <div className="flex items-center gap-3">
