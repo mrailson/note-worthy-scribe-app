@@ -110,6 +110,15 @@ export const LiveTranscript = ({
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   
+  // Live meeting notes state
+  const [liveNotesData, setLiveNotesData] = useState<{
+    id: string;
+    notes_content: string;
+    current_version: number;
+    last_updated_at: string;
+    processing_status: string;
+  } | null>(null);
+  
   // Recording and editing state management
   const [isRecording, setIsRecording] = useState(false);
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
@@ -471,6 +480,64 @@ export const LiveTranscript = ({
       supabase.removeChannel(channel);
     };
   }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
+
+  // Subscribe to live meeting notes updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const currentSessionId = sessionStorage.getItem('currentSessionId');
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    if (!currentSessionId || !currentMeetingId) return;
+
+    // Fetch existing live notes
+    const fetchLiveNotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('live_meeting_notes')
+          .select('*')
+          .eq('meeting_id', currentMeetingId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (data) {
+          setLiveNotesData(data);
+          console.log('📝 Loaded existing live meeting notes');
+        }
+      } catch (error) {
+        console.log('No existing live meeting notes found');
+      }
+    };
+
+    fetchLiveNotes();
+
+    // Subscribe to live notes updates
+    const liveNotesChannel = supabase
+      .channel('live-meeting-notes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_meeting_notes',
+          filter: `meeting_id=eq.${currentMeetingId}`
+        },
+        (payload) => {
+          console.log('📝 Live meeting notes updated:', payload);
+          if (payload.new && (payload.new as any).user_id === user.id) {
+            setLiveNotesData(payload.new as any);
+            toast({
+              title: "Automatic Notes Updated",
+              description: `Version ${(payload.new as any).current_version} generated automatically.`
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(liveNotesChannel);
+    };
+  }, [user?.id, toast]);
 
   // Filter out system messages (silence detection, etc.)
   const filterSystemMessages = (text: string): string => {
@@ -892,88 +959,186 @@ export const LiveTranscript = ({
                   </div>
                 </div>
 
-                {/* AI-Enhanced Transcript – Live sentence-by-sentence display */}
-                <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground uppercase tracking-wide">
-                      AI-Enhanced Transcript
-                    </span>
-                    <Badge variant="default" className="text-xs">Live cleaning</Badge>
-                  </div>
+                {/* Conditional display: Automatic Notes OR AI-Enhanced Transcript */}
+                {liveNotesData ? (
+                  /* Automatic Notes – Generated every 10 minutes during meeting */
+                  <div className="p-4 bg-gradient-to-br from-emerald-50/50 to-blue-50/50 rounded-lg border border-emerald-200/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm font-medium text-foreground uppercase tracking-wide">
+                        Automatic Notes
+                      </span>
+                      <Badge variant="default" className="text-xs bg-emerald-100 text-emerald-800">
+                        v{liveNotesData.current_version}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Auto-updated every 10min
+                      </Badge>
+                    </div>
 
-                  <div className="mb-2 flex items-center gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
-                      Copy
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleDownloadWord}>
-                      Download Word
-                    </Button>
-                    {cleanedTranscript && (
+                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(liveNotesData.notes_content);
+                          toast({
+                            title: "Copied",
+                            description: "Automatic notes copied to clipboard"
+                          });
+                        }}
+                      >
+                        Copy Notes
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={async () => {
                           try {
-                            const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
-                              body: { transcript: cleanedTranscript }
+                            const doc = new Document({
+                              sections: [{
+                                properties: {},
+                                children: [
+                                  new Paragraph({
+                                    text: `Automatic Meeting Notes - Version ${liveNotesData.current_version}`,
+                                    heading: HeadingLevel.HEADING_1,
+                                  }),
+                                  new Paragraph({
+                                    text: `Generated: ${new Date(liveNotesData.last_updated_at).toLocaleString()}`,
+                                    spacing: { after: 200 }
+                                  }),
+                                  ...liveNotesData.notes_content.split('\n\n').map(paragraph => 
+                                    new Paragraph({
+                                      children: [new TextRun(paragraph)],
+                                      spacing: { after: 100 }
+                                    })
+                                  )
+                                ]
+                              }]
                             });
                             
-                            if (error) throw error;
+                            const buffer = await Packer.toBuffer(doc);
+                            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                            saveAs(blob, `automatic-notes-v${liveNotesData.current_version}.docx`);
                             
-                            if (data?.cleanedTranscript) {
-                              setCleanedTranscript(data.cleanedTranscript);
-                              toast({
-                                title: "Deep Clean Complete",
-                                description: `Processed ${data.originalLength} → ${data.cleanedLength} characters`
-                              });
-                            }
+                            toast({
+                              title: "Downloaded",
+                              description: "Automatic notes saved as Word document"
+                            });
                           } catch (error) {
                             toast({
-                              title: "Deep Clean Failed",
-                              description: "Could not clean transcript. Please try again.",
+                              title: "Download Failed",
+                              description: "Could not create Word document",
                               variant: "destructive"
                             });
                           }
                         }}
                       >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Deep Clean
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Download Word
                       </Button>
-                    )}
-                  </div>
-
-                  <div
-                    className="text-sm leading-relaxed min-h-[220px] max-h-[80vh] overflow-y-auto p-3 bg-background/80 rounded-md border scroll-smooth"
-                    style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
-                    onMouseUp={handleTextSelection}
-                  >
-                    {cleanedTranscript ? (
-                      <div className="space-y-2">
-                        {cleanedTranscript
-                          .split(/(?<=[.!?])\s+/) // sentence boundaries
-                          .filter(sentence => sentence.trim().length > 0) // filter empty sentences
-                          .map((sentence, idx) => (
-                            <p key={idx} className="leading-relaxed text-foreground">
-                              {sentence.trim()}
-                            </p>
-                          ))}
+                      <div className="ml-auto text-xs text-muted-foreground">
+                        Last updated: {new Date(liveNotesData.last_updated_at).toLocaleTimeString()}
                       </div>
-                    ) : (
-                      <div className="text-muted-foreground italic">
-                        <div>AI-enhanced transcript will appear here sentence by sentence…</div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          Real-time cleaning and NHS term standardisation active.
-                          Sentences appear as they're finalised.
+                    </div>
+
+                    <div
+                      className="text-sm leading-relaxed min-h-[220px] max-h-[80vh] overflow-y-auto p-3 bg-background/80 rounded-md border scroll-smooth"
+                      style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                    >
+                      <div className="whitespace-pre-wrap text-foreground">
+                        {liveNotesData.notes_content}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      AI-generated meeting notes updated automatically every 10 minutes during recording sessions.
+                    </div>
+                  </div>
+                ) : (
+                  /* AI-Enhanced Transcript – Live sentence-by-sentence display */
+                  <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground uppercase tracking-wide">
+                        AI-Enhanced Transcript
+                      </span>
+                      <Badge variant="default" className="text-xs">Live cleaning</Badge>
+                    </div>
+
+                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                        Copy
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                        Download Word
+                      </Button>
+                      {cleanedTranscript && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={async () => {
+                            try {
+                              const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
+                                body: { transcript: cleanedTranscript }
+                              });
+                              
+                              if (error) throw error;
+                              
+                              if (data?.cleanedTranscript) {
+                                setCleanedTranscript(data.cleanedTranscript);
+                                toast({
+                                  title: "Deep Clean Complete",
+                                  description: `Processed ${data.originalLength} → ${data.cleanedLength} characters`
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Deep Clean Failed",
+                                description: "Could not clean transcript. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Deep Clean
+                        </Button>
+                      )}
+                    </div>
+
+                    <div
+                      className="text-sm leading-relaxed min-h-[220px] max-h-[80vh] overflow-y-auto p-3 bg-background/80 rounded-md border scroll-smooth"
+                      style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                      onMouseUp={handleTextSelection}
+                    >
+                      {cleanedTranscript ? (
+                        <div className="space-y-2">
+                          {cleanedTranscript
+                            .split(/(?<=[.!?])\s+/) // sentence boundaries
+                            .filter(sentence => sentence.trim().length > 0) // filter empty sentences
+                            .map((sentence, idx) => (
+                              <p key={idx} className="leading-relaxed text-foreground">
+                                {sentence.trim()}
+                              </p>
+                            ))}
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="text-muted-foreground italic">
+                          <div>AI-enhanced transcript will appear here sentence by sentence…</div>
+                          <div className="text-xs text-muted-foreground mt-2">
+                            Real-time cleaning and NHS term standardisation active.
+                            Sentences appear as they're finalised.
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Live-cleaned transcript with NHS term corrections. Updated continuously during meetings.
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Live-cleaned transcript with NHS term corrections. Updated continuously during meetings.
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Find & Replace Panel for Clean Transcript */}
                 {cleanedTranscript && (
