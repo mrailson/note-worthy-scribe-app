@@ -1510,7 +1510,26 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                             <TableCell className="font-medium">{user.full_name}</TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell>
-                              {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                              {user.last_login ? (
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm">
+                                    {new Date(user.last_login).toLocaleDateString('en-GB', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(user.last_login).toLocaleTimeString('en-GB', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      second: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">Never</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
