@@ -2948,7 +2948,7 @@ export const MeetingRecorder = ({
       
       // Step 1: Saving
       setSavingSteps({ saving: true, securing: false, complete: false });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
@@ -3002,7 +3002,7 @@ export const MeetingRecorder = ({
 
       // Step 2: Securing data
       setSavingSteps({ saving: true, securing: true, complete: false });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // 2. Save transcript
       if (meetingData.transcript) {
@@ -3021,7 +3021,7 @@ export const MeetingRecorder = ({
 
       // Step 3: Complete
       setSavingSteps({ saving: true, securing: true, complete: true });
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Increased from 800ms to 1500ms
+      await new Promise(resolve => setTimeout(resolve, 200)); // Phase 4 total now 500ms
 
       // Show final success modal with meeting details
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
