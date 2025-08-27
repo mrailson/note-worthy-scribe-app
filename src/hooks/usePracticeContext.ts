@@ -27,11 +27,14 @@ export const usePracticeContext = () => {
         .select('role, practice_id')
         .eq('user_id', user.id);
       
-      // First, try to get the user's own practice details directly
+      // First, try to get the user's own practice details directly (prioritize records with practice names)
       const { data: userPracticeDetails, error: userPracticeError } = await supabase
         .from('practice_details')
         .select('practice_name, pcn_code, user_id, logo_url, address, phone, email, website, email_signature, letter_signature')
         .eq('user_id', user.id)
+        .not('practice_name', 'is', null)
+        .neq('practice_name', '')
+        .order('updated_at', { ascending: false })
         .maybeSingle();
 
       console.log('User practice details query result:', { userPracticeDetails, userPracticeError });
