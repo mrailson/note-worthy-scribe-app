@@ -37,13 +37,45 @@ interface GeneratedImage {
   created_at: string;
 }
 
+// OpenAI DALL-E supported sizes validation
+const validateImageSize = (width: number, height: number): { width: number; height: number } => {
+  const supportedSizes = [
+    { width: 1024, height: 1024 },   // Square
+    { width: 1024, height: 1792 },   // Portrait
+    { width: 1792, height: 1024 }    // Landscape
+  ];
+  
+  // Check if current size is already supported
+  const isSupported = supportedSizes.some(size => 
+    size.width === width && size.height === height
+  );
+  
+  if (isSupported) {
+    return { width, height };
+  }
+  
+  // Map to nearest supported size based on aspect ratio
+  const aspectRatio = width / height;
+  
+  if (aspectRatio < 1) {
+    // Portrait - use 1024x1792
+    return { width: 1024, height: 1792 };
+  } else if (aspectRatio > 1) {
+    // Landscape - use 1792x1024  
+    return { width: 1792, height: 1024 };
+  } else {
+    // Square - use 1024x1024
+    return { width: 1024, height: 1024 };
+  }
+};
+
 const practiceQuickPicks: QuickPick[] = [
   {
     id: "dna-reminder",
     title: "DNA Reminder Poster",
     description: "Professional A4 poster about missed appointments",
     basePrompt: "Create a professional NHS-style A4 poster about missed appointments (DNA - Did Not Attend). Clean design with NHS blue accents, clear typography, includes practice contact information and rebooking instructions. Professional medical practice communication style.",
-    size: { width: 768, height: 1024 },
+    size: { width: 1024, height: 1792 },
     category: "Practice Communication"
   },
   {
@@ -59,7 +91,7 @@ const practiceQuickPicks: QuickPick[] = [
     title: "Opening Hours Notice",
     description: "Clean A4 notice board style with practice hours",
     basePrompt: "Create a clean, professional A4 notice for practice opening hours. NHS branding, clear typography, easy-to-read schedule format. Include emergency contact information and out-of-hours guidance. Notice board appropriate design.",
-    size: { width: 768, height: 1024 },
+    size: { width: 1024, height: 1792 },
     category: "Practice Information"
   },
   {
@@ -75,7 +107,7 @@ const practiceQuickPicks: QuickPick[] = [
     title: "Service Update Announcement",
     description: "Landscape banner for service changes",
     basePrompt: "Create a professional landscape banner announcing practice service updates. Clear, informative design with NHS branding, space for service details, professional communication style. Suitable for website headers or email communications.",
-    size: { width: 1536, height: 1024 },
+    size: { width: 1792, height: 1024 },
     category: "Service Communication"
   }
 ];
@@ -212,9 +244,15 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
     try {
       setGenerationProgress("Generating image...");
       
+      // Validate and get supported image size
+      let imageSize = { width: 1024, height: 1024 }; // default
+      if (selectedQuickPick) {
+        imageSize = validateImageSize(selectedQuickPick.size.width, selectedQuickPick.size.height);
+      }
+      
       const requestFormData = new FormData();
       requestFormData.append('prompt', promptToUse);
-      requestFormData.append('size', selectedQuickPick ? `${selectedQuickPick.size.width}x${selectedQuickPick.size.height}` : '1024x1024');
+      requestFormData.append('size', `${imageSize.width}x${imageSize.height}`);
       requestFormData.append('quality', 'high');
       requestFormData.append('mode', 'generation');
 
@@ -235,7 +273,18 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
       }
     } catch (error: any) {
       console.error("Error generating image:", error);
-      toast.error(error.message || "Failed to generate image");
+      
+      // Enhanced error handling for common issues
+      let errorMessage = error.message || "Failed to generate image";
+      if (errorMessage.includes("size")) {
+        errorMessage = "Invalid image size. Please try again with a different template.";
+      } else if (errorMessage.includes("content_policy_violation")) {
+        errorMessage = "Your prompt was rejected by the safety system. Please try rephrasing with different words.";
+      } else if (errorMessage.includes("rate_limit")) {
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
       setGenerationProgress("");
