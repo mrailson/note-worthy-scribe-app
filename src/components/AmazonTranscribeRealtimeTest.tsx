@@ -389,7 +389,30 @@ export const AmazonTranscribeRealtimeTest = () => {
           <p>• Connect to the transcription service, then start recording</p>
           <p>• Speak clearly into your microphone for best results</p>
           <p>• Transcripts will appear in real-time as you speak</p>
+          <p>• <strong>Debug:</strong> Check browser console (F12) for connection details</p>
         </div>
+
+        {/* Debug Button */}
+        <Button
+          onClick={async () => {
+            console.log('=== MANUAL DEBUG TEST ===');
+            try {
+              const testUrl = 'https://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket-test';
+              console.log('Testing function at:', testUrl);
+              const response = await fetch(testUrl);
+              const data = await response.json();
+              console.log('Function test result:', data);
+              toast.success('Function is working! Check console for details.');
+            } catch (error) {
+              console.error('Function test failed:', error);
+              toast.error('Function test failed - see console');
+            }
+          }}
+          variant="outline"
+          size="sm"
+        >
+          Test Edge Function
+        </Button>
       </CardContent>
     </Card>
   );
