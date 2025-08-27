@@ -76,14 +76,24 @@ export const AudioBackupManager = () => {
       return;
     }
 
+    const currentCount = backups.length;
     setDeletingOld(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke('delete-old-audio-backups');
 
       if (error) throw error;
 
-      toast.success(data.message || 'Old audio backups deleted successfully');
-      await fetchAudioBackups(); // Refresh the list
+      // Force refresh the list to ensure UI updates
+      setBackups([]);
+      await fetchAudioBackups();
+      
+      const deletedCount = data.deleted_count || 0;
+      if (deletedCount > 0) {
+        toast.success(`Successfully deleted ${deletedCount} old audio backup${deletedCount > 1 ? 's' : ''} and removed from display`);
+      } else {
+        toast.info('No audio backups older than 24 hours found');
+      }
     } catch (error) {
       console.error('Error deleting old audio backups:', error);
       toast.error('Failed to delete old audio backups');
