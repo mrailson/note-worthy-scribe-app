@@ -2601,8 +2601,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait 4 seconds while still recording to capture final chunks
-    await new Promise(resolve => setTimeout(resolve, 4000));
+     // Wait 1 second while still recording to capture final chunks
+     await new Promise(resolve => setTimeout(resolve, 1000));
     clearInterval(phase1Interval);
     
     // Phase 2: Finalizing transcription (3 seconds)
@@ -2614,8 +2614,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait additional 3 seconds for final processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+     // Wait additional 2 seconds for final processing
+     await new Promise(resolve => setTimeout(resolve, 2000));
     clearInterval(phase2Interval);
     
     // Check final transcript length
@@ -2632,31 +2632,31 @@ export const MeetingRecorder = ({
     // Stop browser transcriber and wait for final processing
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
-      // Give browser speech recognition time to process final audio segments
-      await new Promise(resolve => setTimeout(resolve, 3000));
+       // Give browser speech recognition time to process final audio segments
+       await new Promise(resolve => setTimeout(resolve, 200));
       browserTranscriberRef.current = null;
     }
     
     // Stop iPhone transcriber and wait for final processing  
     if (iPhoneTranscriberRef.current) {
       iPhoneTranscriberRef.current.stopTranscription();
-      // Give iPhone transcriber time to process final audio segments
-      await new Promise(resolve => setTimeout(resolve, 3000));
+       // Give iPhone transcriber time to process final audio segments
+       await new Promise(resolve => setTimeout(resolve, 200));
       iPhoneTranscriberRef.current = null;
     }
     
     // Stop desktop transcriber and wait for final processing
     if (desktopTranscriberRef.current) {
       await desktopTranscriberRef.current.stopTranscription();
-      // Give extra time for final transcription to be processed and combined
-      await new Promise(resolve => setTimeout(resolve, 2000));
+       // Give extra time for final transcription to be processed and combined
+       await new Promise(resolve => setTimeout(resolve, 200));
       desktopTranscriberRef.current = null;
     }
 
     // Stop Deepgram transcriber and wait for final processing
     if (deepgramTranscriberRef.current) {
       deepgramTranscriberRef.current.stopTranscription();
-      await new Promise(resolve => setTimeout(resolve, 2000));
+       await new Promise(resolve => setTimeout(resolve, 200));
       deepgramTranscriberRef.current = null;
     }
     
