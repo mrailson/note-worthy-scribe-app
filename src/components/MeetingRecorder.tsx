@@ -134,6 +134,15 @@ export const MeetingRecorder = ({
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Signal to Meeting History that a new meeting was saved
+  const signalMeetingHistoryRefresh = () => {
+    localStorage.setItem('meetingHistoryRefresh', Date.now().toString());
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'meetingHistoryRefresh',
+      newValue: Date.now().toString()
+    }));
+  };
   
   // Search and multi-select state
   const [searchQuery, setSearchQuery] = useState("");
@@ -3062,8 +3071,8 @@ export const MeetingRecorder = ({
         toast.success('Meeting saved successfully!');
       }
 
-      // Signal that meeting was just saved for auto-refresh
-      localStorage.setItem('meeting_just_saved', 'true');
+        // Signal to Meeting History and trigger localStorage communication
+        signalMeetingHistoryRefresh();
       
       // Show final success modal with meeting details
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;

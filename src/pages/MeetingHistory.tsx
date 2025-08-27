@@ -903,10 +903,12 @@ const MeetingHistory = () => {
     fetchMeetings(page);
   };
 
-  // Real-time updates for meeting changes
+  // Real-time updates for meeting changes with enhanced reliability
   useEffect(() => {
     if (!user) return;
 
+    console.log('🔌 Setting up real-time meeting subscriptions...');
+    
     const channel = supabase
       .channel('meeting-history-changes')
       .on(
@@ -970,9 +972,29 @@ const MeetingHistory = () => {
           fetchMeetings(currentPage);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Real-time subscription status:', status);
+        
+        // If subscription fails, set up a fallback refresh
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time updates connected successfully');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('⚠️ Real-time subscription failed, enabling fallback refresh');
+          // Enable more frequent polling as fallback
+          const fallbackTimer = setInterval(() => {
+            if (user?.id && !document.hidden) {
+              console.log('🔄 Fallback refresh due to subscription failure');
+              fetchMeetings(currentPage);
+            }
+          }, 15000); // Every 15 seconds
+          
+          // Clean up fallback after 5 minutes
+          setTimeout(() => clearInterval(fallbackTimer), 300000);
+        }
+      });
 
     return () => {
+      console.log('🔌 Cleaning up real-time subscriptions...');
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -1023,32 +1045,95 @@ const MeetingHistory = () => {
     }
   }, [filteredMeetings]);
 
-  // Listen for navigation from MeetingRecorder
+  // Listen for navigation from MeetingRecorder and add mobile optimizations
   useEffect(() => {
+    let refreshTimer: NodeJS.Timeout | null = null;
+    let visibilityTimer: NodeJS.Timeout | null = null;
+    
+    // Enhanced storage listener for multiple refresh signals
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'meeting_just_saved' && user?.id) {
-        console.log('🔄 Meeting just saved, refreshing list');
+      if ((e.key === 'meeting_just_saved' || e.key === 'meetingHistoryRefresh') && user?.id) {
+        console.log('🔄 Meeting saved signal received, refreshing list');
         localStorage.removeItem('meeting_just_saved');
+        localStorage.removeItem('meetingHistoryRefresh');
         setTimeout(() => fetchMeetings(currentPage), 1000); // Small delay to ensure DB is updated
       }
     };
 
+    // Enhanced focus handler with mobile optimizations
     const handleFocus = () => {
-      // Refresh meetings when user returns to the tab
       if (user?.id) {
-        console.log('🔄 Tab focused, refreshing meetings');
+        console.log('🔄 Tab/window focused, refreshing meetings');
         fetchMeetings(currentPage);
       }
     };
 
+    // Mobile-specific visibility change handler
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        // Clear any pending timer
+        if (visibilityTimer) clearTimeout(visibilityTimer);
+        
+        // Debounce the refresh to avoid excessive calls
+        visibilityTimer = setTimeout(() => {
+          console.log('🔄 App became visible, refreshing meetings');
+          fetchMeetings(currentPage);
+        }, 500);
+      }
+    };
+
+    // Periodic polling as fallback for mobile Safari issues
+    const startPeriodicRefresh = () => {
+      if (refreshTimer) clearInterval(refreshTimer);
+      
+      // Only enable periodic refresh when recording is likely happening
+      const lastActivity = localStorage.getItem('meetingHistoryRefresh');
+      const recentActivity = lastActivity && (Date.now() - parseInt(lastActivity)) < 30000; // 30 seconds
+      
+      if (recentActivity) {
+        console.log('🔄 Starting periodic refresh due to recent activity');
+        refreshTimer = setInterval(() => {
+          if (user?.id && !document.hidden) {
+            console.log('🔄 Periodic refresh check');
+            fetchMeetings(currentPage);
+          }
+        }, 10000); // Check every 10 seconds
+      }
+    };
+
+    // Mobile detection
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Set up listeners
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // For mobile, also listen to page show/hide events
+    if (isMobile) {
+      window.addEventListener('pageshow', handleFocus);
+      window.addEventListener('pagehide', () => {
+        if (refreshTimer) clearInterval(refreshTimer);
+      });
+    }
+    
+    // Start periodic refresh if needed
+    startPeriodicRefresh();
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      if (isMobile) {
+        window.removeEventListener('pageshow', handleFocus);
+        window.removeEventListener('pagehide', () => {});
+      }
+      
+      if (refreshTimer) clearInterval(refreshTimer);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
     };
-  }, [user?.id]);
+  }, [user?.id, currentPage]);
 
   // Load notes for modal when generation completes
   const loadNotesForModal = async (meetingId: string) => {
@@ -1498,16 +1583,36 @@ const MeetingHistory = () => {
           </Card>
         </div>
 
-        {/* Search Bar */}
-        <MeetingSearchBar 
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          resultsCount={filteredMeetings.length}
-          filterType={filterType}
-          onFilterChange={setFilterType}
-          onAdvancedFiltersChange={setAdvancedFilters}
-          advancedFilters={advancedFilters}
-        />
+        {/* Search Bar with Manual Refresh */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1">
+            <MeetingSearchBar 
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              resultsCount={filteredMeetings.length}
+              filterType={filterType}
+              onFilterChange={setFilterType}
+              onAdvancedFiltersChange={setAdvancedFilters}
+              advancedFilters={advancedFilters}
+            />
+          </div>
+          
+          {/* Manual Refresh Button - More prominent for mobile */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              console.log('🔄 Manual refresh requested');
+              fetchMeetings(currentPage);
+              toast.success('Refreshing meeting list...');
+            }}
+            className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Check Latest</span>
+            <span className="sm:hidden">Refresh</span>
+          </Button>
+        </div>
 
         {/* Multi-select and Delete Controls */}
         {meetings.length > 0 && (
