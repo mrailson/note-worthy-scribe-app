@@ -2504,6 +2504,84 @@ export const MeetingRecorder = ({
 
   const stopRecording = async () => {
     
+    // Check word count before processing - skip animation for short meetings
+    const wordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
+    console.log('📊 Meeting word count:', wordCount);
+    
+    if (wordCount < 100) {
+      console.log('📊 Skipping processing animation - meeting too short (<100 words)');
+      
+      // Just stop recording without the processing modal
+      setIsStoppingRecording(true);
+      
+      // Stop duration timer
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      // Stop all transcribers immediately
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+        browserTranscriberRef.current = null;
+      }
+      
+      if (iPhoneTranscriberRef.current) {
+        iPhoneTranscriberRef.current.stopTranscription();
+        iPhoneTranscriberRef.current = null;
+      }
+      
+      if (desktopTranscriberRef.current) {
+        await desktopTranscriberRef.current.stopTranscription();
+        desktopTranscriberRef.current = null;
+      }
+      
+      if (deepgramTranscriberRef.current) {
+        deepgramTranscriberRef.current.stopTranscription();
+        deepgramTranscriberRef.current = null;
+      }
+      
+      // Stop microphone stream
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+        micAudioStreamRef.current = null;
+      }
+      
+      // Stop screen stream
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      
+      // Stop enhanced audio capture
+      if (enhancedAudioCaptureRef.current) {
+        enhancedAudioCaptureRef.current.stopCapture();
+        enhancedAudioCaptureRef.current = null;
+      }
+      
+      // Stop audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      // Stop overlapping chunks and stereo recording
+      await stopOverlappingChunks();
+      await stopStereoRecording();
+      
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      setIsStoppingRecording(false);
+      setConnectionStatus("Disconnected");
+      
+      // Clear unsaved meeting data
+      localStorage.removeItem('unsaved_meeting');
+      sessionStorage.removeItem('currentSessionId');
+      
+      toast.success(`Recording stopped. Meeting was too short (${wordCount} words) to generate notes.`);
+      return;
+    }
+    
     // Show combined modal starting with processing stage
     setMeetingEndModal({
       isOpen: true,
