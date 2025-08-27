@@ -30,7 +30,8 @@ import {
   ShieldCheck,
   Languages,
   Printer,
-  WandSparkles
+  WandSparkles,
+  Palette
 } from 'lucide-react';
 import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -135,6 +136,37 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     message.content.includes('##') ||
     message.content.split('\n').length > 20
   );
+
+  // Detect if text is poorly formatted (unformatted block text)
+  const isPoorlyFormatted = message.role === 'assistant' && (() => {
+    const content = message.content.trim();
+    
+    // Skip if it's too short or already has good formatting
+    if (content.length < 200) return false;
+    
+    // Has markdown headers
+    if (content.includes('###') || content.includes('##') || content.includes('**')) return false;
+    
+    // Has proper line breaks/paragraphs
+    const lines = content.split('\n');
+    const nonEmptyLines = lines.filter(line => line.trim().length > 0);
+    
+    // If most content is in very few lines (clumped together)
+    if (nonEmptyLines.length < 3 && content.length > 500) return true;
+    
+    // Check for very long lines without breaks (typical of unformatted text)
+    const hasLongLines = nonEmptyLines.some(line => line.length > 200);
+    const hasVeryFewBreaks = (lines.length / content.length) * 1000 < 2; // Less than 2 line breaks per 1000 chars
+    
+    return hasLongLines && hasVeryFewBreaks;
+  })();
+
+  const handleFixFormatting = () => {
+    if (onQuickResponse) {
+      const formatPrompt = `improve this format:\n\n${message.content}`;
+      onQuickResponse(formatPrompt);
+    }
+  };
 
 
   const messageRef = React.useRef<HTMLDivElement>(null);
@@ -916,6 +948,19 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                          ) : (
                           <ShieldCheck className="h-3 w-3" />
                         )}
+                      </Button>
+                    )}
+
+                    {/* Fix Format button - only show for poorly formatted text */}
+                    {!isModal && isPoorlyFormatted && onQuickResponse && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleFixFormatting}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Fix text formatting"
+                      >
+                        <Palette className="h-3 w-3" />
                       </Button>
                     )}
 
