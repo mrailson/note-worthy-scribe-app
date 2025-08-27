@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
@@ -145,8 +146,10 @@ const MeetingHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalMeetings, setTotalMeetings] = useState(0);
+  const itemsPerPage = 10;
   
   // Multi-select functionality
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
@@ -896,6 +899,10 @@ const MeetingHistory = () => {
     }
   }, [user]);
 
+  const handlePageChange = (page: number) => {
+    fetchMeetings(page);
+  };
+
   // Real-time updates for meeting changes
   useEffect(() => {
     if (!user) return;
@@ -913,7 +920,7 @@ const MeetingHistory = () => {
         (payload) => {
           console.log('🔄 New meeting inserted, refreshing meeting history...', payload);
           // Refresh meetings when a new meeting is added
-          fetchMeetings();
+          fetchMeetings(currentPage);
           toast.success('New meeting detected - refreshing list');
         }
       )
@@ -960,7 +967,7 @@ const MeetingHistory = () => {
         (payload) => {
           console.log('🔄 Meeting deleted, refreshing meeting history...', payload);
           // Refresh meetings when a meeting is deleted
-          fetchMeetings();
+          fetchMeetings(currentPage);
         }
       )
       .subscribe();
@@ -976,7 +983,7 @@ const MeetingHistory = () => {
     const timer = setTimeout(() => {
       if (user && meetings.length === 0 && !loading) {
         console.log('🔄 Backup fetchMeetings triggered - ensuring data is loaded');
-        fetchMeetings();
+        fetchMeetings(1);
       }
     }, 500);
 
@@ -1022,7 +1029,7 @@ const MeetingHistory = () => {
       if (e.key === 'meeting_just_saved' && user?.id) {
         console.log('🔄 Meeting just saved, refreshing list');
         localStorage.removeItem('meeting_just_saved');
-        setTimeout(() => fetchMeetings(), 1000); // Small delay to ensure DB is updated
+        setTimeout(() => fetchMeetings(currentPage), 1000); // Small delay to ensure DB is updated
       }
     };
 
@@ -1030,7 +1037,7 @@ const MeetingHistory = () => {
       // Refresh meetings when user returns to the tab
       if (user?.id) {
         console.log('🔄 Tab focused, refreshing meetings');
-        fetchMeetings();
+        fetchMeetings(currentPage);
       }
     };
 
@@ -1060,12 +1067,29 @@ const MeetingHistory = () => {
     }
   };
 
-  const fetchMeetings = async () => {
+  const fetchMeetings = async (pageToFetch = 1) => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       
-      console.log('🚨 FETCHING MEETINGS - User ID:', user?.id);
+      console.log('🚨 FETCHING MEETINGS - User ID:', user?.id, 'Page:', pageToFetch);
       
+      // First get total count for pagination
+      const { count, error: countError } = await supabase
+        .from('meetings')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .neq('meeting_type', 'gp_consultation');
+
+      if (countError) throw countError;
+
+      const totalCount = count || 0;
+      setTotalMeetings(totalCount);
+      setTotalPages(Math.ceil(totalCount / itemsPerPage));
+      
+      const offset = (pageToFetch - 1) * itemsPerPage;
+       
        // Get everything in one optimized query using joins
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
@@ -1094,7 +1118,7 @@ const MeetingHistory = () => {
         .eq('user_id', user?.id)
         .neq('meeting_type', 'gp_consultation')
         .order('created_at', { ascending: false })
-        .limit(10); // Limit initial load for performance
+        .range(offset, offset + itemsPerPage - 1);
 
       console.log('🚨 MEETINGS QUERY RESULT:');
       console.log('🚨 Error:', meetingsError);
@@ -1195,6 +1219,9 @@ const MeetingHistory = () => {
       enrichedMeetings.forEach((meeting, index) => {
         console.log(`🚨 Enriched Meeting ${index}:`, meeting.title, meeting.id);
       });
+      
+      setMeetings(enrichedMeetings);
+      setCurrentPage(pageToFetch);
 
       console.log('🚨 SETTING MEETINGS STATE...');
       setMeetings(enrichedMeetings);
@@ -1903,6 +1930,53 @@ const MeetingHistory = () => {
              }}
             showRecordingPlayback={micTestServiceVisible}
            />
+        )}
+
+        {/* Pagination Controls */}
+        {!selectedMeeting && !loading && totalPages > 1 && (
+          <div className="flex justify-center mt-6">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) handlePageChange(currentPage - 1);
+                    }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page);
+                      }}
+                      isActive={page === currentPage}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                    }}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
 
         {/* Enhanced Transcript View Dialog with AI Cleaning - Mobile Optimized */}
