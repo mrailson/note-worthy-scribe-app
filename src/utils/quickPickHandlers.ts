@@ -336,5 +336,17 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "combine-practice-info": combineWithPracticeInfo,
   "insert-icb-links": insertLocalICBLinks,
   "prior-approval-modal": openPriorApprovalModal,
-  "add-safetynetting-template": addPracticeSafetyNetting
+  "add-safetynetting-template": addPracticeSafetyNetting,
+
+  // Translation handlers for specific languages
+  "translate-polish": (ctx) => translate(ctx, { targetLang: 'pl', mode: 'patient' }),
+  "translate-urdu": (ctx) => translate(ctx, { targetLang: 'ur', mode: 'patient' }),
+  "translate-arabic": (ctx) => translate(ctx, { targetLang: 'ar', mode: 'patient' }),
+  "translate-bengali": (ctx) => translate(ctx, { targetLang: 'bn', mode: 'patient' }),
+  "translate-romanian": (ctx) => translate(ctx, { targetLang: 'ro', mode: 'patient' }),
+  "translate-spanish": (ctx) => translate(ctx, { targetLang: 'es', mode: 'patient' }),
+  "translate-portuguese": (ctx) => translate(ctx, { targetLang: 'pt', mode: 'patient' }),
+  "translate-turkish": (ctx) => translate(ctx, { targetLang: 'tr', mode: 'patient' }),
+  "translate-french": (ctx) => translate(ctx, { targetLang: 'fr', mode: 'patient' }),
+  "translate-chinese": (ctx) => translate(ctx, { targetLang: 'zh', mode: 'patient' })
 };

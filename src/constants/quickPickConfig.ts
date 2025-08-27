@@ -65,6 +65,22 @@ export const quickPickConfig = {
         {"id": "prior-approval-modal", "label": "Open prior-approval modal"},
         {"id": "add-safetynetting-template", "label": "Add practice safety-netting template"}
       ]
+    },
+    {
+      "id": "translate",
+      "label": "Translate",
+      "children": [
+        {"id": "translate-polish", "label": "Polish 🇵🇱"},
+        {"id": "translate-urdu", "label": "Urdu 🇵🇰"},
+        {"id": "translate-arabic", "label": "Arabic 🇸🇦"},
+        {"id": "translate-bengali", "label": "Bengali 🇧🇩"},
+        {"id": "translate-romanian", "label": "Romanian 🇷🇴"},
+        {"id": "translate-spanish", "label": "Spanish 🇪🇸"},
+        {"id": "translate-portuguese", "label": "Portuguese 🇵🇹"},
+        {"id": "translate-turkish", "label": "Turkish 🇹🇷"},
+        {"id": "translate-french", "label": "French 🇫🇷"},
+        {"id": "translate-chinese", "label": "Chinese 🇨🇳"}
+      ]
     }
   ]
 };
