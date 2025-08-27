@@ -30,16 +30,19 @@ export const AmazonTranscribeRealtimeTest = () => {
     setConnectionStatus('Connecting to transcription service...');
     
     try {
-      // Connect to our WebSocket proxy
+      // Connect to our WebSocket proxy - use the correct URL format
       const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket`;
+      console.log('Attempting WebSocket connection to:', wsUrl);
+      
       websocketRef.current = new WebSocket(wsUrl);
       
       websocketRef.current.onopen = () => {
-        console.log('Connected to WebSocket proxy');
+        console.log('WebSocket proxy connection opened');
         setConnectionStatus('Connected to proxy, waiting for Amazon Transcribe...');
       };
       
       websocketRef.current.onmessage = (event) => {
+        console.log('WebSocket message received:', event.data);
         try {
           const data = JSON.parse(event.data);
           
@@ -54,6 +57,7 @@ export const AmazonTranscribeRealtimeTest = () => {
               setConnectionStatus('Disconnected from Amazon Transcribe');
             }
           } else if (data.type === 'error') {
+            console.error('WebSocket proxy error:', data.message);
             toast.error(`Connection error: ${data.message}`);
             setIsConnecting(false);
             setConnectionStatus(`Error: ${data.message}`);
@@ -62,32 +66,34 @@ export const AmazonTranscribeRealtimeTest = () => {
             handleTranscriptionMessage(data);
           }
         } catch (error) {
+          console.log('Raw WebSocket message (not JSON):', event.data);
           // Might be raw Amazon Transcribe message
           handleTranscriptionMessage(event.data);
         }
       };
       
       websocketRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast.error('WebSocket connection failed');
+        console.error('WebSocket connection error:', error);
+        toast.error('WebSocket connection failed - check console for details');
         setIsConnecting(false);
-        setConnectionStatus('Connection failed');
+        setConnectionStatus('Connection failed - check console');
       };
       
-      websocketRef.current.onclose = () => {
+      websocketRef.current.onclose = (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason);
         setIsConnected(false);
         setIsConnecting(false);
-        setConnectionStatus('Disconnected');
+        setConnectionStatus(`Disconnected (${event.code}: ${event.reason})`);
         if (isRecording) {
           stopRecording();
         }
       };
       
     } catch (error) {
-      console.error('Connection error:', error);
-      toast.error('Failed to connect');
+      console.error('Error creating WebSocket connection:', error);
+      toast.error(`Failed to connect: ${error.message}`);
       setIsConnecting(false);
-      setConnectionStatus('Connection failed');
+      setConnectionStatus(`Connection failed: ${error.message}`);
     }
   };
 
