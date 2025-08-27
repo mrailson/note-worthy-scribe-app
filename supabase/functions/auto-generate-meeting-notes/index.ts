@@ -95,24 +95,35 @@ serve(async (req) => {
     // Generate notes using OpenAI
     const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from the provided transcript.
 
-Format your response with clear sections using emojis:
+Start with a detailed Meeting Overview that provides substantial context about what this meeting covered. This overview should be comprehensive enough that someone reading it weeks later can immediately understand the main focus, key initiatives discussed, important decisions made, and critical context. Think of it as a rich summary that helps distinguish this meeting from others.
+
+Then format the rest of your response with clear sections using emojis:
+
+📋 Meeting Overview
+Write 2-3 substantial paragraphs that capture the essence of the meeting. Include:
+- Main focus areas, initiatives, or programs discussed  
+- Key decisions made and their context
+- Important timelines, deadlines, or milestones mentioned
+- Critical issues, concerns, or challenges raised
+- Specific details that make this meeting memorable and distinguishable
+- Financial, operational, or strategic implications discussed
 
 1️⃣ Attendees
 List all attendees mentioned in the meeting
 
-2️⃣ Agenda & Key Topics
-Main topics discussed and agenda items covered
+2️⃣ Key Discussion Points  
+Detailed breakdown of main topics with context and outcomes
 
-3️⃣ Key Points & Discussion
-Important points, decisions, and discussions that took place
+3️⃣ Decisions Made
+Specific decisions reached during the meeting with reasoning
 
 4️⃣ Action Items
-Specific tasks, assignments, and next steps with responsible parties
+Specific tasks, assignments, and next steps with responsible parties and deadlines
 
-5️⃣ Next Meeting & Follow-up
-Any scheduled follow-up meetings or important dates
+5️⃣ Next Steps & Follow-up
+Any scheduled follow-up meetings, review dates, or important future milestones
 
-Make the notes clear, concise, and professionally formatted. Focus on actionable information and key decisions.`;
+Make the overview rich in detail and context. Focus on creating a narrative that captures the meeting's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this meeting was about even months later.`;
 
     const userPrompt = `Meeting Title: ${meeting.title}
 Meeting Date: ${new Date(meeting.created_at).toLocaleDateString()}
