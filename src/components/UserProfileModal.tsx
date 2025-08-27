@@ -70,6 +70,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
 
   useEffect(() => {
     if (open && user) {
+      console.log('UserProfileModal opening for user:', user.id);
       fetchUserProfile();
       fetchPracticeDetails();
     }
