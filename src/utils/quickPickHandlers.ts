@@ -254,7 +254,37 @@ function translateBackToEnglish(ctx: QuickPickContext): string {
 }
 
 function compareTranslation(ctx: QuickPickContext): string {
-  return `Compare the original text with its translation. Highlight any differences in meaning, medical terminology, or important clinical information that may have been lost or changed in translation.`;
+  return `Compare the original text with its translation. Present your analysis in a well-structured format using the following guidelines:
+
+**Format your response with clear sections and proper spacing:**
+
+## Translation Comparison Analysis
+
+### Overall Assessment
+- Provide a brief overall assessment of translation quality
+
+### Detailed Comparison
+
+#### 1. Content Accuracy
+- Compare the overall content preservation
+- Note any missing or added information
+
+#### 2. Medical Terminology  
+- Compare key medical terms and their translations
+- Highlight any terminology that may cause confusion
+
+#### 3. Clinical Precision
+- Assess accuracy of dosage instructions and clinical details
+- Note any loss of clinical meaning
+
+#### 4. Important Observations
+- List any significant differences
+- Note areas where clinical intent is preserved or altered
+
+### Summary
+- Provide final assessment of translation quality for medical use
+
+**Important:** Use proper markdown formatting with headers (##, ###), paragraphs, and clear spacing between sections. Highlight any differences in meaning, medical terminology, or important clinical information that may have been lost or changed in translation.`;
 }
 
 
