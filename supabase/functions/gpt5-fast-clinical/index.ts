@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
+// Force redeploy to pick up updated OPENAI_API_KEY
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const OPENAI_ORG = Deno.env.get("OPENAI_ORG") ?? ""; // optional
 
