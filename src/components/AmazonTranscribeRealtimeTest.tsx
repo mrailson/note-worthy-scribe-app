@@ -393,26 +393,29 @@ export const AmazonTranscribeRealtimeTest = () => {
         </div>
 
         {/* Debug Button */}
-        <Button
-          onClick={async () => {
-            console.log('=== MANUAL DEBUG TEST ===');
-            try {
-              const testUrl = 'https://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket-test';
-              console.log('Testing function at:', testUrl);
-              const response = await fetch(testUrl);
-              const data = await response.json();
-              console.log('Function test result:', data);
-              toast.success('Function is working! Check console for details.');
-            } catch (error) {
-              console.error('Function test failed:', error);
-              toast.error('Function test failed - see console');
-            }
-          }}
-          variant="outline"
-          size="sm"
-        >
-          Test Edge Function
-        </Button>
+        <div className="pt-2">
+          <Button
+            onClick={async () => {
+              console.log('=== MANUAL DEBUG TEST ===');
+              try {
+                const testUrl = 'https://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-websocket-test';
+                console.log('Testing function at:', testUrl);
+                const response = await fetch(testUrl);
+                const data = await response.json();
+                console.log('Function test result:', data);
+                toast.success('Function is working! Check console for details.');
+              } catch (error) {
+                console.error('Function test failed:', error);
+                toast.error('Function test failed - see console');
+              }
+            }}
+            variant="outline"
+            size="sm"
+          >
+            🔧 Test Edge Function
+          </Button>
+        </div>
+
       </CardContent>
     </Card>
   );
