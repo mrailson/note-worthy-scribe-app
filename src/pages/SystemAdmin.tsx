@@ -1925,6 +1925,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   <AudioBackupManager />
                 </CardContent>
               </Card>
+
+              <AmazonTranscribeTest />
             </div>
           </TabsContent>
 
