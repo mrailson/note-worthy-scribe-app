@@ -35,13 +35,36 @@ export default function RecorderNoAGC() {
 
   async function setupStream(selectedMode: SourceMode): Promise<MediaStream> {
     if (selectedMode === "tab") {
-      // User must choose "Chrome Tab" and tick "Share tab audio"
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: false as any,
-        audio: true as any,
-      } as MediaStreamConstraints);
-      setStatus("Tab audio shared. If silent, re-share and tick 'Share tab audio'.");
-      return stream;
+      try {
+        // Check if getDisplayMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+          throw new Error("Screen sharing not supported in this browser");
+        }
+        
+        // User must choose "Chrome Tab" and tick "Share tab audio"
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: true,
+        });
+        
+        // Check if we got audio tracks
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          throw new Error("No audio track found - make sure to select 'Share tab audio' when prompted");
+        }
+        
+        setStatus("Tab audio shared successfully");
+        return stream;
+      } catch (error: any) {
+        log("getDisplayMedia error:", error);
+        if (error.name === 'NotAllowedError') {
+          throw new Error("Permission denied - please allow screen sharing and select 'Share tab audio'");
+        } else if (error.name === 'NotSupportedError') {
+          throw new Error("Tab audio sharing not supported - try using microphone mode instead");
+        } else {
+          throw error;
+        }
+      }
     }
 
     const constraints: MediaStreamConstraints = {
@@ -193,6 +216,7 @@ export default function RecorderNoAGC() {
       try {
         const ws = new WebSocket(WS_URL);
         ws.binaryType = "arraybuffer";
+        
         ws.onopen = () => {
           log("WS open");
           wsRef.current = ws;
@@ -201,16 +225,21 @@ export default function RecorderNoAGC() {
             blob.arrayBuffer().then((buf) => ws.send(buf));
           }
           chunkQueueRef.current = [];
+          setStatus("WebSocket connected, ready to transcribe");
           resolve();
         };
-        ws.onclose = () => {
-          log("WS closed");
-          setStatus("WebSocket disconnected");
+        
+        ws.onclose = (event) => {
+          log("WS closed", event.code, event.reason);
+          setStatus(`WebSocket disconnected: ${event.code} ${event.reason}`);
         };
-        ws.onerror = (e) => {
-          log("WS error:", e);
-          setStatus("WebSocket error");
+        
+        ws.onerror = (event) => {
+          log("WS error:", event);
+          setStatus(`WebSocket error - check if edge function is deployed`);
+          reject(new Error(`WebSocket connection failed`));
         };
+        
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -230,6 +259,15 @@ export default function RecorderNoAGC() {
             log("Failed to parse WS message:", e);
           }
         };
+        
+        // Add timeout for connection
+        setTimeout(() => {
+          if (ws.readyState !== WebSocket.OPEN) {
+            ws.close();
+            reject(new Error("WebSocket connection timeout"));
+          }
+        }, 10000); // 10 second timeout
+        
       } catch (e) {
         reject(e);
       }
