@@ -1,6 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Force function redeployment to refresh environment variables
+const FUNCTION_VERSION = "2.0.1";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -13,15 +16,16 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing meeting audio request with updated API key...');
+    console.log(`Processing meeting audio request v${FUNCTION_VERSION}...`);
     
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY environment variable is not set');
+      console.error('❌ OPENAI_API_KEY environment variable is not set or empty');
+      console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => k.includes('OPENAI')));
       throw new Error('OPENAI_API_KEY not configured');
     }
     
-    console.log('✅ OPENAI_API_KEY is configured, proceeding with transcription');
+    console.log('✅ OPENAI_API_KEY is configured, length:', OPENAI_API_KEY.length);
 
     // Parse the form data containing the audio file
     const formData = await req.formData();
