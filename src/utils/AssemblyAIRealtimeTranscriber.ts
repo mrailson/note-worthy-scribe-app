@@ -12,12 +12,14 @@ export class AssemblyAIRealtimeTranscriber {
   private ws: WebSocket | null = null;
   private audioStream: { stop: () => void } | null = null;
   private isActive = false;
+  private sessionId: string | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    private onSummary?: (summary: string) => void
+    private onSummary?: (summary: string) => void,
+    private formatTurns: boolean = true
   ) {}
 
   async startTranscription() {
@@ -48,30 +50,59 @@ export class AssemblyAIRealtimeTranscriber {
             return;
           }
           
-          if (data.type === 'session_begins') {
+          if (data.type === 'session_begins' || data.message_type === 'SessionBegins') {
             console.log('✅ AssemblyAI session began, starting audio capture...');
+            this.sessionId = data.session_id || Date.now().toString();
             this.startAudioCapture();
             return;
           }
           
-          // Handle transcription results
-          if (data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {
+          // Handle partial transcripts (real-time feedback)
+          if (data.message_type === 'PartialTranscript') {
             const transcript = data.text?.trim();
             if (transcript) {
               const transcriptData: TranscriptData = {
                 text: transcript,
-                is_final: data.message_type === 'FinalTranscript',
-                confidence: data.confidence || 0.9
+                is_final: false,
+                confidence: data.confidence || 0.8
               };
               
-              console.log(`📝 Transcription (${transcriptData.is_final ? 'final' : 'partial'}):`, transcriptData.text);
+              console.log(`📝 Partial transcript:`, transcriptData.text);
               this.onTranscription(transcriptData);
             }
+            return;
+          }
+          
+          // Handle final transcripts (AssemblyAI's "turn" equivalent)
+          if (data.message_type === 'FinalTranscript') {
+            const transcript = data.text?.trim();
+            if (transcript) {
+              const transcriptData: TranscriptData = {
+                text: transcript,
+                is_final: true,
+                confidence: data.confidence || 0.9,
+                start: data.audio_start,
+                end: data.audio_end
+              };
+              
+              console.log(`📝 Final transcript:`, transcriptData.text);
+              this.onTranscription(transcriptData);
+            }
+            return;
           }
           
           // Handle session information
           if (data.message_type === 'SessionInformation') {
             console.log('ℹ️ AssemblyAI session info:', data);
+            return;
+          }
+          
+          // Handle session termination
+          if (data.type === 'session_terminated') {
+            console.log('🔌 AssemblyAI session terminated');
+            this.isActive = false;
+            this.onStatusChange('Disconnected');
+            return;
           }
           
         } catch (parseError) {
