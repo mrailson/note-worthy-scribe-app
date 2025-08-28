@@ -39,29 +39,35 @@ export class AssemblyAIChunkTranscriber {
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: false // Disable AGC for better quality
         }
       });
 
-      // Setup MediaRecorder
+      // Setup MediaRecorder with better format
+      const mimeType = MediaRecorder.isTypeSupported('audio/wav') 
+        ? 'audio/wav' 
+        : 'audio/webm;codecs=opus';
+      
       this.mediaRecorder = new MediaRecorder(this.audioStream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType,
+        audioBitsPerSecond: 128000
       });
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
+          console.log(`📦 Audio chunk received: ${event.data.size} bytes`);
           this.currentAudioChunks.push(event.data);
         }
       };
 
       this.mediaRecorder.onstop = async () => {
-        if (this.currentAudioChunks.length > 0) {
+        if (this.currentAudioChunks.length > 0 && this.isActive) {
           await this.processAudioChunk();
         }
       };
 
-      // Start recording and set up chunking
-      this.mediaRecorder.start();
+      // Start recording with time slice for consistent chunks
+      this.mediaRecorder.start(1000); // 1 second time slices
       this.isActive = true;
       this.onStatusChange('Recording (chunk-based)');
 
@@ -80,25 +86,25 @@ export class AssemblyAIChunkTranscriber {
   private scheduleNextChunk() {
     if (!this.isActive) return;
 
-    this.chunkInterval = setTimeout(() => {
-      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-        // Stop current recording to trigger data processing
-        this.mediaRecorder.stop();
+    this.chunkInterval = setTimeout(async () => {
+      if (this.mediaRecorder && this.mediaRecorder.state === 'recording' && this.isActive) {
+        // Process current chunks without stopping recording
+        if (this.currentAudioChunks.length > 0) {
+          const chunksToProcess = [...this.currentAudioChunks];
+          this.currentAudioChunks = []; // Clear for next batch
+          
+          // Process chunks while continuing to record
+          await this.processAudioChunks(chunksToProcess);
+        }
         
-        // Start new recording for next chunk
-        setTimeout(() => {
-          if (this.isActive && this.mediaRecorder) {
-            this.currentAudioChunks = []; // Reset for next chunk
-            this.mediaRecorder.start();
-            this.scheduleNextChunk(); // Schedule next chunk
-          }
-        }, 100);
+        // Schedule next chunk processing
+        this.scheduleNextChunk();
       }
     }, this.chunkDurationMs);
   }
 
-  private async processAudioChunk() {
-    if (this.currentAudioChunks.length === 0) return;
+  private async processAudioChunks(chunks: Blob[]) {
+    if (chunks.length === 0) return;
 
     try {
       const chunkIndex = this.chunkIndex++;
@@ -107,57 +113,83 @@ export class AssemblyAIChunkTranscriber {
       this.onStatusChange(`Processing chunk ${chunkIndex}...`);
 
       // Combine all audio chunks into a single blob
-      const audioBlob = new Blob(this.currentAudioChunks, { type: 'audio/webm;codecs=opus' });
+      const audioBlob = new Blob(chunks);
       
-      // Skip very small chunks (less than 1KB)
-      if (audioBlob.size < 1000) {
+      // Skip very small chunks (less than 2KB)
+      if (audioBlob.size < 2000) {
         console.log('⏭️ Skipping tiny audio chunk');
-        this.currentAudioChunks = [];
         return;
       }
 
-      // Convert to base64 for transmission
+      // Convert to base64 using chunked approach to avoid stack overflow
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const base64Audio = this.arrayBufferToBase64(arrayBuffer);
 
       // Send to edge function
-      const { data, error } = await supabase.functions.invoke('assemblyai-transcription', {
-        body: { 
-          audio: base64Audio,
-          mimeType: 'audio/webm;codecs=opus',
-          chunkIndex
+      try {
+        const { data, error } = await supabase.functions.invoke('assemblyai-transcription', {
+          body: { 
+            audio: base64Audio,
+            mimeType: audioBlob.type || 'audio/wav',
+            chunkIndex
+          }
+        });
+
+        if (error) {
+          console.error('❌ AssemblyAI transcription error:', error);
+          this.onError('Transcription failed: ' + error.message);
+          return;
         }
-      });
 
-      if (error) {
-        console.error('❌ AssemblyAI transcription error:', error);
-        this.onError('Transcription failed: ' + error.message);
-        return;
-      }
+        if (data?.text?.trim()) {
+          const transcriptData: TranscriptData = {
+            text: data.text.trim(),
+            is_final: true,
+            confidence: data.confidence || 0.9,
+            chunkIndex
+          };
+          
+          console.log(`📝 Chunk ${chunkIndex} transcribed:`, transcriptData.text);
+          this.onTranscription(transcriptData);
+        } else {
+          console.log(`📝 Chunk ${chunkIndex} had no transcribable audio`);
+        }
 
-      if (data?.text?.trim()) {
-        const transcriptData: TranscriptData = {
-          text: data.text.trim(),
-          is_final: true,
-          confidence: data.confidence || 0.9,
-          chunkIndex
-        };
+        this.onStatusChange(`Recording (processed ${chunkIndex + 1} chunks)`);
         
-        console.log(`📝 Chunk ${chunkIndex} transcribed:`, transcriptData.text);
-        this.onTranscription(transcriptData);
+      } catch (fetchError) {
+        console.error('❌ Edge function call failed:', fetchError);
+        this.onError('Network error: ' + fetchError.message);
       }
-
-      this.onStatusChange(`Recording (processed ${chunkIndex + 1} chunks)`);
       
     } catch (error) {
       console.error('❌ Error processing audio chunk:', error);
       this.onError('Chunk processing failed: ' + error.message);
     }
-
-    this.currentAudioChunks = [];
   }
 
-  stopTranscription() {
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 8192; // Process in 8KB chunks to avoid stack overflow
+    let binary = '';
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    return btoa(binary);
+  }
+
+  private async processAudioChunk() {
+    // Legacy method - redirect to new chunked processing
+    if (this.currentAudioChunks.length > 0) {
+      await this.processAudioChunks([...this.currentAudioChunks]);
+      this.currentAudioChunks = [];
+    }
+  }
+
+  async stopTranscription() {
     console.log('🛑 Stopping AssemblyAI chunk transcription...');
     this.isActive = false;
     
@@ -166,7 +198,14 @@ export class AssemblyAIChunkTranscriber {
       this.chunkInterval = null;
     }
     
-    // Process any remaining audio
+    // Process any remaining audio chunks
+    if (this.currentAudioChunks.length > 0) {
+      console.log('🔄 Processing final audio chunks...');
+      await this.processAudioChunks([...this.currentAudioChunks]);
+      this.currentAudioChunks = [];
+    }
+    
+    // Stop recorder gracefully
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop();
     }
