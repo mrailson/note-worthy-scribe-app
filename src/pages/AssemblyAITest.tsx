@@ -133,8 +133,8 @@ export default function AssemblyAITest() {
                 
                 // For Turn messages (final) - just add them
                 if (data.type === 'Turn') {
-                  // Only add to full transcript if it's truly the end of the turn and not already at the end
-                  if (data.end_of_turn && text) {
+                  // Only add to full transcript when it's a formatted final turn
+                  if (data.end_of_turn && data.turn_is_formatted && text) {
                     setFullTranscript(prev => {
                       // Don't add if this text is already at the end of the transcript
                       if (prev.endsWith(text)) {
