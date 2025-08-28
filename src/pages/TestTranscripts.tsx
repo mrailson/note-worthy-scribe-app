@@ -6,21 +6,17 @@ import { Copy, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
-import { DeepgramLiveTest } from '@/components/DeepgramLiveTest';
-import { WhisperNonLiveTest } from '@/components/WhisperNonLiveTest';
 
 const TestTranscripts = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [copiedTranscripts, setCopiedTranscripts] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState('deepgram-live');
+  const [activeTab, setActiveTab] = useState('consultations');
 
   // Handle URL fragments to open the correct tab
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     const tabMapping: Record<string, string> = {
-      'deepgram-live': 'deepgram-live',
-      'whisper-analysis': 'whisper-analysis',
       'consultations': 'consultations',
       'partnership': 'partnership', 
       'pcn': 'pcn',
@@ -511,38 +507,12 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="deepgram-live">Deepgram</TabsTrigger>
-            <TabsTrigger value="whisper-analysis">Whisper</TabsTrigger>
-            <TabsTrigger value="consultations">Consultations</TabsTrigger>
-            <TabsTrigger value="partnership">Partnership</TabsTrigger>
-            <TabsTrigger value="pcn">PCN</TabsTrigger>
-            <TabsTrigger value="lmc">LMC</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="consultations">Patient Consultations</TabsTrigger>
+            <TabsTrigger value="partnership">GP Partnership</TabsTrigger>
+            <TabsTrigger value="pcn">PCN Meetings</TabsTrigger>
+            <TabsTrigger value="lmc">LMC Meetings</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="deepgram-live" className="space-y-6">
-            <div className="space-y-4">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-semibold">Deepgram Live Transcription</h2>
-                <p className="text-muted-foreground">
-                  Real-time medical transcription with Deepgram Nova-2 Medical model
-                </p>
-              </div>
-              <DeepgramLiveTest />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="whisper-analysis" className="space-y-6">
-            <div className="space-y-4">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-semibold">Whisper Chunk Analysis</h2>
-                <p className="text-muted-foreground">
-                  Test OpenAI Whisper accuracy and analyze how chunks combine
-                </p>
-              </div>
-              <WhisperNonLiveTest />
-            </div>
-          </TabsContent>
 
           <TabsContent value="consultations" className="space-y-6">
             <div className="grid gap-6">
