@@ -274,14 +274,21 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Zap className="h-4 w-4 mr-2" />
                             Deepgram Service
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/multi-service-mic-test')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Mic className="h-4 w-4 mr-2" />
-                            Multi-Service Test
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/multi-service-mic-test')}
+                             className="cursor-pointer py-3"
+                           >
+                             <Mic className="h-4 w-4 mr-2" />
+                             Multi-Service Test
+                           </DropdownMenuItem>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/news-admin')}
+                             className="cursor-pointer py-3"
+                           >
+                             <Mail className="h-4 w-4 mr-2" />
+                             News Admin
+                           </DropdownMenuItem>
+                         </DropdownMenuSubContent>
                      </DropdownMenuSub>
                    )}
                    <DropdownMenuSeparator />
@@ -450,14 +457,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   Deepgram Service
                                 </Button>
                               </DrawerClose>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
-                                  <Mic className="h-4 w-4 mr-2" />
-                                  Multi-Service Test
-                                </Button>
-                              </DrawerClose>
-                            </>
-                           )}
+                               <DrawerClose asChild>
+                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
+                                   <Mic className="h-4 w-4 mr-2" />
+                                   Multi-Service Test
+                                 </Button>
+                               </DrawerClose>
+                               <DrawerClose asChild>
+                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/news-admin')}>
+                                   <Mail className="h-4 w-4 mr-2" />
+                                   News Admin
+                                 </Button>
+                               </DrawerClose>
+                             </>
+                            )}
 
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
