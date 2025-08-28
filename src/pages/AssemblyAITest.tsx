@@ -465,7 +465,14 @@ export default function AssemblyAITest() {
       {/* Full Transcript */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Full Transcript</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Full Transcript</CardTitle>
+            {fullTranscript && (
+              <Badge variant="outline" className="text-xs">
+                {fullTranscript.trim().split(/\s+/).filter(word => word.length > 0).length} words
+              </Badge>
+            )}
+          </div>
           <CardDescription>
             Continuous transcript combining all final results
           </CardDescription>
