@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Edge Function</title>
+</head>
+<body>
+    <h1>Test Process Meeting Audio Function</h1>
+    <button onclick="testFunction()">Test Function</button>
+    <div id="result"></div>
+
+    <script>
+        async function testFunction() {
+            try {
+                console.log('Testing edge function...');
+                
+                // Create a simple test audio blob
+                const testAudio = new Blob(['test audio data'], { type: 'audio/webm' });
+                
+                const formData = new FormData();
+                formData.append('audio', testAudio, 'test.webm');
+                
+                const response = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/process-meeting-audio', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+                    },
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                const text = await response.text();
+                console.log('Response text:', text);
+                
+                document.getElementById('result').innerHTML = `
+                    <p>Status: ${response.status}</p>
+                    <p>Response: ${text}</p>
+                `;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                document.getElementById('result').innerHTML = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

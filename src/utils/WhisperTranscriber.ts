@@ -96,7 +96,10 @@ export class WhisperTranscriber {
   private startChunkedRecording() {
     if (!this.mediaRecorder || !this.isRecording) return;
 
-    this.mediaRecorder.start();
+    // Only start if not already recording
+    if (this.mediaRecorder.state !== 'recording') {
+      this.mediaRecorder.start();
+    }
     
     // Process audio in 10-second chunks for better transcription quality
     // (5 seconds was too short and caused poor quality results)
@@ -106,9 +109,8 @@ export class WhisperTranscriber {
         
         // Start recording again immediately for continuous transcription
         setTimeout(() => {
-          if (this.isRecording && this.mediaRecorder) {
-            this.mediaRecorder.start();
-            this.startChunkedRecording();
+          if (this.isRecording) {
+            this.startChunkedRecording(); // Use recursive call - this handles the start() internally
           }
         }, 100);
       }
@@ -133,28 +135,34 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📡 Sending audio to process-meeting-audio (same as Meeting Recorder)...', {
+      console.log('📡 Sending audio to speech-to-text (same as other transcribers)...', {
         blobSize: audioBlob.size,
         blobType: audioBlob.type
       });
 
-      // Use the same approach as Meeting Recorder - FormData with audio file
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'chunk.webm');
+      // Convert audio blob to base64 (same approach as other transcribers)
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-      const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
-        body: formData,
+      // Use the proven speech-to-text function (not process-meeting-audio)
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: {
+          audio: base64Audio,
+          temperature: 0.2,
+          language: 'en',
+          condition_on_previous_text: false
+        }
       });
 
-      console.log('📨 API Response - Full Details:', { 
-        data: JSON.stringify(data, null, 2),
-        error: JSON.stringify(error, null, 2),
+      console.log('📨 Speech-to-text API Response:', { 
+        data: data ? JSON.stringify(data, null, 2) : 'null',
+        error: error ? JSON.stringify(error, null, 2) : 'null',
         hasData: !!data,
         hasError: !!error
       });
 
       if (error) {
-        console.error('❌ Meeting audio processing error:', {
+        console.error('❌ Speech-to-text error:', {
           error: error,
           message: error.message || 'No message'
         });
@@ -162,8 +170,8 @@ export class WhisperTranscriber {
         return;
       }
 
-      if (data?.success && data?.transcript && data.transcript.trim()) {
-        const cleanText = data.transcript.trim();
+      if (data?.text && data.text.trim()) {
+        const cleanText = data.text.trim();
         console.log('📝 Whisper transcription:', cleanText);
         
         const transcriptData: TranscriptData = {
