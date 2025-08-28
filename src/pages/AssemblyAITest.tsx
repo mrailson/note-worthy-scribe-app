@@ -77,7 +77,7 @@ export default function AssemblyAITest() {
       mediaStreamRef.current = stream;
       
       // Setup WebSocket through Supabase proxy (CSP compliant)
-      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-realtime`;
+      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime`;
       console.log('PROXY: Connecting via Supabase WebSocket proxy:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -115,29 +115,37 @@ export default function AssemblyAITest() {
             return;
           }
           
-          // Handle transcription results
+          // Handle transcription results  
           if (data.type === 'Turn' || data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {
+            console.log('PROXY: Processing transcription data:', data);
             const text = data.formatted?.text || data.text || '';
-            if (text.trim()) {
+            if (text && text.trim()) {
               setTranscripts(prev => {
                 const newEntry: TranscriptEntry = {
                   id: `${Date.now()}-${Math.random()}`,
                   text: text,
-                  isFinal: data.is_final !== false,
+                  isFinal: data.type === 'Turn' ? true : (data.is_final !== false),
                   timestamp: new Date()
                 };
                 
-                // Replace last partial with final, or add new
+                console.log('PROXY: Adding transcript:', newEntry);
+                
+                // For Turn messages (final) - just add them
+                if (data.type === 'Turn') {
+                  return [...prev, newEntry];
+                }
+                
+                // For partial/final transcripts - replace logic
                 if (data.is_final !== false) {
-                  // Final transcript - replace any partial with same text or add new
                   const withoutPartial = prev.filter(t => t.isFinal || t.text !== text);
                   return [...withoutPartial, newEntry];
                 } else {
-                  // Partial transcript - replace previous partial or add new
                   const withoutPreviousPartial = prev.filter(t => t.isFinal);
                   return [...withoutPreviousPartial, newEntry];
                 }
               });
+            } else {
+              console.log('PROXY: Empty text in message:', data);
             }
           }
         } catch (err) {
