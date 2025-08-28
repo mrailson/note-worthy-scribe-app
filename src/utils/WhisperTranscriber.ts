@@ -144,7 +144,11 @@ export class WhisperTranscriber {
       }
       const base64Audio = btoa(binary);
 
-      console.log('📡 Sending audio to Whisper API...');
+      console.log('📡 Sending audio to Whisper API...', {
+        audioSize: base64Audio.length,
+        blobSize: audioBlob.size,
+        blobType: audioBlob.type
+      });
 
       // Send to the same API endpoint used by the meeting recorder
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
@@ -156,9 +160,17 @@ export class WhisperTranscriber {
         }
       });
 
+      console.log('📨 API Response:', { data: data ? 'received' : 'null', error: error || 'none' });
+
       if (error) {
-        console.error('❌ Whisper API error:', error);
-        this.onError('Transcription failed');
+        console.error('❌ Whisper API error details:', {
+          error: error,
+          message: error.message || 'No message',
+          details: error.details || 'No details',
+          hint: error.hint || 'No hint',
+          code: error.code || 'No code'
+        });
+        this.onError(`Transcription failed: ${error.message || error.toString()}`);
         return;
       }
 
@@ -182,7 +194,12 @@ export class WhisperTranscriber {
       
       this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
     } catch (error) {
-      console.error('❌ Whisper processing error:', error);
+      console.error('❌ Whisper processing error details:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        name: error instanceof Error ? error.name : 'Unknown error type'
+      });
       this.onError(`Whisper processing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
