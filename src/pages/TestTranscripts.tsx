@@ -6,17 +6,19 @@ import { Copy, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
+import { AmazonTranscribeMedicalTest } from '@/components/AmazonTranscribeMedicalTest';
 
 const TestTranscripts = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [copiedTranscripts, setCopiedTranscripts] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState('consultations');
+  const [activeTab, setActiveTab] = useState('medical-test');
 
   // Handle URL fragments to open the correct tab
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     const tabMapping: Record<string, string> = {
+      'medical-test': 'medical-test',
       'consultations': 'consultations',
       'partnership': 'partnership', 
       'pcn': 'pcn',
@@ -507,12 +509,25 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="medical-test">Medical Test</TabsTrigger>
             <TabsTrigger value="consultations">Patient Consultations</TabsTrigger>
             <TabsTrigger value="partnership">GP Partnership</TabsTrigger>
             <TabsTrigger value="pcn">PCN Meetings</TabsTrigger>
             <TabsTrigger value="lmc">LMC Meetings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="medical-test" className="space-y-6">
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-semibold">Amazon Transcribe Medical Test</h2>
+                <p className="text-muted-foreground">
+                  Test clinical-grade speech-to-text with medical vocabulary and speaker identification
+                </p>
+              </div>
+              <AmazonTranscribeMedicalTest />
+            </div>
+          </TabsContent>
 
           <TabsContent value="consultations" className="space-y-6">
             <div className="grid gap-6">

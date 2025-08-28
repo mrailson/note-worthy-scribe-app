@@ -3,6 +3,9 @@ project_id = "dphcnbricafkbtizkoal"
 [functions.aws-transcribe-proxy]
 verify_jwt = false
 
+[functions.amazon-transcribe-medical-ws]
+verify_jwt = false
+
 [functions.assemblyai-transcription]
 verify_jwt = true
 
