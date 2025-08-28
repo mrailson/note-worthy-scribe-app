@@ -9,6 +9,7 @@ import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } fro
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { toast } from 'sonner';
+import RecorderNoAGC from '@/components/RecorderNoAGC';
 
 type ServiceType = 'browser' | 'openai' | 'whisper' | 'deepgram';
 
@@ -418,6 +419,22 @@ const DeepgramTest = () => {
             <p className="text-muted-foreground">
               Test and compare different speech-to-text services. Each service can be started independently to compare accuracy and performance.
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Raw Audio Recorder (No AGC) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Raw Audio Recorder (No AGC/NS/EC)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This recorder disables browser audio processing (Auto Gain Control, Noise Suppression, Echo Cancellation) to prevent audio fading issues. 
+                Use "This Tab" mode to capture system audio from YouTube or other sources.
+              </p>
+              <RecorderNoAGC />
+            </div>
           </CardContent>
         </Card>
 
