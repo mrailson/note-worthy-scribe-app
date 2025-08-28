@@ -3,7 +3,7 @@
 
 import { getAssemblyToken } from "@/lib/getAssemblyToken";
 
-const urlBase = "wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=";
+const urlBase = "wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&token=";
 
 type Callbacks = {
   onOpen?: () => void;
