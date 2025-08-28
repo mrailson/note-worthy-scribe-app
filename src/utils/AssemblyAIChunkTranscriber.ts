@@ -17,6 +17,7 @@ export class AssemblyAIChunkTranscriber {
   private chunkIndex = 0;
   private chunkInterval: NodeJS.Timeout | null = null;
   private currentAudioChunks: Blob[] = [];
+  private recordedMimeType: string = '';
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -43,10 +44,20 @@ export class AssemblyAIChunkTranscriber {
         }
       });
 
-      // Setup MediaRecorder with better format
-      const mimeType = MediaRecorder.isTypeSupported('audio/wav') 
-        ? 'audio/wav' 
-        : 'audio/webm;codecs=opus';
+      // Setup MediaRecorder with best supported format for AssemblyAI
+      let mimeType: string;
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+        mimeType = 'audio/wav';
+      } else {
+        mimeType = 'audio/webm'; // fallback
+      }
+      
+      this.recordedMimeType = mimeType;
+      console.log(`🎙️ Using MediaRecorder MIME type: ${this.recordedMimeType}`);
       
       this.mediaRecorder = new MediaRecorder(this.audioStream, {
         mimeType,
@@ -112,8 +123,10 @@ export class AssemblyAIChunkTranscriber {
       
       this.onStatusChange(`Processing chunk ${chunkIndex}...`);
 
-      // Combine all audio chunks into a single blob
-      const audioBlob = new Blob(chunks);
+      // Combine all audio chunks into a single blob with proper MIME type
+      const audioBlob = new Blob(chunks, { type: this.recordedMimeType });
+      
+      console.log(`📦 Audio blob created: ${audioBlob.size} bytes, MIME: ${audioBlob.type}`);
       
       // Skip very small chunks (less than 2KB)
       if (audioBlob.size < 2000) {
@@ -127,10 +140,12 @@ export class AssemblyAIChunkTranscriber {
 
       // Send to edge function
       try {
+        console.log(`🚀 Sending to AssemblyAI: chunk ${chunkIndex}, MIME: ${audioBlob.type}, size: ${base64Audio.length} chars`);
+        
         const { data, error } = await supabase.functions.invoke('assemblyai-transcription', {
           body: { 
             audio: base64Audio,
-            mimeType: audioBlob.type || 'audio/wav',
+            mimeType: audioBlob.type,
             chunkIndex
           }
         });
