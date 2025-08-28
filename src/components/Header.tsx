@@ -245,55 +245,60 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      </DropdownMenuItem>
                    )}
                    
-                   {/* System Admin Menu */}
-                   {isSystemAdmin && (
-                     <DropdownMenuSub>
-                       <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                         <Shield className="h-4 w-4 mr-2" />
-                         System Admin
-                       </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/admin')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Wrench className="h-4 w-4 mr-2" />
-                            Admin Dashboard
-                          </DropdownMenuItem>
+                    {/* System Admin Menu */}
+                    {isSystemAdmin && (
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                          <Shield className="h-4 w-4 mr-2" />
+                          System Admin
+                        </DropdownMenuSubTrigger>
+                         <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
                            <DropdownMenuItem 
-                             onClick={() => navigate('/security-compliance')}
+                             onClick={() => navigate('/admin')}
                              className="cursor-pointer py-3"
                            >
-                             <BookOpen className="h-4 w-4 mr-2" />
-                             Security Documentation
+                             <Wrench className="h-4 w-4 mr-2" />
+                             Admin Dashboard
                            </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/deepgram-test')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Zap className="h-4 w-4 mr-2" />
-                            Deepgram Service
-                          </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/security-compliance')}
+                              className="cursor-pointer py-3"
+                            >
+                              <BookOpen className="h-4 w-4 mr-2" />
+                              Security Documentation
+                            </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/multi-service-mic-test')}
+                             onClick={() => navigate('/deepgram-test')}
                              className="cursor-pointer py-3"
                            >
-                             <Mic className="h-4 w-4 mr-2" />
-                             Multi-Service Test
+                             <Zap className="h-4 w-4 mr-2" />
+                             Deepgram Service
                            </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => {
-                               console.log('Navigating to news-admin');
-                               navigate('/news-admin');
-                             }}
-                             className="cursor-pointer py-3"
-                           >
-                             <Mail className="h-4 w-4 mr-2" />
-                             News Admin
-                           </DropdownMenuItem>
-                         </DropdownMenuSubContent>
-                     </DropdownMenuSub>
-                   )}
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/multi-service-mic-test')}
+                              className="cursor-pointer py-3"
+                            >
+                              <Mic className="h-4 w-4 mr-2" />
+                              Multi-Service Test
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )}
+                    
+                    {/* News Admin - separate top-level menu item */}
+                    {isSystemAdmin && (
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          console.log('News Admin clicked!');
+                          window.location.href = '/news-admin';
+                        }}
+                        className="cursor-pointer py-3"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        News Admin
+                      </DropdownMenuItem>
+                    )}
                    <DropdownMenuSeparator />
                    <DropdownMenuItem 
                      onClick={signOut}
