@@ -18,7 +18,7 @@ export default function AssemblyAITest() {
   const [isConnected, setIsConnected] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [fullTranscript, setFullTranscript] = useState<string>('');
-  const [processedTurns, setProcessedTurns] = useState<Set<number>>(new Set());
+  const [lastAddedText, setLastAddedText] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   
@@ -134,9 +134,9 @@ export default function AssemblyAITest() {
                 
                 // For Turn messages (final) - just add them
                 if (data.type === 'Turn') {
-                  // Only add to full transcript if it's truly the end of the turn and we haven't processed this turn yet
-                  if (data.end_of_turn && data.turn_order !== undefined && !processedTurns.has(data.turn_order)) {
-                    setProcessedTurns(prev => new Set([...prev, data.turn_order]));
+                  // Only add to full transcript if it's truly the end of the turn and different from last added text
+                  if (data.end_of_turn && text !== lastAddedText) {
+                    setLastAddedText(text);
                     setFullTranscript(prev => prev + (prev ? ' ' : '') + text);
                   }
                   return [...prev, newEntry];
@@ -256,7 +256,7 @@ export default function AssemblyAITest() {
   const clearTranscripts = () => {
     setTranscripts([]);
     setFullTranscript('');
-    setProcessedTurns(new Set());
+    setLastAddedText('');
     setError(null);
   };
 
