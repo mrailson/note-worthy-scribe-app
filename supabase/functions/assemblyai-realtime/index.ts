@@ -36,8 +36,18 @@ Deno.serve(async (req: Request) => {
 
     socket.onmessage = async (event) => {
       try {
+        // Handle binary data (audio)
+        if (event.data instanceof ArrayBuffer) {
+          console.log('📡 Received binary audio data, size:', event.data.byteLength);
+          if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
+            assemblySocket.send(event.data);
+          }
+          return;
+        }
+        
+        // Handle text/JSON messages
         const message = JSON.parse(event.data);
-        console.log('📨 Received message from client:', message.type || 'audio data');
+        console.log('📨 Received message from client:', message.type || 'unknown');
         
         // Handle session start message to create AssemblyAI connection
         if (message.type === 'session.start') {
