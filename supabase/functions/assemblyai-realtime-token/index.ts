@@ -2,10 +2,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = (origin: string | null) => ({
-  // Allow your Lovable app origin in production. During testing, "*" is fine.
   "Access-Control-Allow-Origin": origin || "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  // ⬇️ Include ALL headers Supabase may send
+  "Access-Control-Allow-Headers":
+    "authorization, content-type, apikey, x-client-info",
   "Access-Control-Max-Age": "86400",
   "Content-Type": "application/json",
 });
