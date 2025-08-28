@@ -1,10 +1,8 @@
-// supabase/functions/assemblyai-realtime-token/index.ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const cors = (origin: string | null) => ({
   "Access-Control-Allow-Origin": origin || "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  // ✅ must include these two for supabase-js
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
   "Access-Control-Max-Age": "86400",
   "Content-Type": "application/json",
@@ -12,11 +10,7 @@ const cors = (origin: string | null) => ({
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
-
-  // Preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors(origin) });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors(origin) });
 
   try {
     const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
@@ -26,10 +20,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const r = await fetch("https://api.assemblyai.com/v2/realtime/token", {
-      method: "POST",
-      headers: { Authorization: AAI_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ expires_in: 3600 }),
+    // v3: GET /v3/token with expires_in_seconds
+    const url = new URL("https://streaming.assemblyai.com/v3/token");
+    url.searchParams.set("expires_in_seconds", "300"); // 5 minutes; 1–600 allowed
+
+    const r = await fetch(url.toString(), {
+      method: "GET",
+      headers: { Authorization: AAI_KEY },
     });
 
     if (!r.ok) {
@@ -39,10 +36,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const data = await r.json(); // { token }
-    return new Response(JSON.stringify({ token: data.token }), {
-      headers: cors(origin),
-    });
+    const data = await r.json(); // { token, expires_in_seconds }
+    return new Response(JSON.stringify({ token: data.token }), { headers: cors(origin) });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
       status: 500, headers: cors(origin),
