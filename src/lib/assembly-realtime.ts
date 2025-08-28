@@ -1,6 +1,10 @@
 // src/lib/assembly-realtime.ts
 // Minimal Realtime client for AssemblyAI. Handles: get token, open WS, send base64 PCM16, receive partial/final.
 
+import { getAssemblyToken } from "@/lib/getAssemblyToken";
+
+const urlBase = "wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=";
+
 type Callbacks = {
   onOpen?: () => void;
   onPartial?: (text: string) => void;
@@ -20,32 +24,31 @@ export class AssemblyRealtimeClient {
   constructor(private callbacks: Callbacks = {}) {}
 
   async start() {
-    try {
-      console.log('[AssemblyAI-Realtime] Starting client...');
-      
-      // 1) Get short-lived token from your backend
-      const { getAssemblyToken } = await import("./getAssemblyToken");
-      const token = await getAssemblyToken();
-      console.log('[AssemblyAI-Realtime] Token obtained successfully');
+    const token = await getAssemblyToken();
+    return this.startWithToken(token);
+  }
 
-      // 2) Open realtime websocket
-      const url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${encodeURIComponent(token)}`;
-      console.log('[AssemblyAI-Realtime] Connecting to WebSocket...');
-      this.ws = new WebSocket(url);
+  async startWithToken(token: string) {
+    try {
+      console.log('[AAI] Starting client...');
+      
+      // Open realtime websocket
+      this.ws = new WebSocket(urlBase + encodeURIComponent(token));
+      console.log('[AAI] Connecting to WebSocket...');
 
       this.ws.onopen = () => {
-        console.log('[AssemblyAI-Realtime] WebSocket connected');
+        console.info("[AAI] WS open");
         this.callbacks.onOpen?.();
         this.sending = true;
       };
 
       this.ws.onerror = (e) => {
-        console.error('[AssemblyAI-Realtime] WebSocket error:', e);
+        console.error("[AAI] WS error", e);
         this.callbacks.onError?.(e);
       };
 
       this.ws.onclose = (ev) => {
-        console.log('[AssemblyAI-Realtime] WebSocket closed:', ev.code, ev.reason);
+        console.warn("[AAI] WS closed", ev.code, ev.reason);
         this.sending = false;
         this.callbacks.onClose?.(ev.code, ev.reason || "");
         this.cleanupAudio();
@@ -54,7 +57,7 @@ export class AssemblyRealtimeClient {
       this.ws.onmessage = (msg) => {
         try {
           const data = JSON.parse(msg.data as string);
-          console.log('[AssemblyAI-Realtime] Received message:', data);
+          console.log('[AAI] Received message:', data);
           
           // AssemblyAI realtime commonly returns message types with transcripts, e.g.:
           // { "message_type": "PartialTranscript", "transcript": "..." }
@@ -68,12 +71,12 @@ export class AssemblyRealtimeClient {
             this.callbacks.onFinal?.(t);
           }
         } catch (err) {
-          console.error('[AssemblyAI-Realtime] Error parsing message:', err);
+          console.error('[AAI] Error parsing message:', err);
         }
       };
 
-      // 3) Start mic + 16k mono PCM stream
-      console.log('[AssemblyAI-Realtime] Starting microphone...');
+      // Start mic + 16k mono PCM stream
+      console.log('[AAI] Starting microphone...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           sampleRate: 16000,
@@ -103,10 +106,10 @@ export class AssemblyRealtimeClient {
         this.ws!.send(JSON.stringify({ audio_data: base64 }));
       };
       
-      console.log('[AssemblyAI-Realtime] Client started successfully');
+      console.log('[AAI] Client started successfully');
       
     } catch (err) {
-      console.error('[AssemblyAI-Realtime] Start error:', err);
+      console.error('[AAI] Start error:', err);
       this.callbacks.onError?.(err);
       this.stop();
     }
@@ -114,7 +117,7 @@ export class AssemblyRealtimeClient {
 
   stop() {
     try {
-      console.log('[AssemblyAI-Realtime] Stopping client...');
+      console.log('[AAI] Stopping client...');
       this.sending = false;
       
       // Tell server we're done (optional but nice)
@@ -124,9 +127,9 @@ export class AssemblyRealtimeClient {
       this.ws?.close();
       this.cleanupAudio();
       
-      console.log('[AssemblyAI-Realtime] Client stopped');
+      console.log('[AAI] Client stopped');
     } catch (err) {
-      console.error('[AssemblyAI-Realtime] Stop error:', err);
+      console.error('[AAI] Stop error:', err);
     }
   }
 
@@ -136,7 +139,7 @@ export class AssemblyRealtimeClient {
       this.source?.disconnect();
       this.audioCtx?.close();
     } catch (err) {
-      console.error('[AssemblyAI-Realtime] Audio cleanup error:', err);
+      console.error('[AAI] Audio cleanup error:', err);
     }
     this.processor = undefined;
     this.source = undefined;

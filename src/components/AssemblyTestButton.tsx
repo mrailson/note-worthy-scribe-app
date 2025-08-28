@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
+import { getAssemblyToken } from "@/lib/getAssemblyToken";
 
 export default function AssemblyTestButton() {
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
@@ -11,35 +12,43 @@ export default function AssemblyTestButton() {
 
   const start = async () => {
     if (running) return;
-    setStatus("connecting");
-    setLastError("");
-    setFinals([]);
-    setPartial("");
+    
+    try {
+      setStatus("connecting");
+      setLastError("");
+      setFinals([]);
+      setPartial("");
 
-    const client = new AssemblyRealtimeClient({
-      onOpen: () => {
-        setStatus("live");
-        setRunning(true);
-      },
-      onPartial: (t) => setPartial(t),
-      onFinal: (t) => {
-        if (t?.trim()) setFinals((old) => [...old, t]);
-        setPartial("");
-      },
-      onClose: (code, reason) => {
-        setRunning(false);
-        setStatus("idle");
-        if (code !== 1000) setLastError(`Closed: ${code} ${reason || ""}`);
-      },
-      onError: (e) => {
-        setRunning(false);
-        setStatus("error");
-        setLastError(e?.message || String(e));
-      },
-    });
+      const token = await getAssemblyToken(); // <- if this throws, you'll see it
+      
+      const client = new AssemblyRealtimeClient({
+        onOpen: () => {
+          setStatus("live");
+          setRunning(true);
+        },
+        onPartial: (t) => setPartial(t),
+        onFinal: (t) => {
+          if (t?.trim()) setFinals((old) => [...old, t]);
+          setPartial("");
+        },
+        onClose: (code, reason) => {
+          setRunning(false);
+          setStatus("idle");
+          if (code !== 1000) setLastError(`Closed: ${code} ${reason || ""}`);
+        },
+        onError: (e) => {
+          setRunning(false);
+          setStatus("error");
+          setLastError(e?.message || String(e));
+        },
+      });
 
-    clientRef.current = client;
-    await client.start();
+      clientRef.current = client;
+      await client.startWithToken(token); // use startWithToken method
+    } catch (e: any) {
+      setStatus("error");
+      setLastError(e?.message || String(e));
+    }
   };
 
   const stop = () => {
