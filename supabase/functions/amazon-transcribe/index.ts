@@ -13,6 +13,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Check for WebSocket upgrade
+  if (req.headers.get("upgrade") === "websocket") {
+    console.log('WebSocket upgrade requested for Amazon Transcribe');
+    return handleWebSocketUpgrade(req);
+  }
+
   try {
     // Get AWS credentials from environment
     const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
@@ -168,6 +174,155 @@ serve(async (req) => {
     );
   }
 });
+
+// WebSocket handler for real-time streaming
+async function handleWebSocketUpgrade(req: Request): Promise<Response> {
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  
+  let awsWebSocket: WebSocket | null = null;
+  
+  socket.onopen = async () => {
+    console.log('Client WebSocket connected to Amazon Transcribe proxy');
+    
+    try {
+      // Generate signed WebSocket URL for AWS Transcribe
+      const signedUrl = await buildSignedTranscribeUrl();
+      console.log('Connecting to AWS Transcribe with signed URL...');
+      
+      // Connect to AWS Transcribe
+      awsWebSocket = new WebSocket(signedUrl);
+      
+      awsWebSocket.onopen = () => {
+        console.log('✅ Connected to AWS Transcribe WebSocket');
+      };
+      
+      awsWebSocket.onmessage = (event) => {
+        try {
+          // Forward AWS messages to client
+          socket.send(event.data);
+        } catch (error) {
+          console.error('Error forwarding AWS message to client:', error);
+        }
+      };
+      
+      awsWebSocket.onerror = (error) => {
+        console.error('AWS WebSocket error:', error);
+        socket.send(JSON.stringify({ error: 'AWS connection error' }));
+      };
+      
+      awsWebSocket.onclose = () => {
+        console.log('AWS WebSocket closed');
+        socket.close();
+      };
+      
+    } catch (error) {
+      console.error('Error connecting to AWS Transcribe:', error);
+      socket.send(JSON.stringify({ error: 'Failed to connect to AWS Transcribe' }));
+      socket.close();
+    }
+  };
+  
+  socket.onmessage = (event) => {
+    try {
+      // Forward client audio data to AWS
+      if (awsWebSocket && awsWebSocket.readyState === WebSocket.OPEN) {
+        awsWebSocket.send(event.data);
+      }
+    } catch (error) {
+      console.error('Error forwarding client message to AWS:', error);
+    }
+  };
+  
+  socket.onclose = () => {
+    console.log('Client WebSocket disconnected');
+    if (awsWebSocket) {
+      awsWebSocket.close();
+    }
+  };
+  
+  socket.onerror = (error) => {
+    console.error('Client WebSocket error:', error);
+    if (awsWebSocket) {
+      awsWebSocket.close();
+    }
+  };
+  
+  return response;
+}
+
+// Build signed WebSocket URL for AWS Transcribe
+async function buildSignedTranscribeUrl(): Promise<string> {
+  const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
+  const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
+  const region = Deno.env.get('AWS_REGION') || 'us-east-1';
+  const languageCode = Deno.env.get('TRANSCRIBE_LANG_CODE') || 'en-US';
+  const sampleRate = Deno.env.get('TRANSCRIBE_SAMPLE_RATE') || '16000';
+  
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error('AWS credentials not configured');
+  }
+  
+  const service = 'transcribe';
+  const host = `transcribestreaming.${region}.amazonaws.com:8443`;
+  const endpoint = `wss://${host}/stream-transcription-websocket`;
+  
+  // Create timestamp
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.substr(0, 8);
+  
+  // Query parameters for transcribe streaming
+  const params = new URLSearchParams({
+    'language-code': languageCode,
+    'media-encoding': 'pcm',
+    'sample-rate': sampleRate,
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256'
+  });
+  
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  params.set('X-Amz-Credential', `${accessKeyId}/${credentialScope}`);
+  params.set('X-Amz-Date', amzDate);
+  params.set('X-Amz-Expires', '300');
+  params.set('X-Amz-SignedHeaders', 'host');
+  
+  // Create canonical request
+  const canonicalUri = '/stream-transcription-websocket';
+  const canonicalQuerystring = params.toString();
+  const canonicalHeaders = `host:${host}\n`;
+  const signedHeaders = 'host';
+  const payloadHash = await sha256('');
+  
+  const canonicalRequest = [
+    'GET',
+    canonicalUri,
+    canonicalQuerystring,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash
+  ].join('\n');
+  
+  // Create string to sign
+  const algorithm = 'AWS4-HMAC-SHA256';
+  const stringToSign = [
+    algorithm,
+    amzDate,
+    credentialScope,
+    await sha256(canonicalRequest)
+  ].join('\n');
+  
+  // Calculate signature
+  const kDate = await hmacSha256(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = await hmacSha256(kDate, region);
+  const kService = await hmacSha256(kRegion, service);
+  const kSigning = await hmacSha256(kService, 'aws4_request');
+  const signature = await hmacSha256(kSigning, stringToSign);
+  
+  // Add signature to query parameters
+  params.set('X-Amz-Signature', signature);
+  
+  // Construct final WebSocket URL
+  return `${endpoint}?${params.toString()}`;
+}
 
 // Helper function to calculate SHA-256 hash
 async function sha256(message: string): Promise<string> {

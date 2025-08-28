@@ -8,11 +8,12 @@ import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData }
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
+import { AmazonTranscribeRealtimeTranscriber, TranscriptData as AmazonTranscriptData } from '@/utils/AmazonTranscribeRealtimeTranscriber';
 import { toast } from 'sonner';
 import RecorderNoAGC from '@/components/RecorderNoAGC';
 import { generateWordDocument } from '@/utils/documentGenerators';
 
-type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'raw-audio-mic' | 'raw-audio-tab';
+type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'amazon-transcribe' | 'raw-audio-mic' | 'raw-audio-tab';
 
 interface ServiceData {
   isRecording: boolean;
@@ -43,6 +44,14 @@ const DeepgramTest = () => {
       transcriber: null
     },
     deepgram: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    'amazon-transcribe': {
       isRecording: false,
       transcriptData: [],
       currentTranscript: '',
@@ -180,6 +189,14 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
+        case 'amazon-transcribe':
+          transcriber = new AmazonTranscribeRealtimeTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange,
+            callbacks.onSummary
+          );
+          break;
         default:
           throw new Error('Unknown service type');
       }
@@ -253,6 +270,7 @@ const DeepgramTest = () => {
             browser: 'Browser Speech API',
             whisper: 'Whisper AI',
             deepgram: 'Deepgram Realtime',
+            'amazon-transcribe': 'Amazon Transcribe Realtime',
             'raw-audio-mic': 'Raw Audio (No AGC)',
             'raw-audio-tab': 'Raw Audio (Share Tab)'
           };
@@ -318,6 +336,7 @@ const DeepgramTest = () => {
       browser: 'Browser Speech API',
       whisper: 'Whisper AI (Local)',
       deepgram: 'Deepgram Realtime',
+      'amazon-transcribe': 'Amazon Transcribe Realtime',
       'raw-audio-mic': 'Raw Audio (No AGC)',
       'raw-audio-tab': 'Raw Audio (Share Tab)'
     };
@@ -326,6 +345,7 @@ const DeepgramTest = () => {
       browser: <Smartphone className="w-4 h-4" />,
       whisper: <Bot className="w-4 h-4" />,
       deepgram: <Radio className="w-4 h-4" />,
+      'amazon-transcribe': <Radio className="w-4 h-4" />,
       'raw-audio-mic': <Headphones className="w-4 h-4" />,
       'raw-audio-tab': <Monitor className="w-4 h-4" />
     };
@@ -501,9 +521,10 @@ const DeepgramTest = () => {
         <div className="w-full">
           <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
             {[
-              { key: 'browser', icon: Smartphone, label: 'Browser' },
+            { key: 'browser', icon: Smartphone, label: 'Browser' },
               { key: 'whisper', icon: Bot, label: 'Whisper' },
               { key: 'deepgram', icon: Radio, label: 'Deepgram' },
+              { key: 'amazon-transcribe', icon: Radio, label: 'Amazon Transcribe' },
               { key: 'raw-audio-mic', icon: Headphones, label: 'Raw Audio (Mic)' },
               { key: 'raw-audio-tab', icon: Monitor, label: 'Raw Audio (Tab)' }
             ].map(({ key, icon: Icon, label }) => (
@@ -565,6 +586,7 @@ const DeepgramTest = () => {
                       browser: 'Browser Speech API',
                       whisper: 'Whisper AI',
                       deepgram: 'Deepgram Realtime',
+                      'amazon-transcribe': 'Amazon Transcribe Realtime',
                       'raw-audio-mic': 'Raw Audio (No AGC)',
                       'raw-audio-tab': 'Raw Audio (Share Tab)'
                     };
@@ -573,6 +595,7 @@ const DeepgramTest = () => {
                       browser: <Smartphone className="w-4 h-4" />,
                       whisper: <Bot className="w-4 h-4" />,
                       deepgram: <Radio className="w-4 h-4" />,
+                      'amazon-transcribe': <Radio className="w-4 h-4" />,
                       'raw-audio-mic': <Headphones className="w-4 h-4" />,
                       'raw-audio-tab': <Monitor className="w-4 h-4" />
                     };
