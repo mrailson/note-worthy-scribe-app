@@ -36,25 +36,50 @@ export default function GPGenieVoiceAgent({ onClose }: GPGenieVoiceAgentProps) {
 
   const startConversation = async () => {
     try {
+      console.log('GP Genie: Starting conversation...');
       setIsConnecting(true);
       
       // Request microphone permission
+      console.log('GP Genie: Requesting microphone permission...');
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('GP Genie: Microphone permission granted');
       
       // Get signed URL
+      console.log('GP Genie: Getting signed URL from edge function...');
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId: GP_GENIE_AGENT_ID }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('GP Genie: Edge function error:', error);
+        throw error;
+      }
+
+      if (!data?.signed_url) {
+        console.error('GP Genie: No signed URL received:', data);
+        throw new Error('No signed URL received from server');
+      }
+      
+      console.log('GP Genie: Got signed URL, starting ElevenLabs session...');
       
       // Start conversation
       await conversation.startSession({ signedUrl: data.signed_url });
+      console.log('GP Genie: Session started successfully');
       
     } catch (error) {
-      console.error('Failed to start conversation:', error);
+      console.error('GP Genie: Failed to start conversation:', error);
       setIsConnecting(false);
-      toast.error('Failed to start conversation');
+      
+      let errorMessage = 'Failed to start conversation';
+      if (error.message?.includes('microphone') || error.message?.includes('permission')) {
+        errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
+      } else if (error.message?.includes('ELEVENLABS_API_KEY')) {
+        errorMessage = 'ElevenLabs API key not configured. Please check your settings.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
