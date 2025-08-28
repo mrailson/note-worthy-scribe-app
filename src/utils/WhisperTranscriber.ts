@@ -146,10 +146,11 @@ export class WhisperTranscriber {
         body: formData,
       });
 
-      console.log('📨 API Response:', { 
-        success: data?.success || false, 
-        transcript: data?.transcript ? 'received' : 'none',
-        error: error || 'none' 
+      console.log('📨 API Response - Full Details:', { 
+        data: JSON.stringify(data, null, 2),
+        error: JSON.stringify(error, null, 2),
+        hasData: !!data,
+        hasError: !!error
       });
 
       if (error) {
