@@ -282,7 +282,10 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              Multi-Service Test
                            </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/news-admin')}
+                             onClick={() => {
+                               console.log('Navigating to news-admin');
+                               navigate('/news-admin');
+                             }}
                              className="cursor-pointer py-3"
                            >
                              <Mail className="h-4 w-4 mr-2" />
