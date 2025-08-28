@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 
 type SourceMode = "mic" | "tab";
 
-const WS_URL = "wss://YOUR_STT_WS"; // TODO: replace with your STT WS endpoint
+const WS_URL = "wss://ijwvewydcrstnpwusxzu.supabase.co/functions/v1/recorder-websocket-transcription";
 
 export default function RecorderNoAGC() {
   const [mode, setMode] = useState<SourceMode>("mic");
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState("idle");
   const [level, setLevel] = useState(0);
+  const [transcriptions, setTranscriptions] = useState<string[]>([]);
+  const [currentTranscript, setCurrentTranscript] = useState("");
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -143,6 +145,13 @@ export default function RecorderNoAGC() {
   function stop() {
     if (!recording) return;
     setStatus("Stopping…");
+    
+    // Send stop signal to flush any remaining audio
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'stop' }));
+    }
+    
     teardown();
     setStatus("Stopped");
     setRecording(false);
@@ -194,11 +203,32 @@ export default function RecorderNoAGC() {
           chunkQueueRef.current = [];
           resolve();
         };
-        ws.onclose = () => log("WS closed");
-        ws.onerror = (e) => log("WS error:", e);
-        ws.onmessage = (msg) => {
-          // optional: handle transcripts
-          // log("WS message:", msg.data);
+        ws.onclose = () => {
+          log("WS closed");
+          setStatus("WebSocket disconnected");
+        };
+        ws.onerror = (e) => {
+          log("WS error:", e);
+          setStatus("WebSocket error");
+        };
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            log("WS message:", data);
+            
+            if (data.type === 'transcription') {
+              setTranscriptions(prev => [...prev, data.text]);
+              setCurrentTranscript(data.text);
+              setStatus(`Transcribed: ${data.text.substring(0, 30)}...`);
+            } else if (data.type === 'connection') {
+              setStatus(data.message);
+            } else if (data.type === 'error') {
+              setStatus(`Error: ${data.message}`);
+              log("Transcription error:", data.message);
+            }
+          } catch (e) {
+            log("Failed to parse WS message:", e);
+          }
         };
       } catch (e) {
         reject(e);
@@ -249,16 +279,49 @@ export default function RecorderNoAGC() {
           style={{ 
             width: `${Math.min(100, Math.round(level * 160))}%`, 
             height: "100%",
-            background: "#4CAF50",
-            transition: "width 0.1s ease"
+            backgroundColor: recording ? "#22c55e" : "#e5e7eb",
+            transition: "width 0.1s ease-out"
           }} 
         />
       </div>
       <div style={{ fontSize: 12, color: "#555" }}>{status}</div>
 
+      {/* Current Transcript */}
+      {currentTranscript && (
+        <div style={{ marginTop: 8, padding: 8, background: "#f9fafb", borderRadius: 4, border: "1px solid #e5e7eb" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>Latest Transcription:</div>
+          <div style={{ fontSize: 12, color: "#374151" }}>{currentTranscript}</div>
+        </div>
+      )}
+
+      {/* All Transcriptions */}
+      {transcriptions.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>
+            All Transcriptions ({transcriptions.length}):
+          </div>
+          <div style={{ 
+            maxHeight: 120, 
+            overflowY: "auto", 
+            padding: 8, 
+            background: "#f9fafb", 
+            borderRadius: 4, 
+            border: "1px solid #e5e7eb",
+            fontSize: 11,
+            lineHeight: 1.4
+          }}>
+            {transcriptions.map((text, index) => (
+              <div key={index} style={{ marginBottom: 4, paddingBottom: 4, borderBottom: index < transcriptions.length - 1 ? "1px solid #e5e7eb" : "none" }}>
+                <span style={{ color: "#6b7280" }}>#{index + 1}:</span> {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginTop: 8, fontSize: 12, color: "#777" }}>
-        If audio fades after a few seconds, this component disables browser processing that causes it
-        (auto gain control / noise suppression / echo cancellation). For system audio, use "This Tab".
+        This recorder disables browser audio processing (AGC/NS/EC) and transcribes speech using OpenAI Whisper.
+        For system audio, use "This Tab" mode.
       </div>
     </div>
   );
