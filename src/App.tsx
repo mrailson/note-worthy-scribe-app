@@ -36,7 +36,6 @@ import NHSMeetingNotes from "./pages/NHSMeetingNotes";
 import TestTranscripts from "./pages/TestTranscripts";
 
 import NotFound from "./pages/NotFound";
-import NewsAdmin from "./pages/NewsAdmin";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
@@ -84,13 +83,13 @@ const App = () => (
             <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
             <Route path="/loading-animation-demo" element={<LoadingAnimationDemo />} />
             <Route path="/api-testing" element={<APITesting />} />
+            <Route path="/image-create" element={<ImageCreate />} />
             <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
             <Route path="/deepgram-test" element={<DeepgramTest />} />
             <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />
             <Route path="/browser-recorder" element={<BrowserRecorder />} />
             <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
             <Route path="/test-transcripts" element={<TestTranscripts />} />
-            <Route path="/news-admin" element={<NewsAdmin />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             
