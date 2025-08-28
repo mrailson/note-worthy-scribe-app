@@ -3,6 +3,12 @@ project_id = "dphcnbricafkbtizkoal"
 [functions.assemblyai-realtime]
 verify_jwt = false
 
+[functions.assemblyai-realtime-token]
+verify_jwt = false
+
+[functions.deepgram-streaming]
+verify_jwt = false
+
 [functions.assemblyai-transcription]
 verify_jwt = true
 

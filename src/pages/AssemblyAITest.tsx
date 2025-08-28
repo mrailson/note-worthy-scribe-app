@@ -411,12 +411,18 @@ export default function AssemblyAITest() {
           <p className="text-muted-foreground mt-2">
             Test AssemblyAI's real-time speech-to-text capabilities
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex gap-2">
             <Button 
               variant="outline" 
               onClick={() => window.location.href = '/assemblyai-test-simple'}
             >
               Go to Diagnostic Mode
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/transcription-comparison'}
+            >
+              Compare All Services
             </Button>
           </div>
         </div>
