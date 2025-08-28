@@ -3,16 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Loader2, Smartphone, Bot, Radio, Headphones, Monitor, Download } from 'lucide-react';
+import { Mic, MicOff, Loader2, Smartphone, Zap, Bot, Radio } from 'lucide-react';
 import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { toast } from 'sonner';
-import RecorderNoAGC from '@/components/RecorderNoAGC';
-import { generateWordDocument } from '@/utils/documentGenerators';
 
-type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'raw-audio-mic' | 'raw-audio-tab';
+type ServiceType = 'browser' | 'openai' | 'whisper' | 'deepgram';
 
 interface ServiceData {
   isRecording: boolean;
@@ -34,6 +32,14 @@ const DeepgramTest = () => {
       isLoading: false,
       transcriber: null
     },
+    openai: {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
     whisper: {
       isRecording: false,
       transcriptData: [],
@@ -47,22 +53,6 @@ const DeepgramTest = () => {
       transcriptData: [],
       currentTranscript: '',
       status: 'Disconnected',
-      isLoading: false,
-      transcriber: null
-    },
-    'raw-audio-mic': {
-      isRecording: false,
-      transcriptData: [],
-      currentTranscript: '',
-      status: 'Ready',
-      isLoading: false,
-      transcriber: null
-    },
-    'raw-audio-tab': {
-      isRecording: false,
-      transcriptData: [],
-      currentTranscript: '',
-      status: 'Ready',
       isLoading: false,
       transcriber: null
     }
@@ -164,6 +154,13 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
+        case 'openai':
+          transcriber = new OpenAIRealtimeTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange
+          );
+          break;
         case 'whisper':
           transcriber = new WhisperTranscriber(
             callbacks.onTranscription,
@@ -242,92 +239,20 @@ const DeepgramTest = () => {
     toast.success(`${serviceType} transcripts cleared`);
   };
 
-  const exportToWord = async () => {
-    try {
-      // Collect all transcriptions from all services
-      const allTranscriptions: string[] = [];
-      
-      Object.entries(services).forEach(([serviceType, service]) => {
-        if (service.transcriptData.length > 0) {
-          const serviceNames = {
-            browser: 'Browser Speech API',
-            whisper: 'Whisper AI',
-            deepgram: 'Deepgram Realtime',
-            'raw-audio-mic': 'Raw Audio (No AGC)',
-            'raw-audio-tab': 'Raw Audio (Share Tab)'
-          };
-          
-          const fullText = service.transcriptData.map(data => data.text).join(' ');
-          allTranscriptions.push(`## ${serviceNames[serviceType as ServiceType]}\n\n${fullText}`);
-        }
-      });
-      
-      if (allTranscriptions.length === 0) {
-        toast.error('No transcriptions available to export');
-        return;
-      }
-      
-      const content = allTranscriptions.join('\n\n---\n\n');
-      const title = `Multi-Service Transcription - ${new Date().toLocaleDateString()}`;
-      
-      await generateWordDocument(content, title, true);
-      toast.success('Word document exported successfully');
-    } catch (error) {
-      console.error('Error exporting to Word:', error);
-      toast.error('Failed to export Word document');
-    }
-  };
-
   const renderServicePanel = (serviceType: ServiceType) => {
     const service = services[serviceType];
-    
-    // Handle raw audio services differently
-    if (serviceType === 'raw-audio-mic' || serviceType === 'raw-audio-tab') {
-      return (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {serviceType === 'raw-audio-mic' ? 
-                  <Headphones className="w-4 h-4" /> : 
-                  <Monitor className="w-4 h-4" />
-                }
-                <span>
-                  {serviceType === 'raw-audio-mic' ? 
-                    'Raw Audio (No AGC)' : 
-                    'Raw Audio (Share Tab)'
-                  }
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                {serviceType === 'raw-audio-mic' 
-                  ? 'Records audio from microphone with no browser processing (AGC/NS/EC disabled) and transcribes using OpenAI Whisper.'
-                  : 'Captures tab audio (like YouTube) with no browser processing and transcribes using OpenAI Whisper.'
-                }
-              </p>
-              <RecorderNoAGC />
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-    
     const serviceNames = {
       browser: 'Browser Speech API',
+      openai: 'OpenAI Realtime',
       whisper: 'Whisper AI (Local)',
-      deepgram: 'Deepgram Realtime',
-      'raw-audio-mic': 'Raw Audio (No AGC)',
-      'raw-audio-tab': 'Raw Audio (Share Tab)'
+      deepgram: 'Deepgram Realtime'
     };
     
     const serviceIcons = {
       browser: <Smartphone className="w-4 h-4" />,
+      openai: <Zap className="w-4 h-4" />,
       whisper: <Bot className="w-4 h-4" />,
-      deepgram: <Radio className="w-4 h-4" />,
-      'raw-audio-mic': <Headphones className="w-4 h-4" />,
-      'raw-audio-tab': <Monitor className="w-4 h-4" />
+      deepgram: <Radio className="w-4 h-4" />
     };
 
     return (
@@ -496,58 +421,14 @@ const DeepgramTest = () => {
           </CardContent>
         </Card>
 
-
-        {/* Service Tabs */}
-        <div className="w-full">
-          <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
-            {[
-              { key: 'browser', icon: Smartphone, label: 'Browser' },
-              { key: 'whisper', icon: Bot, label: 'Whisper' },
-              { key: 'deepgram', icon: Radio, label: 'Deepgram' },
-              { key: 'raw-audio-mic', icon: Headphones, label: 'Raw Audio (Mic)' },
-              { key: 'raw-audio-tab', icon: Monitor, label: 'Raw Audio (Tab)' }
-            ].map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveService(key as ServiceType)}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 mx-1 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeService === key 
-                    ? 'bg-primary text-primary-foreground border-primary' 
-                    : 'bg-card hover:bg-accent border-border'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* Active Service Panel */}
-          <div>
-            {renderServicePanel(activeService)}
-          </div>
-        </div>
-
         {/* Consolidated Transcription */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Consolidated Transcription</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {Object.values(services).reduce((acc, service) => acc + service.transcriptData.length, 0)} total segments
-                </Badge>
-                <Button
-                  onClick={exportToWord}
-                  size="sm"
-                  variant="outline"
-                  disabled={Object.values(services).every(service => service.transcriptData.length === 0)}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export to Word
-                </Button>
-              </div>
+              <Badge variant="outline">
+                {Object.values(services).reduce((acc, service) => acc + service.transcriptData.length, 0)} total segments
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -563,18 +444,16 @@ const DeepgramTest = () => {
                     
                     const serviceNames = {
                       browser: 'Browser Speech API',
+                      openai: 'OpenAI Realtime',
                       whisper: 'Whisper AI',
-                      deepgram: 'Deepgram Realtime',
-                      'raw-audio-mic': 'Raw Audio (No AGC)',
-                      'raw-audio-tab': 'Raw Audio (Share Tab)'
+                      deepgram: 'Deepgram Realtime'
                     };
 
                     const serviceIcons = {
                       browser: <Smartphone className="w-4 h-4" />,
+                      openai: <Zap className="w-4 h-4" />,
                       whisper: <Bot className="w-4 h-4" />,
-                      deepgram: <Radio className="w-4 h-4" />,
-                      'raw-audio-mic': <Headphones className="w-4 h-4" />,
-                      'raw-audio-tab': <Monitor className="w-4 h-4" />
+                      deepgram: <Radio className="w-4 h-4" />
                     };
 
                     const fullText = service.transcriptData.map(data => data.text).join(' ');
@@ -599,6 +478,36 @@ const DeepgramTest = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Service Tabs */}
+        <div className="w-full">
+          <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
+            {[
+              { key: 'browser', icon: Smartphone, label: 'Browser' },
+              { key: 'openai', icon: Zap, label: 'OpenAI' },
+              { key: 'whisper', icon: Bot, label: 'Whisper' },
+              { key: 'deepgram', icon: Radio, label: 'Deepgram' }
+            ].map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveService(key as ServiceType)}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 mx-1 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeService === key 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-card hover:bg-accent border-border'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Active Service Panel */}
+          <div>
+            {renderServicePanel(activeService)}
+          </div>
+        </div>
       </div>
     </div>
   );

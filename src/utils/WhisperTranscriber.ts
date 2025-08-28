@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { pipeline } from '@huggingface/transformers';
 
 export interface TranscriptData {
   text: string;
@@ -10,10 +10,11 @@ export interface TranscriptData {
 }
 
 export class WhisperTranscriber {
+  private transcriber: any = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private stream: MediaStream | null = null;
+  private audioChunks: Blob[] = [];
   private isRecording = false;
-  private chunkTimer: number | undefined = undefined;
+  private recordingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -23,49 +24,55 @@ export class WhisperTranscriber {
   ) {}
 
   async startTranscription() {
-    if (this.isRecording) {
-      console.warn("🎙️ Recorder already running; ignoring start.");
-      return;
-    }
-
     try {
-      console.log('🎙️ Starting API-based Whisper transcription...');
+      this.onStatusChange('Loading Whisper model...');
+      console.log('🤖 Loading Whisper model...');
+      
+      // Load the Whisper model (this may take a while on first load)
+      this.transcriber = await pipeline(
+        "automatic-speech-recognition",
+        "onnx-community/whisper-tiny.en",
+        { device: "webgpu" }
+      );
+      
+      console.log('✅ Whisper model loaded');
       this.onStatusChange('Starting recording...');
 
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      // Get microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          sampleRate: 48000,
+          sampleRate: 16000,
           channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        }
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
       });
 
-      this.mediaRecorder = new MediaRecorder(this.stream, { 
-        mimeType: "audio/webm;codecs=opus" 
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
       });
 
-      this.mediaRecorder.ondataavailable = async (e) => {
-        if (e.data && e.data.size > 0) {
-          await this.uploadChunk(e.data);
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
         }
       };
 
-      this.mediaRecorder.onstop = () => {
-        this.isRecording = false;
-        if (this.chunkTimer) { 
-          clearTimeout(this.chunkTimer); 
-          this.chunkTimer = undefined; 
+      this.mediaRecorder.onstop = async () => {
+        if (this.audioChunks.length > 0) {
+          const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+          this.audioChunks = [];
+          await this.processAudioChunk(audioBlob);
         }
       };
 
       this.isRecording = true;
-      this.mediaRecorder.start(); // no timeslice here; we'll stop manually per chunk
-      this.scheduleNextChunk();
-      
       this.onStatusChange('Recording');
-      console.log('✅ API-based Whisper transcription started');
+      
+      // Start recording in chunks for real-time processing
+      this.startChunkedRecording();
+      
+      console.log('🎙️ Whisper transcription started');
     } catch (error) {
       console.error('❌ Failed to start Whisper transcription:', error);
       this.onError(`Failed to start Whisper: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -73,122 +80,89 @@ export class WhisperTranscriber {
     }
   }
 
-  private scheduleNextChunk() {
-    if (!this.isRecording || !this.mediaRecorder) return;
+  private startChunkedRecording() {
+    if (!this.mediaRecorder) return;
+
+    this.mediaRecorder.start();
     
-    this.chunkTimer = window.setTimeout(() => {
-      if (!this.mediaRecorder || this.mediaRecorder.state !== "recording") return;
-      
-      this.mediaRecorder.requestData(); // triggers ondataavailable
-      this.mediaRecorder.stop();        // ensure it fully stops before restarting
-      
-      // restart only after stop has fired:
-      const restart = () => {
-        if (!this.mediaRecorder) return;
-        this.mediaRecorder.onstop = () => {
-          if (!this.isRecording) return;
-          this.mediaRecorder!.start();   // safely restart
-          this.scheduleNextChunk();
-        };
-      };
-      
-      // Small delay to let UA settle
-      setTimeout(restart, 10);
-    }, 2500); // 2.5s chunks
+    // Process audio in 3-second chunks for near real-time transcription
+    this.recordingInterval = setInterval(() => {
+      if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+        // Start recording again immediately
+        setTimeout(() => {
+          if (this.isRecording && this.mediaRecorder) {
+            this.mediaRecorder.start();
+          }
+        }, 100);
+      }
+    }, 3000);
   }
 
-  private async uploadChunk(audioData: Blob) {
+  private async processAudioChunk(audioBlob: Blob) {
+    if (!this.transcriber) return;
+
     try {
-      console.log('🔄 Processing audio chunk with process-meeting-audio function...');
+      console.log('🔄 Processing audio chunk with Whisper...');
       this.onStatusChange('Processing...');
       
-      // Skip very small chunks
-      if (audioData.size < 50000) {
-        console.log('🔇 Skipping small audio chunk, size:', audioData.size);
-        this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
-        return;
-      }
-
-      console.log('📡 Sending audio to process-meeting-audio function...', {
-        blobSize: audioData.size,
-        blobType: audioData.type
-      });
-
-      // Create FormData for the robust edge function
-      const formData = new FormData();
-      formData.append('file', audioData, 'chunk.webm');
-
-      const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
-        body: formData
-      });
-
-      console.log('📨 Process-meeting-audio API Response:', { 
-        data: data ? JSON.stringify(data, null, 2) : 'null',
-        error: error ? JSON.stringify(error, null, 2) : 'null',
-        hasData: !!data,
-        hasError: !!error
-      });
-
-      if (error) {
-        console.error('❌ Process-meeting-audio error:', {
-          error: error,
-          message: error.message || 'No message'
-        });
-        this.onError(`Transcription failed: ${error.message || error.toString()}`);
-        return;
-      }
-
-      if (data?.text && data.text.trim()) {
-        const cleanText = data.text.trim();
-        console.log('📝 Whisper transcription:', cleanText);
+      // Convert blob to ArrayBuffer for Whisper
+      const audioBuffer = await audioBlob.arrayBuffer();
+      
+      // Create a temporary URL for the audio
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Transcribe the audio
+      const result = await this.transcriber(audioUrl);
+      
+      // Clean up the URL
+      URL.revokeObjectURL(audioUrl);
+      
+      if (result?.text && result.text.trim()) {
+        console.log('📝 Whisper transcription:', result.text);
         
         const transcriptData: TranscriptData = {
-          text: cleanText,
+          text: result.text.trim(),
           is_final: true,
-          confidence: 0.9,
+          confidence: 0.8, // Whisper doesn't provide confidence scores
           speaker: 'Speaker'
         };
         
         this.onTranscription(transcriptData);
         
         if (this.onSummary) {
-          this.onSummary(cleanText);
+          this.onSummary(result.text);
         }
-      } else {
-        console.log('ℹ️ No transcript text received or processing failed');
       }
       
       this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
     } catch (error) {
-      console.error('❌ Whisper processing error details:', {
-        error: error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        name: error instanceof Error ? error.name : 'Unknown error type'
-      });
+      console.error('❌ Whisper processing error:', error);
       this.onError(`Whisper processing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   stopTranscription() {
     console.log('🛑 Stopping Whisper transcription...');
-    
-    if (!this.mediaRecorder) return;
-    if (this.mediaRecorder.state === "recording") this.mediaRecorder.stop();
     this.isRecording = false;
     
-    if (this.chunkTimer) {
-      clearTimeout(this.chunkTimer);
-      this.chunkTimer = undefined;
+    if (this.recordingInterval) {
+      clearInterval(this.recordingInterval);
+      this.recordingInterval = null;
     }
     
-    // Stop all tracks
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
+    if (this.mediaRecorder) {
+      if (this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+      }
+      
+      // Stop all tracks
+      if (this.mediaRecorder.stream) {
+        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      }
+      
+      this.mediaRecorder = null;
     }
-    
-    this.mediaRecorder = null;
-    this.stream = null;
     
     this.onStatusChange('Stopped');
     console.log('✅ Whisper transcription stopped');
@@ -199,6 +173,7 @@ export class WhisperTranscriber {
   }
 
   async clearSummary() {
-    console.log('🧹 Clearing Whisper summary');
+    // Whisper doesn't maintain a summary, so this is a no-op
+    console.log('🧹 Clearing Whisper summary (no-op)');
   }
 }

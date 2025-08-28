@@ -42,13 +42,17 @@ import {
   Upload,
   FileJson,
   TestTube,
-  FileCheck
+  FileCheck,
+  Newspaper
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AmazonTranscribeTest } from '@/components/AmazonTranscribeTest';
+import { SimpleAmazonTranscribeTest } from '@/components/SimpleAmazonTranscribeTest';
+import { AWSTranscribeTest } from '@/components/AWSTranscribeTest';
 
 interface User {
   user_id: string;
@@ -1259,7 +1263,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
             <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -1284,6 +1288,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">System Monitoring</span>
               <span className="sm:hidden">Monitor</span>
+            </TabsTrigger>
+            <TabsTrigger value="test-transcripts" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <TestTube className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Test Transcripts</span>
+              <span className="sm:hidden">Testing</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1460,6 +1469,44 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Administrative shortcuts and management tools</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Link to="/news-admin">
+                    <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2">
+                      <Newspaper className="h-6 w-6" />
+                      <div className="text-center">
+                        <div className="font-medium">News Management</div>
+                        <div className="text-xs text-muted-foreground">Create and manage news articles</div>
+                      </div>
+                    </Button>
+                  </Link>
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2" disabled>
+                    <Users className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-medium">User Management</div>
+                      <div className="text-xs text-muted-foreground">Manage user accounts</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2" disabled>
+                    <Shield className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-medium">Security Center</div>
+                      <div className="text-xs text-muted-foreground">Monitor security events</div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* User Management Tab */}
@@ -1927,6 +1974,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </Card>
 
               <AmazonTranscribeTest />
+              <SimpleAmazonTranscribeTest />
+              <AWSTranscribeTest />
             </div>
           </TabsContent>
 
@@ -2264,6 +2313,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </Card>
 
         <AmazonTranscribeTest />
+        <SimpleAmazonTranscribeTest />
+        <AWSTranscribeTest />
       </TabsContent>
 
           {/* System Monitoring Tab */}
@@ -2356,6 +2407,34 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       View All Incidents
                     </Button>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          {/* Test Transcripts Tab */}
+          <TabsContent value="test-transcripts" className="space-y-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TestTube className="h-5 w-5" />
+                    Test Transcripts
+                  </CardTitle>
+                  <CardDescription>
+                    Test and validate different transcription services and models
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4">
+                    <Button 
+                      onClick={() => window.open('/test-transcripts', '_blank')}
+                      variant="default"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open Test Transcripts Page
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
