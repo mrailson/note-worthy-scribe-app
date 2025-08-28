@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
-import { getAssemblyToken } from "@/lib/getAssemblyToken";
 
 export default function AssemblyTestButton() {
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
@@ -18,8 +17,6 @@ export default function AssemblyTestButton() {
       setLastError("");
       setFinals([]);
       setPartial("");
-
-      const token = await getAssemblyToken(); // <- if this throws, you'll see it
       
       const client = new AssemblyRealtimeClient({
         onOpen: () => {
@@ -44,7 +41,7 @@ export default function AssemblyTestButton() {
       });
 
       clientRef.current = client;
-      await client.startWithToken(token); // use startWithToken method
+      await client.start(); // use the new start method directly
     } catch (e: any) {
       setStatus("error");
       setLastError(e?.message || String(e));
