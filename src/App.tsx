@@ -83,7 +83,7 @@ const App = () => (
             <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
             <Route path="/loading-animation-demo" element={<LoadingAnimationDemo />} />
             <Route path="/api-testing" element={<APITesting />} />
-            <Route path="/image-create" element={<ImageCreate />} />
+            <Route path="/news-admin" element={<NewsAdmin />} />
             <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
             <Route path="/deepgram-test" element={<DeepgramTest />} />
             <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />

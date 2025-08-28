@@ -3203,12 +3203,18 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          created_by: string | null
+          end_date: string | null
           id: string
           image_url: string | null
+          is_custom: boolean | null
+          is_headline: boolean | null
+          is_published: boolean | null
           location: string | null
           published_at: string | null
           relevance_score: number | null
           source: string | null
+          start_date: string | null
           summary: string | null
           tags: string[] | null
           title: string
@@ -3218,12 +3224,18 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
+          created_by?: string | null
+          end_date?: string | null
           id?: string
           image_url?: string | null
+          is_custom?: boolean | null
+          is_headline?: boolean | null
+          is_published?: boolean | null
           location?: string | null
           published_at?: string | null
           relevance_score?: number | null
           source?: string | null
+          start_date?: string | null
           summary?: string | null
           tags?: string[] | null
           title: string
@@ -3233,12 +3245,18 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
+          created_by?: string | null
+          end_date?: string | null
           id?: string
           image_url?: string | null
+          is_custom?: boolean | null
+          is_headline?: boolean | null
+          is_published?: boolean | null
           location?: string | null
           published_at?: string | null
           relevance_score?: number | null
           source?: string | null
+          start_date?: string | null
           summary?: string | null
           tags?: string[] | null
           title?: string
