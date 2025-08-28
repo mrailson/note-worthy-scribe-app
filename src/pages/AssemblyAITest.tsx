@@ -113,12 +113,21 @@ export default function AssemblyAITest() {
             return;
           }
           
-          // Handle errors
-          if (data.type === 'error') {
-            console.error('PROXY: AssemblyAI error:', data.error);
-            setError(`AssemblyAI error: ${data.error}`);
-            return;
-          }
+           // Handle errors
+           if (data.type === 'error') {
+             console.error('PROXY: AssemblyAI error:', data.error);
+             setError(`AssemblyAI error: ${data.error}`);
+             return;
+           }
+           
+           // Handle session termination
+           if (data.type === 'session_terminated') {
+             console.log('PROXY: Session terminated:', data.code, data.reason);
+             setError(`Session ended: ${data.reason || 'Connection closed'}`);
+             setIsRecording(false);
+             setIsConnected(false);
+             return;
+           }
           
           // Handle transcription results  
           if (data.type === 'Turn' || data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {

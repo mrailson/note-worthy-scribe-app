@@ -63,8 +63,8 @@ Deno.serve(async (req: Request) => {
           console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
           const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=${message.sample_rate || 16000}&format_turns=${message.format_turns || true}&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
           
-          // Get token from AssemblyAI
-          const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=300', {
+          // Get token from AssemblyAI (1 hour expiry)
+          const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=3600', {
             method: 'GET',
             headers: { Authorization: AAI_KEY }
           });
@@ -105,10 +105,21 @@ Deno.serve(async (req: Request) => {
             }));
           };
           
-          assemblySocket.onclose = () => {
-            console.log('🔌 AssemblyAI WebSocket closed');
-            socket.send(JSON.stringify({ type: 'session_terminated' }));
-          };
+           assemblySocket.onclose = (closeEvent) => {
+             console.log('🔌 AssemblyAI WebSocket closed:', closeEvent.code, closeEvent.reason);
+             if (closeEvent.code === 1006) {
+               socket.send(JSON.stringify({ 
+                 type: 'error', 
+                 error: 'Connection lost unexpectedly. This may be due to token expiry or network issues.' 
+               }));
+             } else {
+               socket.send(JSON.stringify({ 
+                 type: 'session_terminated',
+                 code: closeEvent.code,
+                 reason: closeEvent.reason
+               }));
+             }
+           };
           
         } else if (message.type === 'terminate') {
           console.log('🔌 Received terminate signal');
