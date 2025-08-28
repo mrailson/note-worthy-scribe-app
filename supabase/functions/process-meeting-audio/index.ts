@@ -1,44 +1,70 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.1/mod.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-// Force function redeployment to refresh environment variables
-const FUNCTION_VERSION = "2.0.1";
-
+// Completely rebuilt function to force fresh deployment
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+console.log('🚀 Process Meeting Audio Function - Fresh Deployment Starting...');
+
 serve(async (req) => {
+  console.log(`📥 Incoming request: ${req.method} ${req.url}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log(`Processing meeting audio request v${FUNCTION_VERSION}...`);
+    console.log('🎯 Starting audio processing...');
     
+    // Get API key with detailed logging
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    console.log('🔑 Checking API key availability...');
+    
     if (!OPENAI_API_KEY) {
-      console.error('❌ OPENAI_API_KEY environment variable is not set or empty');
-      console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(k => k.includes('OPENAI')));
-      throw new Error('OPENAI_API_KEY not configured');
+      console.error('❌ OPENAI_API_KEY is missing from environment');
+      console.log('Available env keys:', Object.keys(Deno.env.toObject()));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'OPENAI_API_KEY not configured in environment',
+          timestamp: new Date().toISOString()
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
     
-    console.log('✅ OPENAI_API_KEY is configured, length:', OPENAI_API_KEY.length);
+    console.log(`✅ OPENAI_API_KEY found, length: ${OPENAI_API_KEY.length}`);
 
     // Parse the form data containing the audio file
+    console.log('📄 Parsing form data...');
     const formData = await req.formData();
     const audioFile = formData.get('audio') as File;
     
     if (!audioFile) {
-      throw new Error('No audio file provided');
+      console.error('❌ No audio file in request');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No audio file provided',
+          timestamp: new Date().toISOString()
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    console.log('Audio file received:', audioFile.name, audioFile.size, 'bytes');
+    console.log(`📁 Audio file received: ${audioFile.name}, ${audioFile.size} bytes`);
 
     // Step 1: Send audio to Whisper API for transcription
-    console.log('Sending to Whisper API...');
+    console.log('🎙️ Sending to OpenAI Whisper API...');
     const whisperFormData = new FormData();
     whisperFormData.append('file', audioFile);
     whisperFormData.append('model', 'whisper-1');
@@ -52,18 +78,29 @@ serve(async (req) => {
       body: whisperFormData,
     });
 
+    console.log(`📡 Whisper API response status: ${whisperResponse.status}`);
+
     if (!whisperResponse.ok) {
       const errorText = await whisperResponse.text();
-      console.error('Whisper API error:', errorText);
-      throw new Error(`Whisper API error: ${whisperResponse.status} - ${errorText}`);
+      console.error('❌ Whisper API error:', errorText);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Whisper API error: ${whisperResponse.status} - ${errorText}`,
+          timestamp: new Date().toISOString()
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const whisperResult = await whisperResponse.json();
     const transcript = whisperResult.text;
-    console.log('Transcription completed, length:', transcript.length);
+    console.log(`✅ Transcription completed, length: ${transcript.length} characters`);
 
     // Generate a basic business meeting summary (optional - can be removed if just transcript is needed)
-    console.log('Generating meeting summary...');
+    console.log('📝 Generating meeting summary...');
     const summaryPrompt = `Please create a concise summary of this business meeting transcript:
 
 ${transcript}
@@ -99,27 +136,14 @@ Keep it professional and business-focused.`;
       }),
     });
 
-    if (!summaryResponse.ok) {
-      const errorText = await summaryResponse.text();
-      console.error('OpenAI summary API error:', errorText);
-      // If summary fails, just return transcript
-      console.log('Summary generation failed, returning transcript only');
-      const response = {
-        success: true,
-        transcript: transcript,
-        summary: null,
-        processingTime: Date.now(),
-        audioSize: audioFile.size,
-        transcriptLength: transcript.length
-      };
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let summary = null;
+    if (summaryResponse.ok) {
+      const summaryResult = await summaryResponse.json();
+      summary = summaryResult.choices[0].message.content;
+      console.log('✅ Business meeting summary generated');
+    } else {
+      console.log('⚠️ Summary generation failed, returning transcript only');
     }
-
-    const summaryResult = await summaryResponse.json();
-    const summary = summaryResult.choices[0].message.content;
-    console.log('Business meeting summary generated successfully');
 
     // Return the results
     const response = {
@@ -131,13 +155,13 @@ Keep it professional and business-focused.`;
       transcriptLength: transcript.length
     };
 
-    console.log('Processing completed successfully');
+    console.log('🎉 Processing completed successfully');
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in process-meeting-audio function:', error);
+    console.error('💥 Unexpected error in process-meeting-audio function:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
