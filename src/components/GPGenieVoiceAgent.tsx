@@ -34,9 +34,33 @@ export default function GPGenieVoiceAgent({ onClose }: GPGenieVoiceAgentProps) {
     }
   });
 
-  const startConversation = async () => {
+  const startConversationWithTimeout = async (signedUrl: string, timeoutMs: number = 30000) => {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Connection timeout after ${timeoutMs / 1000} seconds`));
+      }, timeoutMs);
+
+      conversation.startSession({ signedUrl })
+        .then((result) => {
+          clearTimeout(timeout);
+          resolve(result);
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+    });
+  };
+
+  const handleStartConversation = () => {
+    startConversation(0);
+  };
+
+  const startConversation = async (retryCount: number) => {
+    const maxRetries = 2;
+    
     try {
-      console.log('GP Genie: Starting conversation...');
+      console.log(`GP Genie: Starting conversation (attempt ${retryCount + 1}/${maxRetries + 1})...`);
       setIsConnecting(true);
       
       // Request microphone permission
@@ -60,18 +84,35 @@ export default function GPGenieVoiceAgent({ onClose }: GPGenieVoiceAgentProps) {
         throw new Error('No signed URL received from server');
       }
       
-      console.log('GP Genie: Got signed URL, starting ElevenLabs session...');
+      console.log('GP Genie: Got signed URL, starting ElevenLabs session with timeout...');
       
-      // Start conversation
-      await conversation.startSession({ signedUrl: data.signed_url });
+      // Start conversation with timeout
+      await startConversationWithTimeout(data.signed_url, 30000);
       console.log('GP Genie: Session started successfully');
       
     } catch (error) {
-      console.error('GP Genie: Failed to start conversation:', error);
+      console.error(`GP Genie: Failed to start conversation (attempt ${retryCount + 1}):`, error);
+      
+      // Retry logic for timeout or connection errors
+      if (retryCount < maxRetries && 
+          (error.message?.includes('timeout') || 
+           error.message?.includes('connection') ||
+           error.message?.includes('network'))) {
+        console.log(`GP Genie: Retrying in ${(retryCount + 1) * 2} seconds...`);
+        toast.info(`Connection failed, retrying in ${(retryCount + 1) * 2} seconds...`);
+        
+        setTimeout(() => {
+          startConversation(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+        return;
+      }
+      
       setIsConnecting(false);
       
       let errorMessage = 'Failed to start conversation';
-      if (error.message?.includes('microphone') || error.message?.includes('permission')) {
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'Connection timed out. The ElevenLabs service may be unavailable. Please try again later.';
+      } else if (error.message?.includes('microphone') || error.message?.includes('permission')) {
         errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
       } else if (error.message?.includes('ELEVENLABS_API_KEY')) {
         errorMessage = 'ElevenLabs API key not configured. Please check your settings.';
@@ -80,6 +121,13 @@ export default function GPGenieVoiceAgent({ onClose }: GPGenieVoiceAgentProps) {
       }
       
       toast.error(errorMessage);
+      
+      // Suggest fallback after all retries failed
+      if (retryCount >= maxRetries) {
+        toast.info('You can try the ElevenLabs web interface as an alternative', {
+          duration: 10000
+        });
+      }
     }
   };
 
@@ -109,7 +157,7 @@ export default function GPGenieVoiceAgent({ onClose }: GPGenieVoiceAgentProps) {
           <div className="flex justify-center">
             {!isConnected && !isConnecting ? (
               <Button 
-                onClick={startConversation} 
+                onClick={handleStartConversation} 
                 size="lg" 
                 className="w-full"
                 disabled={isConnecting}
