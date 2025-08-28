@@ -27,32 +27,29 @@ export const DeepgramLiveTest = () => {
     try {
       setStatus('Connecting...');
       
-      // Get Deepgram token from edge function
-      const tokenResponse = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-token', {
+      // Use the existing deepgram-realtime edge function approach
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          action: 'connect'
+        })
       });
 
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get Deepgram token');
+      if (!response.ok) {
+        throw new Error('Failed to get Deepgram connection details');
       }
 
-      const { token } = await tokenResponse.json();
+      const data = await response.json();
+      
+      if (!data.ws_url) {
+        throw new Error('No WebSocket URL provided');
+      }
 
-      // Connect to Deepgram
-      const websocket = new WebSocket(
-        'wss://api.deepgram.com/v1/listen?' +
-        new URLSearchParams({
-          model: 'nova-2-medical',
-          language: 'en-GB',
-          smart_format: 'true',
-          interim_results: 'true',
-          endpointing: '300',
-          vad_events: 'true'
-        })
-      );
+      // Connect directly to the provided WebSocket URL
+      const websocket = new WebSocket(data.ws_url);
 
       websocket.onopen = () => {
         console.log('✅ Deepgram WebSocket connected');
@@ -99,12 +96,6 @@ export const DeepgramLiveTest = () => {
         setStatus('Disconnected');
         setWs(null);
       };
-
-      // Send auth message
-      websocket.send(JSON.stringify({
-        type: 'auth',
-        token: token
-      }));
 
     } catch (error) {
       console.error('❌ Failed to connect to Deepgram:', error);
