@@ -13,12 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing meeting audio request...');
+    console.log('Processing meeting audio request with updated API key...');
     
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY environment variable is not set');
       throw new Error('OPENAI_API_KEY not configured');
     }
+    
+    console.log('✅ OPENAI_API_KEY is configured, proceeding with transcription');
 
     // Parse the form data containing the audio file
     const formData = await req.formData();
