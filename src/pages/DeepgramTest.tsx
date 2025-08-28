@@ -9,14 +9,13 @@ import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } fro
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { AmazonTranscribeRealtimeTranscriber, TranscriptData as AmazonTranscriptData } from '@/utils/AmazonTranscribeRealtimeTranscriber';
-import { AssemblyAIRealtimeTranscriber, TranscriptData as AssemblyAITranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { AmazonTranscribeChunkTranscriber } from '@/utils/AmazonTranscribeChunkTranscriber';
-import { AssemblyAIChunkTranscriber } from '@/utils/AssemblyAIChunkTranscriber';
 import { toast } from 'sonner';
 import RecorderNoAGC from '@/components/RecorderNoAGC';
 import { generateWordDocument } from '@/utils/documentGenerators';
+import AssemblyTestButton from '@/components/AssemblyTestButton';
 
-type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'amazon-transcribe' | 'assemblyai' | 'amazon-chunk' | 'assemblyai-chunk' | 'raw-audio-mic' | 'raw-audio-tab';
+type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'amazon-transcribe' | 'amazon-chunk' | 'raw-audio-mic' | 'raw-audio-tab';
 
 interface ServiceData {
   isRecording: boolean;
@@ -62,23 +61,7 @@ const DeepgramTest = () => {
       isLoading: false,
       transcriber: null
     },
-    assemblyai: {
-      isRecording: false,
-      transcriptData: [],
-      currentTranscript: '',
-      status: 'Disconnected',
-      isLoading: false,
-      transcriber: null
-    },
     'amazon-chunk': {
-      isRecording: false,
-      transcriptData: [],
-      currentTranscript: '',
-      status: 'Ready',
-      isLoading: false,
-      transcriber: null
-    },
-    'assemblyai-chunk': {
       isRecording: false,
       transcriptData: [],
       currentTranscript: '',
@@ -224,24 +207,8 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
-        case 'assemblyai':
-          transcriber = new AssemblyAIRealtimeTranscriber(
-            callbacks.onTranscription,
-            callbacks.onError,
-            callbacks.onStatusChange,
-            callbacks.onSummary
-          );
-          break;
         case 'amazon-chunk':
           transcriber = new AmazonTranscribeChunkTranscriber(
-            callbacks.onTranscription,
-            callbacks.onError,
-            callbacks.onStatusChange,
-            callbacks.onSummary
-          );
-          break;
-        case 'assemblyai-chunk':
-          transcriber = new AssemblyAIChunkTranscriber(
             callbacks.onTranscription,
             callbacks.onError,
             callbacks.onStatusChange,
@@ -317,17 +284,15 @@ const DeepgramTest = () => {
       
       Object.entries(services).forEach(([serviceType, service]) => {
         if (service.transcriptData.length > 0) {
-          const serviceNames = {
-            browser: 'Browser Speech API',
-            whisper: 'Whisper AI',
-            deepgram: 'Deepgram Realtime',
-            'amazon-transcribe': 'Amazon Transcribe Realtime',
-            assemblyai: 'AssemblyAI Realtime',
-            'amazon-chunk': 'Amazon Transcribe (HTTP Chunks)',
-            'assemblyai-chunk': 'AssemblyAI (HTTP Chunks)',
-            'raw-audio-mic': 'Raw Audio (No AGC)',
-            'raw-audio-tab': 'Raw Audio (Share Tab)'
-          };
+            const serviceNames = {
+              browser: 'Browser Speech API',
+              whisper: 'Whisper AI',
+              deepgram: 'Deepgram Realtime',
+              'amazon-transcribe': 'Amazon Transcribe Realtime',
+              'amazon-chunk': 'Amazon Transcribe (HTTP Chunks)',
+              'raw-audio-mic': 'Raw Audio (No AGC)',
+              'raw-audio-tab': 'Raw Audio (Share Tab)'
+            };
           
           const fullText = service.transcriptData.map(data => data.text).join(' ');
           allTranscriptions.push(`## ${serviceNames[serviceType as ServiceType]}\n\n${fullText}`);
@@ -391,9 +356,7 @@ const DeepgramTest = () => {
       whisper: 'Whisper AI (Local)',
       deepgram: 'Deepgram Realtime',
       'amazon-transcribe': 'Amazon Transcribe Realtime',
-      assemblyai: 'AssemblyAI Realtime',
       'amazon-chunk': 'Amazon Transcribe (HTTP Chunks)',
-      'assemblyai-chunk': 'AssemblyAI (HTTP Chunks)',
       'raw-audio-mic': 'Raw Audio (No AGC)',
       'raw-audio-tab': 'Raw Audio (Share Tab)'
     };
@@ -403,9 +366,7 @@ const DeepgramTest = () => {
       whisper: <Bot className="w-4 h-4" />,
       deepgram: <Radio className="w-4 h-4" />,
       'amazon-transcribe': <Radio className="w-4 h-4" />,
-      assemblyai: <Radio className="w-4 h-4" />,
       'amazon-chunk': <Radio className="w-4 h-4" />,
-      'assemblyai-chunk': <Radio className="w-4 h-4" />,
       'raw-audio-mic': <Headphones className="w-4 h-4" />,
       'raw-audio-tab': <Monitor className="w-4 h-4" />
     };
@@ -581,13 +542,11 @@ const DeepgramTest = () => {
         <div className="w-full">
           <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
             {[
-            { key: 'browser', icon: Smartphone, label: 'Browser' },
+              { key: 'browser', icon: Smartphone, label: 'Browser' },
               { key: 'whisper', icon: Bot, label: 'Whisper' },
               { key: 'deepgram', icon: Radio, label: 'Deepgram' },
               { key: 'amazon-transcribe', icon: Radio, label: 'Amazon Transcribe' },
-              { key: 'assemblyai', icon: Radio, label: 'AssemblyAI' },
               { key: 'amazon-chunk', icon: Radio, label: 'Amazon (Chunks)' },
-              { key: 'assemblyai-chunk', icon: Radio, label: 'AssemblyAI (Chunks)' },
               { key: 'raw-audio-mic', icon: Headphones, label: 'Raw Audio (Mic)' },
               { key: 'raw-audio-tab', icon: Monitor, label: 'Raw Audio (Tab)' }
             ].map(({ key, icon: Icon, label }) => (
@@ -650,9 +609,7 @@ const DeepgramTest = () => {
                       whisper: 'Whisper AI',
                       deepgram: 'Deepgram Realtime',
                       'amazon-transcribe': 'Amazon Transcribe Realtime',
-                      assemblyai: 'AssemblyAI Realtime',
                       'amazon-chunk': 'Amazon Transcribe (HTTP Chunks)',
-                      'assemblyai-chunk': 'AssemblyAI (HTTP Chunks)',
                       'raw-audio-mic': 'Raw Audio (No AGC)',
                       'raw-audio-tab': 'Raw Audio (Share Tab)'
                     };
@@ -662,9 +619,7 @@ const DeepgramTest = () => {
                       whisper: <Bot className="w-4 h-4" />,
                       deepgram: <Radio className="w-4 h-4" />,
                       'amazon-transcribe': <Radio className="w-4 h-4" />,
-                      assemblyai: <Radio className="w-4 h-4" />,
                       'amazon-chunk': <Radio className="w-4 h-4" />,
-                      'assemblyai-chunk': <Radio className="w-4 h-4" />,
                       'raw-audio-mic': <Headphones className="w-4 h-4" />,
                       'raw-audio-tab': <Monitor className="w-4 h-4" />
                     };
@@ -689,6 +644,16 @@ const DeepgramTest = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* AssemblyAI Realtime Test */}
+        <Card>
+          <CardHeader>
+            <CardTitle>AssemblyAI Realtime STT Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AssemblyTestButton />
           </CardContent>
         </Card>
       </div>
