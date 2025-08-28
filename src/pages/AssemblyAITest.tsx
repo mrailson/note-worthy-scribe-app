@@ -76,22 +76,47 @@ export default function AssemblyAITest() {
       
       mediaStreamRef.current = stream;
       
-      // Setup direct WebSocket to AssemblyAI (now CSP compliant)
-      const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&token=${encodeURIComponent(token)}&format_turns=true`;
-      console.log('DIRECT: Connecting to AssemblyAI WebSocket:', wsUrl.replace(/token=[^&]+/, 'token=***'));
+      // Setup WebSocket through Supabase proxy (CSP compliant)
+      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime`;
+      console.log('PROXY: Connecting via Supabase WebSocket proxy:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('DIRECT: AssemblyAI WebSocket connected successfully!');
-        setIsConnected(true);
-        setIsRecording(true);
+        console.log('PROXY: Connected to Supabase WebSocket proxy');
+        
+        // Send session configuration to start AssemblyAI connection
+        const sessionConfig = {
+          type: 'session.start',
+          sample_rate: 16000,
+          format_turns: true
+        };
+        console.log('PROXY: Sending session config:', sessionConfig);
+        ws.send(JSON.stringify(sessionConfig));
       };
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'Turn') {
+          console.log('PROXY: Received message:', data.type || data.message_type);
+          
+          // Handle session begins
+          if (data.type === 'session_begins') {
+            console.log('PROXY: AssemblyAI session started successfully');
+            setIsConnected(true);
+            setIsRecording(true);
+            return;
+          }
+          
+          // Handle errors
+          if (data.type === 'error') {
+            console.error('PROXY: AssemblyAI error:', data.error);
+            setError(`AssemblyAI error: ${data.error}`);
+            return;
+          }
+          
+          // Handle transcription results
+          if (data.type === 'Turn' || data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {
             const text = data.formatted?.text || data.text || '';
             if (text.trim()) {
               setTranscripts(prev => {

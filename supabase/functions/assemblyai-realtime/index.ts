@@ -1,164 +1,147 @@
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-serve(async (req) => {
-  console.log('AssemblyAI Realtime function called with method:', req.method);
+Deno.serve(async (req: Request) => {
+  console.log('🚀 AssemblyAI WebSocket proxy request received');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Check for WebSocket upgrade
-  if (req.headers.get("upgrade") === "websocket") {
-    console.log('WebSocket upgrade requested for AssemblyAI');
-    return handleWebSocketUpgrade(req);
+  const { headers } = req;
+  const upgradeHeader = headers.get("upgrade") || "";
+
+  if (upgradeHeader.toLowerCase() !== "websocket") {
+    console.log('❌ Not a WebSocket upgrade request');
+    return new Response("Expected WebSocket connection", { 
+      status: 400, 
+      headers: corsHeaders 
+    });
   }
 
-  return new Response('Expected WebSocket upgrade', { status: 400, headers: corsHeaders });
-});
-
-// WebSocket handler for real-time streaming
-async function handleWebSocketUpgrade(req: Request): Promise<Response> {
-  const { socket, response } = Deno.upgradeWebSocket(req);
-  
-  let assemblyAiWebSocket: WebSocket | null = null;
-  let isConnected = false;
-  
-  socket.onopen = async () => {
-    console.log('Client WebSocket connected to AssemblyAI proxy');
+  try {
+    console.log('🔌 Upgrading to WebSocket...');
+    const { socket, response } = Deno.upgradeWebSocket(req);
     
-    try {
-      const apiKey = Deno.env.get('ASSEMBLYAI_API_KEY');
-      if (!apiKey) {
-        throw new Error('AssemblyAI API key not configured');
-      }
-      
-      // Create session with AssemblyAI
-      const sessionResponse = await fetch('https://api.assemblyai.com/v2/realtime/token', {
-        method: 'POST',
-        headers: {
-          'Authorization': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sample_rate: 16000,
-          word_boost: ['medical', 'healthcare', 'diagnosis', 'treatment', 'patient'],
-          format_text: true
-        })
-      });
-      
-      if (!sessionResponse.ok) {
-        const errorText = await sessionResponse.text();
-        console.error('AssemblyAI session creation failed:', sessionResponse.status, errorText);
-        throw new Error(`Failed to create AssemblyAI session: ${sessionResponse.status} - ${errorText}`);
-      }
-      
-      const sessionData = await sessionResponse.json();
-      console.log('AssemblyAI session created successfully:', sessionData);
-      
-      const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${sessionData.token}`;
-      
-      console.log('Connecting to AssemblyAI WebSocket:', wsUrl);
-      
-      // Connect to AssemblyAI WebSocket
-      assemblyAiWebSocket = new WebSocket(wsUrl);
-      
-      assemblyAiWebSocket.onopen = () => {
-        console.log('✅ Connected to AssemblyAI WebSocket');
-        isConnected = true;
-        socket.send(JSON.stringify({ type: 'session_begins' }));
-      };
-      
-      assemblyAiWebSocket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('📝 AssemblyAI message:', data);
-          
-          // Forward AssemblyAI messages to client
-          socket.send(event.data);
-        } catch (error) {
-          console.error('Error processing AssemblyAI message:', error);
-        }
-      };
-      
-      assemblyAiWebSocket.onerror = (error) => {
-        console.error('AssemblyAI WebSocket error:', error);
-        socket.send(JSON.stringify({ 
-          type: 'error', 
-          error: 'AssemblyAI connection error' 
-        }));
-      };
-      
-      assemblyAiWebSocket.onclose = () => {
-        console.log('AssemblyAI WebSocket closed');
-        isConnected = false;
-        socket.close();
-      };
-      
-    } catch (error) {
-      console.error('Error connecting to AssemblyAI:', error);
-      socket.send(JSON.stringify({ 
-        type: 'error', 
-        error: `Failed to connect to AssemblyAI: ${error.message}` 
-      }));
-      socket.close();
-    }
-  };
-  
-  socket.onmessage = (event) => {
-    try {
-      if (!assemblyAiWebSocket || !isConnected) {
-        console.warn('Cannot send audio: AssemblyAI not connected');
-        return;
-      }
-      
-      // Handle different message types
-      if (typeof event.data === 'string') {
-        const data = JSON.parse(event.data);
-        if (data.type === 'terminate') {
-          // Send terminate message to AssemblyAI
-          assemblyAiWebSocket.send(JSON.stringify({ terminate_session: true }));
-          return;
-        }
-      } else {
-        // Forward binary audio data to AssemblyAI
-        // Convert ArrayBuffer to base64 for AssemblyAI
-        const audioData = new Uint8Array(event.data);
-        const base64Audio = btoa(String.fromCharCode(...audioData));
-        
-        assemblyAiWebSocket.send(JSON.stringify({
-          audio_data: base64Audio
-        }));
-      }
-    } catch (error) {
-      console.error('Error forwarding client message to AssemblyAI:', error);
-    }
-  };
-  
-  socket.onclose = () => {
-    console.log('Client WebSocket disconnected');
-    if (assemblyAiWebSocket) {
-      // Send terminate before closing
+    let assemblySocket: WebSocket | null = null;
+
+    socket.onopen = () => {
+      console.log('✅ Client WebSocket opened');
+    };
+
+    socket.onmessage = async (event) => {
       try {
-        assemblyAiWebSocket.send(JSON.stringify({ terminate_session: true }));
-      } catch (e) {
-        console.log('Could not send terminate message:', e);
+        const message = JSON.parse(event.data);
+        console.log('📨 Received message from client:', message.type || 'audio data');
+        
+        // Handle session start message to create AssemblyAI connection
+        if (message.type === 'session.start') {
+          const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
+          if (!AAI_KEY) {
+            socket.send(JSON.stringify({ 
+              type: 'error', 
+              error: 'Missing ASSEMBLYAI_API_KEY' 
+            }));
+            return;
+          }
+
+          console.log('🔗 Creating AssemblyAI WebSocket connection...');
+          const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=${message.sample_rate || 16000}&format_turns=${message.format_turns || true}`;
+          
+          // Get token from AssemblyAI
+          const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=300', {
+            method: 'GET',
+            headers: { Authorization: AAI_KEY }
+          });
+          
+          if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error('❌ Token request failed:', errorText);
+            socket.send(JSON.stringify({ 
+              type: 'error', 
+              error: `Token request failed: ${errorText}` 
+            }));
+            return;
+          }
+          
+          const tokenData = await tokenResponse.json();
+          const tokenWsUrl = `${wsUrl}&token=${encodeURIComponent(tokenData.token)}`;
+          
+          assemblySocket = new WebSocket(tokenWsUrl);
+          
+          assemblySocket.onopen = () => {
+            console.log('✅ AssemblyAI WebSocket connected');
+            socket.send(JSON.stringify({ 
+              type: 'session_begins',
+              session_id: Date.now().toString()
+            }));
+          };
+          
+          assemblySocket.onmessage = (assemblyEvent) => {
+            console.log('📝 Forwarding message from AssemblyAI to client');
+            socket.send(assemblyEvent.data);
+          };
+          
+          assemblySocket.onerror = (error) => {
+            console.error('❌ AssemblyAI WebSocket error:', error);
+            socket.send(JSON.stringify({ 
+              type: 'error', 
+              error: 'AssemblyAI connection error' 
+            }));
+          };
+          
+          assemblySocket.onclose = () => {
+            console.log('🔌 AssemblyAI WebSocket closed');
+            socket.send(JSON.stringify({ type: 'session_terminated' }));
+          };
+          
+        } else if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
+          // Forward other messages to AssemblyAI
+          assemblySocket.send(event.data);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error processing message:', error);
+        if (typeof event.data === 'string') {
+          // Handle JSON messages
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            error: 'Failed to process message' 
+          }));
+        }
+        // Binary data (audio) - just forward if AssemblyAI socket is ready
+        if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
+          assemblySocket.send(event.data);
+        }
       }
-      assemblyAiWebSocket.close();
-    }
-  };
-  
-  socket.onerror = (error) => {
-    console.error('Client WebSocket error:', error);
-    if (assemblyAiWebSocket) {
-      assemblyAiWebSocket.close();
-    }
-  };
-  
-  return response;
-}
+    };
+
+    socket.onclose = () => {
+      console.log('🔌 Client WebSocket closed');
+      if (assemblySocket) {
+        assemblySocket.close();
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('❌ Client WebSocket error:', error);
+      if (assemblySocket) {
+        assemblySocket.close();
+      }
+    };
+
+    return response;
+    
+  } catch (error) {
+    console.error('❌ WebSocket upgrade failed:', error);
+    return new Response(`WebSocket upgrade failed: ${error.message}`, {
+      status: 500,
+      headers: corsHeaders
+    });
+  }
+});
