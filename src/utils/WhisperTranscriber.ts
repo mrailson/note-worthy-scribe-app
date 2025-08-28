@@ -77,23 +77,25 @@ export class WhisperTranscriber {
     if (!this.isRecording || !this.mediaRecorder) return;
     
     this.chunkTimer = window.setTimeout(() => {
-      if (!this.mediaRecorder || this.mediaRecorder.state !== "recording") return;
+      if (!this.mediaRecorder || this.mediaRecorder.state !== "recording" || !this.isRecording) return;
       
+      console.log('⏰ Processing 2.5s audio chunk...');
       this.mediaRecorder.requestData(); // triggers ondataavailable
       this.mediaRecorder.stop();        // ensure it fully stops before restarting
       
-      // restart only after stop has fired:
-      const restart = () => {
-        if (!this.mediaRecorder) return;
-        this.mediaRecorder.onstop = () => {
-          if (!this.isRecording) return;
-          this.mediaRecorder!.start();   // safely restart
-          this.scheduleNextChunk();
-        };
-      };
-      
-      // Small delay to let UA settle
-      setTimeout(restart, 10);
+      // Restart after a brief delay to ensure stop event fires
+      setTimeout(() => {
+        if (!this.isRecording || !this.mediaRecorder) return;
+        
+        console.log('🔄 Restarting recorder for next chunk...');
+        try {
+          this.mediaRecorder.start();
+          this.scheduleNextChunk(); // Schedule the next chunk
+        } catch (error) {
+          console.error('❌ Error restarting recorder:', error);
+          this.onError('Error restarting recorder');
+        }
+      }, 100); // Longer delay to ensure clean restart
     }, 2500); // 2.5s chunks
   }
 
