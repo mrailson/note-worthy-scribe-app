@@ -96,32 +96,33 @@ export class WhisperTranscriber {
   private startChunkedRecording() {
     if (!this.mediaRecorder || !this.isRecording) return;
 
-    // Only start if not already recording
-    if (this.mediaRecorder.state !== 'recording') {
+    // Start recording if not already recording
+    if (this.mediaRecorder.state === 'inactive') {
       this.mediaRecorder.start();
+      console.log('🎙️ Started new recording chunk');
     }
     
     // Process audio in 10-second chunks for better transcription quality
-    // (5 seconds was too short and caused poor quality results)
     this.transcriptionTimeout = setTimeout(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
+        console.log('🛑 Stopped recording chunk for processing');
         
-        // Start recording again immediately for continuous transcription
+        // Start recording again after a short delay for continuous transcription
         setTimeout(() => {
-          if (this.isRecording) {
-            this.startChunkedRecording(); // Use recursive call - this handles the start() internally
+          if (this.isRecording && this.mediaRecorder) {
+            this.startChunkedRecording();
           }
-        }, 100);
+        }, 200); // Increased delay to ensure stop completes
       }
-    }, 10000); // Increased to 10 seconds for better audio quality
+    }, 10000);
   }
 
   private async processAudioChunk() {
     if (this.audioChunks.length === 0) return;
 
     try {
-      console.log('🔄 Processing audio chunk with Whisper via FormData (Meeting Recorder style)...');
+      console.log('🔄 Processing audio chunk with speech-to-text function...');
       this.onStatusChange('Processing...');
       
       // Combine all chunks into a proper audio blob
@@ -135,7 +136,7 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📡 Sending audio to speech-to-text (same as other transcribers)...', {
+      console.log('📡 Sending audio to speech-to-text function...', {
         blobSize: audioBlob.size,
         blobType: audioBlob.type
       });
