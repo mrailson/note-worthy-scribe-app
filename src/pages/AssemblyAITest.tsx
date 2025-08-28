@@ -77,7 +77,7 @@ export default function AssemblyAITest() {
       mediaStreamRef.current = stream;
       
       // Setup WebSocket through Supabase proxy (CSP compliant)
-      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime`;
+      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-realtime`;
       console.log('PROXY: Connecting via Supabase WebSocket proxy:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;

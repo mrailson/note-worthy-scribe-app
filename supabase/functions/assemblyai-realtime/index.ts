@@ -110,24 +110,20 @@ Deno.serve(async (req: Request) => {
             socket.send(JSON.stringify({ type: 'session_terminated' }));
           };
           
-        } else if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
-          // Forward other messages to AssemblyAI
-          assemblySocket.send(event.data);
+        } else if (message.type === 'terminate') {
+          console.log('🔌 Received terminate signal');
+          if (assemblySocket) {
+            assemblySocket.close();
+          }
+          socket.close();
         }
         
       } catch (error) {
-        console.error('❌ Error processing message:', error);
-        if (typeof event.data === 'string') {
-          // Handle JSON messages
-          socket.send(JSON.stringify({ 
-            type: 'error', 
-            error: 'Failed to process message' 
-          }));
-        }
-        // Binary data (audio) - just forward if AssemblyAI socket is ready
-        if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
-          assemblySocket.send(event.data);
-        }
+        console.error('❌ Error processing JSON message:', error);
+        socket.send(JSON.stringify({ 
+          type: 'error', 
+          error: 'Failed to process message' 
+        }));
       }
     };
 
