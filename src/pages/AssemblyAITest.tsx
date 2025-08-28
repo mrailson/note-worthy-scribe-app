@@ -11,6 +11,8 @@ interface TranscriptEntry {
   text: string;
   isFinal: boolean;
   timestamp: Date;
+  confidence?: number;
+  words?: Array<{ text: string; confidence: number; }>;
 }
 
 export default function AssemblyAITest() {
@@ -20,6 +22,8 @@ export default function AssemblyAITest() {
   const [fullTranscript, setFullTranscript] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
+  const [qualityStats, setQualityStats] = useState({ high: 0, medium: 0, low: 0 });
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -120,16 +124,34 @@ export default function AssemblyAITest() {
           if (data.type === 'Turn' || data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {
             console.log('PROXY: Processing transcription data:', data);
             const text = data.transcript || data.formatted?.text || data.text || '';
+            const confidence = data.confidence || (data.words && data.words.length > 0 ? 
+              data.words.reduce((sum: number, word: any) => sum + (word.confidence || 0), 0) / data.words.length : null);
+            
+            // Update quality stats for final transcripts
+            if (confidence !== null && (data.type === 'Turn' || data.is_final !== false)) {
+              setQualityStats(prev => {
+                const newStats = { ...prev };
+                if (confidence >= 0.8) newStats.high++;
+                else if (confidence >= 0.6) newStats.medium++;
+                else newStats.low++;
+                return newStats;
+              });
+              
+              setAvgConfidence(prev => prev === null ? confidence : (prev + confidence) / 2);
+            }
+            
             if (text && text.trim()) {
               setTranscripts(prev => {
                 const newEntry: TranscriptEntry = {
                   id: `${Date.now()}-${Math.random()}`,
                   text: text,
                   isFinal: data.type === 'Turn' ? true : (data.is_final !== false),
-                  timestamp: new Date()
+                  timestamp: new Date(),
+                  confidence: confidence,
+                  words: data.words || []
                 };
                 
-                console.log('PROXY: Adding transcript:', newEntry);
+                console.log('PROXY: Adding transcript with confidence:', { text, confidence });
                 
                 // For Turn messages (final) - just add them
                 if (data.type === 'Turn') {
@@ -261,6 +283,8 @@ export default function AssemblyAITest() {
     setTranscripts([]);
     setFullTranscript('');
     setError(null);
+    setAvgConfidence(null);
+    setQualityStats({ high: 0, medium: 0, low: 0 });
   };
 
   return (
@@ -311,14 +335,28 @@ export default function AssemblyAITest() {
 
             {/* Audio Level Indicator */}
             {isRecording && (
-              <div className="w-full max-w-xs">
-                <div className="text-xs text-muted-foreground mb-1">Audio Level</div>
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full transition-all duration-100"
-                    style={{ width: `${audioLevel}%` }}
-                  ></div>
+              <div className="w-full max-w-xs space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Audio Level</div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-100"
+                      style={{ width: `${audioLevel}%` }}
+                    ></div>
+                  </div>
                 </div>
+                
+                {/* Quality Metrics */}
+                {avgConfidence !== null && (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Average Confidence: {(avgConfidence * 100).toFixed(1)}%</div>
+                    <div className="flex gap-2 text-xs">
+                      <Badge variant="default" className="text-xs">High: {qualityStats.high}</Badge>
+                      <Badge variant="secondary" className="text-xs">Med: {qualityStats.medium}</Badge>
+                      <Badge variant="destructive" className="text-xs">Low: {qualityStats.low}</Badge>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -382,12 +420,39 @@ export default function AssemblyAITest() {
                   <Badge variant={transcript.isFinal ? "default" : "secondary"}>
                     {transcript.isFinal ? "Final" : "Partial"}
                   </Badge>
+                  {transcript.confidence !== undefined && (
+                    <Badge 
+                      variant={transcript.confidence >= 0.8 ? "default" : transcript.confidence >= 0.6 ? "secondary" : "destructive"}
+                      className="text-xs"
+                    >
+                      {(transcript.confidence * 100).toFixed(0)}%
+                    </Badge>
+                  )}
                   <div className="flex-1">
-                    <p className={`${transcript.isFinal ? 'text-foreground' : 'text-muted-foreground italic'}`}>
-                      {transcript.text}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {transcript.words && transcript.words.length > 0 ? (
+                        transcript.words.map((word, idx) => (
+                          <span 
+                            key={idx}
+                            className={`${
+                              word.confidence >= 0.8 ? 'text-foreground' : 
+                              word.confidence >= 0.6 ? 'text-muted-foreground' : 
+                              'text-destructive'
+                            } ${transcript.isFinal ? '' : 'italic'}`}
+                            title={`Confidence: ${(word.confidence * 100).toFixed(1)}%`}
+                          >
+                            {word.text}
+                          </span>
+                        ))
+                      ) : (
+                        <p className={`${transcript.isFinal ? 'text-foreground' : 'text-muted-foreground italic'}`}>
+                          {transcript.text}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       {transcript.timestamp.toLocaleTimeString()}
+                      {transcript.confidence && ` • Confidence: ${(transcript.confidence * 100).toFixed(1)}%`}
                     </p>
                   </div>
                 </div>
