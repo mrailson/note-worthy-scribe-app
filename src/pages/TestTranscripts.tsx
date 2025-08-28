@@ -6,8 +6,6 @@ import { Copy, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
-import { AmazonTranscribeMedicalTest } from '@/components/AmazonTranscribeMedicalTest';
-import { EdgeFunctionTester } from '@/components/EdgeFunctionTester';
 import { DeepgramLiveTest } from '@/components/DeepgramLiveTest';
 import { WhisperNonLiveTest } from '@/components/WhisperNonLiveTest';
 
@@ -15,13 +13,14 @@ const TestTranscripts = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [copiedTranscripts, setCopiedTranscripts] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState('medical-test');
+  const [activeTab, setActiveTab] = useState('deepgram-live');
 
   // Handle URL fragments to open the correct tab
   useEffect(() => {
     const hash = location.hash.replace('#', '');
     const tabMapping: Record<string, string> = {
-      'medical-test': 'medical-test',
+      'deepgram-live': 'deepgram-live',
+      'whisper-analysis': 'whisper-analysis',
       'consultations': 'consultations',
       'partnership': 'partnership', 
       'pcn': 'pcn',
@@ -512,8 +511,7 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
-            <TabsTrigger value="medical-test">Medical</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
             <TabsTrigger value="deepgram-live">Deepgram</TabsTrigger>
             <TabsTrigger value="whisper-analysis">Whisper</TabsTrigger>
             <TabsTrigger value="consultations">Consultations</TabsTrigger>
@@ -521,22 +519,6 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
             <TabsTrigger value="pcn">PCN</TabsTrigger>
             <TabsTrigger value="lmc">LMC</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="medical-test" className="space-y-6">
-            <div className="space-y-4">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-semibold">Amazon Transcribe Medical Test</h2>
-                <p className="text-muted-foreground">
-                  Test clinical-grade speech-to-text with medical vocabulary and speaker identification
-                </p>
-              </div>
-              
-              {/* Add diagnostics section */}
-              <EdgeFunctionTester />
-              
-              <AmazonTranscribeMedicalTest />
-            </div>
-          </TabsContent>
 
           <TabsContent value="deepgram-live" className="space-y-6">
             <div className="space-y-4">
