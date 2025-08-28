@@ -76,25 +76,16 @@ export default function AssemblyAITest() {
       
       mediaStreamRef.current = stream;
       
-      // Setup WebSocket through Supabase proxy (CSP compliant) - UPDATED
-      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-realtime`;
-      console.log('NEW CODE: Connecting via Supabase proxy:', wsUrl);
+      // Setup direct WebSocket to AssemblyAI (now CSP compliant)
+      const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&token=${encodeURIComponent(token)}&format_turns=true`;
+      console.log('DIRECT: Connecting to AssemblyAI WebSocket:', wsUrl.replace(/token=[^&]+/, 'token=***'));
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('NEW CODE: Supabase proxy WebSocket connected');
+        console.log('DIRECT: AssemblyAI WebSocket connected successfully!');
         setIsConnected(true);
         setIsRecording(true);
-        
-        // Send session configuration through proxy
-        const sessionConfig = {
-          type: 'session.start',
-          sample_rate: 16000,
-          format_turns: true
-        };
-        console.log('Sending session config:', sessionConfig);
-        ws.send(JSON.stringify(sessionConfig));
       };
       
       ws.onmessage = (event) => {
