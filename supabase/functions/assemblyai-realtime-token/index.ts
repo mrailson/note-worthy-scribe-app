@@ -1,60 +1,60 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Deno runtime (Supabase Edge Functions)
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const cors = (origin: string | null) => ({
+  "Access-Control-Allow-Origin": origin || "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Max-Age": "86400",
+});
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: cors(origin) });
   }
 
   try {
-    const apiKey = Deno.env.get('ASSEMBLYAI_API_KEY');
-    if (!apiKey) {
-      console.error('[AssemblyAI-Token] Missing ASSEMBLYAI_API_KEY env var');
-      return new Response(JSON.stringify({ error: "Missing ASSEMBLYAI_API_KEY env var" }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
+    if (!AAI_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Missing ASSEMBLYAI_API_KEY" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...cors(origin) } }
+      );
     }
 
-    console.log('[AssemblyAI-Token] Minting realtime token...');
+    // Optional: verify caller is allowed (e.g., check Supabase JWT if you want)
+    // const auth = req.headers.get("authorization"); // "Bearer <anon-or-user-jwt>"
+    // if (!auth) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json", ...cors(origin) } });
 
-    // Mint a short-lived realtime token
-    const response = await fetch("https://api.assemblyai.com/v2/realtime/token", {
+    // Mint realtime token
+    const r = await fetch("https://api.assemblyai.com/v2/realtime/token", {
       method: "POST",
       headers: {
-        Authorization: apiKey,
+        Authorization: AAI_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ expires_in: 3600 }), // 1 hour
+      body: JSON.stringify({ expires_in: 3600 }),
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('[AssemblyAI-Token] Token mint failed:', response.status, text);
-      return new Response(JSON.stringify({ error: `Token mint failed: ${text}` }), {
-        status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (!r.ok) {
+      const text = await r.text();
+      return new Response(
+        JSON.stringify({ error: `Token mint failed: ${text}` }),
+        { status: r.status, headers: { "Content-Type": "application/json", ...cors(origin) } }
+      );
     }
 
-    const data = await response.json(); // { token: "..." }
-    console.log('[AssemblyAI-Token] Token minted successfully');
-    
+    const data = await r.json(); // { token: "..." }
     return new Response(JSON.stringify({ token: data.token }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json", ...cors(origin) },
     });
-
-  } catch (err) {
-    console.error('[AssemblyAI-Token] Error:', err);
-    return new Response(JSON.stringify({ error: err?.message || "Unknown error" }), {
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json", ...cors(origin) },
     });
   }
 });
