@@ -9,11 +9,12 @@ import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } fro
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
 import { AmazonTranscribeRealtimeTranscriber, TranscriptData as AmazonTranscriptData } from '@/utils/AmazonTranscribeRealtimeTranscriber';
+import { AssemblyAIRealtimeTranscriber, TranscriptData as AssemblyAITranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { toast } from 'sonner';
 import RecorderNoAGC from '@/components/RecorderNoAGC';
 import { generateWordDocument } from '@/utils/documentGenerators';
 
-type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'amazon-transcribe' | 'raw-audio-mic' | 'raw-audio-tab';
+type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'amazon-transcribe' | 'assemblyai' | 'raw-audio-mic' | 'raw-audio-tab';
 
 interface ServiceData {
   isRecording: boolean;
@@ -52,6 +53,14 @@ const DeepgramTest = () => {
       transcriber: null
     },
     'amazon-transcribe': {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    assemblyai: {
       isRecording: false,
       transcriptData: [],
       currentTranscript: '',
@@ -197,6 +206,14 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
+        case 'assemblyai':
+          transcriber = new AssemblyAIRealtimeTranscriber(
+            callbacks.onTranscription,
+            callbacks.onError,
+            callbacks.onStatusChange,
+            callbacks.onSummary
+          );
+          break;
         default:
           throw new Error('Unknown service type');
       }
@@ -271,6 +288,7 @@ const DeepgramTest = () => {
             whisper: 'Whisper AI',
             deepgram: 'Deepgram Realtime',
             'amazon-transcribe': 'Amazon Transcribe Realtime',
+            assemblyai: 'AssemblyAI Realtime',
             'raw-audio-mic': 'Raw Audio (No AGC)',
             'raw-audio-tab': 'Raw Audio (Share Tab)'
           };
@@ -337,6 +355,7 @@ const DeepgramTest = () => {
       whisper: 'Whisper AI (Local)',
       deepgram: 'Deepgram Realtime',
       'amazon-transcribe': 'Amazon Transcribe Realtime',
+      assemblyai: 'AssemblyAI Realtime',
       'raw-audio-mic': 'Raw Audio (No AGC)',
       'raw-audio-tab': 'Raw Audio (Share Tab)'
     };
@@ -346,6 +365,7 @@ const DeepgramTest = () => {
       whisper: <Bot className="w-4 h-4" />,
       deepgram: <Radio className="w-4 h-4" />,
       'amazon-transcribe': <Radio className="w-4 h-4" />,
+      assemblyai: <Radio className="w-4 h-4" />,
       'raw-audio-mic': <Headphones className="w-4 h-4" />,
       'raw-audio-tab': <Monitor className="w-4 h-4" />
     };
@@ -525,6 +545,7 @@ const DeepgramTest = () => {
               { key: 'whisper', icon: Bot, label: 'Whisper' },
               { key: 'deepgram', icon: Radio, label: 'Deepgram' },
               { key: 'amazon-transcribe', icon: Radio, label: 'Amazon Transcribe' },
+              { key: 'assemblyai', icon: Radio, label: 'AssemblyAI' },
               { key: 'raw-audio-mic', icon: Headphones, label: 'Raw Audio (Mic)' },
               { key: 'raw-audio-tab', icon: Monitor, label: 'Raw Audio (Tab)' }
             ].map(({ key, icon: Icon, label }) => (
@@ -587,6 +608,7 @@ const DeepgramTest = () => {
                       whisper: 'Whisper AI',
                       deepgram: 'Deepgram Realtime',
                       'amazon-transcribe': 'Amazon Transcribe Realtime',
+                      assemblyai: 'AssemblyAI Realtime',
                       'raw-audio-mic': 'Raw Audio (No AGC)',
                       'raw-audio-tab': 'Raw Audio (Share Tab)'
                     };
@@ -596,6 +618,7 @@ const DeepgramTest = () => {
                       whisper: <Bot className="w-4 h-4" />,
                       deepgram: <Radio className="w-4 h-4" />,
                       'amazon-transcribe': <Radio className="w-4 h-4" />,
+                      assemblyai: <Radio className="w-4 h-4" />,
                       'raw-audio-mic': <Headphones className="w-4 h-4" />,
                       'raw-audio-tab': <Monitor className="w-4 h-4" />
                     };
