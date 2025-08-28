@@ -118,8 +118,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }
   };
 
-  // Start conversation
-  const startConversation = async () => {
+  // Start conversation with enhanced error handling and retry logic
+  const startConversation = async (retryCount = 0) => {
+    const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
+    
     const permitted = hasPermission ? true : await requestMicrophonePermission();
     if (!permitted) return;
 
@@ -127,32 +129,106 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       setIsLoading(true);
       setError(null);
       
+      // Browser compatibility checks
+      console.log('Starting conversation - Browser checks:', {
+        hasWebAudio: !!window.AudioContext || !!(window as any).webkitAudioContext,
+        hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
+        hasWebRTC: !!window.RTCPeerConnection,
+        userAgent: navigator.userAgent,
+        isSecureContext: window.isSecureContext
+      });
+
+      // Check audio context state
+      if (window.AudioContext || (window as any).webkitAudioContext) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const tempCtx = new AudioCtx();
+        console.log('Audio context state:', tempCtx.state);
+        await tempCtx.close();
+      }
+      
       // Generate signed URL first (required for authorized agents)
+      console.log(`Generating signed URL for ${serviceName}...`);
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
-        setError(`Failed to get authorization for ${serviceName}`);
+        setError(`Failed to get authorization for ${serviceName}. Please check your network connection.`);
         return;
       }
 
-      console.log('Starting conversation with signed URL');
-      const conversationId = await conversation.startSession({ 
-        signedUrl
-      });
+      console.log(`Starting conversation with ${serviceName} using signed URL`);
+      console.log('ElevenLabs conversation status before start:', conversation.status);
+      
+      // Add timeout for startSession
+      const sessionPromise = conversation.startSession({ signedUrl });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 30000)
+      );
+      
+      const conversationId = await Promise.race([sessionPromise, timeoutPromise]);
 
+      console.log(`${serviceName} conversation started successfully:`, conversationId);
+      
       // Apply current volume immediately after connect
-      await conversation.setVolume({ volume: isMuted ? 0 : volume });
-      console.log('Conversation started:', conversationId);
+      try {
+        await conversation.setVolume({ volume: isMuted ? 0 : volume });
+        console.log('Volume applied successfully:', isMuted ? 0 : volume);
+      } catch (volumeErr) {
+        console.warn('Failed to set initial volume:', volumeErr);
+      }
       
     } catch (err: any) {
-      console.error('Failed to start conversation:', err);
-      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
-      setError(`Failed to start conversation with ${serviceName}`);
-      toast.error('Failed to start conversation');
+      console.error(`Failed to start conversation with ${serviceName}:`, {
+        error: err,
+        message: err?.message,
+        stack: err?.stack,
+        conversationStatus: conversation.status,
+        retryCount
+      });
+      
+      // Determine specific error type and provide better messaging
+      let errorMessage = `Failed to start conversation with ${serviceName}`;
+      let shouldRetry = false;
+      
+      if (err?.message?.includes('timeout') || err?.message?.includes('Connection timeout')) {
+        errorMessage = `Connection timeout - ${serviceName} is taking too long to respond`;
+        shouldRetry = retryCount < 2;
+      } else if (err?.message?.includes('network') || err?.message?.includes('fetch')) {
+        errorMessage = `Network error - Unable to connect to ${serviceName}`;
+        shouldRetry = retryCount < 2;
+      } else if (err?.message?.includes('permission') || err?.message?.includes('microphone')) {
+        errorMessage = `Microphone access error - Please check your browser permissions`;
+        shouldRetry = false;
+      } else if (err?.message?.includes('WebRTC') || err?.message?.includes('peer')) {
+        errorMessage = `WebRTC connection failed - Try refreshing the page or using a different browser`;
+        shouldRetry = retryCount < 1;
+      } else if (err?.message?.includes('unauthorized') || err?.message?.includes('403')) {
+        errorMessage = `Authorization failed - Please check your ElevenLabs API key`;
+        shouldRetry = false;
+      } else {
+        errorMessage = `Connection failed: ${err?.message || 'Unknown error'}`;
+        shouldRetry = retryCount < 1;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Retry logic with exponential backoff
+      if (shouldRetry) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`Retrying connection in ${delay}ms...`);
+        setTimeout(() => {
+          toast.info(`Retrying connection to ${serviceName}...`);
+          startConversation(retryCount + 1);
+        }, delay);
+      }
     } finally {
-      setIsLoading(false);
+      if (retryCount === 0) { // Only set loading false on the original call, not retries
+        setIsLoading(false);
+      }
     }
   };
+
+  // Wrapper function for onClick handler
+  const handleStartConversation = () => startConversation(0);
 
   // Start language support test conversation
   const startLanguageTestConversation = async () => {
@@ -407,7 +483,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               </Button>
             ) : (
               <Button 
-                onClick={startConversation}
+                onClick={handleStartConversation}
                 disabled={!hasPermission || isLoading}
                 size="lg"
                 className="flex items-center gap-2"
