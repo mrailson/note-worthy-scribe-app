@@ -69,28 +69,46 @@ export default function TranscriptionComparison() {
   const handleAssemblyTranscript = useCallback((data: any) => {
     console.log('📝 ASSEMBLY: Received transcript data:', data);
     
+    const transcript = data.text?.trim();
+    if (!transcript) {
+      console.log('⚠️ ASSEMBLY: Empty transcript, skipping');
+      return;
+    }
+    
     const transcriptEntry: TranscriptEntry = {
       id: `assembly-${Date.now()}-${Math.random()}`,
-      text: data.text,
+      text: transcript,
       isFinal: data.is_final,
       timestamp: new Date(),
       confidence: data.confidence,
       service: 'assemblyai'
     };
 
-    setAssemblyState(prev => ({
-      ...prev,
-      transcripts: [...prev.transcripts, transcriptEntry],
-      fullTranscript: data.is_final ? 
-        (prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + data.text) : 
-        prev.fullTranscript,
-      wordCount: data.is_final ? 
-        (prev.fullTranscript + ' ' + data.text).split(' ').filter(w => w.trim()).length :
-        prev.wordCount,
-      avgConfidence: data.confidence ? 
-        (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
-        prev.avgConfidence
-    }));
+    console.log('📝 ASSEMBLY: Adding transcript entry:', transcriptEntry);
+
+    setAssemblyState(prev => {
+      const newState = {
+        ...prev,
+        transcripts: [...prev.transcripts, transcriptEntry],
+        fullTranscript: data.is_final ? 
+          (prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript) : 
+          prev.fullTranscript,
+        wordCount: data.is_final ? 
+          (prev.fullTranscript + ' ' + transcript).split(' ').filter(w => w.trim()).length :
+          prev.wordCount,
+        avgConfidence: data.confidence ? 
+          (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
+          prev.avgConfidence
+      };
+      
+      console.log('📝 ASSEMBLY: Updated state:', {
+        transcriptCount: newState.transcripts.length,
+        fullTranscript: newState.fullTranscript,
+        wordCount: newState.wordCount
+      });
+      
+      return newState;
+    });
   }, []);
 
   const handleAssemblyError = useCallback((error: string) => {
@@ -141,31 +159,53 @@ export default function TranscriptionComparison() {
 
   // Whisper handlers
   const handleWhisperTranscript = useCallback((data: TranscriptData) => {
+    console.log('📝 WHISPER: Received transcript data:', data);
+    
+    const transcript = data.text?.trim();
+    if (!transcript) {
+      console.log('⚠️ WHISPER: Empty transcript, skipping');
+      return;
+    }
+    
     const transcriptEntry: TranscriptEntry = {
       id: `whisper-${Date.now()}-${Math.random()}`,
-      text: data.text,
+      text: transcript,
       isFinal: data.is_final,
       timestamp: new Date(),
       confidence: data.confidence,
       service: 'whisper'
     };
 
-    setWhisperState(prev => ({
-      ...prev,
-      transcripts: [...prev.transcripts, transcriptEntry],
-      fullTranscript: prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + data.text,
-      wordCount: (prev.fullTranscript + ' ' + data.text).split(' ').filter(w => w.trim()).length,
-      avgConfidence: data.confidence ? 
-        (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
-        prev.avgConfidence
-    }));
+    console.log('📝 WHISPER: Adding transcript entry:', transcriptEntry);
+
+    setWhisperState(prev => {
+      const newState = {
+        ...prev,
+        transcripts: [...prev.transcripts, transcriptEntry],
+        fullTranscript: prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript,
+        wordCount: (prev.fullTranscript + ' ' + transcript).split(' ').filter(w => w.trim()).length,
+        avgConfidence: data.confidence ? 
+          (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
+          prev.avgConfidence
+      };
+      
+      console.log('📝 WHISPER: Updated state:', {
+        transcriptCount: newState.transcripts.length,
+        fullTranscript: newState.fullTranscript,
+        wordCount: newState.wordCount
+      });
+      
+      return newState;
+    });
   }, []);
 
   const handleWhisperError = useCallback((error: string) => {
+    console.error('❌ WHISPER: Error:', error);
     setWhisperState(prev => ({ ...prev, error }));
   }, []);
 
   const handleWhisperStatus = useCallback((status: string) => {
+    console.log('📊 WHISPER: Status change:', status);
     setWhisperState(prev => ({ 
       ...prev, 
       isConnected: status === 'Recording',
