@@ -34,6 +34,7 @@ import BrowserRecorder from "./pages/BrowserRecorder";
 import NHSMeetingNotes from "./pages/NHSMeetingNotes";
 
 import TestTranscripts from "./pages/TestTranscripts";
+import AssemblyAITest from "./pages/AssemblyAITest";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -90,6 +91,7 @@ const App = () => (
             <Route path="/browser-recorder" element={<BrowserRecorder />} />
             <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
             <Route path="/test-transcripts" element={<TestTranscripts />} />
+            <Route path="/assemblyai-test" element={<AssemblyAITest />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             
