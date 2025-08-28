@@ -35,7 +35,9 @@ export class AssemblyAIRealtimeTranscriber {
 
       this.ws.onopen = async () => {
         console.log('✅ Connected to AssemblyAI WebSocket proxy');
-        this.onStatusChange('Connected - Starting audio capture...');
+        this.onStatusChange('connected');
+        // The proxy will auto-initialize the AssemblyAI connection
+        // and send session_begins when ready
       };
 
       this.ws.onmessage = (event) => {
@@ -53,6 +55,7 @@ export class AssemblyAIRealtimeTranscriber {
           if (data.type === 'session_begins' || data.message_type === 'SessionBegins') {
             console.log('✅ AssemblyAI session began, starting audio capture...');
             this.sessionId = data.session_id || Date.now().toString();
+            this.onStatusChange('recording');
             this.startAudioCapture();
             return;
           }

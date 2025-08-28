@@ -32,7 +32,90 @@ Deno.serve(async (req: Request) => {
 
     socket.onopen = () => {
       console.log('✅ Client WebSocket opened');
+      
+      // Auto-start AssemblyAI session when client connects
+      initAssemblyAIConnection();
     };
+
+    async function initAssemblyAIConnection() {
+      try {
+        const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
+        if (!AAI_KEY) {
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            error: 'Missing ASSEMBLYAI_API_KEY' 
+          }));
+          return;
+        }
+
+        console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
+        
+        // Get token from AssemblyAI (9 minutes expiry)
+        const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
+          method: 'GET',
+          headers: { Authorization: AAI_KEY }
+        });
+        
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('❌ Token request failed:', errorText);
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            error: `Token request failed: ${errorText}` 
+          }));
+          return;
+        }
+        
+        const tokenData = await tokenResponse.json();
+        const tokenWsUrl = `${wsUrl}&token=${encodeURIComponent(tokenData.token)}`;
+        
+        assemblySocket = new WebSocket(tokenWsUrl);
+        
+        assemblySocket.onopen = () => {
+          console.log('✅ AssemblyAI WebSocket connected');
+          socket.send(JSON.stringify({ 
+            type: 'session_begins',
+            session_id: Date.now().toString()
+          }));
+        };
+        
+        assemblySocket.onmessage = (assemblyEvent) => {
+          console.log('📝 Forwarding message from AssemblyAI to client');
+          socket.send(assemblyEvent.data);
+        };
+        
+        assemblySocket.onerror = (error) => {
+          console.error('❌ AssemblyAI WebSocket error:', error);
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            error: 'AssemblyAI connection error' 
+          }));
+        };
+        
+        assemblySocket.onclose = (closeEvent) => {
+          console.log('🔌 AssemblyAI WebSocket closed:', closeEvent.code, closeEvent.reason);
+          if (closeEvent.code === 1006) {
+            socket.send(JSON.stringify({ 
+              type: 'error', 
+              error: 'Connection lost unexpectedly. This may be due to token expiry or network issues.' 
+            }));
+          } else {
+            socket.send(JSON.stringify({ 
+              type: 'session_terminated',
+              code: closeEvent.code,
+              reason: closeEvent.reason
+            }));
+          }
+        };
+      } catch (error) {
+        console.error('❌ Failed to initialize AssemblyAI connection:', error);
+        socket.send(JSON.stringify({ 
+          type: 'error', 
+          error: 'Failed to initialize AssemblyAI connection' 
+        }));
+      }
+    }
 
     socket.onmessage = async (event) => {
       try {
@@ -45,83 +128,11 @@ Deno.serve(async (req: Request) => {
           return;
         }
         
-        // Handle text/JSON messages
+        // Handle text/JSON messages (mostly for terminate)
         const message = JSON.parse(event.data);
         console.log('📨 Received message from client:', message.type || 'unknown');
         
-        // Handle session start message to create AssemblyAI connection
-        if (message.type === 'session.start') {
-          const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
-          if (!AAI_KEY) {
-            socket.send(JSON.stringify({ 
-              type: 'error', 
-              error: 'Missing ASSEMBLYAI_API_KEY' 
-            }));
-            return;
-          }
-
-          console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
-          const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=${message.sample_rate || 16000}&format_turns=${message.format_turns || true}&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
-          
-          // Get token from AssemblyAI (9 minutes expiry)
-          const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
-            method: 'GET',
-            headers: { Authorization: AAI_KEY }
-          });
-          
-          if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error('❌ Token request failed:', errorText);
-            socket.send(JSON.stringify({ 
-              type: 'error', 
-              error: `Token request failed: ${errorText}` 
-            }));
-            return;
-          }
-          
-          const tokenData = await tokenResponse.json();
-          const tokenWsUrl = `${wsUrl}&token=${encodeURIComponent(tokenData.token)}`;
-          
-          assemblySocket = new WebSocket(tokenWsUrl);
-          
-          assemblySocket.onopen = () => {
-            console.log('✅ AssemblyAI WebSocket connected');
-            socket.send(JSON.stringify({ 
-              type: 'session_begins',
-              session_id: Date.now().toString()
-            }));
-          };
-          
-          assemblySocket.onmessage = (assemblyEvent) => {
-            console.log('📝 Forwarding message from AssemblyAI to client');
-            socket.send(assemblyEvent.data);
-          };
-          
-          assemblySocket.onerror = (error) => {
-            console.error('❌ AssemblyAI WebSocket error:', error);
-            socket.send(JSON.stringify({ 
-              type: 'error', 
-              error: 'AssemblyAI connection error' 
-            }));
-          };
-          
-           assemblySocket.onclose = (closeEvent) => {
-             console.log('🔌 AssemblyAI WebSocket closed:', closeEvent.code, closeEvent.reason);
-             if (closeEvent.code === 1006) {
-               socket.send(JSON.stringify({ 
-                 type: 'error', 
-                 error: 'Connection lost unexpectedly. This may be due to token expiry or network issues.' 
-               }));
-             } else {
-               socket.send(JSON.stringify({ 
-                 type: 'session_terminated',
-                 code: closeEvent.code,
-                 reason: closeEvent.reason
-               }));
-             }
-           };
-          
-        } else if (message.type === 'terminate') {
+        if (message.type === 'terminate') {
           console.log('🔌 Received terminate signal');
           if (assemblySocket) {
             assemblySocket.close();
@@ -130,7 +141,7 @@ Deno.serve(async (req: Request) => {
         }
         
       } catch (error) {
-        console.error('❌ Error processing JSON message:', error);
+        console.error('❌ Error processing message:', error);
         socket.send(JSON.stringify({ 
           type: 'error', 
           error: 'Failed to process message' 
