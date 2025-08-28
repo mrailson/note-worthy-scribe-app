@@ -36,6 +36,7 @@ import NHSMeetingNotes from "./pages/NHSMeetingNotes";
 import TestTranscripts from "./pages/TestTranscripts";
 
 import NotFound from "./pages/NotFound";
+import NewsAdmin from "./pages/NewsAdmin";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";

@@ -42,8 +42,10 @@ import {
   Upload,
   FileJson,
   TestTube,
-  FileCheck
+  FileCheck,
+  Newspaper
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
@@ -1467,6 +1469,44 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Administrative shortcuts and management tools</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Link to="/news-admin">
+                    <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2">
+                      <Newspaper className="h-6 w-6" />
+                      <div className="text-center">
+                        <div className="font-medium">News Management</div>
+                        <div className="text-xs text-muted-foreground">Create and manage news articles</div>
+                      </div>
+                    </Button>
+                  </Link>
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2" disabled>
+                    <Users className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-medium">User Management</div>
+                      <div className="text-xs text-muted-foreground">Manage user accounts</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center gap-2" disabled>
+                    <Shield className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-medium">Security Center</div>
+                      <div className="text-xs text-muted-foreground">Monitor security events</div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* User Management Tab */}
