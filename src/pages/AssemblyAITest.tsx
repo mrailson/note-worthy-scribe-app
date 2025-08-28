@@ -52,13 +52,18 @@ export default function AssemblyAITest() {
   };
 
   const startRecording = useCallback(async () => {
+    console.log('=== START RECORDING FUNCTION CALLED ===');
+    
     try {
       setError(null);
+      console.log('State cleared, requesting token...');
       
       // Get token
       const token = await getAssemblyToken();
+      console.log('Token received, length:', token ? token.length : 'null');
       
       // Get microphone access
+      console.log('Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -67,6 +72,7 @@ export default function AssemblyAITest() {
           noiseSuppression: true,
         }
       });
+      console.log('Microphone access granted');
       
       mediaStreamRef.current = stream;
       
@@ -214,14 +220,22 @@ export default function AssemblyAITest() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          AssemblyAI Real-time Test
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Test AssemblyAI's real-time speech-to-text capabilities
-        </p>
-      </div>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            AssemblyAI Real-time Test
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Test AssemblyAI's real-time speech-to-text capabilities
+          </p>
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/assemblyai-test-simple'}
+            >
+              Go to Diagnostic Mode
+            </Button>
+          </div>
+        </div>
 
       {/* Control Panel */}
       <Card className="mb-6">
