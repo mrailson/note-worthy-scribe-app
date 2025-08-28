@@ -44,16 +44,19 @@ export class AssemblyAIChunkTranscriber {
         }
       });
 
-      // Setup MediaRecorder with best supported format for AssemblyAI
-      let mimeType: string;
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        mimeType = 'audio/webm';
-      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-        mimeType = 'audio/wav';
-      } else {
-        mimeType = 'audio/webm'; // fallback
+      // Setup MediaRecorder with WAV format for better AssemblyAI compatibility
+      let mimeType = 'audio/wav';
+      
+      // Try WAV first (best for transcription services)
+      if (!MediaRecorder.isTypeSupported('audio/wav')) {
+        // Fallback to WebM if WAV not supported
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=pcm')) {
+          mimeType = 'audio/webm;codecs=pcm';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else {
+          mimeType = 'audio/webm;codecs=opus';
+        }
       }
       
       this.recordedMimeType = mimeType;
@@ -61,7 +64,7 @@ export class AssemblyAIChunkTranscriber {
       
       this.mediaRecorder = new MediaRecorder(this.audioStream, {
         mimeType,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 64000 // Lower bitrate for smaller chunks
       });
 
       this.mediaRecorder.ondataavailable = (event) => {

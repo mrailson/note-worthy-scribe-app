@@ -36,12 +36,24 @@ serve(async (req) => {
 
     // Decode base64 audio
     const audioBytes = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
-    console.log(`[AssemblyAI-Transcription] Decoded audio: ${audioBytes.length} bytes`);
+    console.log(`[AssemblyAI-Transcription] Decoded audio: ${audioBytes.length} bytes, MIME: ${mimeType}`);
+    
+    // Skip very small audio chunks 
+    if (audioBytes.length < 1000) {
+      console.log(`[AssemblyAI-Transcription] Skipping tiny chunk: ${audioBytes.length} bytes`);
+      return Response.json({ 
+        text: '', 
+        confidence: 0, 
+        chunkIndex,
+        note: 'Chunk too small to process' 
+      }, { headers: corsHeaders });
+    }
 
-    // Create form data for AssemblyAI upload
+    // Create form data for AssemblyAI upload with proper file extension
     const formData = new FormData();
-    const audioBlob = new Blob([audioBytes], { type: mimeType || 'audio/webm' });
-    formData.append('audio', audioBlob, `chunk-${chunkIndex}.webm`);
+    const fileExtension = mimeType?.includes('wav') ? 'wav' : 'webm';
+    const audioBlob = new Blob([audioBytes], { type: mimeType || 'audio/wav' });
+    formData.append('audio', audioBlob, `chunk-${chunkIndex}.${fileExtension}`);
 
     // Upload audio to AssemblyAI
     console.log('[AssemblyAI-Transcription] Uploading to AssemblyAI...');
