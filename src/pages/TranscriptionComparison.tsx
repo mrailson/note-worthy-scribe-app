@@ -168,23 +168,35 @@ export default function TranscriptionComparison() {
 
   // Initialize services
   const initializeServices = useCallback(() => {
+    console.log('🔧 Initializing services...');
+    
     // Initialize AssemblyAI
     if (!assemblyTranscriberRef.current) {
+      console.log('🔧 Creating new AssemblyAI transcriber...');
       assemblyTranscriberRef.current = new AssemblyAIRealtimeTranscriber(
         handleAssemblyTranscript,
         handleAssemblyError,
         handleAssemblyStatus
       );
+      console.log('✅ AssemblyAI transcriber created');
+    } else {
+      console.log('ℹ️ AssemblyAI transcriber already exists');
     }
 
     // Initialize Whisper
     if (!whisperTranscriberRef.current) {
+      console.log('🔧 Creating new Whisper transcriber...');
       whisperTranscriberRef.current = new WhisperTranscriber(
         handleWhisperTranscript,
         handleWhisperError,
         handleWhisperStatus
       );
+      console.log('✅ Whisper transcriber created');
+    } else {
+      console.log('ℹ️ Whisper transcriber already exists');
     }
+    
+    console.log('✅ All services initialized');
   }, [handleAssemblyTranscript, handleAssemblyError, handleAssemblyStatus, handleWhisperTranscript, handleWhisperError, handleWhisperStatus]);
 
   // Start individual services
@@ -588,6 +600,19 @@ export default function TranscriptionComparison() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-4">
+            <div className="text-center text-sm text-muted-foreground mb-2">
+              <p>🚀 <strong>Navigate to:</strong> <code>/transcription-comparison</code></p>
+              <p>Or click the button below to access the comparison interface</p>
+            </div>
+            
+            <Button
+              onClick={() => window.location.href = '/transcription-comparison'}
+              variant="default"
+              size="lg"
+              className="mb-4"
+            >
+              🔄 Go to Service Comparison
+            </Button>
             {/* Audio Level Indicator */}
             {(assemblyState.isRecording || deepgramState.isRecording || whisperState.isRecording) && (
               <div className="w-full max-w-xs">
