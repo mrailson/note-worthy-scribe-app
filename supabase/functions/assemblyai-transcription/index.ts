@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,93 +11,147 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('[AssemblyAI-Transcription] Processing request...');
+
   try {
-    const { audio } = await req.json();
-
-    if (!audio) {
-      return new Response(JSON.stringify({ error: 'No audio data provided' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log("Processing audio with Whisper API...");
-
-    // Convert base64 to Uint8Array
-    const binaryString = atob(audio);
-    const audioData = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      audioData[i] = binaryString.charCodeAt(i);
-    }
-
-    // Prepare form data for Whisper API
-    const formData = new FormData();
-    const blob = new Blob([audioData], { type: 'audio/webm' });
-    formData.append('file', blob, 'audio.webm');
-    formData.append('model', 'whisper-1');
-    formData.append('language', 'en');
-    formData.append('response_format', 'verbose_json');
-
-    console.log("Sending request to OpenAI Whisper API");
+    const { audio, mimeType, chunkIndex } = await req.json();
     
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    if (!audio) {
+      return Response.json({ error: 'No audio data provided' }, { 
+        status: 400, 
+        headers: corsHeaders 
+      });
+    }
+
+    const assemblyApiKey = Deno.env.get('ASSEMBLYAI_API_KEY');
+    if (!assemblyApiKey) {
+      console.error('[AssemblyAI-Transcription] API key not found');
+      return Response.json({ error: 'AssemblyAI API key not configured' }, { 
+        status: 500, 
+        headers: corsHeaders 
+      });
+    }
+
+    console.log(`[AssemblyAI-Transcription] Processing chunk ${chunkIndex}, size: ${audio.length} chars`);
+
+    // Decode base64 audio
+    const audioBytes = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+    console.log(`[AssemblyAI-Transcription] Decoded audio: ${audioBytes.length} bytes`);
+
+    // Create form data for AssemblyAI upload
+    const formData = new FormData();
+    const audioBlob = new Blob([audioBytes], { type: mimeType || 'audio/webm' });
+    formData.append('audio', audioBlob, `chunk-${chunkIndex}.webm`);
+
+    // Upload audio to AssemblyAI
+    console.log('[AssemblyAI-Transcription] Uploading to AssemblyAI...');
+    const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': assemblyApiKey,
       },
-      body: formData
+      body: formData,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI Whisper API error:", response.status, errorText);
-      return new Response(JSON.stringify({ error: `Whisper API error: ${response.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.text();
+      console.error('[AssemblyAI-Transcription] Upload failed:', uploadError);
+      return Response.json({ error: 'Audio upload failed' }, { 
+        status: uploadResponse.status, 
+        headers: corsHeaders 
       });
     }
 
-    const result = await response.json();
-    console.log("OpenAI Whisper response:", result);
+    const uploadResult = await uploadResponse.json();
+    const audioUrl = uploadResult.upload_url;
+    console.log('[AssemblyAI-Transcription] Audio uploaded, URL:', audioUrl);
 
-    // Better handling of empty or low-quality audio
-    if (result.text && result.text.trim()) {
-      return new Response(JSON.stringify({
-        text: result.text.trim(),
-        words: result.words || []
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Submit transcription job
+    const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+      method: 'POST',
+      headers: {
+        'Authorization': assemblyApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        audio_url: audioUrl,
+        language_code: 'en_us',
+        speech_model: 'best',
+        // Enable useful features
+        punctuate: true,
+        format_text: true,
+        // Fast processing for chunks
+        boost_param: 'high'
+      }),
+    });
+
+    if (!transcriptResponse.ok) {
+      const transcriptError = await transcriptResponse.text();
+      console.error('[AssemblyAI-Transcription] Transcript request failed:', transcriptError);
+      return Response.json({ error: 'Transcription request failed' }, { 
+        status: transcriptResponse.status, 
+        headers: corsHeaders 
       });
-    } else {
-      // Log more details about why transcription failed
-      console.log("No transcription text received from Whisper. Full response:", JSON.stringify(result));
-      console.log("Audio blob size:", audioData.length, "bytes");
+    }
+
+    const transcriptJob = await transcriptResponse.json();
+    const transcriptId = transcriptJob.id;
+    console.log('[AssemblyAI-Transcription] Transcription job created:', transcriptId);
+
+    // Poll for completion (AssemblyAI is async)
+    let attempts = 0;
+    const maxAttempts = 60; // 1 minute max wait
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       
-      // Return empty but don't throw error - let the client handle it
-      return new Response(JSON.stringify({ 
-        text: '',
-        debug: {
-          audioSize: audioData.length,
-          whisperResponse: result
-        }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      const statusResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+        headers: {
+          'Authorization': assemblyApiKey,
+        },
       });
+
+      if (!statusResponse.ok) {
+        console.error('[AssemblyAI-Transcription] Status check failed');
+        break;
+      }
+
+      const result = await statusResponse.json();
+      console.log(`[AssemblyAI-Transcription] Status: ${result.status}, attempt ${attempts + 1}`);
+
+      if (result.status === 'completed') {
+        console.log('[AssemblyAI-Transcription] Transcription completed successfully');
+        return Response.json({
+          text: result.text || '',
+          confidence: result.confidence || 0.9,
+          chunkIndex,
+          processingTime: attempts + 1
+        }, { headers: corsHeaders });
+      }
+
+      if (result.status === 'error') {
+        console.error('[AssemblyAI-Transcription] Transcription failed:', result.error);
+        return Response.json({ error: `Transcription failed: ${result.error}` }, { 
+          status: 500, 
+          headers: corsHeaders 
+        });
+      }
+
+      attempts++;
     }
+
+    // Timeout
+    console.error('[AssemblyAI-Transcription] Transcription timeout');
+    return Response.json({ error: 'Transcription timeout' }, { 
+      status: 408, 
+      headers: corsHeaders 
+    });
 
   } catch (error) {
-    console.error("Error processing audio:", error);
-    return new Response(JSON.stringify({ error: `Processing error: ${error.message}` }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error('[AssemblyAI-Transcription] Error:', error);
+    return Response.json({ error: 'Internal server error: ' + error.message }, { 
+      status: 500, 
+      headers: corsHeaders 
     });
   }
 });
