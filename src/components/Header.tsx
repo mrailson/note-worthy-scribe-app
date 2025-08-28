@@ -245,63 +245,45 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      </DropdownMenuItem>
                    )}
                    
-                    {/* System Admin Menu */}
-                    {isSystemAdmin && (
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                          <Shield className="h-4 w-4 mr-2" />
-                          System Admin
-                        </DropdownMenuSubTrigger>
-                         <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                   {/* System Admin Menu */}
+                   {isSystemAdmin && (
+                     <DropdownMenuSub>
+                       <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                         <Shield className="h-4 w-4 mr-2" />
+                         System Admin
+                       </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/admin')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Wrench className="h-4 w-4 mr-2" />
+                            Admin Dashboard
+                          </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/admin')}
+                             onClick={() => navigate('/security-compliance')}
                              className="cursor-pointer py-3"
                            >
-                             <Wrench className="h-4 w-4 mr-2" />
-                             Admin Dashboard
+                             <BookOpen className="h-4 w-4 mr-2" />
+                             Security Documentation
                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => navigate('/security-compliance')}
-                              className="cursor-pointer py-3"
-                            >
-                              <BookOpen className="h-4 w-4 mr-2" />
-                              Security Documentation
-                            </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => navigate('/deepgram-test')}
-                             className="cursor-pointer py-3"
-                           >
-                             <Zap className="h-4 w-4 mr-2" />
-                             Deepgram Service
-                           </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => navigate('/multi-service-mic-test')}
-                              className="cursor-pointer py-3"
-                            >
-                              <Mic className="h-4 w-4 mr-2" />
-                              Multi-Service Test
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    )}
-                    
-                    {/* News Admin - separate top-level menu item */}
-                    {isSystemAdmin && (
-                      <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('News Admin menu item clicked!');
-                          console.log('Current location:', location.pathname);
-                          console.log('Attempting to navigate to /news-admin');
-                          navigate('/news-admin');
-                        }}
-                        className="cursor-pointer py-3"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        News Admin
-                      </DropdownMenuItem>
-                    )}
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/deepgram-test')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Zap className="h-4 w-4 mr-2" />
+                            Deepgram Service
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/multi-service-mic-test')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Mic className="h-4 w-4 mr-2" />
+                            Multi-Service Test
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                     </DropdownMenuSub>
+                   )}
                    <DropdownMenuSeparator />
                    <DropdownMenuItem 
                      onClick={signOut}
@@ -468,20 +450,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   Deepgram Service
                                 </Button>
                               </DrawerClose>
-                               <DrawerClose asChild>
-                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
-                                   <Mic className="h-4 w-4 mr-2" />
-                                   Multi-Service Test
-                                 </Button>
-                               </DrawerClose>
-                               <DrawerClose asChild>
-                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/news-admin')}>
-                                   <Mail className="h-4 w-4 mr-2" />
-                                   News Admin
-                                 </Button>
-                               </DrawerClose>
-                             </>
-                            )}
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
+                                  <Mic className="h-4 w-4 mr-2" />
+                                  Multi-Service Test
+                                </Button>
+                              </DrawerClose>
+                            </>
+                           )}
 
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
