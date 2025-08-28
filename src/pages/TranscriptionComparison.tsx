@@ -61,6 +61,8 @@ export default function TranscriptionComparison() {
 
   // AssemblyAI handlers
   const handleAssemblyTranscript = useCallback((data: any) => {
+    console.log('📝 ASSEMBLY: Received transcript data:', data);
+    
     const transcriptEntry: TranscriptEntry = {
       id: `assembly-${Date.now()}-${Math.random()}`,
       text: data.text,
@@ -86,14 +88,16 @@ export default function TranscriptionComparison() {
   }, []);
 
   const handleAssemblyError = useCallback((error: string) => {
+    console.error('❌ ASSEMBLY: Error:', error);
     setAssemblyState(prev => ({ ...prev, error }));
   }, []);
 
   const handleAssemblyStatus = useCallback((status: string) => {
+    console.log('📊 ASSEMBLY: Status change:', status);
     setAssemblyState(prev => ({ 
       ...prev, 
-      isConnected: status === 'connected',
-      isRecording: status === 'recording' || prev.isRecording
+      isConnected: status === 'connected' || status === 'recording',
+      isRecording: status === 'recording'
     }));
   }, []);
 
@@ -186,13 +190,29 @@ export default function TranscriptionComparison() {
   // Start individual services
   const startAssemblyAI = useCallback(async () => {
     try {
+      console.log('🚀 ASSEMBLY: Starting AssemblyAI service...');
       initializeServices();
-      setAssemblyState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
-      await assemblyTranscriberRef.current?.startTranscription();
+      setAssemblyState(prev => ({ 
+        ...prev, 
+        error: null, 
+        sessionStartTime: new Date(), 
+        sessionCount: 1,
+        isConnected: false,
+        isRecording: false
+      }));
+      
+      if (assemblyTranscriberRef.current) {
+        console.log('📡 ASSEMBLY: Calling startTranscription...');
+        await assemblyTranscriberRef.current.startTranscription();
+        console.log('✅ ASSEMBLY: StartTranscription completed');
+      } else {
+        throw new Error('AssemblyAI transcriber not initialized');
+      }
     } catch (error) {
+      console.error('❌ ASSEMBLY: Start error:', error);
       handleAssemblyError(error instanceof Error ? error.message : 'Failed to start AssemblyAI');
     }
-  }, [initializeServices]);
+  }, [initializeServices, handleAssemblyError]);
 
   const startDeepgram = useCallback(async () => {
     try {
@@ -320,8 +340,20 @@ export default function TranscriptionComparison() {
 
   // Stop individual services
   const stopAssemblyAI = useCallback(() => {
-    assemblyTranscriberRef.current?.stopTranscription();
-    setAssemblyState(prev => ({ ...prev, isRecording: false, isConnected: false, timeRemaining: 0, isReconnecting: false }));
+    console.log('🛑 ASSEMBLY: Stopping AssemblyAI service...');
+    try {
+      assemblyTranscriberRef.current?.stopTranscription();
+      setAssemblyState(prev => ({ 
+        ...prev, 
+        isRecording: false, 
+        isConnected: false, 
+        timeRemaining: 0, 
+        isReconnecting: false 
+      }));
+      console.log('✅ ASSEMBLY: Service stopped');
+    } catch (error) {
+      console.error('❌ ASSEMBLY: Stop error:', error);
+    }
   }, []);
 
   const stopDeepgram = useCallback(() => {
@@ -348,23 +380,33 @@ export default function TranscriptionComparison() {
 
   // Run all services
   const runAllServices = useCallback(async () => {
+    console.log('🚀 Starting all transcription services...');
     setIsRunningAll(true);
     try {
-      await Promise.all([
-        startAssemblyAI(),
-        startDeepgram(),
-        startWhisper()
-      ]);
+      // Start services with delays to avoid conflicts
+      console.log('Starting AssemblyAI...');
+      await startAssemblyAI();
+      
+      console.log('Starting Deepgram...');
+      await startDeepgram();
+      
+      console.log('Starting Whisper...');
+      await startWhisper();
+      
+      console.log('✅ All services started successfully');
     } catch (error) {
-      console.error('Error starting all services:', error);
+      console.error('❌ Error starting all services:', error);
+      setIsRunningAll(false);
     }
   }, [startAssemblyAI, startDeepgram, startWhisper]);
 
   const stopAllServices = useCallback(() => {
+    console.log('🛑 Stopping all transcription services...');
     setIsRunningAll(false);
     stopAssemblyAI();
     stopDeepgram();
     stopWhisper();
+    console.log('✅ All services stopped');
   }, [stopAssemblyAI, stopDeepgram, stopWhisper]);
 
   // Clear functions
