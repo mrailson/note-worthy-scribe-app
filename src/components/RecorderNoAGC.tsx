@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 type SourceMode = "mic" | "tab";
 
-const WS_URL = "wss://ijwvewydcrstnpwusxzu.supabase.co/functions/v1/recorder-websocket-transcription";
+const WS_URL = "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/recorder-websocket-transcription";
 
 export default function RecorderNoAGC() {
   const [mode, setMode] = useState<SourceMode>("mic");
