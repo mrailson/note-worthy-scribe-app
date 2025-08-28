@@ -118,7 +118,7 @@ export default function AssemblyAITest() {
           // Handle transcription results  
           if (data.type === 'Turn' || data.message_type === 'PartialTranscript' || data.message_type === 'FinalTranscript') {
             console.log('PROXY: Processing transcription data:', data);
-            const text = data.formatted?.text || data.text || '';
+            const text = data.transcript || data.formatted?.text || data.text || '';
             if (text && text.trim()) {
               setTranscripts(prev => {
                 const newEntry: TranscriptEntry = {
