@@ -55,7 +55,7 @@ export class AssemblyAIRealtimeTranscriber {
           if (data.type === 'session_begins' || data.message_type === 'SessionBegins') {
             console.log('✅ AssemblyAI session began, starting audio capture...');
             this.sessionId = data.session_id || Date.now().toString();
-            this.onStatusChange('recording');
+            this.onStatusChange('connected');
             this.startAudioCapture();
             return;
           }
@@ -152,7 +152,7 @@ export class AssemblyAIRealtimeTranscriber {
       });
       
       this.isActive = true;
-      this.onStatusChange('Recording');
+      this.onStatusChange('recording');
       console.log('🎙️ Audio streaming to AssemblyAI started successfully');
       
     } catch (audioError) {

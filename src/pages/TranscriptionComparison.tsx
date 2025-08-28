@@ -94,10 +94,11 @@ export default function TranscriptionComparison() {
 
   const handleAssemblyStatus = useCallback((status: string) => {
     console.log('📊 ASSEMBLY: Status change:', status);
+    const lowerStatus = status.toLowerCase();
     setAssemblyState(prev => ({ 
       ...prev, 
-      isConnected: status === 'connected' || status === 'recording',
-      isRecording: status === 'recording'
+      isConnected: lowerStatus.includes('connected') || lowerStatus.includes('recording'),
+      isRecording: lowerStatus.includes('recording')
     }));
   }, []);
 
