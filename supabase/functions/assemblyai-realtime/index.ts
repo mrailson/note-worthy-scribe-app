@@ -42,7 +42,7 @@ async function handleWebSocketUpgrade(req: Request): Promise<Response> {
       const sessionResponse = await fetch('https://api.assemblyai.com/v2/realtime/token', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -53,14 +53,17 @@ async function handleWebSocketUpgrade(req: Request): Promise<Response> {
       });
       
       if (!sessionResponse.ok) {
-        const error = await sessionResponse.text();
-        throw new Error(`Failed to create AssemblyAI session: ${error}`);
+        const errorText = await sessionResponse.text();
+        console.error('AssemblyAI session creation failed:', sessionResponse.status, errorText);
+        throw new Error(`Failed to create AssemblyAI session: ${sessionResponse.status} - ${errorText}`);
       }
       
       const sessionData = await sessionResponse.json();
+      console.log('AssemblyAI session created successfully:', sessionData);
+      
       const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${sessionData.token}`;
       
-      console.log('Connecting to AssemblyAI WebSocket...');
+      console.log('Connecting to AssemblyAI WebSocket:', wsUrl);
       
       // Connect to AssemblyAI WebSocket
       assemblyAiWebSocket = new WebSocket(wsUrl);

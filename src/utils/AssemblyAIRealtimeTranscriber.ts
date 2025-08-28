@@ -136,16 +136,21 @@ export class AssemblyAIRealtimeTranscriber {
 
   private async startAudioCapture() {
     try {
+      console.log('🎙️ Starting audio capture for AssemblyAI...');
+      
       // Start audio capture and streaming
       this.audioStream = await createPcmStream((audioBuffer) => {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          console.log('📡 Sending audio chunk to AssemblyAI:', audioBuffer.byteLength, 'bytes');
           this.ws.send(audioBuffer);
+        } else {
+          console.warn('⚠️ WebSocket not ready, skipping audio chunk');
         }
       });
       
       this.isActive = true;
       this.onStatusChange('Recording');
-      console.log('🎙️ Audio streaming to AssemblyAI started');
+      console.log('🎙️ Audio streaming to AssemblyAI started successfully');
       
     } catch (audioError) {
       console.error('❌ Audio capture error:', audioError);

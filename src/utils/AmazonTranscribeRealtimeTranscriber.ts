@@ -39,13 +39,16 @@ export class AmazonTranscribeRealtimeTranscriber {
           // Start audio capture and streaming
           this.audioStream = await createPcmStream((audioBuffer) => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+              console.log('📡 Sending audio chunk to Amazon Transcribe:', audioBuffer.byteLength, 'bytes');
               this.ws.send(audioBuffer);
+            } else {
+              console.warn('⚠️ WebSocket not ready, skipping audio chunk');
             }
           });
           
           this.isActive = true;
           this.onStatusChange('Recording');
-          console.log('🎙️ Audio streaming to Amazon Transcribe started');
+          console.log('🎙️ Audio streaming to Amazon Transcribe started successfully');
           
         } catch (audioError) {
           console.error('❌ Audio capture error:', audioError);
