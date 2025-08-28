@@ -27,10 +27,24 @@ export default function AssemblyAITest() {
 
   const getAssemblyToken = async () => {
     try {
+      console.log('Requesting AssemblyAI token...');
       const { data, error } = await supabase.functions.invoke('assemblyai-realtime-token');
-      if (error) throw error;
+      console.log('Token response:', { data, error });
+      
+      if (error) {
+        console.error('Token request error:', error);
+        throw error;
+      }
+      
+      if (!data?.token) {
+        console.error('No token in response:', data);
+        throw new Error('No token received from server');
+      }
+      
+      console.log('Token received successfully');
       return data.token;
     } catch (err) {
+      console.error('getAssemblyToken error:', err);
       throw new Error(`Token error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -56,6 +70,7 @@ export default function AssemblyAITest() {
       
       // Setup WebSocket
       const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&token=${encodeURIComponent(token)}&format_turns=true`;
+      console.log('Connecting to AssemblyAI WebSocket:', wsUrl.replace(/token=[^&]+/, 'token=***'));
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       
@@ -98,8 +113,9 @@ export default function AssemblyAITest() {
       };
       
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setError('WebSocket connection error');
+        console.error('WebSocket error details:', error);
+        console.error('WebSocket readyState:', ws.readyState);
+        setError(`WebSocket connection error - Ready State: ${ws.readyState}`);
       };
       
       ws.onclose = (event) => {
@@ -144,6 +160,7 @@ export default function AssemblyAITest() {
       
     } catch (err) {
       console.error('Start recording error:', err);
+      console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');
       setError(err instanceof Error ? err.message : 'Failed to start recording');
       setIsRecording(false);
     }
