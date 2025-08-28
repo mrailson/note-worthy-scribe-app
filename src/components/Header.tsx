@@ -290,8 +290,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.preventDefault();
-                          console.log('News Admin clicked!');
-                          window.location.href = '/news-admin';
+                          e.stopPropagation();
+                          console.log('News Admin menu item clicked!');
+                          console.log('Current location:', location.pathname);
+                          console.log('Attempting to navigate to /news-admin');
+                          navigate('/news-admin');
                         }}
                         className="cursor-pointer py-3"
                       >
