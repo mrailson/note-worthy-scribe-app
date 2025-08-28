@@ -449,6 +449,7 @@ export default function TranscriptionComparison() {
   }, [initializeServices, handleWhisperError]);
 
   const startBrowser = useCallback(async () => {
+    console.log('🚀 BROWSER: Starting browser speech...');
     try {
       setBrowserState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
       
@@ -505,8 +506,13 @@ export default function TranscriptionComparison() {
   }, []);
 
   const stopBrowser = useCallback(() => {
-    if (browserTranscriberRef.current) {
-      browserTranscriberRef.current.stopTranscription();
+    console.log('🛑 BROWSER: Stopping browser speech...');
+    try {
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+      }
+    } catch (error) {
+      console.error('Error stopping Browser Speech:', error);
     }
     setBrowserState(prev => ({ ...prev, isRecording: false, isConnected: false }));
   }, []);
