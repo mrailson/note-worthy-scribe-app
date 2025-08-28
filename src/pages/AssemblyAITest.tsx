@@ -28,12 +28,14 @@ export default function AssemblyAITest() {
   const getAssemblyToken = async () => {
     try {
       console.log('Requesting AssemblyAI token...');
-      const { data, error } = await supabase.functions.invoke('assemblyai-realtime-token');
+      const { data, error } = await supabase.functions.invoke('assemblyai-realtime-token', {
+        method: 'GET'
+      });
       console.log('Token response:', { data, error });
       
       if (error) {
         console.error('Token request error:', error);
-        throw error;
+        throw new Error(`Token request failed: ${error.message}`);
       }
       
       if (!data?.token) {
@@ -41,7 +43,7 @@ export default function AssemblyAITest() {
         throw new Error('No token received from server');
       }
       
-      console.log('Token received successfully');
+      console.log('Token received successfully, length:', data.token.length);
       return data.token;
     } catch (err) {
       console.error('getAssemblyToken error:', err);
@@ -119,11 +121,17 @@ export default function AssemblyAITest() {
       };
       
       ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
+        console.log('WebSocket closed:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
         setIsConnected(false);
         setIsRecording(false);
         if (event.code !== 1000) {
-          setError(`Connection closed: ${event.reason || 'Unknown reason'}`);
+          const errorMsg = `Connection failed (Code: ${event.code}): ${event.reason || 'Unknown reason'}`;
+          console.error(errorMsg);
+          setError(errorMsg);
         }
       };
       

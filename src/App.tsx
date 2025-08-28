@@ -35,6 +35,7 @@ import NHSMeetingNotes from "./pages/NHSMeetingNotes";
 
 import TestTranscripts from "./pages/TestTranscripts";
 import AssemblyAITest from "./pages/AssemblyAITest";
+import AssemblyAITestSimple from "./pages/AssemblyAITestSimple";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -92,6 +93,7 @@ const App = () => (
             <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
             <Route path="/test-transcripts" element={<TestTranscripts />} />
             <Route path="/assemblyai-test" element={<AssemblyAITest />} />
+            <Route path="/assemblyai-test-simple" element={<AssemblyAITestSimple />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             
