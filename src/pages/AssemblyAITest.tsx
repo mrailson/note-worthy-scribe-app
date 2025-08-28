@@ -17,6 +17,7 @@ export default function AssemblyAITest() {
   const [isRecording, setIsRecording] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
+  const [fullTranscript, setFullTranscript] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   
@@ -132,6 +133,8 @@ export default function AssemblyAITest() {
                 
                 // For Turn messages (final) - just add them
                 if (data.type === 'Turn') {
+                  // Update full transcript with final text
+                  setFullTranscript(prev => prev + (prev ? ' ' : '') + text);
                   return [...prev, newEntry];
                 }
                 
@@ -248,6 +251,7 @@ export default function AssemblyAITest() {
 
   const clearTranscripts = () => {
     setTranscripts([]);
+    setFullTranscript('');
     setError(null);
   };
 
@@ -380,6 +384,29 @@ export default function AssemblyAITest() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Full Transcript */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Full Transcript</CardTitle>
+          <CardDescription>
+            Continuous transcript combining all final results
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {fullTranscript ? (
+            <div className="max-h-96 overflow-y-auto p-4 rounded-lg bg-muted/30">
+              <p className="text-foreground leading-relaxed">
+                {fullTranscript}
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Full transcript will appear here as you speak...</p>
             </div>
           )}
         </CardContent>
