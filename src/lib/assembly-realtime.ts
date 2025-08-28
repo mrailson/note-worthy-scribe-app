@@ -24,12 +24,8 @@ export class AssemblyRealtimeClient {
       console.log('[AssemblyAI-Realtime] Starting client...');
       
       // 1) Get short-lived token from your backend
-      const tokenRes = await fetch("https://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-realtime-token");
-      if (!tokenRes.ok) {
-        const errorText = await tokenRes.text();
-        throw new Error(`Token HTTP ${tokenRes.status}: ${errorText}`);
-      }
-      const { token } = await tokenRes.json();
+      const { getAssemblyToken } = await import("./getAssemblyToken");
+      const token = await getAssemblyToken();
       console.log('[AssemblyAI-Realtime] Token obtained successfully');
 
       // 2) Open realtime websocket
