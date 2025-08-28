@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Loader2, Smartphone, Bot, Radio } from 'lucide-react';
+import { Mic, MicOff, Loader2, Smartphone, Bot, Radio, Headphones, Monitor } from 'lucide-react';
 import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
@@ -11,7 +11,7 @@ import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/u
 import { toast } from 'sonner';
 import RecorderNoAGC from '@/components/RecorderNoAGC';
 
-type ServiceType = 'browser' | 'whisper' | 'deepgram';
+type ServiceType = 'browser' | 'whisper' | 'deepgram' | 'raw-audio-mic' | 'raw-audio-tab';
 
 interface ServiceData {
   isRecording: boolean;
@@ -46,6 +46,22 @@ const DeepgramTest = () => {
       transcriptData: [],
       currentTranscript: '',
       status: 'Disconnected',
+      isLoading: false,
+      transcriber: null
+    },
+    'raw-audio-mic': {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Ready',
+      isLoading: false,
+      transcriber: null
+    },
+    'raw-audio-tab': {
+      isRecording: false,
+      transcriptData: [],
+      currentTranscript: '',
+      status: 'Ready',
       isLoading: false,
       transcriber: null
     }
@@ -227,16 +243,54 @@ const DeepgramTest = () => {
 
   const renderServicePanel = (serviceType: ServiceType) => {
     const service = services[serviceType];
+    
+    // Handle raw audio services differently
+    if (serviceType === 'raw-audio-mic' || serviceType === 'raw-audio-tab') {
+      return (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {serviceType === 'raw-audio-mic' ? 
+                  <Headphones className="w-4 h-4" /> : 
+                  <Monitor className="w-4 h-4" />
+                }
+                <span>
+                  {serviceType === 'raw-audio-mic' ? 
+                    'Raw Audio (No AGC)' : 
+                    'Raw Audio (Share Tab)'
+                  }
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                {serviceType === 'raw-audio-mic' 
+                  ? 'Records audio from microphone with no browser processing (AGC/NS/EC disabled) and transcribes using OpenAI Whisper.'
+                  : 'Captures tab audio (like YouTube) with no browser processing and transcribes using OpenAI Whisper.'
+                }
+              </p>
+              <RecorderNoAGC />
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    
     const serviceNames = {
       browser: 'Browser Speech API',
       whisper: 'Whisper AI (Local)',
-      deepgram: 'Deepgram Realtime'
+      deepgram: 'Deepgram Realtime',
+      'raw-audio-mic': 'Raw Audio (No AGC)',
+      'raw-audio-tab': 'Raw Audio (Share Tab)'
     };
     
     const serviceIcons = {
       browser: <Smartphone className="w-4 h-4" />,
       whisper: <Bot className="w-4 h-4" />,
-      deepgram: <Radio className="w-4 h-4" />
+      deepgram: <Radio className="w-4 h-4" />,
+      'raw-audio-mic': <Headphones className="w-4 h-4" />,
+      'raw-audio-tab': <Monitor className="w-4 h-4" />
     };
 
     return (
@@ -405,22 +459,6 @@ const DeepgramTest = () => {
           </CardContent>
         </Card>
 
-        {/* Raw Audio Recorder (No AGC) */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Raw Audio Recorder (No AGC/NS/EC)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                This recorder disables browser audio processing (Auto Gain Control, Noise Suppression, Echo Cancellation) to prevent audio fading issues. 
-                Use "This Tab" mode to capture system audio from YouTube or other sources.
-              </p>
-              <RecorderNoAGC />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Consolidated Transcription */}
         <Card>
           <CardHeader>
@@ -445,13 +483,17 @@ const DeepgramTest = () => {
                     const serviceNames = {
                       browser: 'Browser Speech API',
                       whisper: 'Whisper AI',
-                      deepgram: 'Deepgram Realtime'
+                      deepgram: 'Deepgram Realtime',
+                      'raw-audio-mic': 'Raw Audio (No AGC)',
+                      'raw-audio-tab': 'Raw Audio (Share Tab)'
                     };
 
                     const serviceIcons = {
                       browser: <Smartphone className="w-4 h-4" />,
                       whisper: <Bot className="w-4 h-4" />,
-                      deepgram: <Radio className="w-4 h-4" />
+                      deepgram: <Radio className="w-4 h-4" />,
+                      'raw-audio-mic': <Headphones className="w-4 h-4" />,
+                      'raw-audio-tab': <Monitor className="w-4 h-4" />
                     };
 
                     const fullText = service.transcriptData.map(data => data.text).join(' ');
@@ -483,7 +525,9 @@ const DeepgramTest = () => {
             {[
               { key: 'browser', icon: Smartphone, label: 'Browser' },
               { key: 'whisper', icon: Bot, label: 'Whisper' },
-              { key: 'deepgram', icon: Radio, label: 'Deepgram' }
+              { key: 'deepgram', icon: Radio, label: 'Deepgram' },
+              { key: 'raw-audio-mic', icon: Headphones, label: 'Raw Audio (Mic)' },
+              { key: 'raw-audio-tab', icon: Monitor, label: 'Raw Audio (Tab)' }
             ].map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
