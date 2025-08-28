@@ -24,11 +24,17 @@ export default function AssemblyAITest() {
   const [audioLevel, setAudioLevel] = useState(0);
   const [avgConfidence, setAvgConfidence] = useState<number | null>(null);
   const [qualityStats, setQualityStats] = useState({ high: 0, medium: 0, low: 0 });
+  const [sessionCount, setSessionCount] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const getAssemblyToken = async () => {
     try {
@@ -56,12 +62,81 @@ export default function AssemblyAITest() {
     }
   };
 
-  const startRecording = useCallback(async () => {
+  const startReconnectTimer = () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+    }
+    
+    reconnectTimerRef.current = setTimeout(() => {
+      if (isRecording && isConnected) {
+        console.log('🔄 Auto-reconnecting to maintain session...');
+        reconnectSession();
+      }
+    }, 480000); // 8 minutes
+  };
+
+  const startCountdownTimer = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    
+    setTimeRemaining(480); // 8 minutes in seconds
+    countdownTimerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          return 480; // Reset for next cycle
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const reconnectSession = async () => {
+    setIsReconnecting(true);
+    setError(null);
+    
+    try {
+      const currentTranscripts = [...transcripts];
+      const currentFullTranscript = fullTranscript;
+      
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await startRecording(currentTranscripts, currentFullTranscript);
+      
+      setSessionCount(prev => prev + 1);
+      
+      console.log('✅ Session reconnected successfully');
+    } catch (error) {
+      console.error('❌ Reconnection failed:', error);
+      setError(`Reconnection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsRecording(false);
+      setIsConnected(false);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  const startRecording = useCallback(async (preserveTranscripts?: TranscriptEntry[], preserveFullTranscript?: string) => {
     console.log('=== START RECORDING FUNCTION CALLED ===');
     
     try {
       setError(null);
-      console.log('State cleared, requesting token...');
+      if (!preserveTranscripts) {
+        setTranscripts([]);
+        setFullTranscript('');
+        setSessionCount(1);
+        setSessionStartTime(new Date());
+        setAvgConfidence(null);
+        setQualityStats({ high: 0, medium: 0, low: 0 });
+      } else {
+        setTranscripts(preserveTranscripts);
+        setFullTranscript(preserveFullTranscript || '');
+      }
+      console.log('State prepared, requesting token...');
       
       // Get token
       const token = await getAssemblyToken();
@@ -110,6 +185,10 @@ export default function AssemblyAITest() {
             console.log('PROXY: AssemblyAI session started successfully');
             setIsConnected(true);
             setIsRecording(true);
+            
+            // Start timers for auto-reconnect
+            startReconnectTimer();
+            startCountdownTimer();
             return;
           }
           
@@ -257,6 +336,17 @@ export default function AssemblyAITest() {
 
   const stopRecording = useCallback(() => {
     try {
+      // Clear timers
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      
       // Close WebSocket
       if (wsRef.current) {
         wsRef.current.close(1000, 'User stopped recording');
@@ -283,6 +373,8 @@ export default function AssemblyAITest() {
       setIsRecording(false);
       setIsConnected(false);
       setAudioLevel(0);
+      setTimeRemaining(0);
+      setIsReconnecting(false);
     } catch (err) {
       console.error('Stop recording error:', err);
     }
@@ -294,6 +386,20 @@ export default function AssemblyAITest() {
     setError(null);
     setAvgConfidence(null);
     setQualityStats({ high: 0, medium: 0, low: 0 });
+    setSessionCount(0);
+    setSessionStartTime(null);
+  };
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTotalSessionTime = (): string => {
+    if (!sessionStartTime) return '0:00';
+    const elapsed = Math.floor((Date.now() - sessionStartTime.getTime()) / 1000);
+    return formatTime(elapsed);
   };
 
   return (
@@ -328,11 +434,23 @@ export default function AssemblyAITest() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap justify-center">
               <Badge variant={isConnected ? "default" : "secondary"} className="flex items-center gap-2">
                 {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                {isConnected ? "Connected" : "Disconnected"}
+                {isReconnecting ? 'Reconnecting...' : isConnected ? 'Connected' : 'Disconnected'}
               </Badge>
+              
+              {sessionCount > 0 && (
+                <Badge variant="outline">Session #{sessionCount}</Badge>
+              )}
+
+              {sessionStartTime && (
+                <Badge variant="outline">Total: {getTotalSessionTime()}</Badge>
+              )}
+
+              {isConnected && timeRemaining > 0 && (
+                <Badge variant="secondary">Next refresh: {formatTime(timeRemaining)}</Badge>
+              )}
               
               {isRecording && (
                 <div className="flex items-center gap-2">
@@ -369,14 +487,19 @@ export default function AssemblyAITest() {
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-2 flex-wrap justify-center">
               <Button 
                 size="lg"
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={isRecording && !isConnected}
+                onClick={isRecording ? stopRecording : () => startRecording()}
+                disabled={isReconnecting}
                 className="min-w-[120px]"
               >
-                {isRecording ? (
+                {isReconnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Reconnecting...
+                  </>
+                ) : isRecording ? (
                   <>
                     <MicOff className="w-4 h-4 mr-2" />
                     Stop
@@ -388,6 +511,16 @@ export default function AssemblyAITest() {
                   </>
                 )}
               </Button>
+              
+              {isRecording && (
+                <Button 
+                  variant="outline"
+                  onClick={reconnectSession}
+                  disabled={isReconnecting}
+                >
+                  Manual Reconnect
+                </Button>
+              )}
               
               <Button variant="outline" onClick={clearTranscripts}>
                 Clear

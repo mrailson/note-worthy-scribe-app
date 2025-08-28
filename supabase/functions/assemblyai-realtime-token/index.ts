@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
 
     // v3: GET /v3/token with expires_in_seconds
     const url = new URL("https://streaming.assemblyai.com/v3/token");
-    url.searchParams.set("expires_in_seconds", "300"); // 5 minutes; 1–600 allowed
+    url.searchParams.set("expires_in_seconds", "540"); // 9 minutes; safe within 600 limit
 
     const r = await fetch(url.toString(), {
       method: "GET",
