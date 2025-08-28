@@ -133,8 +133,10 @@ export default function AssemblyAITest() {
                 
                 // For Turn messages (final) - just add them
                 if (data.type === 'Turn') {
-                  // Update full transcript with final text
-                  setFullTranscript(prev => prev + (prev ? ' ' : '') + text);
+                  // Only add to full transcript if it's truly the end of the turn
+                  if (data.end_of_turn) {
+                    setFullTranscript(prev => prev + (prev ? ' ' : '') + text);
+                  }
                   return [...prev, newEntry];
                 }
                 
