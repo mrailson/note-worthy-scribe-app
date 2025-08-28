@@ -101,16 +101,16 @@ export const AmazonTranscribeMedicalTest: React.FC = () => {
   };
 
   const connectWebSocket = () => {
-    const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/amazon-transcribe-medical-ws`;
+    const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/amazon-transcribe-medical-ws`;
     
-    console.log('Connecting to Amazon Transcribe Medical WebSocket...');
+    console.log('Connecting to Amazon Transcribe Medical WebSocket:', wsUrl);
     setStatus('Connecting...');
     setError(null);
 
     wsRef.current = new WebSocket(wsUrl);
 
     wsRef.current.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('WebSocket connected successfully');
       setStatus('Connected');
       toast.success('Connected to Amazon Transcribe Medical');
     };
@@ -157,16 +157,18 @@ export const AmazonTranscribeMedicalTest: React.FC = () => {
       setSessionId(null);
       
       if (event.code !== 1000) {
-        setError(`Connection closed unexpectedly: ${event.reason || 'Unknown reason'}`);
-        toast.error('Connection lost');
+        const errorMsg = `Connection closed: Code ${event.code} - ${event.reason || 'Unknown reason'}`;
+        setError(errorMsg);
+        console.error('WebSocket connection failed:', errorMsg);
+        toast.error('Connection failed');
       }
     };
 
     wsRef.current.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setError('WebSocket connection failed');
+      setError('WebSocket connection failed - Check edge function deployment');
       setStatus('Error');
-      toast.error('Connection failed');
+      toast.error('Connection failed - Check logs');
     };
   };
 

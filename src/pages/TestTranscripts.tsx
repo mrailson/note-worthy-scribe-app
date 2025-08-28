@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { AmazonTranscribeMedicalTest } from '@/components/AmazonTranscribeMedicalTest';
+import { EdgeFunctionTester } from '@/components/EdgeFunctionTester';
 
 const TestTranscripts = () => {
   const navigate = useNavigate();
@@ -525,6 +526,10 @@ Safety netting: Contact practice immediately if thoughts of self-harm increase, 
                   Test clinical-grade speech-to-text with medical vocabulary and speaker identification
                 </p>
               </div>
+              
+              {/* Add diagnostics section */}
+              <EdgeFunctionTester />
+              
               <AmazonTranscribeMedicalTest />
             </div>
           </TabsContent>
