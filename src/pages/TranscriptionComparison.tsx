@@ -7,6 +7,7 @@ import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw } from 'lu
 import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
+import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 
 interface TranscriptEntry {
   id: string;
@@ -14,7 +15,7 @@ interface TranscriptEntry {
   isFinal: boolean;
   timestamp: Date;
   confidence?: number;
-  service: 'assemblyai' | 'deepgram' | 'whisper';
+  service: 'assemblyai' | 'deepgram' | 'whisper' | 'browser';
 }
 
 interface ServiceState {
@@ -49,15 +50,20 @@ export default function TranscriptionComparison() {
   const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState);
   const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState);
   const [whisperState, setWhisperState] = useState<ServiceState>(initialServiceState);
+  const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState);
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Refs for services
+  // Calculate if all services are running
+  const isRunningAllCalculated = assemblyState.isRecording && deepgramState.isRecording && whisperState.isRecording && browserState.isRecording;
+
+  // Refs for transcribers and connections
   const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
   const deepgramWsRef = useRef<WebSocket | null>(null);
-  const whisperTranscriberRef = useRef<WhisperTranscriber | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const whisperTranscriberRef = useRef<WhisperTranscriber | null>(null);
+  const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
   // AssemblyAI handlers
   const handleAssemblyTranscript = useCallback((data: any) => {
@@ -167,6 +173,44 @@ export default function TranscriptionComparison() {
     }));
   }, []);
 
+  // Browser handlers
+  const handleBrowserTranscript = useCallback((data: BrowserTranscriptData) => {
+    const transcriptEntry: TranscriptEntry = {
+      id: `browser-${Date.now()}-${Math.random()}`,
+      text: data.text,
+      isFinal: data.is_final,
+      timestamp: new Date(),
+      confidence: data.confidence,
+      service: 'browser'
+    };
+
+    setBrowserState(prev => ({
+      ...prev,
+      transcripts: [...prev.transcripts, transcriptEntry],
+      fullTranscript: data.is_final ? 
+        (prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + data.text) : 
+        prev.fullTranscript,
+      wordCount: data.is_final ? 
+        (prev.fullTranscript + ' ' + data.text).split(' ').filter(w => w.trim()).length :
+        prev.wordCount,
+      avgConfidence: data.confidence ? 
+        (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
+        prev.avgConfidence
+    }));
+  }, []);
+
+  const handleBrowserError = useCallback((error: string) => {
+    setBrowserState(prev => ({ ...prev, error }));
+  }, []);
+
+  const handleBrowserStatus = useCallback((status: string) => {
+    setBrowserState(prev => ({ 
+      ...prev, 
+      isConnected: status === 'Recording',
+      isRecording: status === 'Recording'
+    }));
+  }, []);
+
   // Initialize services
   const initializeServices = useCallback(() => {
     console.log('🔧 Initializing services...');
@@ -197,8 +241,21 @@ export default function TranscriptionComparison() {
       console.log('ℹ️ Whisper transcriber already exists');
     }
     
+    // Initialize Browser Speech Recognition
+    if (!browserTranscriberRef.current) {
+      console.log('🔧 Creating new Browser Speech transcriber...');
+      browserTranscriberRef.current = new BrowserSpeechTranscriber(
+        handleBrowserTranscript,
+        handleBrowserError,
+        handleBrowserStatus
+      );
+      console.log('✅ Browser Speech transcriber created');
+    } else {
+      console.log('ℹ️ Browser Speech transcriber already exists');
+    }
+    
     console.log('✅ All services initialized');
-  }, [handleAssemblyTranscript, handleAssemblyError, handleAssemblyStatus, handleWhisperTranscript, handleWhisperError, handleWhisperStatus]);
+  }, [handleAssemblyTranscript, handleAssemblyError, handleAssemblyStatus, handleWhisperTranscript, handleWhisperError, handleWhisperStatus, handleBrowserTranscript, handleBrowserError, handleBrowserStatus]);
 
   // Start individual services
   const startAssemblyAI = useCallback(async () => {
@@ -349,7 +406,23 @@ export default function TranscriptionComparison() {
     } catch (error) {
       handleWhisperError(error instanceof Error ? error.message : 'Failed to start Whisper');
     }
-  }, [initializeServices]);
+  }, [initializeServices, handleWhisperError]);
+
+  const startBrowser = useCallback(async () => {
+    try {
+      setBrowserState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
+      
+      initializeServices();
+      if (browserTranscriberRef.current) {
+        await browserTranscriberRef.current.startTranscription();
+      } else {
+        throw new Error('Browser Speech transcriber not initialized');
+      }
+    } catch (error) {
+      console.error('Failed to start Browser Speech:', error);
+      handleBrowserError(error instanceof Error ? error.message : 'Failed to start Browser Speech');
+    }
+  }, [initializeServices, handleBrowserError]);
 
   // Stop individual services
   const stopAssemblyAI = useCallback(() => {
@@ -391,6 +464,13 @@ export default function TranscriptionComparison() {
     setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
   }, []);
 
+  const stopBrowser = useCallback(() => {
+    if (browserTranscriberRef.current) {
+      browserTranscriberRef.current.stopTranscription();
+    }
+    setBrowserState(prev => ({ ...prev, isRecording: false, isConnected: false }));
+  }, []);
+
   // Run all services
   const runAllServices = useCallback(async () => {
     console.log('🚀 Starting all transcription services...');
@@ -406,12 +486,15 @@ export default function TranscriptionComparison() {
       console.log('Starting Whisper...');
       await startWhisper();
       
+      console.log('Starting Browser Speech...');
+      await startBrowser();
+      
       console.log('✅ All services started successfully');
     } catch (error) {
       console.error('❌ Error starting all services:', error);
       setIsRunningAll(false);
     }
-  }, [startAssemblyAI, startDeepgram, startWhisper]);
+  }, [startAssemblyAI, startDeepgram, startWhisper, startBrowser]);
 
   const stopAllServices = useCallback(() => {
     console.log('🛑 Stopping all transcription services...');
@@ -419,11 +502,12 @@ export default function TranscriptionComparison() {
     stopAssemblyAI();
     stopDeepgram();
     stopWhisper();
+    stopBrowser();
     console.log('✅ All services stopped');
-  }, [stopAssemblyAI, stopDeepgram, stopWhisper]);
+  }, [stopAssemblyAI, stopDeepgram, stopWhisper, stopBrowser]);
 
   // Clear functions
-  const clearService = (service: 'assemblyai' | 'deepgram' | 'whisper') => {
+  const clearService = (service: 'assemblyai' | 'deepgram' | 'whisper' | 'browser') => {
     const clearState = {
       transcripts: [],
       fullTranscript: '',
@@ -444,6 +528,9 @@ export default function TranscriptionComparison() {
       case 'whisper':
         setWhisperState(prev => ({ ...prev, ...clearState }));
         break;
+      case 'browser':
+        setBrowserState(prev => ({ ...prev, ...clearState }));
+        break;
     }
   };
 
@@ -451,6 +538,7 @@ export default function TranscriptionComparison() {
     clearService('assemblyai');
     clearService('deepgram');
     clearService('whisper');
+    clearService('browser');
   };
 
   // Utility functions
@@ -584,7 +672,7 @@ export default function TranscriptionComparison() {
           Transcription Service Comparison
         </h1>
         <p className="text-muted-foreground mt-2">
-          Compare AssemblyAI, Deepgram, and Whisper real-time transcription services
+          Compare AssemblyAI, Deepgram, Whisper, and Browser Speech real-time transcription services
         </p>
       </div>
 
@@ -615,7 +703,7 @@ export default function TranscriptionComparison() {
               🔄 Go to Service Comparison
             </Button>
             {/* Audio Level Indicator */}
-            {(assemblyState.isRecording || deepgramState.isRecording || whisperState.isRecording) && (
+            {(assemblyState.isRecording || deepgramState.isRecording || whisperState.isRecording || browserState.isRecording) && (
               <div className="w-full max-w-xs">
                 <div className="text-xs text-muted-foreground mb-1">Audio Level</div>
                 <div className="w-full bg-secondary rounded-full h-2">
@@ -630,12 +718,12 @@ export default function TranscriptionComparison() {
             <div className="flex gap-4 flex-wrap justify-center">
               <Button
                 size="lg"
-                onClick={isRunningAll ? stopAllServices : runAllServices}
-                disabled={assemblyState.isReconnecting || deepgramState.isReconnecting || whisperState.isReconnecting}
+                onClick={isRunningAllCalculated ? stopAllServices : runAllServices}
+                disabled={assemblyState.isReconnecting || deepgramState.isReconnecting || whisperState.isReconnecting || browserState.isReconnecting}
                 className="min-w-[150px]"
-                variant={isRunningAll ? "destructive" : "default"}
+                variant={isRunningAllCalculated ? "destructive" : "default"}
               >
-                {isRunningAll ? (
+                {isRunningAllCalculated ? (
                   <>
                     <MicOff className="w-4 h-4 mr-2" />
                     Stop All Services
@@ -654,7 +742,8 @@ export default function TranscriptionComparison() {
                 disabled={
                   assemblyState.transcripts.length === 0 && 
                   deepgramState.transcripts.length === 0 && 
-                  whisperState.transcripts.length === 0
+                  whisperState.transcripts.length === 0 &&
+                  browserState.transcripts.length === 0
                 }
               >
                 Clear All Transcripts
@@ -665,7 +754,7 @@ export default function TranscriptionComparison() {
       </Card>
 
       {/* Service Comparison Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ServiceCard
           title="AssemblyAI"
           state={assemblyState}
@@ -692,6 +781,15 @@ export default function TranscriptionComparison() {
           onClear={() => clearService('whisper')}
           color="text-purple-600"
         />
+        
+        <ServiceCard
+          title="Browser Speech"
+          state={browserState}
+          onStart={startBrowser}
+          onStop={stopBrowser}
+          onClear={() => clearService('browser')}
+          color="text-orange-600"
+        />
       </div>
 
       {/* Instructions */}
@@ -700,11 +798,12 @@ export default function TranscriptionComparison() {
           <CardTitle>How to Use</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• <strong>Run All Services:</strong> Start all three transcription services simultaneously to compare their performance</p>
+          <p>• <strong>Run All Services:</strong> Start all four transcription services simultaneously to compare their performance</p>
           <p>• <strong>Individual Controls:</strong> Use the Start/Stop buttons on each service card to test them individually</p>
           <p>• <strong>Full Transcript:</strong> See the complete consolidated transcript for each service</p>
           <p>• <strong>Recent Activity:</strong> View the most recent transcription results with confidence scores</p>
           <p>• <strong>Performance Metrics:</strong> Compare word count, confidence levels, and session duration across services</p>
+          <p>• <strong>Browser Speech:</strong> Uses your browser's built-in speech recognition (works best in Chrome)</p>
         </CardContent>
       </Card>
     </div>
