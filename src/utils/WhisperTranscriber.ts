@@ -28,12 +28,29 @@ export class WhisperTranscriber {
       this.onStatusChange('Loading Whisper model...');
       console.log('🤖 Loading Whisper model...');
       
-      // Load the Whisper model (this may take a while on first load)
-      this.transcriber = await pipeline(
-        "automatic-speech-recognition",
-        "onnx-community/whisper-tiny.en",
-        { device: "webgpu" }
-      );
+      // Check WebGPU support first
+      const hasWebGPU = 'gpu' in navigator;
+      if (!hasWebGPU) {
+        console.warn('⚠️ WebGPU not supported, falling back to CPU');
+        this.onStatusChange('WebGPU not supported, using CPU (slower)...');
+      }
+      
+      // Load the Whisper model with fallback to CPU if WebGPU fails
+      try {
+        this.transcriber = await pipeline(
+          "automatic-speech-recognition",
+          "onnx-community/whisper-tiny.en",
+          { device: hasWebGPU ? "webgpu" : "cpu" }
+        );
+      } catch (gpuError) {
+        console.warn('⚠️ WebGPU failed, falling back to CPU:', gpuError);
+        this.onStatusChange('WebGPU failed, using CPU...');
+        this.transcriber = await pipeline(
+          "automatic-speech-recognition",
+          "onnx-community/whisper-tiny.en",
+          { device: "cpu" }
+        );
+      }
       
       console.log('✅ Whisper model loaded');
       this.onStatusChange('Starting recording...');
