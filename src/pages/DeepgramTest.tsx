@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, MicOff, Loader2, Smartphone, Zap, Bot, Radio } from 'lucide-react';
+import { Mic, MicOff, Loader2, Smartphone, Bot, Radio } from 'lucide-react';
 import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
@@ -11,7 +11,7 @@ import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/u
 import { toast } from 'sonner';
 import RecorderNoAGC from '@/components/RecorderNoAGC';
 
-type ServiceType = 'browser' | 'openai' | 'whisper' | 'deepgram';
+type ServiceType = 'browser' | 'whisper' | 'deepgram';
 
 interface ServiceData {
   isRecording: boolean;
@@ -26,14 +26,6 @@ const DeepgramTest = () => {
   const [activeService, setActiveService] = useState<ServiceType>('browser');
   const [services, setServices] = useState<Record<ServiceType, ServiceData>>({
     browser: {
-      isRecording: false,
-      transcriptData: [],
-      currentTranscript: '',
-      status: 'Disconnected',
-      isLoading: false,
-      transcriber: null
-    },
-    openai: {
       isRecording: false,
       transcriptData: [],
       currentTranscript: '',
@@ -155,13 +147,6 @@ const DeepgramTest = () => {
             callbacks.onSummary
           );
           break;
-        case 'openai':
-          transcriber = new OpenAIRealtimeTranscriber(
-            callbacks.onTranscription,
-            callbacks.onError,
-            callbacks.onStatusChange
-          );
-          break;
         case 'whisper':
           transcriber = new WhisperTranscriber(
             callbacks.onTranscription,
@@ -244,14 +229,12 @@ const DeepgramTest = () => {
     const service = services[serviceType];
     const serviceNames = {
       browser: 'Browser Speech API',
-      openai: 'OpenAI Realtime',
       whisper: 'Whisper AI (Local)',
       deepgram: 'Deepgram Realtime'
     };
     
     const serviceIcons = {
       browser: <Smartphone className="w-4 h-4" />,
-      openai: <Zap className="w-4 h-4" />,
       whisper: <Bot className="w-4 h-4" />,
       deepgram: <Radio className="w-4 h-4" />
     };
@@ -461,14 +444,12 @@ const DeepgramTest = () => {
                     
                     const serviceNames = {
                       browser: 'Browser Speech API',
-                      openai: 'OpenAI Realtime',
                       whisper: 'Whisper AI',
                       deepgram: 'Deepgram Realtime'
                     };
 
                     const serviceIcons = {
                       browser: <Smartphone className="w-4 h-4" />,
-                      openai: <Zap className="w-4 h-4" />,
                       whisper: <Bot className="w-4 h-4" />,
                       deepgram: <Radio className="w-4 h-4" />
                     };
@@ -501,7 +482,6 @@ const DeepgramTest = () => {
           <div className="flex overflow-x-auto pb-2 mb-4 scrollbar-hide border-b">
             {[
               { key: 'browser', icon: Smartphone, label: 'Browser' },
-              { key: 'openai', icon: Zap, label: 'OpenAI' },
               { key: 'whisper', icon: Bot, label: 'Whisper' },
               { key: 'deepgram', icon: Radio, label: 'Deepgram' }
             ].map(({ key, icon: Icon, label }) => (
