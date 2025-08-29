@@ -20,6 +20,8 @@ export class WhisperTranscriber {
   private onStatusChange?: (status: string) => void;
   private useSupabaseClient = false;
   private accumulatedText = ''; // Add text accumulation
+  private audioChunks: Blob[] = []; // Accumulate audio chunks
+  private chunkTimeout: NodeJS.Timeout | null = null;
 
   constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void, onStatusChange?: (status: string) => void) {
     if (!edgeUrl) throw new Error("WhisperTranscriber: edgeUrl required");
@@ -44,7 +46,35 @@ export class WhisperTranscriber {
   enqueueChunk(blob: Blob, meta?: any) {
     if (!blob || !blob.size) return;
     console.debug("[Whisper] enqueueChunk", { size: blob.size, ...meta });
-    this.q.push({ blob, meta });
+    
+    // Accumulate chunks instead of sending immediately
+    this.audioChunks.push(blob);
+    
+    // Clear existing timeout
+    if (this.chunkTimeout) {
+      clearTimeout(this.chunkTimeout);
+    }
+    
+    // Set timeout to process accumulated chunks after 2 seconds of silence
+    this.chunkTimeout = setTimeout(() => {
+      this.processAccumulatedChunks();
+    }, 2000);
+  }
+
+  private async processAccumulatedChunks() {
+    if (this.audioChunks.length === 0) return;
+    
+    console.log(`📦 WHISPER: Processing ${this.audioChunks.length} accumulated chunks`);
+    
+    // Combine all chunks into a single blob
+    const combinedBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
+    console.log(`🎵 WHISPER: Combined blob size: ${combinedBlob.size} bytes`);
+    
+    // Clear chunks
+    this.audioChunks = [];
+    
+    // Process the combined chunk
+    this.q.push({ blob: combinedBlob, meta: { combined: true } });
     if (!this.isDraining) this.drainQueue();
   }
 
@@ -187,5 +217,10 @@ export class WhisperTranscriber {
     this.q = []; // Clear the queue
     this.isDraining = false;
     this.accumulatedText = ''; // Reset accumulated text
+    this.audioChunks = []; // Clear accumulated chunks
+    if (this.chunkTimeout) {
+      clearTimeout(this.chunkTimeout);
+      this.chunkTimeout = null;
+    }
   }
 }
