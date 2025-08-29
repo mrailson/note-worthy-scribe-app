@@ -31,7 +31,7 @@ let isStopping = false;
 let progressiveTranscript = '';
 
 const MIME_OPUS = 'audio/webm;codecs=opus';
-const TIMESLICE_MS = 8000; // Reduced to 8s chunks for better reliability
+const TIMESLICE_MS = 1000; // Reduced to 1s chunks for complete WebM files
 
 console.log('🔧 STANDALONE WHISPER: Using Supabase client with 8s chunks and serialized uploads');
 
@@ -993,9 +993,9 @@ export default function TranscriptionComparison() {
         handleWhisperStatus("Stopped");
       };
       
-      // Start recording with longer timeslice for Whisper (15 seconds for complete WebM files)
-      console.log(`🎯 WHISPER: Starting MediaRecorder with 15000ms timeslice for complete WebM chunks...`);
-      mediaRecorder.start(15000); // Use 15 second chunks for Whisper
+      // Start recording with shorter timeslice for Whisper (1 second for complete WebM files)
+      console.log(`🎯 WHISPER: Starting MediaRecorder with 1000ms timeslice for complete WebM chunks...`);
+      mediaRecorder.start(1000); // Use 1 second chunks for complete WebM files
       console.log("✅ WHISPER: MediaRecorder start command issued");
       
     } catch (error) {
