@@ -1096,16 +1096,22 @@ export default function TranscriptionComparison() {
                   onChange={handleFileUpload}
                   className="hidden"
                   id="audio-upload"
+                  ref={(input) => {
+                    if (input) {
+                      (window as any).audioUploadInput = input;
+                    }
+                  }}
                 />
-                <label htmlFor="audio-upload">
-                  <Button 
-                    variant="outline" 
-                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 cursor-pointer"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Audio
-                  </Button>
-                </label>
+                <Button 
+                  variant="outline" 
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                  onClick={() => {
+                    document.getElementById('audio-upload')?.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Audio
+                </Button>
                 {uploadedAudio && (
                   <Button 
                     onClick={processUploadedAudio}
