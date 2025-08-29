@@ -613,7 +613,7 @@ export default function TranscriptionComparison() {
       console.log('🔧 Creating new Whisper transcriber with direct fetch...');
       
       whisperTranscriberRef.current = new WhisperTranscriber(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text`,
+        'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text',
         (payload) => handleWhisperPayload(payload),
         (err) => console.error('❌ Whisper error:', err),
         (status) => handleWhisperStatus(status)
