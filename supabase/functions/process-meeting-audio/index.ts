@@ -12,21 +12,50 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
+    console.log("🚀 Process-meeting-audio function called");
+    
     const key = (Deno.env.get("OPENAI_API_KEY") || "").trim();
     const model = (Deno.env.get("OPENAI_STT_MODEL") || "whisper-1").trim();
-    if (!key) return j(500, { success: false, error: "OPENAI_API_KEY missing in Function secrets" });
+    
+    console.log("🔑 API Key status:", key ? "Present" : "Missing");
+    console.log("🤖 Model:", model);
+    
+    if (!key) {
+      console.error("❌ OPENAI_API_KEY missing");
+      return j(500, { success: false, error: "OPENAI_API_KEY missing in Function secrets" });
+    }
 
     const ct = req.headers.get("content-type") || "";
+    console.log("📝 Content-Type:", ct);
+    
     if (!ct.includes("multipart/form-data")) {
+      console.error("❌ Invalid content type:", ct);
       return j(400, { success: false, error: "Content-Type must be multipart/form-data" });
     }
 
     let inForm: FormData;
-    try { inForm = await req.formData(); }
-    catch (e) { return j(400, { success: false, error: "Failed to parse formData()", detail: String(e) }); }
+    try { 
+      console.log("📋 Parsing form data...");
+      inForm = await req.formData(); 
+      console.log("✅ Form data parsed successfully");
+    }
+    catch (e) { 
+      console.error("❌ Failed to parse form data:", e);
+      return j(400, { success: false, error: "Failed to parse formData()", detail: String(e) }); 
+    }
 
     let file = (inForm.get("file") || inForm.get("audio")) as File | null;
-    if (!file) return j(400, { success: false, error: "No audio file provided (expected 'file' or 'audio')" });
+    if (!file) {
+      console.error("❌ No audio file found in form data");
+      console.log("📋 Available form keys:", Array.from(inForm.keys()));
+      return j(400, { success: false, error: "No audio file provided (expected 'file' or 'audio')" });
+    }
+
+    console.log("🎵 Audio file details:", {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
 
     // Ensure filename & type for OpenAI
     const name = file.name && file.name !== "blob" ? file.name : "chunk.webm";
@@ -34,9 +63,11 @@ serve(async (req: Request) => {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type });
 
+    console.log("📤 Sending to OpenAI with language=en and English prompt");
     const out = new FormData();
     out.append("model", model);
     out.append("language", "en"); // Force English transcription
+    out.append("prompt", "This is an English language test recording of a transcription service."); // Guide toward English
     out.append("file", normalized, normalized.name);
 
     const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
@@ -45,10 +76,14 @@ serve(async (req: Request) => {
       body: out,
     });
 
+    console.log("📨 OpenAI response status:", resp.status);
     const bodyText = await resp.text();
+    console.log("📨 OpenAI response body:", bodyText);
+    
     const headers = { ...cors, "content-type": bodyText.trim().startsWith("{") ? "application/json" : "text/plain" };
     return new Response(bodyText, { status: resp.status, headers });
   } catch (err) {
+    console.error("❌ Function error:", err);
     return j(500, { success: false, error: String(err?.message || err) });
   }
 });
