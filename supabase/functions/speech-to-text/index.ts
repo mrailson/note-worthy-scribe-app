@@ -25,13 +25,35 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    console.log('📤 Converting base64 audio to blob...');
+    console.log('📤 Converting base64 audio to blob...', {
+      audioLength: audio.length,
+      audioPreview: audio.substring(0, 50) + '...'
+    });
     
-    // Convert base64 to binary
-    const binaryAudio = atob(audio);
-    const audioArray = new Uint8Array(binaryAudio.length);
-    for (let i = 0; i < binaryAudio.length; i++) {
-      audioArray[i] = binaryAudio.charCodeAt(i);
+    // Enhanced base64 to binary conversion with error handling
+    let binaryAudio: string;
+    let audioArray: Uint8Array;
+    
+    try {
+      binaryAudio = atob(audio);
+      audioArray = new Uint8Array(binaryAudio.length);
+      
+      // Process in chunks to avoid memory issues
+      const chunkSize = 8192;
+      for (let i = 0; i < binaryAudio.length; i += chunkSize) {
+        const end = Math.min(i + chunkSize, binaryAudio.length);
+        for (let j = i; j < end; j++) {
+          audioArray[j] = binaryAudio.charCodeAt(j);
+        }
+      }
+      
+      console.log('✅ Audio conversion successful:', {
+        binaryLength: binaryAudio.length,
+        arrayLength: audioArray.length
+      });
+    } catch (conversionError) {
+      console.error('❌ Base64 conversion failed:', conversionError);
+      throw new Error(`Audio conversion failed: ${conversionError.message}`);
     }
     
     // Create blob and form data
