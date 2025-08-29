@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download } from 'lucide-react';
+import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText } from 'lucide-react';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { toast } from 'sonner';
+import TranscriptCleanerPanel from '@/components/TranscriptCleanerPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
@@ -55,6 +56,30 @@ export default function TranscriptionComparison() {
   const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState);
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  
+  // NHS Transcript Cleaner state
+  const [cleanedTranscripts, setCleanedTranscripts] = useState<string[]>(['', '', '', '']);
+  
+  // NHS Transcript Cleaner handler
+  const handleTranscriptsCleaned = useCallback((results: { cleaned: string; appliedRuleIds: string[] }[]) => {
+    const newCleanedTranscripts = results.map(result => result.cleaned);
+    setCleanedTranscripts(newCleanedTranscripts);
+    
+    // Update the service states with cleaned transcripts
+    setAssemblyState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[0] || prev.fullTranscript }));
+    setDeepgramState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[1] || prev.fullTranscript }));
+    setWhisperState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[2] || prev.fullTranscript }));
+    setBrowserState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[3] || prev.fullTranscript }));
+  }, []);
+
+  // Get current consolidated transcripts for cleaner
+  const consolidatedTranscripts = [
+    assemblyState.fullTranscript,
+    deepgramState.fullTranscript,
+    whisperState.fullTranscript,
+    browserState.fullTranscript
+  ];
+  
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Calculate if all services are running
@@ -863,6 +888,25 @@ export default function TranscriptionComparison() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* NHS Transcript Cleaner */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            NHS Transcript Cleaner
+          </CardTitle>
+          <CardDescription>
+            Clean and standardize NHS terminology across all transcription services
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TranscriptCleanerPanel
+            transcripts={consolidatedTranscripts}
+            onCleaned={handleTranscriptsCleaned}
+          />
         </CardContent>
       </Card>
 
