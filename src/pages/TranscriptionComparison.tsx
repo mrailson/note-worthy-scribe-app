@@ -16,9 +16,9 @@ import { ChunkedWhisperTranscriber } from '@/transcribers';
 import { normalizeTranscript } from '@/lib/transcriptNormalizer';
 import { Header } from '@/components/Header';
 
-// Feature flags - enable AssemblyAI, keep others disabled for testing
+// Feature flags - enable all services for testing
 const ENABLE_DESKTOP_WHISPER = false;
-const ENABLE_BROWSER_SPEECH = false;
+const ENABLE_BROWSER_SPEECH = true; // Enable Browser Speech
 const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 
 // Edge URL for Whisper transcription
@@ -388,7 +388,12 @@ export default function TranscriptionComparison() {
     
     try {
       console.log('🚀 ASSEMBLY: Starting AssemblyAI service...');
+      console.log('🔍 ASSEMBLY: Current transcriber ref:', !!assemblyTranscriberRef.current);
+      
       initializeServices();
+      
+      console.log('🔍 ASSEMBLY: After initializeServices, transcriber ref:', !!assemblyTranscriberRef.current);
+      
       setAssemblyState(prev => ({ 
         ...prev, 
         error: null, 
@@ -403,6 +408,7 @@ export default function TranscriptionComparison() {
         await assemblyTranscriberRef.current.startTranscription();
         console.log('✅ ASSEMBLY: StartTranscription completed');
       } else {
+        console.error('❌ ASSEMBLY: Transcriber not initialized after initializeServices');
         throw new Error('AssemblyAI transcriber not initialized');
       }
     } catch (error) {
