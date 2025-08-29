@@ -50,27 +50,19 @@ export class WhisperTranscriber {
       console.log('✅ Microphone access granted');
 
       console.log('🔧 Creating MediaRecorder...');
-      // Use WAV format which is more reliable for chunked audio
-      const mimeType = 'audio/wav'; 
+      // Use WebM with longer chunks to avoid incomplete audio files
+      const mimeType = 'audio/webm;codecs=opus';
       
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        // Fallback to WebM if WAV not supported
-        const fallbackType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(fallbackType)) {
-          throw new Error(`MediaRecorder does not support ${mimeType} or ${fallbackType}`);
-        }
-        console.log('🎵 Using fallback MediaRecorder mimeType:', fallbackType);
-        this.mediaRecorder = new MediaRecorder(this.stream, {
-          mimeType: fallbackType,
-          audioBitsPerSecond: 128000
-        });
-      } else {
-        console.log('🎵 Using MediaRecorder mimeType:', mimeType);
-        this.mediaRecorder = new MediaRecorder(this.stream, {
-          mimeType: mimeType,
-          audioBitsPerSecond: 128000
-        });
+        throw new Error(`MediaRecorder does not support ${mimeType}`);
       }
+      
+      console.log('🎵 Using MediaRecorder mimeType:', mimeType);
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: mimeType,
+        audioBitsPerSecond: 128000
+      });
 
       this.mediaRecorder.ondataavailable = async (e) => {
         console.log('📡 MediaRecorder data available:', {
@@ -81,13 +73,8 @@ export class WhisperTranscriber {
         });
         
         if (e.data && e.data.size > 0) {
-          // Collect chunks instead of processing individually
-          this.audioChunks.push(e.data);
-          
-          // Process accumulated audio every few chunks or when we have enough data
-          if (this.audioChunks.length >= 1) { // Process each chunk individually but as complete WebM
-            await this.processAccumulatedAudio();
-          }
+          // Process each complete WebM chunk immediately
+          await this.uploadChunk(e.data);
         } else {
           console.warn('⚠️ No audio data available in chunk');
         }
@@ -95,10 +82,6 @@ export class WhisperTranscriber {
 
       this.mediaRecorder.onstop = () => {
         console.log('🛑 MediaRecorder stopped');
-        // Process any remaining chunks when recording stops
-        if (this.audioChunks.length > 0) {
-          this.processAccumulatedAudio();
-        }
         this.isRecording = false;
       };
 
@@ -109,7 +92,7 @@ export class WhisperTranscriber {
 
       this.isRecording = true;
       console.log('▶️ Starting MediaRecorder...');
-      this.mediaRecorder.start(5000); // 5-second chunks for better WebM structure
+      this.mediaRecorder.start(10000); // 10-second chunks to avoid incomplete WebM files
       
       this.onStatusChange('Recording');
       console.log('✅ API-based Whisper transcription started successfully');
@@ -120,20 +103,14 @@ export class WhisperTranscriber {
     }
   }
 
-  private async processAccumulatedAudio() {
-    if (this.audioChunks.length === 0) return;
-    
-    // Take the latest chunk (which should be a complete WebM segment)
-    const latestChunk = this.audioChunks.pop()!;
-    this.audioChunks = []; // Clear the buffer
-    
-    // Process the complete chunk
-    await this.uploadChunk(latestChunk);
-  }
 
   private async uploadChunk(audioData: Blob) {
-    // Queue uploads to prevent concurrent requests that cause 500 errors
-    this.uploadQueue = this.uploadQueue.then(() => this.processChunkWithRetry(audioData));
+    // Queue uploads to prevent concurrent requests and give OpenAI time to process
+    this.uploadQueue = this.uploadQueue.then(async () => {
+      await this.processChunkWithRetry(audioData);
+      // Add a small delay between requests to avoid overwhelming the API
+      await new Promise(resolve => setTimeout(resolve, 500));
+    });
     return this.uploadQueue;
   }
 
@@ -183,7 +160,7 @@ export class WhisperTranscriber {
 
   private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v7-DIAGNOSTIC] Processing audio chunk with Supabase client...');
+      console.log('🔄 [v8-DIAGNOSTIC] Processing audio chunk with Supabase client...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -193,9 +170,9 @@ export class WhisperTranscriber {
       
       this.onStatusChange('Processing...');
       
-      // Skip very small chunks
-      if (audioData.size < 1000) {
-        console.log('🔇 Skipping very small audio chunk, size:', audioData.size);
+      // Skip very small chunks (increased threshold for WebM)
+      if (audioData.size < 5000) {
+        console.log('🔇 Skipping small audio chunk, size:', audioData.size);
         this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
         return;
       }
@@ -273,11 +250,6 @@ export class WhisperTranscriber {
     console.log('🛑 Stopping Whisper transcription...');
     
     this.isRecording = false;
-    
-    // Process any remaining audio chunks
-    if (this.audioChunks.length > 0) {
-      this.processAccumulatedAudio();
-    }
     
     if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
       this.mediaRecorder.stop();
