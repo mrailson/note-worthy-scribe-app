@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -34,6 +34,9 @@ const MIME_OPUS = 'audio/webm;codecs=opus';
 const TIMESLICE_MS = 30000; // emits every 30s for progressive updates
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
 const AUTH = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`; // anon/public key
+
+console.log('🔧 STANDALONE WHISPER: Edge URL:', EDGE_URL);
+console.log('🔧 STANDALONE WHISPER: Auth configured:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 // Callback to update UI from module scope
 let updateTranscriptCallback: ((text: string) => void) | null = null;
@@ -98,6 +101,7 @@ export async function startStandaloneWhisper() {
     try {
       if (!e.data || !e.data.size) return;
       console.log('📦 STANDALONE WHISPER: Audio data available:', e.data.size, 'bytes');
+      console.log('📡 STANDALONE WHISPER: Uploading chunk', chunkIndex, 'to:', EDGE_URL);
       await uploadChunk(e.data, { chunkIndex });
     } catch (err) {
       console.error('Upload error on chunk', chunkIndex, err);
@@ -250,6 +254,23 @@ export default function TranscriptionComparison() {
   
   // NHS Transcript Cleaner state
   const [cleanedTranscripts, setCleanedTranscripts] = useState<string[]>(['', '', '', '']);
+  
+  // Timer for updating session times
+  const [, setTimerTick] = useState(0);
+  
+  // Timer to update UI every second for running clocks
+  useEffect(() => {
+    const isAnyRecording = assemblyState.isRecording || deepgramState.isRecording || 
+                          standaloneWhisperState.isRecording || browserState.isRecording;
+    
+    if (isAnyRecording) {
+      const timer = setInterval(() => {
+        setTimerTick(tick => tick + 1); // Force re-render to update clocks
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [assemblyState.isRecording, deepgramState.isRecording, standaloneWhisperState.isRecording, browserState.isRecording]);
   
   // NHS Transcript Cleaner handler
   const handleTranscriptsCleaned = useCallback((results: { cleaned: string; appliedRuleIds: string[] }[]) => {
