@@ -72,7 +72,10 @@ serve(async (req) => {
         // Final empty chunk - return success with empty result
         console.log(`🏁 [${requestId}] Final empty chunk received - session complete`);
         return new Response(JSON.stringify({
-          text: '',
+          data: {
+            text: '',
+            segments: []
+          },
           isFinal: true,
           chunkIndex,
           message: 'Session completed'
@@ -136,9 +139,12 @@ serve(async (req) => {
           text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
         });
 
-        // Return the transcription result
+        // Return the transcription result with segments for timestamp-based deduplication
         const response = {
-          text: result.text || '',
+          data: {
+            text: result.text || '',
+            segments: result.segments || []
+          },
           confidence: 0.95, // Default confidence for Whisper
           chunkIndex,
           isFinal,
@@ -148,7 +154,8 @@ serve(async (req) => {
         };
 
         console.log(`📤 [${requestId}] Sending response:`, {
-          textLength: response.text.length,
+          textLength: response.data.text.length,
+          segmentsCount: response.data.segments.length,
           chunkIndex: response.chunkIndex,
           isFinal: response.isFinal,
         });
