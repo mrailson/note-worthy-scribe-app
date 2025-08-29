@@ -126,7 +126,7 @@ export class WhisperTranscriber {
 
   private async uploadChunk(audioData: Blob) {
     try {
-      console.log('🔄 Processing audio chunk with speech-to-text function...');
+      console.log('🔄 [v2] Processing audio chunk with speech-to-text function...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
