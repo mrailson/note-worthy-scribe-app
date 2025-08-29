@@ -64,8 +64,8 @@ export class WhisperTranscriber {
       };
 
       this.mediaRecorder.onstop = () => {
-        console.log('🛑 MediaRecorder stopped');
-        this.isRecording = false;
+        console.log('🛑 MediaRecorder stopped (this should not happen during continuous recording)');
+        // Don't set isRecording to false here for continuous recording
         if (this.chunkTimer) { 
           clearTimeout(this.chunkTimer); 
           this.chunkTimer = undefined; 
@@ -92,28 +92,27 @@ export class WhisperTranscriber {
   }
 
   private scheduleNextChunk() {
-    if (!this.isRecording || !this.mediaRecorder) return;
+    if (!this.isRecording || !this.mediaRecorder) {
+      console.log('⚠️ Not scheduling next chunk - recording stopped or no recorder');
+      return;
+    }
     
     this.chunkTimer = window.setTimeout(() => {
-      if (!this.mediaRecorder || this.mediaRecorder.state !== "recording" || !this.isRecording) return;
+      if (!this.mediaRecorder || !this.isRecording) {
+        console.log('⚠️ Timer fired but recording stopped or no recorder');
+        return;
+      }
+      
+      if (this.mediaRecorder.state !== "recording") {
+        console.log('⚠️ MediaRecorder not in recording state:', this.mediaRecorder.state);
+        return;
+      }
       
       console.log('⏰ Processing 3.5s audio chunk...');
       this.mediaRecorder.requestData(); // triggers ondataavailable
-      this.mediaRecorder.stop();        // ensure it fully stops before restarting
       
-      // Restart after a brief delay to ensure stop event fires
-      setTimeout(() => {
-        if (!this.isRecording || !this.mediaRecorder) return;
-        
-        console.log('🔄 Restarting recorder for next chunk...');
-        try {
-          this.mediaRecorder.start();
-          this.scheduleNextChunk(); // Schedule the next chunk
-        } catch (error) {
-          console.error('❌ Error restarting recorder:', error);
-          this.onError('Error restarting recorder');
-        }
-      }, 100); // Longer delay to ensure clean restart
+      // Don't stop the recorder - just request data and continue
+      this.scheduleNextChunk(); // Schedule the next chunk immediately
     }, 3500); // 3.5s chunks for better audio capture
   }
 
@@ -128,9 +127,9 @@ export class WhisperTranscriber {
       
       this.onStatusChange('Processing...');
       
-      // Skip very small chunks (lowered threshold for better sensitivity)
-      if (audioData.size < 30000) {
-        console.log('🔇 Skipping small audio chunk, size:', audioData.size);
+      // Skip very small chunks (lowered threshold significantly)
+      if (audioData.size < 10000) {
+        console.log('🔇 Skipping very small audio chunk, size:', audioData.size);
         this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
         return;
       }
