@@ -1,108 +1,120 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const CORS = (origin: string | null) => ({
+  'access-control-allow-origin': origin ?? '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type, authorization',
+});
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: CORS(req.headers.get('origin')) });
   }
 
   try {
-    console.log('🎙️ Speech-to-text request received');
-    
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    const origin = req.headers.get('origin');
+    const ct = req.headers.get('content-type') || '';
 
-    const { audio, language, temperature, prompt } = await req.json();
-    if (!audio) {
-      throw new Error('No audio data provided');
-    }
-
-    console.log('📤 Converting base64 audio to blob...', {
-      audioLength: audio.length,
-      audioPreview: audio.substring(0, 50) + '...'
+    console.log('🎙️ Speech-to-text request received', {
+      method: req.method,
+      contentType: ct,
+      hasBody: req.body !== null
     });
-    
-    // Enhanced base64 to binary conversion with error handling
-    let binaryAudio: string;
-    let audioArray: Uint8Array;
-    
-    try {
-      binaryAudio = atob(audio);
-      audioArray = new Uint8Array(binaryAudio.length);
-      
-      // Process in chunks to avoid memory issues
-      const chunkSize = 8192;
-      for (let i = 0; i < binaryAudio.length; i += chunkSize) {
-        const end = Math.min(i + chunkSize, binaryAudio.length);
-        for (let j = i; j < end; j++) {
-          audioArray[j] = binaryAudio.charCodeAt(j);
-        }
-      }
-      
-      console.log('✅ Audio conversion successful:', {
-        binaryLength: binaryAudio.length,
-        arrayLength: audioArray.length,
-        sizeInKB: Math.round(audioArray.length / 1024)
+
+    // ---- 1) accept either raw binary or multipart (fallback) ----
+    let blob: Blob | null = null;
+
+    if (ct.startsWith('application/octet-stream')) {
+      console.log('📤 Processing binary audio data...');
+      const ab = await req.arrayBuffer(); // <-- binary path
+      blob = new Blob([ab], { type: 'audio/webm' });
+      console.log('✅ Binary audio processed:', {
+        sizeBytes: ab.byteLength,
+        sizeKB: Math.round(ab.byteLength / 1024)
       });
-    } catch (conversionError) {
-      console.error('❌ Base64 conversion failed:', conversionError);
-      throw new Error(`Audio conversion failed: ${conversionError.message}`);
+    } else if (ct.startsWith('multipart/form-data')) {
+      console.log('📤 Processing multipart form data...');
+      const form = await req.formData();
+      const f = form.get('file');
+      if (!(f instanceof Blob)) {
+        return new Response(JSON.stringify({ error: 'file field missing' }), { status: 400, headers: CORS(origin) });
+      }
+      blob = f;
+      console.log('✅ Multipart audio processed:', {
+        sizeBytes: f.size,
+        sizeKB: Math.round(f.size / 1024)
+      });
+    } else if (ct.startsWith('application/json')) {
+      console.log('📤 Processing legacy base64 JSON...');
+      // legacy base64 JSON
+      const { audio, audioBase64, mimeType } = await req.json();
+      const audioData = audio || audioBase64;
+      if (!audioData) {
+        return new Response(JSON.stringify({ error: 'audio data missing' }), { status: 400, headers: CORS(origin) });
+      }
+      const bin = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
+      blob = new Blob([bin], { type: mimeType || 'audio/webm' });
+      console.log('✅ Base64 audio processed:', {
+        originalLength: audioData.length,
+        sizeBytes: bin.length,
+        sizeKB: Math.round(bin.length / 1024)
+      });
+    } else {
+      return new Response(JSON.stringify({ error: `Unsupported content-type: ${ct}` }), { status: 415, headers: CORS(origin) });
     }
-    
-    // Create blob and form data for OpenAI
-    const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'chunk.webm');
-    formData.append('model', 'whisper-1');
-    formData.append('language', language || 'en');
-    formData.append('temperature', String(temperature ?? 0));
-    
-    // Add NHS-specific prompt for better transcription accuracy
-    if (prompt) {
-      formData.append('prompt', prompt);
+
+    // ---- 2) size guard ----
+    if ((blob?.size ?? 0) > 8_000_000) {
+      return new Response(JSON.stringify({ error: 'Chunk too large (max 8MB)' }), { status: 413, headers: CORS(origin) });
     }
+
+    if ((blob?.size ?? 0) < 1000) {
+      console.log('⚠️ Very small audio chunk, skipping:', blob?.size);
+      return new Response(JSON.stringify({ text: '' }), {
+        headers: { 'content-type': 'application/json', ...CORS(origin) },
+      });
+    }
+
+    // ---- 3) forward to OpenAI Whisper ----
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not set');
+
+    const form = new FormData();
+    form.append('file', blob!, 'chunk.webm');
+    form.append('model', 'whisper-1');
+    form.append('language', 'en');
+    form.append('temperature', '0');
+    form.append('prompt', 'NHS, PCN, DES, ARRS, QOF, EMIS, SystmOne, locum, CQC, practice, patient, consultation, medication, prescription, referral, appointment');
 
     console.log('📡 Sending to OpenAI Whisper...');
-    
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+
+    const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: formData,
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: form,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ OpenAI error:', errorText);
-      throw new Error(`OpenAI error: ${response.status} - ${errorText}`);
+    if (!r.ok) {
+      const detail = await r.text();
+      console.error('❌ OpenAI error:', detail);
+      return new Response(JSON.stringify({ error: 'Upstream STT failed', status: r.status, detail }), {
+        status: 502,
+        headers: { 'content-type': 'application/json', ...CORS(origin) },
+      });
     }
 
-    const result = await response.json();
-    console.log('✅ Transcription successful:', result.text || 'No text returned');
+    const data = await r.json();
+    console.log('✅ Transcription successful:', data.text || 'No text returned');
 
-    return new Response(JSON.stringify({ 
-      text: result.text || '',
-      confidence: 0.9 // Default confidence for successful transcriptions
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ text: data.text ?? '' }), {
+      headers: { 'content-type': 'application/json', ...CORS(origin) },
     });
 
-  } catch (error) {
-    console.error('❌ Speech-to-text error:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message 
-    }), {
+  } catch (e) {
+    console.error('❌ Function error:', e);
+    return new Response(JSON.stringify({ error: 'Function crash', detail: String(e) }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...CORS(req.headers.get('origin')) },
     });
   }
 });

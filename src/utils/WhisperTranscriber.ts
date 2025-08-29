@@ -152,7 +152,7 @@ export class WhisperTranscriber {
 
   private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v5] Processing audio chunk with speech-to-text function...');
+      console.log('🔄 [v6] Processing audio chunk with binary upload...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -162,54 +162,52 @@ export class WhisperTranscriber {
       this.onStatusChange('Processing...');
       
       // Skip very small chunks
-      if (audioData.size < 10000) {
+      if (audioData.size < 1000) {
         console.log('🔇 Skipping very small audio chunk, size:', audioData.size);
         this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
         return;
       }
 
-      console.log('📤 Converting audio to base64 for transport...');
+      console.log('📤 Sending binary audio data directly...');
       
-      // Convert to base64 for transport (standard approach that works)
-      const arrayBuffer = await audioData.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // Process in chunks to avoid memory issues
-      const chunkSize = 32768;
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      const base64Audio = btoa(binary);
-      
-      // Use the proven speech-to-text function with base64 (what works in meeting recorder)
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { 
-          audio: base64Audio,
-          language: "en",
-          temperature: 0,
-          // NHS-specific prompt for better accuracy
-          prompt: "NHS, PCN, DES, ARRS, QOF, EMIS, SystmOne, locum, CQC, practice, patient, consultation, medication, prescription, referral, appointment"
-        }
+      // Send binary data directly for maximum efficiency
+      const response = await fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/octet-stream',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+        },
+        body: audioData, // Send Blob directly
+        keepalive: true,
       });
+
+      // Enhanced error handling with detailed error information
+      const responseText = await response.text();
+      let data: any;
+      try { 
+        data = JSON.parse(responseText); 
+      } catch { 
+        data = { error: responseText }; 
+      }
 
       console.log('📨 Speech-to-text Response:', { 
+        status: response.status,
+        ok: response.ok,
         hasData: !!data,
-        hasError: !!error,
         dataKeys: data ? Object.keys(data) : [],
-        errorMessage: error?.message || 'No error message'
+        errorMessage: data?.error || 'No error message'
       });
 
-      if (error) {
+      if (!response.ok) {
+        const errorDetail = data?.detail || data?.error || responseText || `STT ${response.status}`;
         console.error('❌ Speech-to-text error details:', {
-          error: error,
-          message: error.message || 'No message',
-          details: error.details || 'No details',
-          hint: error.hint || 'No hint',
-          code: error.code || 'No code'
+          status: response.status,
+          statusText: response.statusText,
+          error: data?.error,
+          detail: data?.detail,
+          responseText: responseText.substring(0, 200)
         });
-        throw new Error(`Transcription failed: ${error.message || error.toString()}`);
+        throw new Error(`Transcription failed: ${errorDetail}`);
       }
 
       if (data?.text && data.text.trim()) {
@@ -231,12 +229,6 @@ export class WhisperTranscriber {
         }
       } else {
         console.log('ℹ️ No transcript text received. Full response:', JSON.stringify(data, null, 2));
-        console.log('⚠️ Response analysis:', {
-          hasText: !!data?.text,
-          textLength: data?.text?.length || 0,
-          textContent: data?.text || 'No text property',
-          responseKeys: data ? Object.keys(data) : []
-        });
       }
       
       this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
