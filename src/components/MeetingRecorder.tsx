@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay, addMinutes } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +24,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
+import { useRecordingProtection } from "@/hooks/useRecordingProtection";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -39,7 +46,6 @@ import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
@@ -104,6 +110,24 @@ export const MeetingRecorder = ({
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
+
+  // Recording protection hook - after variable declarations
+  const {
+    showConfirmDialog,
+    setShowConfirmDialog,
+    handleStopWithConfirmation,
+    handleDoubleClickProtection,
+    confirmStopRecording,
+    doubleClickProtection,
+  } = useRecordingProtection({
+    isRecording,
+    recordingDuration: duration,
+    wordCount,
+    onStopRecording: () => {
+      console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
+      stopRecording();
+    },
+  });
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
   
@@ -4007,19 +4031,16 @@ export const MeetingRecorder = ({
                         </div>
                       )}
                       
-                        <Button 
-                         onClick={() => {
-                           console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
-                           stopRecording();
-                         }}
-                         variant="destructive"
-                         size="lg"
-                          disabled={isStoppingRecording || meetingEndModal.isOpen}
-                         className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                       >
-                         <Square className="h-5 w-5 mr-2" />
-                         {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
-                       </Button>
+                         <Button 
+                          onClick={handleStopWithConfirmation}
+                          variant="destructive"
+                          size="lg"
+                           disabled={isStoppingRecording || meetingEndModal.isOpen}
+                          className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                          <Square className="h-5 w-5 mr-2" />
+                          {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
+                        </Button>
                       </div>
                    )}
                    
@@ -4144,20 +4165,36 @@ export const MeetingRecorder = ({
                 {/* Compact Mic Control */}
                 <div className="text-center py-4 mt-4 border-t border-border/50">
                   <div className="max-w-sm mx-auto">
-                    <button
-                      type="button"
-                      onClick={() => { 
-                        if (!isStoppingRecording && !meetingEndModal.isOpen) {
-                          isRecording ? stopRecording() : startRecording(); 
-                        }
-                      }}
-                      disabled={isStoppingRecording || meetingEndModal.isOpen}
-                      className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/5"
-                      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                      title={isRecording ? 'Stop recording' : 'Start recording'}
-                    >
-                      <Mic className={`h-6 w-6 ${isRecording ? 'text-red-500' : 'text-primary/60'}`} />
-                    </button>
+                     <button
+                       type="button"
+                       onClick={() => { 
+                         if (!isStoppingRecording && !meetingEndModal.isOpen) {
+                           if (isRecording) {
+                             handleDoubleClickProtection();
+                           } else {
+                             startRecording();
+                           }
+                         }
+                       }}
+                       disabled={isStoppingRecording || meetingEndModal.isOpen}
+                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                         doubleClickProtection 
+                           ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
+                           : isRecording 
+                             ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' 
+                             : 'bg-primary/5 hover:bg-primary/10'
+                       }`}
+                       aria-label={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                       title={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                     >
+                       <Mic className={`h-6 w-6 ${
+                         doubleClickProtection 
+                           ? 'text-amber-600 dark:text-amber-400' 
+                           : isRecording 
+                             ? 'text-red-500' 
+                             : 'text-primary/60'
+                       }`} />
+                     </button>
                     {!isRecording ? (
                       <>
                         <h4 className="text-base font-medium mb-1">Ready to Record</h4>
@@ -4166,8 +4203,14 @@ export const MeetingRecorder = ({
                         </p>
                       </>
                     ) : (
-                      <>
-                        <h4 className="text-base font-medium mb-1 text-red-600">Recording...</h4>
+                       <>
+                         <h4 className={`text-base font-medium mb-1 ${
+                           doubleClickProtection 
+                             ? 'text-amber-600 dark:text-amber-400' 
+                             : 'text-red-600'
+                         }`}>
+                           {doubleClickProtection ? 'Click again to stop...' : 'Recording...'}
+                         </h4>
                         <p className="text-xs text-muted-foreground">
                           Your meeting audio is being captured
                         </p>
@@ -4542,6 +4585,15 @@ export const MeetingRecorder = ({
       </Tabs>
       
       
+      {/* Stop Recording Confirmation Dialog */}
+      <StopRecordingConfirmDialog
+        isOpen={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={confirmStopRecording}
+        recordingDuration={duration}
+        wordCount={wordCount}
+      />
+
       {/* Combined End-of-Meeting Modal */}
       {meetingEndModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
