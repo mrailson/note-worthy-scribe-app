@@ -184,11 +184,21 @@ const DeepgramTest = () => {
           );
           break;
         case 'whisper':
+          const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
           transcriber = new WhisperTranscriber(
-            callbacks.onTranscription,
-            callbacks.onError,
-            callbacks.onStatusChange,
-            callbacks.onSummary
+            EDGE_URL,
+            (payload) => {
+              const text = payload?.data?.text || payload?.text || '';
+              if (text.trim()) {
+                callbacks.onTranscription({
+                  text: text.trim(),
+                  is_final: true,
+                  confidence: 0.95,
+                  speaker: 'Speaker'
+                });
+              }
+            },
+            (err) => callbacks.onError(err.message)
           );
           break;
         case 'deepgram':

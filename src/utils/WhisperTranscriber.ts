@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+// ============= v9-iterative-no-supabase WhisperTranscriber =============
+const WHISPER_IMPL_VERSION = 'v9-iterative-no-supabase';
 
 export interface TranscriptData {
   text: string;
@@ -16,104 +17,24 @@ const MAX_ATTEMPTS = 3;
 type UploadItem = { blob: Blob; meta?: { chunkIndex?: number } };
 
 export class WhisperTranscriber {
-  private mediaRecorder: MediaRecorder | null = null;
-  private stream: MediaStream | null = null;
-  private isRecording = false;
   private queue: UploadItem[] = [];
   private processing = false;
-  private chunkCounter = 0;
 
   constructor(
-    private onTranscription: (data: TranscriptData) => void,
-    private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void,
-    private onSummary?: (summary: string) => void
-  ) {}
-
-  async startTranscription() {
-    if (this.isRecording) {
-      console.warn("🎙️ Recorder already running; ignoring start.");
-      return;
-    }
-
-    try {
-      console.log('🎙️ Starting API-based Whisper transcription...');
-      this.onStatusChange('Starting recording...');
-
-      console.log('🎤 Requesting microphone access...');
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,              // mono is best for STT
-          sampleRate: 48000,            // browsers usually give 48 kHz; Whisper will resample
-          noiseSuppression: true,       // useful for live mic
-          echoCancellation: true,       // true if mic + speakers
-          autoGainControl: false        // avoid volume pumping; let Whisper handle dynamics
-        }
-      });
-      console.log('✅ Microphone access granted');
-
-      console.log('🔧 Creating MediaRecorder...');
-      // Use WebM with longer chunks to avoid incomplete audio files
-      const mimeType = 'audio/webm;codecs=opus';
-      
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        throw new Error(`MediaRecorder does not support ${mimeType}`);
-      }
-      
-      console.log('🎵 Using MediaRecorder mimeType:', mimeType);
-      
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: mimeType,
-        audioBitsPerSecond: 128000
-      });
-
-      this.mediaRecorder.ondataavailable = (e) => {
-        console.log('📡 MediaRecorder data available:', {
-          hasData: !!e.data,
-          dataSize: e.data?.size || 0,
-          timestamp: new Date().toISOString(),
-          chunkNumber: this.chunkCounter
-        });
-        
-        if (e.data && e.data.size > 0) {
-          // Enqueue chunk - no awaits to prevent re-entrancy
-          this.enqueueChunk(e.data, { chunkIndex: this.chunkCounter++ });
-        } else {
-          console.warn('⚠️ No audio data available in chunk');
-        }
-      };
-
-      this.mediaRecorder.onstop = () => {
-        console.log('🛑 MediaRecorder stopped');
-        this.isRecording = false;
-      };
-
-      this.mediaRecorder.onerror = (event) => {
-        console.error('❌ MediaRecorder error:', event);
-        this.onError('MediaRecorder error occurred');
-      };
-
-      this.isRecording = true;
-      console.log('▶️ Starting MediaRecorder...');
-      this.mediaRecorder.start(10000); // 10-second chunks to avoid incomplete WebM files
-      
-      this.onStatusChange('Recording');
-      console.log('✅ API-based Whisper transcription started successfully');
-    } catch (error) {
-      console.error('❌ Failed to start Whisper transcription:', error);
-      this.onError(`Failed to start Whisper: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      this.onStatusChange('Error');
-    }
+    private uploadUrl: string,
+    private onTranscription: (payload: any) => void,
+    private onError: (err: Error) => void
+  ) {
+    console.info('WHISPER IMPL', WHISPER_IMPL_VERSION, 'url=', this.uploadUrl);
   }
 
-
-  /** Call this from mediaRecorder.ondataavailable */
-  private enqueueChunk(blob: Blob, meta?: { chunkIndex?: number }) {
+  /** Call from MediaRecorder.ondataavailable */
+  enqueueChunk(blob: Blob, meta?: { chunkIndex?: number }) {
     if (!blob || !blob.size) return;
     this.queue.push({ blob, meta });
-    // Fire-and-forget; no awaits -> no accidental re-entrancy
-    this.drainQueue().catch(e => this.onError(`Queue processing error: ${e.message}`));
+    this.drainQueue().catch(e => this.onError(e));
   }
+
 
   private async drainQueue() {
     if (this.processing) return;
@@ -122,28 +43,8 @@ export class WhisperTranscriber {
       while (this.queue.length) {
         const item = this.queue.shift()!;
         const res = await this.uploadWithRetry(() => this.uploadOnce(item));
-        // IMPORTANT: onTranscription must NOT call enqueue/process again
-        if (res?.data?.text && res.data.text.trim()) {
-          const cleanText = res.data.text.trim();
-          console.log('📝 Whisper transcription SUCCESS:', cleanText);
-          
-          const transcriptData: TranscriptData = {
-            text: cleanText,
-            is_final: true,
-            confidence: res.data.confidence || 0.9,
-            speaker: 'Speaker'
-          };
-          
-          console.log('✅ Calling onTranscription with:', transcriptData);
-          this.onTranscription(transcriptData);
-          
-          if (this.onSummary) {
-            this.onSummary(cleanText);
-          }
-        }
-        
-        // Add delay between requests
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // IMPORTANT: onTranscription must not call enqueue/process again
+        this.onTranscription(res);
       }
     } finally {
       this.processing = false;
@@ -168,94 +69,53 @@ export class WhisperTranscriber {
     throw lastErr;
   }
 
-  /** Single network call. Never calls drainQueue/uploadWithRetry/process* */
+  /** Single network call. NO recursion. NO calls back into queue. */
   private async uploadOnce(item: UploadItem) {
     const { blob, meta } = item;
-    
-    console.log('🔄 [v8-DIAGNOSTIC] Processing audio chunk with Supabase client...');
-    console.log('📊 Audio chunk details:', {
-      size: blob.size,
-      type: blob.type,
-      sizeInKB: Math.round(blob.size / 1024),
-      timestamp: new Date().toISOString(),
-      chunkIndex: meta?.chunkIndex
-    });
-    
-    this.onStatusChange('Processing...');
-    
-    // Skip very small chunks (increased threshold for WebM)
-    if (blob.size < 5000) {
-      console.log('🔇 Skipping small audio chunk, size:', blob.size);
-      this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
-      return { data: { text: '' } }; // Return empty result for small chunks
-    }
+    const filename =
+      typeof meta?.chunkIndex === 'number' ? `chunk-${meta.chunkIndex}.webm` : 'audio.webm';
 
-    console.log('📤 [DIAGNOSTIC] Preparing to send audio data via Supabase client...');
-    
-    // Add network connectivity check
-    if (!navigator.onLine) {
-      console.error('❌ [DIAGNOSTIC] No internet connection available');
-      throw new Error('No internet connection available');
-    }
-    
-    console.log('🌐 [DIAGNOSTIC] Network connectivity confirmed');
-    
-    // Convert Blob to ArrayBuffer for Supabase client
-    const arrayBuffer = await blob.arrayBuffer();
-    console.log('🚀 [DIAGNOSTIC] Sending request via Supabase client...');
-    
-    // Use Supabase client which handles authentication automatically
-    const { data, error } = await supabase.functions.invoke('speech-to-text', {
-      body: {
-        audio: btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-      }
-    });
-    
-    console.log('📥 [DIAGNOSTIC] Received response from Supabase client:', {
-      hasData: !!data,
-      hasError: !!error,
-      error: error,
-      timestamp: new Date().toISOString()
-    });
+    const fd = new FormData();
+    fd.append('file', blob, filename);
+    fd.append('response_format', 'verbose_json'); // get segments+text from Whisper
+    // Optional:
+    // fd.append('language', 'en');
+    // fd.append('prompt', 'NHS, GP, ARRS, PCN, DES, QoF, SystmOne, EMIS, NG');
 
-    if (error) {
-      console.error('❌ Supabase function error:', error);
-      throw new Error(`Transcription failed: ${error.message || JSON.stringify(error)}`);
+    // FORCE direct fetch (no Supabase client). Do not set Content-Type manually.
+    const res = await fetch(this.uploadUrl, { method: 'POST', body: fd, headers: { 'x-client': 'lovable' } });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Whisper upload failed ${res.status}: ${text}`);
     }
-    
-    this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
-    return { data };
+    return res.json();
   }
 
-  stopTranscription() {
-    console.log('🛑 Stopping Whisper transcription...');
-    
-    this.isRecording = false;
-    
-    if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
-      this.mediaRecorder.stop();
-    }
-    
-    // Stop all tracks
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-    }
-    
-    this.mediaRecorder = null;
-    this.stream = null;
-    this.queue = []; // Clear the queue
-    this.chunkCounter = 0;
+  // Back-compat shims for old call sites:
+  processChunk(blob: Blob, meta?: any) { 
+    this.enqueueChunk(blob, meta); 
+  }
+  processChunkWithRetry(blob: Blob, meta?: any) { 
+    this.enqueueChunk(blob, meta); 
+  }
+
+  // Placeholder methods for interface compatibility
+  startTranscription() { 
+    console.log('🎙️ WhisperTranscriber startTranscription - use external MediaRecorder');
+  }
+  
+  stopTranscription() { 
+    console.log('🛑 WhisperTranscriber stopTranscription - clearing queue');
+    this.queue = []; // Clear any pending uploads
     this.processing = false;
-    
-    this.onStatusChange('Stopped');
-    console.log('✅ Whisper transcription stopped');
   }
-
-  isActive(): boolean {
-    return this.isRecording;
+  
+  isActive() { 
+    return this.processing || this.queue.length > 0; 
   }
-
-  async clearSummary() {
-    console.log('🧹 Clearing Whisper summary');
+  
+  clearSummary() { 
+    this.queue = []; // Clear the queue
+    this.processing = false;
   }
 }

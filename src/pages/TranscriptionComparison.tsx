@@ -190,6 +190,25 @@ export default function TranscriptionComparison() {
     }
   }, []);
 
+  // Whisper payload handler for new format
+  const handleWhisperPayload = useCallback((payload: any) => {
+    console.log('📝 WHISPER: Received payload:', payload);
+    
+    // Handle response format from speech-to-text-chunked
+    const text = payload?.data?.text || payload?.text || '';
+    
+    if (text.trim()) {
+      const transcriptData: TranscriptData = {
+        text: text.trim(),
+        is_final: true,
+        confidence: 0.95,
+        speaker: 'Speaker'
+      };
+      
+      handleWhisperTranscript(transcriptData);
+    }
+  }, []);
+
   // Whisper handlers
   const handleWhisperTranscript = useCallback((data: TranscriptData | any) => {
     console.log('📝 WHISPER: Received transcript data:', data);
@@ -305,6 +324,8 @@ export default function TranscriptionComparison() {
     // Initialize Whisper (with feature flag for chunked version)
     if (!whisperTranscriberRef.current) {
       const USE_CHUNKED = import.meta.env.VITE_USE_CHUNKED_WHISPER === 'true';
+      const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
+      
       console.log(`🔧 Creating new ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber...`);
       
       whisperTranscriberRef.current = USE_CHUNKED
@@ -314,9 +335,9 @@ export default function TranscriptionComparison() {
             handleWhisperStatus
           )
         : new WhisperTranscriber(
-            handleWhisperTranscript,
-            handleWhisperError,
-            handleWhisperStatus
+            EDGE_URL,
+            (payload) => handleWhisperPayload(payload),
+            (err) => console.error('Whisper error:', err)
           );
       
       console.log(`✅ ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber created`);
