@@ -24,6 +24,15 @@ const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 // Edge URL for Whisper transcription
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
 
+// MediaRecorder constants for Whisper
+const MIME = 'audio/webm;codecs=opus';
+const TIMESLICE_MS = 4000;
+
+// MediaRecorder state for Whisper
+let micStream: MediaStream | null = null;
+let mediaRecorder: MediaRecorder | null = null;
+let whisperChunkIdx = 0;
+
 interface TranscriptEntry {
   id: string;
   text: string;
@@ -343,7 +352,8 @@ export default function TranscriptionComparison() {
       whisperTranscriberRef.current = new WhisperTranscriber(
         EDGE_URL,
         (payload) => handleWhisperPayload(payload),
-        (err) => console.error('Whisper error:', err)
+        (err) => console.error('Whisper error:', err),
+        (status) => handleWhisperStatus(status)
       );
       
       console.log('✅ Whisper transcriber created with direct fetch');
@@ -517,13 +527,56 @@ export default function TranscriptionComparison() {
 
   const startWhisper = useCallback(async () => {
     try {
+      console.log('🚀 WHISPER: Starting Whisper service...');
       initializeServices();
       setWhisperState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
-      await whisperTranscriberRef.current?.startTranscription();
+      
+      const whisper = whisperTranscriberRef.current;
+      if (!whisper) {
+        throw new Error('Whisper transcriber not initialized');
+      }
+      
+      // Check MIME type support
+      const supported = MediaRecorder.isTypeSupported(MIME) ? MIME : 'audio/webm';
+      console.info("Using MIME type:", supported);
+      
+      // Get microphone access
+      console.info("Starting Whisper mic pipeline…");
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(micStream, { mimeType: supported });
+      
+      // IMPORTANT: feed chunks into Whisper
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size) {
+          console.debug("MediaRecorder chunk:", { size: e.data.size, chunkIndex: whisperChunkIdx });
+          (whisper as WhisperTranscriber).enqueueChunk(e.data, { chunkIndex: whisperChunkIdx++ });
+        }
+      };
+      
+      mediaRecorder.onstart = () => {
+        console.info("MediaRecorder started (Whisper).");
+        handleWhisperStatus("Recording");
+      };
+      
+      mediaRecorder.onerror = (ev: any) => {
+        console.error("MediaRecorder error:", ev?.error || ev);
+        handleWhisperError(`MediaRecorder error: ${ev?.error || 'Unknown error'}`);
+      };
+      
+      mediaRecorder.onstop = () => {
+        console.info("MediaRecorder stopped (Whisper).");
+        handleWhisperStatus("Stopped");
+      };
+      
+      // Start recording with timeslice
+      mediaRecorder.start(TIMESLICE_MS);
+      console.info(`MediaRecorder started with ${TIMESLICE_MS}ms timeslice`);
+      
     } catch (error) {
+      console.error('❌ WHISPER: Start error:', error);
       handleWhisperError(error instanceof Error ? error.message : 'Failed to start Whisper');
     }
-  }, [initializeServices, handleWhisperError]);
+  }, [initializeServices, handleWhisperError, handleWhisperStatus]);
 
   const startBrowser = useCallback(async () => {
     if (!ENABLE_BROWSER_SPEECH) {
@@ -583,7 +636,38 @@ export default function TranscriptionComparison() {
   }, []);
 
   const stopWhisper = useCallback(() => {
-    whisperTranscriberRef.current?.stopTranscription();
+    console.log('🛑 WHISPER: Stopping Whisper service...');
+    try {
+      // Stop and clean up MediaRecorder
+      if (mediaRecorder) {
+        try {
+          mediaRecorder.stop();
+        } catch (e) {
+          console.warn('MediaRecorder stop error:', e);
+        }
+        mediaRecorder = null;
+      }
+      
+      // Stop and clean up microphone stream
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      
+      // Clean up Whisper transcriber
+      const whisper = whisperTranscriberRef.current;
+      if (whisper && 'stopTranscription' in whisper) {
+        whisper.stopTranscription();
+      }
+      
+      // Reset chunk index
+      whisperChunkIdx = 0;
+      
+      console.log('✅ WHISPER: Service stopped and cleaned up');
+    } catch (error) {
+      console.error('❌ WHISPER: Stop error:', error);
+    }
+    
     setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
   }, []);
 

@@ -17,13 +17,15 @@ export class WhisperTranscriber {
   private edgeUrl: string;
   private onPayload: (p: any) => void;
   private onError: (e: any) => void;
+  private onStatusChange?: (status: string) => void;
   private useSupabaseClient = false;
 
-  constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void) {
+  constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void, onStatusChange?: (status: string) => void) {
     if (!edgeUrl) throw new Error("WhisperTranscriber: edgeUrl required");
     this.edgeUrl = edgeUrl;
     this.onPayload = onPayload;
     this.onError = onError;
+    this.onStatusChange = onStatusChange;
 
     // Kill any old Supabase path
     (this as any).supabaseClient = null;
@@ -40,6 +42,7 @@ export class WhisperTranscriber {
   /** Call from MediaRecorder.ondataavailable */
   enqueueChunk(blob: Blob, meta?: any) {
     if (!blob || !blob.size) return;
+    console.debug("[Whisper] enqueueChunk", { size: blob.size, ...meta });
     this.q.push({ blob, meta });
     if (!this.isDraining) this.drainQueue();
   }
@@ -47,6 +50,7 @@ export class WhisperTranscriber {
   private async drainQueue() {
     if (this.isDraining) return;
     this.isDraining = true;
+    console.debug("[Whisper] drainQueue start; q=", this.q.length);
 
     try {
       while (this.q.length > 0) {
