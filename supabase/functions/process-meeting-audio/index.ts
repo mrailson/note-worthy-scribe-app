@@ -36,6 +36,7 @@ serve(async (req: Request) => {
 
     const out = new FormData();
     out.append("model", model);
+    out.append("language", "en"); // Force English transcription
     out.append("file", normalized, normalized.name);
 
     const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
