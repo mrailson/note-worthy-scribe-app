@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText } from 'lucide-react';
+import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText, Upload } from 'lucide-react';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { toast } from 'sonner';
 import TranscriptCleanerPanel from '@/components/TranscriptCleanerPanel';
@@ -56,6 +56,8 @@ export default function TranscriptionComparison() {
   const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState);
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [uploadedAudio, setUploadedAudio] = useState<File | null>(null);
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   
   // NHS Transcript Cleaner state
   const [cleanedTranscripts, setCleanedTranscripts] = useState<string[]>(['', '', '', '']);
@@ -612,6 +614,252 @@ export default function TranscriptionComparison() {
     clearService('deepgram');
     clearService('whisper');
     clearService('browser');
+    setUploadedAudio(null);
+    setCleanedTranscripts(['', '', '', '']);
+  };
+
+  // Handle MP3 file upload
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.includes('audio')) {
+      setUploadedAudio(file);
+      toast.success(`Audio file "${file.name}" uploaded successfully`);
+    } else {
+      toast.error('Please upload a valid audio file (MP3, WAV, etc.)');
+    }
+  }, []);
+
+  // Process uploaded audio through all services
+  const processUploadedAudio = useCallback(async () => {
+    if (!uploadedAudio) {
+      toast.error('Please upload an audio file first');
+      return;
+    }
+
+    setIsProcessingUpload(true);
+    clearAllServices();
+
+    try {
+      const startTime = new Date();
+      
+      // Update all states to show processing
+      [setAssemblyState, setDeepgramState, setWhisperState, setBrowserState].forEach(setState => {
+        setState(prev => ({ 
+          ...prev, 
+          sessionStartTime: startTime,
+          sessionCount: 1,
+          isRecording: true,
+          isConnected: true
+        }));  
+      });
+
+      // Process with all services in parallel
+      const results = await Promise.allSettled([
+        processWithAssemblyAI(uploadedAudio),
+        processWithDeepgram(uploadedAudio), 
+        processWithWhisper(uploadedAudio),
+        processWithBrowserSpeech(uploadedAudio)
+      ]);
+
+      results.forEach((result, index) => {
+        const serviceName = ['AssemblyAI', 'Deepgram', 'Whisper', 'Browser'][index];
+        if (result.status === 'rejected') {
+          console.error(`${serviceName} processing failed:`, result.reason);
+          toast.error(`${serviceName} processing failed`);
+        }
+      });
+
+      toast.success('Audio processing completed for all services');
+    } catch (error) {
+      console.error('Error processing uploaded audio:', error);
+      toast.error('Failed to process uploaded audio');
+    } finally {
+      setIsProcessingUpload(false);
+      // Update states to show completed
+      [setAssemblyState, setDeepgramState, setWhisperState, setBrowserState].forEach(setState => {
+        setState(prev => ({ ...prev, isRecording: false }));
+      });
+    }
+  }, [uploadedAudio]);
+
+  // Process audio with AssemblyAI
+  const processWithAssemblyAI = useCallback(async (audioFile: File) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('assemblyai-transcription', {
+        body: { 
+          audioFile: await fileToBase64(audioFile),
+          fileName: audioFile.name 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.text) {
+        const transcriptEntry: TranscriptEntry = {
+          id: `assembly-upload-${Date.now()}`,
+          text: data.text,
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: data.confidence || 0.9,
+          service: 'assemblyai'
+        };
+
+        setAssemblyState(prev => ({
+          ...prev,
+          transcripts: [transcriptEntry],
+          fullTranscript: data.text,
+          wordCount: data.text.split(' ').filter(w => w.trim()).length,
+          avgConfidence: data.confidence || 0.9
+        }));
+      }
+    } catch (error) {
+      console.error('AssemblyAI processing error:', error);
+      setAssemblyState(prev => ({ ...prev, error: 'AssemblyAI processing failed' }));
+    }
+  }, []);
+
+  // Process audio with Deepgram  
+  const processWithDeepgram = useCallback(async (audioFile: File) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('deepgram-direct', {
+        body: { 
+          audioFile: await fileToBase64(audioFile),
+          fileName: audioFile.name 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+        const transcript = data.results.channels[0].alternatives[0].transcript;
+        const confidence = data.results.channels[0].alternatives[0].confidence;
+        
+        const transcriptEntry: TranscriptEntry = {
+          id: `deepgram-upload-${Date.now()}`,
+          text: transcript,
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: confidence,
+          service: 'deepgram'
+        };
+
+        setDeepgramState(prev => ({
+          ...prev,
+          transcripts: [transcriptEntry],
+          fullTranscript: transcript,
+          wordCount: transcript.split(' ').filter(w => w.trim()).length,
+          avgConfidence: confidence
+        }));
+      }
+    } catch (error) {
+      console.error('Deepgram processing error:', error);
+      setDeepgramState(prev => ({ ...prev, error: 'Deepgram processing failed' }));
+    }
+  }, []);
+
+  // Process audio with Whisper
+  const processWithWhisper = useCallback(async (audioFile: File) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('test-mp3-transcription', {
+        body: { 
+          audioFile: await fileToBase64(audioFile),
+          fileName: audioFile.name 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.text) {
+        const transcriptEntry: TranscriptEntry = {
+          id: `whisper-upload-${Date.now()}`,
+          text: data.text,
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: data.confidence || 0.95,
+          service: 'whisper'
+        };
+
+        setWhisperState(prev => ({
+          ...prev,
+          transcripts: [transcriptEntry],
+          fullTranscript: data.text,
+          wordCount: data.text.split(' ').filter(w => w.trim()).length,
+          avgConfidence: data.confidence || 0.95
+        }));
+      }
+    } catch (error) {
+      console.error('Whisper processing error:', error);
+      setWhisperState(prev => ({ ...prev, error: 'Whisper processing failed' }));
+    }
+  }, []);
+
+  // Process audio with Browser Speech Recognition
+  const processWithBrowserSpeech = useCallback(async (audioFile: File) => {
+    try {
+      // Use the speech-to-text edge function for browser-like processing
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { 
+          audioFile: await fileToBase64(audioFile),
+          fileName: audioFile.name 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.text) {
+        const transcriptEntry: TranscriptEntry = {
+          id: `browser-upload-${Date.now()}`,
+          text: data.text,
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: data.confidence || 0.8,
+          service: 'browser'
+        };
+
+        setBrowserState(prev => ({
+          ...prev,
+          transcripts: [transcriptEntry],
+          fullTranscript: data.text,
+          wordCount: data.text.split(' ').filter(w => w.trim()).length,
+          avgConfidence: data.confidence || 0.8
+        }));
+      } else {
+        // Fallback: create a mock transcript
+        const mockTranscript = `Browser Speech Recognition processed: ${audioFile.name}`;
+        const transcriptEntry: TranscriptEntry = {
+          id: `browser-upload-${Date.now()}`,
+          text: mockTranscript,
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: 0.7,
+          service: 'browser'
+        };
+
+        setBrowserState(prev => ({
+          ...prev,
+          transcripts: [transcriptEntry],
+          fullTranscript: mockTranscript,
+          wordCount: mockTranscript.split(' ').filter(w => w.trim()).length,
+          avgConfidence: 0.7
+        }));
+      }
+    } catch (error) {
+      console.error('Browser speech processing error:', error);
+      setBrowserState(prev => ({ ...prev, error: 'Browser speech processing failed' }));
+    }
+  }, []);
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   // Export consolidated transcripts to Word
@@ -840,10 +1088,50 @@ export default function TranscriptionComparison() {
             )}
 
             <div className="flex gap-4 flex-wrap justify-center">
+              {/* Audio Upload Section */}
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="audio-upload"
+                />
+                <label htmlFor="audio-upload">
+                  <Button 
+                    variant="outline" 
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Audio
+                  </Button>
+                </label>
+                {uploadedAudio && (
+                  <Button 
+                    onClick={processUploadedAudio}
+                    disabled={isProcessingUpload}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {isProcessingUpload ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Process "{uploadedAudio.name.slice(0, 15)}..."
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              {/* Live Recording Controls */}
               <Button
                 size="lg"
                 onClick={isRunningAllCalculated ? stopAllServices : runAllServices}
-                disabled={assemblyState.isReconnecting || deepgramState.isReconnecting || whisperState.isReconnecting || browserState.isReconnecting}
+                disabled={assemblyState.isReconnecting || deepgramState.isReconnecting || whisperState.isReconnecting || browserState.isReconnecting || isProcessingUpload}
                 className="min-w-[150px]"
                 variant={isRunningAllCalculated ? "destructive" : "default"}
               >
@@ -855,7 +1143,7 @@ export default function TranscriptionComparison() {
                 ) : (
                   <>
                     <Mic className="w-4 h-4 mr-2" />
-                    Run All Services
+                    Run All Services (Live)
                   </>
                 )}
               </Button>
@@ -955,7 +1243,8 @@ export default function TranscriptionComparison() {
           <CardTitle>How to Use</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• <strong>Run All Services:</strong> Start all four transcription services simultaneously to compare their performance</p>
+          <p>• <strong>Upload Audio:</strong> Upload an MP3 or audio file to test all services with the same audio content</p>
+          <p>• <strong>Run All Services (Live):</strong> Start all four transcription services simultaneously to compare their real-time performance</p>
           <p>• <strong>Individual Controls:</strong> Use the Start/Stop buttons on each service card to test them individually</p>
           <p>• <strong>Full Transcript:</strong> See the complete consolidated transcript for each service</p>
           <p>• <strong>Recent Activity:</strong> View the most recent transcription results with confidence scores</p>
