@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { Header } from '@/components/Header';
 
 interface TranscriptEntry {
   id: string;
@@ -1038,7 +1039,9 @@ export default function TranscriptionComparison() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <>
+      <Header />
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Transcription Service Comparison
@@ -1259,5 +1262,6 @@ export default function TranscriptionComparison() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
