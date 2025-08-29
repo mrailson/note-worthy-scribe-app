@@ -7,6 +7,7 @@ import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download,
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { toast } from 'sonner';
 import TranscriptCleanerPanel from '@/components/TranscriptCleanerPanel';
+import TranscribeCostComparison from '@/components/TranscribeCostComparison';
 import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
@@ -1257,6 +1258,13 @@ export default function TranscriptionComparison() {
           color="text-orange-600"
         />
       </div>
+
+      {/* Cost Comparison Section */}
+      <Card className="mt-6">
+        <CardContent>
+          <TranscribeCostComparison />
+        </CardContent>
+      </Card>
 
       {/* Instructions */}
       <Card className="mt-6">
