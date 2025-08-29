@@ -147,14 +147,14 @@ export default function TranscriptionComparison() {
 
     setAssemblyState(prev => {
       if (data.is_final) {
-        // For AssemblyAI, final transcripts are cumulative (contain all text so far)
-        // So we replace the full transcript instead of appending
-        const newFullTranscript = transcript;
+        // Without format_turns=true, AssemblyAI sends individual segments that need to be accumulated
+        const newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
         const newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
         
-        console.log('✅ ASSEMBLY: Replacing full transcript with cumulative final transcript:', {
-          newText: transcript.slice(0, 100) + (transcript.length > 100 ? '...' : ''),
-          fullTranscriptLength: newFullTranscript.length,
+        console.log('✅ ASSEMBLY: Appending final transcript segment:', {
+          previousLength: prev.fullTranscript.length,
+          newSegment: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : ''),
+          totalLength: newFullTranscript.length,
           wordCount: newWordCount
         });
         
