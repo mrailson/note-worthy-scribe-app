@@ -122,12 +122,12 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
           const transcript = data.channel.alternatives[0].transcript || '';
           
           if (data.is_final === false) {
-            // Interim results - show live preview
+            // Interim results - show live preview without overwriting committed text
             setPendingText(transcript);
             const fullText = committedText + (transcript ? (committedText ? ' ' : '') + transcript : '');
             onTranscriptUpdate(fullText);
           } else if (data.is_final === true && transcript.trim()) {
-            // Final results - commit to permanent text
+            // Final results - only commit when speech is complete
             const newCommittedText = (committedText ? committedText + ' ' : '') + transcript.trim();
             setCommittedText(newCommittedText);
             setPendingText('');

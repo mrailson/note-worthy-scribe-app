@@ -134,11 +134,13 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
           console.log('Transcript received:', transcript, 'is_final:', data.is_final);
           
           if (data.is_final === false) {
+            // Show interim results as preview but don't commit yet
             setPendingText(transcript);
             const fullText = committedText + (transcript ? (committedText ? ' ' : '') + transcript : '');
             console.log('Updating with interim:', fullText);
             onTranscriptUpdate(fullText);
           } else if (data.is_final === true && transcript.trim()) {
+            // Only commit final results to avoid overwriting
             const newCommittedText = (committedText ? committedText + ' ' : '') + transcript.trim();
             setCommittedText(newCommittedText);
             setPendingText('');
