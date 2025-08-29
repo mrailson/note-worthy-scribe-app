@@ -82,7 +82,221 @@ export default function TranscriptionComparison() {
   const [whisperState, setWhisperState] = useState<ServiceState>(initialServiceState());
   const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState());
   
+  // NEW: Standalone Whisper state
+  const [standaloneWhisperState, setStandaloneWhisperState] = useState<ServiceState>(initialServiceState());
+  
   console.log('🔍 Component state initialized - whisperState.isReconnecting:', whisperState.isReconnecting);
+  // NEW: Standalone Whisper implementation
+  const [standaloneRecorder, setStandaloneRecorder] = useState<MediaRecorder | null>(null);
+  const [standaloneStream, setStandaloneStream] = useState<MediaStream | null>(null);
+  const [standaloneChunks, setStandaloneChunks] = useState<Blob[]>([]);
+  const [standaloneTimer, setStandaloneTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // NEW: Standalone Whisper functions
+  const startStandaloneWhisper = useCallback(async () => {
+    console.log('🚀 STANDALONE WHISPER: Starting completely new implementation...');
+    
+    try {
+      setStandaloneWhisperState(prev => ({ 
+        ...prev, 
+        error: null, 
+        sessionStartTime: new Date(), 
+        sessionCount: 1,
+        isConnected: false,
+        isRecording: false,
+        transcripts: [],
+        fullTranscript: '',
+        wordCount: 0
+      }));
+
+      // Get fresh microphone access
+      console.log('🎤 STANDALONE WHISPER: Requesting microphone access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      setStandaloneStream(stream);
+      console.log('✅ STANDALONE WHISPER: Microphone access granted');
+
+      // Create MediaRecorder
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      setStandaloneRecorder(recorder);
+      setStandaloneChunks([]);
+
+      recorder.ondataavailable = (event) => {
+        console.log('📦 STANDALONE WHISPER: Audio data available:', event.data.size, 'bytes');
+        if (event.data.size > 0) {
+          setStandaloneChunks(chunks => [...chunks, event.data]);
+        }
+      };
+
+      recorder.onstart = () => {
+        console.log('🎬 STANDALONE WHISPER: Recording started');
+        setStandaloneWhisperState(prev => ({ 
+          ...prev, 
+          isRecording: true, 
+          isConnected: true 
+        }));
+        
+        // Start timer
+        let seconds = 0;
+        const timer = setInterval(() => {
+          seconds++;
+          setStandaloneWhisperState(prev => ({ 
+            ...prev, 
+            timeRemaining: seconds 
+          }));
+        }, 1000);
+        setStandaloneTimer(timer);
+      };
+
+      recorder.onstop = async () => {
+        console.log('⏹️ STANDALONE WHISPER: Recording stopped');
+        setStandaloneWhisperState(prev => ({ 
+          ...prev, 
+          isRecording: false 
+        }));
+        
+        // Clear timer
+        if (standaloneTimer) {
+          clearInterval(standaloneTimer);
+          setStandaloneTimer(null);
+        }
+
+        // Process the recording
+        if (standaloneChunks.length > 0) {
+          console.log('🔄 STANDALONE WHISPER: Processing', standaloneChunks.length, 'audio chunks');
+          await processStandaloneRecording(standaloneChunks);
+        } else {
+          console.warn('⚠️ STANDALONE WHISPER: No audio chunks to process');
+        }
+      };
+
+      // Start recording with timeslice
+      recorder.start(1000); // Collect data every 1 second
+      console.log('✅ STANDALONE WHISPER: Recording started successfully');
+
+    } catch (error) {
+      console.error('❌ STANDALONE WHISPER: Error starting:', error);
+      setStandaloneWhisperState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Failed to start recording',
+        isRecording: false,
+        isConnected: false
+      }));
+    }
+  }, [standaloneChunks, standaloneTimer]);
+
+  const stopStandaloneWhisper = useCallback(() => {
+    console.log('⏹️ STANDALONE WHISPER: Stopping recording...');
+    
+    if (standaloneRecorder && standaloneRecorder.state === 'recording') {
+      standaloneRecorder.stop();
+    }
+    
+    if (standaloneStream) {
+      standaloneStream.getTracks().forEach(track => track.stop());
+      setStandaloneStream(null);
+    }
+    
+    if (standaloneTimer) {
+      clearInterval(standaloneTimer);
+      setStandaloneTimer(null);
+    }
+    
+    setStandaloneRecorder(null);
+  }, [standaloneRecorder, standaloneStream, standaloneTimer]);
+
+  const processStandaloneRecording = useCallback(async (audioChunks: Blob[]) => {
+    try {
+      console.log('🔄 STANDALONE WHISPER: Creating audio blob from', audioChunks.length, 'chunks');
+      
+      // Create audio blob
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      console.log('📊 STANDALONE WHISPER: Audio blob size:', audioBlob.size, 'bytes');
+      
+      // Convert to base64
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      console.log('📡 STANDALONE WHISPER: Sending to speech-to-text function...');
+      
+      // Send to speech-to-text service
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
+      });
+
+      console.log('📨 STANDALONE WHISPER: Response received:', { data, error });
+
+      if (error) {
+        console.error('❌ STANDALONE WHISPER: API error:', error);
+        throw new Error('Failed to transcribe audio');
+      }
+
+      const transcriptText = data?.text || '';
+      
+      if (transcriptText.trim()) {
+        console.log('✅ STANDALONE WHISPER: Transcript received:', transcriptText.slice(0, 100) + '...');
+        
+        const transcriptEntry: TranscriptEntry = {
+          id: `standalone-whisper-${Date.now()}`,
+          text: transcriptText.trim(),
+          isFinal: true,
+          timestamp: new Date(),
+          confidence: 0.95,
+          service: 'whisper'
+        };
+
+        setStandaloneWhisperState(prev => ({
+          ...prev,
+          transcripts: [...prev.transcripts, transcriptEntry],
+          fullTranscript: prev.fullTranscript + ' ' + transcriptText.trim(),
+          wordCount: (prev.fullTranscript + ' ' + transcriptText.trim()).split(' ').filter(w => w.trim()).length,
+          isConnected: false
+        }));
+        
+      } else {
+        console.warn('⚠️ STANDALONE WHISPER: Empty transcript received');
+        setStandaloneWhisperState(prev => ({ 
+          ...prev, 
+          error: 'No speech detected in audio',
+          isConnected: false
+        }));
+      }
+
+    } catch (error) {
+      console.error('❌ STANDALONE WHISPER: Processing error:', error);
+      setStandaloneWhisperState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Failed to process recording',
+        isConnected: false
+      }));
+    }
+  }, []);
+
+  const clearStandaloneWhisper = useCallback(() => {
+    console.log('🧹 STANDALONE WHISPER: Clearing data...');
+    setStandaloneWhisperState(initialServiceState());
+    setStandaloneChunks([]);
+  }, []);
+
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [uploadedAudio, setUploadedAudio] = useState<File | null>(null);
@@ -1530,6 +1744,21 @@ export default function TranscriptionComparison() {
           }}
           onClear={() => clearService('whisper')}
           color="text-violet-600"
+        />
+        
+        <ServiceCard
+          title="Standalone Whisper"
+          state={standaloneWhisperState}
+          onStart={() => {
+            console.log('🎯 STANDALONE WHISPER ServiceCard onStart called!');
+            startStandaloneWhisper();
+          }}
+          onStop={() => {
+            console.log('🎯 STANDALONE WHISPER ServiceCard onStop called!');
+            stopStandaloneWhisper();
+          }}
+          onClear={clearStandaloneWhisper}
+          color="text-pink-600"
         />
         
         <ServiceCard
