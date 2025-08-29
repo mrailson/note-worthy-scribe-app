@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
         }
 
         console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
         
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
