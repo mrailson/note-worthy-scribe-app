@@ -740,9 +740,19 @@ export const MeetingHistoryList = ({
                 <Button
                 variant="outline"
                 size="sm"
+                onTouchStart={() => {
+                  console.log('📱 iPhone: Touch started on View Notes button');
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  
+                  console.log('📱 iPhone: View Notes button clicked for meeting:', meeting.id);
+                  console.log('📱 iPhone: onViewSummary function:', typeof onViewSummary);
+                  console.log('📱 iPhone: User agent:', navigator.userAgent);
+                  
+                  // Add immediate toast to verify click registration
+                  toast.info('Button clicked! Opening notes...');
                   
                   // Block operation during recording for safety
                   if (!isResourceOperationSafe()) {
@@ -750,8 +760,14 @@ export const MeetingHistoryList = ({
                       return;
                     }
                     
-                    console.log('🔍 View Notes button clicked for meeting:', meeting.id);
-                    onViewSummary(meeting.id);
+                    try {
+                      console.log('🔍 About to call onViewSummary...');
+                      onViewSummary(meeting.id);
+                      console.log('✅ onViewSummary called successfully');
+                    } catch (error) {
+                      console.error('❌ Error calling onViewSummary:', error);
+                      toast.error('Failed to open notes: ' + error.message);
+                    }
                   }}
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
                 >
