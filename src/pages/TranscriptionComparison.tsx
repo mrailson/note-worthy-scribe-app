@@ -16,10 +16,10 @@ import { ChunkedWhisperTranscriber } from '@/transcribers';
 import { normalizeTranscript } from '@/lib/transcriptNormalizer';
 import { Header } from '@/components/Header';
 
-// Feature flags - disable other services for testing
+// Feature flags - enable AssemblyAI, keep others disabled for testing
 const ENABLE_DESKTOP_WHISPER = false;
 const ENABLE_BROWSER_SPEECH = false;
-const ENABLE_ASSEMBLY = false;
+const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 
 // Edge URL for Whisper transcription
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
