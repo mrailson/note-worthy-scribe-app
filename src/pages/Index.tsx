@@ -213,15 +213,6 @@ const Index = () => {
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
         <>
-          {/* Quick Access Buttons */}
-          <div className="flex gap-4 mb-6">
-            <button
-              onClick={() => navigate('/transcription-comparison')}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Voice Testing Studio
-            </button>
-          </div>
 
           {/* Meeting Recorder with integrated tabs */}
           <MeetingRecorder
