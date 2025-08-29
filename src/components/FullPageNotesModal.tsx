@@ -71,7 +71,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { isRecording, isResourceOperationSafe } = useRecording();
+  
+  // Enhanced debugging
   console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
+  console.log('🔍 Modal props received:', { isOpen, meetingId: meeting?.id, notesLength: notes?.length });
   
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
@@ -1266,8 +1269,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   if (!meeting) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] max-h-screen flex flex-col fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        console.log('📱 Dialog onOpenChange called with:', open);
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent 
+        className="max-w-6xl h-[90vh] max-h-screen flex flex-col fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden z-[100] !important"
+        style={{ zIndex: 100 }}
+      >
         <RecordingWarningBanner 
           operation="Database operations" 
           className="mx-6 mt-6"

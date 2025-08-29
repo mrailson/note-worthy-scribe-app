@@ -284,17 +284,24 @@ const MeetingHistory = () => {
       setModalMeeting(meeting);
       setModalNotes(notesToShow);
       
-      // Use setTimeout to ensure state updates are applied before opening modal
-      setTimeout(() => {
-        console.log('📝 Opening modal with meeting:', meeting?.title);
-        console.log('📝 Modal notes length:', notesToShow?.length);
-        setFullPageModalOpen(true);
-        
-        // Auto-trigger generation if needed
-        if (shouldAutoGenerate) {
-          triggerNotesGeneration(meetingId);
-        }
-      }, 100);
+      // Force state updates and open modal with better debugging
+      console.log('📝 About to open modal with meeting:', meeting?.title);
+      console.log('📝 Modal notes length:', notesToShow?.length);
+      console.log('📝 Current fullPageModalOpen state before:', fullPageModalOpen);
+      
+      // Set states with force re-render
+      setModalMeeting(meeting);
+      setModalNotes(notesToShow);
+      
+      // Force modal open with immediate state change
+      setFullPageModalOpen(true);
+      
+      console.log('📝 Modal state set to true');
+      
+      // Auto-trigger generation if needed
+      if (shouldAutoGenerate) {
+        triggerNotesGeneration(meetingId);
+      }
       
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error);
