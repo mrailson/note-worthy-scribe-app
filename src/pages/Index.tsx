@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
-import MeetingRecorder from "@/components/MeetingRecorder";
+import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";

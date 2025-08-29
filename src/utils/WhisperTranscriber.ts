@@ -29,10 +29,6 @@ export class WhisperTranscriber {
   private isRecording = false;
   private accumulatedText = '';
   
-  // MediaRecorder integration
-  private mediaRecorder: MediaRecorder | null = null;
-  private recordingTimer: number | null = null;
-  
   private readonly MIME = 'audio/webm;codecs=opus';
   private readonly FLUSH_INTERVAL_MS = 25000; // 25 seconds
   private readonly MAX_BUFFER_SIZE = 2_000_000; // 2MB
@@ -64,120 +60,40 @@ export class WhisperTranscriber {
     }
   }
 
-  async startTranscription() {
+  startTranscription() {
     console.log('🎙️ WHISPER: Starting transcription - resetting state');
     this.isRecording = true;
     this.chunkBuffer = [];
     this.chunkIndex = 0;
     this.accumulatedText = '';
     
-    try {
-      // Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-
-      // Setup MediaRecorder
-      const mimeType = MediaRecorder.isTypeSupported(this.MIME) ? this.MIME : 'audio/webm';
-      this.mediaRecorder = new MediaRecorder(stream, { 
-        mimeType,
-        audioBitsPerSecond: 128000 
-      });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          console.log(`📦 WHISPER: Received MediaRecorder chunk: ${event.data.size} bytes`);
-          this.enqueueChunk(event.data);
-        }
-      };
-
-      this.mediaRecorder.onstop = () => {
-        console.log('🛑 WHISPER: MediaRecorder stopped');
-      };
-
-      this.mediaRecorder.onerror = (event) => {
-        console.error('❌ WHISPER: MediaRecorder error:', event);
-        this.onError?.(new Error('MediaRecorder error'));
-      };
-
-      // Start recording without timeslice - we'll control chunking manually
-      this.mediaRecorder.start();
-      this.onStatusChange?.('Recording with Whisper');
-
-      // Start manual chunking timer - stop/start every 5 seconds to get complete WebM containers
-      this.recordingTimer = window.setInterval(() => {
-        if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-          console.log('🔄 WHISPER: Manual stop/start for complete WebM container');
-          this.mediaRecorder.stop();
-          // Start again immediately to continue recording
-          setTimeout(() => {
-            if (this.isRecording && this.mediaRecorder) {
-              this.mediaRecorder.start();
-            }
-          }, 10);
-        }
-      }, 5000); // Every 5 seconds
-
-      // Start periodic flush timer (every 25s)
-      if (this.flushTimer) {
-        window.clearInterval(this.flushTimer);
-      }
-      
-      this.flushTimer = window.setInterval(() => {
-        if (this.chunkBuffer.length > 0) {
-          console.log(`⏰ WHISPER: Timer flush (${this.chunkBuffer.length} chunks buffered)`);
-          this.flushCompleteWebM(false).catch(console.error);
-        }
-      }, this.FLUSH_INTERVAL_MS);
-
-      console.log('✅ WHISPER: MediaRecorder started successfully');
-
-    } catch (error) {
-      console.error('❌ WHISPER: Failed to start recording:', error);
-      this.onError?.(error);
-      this.onStatusChange?.('Failed to start recording');
+    // Start periodic flush timer (every 25s)
+    if (this.flushTimer) {
+      window.clearInterval(this.flushTimer);
     }
+    
+    this.flushTimer = window.setInterval(() => {
+      if (this.chunkBuffer.length > 0) {
+        console.log(`⏰ WHISPER: Timer flush (${this.chunkBuffer.length} chunks buffered)`);
+        this.flushCompleteWebM(false).catch(console.error);
+      }
+    }, this.FLUSH_INTERVAL_MS);
   }
   
   stopTranscription() { 
     console.log('🛑 WHISPER: Stopping transcription - final flush');
     this.isRecording = false;
     
-    // Clear timers
+    // Clear timer
     if (this.flushTimer) {
       window.clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
     
-    if (this.recordingTimer) {
-      window.clearInterval(this.recordingTimer);
-      this.recordingTimer = null;
-    }
-    
-    // Stop MediaRecorder
-    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-      this.mediaRecorder.stop();
-    }
-    
-    // Stop all audio tracks
-    if (this.mediaRecorder?.stream) {
-      this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-    }
-    
-    this.mediaRecorder = null;
-    
     // Final flush
     if (this.chunkBuffer.length > 0) {
       this.flushCompleteWebM(true).catch(console.error);
     }
-    
-    this.onStatusChange?.('Stopped');
   }
   
   /** Create complete WebM file from buffer and upload */
@@ -274,11 +190,6 @@ export class WhisperTranscriber {
     if (this.flushTimer) {
       window.clearInterval(this.flushTimer);
       this.flushTimer = null;
-    }
-    
-    if (this.recordingTimer) {
-      window.clearInterval(this.recordingTimer);
-      this.recordingTimer = null;
     }
   }
 }
