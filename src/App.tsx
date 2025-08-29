@@ -88,8 +88,6 @@ const App = () => (
             <Route path="/api-testing" element={<APITesting />} />
             <Route path="/image-create" element={<ImageCreate />} />
             <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
-            <Route path="/deepgram-test" element={<DeepgramTest />} />
-            <Route path="/multi-service-mic-test" element={<MultiServiceMicTest />} />
             <Route path="/browser-recorder" element={<BrowserRecorder />} />
             <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
             <Route path="/test-transcripts" element={<TestTranscripts />} />

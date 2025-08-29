@@ -266,20 +266,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            >
                              <BookOpen className="h-4 w-4 mr-2" />
                              Security Documentation
-                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/deepgram-test')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Zap className="h-4 w-4 mr-2" />
-                            Deepgram Service
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/multi-service-mic-test')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Mic className="h-4 w-4 mr-2" />
-                            Multi-Service Test
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                      </DropdownMenuSub>
@@ -443,19 +429,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                    <BookOpen className="h-4 w-4 mr-2" />
                                    Security Documentation
                                  </Button>
-                              </DrawerClose>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/deepgram-test')}>
-                                  <Zap className="h-4 w-4 mr-2" />
-                                  Deepgram Service
-                                </Button>
-                              </DrawerClose>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/multi-service-mic-test')}>
-                                  <Mic className="h-4 w-4 mr-2" />
-                                  Multi-Service Test
-                                </Button>
-                              </DrawerClose>
+                               </DrawerClose>
                             </>
                            )}
 
