@@ -81,6 +81,9 @@ export default function TranscriptionComparison() {
   const [uploadedAudio, setUploadedAudio] = useState<File | null>(null);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   
+  // Track last final transcript to prevent duplicates
+  const [lastAssemblyFinalTranscript, setLastAssemblyFinalTranscript] = useState<string>('');
+  
   // NHS Transcript Cleaner state
   const [cleanedTranscripts, setCleanedTranscripts] = useState<string[]>(['', '', '', '']);
   
@@ -147,45 +150,25 @@ export default function TranscriptionComparison() {
       let newFullTranscript = prev.fullTranscript;
       let newWordCount = prev.wordCount;
       
-      console.log('🔍 ASSEMBLY DEBUG:', {
-        isFinal: data.is_final,
-        incomingText: transcript,
-        currentFullTranscript: prev.fullTranscript,
-        transcriptLength: transcript.length,
-        fullTranscriptLength: prev.fullTranscript.length
-      });
-      
       if (data.is_final) {
-        // Check if this exact text is already at the end (simple duplicate check)
-        const trimmedCurrent = prev.fullTranscript.trim();
-        const trimmedNew = transcript.trim();
-        
-        console.log('🔍 ASSEMBLY DUPLICATE CHECK:', {
-          currentEndsWithNew: trimmedCurrent.endsWith(trimmedNew),
-          currentLength: trimmedCurrent.length,
-          newLength: trimmedNew.length,
-          lastChars: trimmedCurrent.slice(-Math.min(100, trimmedNew.length)),
-          newText: trimmedNew
-        });
-        
-        // Skip if exact duplicate at end
-        if (trimmedCurrent.endsWith(trimmedNew)) {
-          console.log('🚫 ASSEMBLY: Skipping exact duplicate at end');
-        } else {
-          // Use sophisticated overlap detection from TranscriptMerge
-          const beforeMerge = prev.fullTranscript;
-          const mergedTranscript = mergeLive(prev.fullTranscript, transcript);
-          newFullTranscript = mergedTranscript;
-          newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
-          
-          console.log('📝 ASSEMBLY: Merged transcript details:', {
-            originalText: beforeMerge.slice(-50),
-            incomingText: transcript.slice(0, 50),
-            mergedResult: mergedTranscript.slice(-100),
-            lengthChange: mergedTranscript.length - beforeMerge.length,
-            wasChanged: mergedTranscript !== beforeMerge
-          });
+        // Check if this is the exact same final transcript we just received
+        if (transcript === lastAssemblyFinalTranscript) {
+          console.log('🚫 ASSEMBLY: Skipping identical final transcript:', transcript.slice(0, 50));
+          return prev; // Don't update state at all for exact duplicates
         }
+        
+        // Update last final transcript
+        setLastAssemblyFinalTranscript(transcript);
+        
+        // Add new final transcript to full transcript
+        newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
+        newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
+        
+        console.log('✅ ASSEMBLY: Added new final transcript:', {
+          newText: transcript.slice(0, 50),
+          fullTranscriptLength: newFullTranscript.length,
+          wordCount: newWordCount
+        });
       }
       
       const newState = {
@@ -445,6 +428,9 @@ export default function TranscriptionComparison() {
         isConnected: false,
         isRecording: false
       }));
+      
+      // Reset duplicate tracking for new session
+      setLastAssemblyFinalTranscript('');
       
       if (assemblyTranscriberRef.current) {
         console.log('📡 ASSEMBLY: Calling startTranscription...');
