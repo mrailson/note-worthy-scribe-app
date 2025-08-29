@@ -97,7 +97,7 @@ export class WhisperTranscriber {
     this.chunkTimer = window.setTimeout(() => {
       if (!this.mediaRecorder || this.mediaRecorder.state !== "recording" || !this.isRecording) return;
       
-      console.log('⏰ Processing 2.5s audio chunk...');
+      console.log('⏰ Processing 3.5s audio chunk...');
       this.mediaRecorder.requestData(); // triggers ondataavailable
       this.mediaRecorder.stop();        // ensure it fully stops before restarting
       
@@ -114,7 +114,7 @@ export class WhisperTranscriber {
           this.onError('Error restarting recorder');
         }
       }, 100); // Longer delay to ensure clean restart
-    }, 2500); // 2.5s chunks
+    }, 3500); // 3.5s chunks for better audio capture
   }
 
   private async uploadChunk(audioData: Blob) {
@@ -128,8 +128,8 @@ export class WhisperTranscriber {
       
       this.onStatusChange('Processing...');
       
-      // Skip very small chunks
-      if (audioData.size < 50000) {
+      // Skip very small chunks (lowered threshold for better sensitivity)
+      if (audioData.size < 30000) {
         console.log('🔇 Skipping small audio chunk, size:', audioData.size);
         this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
         return;
