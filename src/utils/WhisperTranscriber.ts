@@ -32,6 +32,7 @@ export class WhisperTranscriber {
       console.log('🎙️ Starting API-based Whisper transcription...');
       this.onStatusChange('Starting recording...');
 
+      console.log('🎤 Requesting microphone access...');
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 48000,
@@ -41,18 +42,29 @@ export class WhisperTranscriber {
           autoGainControl: false,
         }
       });
+      console.log('✅ Microphone access granted');
 
+      console.log('🔧 Creating MediaRecorder...');
       this.mediaRecorder = new MediaRecorder(this.stream, { 
         mimeType: "audio/webm;codecs=opus" 
       });
 
       this.mediaRecorder.ondataavailable = async (e) => {
+        console.log('📡 MediaRecorder data available:', {
+          hasData: !!e.data,
+          dataSize: e.data?.size || 0,
+          timestamp: new Date().toISOString()
+        });
+        
         if (e.data && e.data.size > 0) {
           await this.uploadChunk(e.data);
+        } else {
+          console.warn('⚠️ No audio data available in chunk');
         }
       };
 
       this.mediaRecorder.onstop = () => {
+        console.log('🛑 MediaRecorder stopped');
         this.isRecording = false;
         if (this.chunkTimer) { 
           clearTimeout(this.chunkTimer); 
@@ -60,12 +72,18 @@ export class WhisperTranscriber {
         }
       };
 
+      this.mediaRecorder.onerror = (event) => {
+        console.error('❌ MediaRecorder error:', event);
+        this.onError('MediaRecorder error occurred');
+      };
+
       this.isRecording = true;
-      this.mediaRecorder.start(); // no timeslice here; we'll stop manually per chunk
+      console.log('▶️ Starting MediaRecorder...');
+      this.mediaRecorder.start(); 
       this.scheduleNextChunk();
       
       this.onStatusChange('Recording');
-      console.log('✅ API-based Whisper transcription started');
+      console.log('✅ API-based Whisper transcription started successfully');
     } catch (error) {
       console.error('❌ Failed to start Whisper transcription:', error);
       this.onError(`Failed to start Whisper: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -102,6 +120,12 @@ export class WhisperTranscriber {
   private async uploadChunk(audioData: Blob) {
     try {
       console.log('🔄 Processing audio chunk with process-meeting-audio function...');
+      console.log('📊 Audio chunk details:', {
+        size: audioData.size,
+        type: audioData.type,
+        sizeInKB: Math.round(audioData.size / 1024)
+      });
+      
       this.onStatusChange('Processing...');
       
       // Skip very small chunks
@@ -111,30 +135,31 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📡 Sending audio to process-meeting-audio function...', {
-        blobSize: audioData.size,
-        blobType: audioData.type
-      });
+      console.log('📡 Sending audio to process-meeting-audio function...');
 
       // Create FormData for the robust edge function
       const formData = new FormData();
       formData.append('file', audioData, 'chunk.webm');
 
+      console.log('🚀 Invoking process-meeting-audio edge function...');
       const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
         body: formData
       });
 
-      console.log('📨 Process-meeting-audio API Response:', { 
-        data: data ? JSON.stringify(data, null, 2) : 'null',
-        error: error ? JSON.stringify(error, null, 2) : 'null',
+      console.log('📨 Process-meeting-audio Response:', { 
         hasData: !!data,
-        hasError: !!error
+        hasError: !!error,
+        dataKeys: data ? Object.keys(data) : [],
+        errorMessage: error?.message || 'No error message'
       });
 
       if (error) {
-        console.error('❌ Process-meeting-audio error:', {
+        console.error('❌ Process-meeting-audio error details:', {
           error: error,
-          message: error.message || 'No message'
+          message: error.message || 'No message',
+          details: error.details || 'No details',
+          hint: error.hint || 'No hint',
+          code: error.code || 'No code'
         });
         this.onError(`Transcription failed: ${error.message || error.toString()}`);
         return;
@@ -142,22 +167,29 @@ export class WhisperTranscriber {
 
       if (data?.text && data.text.trim()) {
         const cleanText = data.text.trim();
-        console.log('📝 Whisper transcription:', cleanText);
+        console.log('📝 Whisper transcription SUCCESS:', cleanText);
         
         const transcriptData: TranscriptData = {
           text: cleanText,
           is_final: true,
-          confidence: 0.9,
+          confidence: data.confidence || 0.9,
           speaker: 'Speaker'
         };
         
+        console.log('✅ Calling onTranscription with:', transcriptData);
         this.onTranscription(transcriptData);
         
         if (this.onSummary) {
           this.onSummary(cleanText);
         }
       } else {
-        console.log('ℹ️ No transcript text received or processing failed');
+        console.log('ℹ️ No transcript text received. Full response:', JSON.stringify(data, null, 2));
+        console.log('⚠️ Response analysis:', {
+          hasText: !!data?.text,
+          textLength: data?.text?.length || 0,
+          textContent: data?.text || 'No text property',
+          responseKeys: data ? Object.keys(data) : []
+        });
       }
       
       this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
