@@ -90,28 +90,67 @@ serve(async (req) => {
     const data = await aiRes.json();
     const partialSummary = data.choices?.[0]?.message?.content || '';
 
-    // Insert into DB
-    const { data: inserted, error: insErr } = await supabase
-      .from('meeting_summary_chunks')
-      .insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        meeting_id: meetingId,
-        session_id: sessionId,
-        chunk_index: indexToUse,
-        source_word_count: text.trim().split(/\s+/).length,
-        partial_summary: partialSummary,
-        detail_level: detailLevel,
-      })
-      .select('id, chunk_index')
-      .maybeSingle();
+    // Get user for both inserts
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
 
-    if (insErr) {
-      console.error('Insert error:', insErr);
-      return new Response(JSON.stringify({ error: 'Insert failed', details: insErr.message }), {
+    // Dual save approach: Save to both tables
+    const promises = [];
+
+    // 1. Save summary to meeting_summary_chunks (existing functionality)
+    promises.push(
+      supabase
+        .from('meeting_summary_chunks')
+        .insert({
+          user_id: userId,
+          meeting_id: meetingId,
+          session_id: sessionId,
+          chunk_index: indexToUse,
+          source_word_count: text.trim().split(/\s+/).length,
+          partial_summary: partialSummary,
+          detail_level: detailLevel,
+        })
+        .select('id, chunk_index')
+        .maybeSingle()
+    );
+
+    // 2. Save raw transcript to meeting_transcription_chunks (for auto-clean and live notes)
+    if (meetingId && userId) {
+      promises.push(
+        supabase
+          .from('meeting_transcription_chunks')
+          .insert({
+            meeting_id: meetingId,
+            session_id: sessionId,
+            chunk_number: indexToUse,
+            transcription_text: text,
+            confidence: 0.85, // Default confidence for ingested chunks
+            is_final: true,
+            user_id: userId
+          })
+      );
+    }
+
+    // Execute both saves
+    const [summaryResult, transcriptResult] = await Promise.allSettled(promises);
+    
+    // Check for errors
+    if (summaryResult.status === 'rejected' || (summaryResult.status === 'fulfilled' && summaryResult.value.error)) {
+      const error = summaryResult.status === 'rejected' ? summaryResult.reason : summaryResult.value.error;
+      console.error('Summary insert error:', error);
+      return new Response(JSON.stringify({ error: 'Summary insert failed', details: error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    if (transcriptResult?.status === 'rejected' || (transcriptResult?.status === 'fulfilled' && transcriptResult.value?.error)) {
+      const error = transcriptResult?.status === 'rejected' ? transcriptResult?.reason : transcriptResult?.value?.error;
+      console.error('Transcript chunk insert error:', error);
+      // Don't fail the whole request for transcript insert errors, just log them
+    }
+
+    const inserted = summaryResult.value.data;
 
     return new Response(JSON.stringify({ ok: true, chunkIndex: inserted?.chunk_index, summary: partialSummary }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
