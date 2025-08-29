@@ -146,49 +146,36 @@ export default function TranscriptionComparison() {
     console.log('📝 ASSEMBLY: Adding transcript entry:', transcriptEntry);
 
     setAssemblyState(prev => {
-      // Only add to full transcript if this is a final transcript
-      let newFullTranscript = prev.fullTranscript;
-      let newWordCount = prev.wordCount;
-      
       if (data.is_final) {
-        // Check if this is the exact same final transcript we just received
-        if (transcript === lastAssemblyFinalTranscript) {
-          console.log('🚫 ASSEMBLY: Skipping identical final transcript:', transcript.slice(0, 50));
-          return prev; // Don't update state at all for exact duplicates
-        }
+        // For AssemblyAI, final transcripts are cumulative (contain all text so far)
+        // So we replace the full transcript instead of appending
+        const newFullTranscript = transcript;
+        const newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
         
-        // Update last final transcript
-        setLastAssemblyFinalTranscript(transcript);
-        
-        // Add new final transcript to full transcript
-        newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
-        newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
-        
-        console.log('✅ ASSEMBLY: Added new final transcript:', {
-          newText: transcript.slice(0, 50),
+        console.log('✅ ASSEMBLY: Replacing full transcript with cumulative final transcript:', {
+          newText: transcript.slice(0, 100) + (transcript.length > 100 ? '...' : ''),
           fullTranscriptLength: newFullTranscript.length,
           wordCount: newWordCount
         });
+        
+        const newState = {
+          ...prev,
+          transcripts: [...prev.transcripts, transcriptEntry],
+          fullTranscript: newFullTranscript,
+          wordCount: newWordCount,
+          avgConfidence: data.confidence ? 
+            (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
+            prev.avgConfidence
+        };
+        
+        return newState;
+      } else {
+        // For partial transcripts, just add to the transcripts list but don't update full transcript
+        return {
+          ...prev,
+          transcripts: [...prev.transcripts, transcriptEntry]
+        };
       }
-      
-      const newState = {
-        ...prev,
-        transcripts: [...prev.transcripts, transcriptEntry],
-        fullTranscript: newFullTranscript,
-        wordCount: newWordCount,
-        avgConfidence: data.confidence ? 
-          (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
-          prev.avgConfidence
-      };
-      
-      console.log('📝 ASSEMBLY: Updated state:', {
-        transcriptCount: newState.transcripts.length,
-        fullTranscriptLength: newState.fullTranscript.length,
-        wordCount: newState.wordCount,
-        isFinal: data.is_final
-      });
-      
-      return newState;
     });
   }, []);
 
