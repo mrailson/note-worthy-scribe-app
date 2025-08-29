@@ -114,8 +114,6 @@ export class WhisperTranscriber {
   }
 
   private async uploadOnce(blob: Blob, meta?: any) {
-    if (!USE_DIRECT_FETCH) throw new Error("Direct fetch disabled unexpectedly");
-
     console.log("🚀 WHISPER: Starting upload to edge function:", {
       blobSize: blob.size,
       blobType: blob.type,
@@ -123,58 +121,62 @@ export class WhisperTranscriber {
       edgeUrl: this.edgeUrl
     });
 
-    const fd = new FormData();
-    fd.append("audio", blob, `chunk-${Date.now()}.webm`);
-    fd.append("response_format", "verbose_json");
-    fd.append("language", "en");
+    // Convert blob to base64 like DesktopWhisperTranscriber does
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to prevent memory issues
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    const base64Audio = btoa(binary);
 
-    console.log("📡 WHISPER: Sending request to edge function...");
+    console.log("📡 WHISPER: Sending base64 audio to speech-to-text function...");
 
-    const res = await fetch(this.edgeUrl, {
-      method: "POST",
-      body: fd,
-      headers: { "x-client": "meetingmagic-web" },
+    // Use the working pattern from DesktopWhisperTranscriber
+    const response = await fetch(this.edgeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'}`,
+        'apikey': `${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'}`
+      },
+      body: JSON.stringify({
+        audio: base64Audio,
+        temperature: 0.0,
+        language: "en",
+        condition_on_previous_text: false
+      })
     });
 
     console.log("📨 WHISPER: Edge function response:", {
-      status: res.status,
-      statusText: res.statusText,
-      ok: res.ok,
-      headers: Object.fromEntries(res.headers.entries())
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     });
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
+    if (!response.ok) {
+      const txt = await response.text().catch(() => "");
       console.error("❌ WHISPER: Edge function error:", {
-        status: res.status,
-        statusText: res.statusText,
+        status: response.status,
+        statusText: response.statusText,
         responseText: txt
       });
-      throw new Error(`Edge STT ${res.status}: ${txt}`);
+      throw new Error(`Edge STT ${response.status}: ${txt}`);
     }
 
-    const payload = await res.json();
+    const payload = await response.json();
     console.log("✅ WHISPER: Successfully parsed response:", {
-      hasSuccess: 'success' in payload,
-      success: payload.success,
-      hasTranscript: payload?.transcript ? true : false,
-      textLength: payload?.transcript?.length || 0,
-      textPreview: payload?.transcript?.slice(0, 100)
+      hasText: !!payload.text,
+      textLength: payload.text?.length || 0,
+      textPreview: payload.text?.slice(0, 100)
     });
     
-    // Convert edge function response to expected format and accumulate text
-    if (payload.success !== false && payload.transcript) {
-      this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.transcript;
-      const convertedPayload = {
-        ok: true,
-        data: {
-          text: this.accumulatedText,
-          segments: []
-        }
-      };
-      this.onPayload?.(convertedPayload);
-    } else if (payload.text) {
-      // Handle speech-to-text-chunked format
+    // Handle speech-to-text response format (not chunked version)
+    if (payload.text) {
       this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.text;
       const convertedPayload = {
         ok: true,
