@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText, Upload } from 'lucide-react';
+import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText, Upload, ChevronDown } from 'lucide-react';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { toast } from 'sonner';
 import TranscriptCleanerPanel from '@/components/TranscriptCleanerPanel';
@@ -258,7 +259,7 @@ export default function TranscriptionComparison() {
     // Update the service states with cleaned transcripts
     setAssemblyState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[0] || prev.fullTranscript }));
     setDeepgramState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[1] || prev.fullTranscript }));
-    setWhisperState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[2] || prev.fullTranscript }));
+    setStandaloneWhisperState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[2] || prev.fullTranscript }));
     setBrowserState(prev => ({ ...prev, fullTranscript: newCleanedTranscripts[3] || prev.fullTranscript }));
   }, []);
 
@@ -266,7 +267,7 @@ export default function TranscriptionComparison() {
   const consolidatedTranscripts = [
     assemblyState.fullTranscript,
     deepgramState.fullTranscript,
-    whisperState.fullTranscript,
+    standaloneWhisperState.fullTranscript,
     browserState.fullTranscript
   ];
   
@@ -276,7 +277,7 @@ export default function TranscriptionComparison() {
   const isRunningAllCalculated = (
     (!ENABLE_ASSEMBLY || assemblyState.isRecording) &&
     deepgramState.isRecording &&
-    whisperState.isRecording &&
+    standaloneWhisperState.isRecording &&
     (!ENABLE_BROWSER_SPEECH || browserState.isRecording)
   );
 
@@ -1483,17 +1484,24 @@ export default function TranscriptionComparison() {
       </div>
 
       {/* Master Controls */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="w-5 h-5" />
-            Master Controls
-          </CardTitle>
-          <CardDescription>
-            Control all transcription services simultaneously or individually
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Collapsible defaultOpen={false} className="mb-6">
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-5 h-5" />
+                  Master Controls
+                </div>
+                <ChevronDown className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CardTitle>
+              <CardDescription>
+                Control all transcription services simultaneously or individually
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
           <div className="flex flex-col items-center gap-4">
             <div className="text-center text-sm text-muted-foreground mb-2">
               <p>🚀 <strong>Navigate to:</strong> <code>/transcription-comparison</code></p>
@@ -1509,7 +1517,7 @@ export default function TranscriptionComparison() {
               🔄 Go to Service Comparison
             </Button>
             {/* Audio Level Indicator */}
-            {(assemblyState.isRecording || deepgramState.isRecording || whisperState.isRecording || browserState.isRecording) && (
+            {(assemblyState.isRecording || deepgramState.isRecording || standaloneWhisperState.isRecording || browserState.isRecording) && (
               <div className="w-full max-w-xs">
                 <div className="text-xs text-muted-foreground mb-1">Audio Level</div>
                 <div className="w-full bg-secondary rounded-full h-2">
@@ -1594,7 +1602,7 @@ export default function TranscriptionComparison() {
                 disabled={
                   assemblyState.transcripts.length === 0 && 
                   deepgramState.transcripts.length === 0 && 
-                  whisperState.transcripts.length === 0 &&
+                  standaloneWhisperState.transcripts.length === 0 &&
                   browserState.transcripts.length === 0
                 }
               >
@@ -1607,7 +1615,7 @@ export default function TranscriptionComparison() {
                 disabled={
                   assemblyState.fullTranscript.trim().length === 0 &&
                   deepgramState.fullTranscript.trim().length === 0 &&
-                  whisperState.fullTranscript.trim().length === 0 &&
+                  standaloneWhisperState.fullTranscript.trim().length === 0 &&
                   browserState.fullTranscript.trim().length === 0
                 }
               >
@@ -1616,8 +1624,10 @@ export default function TranscriptionComparison() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* NHS Transcript Cleaner */}
       <Card className="mb-6">
@@ -1659,21 +1669,6 @@ export default function TranscriptionComparison() {
         />
         
         <ServiceCard
-          title="Whisper"
-          state={whisperState}
-          onStart={() => {
-            console.log('🎯 WHISPER ServiceCard onStart called!');
-            startWhisper();
-          }}
-          onStop={() => {
-            console.log('🎯 WHISPER ServiceCard onStop called!');
-            stopWhisper();
-          }}
-          onClear={() => clearService('whisper')}
-          color="text-purple-600"
-        />
-        
-        <ServiceCard
           title="Standalone Whisper"
           state={standaloneWhisperState}
           onStart={() => {
@@ -1699,27 +1694,48 @@ export default function TranscriptionComparison() {
       </div>
 
       {/* Cost Comparison Section */}
-      <Card className="mt-6">
-        <CardContent>
-          <TranscribeCostComparison />
-        </CardContent>
-      </Card>
+      <Collapsible defaultOpen={false} className="mt-6">
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <span>Transcription Cost Comparison</span>
+                <ChevronDown className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <TranscribeCostComparison />
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Instructions */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>How to Use</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• <strong>Upload Audio:</strong> Upload an MP3 or audio file to test all services with the same audio content</p>
-          <p>• <strong>Run All Services (Live):</strong> Start all four transcription services simultaneously to compare their real-time performance</p>
-          <p>• <strong>Individual Controls:</strong> Use the Start/Stop buttons on each service card to test them individually</p>
-          <p>• <strong>Full Transcript:</strong> See the complete consolidated transcript for each service</p>
-          <p>• <strong>Recent Activity:</strong> View the most recent transcription results with confidence scores</p>
-          <p>• <strong>Performance Metrics:</strong> Compare word count, confidence levels, and session duration across services</p>
-          <p>• <strong>Browser Speech:</strong> Uses your browser's built-in speech recognition (works best in Chrome)</p>
-        </CardContent>
-      </Card>
+      <Collapsible defaultOpen={false} className="mt-6">
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <span>How to Use</span>
+                <ChevronDown className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>• <strong>Upload Audio:</strong> Upload an MP3 or audio file to test all services with the same audio content</p>
+              <p>• <strong>Run All Services (Live):</strong> Start all four transcription services simultaneously to compare their real-time performance</p>
+              <p>• <strong>Individual Controls:</strong> Use the Start/Stop buttons on each service card to test them individually</p>
+              <p>• <strong>Full Transcript:</strong> See the complete consolidated transcript for each service</p>
+              <p>• <strong>Recent Activity:</strong> View the most recent transcription results with confidence scores</p>
+              <p>• <strong>Performance Metrics:</strong> Compare word count, confidence levels, and session duration across services</p>
+              <p>• <strong>Browser Speech:</strong> Uses your browser's built-in speech recognition (works best in Chrome)</p>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
     </>
   );
