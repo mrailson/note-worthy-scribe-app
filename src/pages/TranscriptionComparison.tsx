@@ -27,11 +27,15 @@ let micStream: MediaStream | null = null;
 let mediaRecorder: MediaRecorder | null = null;
 let chunkIndex = 0;
 let isStopping = false;
+let progressiveTranscript = '';
 
 const MIME_OPUS = 'audio/webm;codecs=opus';
-const TIMESLICE_MS = 4000; // emits every 4s
+const TIMESLICE_MS = 30000; // emits every 30s for progressive updates
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
 const AUTH = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`; // anon/public key
+
+// Callback to update UI from module scope
+let updateTranscriptCallback: ((text: string) => void) | null = null;
 
 // Legacy variables for existing Whisper implementation
 const MIME = 'audio/webm;codecs=opus';
@@ -62,9 +66,19 @@ async function uploadChunk(blob: Blob, meta: { chunkIndex: number; isFinal?: boo
     throw new Error(`Whisper upload ${res.status}`);
   }
 
-  // Parse JSON response with partial transcript
+  // Parse response and accumulate transcript
   const data = await res.json().catch(() => null);
-  console.debug('Whisper response', data);
+  if (data?.text) {
+    progressiveTranscript += ' ' + data.text;
+    console.debug('Progressive transcript updated:', data.text);
+    
+    // Update UI if callback is set
+    if (updateTranscriptCallback) {
+      updateTranscriptCallback(progressiveTranscript.trim());
+    }
+  }
+
+  console.debug('Whisper chunk uploaded successfully');
   return data;
 }
 
@@ -73,6 +87,7 @@ export async function startStandaloneWhisper() {
   if (mediaRecorder) return; // already running
   isStopping = false;
   chunkIndex = 0;
+  progressiveTranscript = ''; // Reset transcript
 
   const supported = MediaRecorder.isTypeSupported(MIME_OPUS) ? MIME_OPUS : 'audio/webm';
   micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -105,6 +120,7 @@ export async function startStandaloneWhisper() {
       micStream?.getTracks().forEach(t => t.stop());
       micStream = null;
       mediaRecorder = null;
+      updateTranscriptCallback = null; // Clear callback
     }
   };
 
@@ -173,6 +189,16 @@ export default function TranscriptionComparison() {
   // NEW: Standalone Whisper UI handlers (using module-scope functions)
   const handleStartStandaloneWhisper = useCallback(async () => {
     console.log('🚀 STANDALONE WHISPER: Starting...');
+    
+    // Set up callback to update UI with progressive transcript
+    updateTranscriptCallback = (text: string) => {
+      setStandaloneWhisperState(prev => ({
+        ...prev,
+        fullTranscript: text,
+        wordCount: text.split(' ').filter(w => w.trim()).length
+      }));
+    };
+    
     try {
       setStandaloneWhisperState(prev => ({ 
         ...prev, 
