@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { ChunkedWhisperTranscriber } from '@/transcribers';
+import { normalizeTranscript } from '@/lib/transcriptNormalizer';
 import { Header } from '@/components/Header';
 
 interface TranscriptEntry {
@@ -92,7 +94,7 @@ export default function TranscriptionComparison() {
   const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
   const deepgramWsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const whisperTranscriberRef = useRef<WhisperTranscriber | null>(null);
+  const whisperTranscriberRef = useRef<WhisperTranscriber | ChunkedWhisperTranscriber | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
   // AssemblyAI handlers
@@ -188,10 +190,13 @@ export default function TranscriptionComparison() {
   }, []);
 
   // Whisper handlers
-  const handleWhisperTranscript = useCallback((data: TranscriptData) => {
+  const handleWhisperTranscript = useCallback((data: TranscriptData | any) => {
     console.log('📝 WHISPER: Received transcript data:', data);
     
-    const transcript = data.text?.trim();
+    // Use normalizer to handle both old and new formats
+    const unified = normalizeTranscript(data);
+    const transcript = unified.text?.trim();
+    
     if (!transcript) {
       console.log('⚠️ WHISPER: Empty transcript, skipping');
       return;
@@ -200,9 +205,9 @@ export default function TranscriptionComparison() {
     const transcriptEntry: TranscriptEntry = {
       id: `whisper-${Date.now()}-${Math.random()}`,
       text: transcript,
-      isFinal: data.is_final,
+      isFinal: true, // Whisper results are always final
       timestamp: new Date(),
-      confidence: data.confidence,
+      confidence: 0.95, // Default confidence for Whisper
       service: 'whisper'
     };
 
@@ -214,9 +219,7 @@ export default function TranscriptionComparison() {
         transcripts: [...prev.transcripts, transcriptEntry],
         fullTranscript: prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript,
         wordCount: (prev.fullTranscript + ' ' + transcript).split(' ').filter(w => w.trim()).length,
-        avgConfidence: data.confidence ? 
-          (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
-          prev.avgConfidence
+        avgConfidence: 0.95
       };
       
       console.log('📝 WHISPER: Updated state:', {
@@ -298,15 +301,24 @@ export default function TranscriptionComparison() {
       console.log('ℹ️ AssemblyAI transcriber already exists');
     }
 
-    // Initialize Whisper
+    // Initialize Whisper (with feature flag for chunked version)
     if (!whisperTranscriberRef.current) {
-      console.log('🔧 Creating new Whisper transcriber...');
-      whisperTranscriberRef.current = new WhisperTranscriber(
-        handleWhisperTranscript,
-        handleWhisperError,
-        handleWhisperStatus
-      );
-      console.log('✅ Whisper transcriber created');
+      const USE_CHUNKED = import.meta.env.VITE_USE_CHUNKED_WHISPER === 'true';
+      console.log(`🔧 Creating new ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber...`);
+      
+      whisperTranscriberRef.current = USE_CHUNKED
+        ? new ChunkedWhisperTranscriber(
+            handleWhisperTranscript,
+            handleWhisperError,
+            handleWhisperStatus
+          )
+        : new WhisperTranscriber(
+            handleWhisperTranscript,
+            handleWhisperError,
+            handleWhisperStatus
+          );
+      
+      console.log(`✅ ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber created`);
     } else {
       console.log('ℹ️ Whisper transcriber already exists');
     }
