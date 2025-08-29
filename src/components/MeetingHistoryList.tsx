@@ -56,6 +56,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { detectDevice } from "@/utils/DeviceDetection";
+import { useRecording } from "@/contexts/RecordingContext";
+import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 
 interface Meeting {
   id: string;
@@ -142,6 +145,8 @@ export const MeetingHistoryList = ({
   onRefresh
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
+  const { isRecording, isResourceOperationSafe } = useRecording();
+  const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
   console.log('🚨 Loading state:', loading);
@@ -723,12 +728,29 @@ export const MeetingHistoryList = ({
               {/* Action Buttons - Mobile Optimized */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                 
-                <Button
+                {/* Show recording warning if operation blocked */}
+                {!isResourceOperationSafe() && !isIOS && (
+                  <RecordingWarningBanner 
+                    operation="Viewing meeting notes"
+                    className="mb-2"
+                  />
+                )}
+                
+                {/* Hide View Notes button on iPhone to prevent recording interference */}
+                {!isIOS && (
+                  <Button
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    
+                    // Block operation during recording for safety
+                    if (!isResourceOperationSafe()) {
+                      toast.error("Cannot view notes while recording is active. This prevents audio interference.");
+                      return;
+                    }
+                    
                     console.log('🔍 View Notes button clicked for meeting:', meeting.id);
                     onViewSummary(meeting.id);
                   }}
@@ -757,6 +779,7 @@ export const MeetingHistoryList = ({
                     </Badge>
                   )}
                 </Button>
+                )}
                 
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (

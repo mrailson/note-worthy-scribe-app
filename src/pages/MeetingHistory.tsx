@@ -6,6 +6,7 @@ import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { detectDevice } from "@/utils/DeviceDetection";
+import { useRecording } from "@/contexts/RecordingContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,6 +200,13 @@ const MeetingHistory = () => {
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
     console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
+    
+    // Block operation during recording to prevent interference
+    const { isResourceOperationSafe } = useRecording();
+    if (!isResourceOperationSafe()) {
+      toast.error("Cannot view notes while recording is active. This prevents audio interference.");
+      return;
+    }
     
     try {
       // Fetch meeting details with notes generation status
@@ -469,6 +477,13 @@ const MeetingHistory = () => {
   const handleViewTranscript = async (meetingId: string) => {
     // Prevent double-tap issues on mobile
     if (transcriptDialogOpen) {
+      return;
+    }
+
+    // Block operation during recording to prevent interference
+    const { isResourceOperationSafe } = useRecording();
+    if (!isResourceOperationSafe()) {
+      toast.error("Cannot view transcript while recording is active. This prevents audio interference.");
       return;
     }
 

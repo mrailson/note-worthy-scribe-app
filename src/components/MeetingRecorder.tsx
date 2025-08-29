@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { useRecording } from "@/contexts/RecordingContext";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
@@ -82,6 +83,7 @@ export const MeetingRecorder = ({
   initialSettings
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
+  const { isResourceOperationSafe } = useRecording();
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -3472,6 +3474,12 @@ export const MeetingRecorder = ({
   };
 
   const handleViewTranscript = (meetingId: string) => {
+    // Block operation during recording to prevent interference
+    if (!isResourceOperationSafe()) {
+      toast.error("Cannot view transcript while recording is active. This prevents audio interference.");
+      return;
+    }
+    
     try {
       const meeting = meetings.find(m => m.id === meetingId);
       if (meeting) {
@@ -3654,6 +3662,12 @@ export const MeetingRecorder = ({
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
     console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
+    
+    // Block operation during recording to prevent interference
+    if (!isResourceOperationSafe()) {
+      toast.error("Cannot view notes while recording is active. This prevents audio interference.");
+      return;
+    }
     
     try {
       // Fetch meeting details
