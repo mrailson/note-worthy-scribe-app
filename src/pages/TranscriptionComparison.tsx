@@ -147,16 +147,45 @@ export default function TranscriptionComparison() {
       let newFullTranscript = prev.fullTranscript;
       let newWordCount = prev.wordCount;
       
+      console.log('🔍 ASSEMBLY DEBUG:', {
+        isFinal: data.is_final,
+        incomingText: transcript,
+        currentFullTranscript: prev.fullTranscript,
+        transcriptLength: transcript.length,
+        fullTranscriptLength: prev.fullTranscript.length
+      });
+      
       if (data.is_final) {
-        // Use sophisticated overlap detection from TranscriptMerge
-        const mergedTranscript = mergeLive(prev.fullTranscript, transcript);
-        newFullTranscript = mergedTranscript;
-        newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
-        console.log('📝 ASSEMBLY: Merged transcript using mergeLive:', {
-          originalLength: prev.fullTranscript.length,
-          newLength: newFullTranscript.length,
-          addedText: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : '')
+        // Check if this exact text is already at the end (simple duplicate check)
+        const trimmedCurrent = prev.fullTranscript.trim();
+        const trimmedNew = transcript.trim();
+        
+        console.log('🔍 ASSEMBLY DUPLICATE CHECK:', {
+          currentEndsWithNew: trimmedCurrent.endsWith(trimmedNew),
+          currentLength: trimmedCurrent.length,
+          newLength: trimmedNew.length,
+          lastChars: trimmedCurrent.slice(-Math.min(100, trimmedNew.length)),
+          newText: trimmedNew
         });
+        
+        // Skip if exact duplicate at end
+        if (trimmedCurrent.endsWith(trimmedNew)) {
+          console.log('🚫 ASSEMBLY: Skipping exact duplicate at end');
+        } else {
+          // Use sophisticated overlap detection from TranscriptMerge
+          const beforeMerge = prev.fullTranscript;
+          const mergedTranscript = mergeLive(prev.fullTranscript, transcript);
+          newFullTranscript = mergedTranscript;
+          newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
+          
+          console.log('📝 ASSEMBLY: Merged transcript details:', {
+            originalText: beforeMerge.slice(-50),
+            incomingText: transcript.slice(0, 50),
+            mergedResult: mergedTranscript.slice(-100),
+            lengthChange: mergedTranscript.length - beforeMerge.length,
+            wasChanged: mergedTranscript !== beforeMerge
+          });
+        }
       }
       
       const newState = {
