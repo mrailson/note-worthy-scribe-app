@@ -132,11 +132,21 @@ export class WhisperTranscriber {
     });
     
     // Convert edge function response to expected format
-    if (payload.success && payload.transcript) {
+    if (payload.success !== false && payload.transcript) {
       const convertedPayload = {
         ok: true,
         data: {
           text: payload.transcript,
+          segments: []
+        }
+      };
+      this.onPayload?.(convertedPayload);
+    } else if (payload.text) {
+      // Handle speech-to-text-chunked format
+      const convertedPayload = {
+        ok: true,
+        data: {
+          text: payload.text,
           segments: []
         }
       };
