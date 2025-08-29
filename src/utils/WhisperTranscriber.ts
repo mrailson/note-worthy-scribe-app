@@ -1,5 +1,6 @@
 // ============= v9-iterative-no-supabase WhisperTranscriber =============
 const WHISPER_IMPL_VERSION = 'v9-iterative-no-supabase';
+const USE_DIRECT_FETCH = true; // force
 
 export interface TranscriptData {
   text: string;
@@ -10,85 +11,94 @@ export interface TranscriptData {
   speaker?: string;
 }
 
-// === Non-recursive retry-safe networking + queue ===
-const BACKOFF_MS = [250, 600, 1200];
-const MAX_ATTEMPTS = 3;
-
-type UploadItem = { blob: Blob; meta?: { chunkIndex?: number } };
-
 export class WhisperTranscriber {
-  private queue: UploadItem[] = [];
-  private processing = false;
+  private q: Array<{ blob: Blob, meta: any }> = [];
+  private isDraining = false;
+  private edgeUrl: string;
+  private onPayload: (p: any) => void;
+  private onError: (e: any) => void;
+  private useSupabaseClient = false;
 
-  constructor(
-    private uploadUrl: string,
-    private onTranscription: (payload: any) => void,
-    private onError: (err: Error) => void
-  ) {
-    console.info('WHISPER IMPL', WHISPER_IMPL_VERSION, 'url=', this.uploadUrl);
+  constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void) {
+    if (!edgeUrl) throw new Error("WhisperTranscriber: edgeUrl required");
+    this.edgeUrl = edgeUrl;
+    this.onPayload = onPayload;
+    this.onError = onError;
+
+    // Kill any old Supabase path
+    (this as any).supabaseClient = null;
+    this.useSupabaseClient = false; // guard any legacy checks
+    console.info("WHISPER IMPL v9: direct fetch only ->", this.edgeUrl);
+    
+    console.info("WHISPER CONFIG:", {
+      useDirectFetch: USE_DIRECT_FETCH,
+      edgeUrl: this.edgeUrl,
+      hasSupabaseClient: !!(this as any).supabaseClient,
+    });
   }
 
   /** Call from MediaRecorder.ondataavailable */
-  enqueueChunk(blob: Blob, meta?: { chunkIndex?: number }) {
+  enqueueChunk(blob: Blob, meta?: any) {
     if (!blob || !blob.size) return;
-    this.queue.push({ blob, meta });
-    this.drainQueue().catch(e => this.onError(e));
+    this.q.push({ blob, meta });
+    if (!this.isDraining) this.drainQueue();
   }
-
 
   private async drainQueue() {
-    if (this.processing) return;
-    this.processing = true;
+    if (this.isDraining) return;
+    this.isDraining = true;
+
     try {
-      while (this.queue.length) {
-        const item = this.queue.shift()!;
-        const res = await this.uploadWithRetry(() => this.uploadOnce(item));
-        // IMPORTANT: onTranscription must not call enqueue/process again
-        this.onTranscription(res);
+      while (this.q.length > 0) {
+        const item = this.q.shift()!;
+        await this.uploadWithRetry(item.blob, item.meta);
       }
+    } catch (e) {
+      this.onError?.(e);
+      console.error("WHISPER: Queue processing error:", e);
     } finally {
-      this.processing = false;
+      this.isDraining = false;
     }
   }
 
-  private async uploadWithRetry(doUpload: () => Promise<any>) {
-    let lastErr: any;
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+  private async uploadWithRetry(blob: Blob, meta?: any) {
+    const backoff = [250, 600, 1200];
+    let err: any;
+
+    for (let i = 0; i < backoff.length; i++) {
       try {
-        return await doUpload();
+        await this.uploadOnce(blob, meta);
+        return;
       } catch (e) {
-        lastErr = e;
-        if (i < MAX_ATTEMPTS - 1) {
-          const wait = BACKOFF_MS[i] ?? BACKOFF_MS[BACKOFF_MS.length - 1];
-          console.warn(`❌ Upload attempt ${i + 1}/${MAX_ATTEMPTS} failed, retrying in ${wait}ms:`, e);
-          await new Promise(r => setTimeout(r, wait));
-        }
+        err = e;
+        console.warn(`Upload attempt ${i+1}/${backoff.length} failed, retrying in ${backoff[i]}ms:`, e);
+        await new Promise(r => setTimeout(r, backoff[i]));
       }
     }
-    console.error('❌ All retry attempts failed:', lastErr);
-    throw lastErr;
+    throw err ?? new Error("Upload failed after retries");
   }
 
-  /** Single network call. NO recursion. NO calls back into queue. */
-  private async uploadOnce(item: UploadItem) {
-    const { blob, meta } = item;
-    const filename =
-      typeof meta?.chunkIndex === 'number' ? `chunk-${meta.chunkIndex}.webm` : 'audio.webm';
+  private async uploadOnce(blob: Blob, meta?: any) {
+    if (!USE_DIRECT_FETCH) throw new Error("Direct fetch disabled unexpectedly");
 
     const fd = new FormData();
-    fd.append('file', blob, filename);
-    fd.append('response_format', 'verbose_json'); // get segments+text from Whisper
-    // Optional:
-    // fd.append('language', 'en');
-    // fd.append('prompt', 'NHS, GP, ARRS, PCN, DES, QoF, SystmOne, EMIS, NG');
+    fd.append("file", blob, `chunk-${Date.now()}.webm`);
+    fd.append("response_format", "verbose_json");
+    fd.append("language", "en");
 
-    // FORCE direct fetch (no Supabase client). Do not set Content-Type manually.
-    const res = await fetch(this.uploadUrl, { method: 'POST', body: fd, headers: { 'x-client': 'lovable' } });
+    const res = await fetch(this.edgeUrl, {
+      method: "POST",
+      body: fd,
+      headers: { "x-client": "meetingmagic-web" },
+    });
+
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Whisper upload failed ${res.status}: ${text}`);
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Edge STT ${res.status}: ${txt}`);
     }
-    return res.json();
+
+    const payload = await res.json();
+    this.onPayload?.(payload);
   }
 
   // Back-compat shims for old call sites:
@@ -106,16 +116,16 @@ export class WhisperTranscriber {
   
   stopTranscription() { 
     console.log('🛑 WhisperTranscriber stopTranscription - clearing queue');
-    this.queue = []; // Clear any pending uploads
-    this.processing = false;
+    this.q = []; // Clear any pending uploads
+    this.isDraining = false;
   }
   
   isActive() { 
-    return this.processing || this.queue.length > 0; 
+    return this.isDraining || this.q.length > 0; 
   }
   
   clearSummary() { 
-    this.queue = []; // Clear the queue
-    this.processing = false;
+    this.q = []; // Clear the queue
+    this.isDraining = false;
   }
 }

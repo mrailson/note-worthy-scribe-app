@@ -16,6 +16,14 @@ import { ChunkedWhisperTranscriber } from '@/transcribers';
 import { normalizeTranscript } from '@/lib/transcriptNormalizer';
 import { Header } from '@/components/Header';
 
+// Feature flags - disable other services for testing
+const ENABLE_DESKTOP_WHISPER = false;
+const ENABLE_BROWSER_SPEECH = false;
+const ENABLE_ASSEMBLY = false;
+
+// Edge URL for Whisper transcription
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
+
 interface TranscriptEntry {
   id: string;
   text: string;
@@ -88,8 +96,13 @@ export default function TranscriptionComparison() {
   
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Calculate if all services are running
-  const isRunningAllCalculated = assemblyState.isRecording && deepgramState.isRecording && whisperState.isRecording && browserState.isRecording;
+  // Calculate if all services are running (only check enabled services)
+  const isRunningAllCalculated = (
+    (!ENABLE_ASSEMBLY || assemblyState.isRecording) &&
+    deepgramState.isRecording &&
+    whisperState.isRecording &&
+    (!ENABLE_BROWSER_SPEECH || browserState.isRecording)
+  );
 
   // Refs for transcribers and connections
   const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
@@ -308,8 +321,8 @@ export default function TranscriptionComparison() {
   const initializeServices = useCallback(() => {
     console.log('🔧 Initializing services...');
     
-    // Initialize AssemblyAI
-    if (!assemblyTranscriberRef.current) {
+    // Initialize AssemblyAI only if enabled
+    if (ENABLE_ASSEMBLY && !assemblyTranscriberRef.current) {
       console.log('🔧 Creating new AssemblyAI transcriber...');
       assemblyTranscriberRef.current = new AssemblyAIRealtimeTranscriber(
         handleAssemblyTranscript,
@@ -317,36 +330,29 @@ export default function TranscriptionComparison() {
         handleAssemblyStatus
       );
       console.log('✅ AssemblyAI transcriber created');
+    } else if (!ENABLE_ASSEMBLY) {
+      console.log('🚫 AssemblyAI disabled by feature flag');
     } else {
       console.log('ℹ️ AssemblyAI transcriber already exists');
     }
 
-    // Initialize Whisper (with feature flag for chunked version)
+    // Initialize Whisper with new constructor (no chunked version, direct fetch only)
     if (!whisperTranscriberRef.current) {
-      const USE_CHUNKED = import.meta.env.VITE_USE_CHUNKED_WHISPER === 'true';
-      const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
+      console.log('🔧 Creating new Whisper transcriber with direct fetch...');
       
-      console.log(`🔧 Creating new ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber...`);
+      whisperTranscriberRef.current = new WhisperTranscriber(
+        EDGE_URL,
+        (payload) => handleWhisperPayload(payload),
+        (err) => console.error('Whisper error:', err)
+      );
       
-      whisperTranscriberRef.current = USE_CHUNKED
-        ? new ChunkedWhisperTranscriber(
-            handleWhisperTranscript,
-            handleWhisperError,
-            handleWhisperStatus
-          )
-        : new WhisperTranscriber(
-            EDGE_URL,
-            (payload) => handleWhisperPayload(payload),
-            (err) => console.error('Whisper error:', err)
-          );
-      
-      console.log(`✅ ${USE_CHUNKED ? 'Chunked ' : ''}Whisper transcriber created`);
+      console.log('✅ Whisper transcriber created with direct fetch');
     } else {
       console.log('ℹ️ Whisper transcriber already exists');
     }
     
-    // Initialize Browser Speech Recognition
-    if (!browserTranscriberRef.current) {
+    // Initialize Browser Speech Recognition only if enabled
+    if (ENABLE_BROWSER_SPEECH && !browserTranscriberRef.current) {
       console.log('🔧 Creating new Browser Speech transcriber...');
       browserTranscriberRef.current = new BrowserSpeechTranscriber(
         handleBrowserTranscript,
@@ -354,15 +360,22 @@ export default function TranscriptionComparison() {
         handleBrowserStatus
       );
       console.log('✅ Browser Speech transcriber created');
+    } else if (!ENABLE_BROWSER_SPEECH) {
+      console.log('🚫 Browser Speech disabled by feature flag');
     } else {
       console.log('ℹ️ Browser Speech transcriber already exists');
     }
     
-    console.log('✅ All services initialized');
-  }, [handleAssemblyTranscript, handleAssemblyError, handleAssemblyStatus, handleWhisperTranscript, handleWhisperError, handleWhisperStatus, handleBrowserTranscript, handleBrowserError, handleBrowserStatus]);
+    console.log('✅ Service initialization completed');
+  }, [handleAssemblyTranscript, handleAssemblyError, handleAssemblyStatus, handleWhisperTranscript, handleWhisperError, handleWhisperStatus, handleWhisperPayload, handleBrowserTranscript, handleBrowserError, handleBrowserStatus]);
 
   // Start individual services
   const startAssemblyAI = useCallback(async () => {
+    if (!ENABLE_ASSEMBLY) {
+      console.log('🚫 ASSEMBLY: Service disabled by feature flag');
+      return;
+    }
+    
     try {
       console.log('🚀 ASSEMBLY: Starting AssemblyAI service...');
       initializeServices();
@@ -513,6 +526,11 @@ export default function TranscriptionComparison() {
   }, [initializeServices, handleWhisperError]);
 
   const startBrowser = useCallback(async () => {
+    if (!ENABLE_BROWSER_SPEECH) {
+      console.log('🚫 BROWSER: Service disabled by feature flag');
+      return;
+    }
+    
     console.log('🚀 BROWSER: Starting browser speech...');
     try {
       setBrowserState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
@@ -583,12 +601,16 @@ export default function TranscriptionComparison() {
 
   // Run all services
   const runAllServices = useCallback(async () => {
-    console.log('🚀 Starting all transcription services...');
+    console.log('🚀 Starting enabled transcription services...');
     setIsRunningAll(true);
     try {
-      // Start services with delays to avoid conflicts
-      console.log('Starting AssemblyAI...');
-      await startAssemblyAI();
+      // Start only enabled services with delays to avoid conflicts
+      if (ENABLE_ASSEMBLY) {
+        console.log('Starting AssemblyAI...');
+        await startAssemblyAI();
+      } else {
+        console.log('🚫 Skipping AssemblyAI (disabled)');
+      }
       
       console.log('Starting Deepgram...');
       await startDeepgram();
@@ -596,12 +618,16 @@ export default function TranscriptionComparison() {
       console.log('Starting Whisper...');
       await startWhisper();
       
-      console.log('Starting Browser Speech...');
-      await startBrowser();
+      if (ENABLE_BROWSER_SPEECH) {
+        console.log('Starting Browser Speech...');
+        await startBrowser();
+      } else {
+        console.log('🚫 Skipping Browser Speech (disabled)');
+      }
       
-      console.log('✅ All services started successfully');
+      console.log('✅ All enabled services started successfully');
     } catch (error) {
-      console.error('❌ Error starting all services:', error);
+      console.error('❌ Error starting services:', error);
       setIsRunningAll(false);
     }
   }, [startAssemblyAI, startDeepgram, startWhisper, startBrowser]);
