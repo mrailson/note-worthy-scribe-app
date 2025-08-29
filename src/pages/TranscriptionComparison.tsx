@@ -22,17 +22,101 @@ const ENABLE_DESKTOP_WHISPER = true; // ✅ ENABLED for testing
 const ENABLE_BROWSER_SPEECH = true; // Enable Browser Speech
 const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 
-// Edge URL for Whisper transcription  
-const EDGE_URL = 'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text-chunked';
-
-// MediaRecorder constants for Whisper
-const MIME = 'audio/webm;codecs=opus';
-const TIMESLICE_MS = 4000;
-
-// MediaRecorder state for Whisper
+// Module-scope variables for Standalone Whisper (outside React to avoid remounts)
 let micStream: MediaStream | null = null;
 let mediaRecorder: MediaRecorder | null = null;
+let chunkIndex = 0;
+let isStopping = false;
+
+const MIME_OPUS = 'audio/webm;codecs=opus';
+const TIMESLICE_MS = 4000; // emits every 4s
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
+const AUTH = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`; // anon/public key
+
+// Legacy variables for existing Whisper implementation
+const MIME = 'audio/webm;codecs=opus';
 let whisperChunkIdx = 0;
+
+// Uploader for a single chunk (direct fetch)
+async function uploadChunk(blob: Blob, meta: { chunkIndex: number; isFinal?: boolean }) {
+  // Skip empty chunks
+  if (!blob || !blob.size) return;
+
+  const fd = new FormData();
+  fd.append('file', blob, `chunk-${meta.chunkIndex}.webm`);
+  fd.append('chunkIndex', String(meta.chunkIndex));
+  if (meta.isFinal) fd.append('isFinal', 'true');
+
+  const res = await fetch(EDGE_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: AUTH,
+      // DO NOT set Content-Type; FormData sets it with boundary
+    },
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error('Whisper upload failed', res.status, text);
+    throw new Error(`Whisper upload ${res.status}`);
+  }
+
+  // Parse JSON response with partial transcript
+  const data = await res.json().catch(() => null);
+  console.debug('Whisper response', data);
+  return data;
+}
+
+// Start (bind the recorder to the uploader)
+export async function startStandaloneWhisper() {
+  if (mediaRecorder) return; // already running
+  isStopping = false;
+  chunkIndex = 0;
+
+  const supported = MediaRecorder.isTypeSupported(MIME_OPUS) ? MIME_OPUS : 'audio/webm';
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(micStream, { mimeType: supported });
+
+  mediaRecorder.ondataavailable = async (e) => {
+    try {
+      if (!e.data || !e.data.size) return;
+      console.log('📦 STANDALONE WHISPER: Audio data available:', e.data.size, 'bytes');
+      await uploadChunk(e.data, { chunkIndex });
+    } catch (err) {
+      console.error('Upload error on chunk', chunkIndex, err);
+    } finally {
+      chunkIndex += 1;
+    }
+  };
+
+  mediaRecorder.onstart = () => console.log('🎬 STANDALONE WHISPER: Recording started');
+  mediaRecorder.onerror = (ev: any) => console.error('MediaRecorder error', ev?.error || ev);
+  mediaRecorder.onstop = async () => {
+    try {
+      if (!isStopping) return; // guard double stop
+      isStopping = false;
+      // Send a "finalize" marker so server can flush/commit
+      const empty = new Blob([], { type: supported });
+      await uploadChunk(empty, { chunkIndex, isFinal: true });
+    } catch (e) {
+      console.warn('Finalize upload failed', e);
+    } finally {
+      micStream?.getTracks().forEach(t => t.stop());
+      micStream = null;
+      mediaRecorder = null;
+    }
+  };
+
+  mediaRecorder.start(TIMESLICE_MS); // MUST be > 0 to emit chunks
+}
+
+// Stop
+export function stopStandaloneWhisper() {
+  if (!mediaRecorder) return;
+  isStopping = true;
+  try { mediaRecorder.stop(); } catch {}
+}
 
 interface TranscriptEntry {
   id: string;
@@ -86,111 +170,23 @@ export default function TranscriptionComparison() {
   const [standaloneWhisperState, setStandaloneWhisperState] = useState<ServiceState>(initialServiceState());
   
   console.log('🔍 Component state initialized - whisperState.isReconnecting:', whisperState.isReconnecting);
-  // NEW: Standalone Whisper implementation
-  const standaloneRecorderRef = useRef<MediaRecorder | null>(null);
-  const standaloneStreamRef = useRef<MediaStream | null>(null);
-  const standaloneChunksRef = useRef<Blob[]>([]);
-  const standaloneTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // NEW: Standalone Whisper functions
-  const startStandaloneWhisper = useCallback(async () => {
-    console.log('🚀 STANDALONE WHISPER: Starting completely new implementation...');
-    
+  // NEW: Standalone Whisper UI handlers (using module-scope functions)
+  const handleStartStandaloneWhisper = useCallback(async () => {
+    console.log('🚀 STANDALONE WHISPER: Starting...');
     try {
       setStandaloneWhisperState(prev => ({ 
         ...prev, 
         error: null, 
         sessionStartTime: new Date(), 
         sessionCount: 1,
-        isConnected: false,
-        isRecording: false,
+        isConnected: true,
+        isRecording: true,
         transcripts: [],
         fullTranscript: '',
         wordCount: 0
       }));
-
-      // Get fresh microphone access
-      console.log('🎤 STANDALONE WHISPER: Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 44100,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
       
-      standaloneStreamRef.current = stream;
-      console.log('✅ STANDALONE WHISPER: Microphone access granted');
-
-      // Create MediaRecorder
-      const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      standaloneRecorderRef.current = recorder;
-      standaloneChunksRef.current = []; // Reset chunks
-
-      recorder.ondataavailable = (event) => {
-        console.log('📦 STANDALONE WHISPER: Audio data available:', event.data.size, 'bytes');
-        if (event.data.size > 0) {
-          standaloneChunksRef.current.push(event.data);
-          console.log('📊 STANDALONE WHISPER: Total chunks collected:', standaloneChunksRef.current.length);
-        }
-      };
-
-      recorder.onstart = () => {
-        console.log('🎬 STANDALONE WHISPER: Recording started');
-        setStandaloneWhisperState(prev => ({ 
-          ...prev, 
-          isRecording: true, 
-          isConnected: true 
-        }));
-        
-        // Start timer
-        let seconds = 0;
-        const timer = setInterval(() => {
-          seconds++;
-          setStandaloneWhisperState(prev => ({ 
-            ...prev, 
-            timeRemaining: seconds 
-          }));
-        }, 1000);
-        standaloneTimerRef.current = timer;
-      };
-
-      recorder.onstop = async () => {
-        console.log('⏹️ STANDALONE WHISPER: Recording stopped, processing chunks...');
-        setStandaloneWhisperState(prev => ({ 
-          ...prev, 
-          isRecording: false 
-        }));
-        
-        // Clear timer
-        if (standaloneTimerRef.current) {
-          clearInterval(standaloneTimerRef.current);
-          standaloneTimerRef.current = null;
-        }
-
-        // Process the recording
-        if (standaloneChunksRef.current.length > 0) {
-          console.log('🔄 STANDALONE WHISPER: Processing', standaloneChunksRef.current.length, 'audio chunks');
-          await processStandaloneRecording();
-        } else {
-          console.warn('⚠️ STANDALONE WHISPER: No audio chunks to process');
-          setStandaloneWhisperState(prev => ({ 
-            ...prev, 
-            error: 'No audio data recorded. Please try again.',
-            isConnected: false
-          }));
-        }
-      };
-
-      // Start recording with timeslice
-      recorder.start(1000); // Collect data every 1 second
-      console.log('✅ STANDALONE WHISPER: Recording started successfully');
-
+      await startStandaloneWhisper();
     } catch (error) {
       console.error('❌ STANDALONE WHISPER: Error starting:', error);
       setStandaloneWhisperState(prev => ({ 
@@ -202,109 +198,19 @@ export default function TranscriptionComparison() {
     }
   }, []);
 
-  const stopStandaloneWhisper = useCallback(() => {
-    console.log('⏹️ STANDALONE WHISPER: Stopping recording...');
-    
-    if (standaloneRecorderRef.current && standaloneRecorderRef.current.state === 'recording') {
-      standaloneRecorderRef.current.stop();
-    }
-    
-    if (standaloneStreamRef.current) {
-      standaloneStreamRef.current.getTracks().forEach(track => track.stop());
-      standaloneStreamRef.current = null;
-    }
-    
-    if (standaloneTimerRef.current) {
-      clearInterval(standaloneTimerRef.current);
-      standaloneTimerRef.current = null;
-    }
-  }, []);
-
-  const processStandaloneRecording = useCallback(async () => {
-    try {
-      const audioChunks = standaloneChunksRef.current;
-      console.log('🔄 STANDALONE WHISPER: Creating audio blob from', audioChunks.length, 'chunks');
-      
-      // Create audio blob
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      console.log('📊 STANDALONE WHISPER: Audio blob size:', audioBlob.size, 'bytes');
-      
-      if (audioBlob.size === 0) {
-        throw new Error('No audio data recorded');
-      }
-      
-      // Convert to base64
-      const base64Audio = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(audioBlob);
-      });
-
-      console.log('📡 STANDALONE WHISPER: Sending to speech-to-text function...');
-      console.log('📏 STANDALONE WHISPER: Base64 audio length:', base64Audio.length);
-      
-      // Send to speech-to-text service
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
-      });
-
-      console.log('📨 STANDALONE WHISPER: Response received:', { data, error });
-
-      if (error) {
-        console.error('❌ STANDALONE WHISPER: API error:', error);
-        throw new Error(`Transcription failed: ${error.message || 'Unknown error'}`);
-      }
-
-      const transcriptText = data?.text || '';
-      
-      if (transcriptText.trim()) {
-        console.log('✅ STANDALONE WHISPER: Transcript received:', transcriptText.slice(0, 100) + '...');
-        
-        const transcriptEntry: TranscriptEntry = {
-          id: `standalone-whisper-${Date.now()}`,
-          text: transcriptText.trim(),
-          isFinal: true,
-          timestamp: new Date(),
-          confidence: data?.confidence || 0.95,
-          service: 'whisper'
-        };
-
-        setStandaloneWhisperState(prev => ({
-          ...prev,
-          transcripts: [...prev.transcripts, transcriptEntry],
-          fullTranscript: prev.fullTranscript + ' ' + transcriptText.trim(),
-          wordCount: (prev.fullTranscript + ' ' + transcriptText.trim()).split(' ').filter(w => w.trim()).length,
-          isConnected: false
-        }));
-        
-      } else {
-        console.warn('⚠️ STANDALONE WHISPER: Empty transcript received');
-        setStandaloneWhisperState(prev => ({ 
-          ...prev, 
-          error: 'No speech detected in audio. Please speak clearly and try again.',
-          isConnected: false
-        }));
-      }
-
-    } catch (error) {
-      console.error('❌ STANDALONE WHISPER: Processing error:', error);
-      setStandaloneWhisperState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Failed to process recording',
-        isConnected: false
-      }));
-    }
+  const handleStopStandaloneWhisper = useCallback(() => {
+    console.log('⏹️ STANDALONE WHISPER: Stopping...');
+    stopStandaloneWhisper();
+    setStandaloneWhisperState(prev => ({ 
+      ...prev, 
+      isRecording: false,
+      isConnected: false
+    }));
   }, []);
 
   const clearStandaloneWhisper = useCallback(() => {
     console.log('🧹 STANDALONE WHISPER: Clearing data...');
     setStandaloneWhisperState(initialServiceState());
-    standaloneChunksRef.current = [];
   }, []);
 
   const [isRunningAll, setIsRunningAll] = useState(false);
@@ -1742,30 +1648,15 @@ export default function TranscriptionComparison() {
         />
         
         <ServiceCard
-          title="Whisper Alternative"
-          state={standaloneWhisperState}
-          onStart={() => {
-            console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStart called!');
-            startStandaloneWhisper();
-          }}
-          onStop={() => {
-            console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStop called!');
-            stopStandaloneWhisper();
-          }}
-          onClear={clearStandaloneWhisper}
-          color="text-violet-600"
-        />
-        
-        <ServiceCard
           title="Standalone Whisper"
           state={standaloneWhisperState}
           onStart={() => {
             console.log('🎯 STANDALONE WHISPER ServiceCard onStart called!');
-            startStandaloneWhisper();
+            handleStartStandaloneWhisper();
           }}
           onStop={() => {
             console.log('🎯 STANDALONE WHISPER ServiceCard onStop called!');
-            stopStandaloneWhisper();
+            handleStopStandaloneWhisper();
           }}
           onClear={clearStandaloneWhisper}
           color="text-pink-600"

@@ -1,143 +1,152 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+console.log("🎙️ Speech-to-Text-Chunked Edge Function starting...");
+
 serve(async (req) => {
-  console.log(`📨 WHISPER EDGE: ${req.method} request received`);
+  const requestId = crypto.randomUUID().slice(0, 8);
   
-  if (req.method === "OPTIONS") {
-    console.log("✅ WHISPER EDGE: Handling CORS preflight");
-    return new Response(null, { status: 204, headers: corsHeaders });
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log(`✅ WHISPER EDGE: Handling CORS preflight`);
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  console.log(`📨 WHISPER EDGE: ${req.method} request received`);
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    // Check for OpenAI API key first
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
-      console.error("❌ WHISPER EDGE: OPENAI_API_KEY environment variable not set");
-      return new Response(JSON.stringify({ 
-        ok: false, 
-        error: "OpenAI API key not configured. Please add OPENAI_API_KEY to edge function secrets." 
-      }), {
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Get OpenAI API key
+    const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAiApiKey) {
+      console.error(`❌ [${requestId}] OpenAI API key not found`);
+      throw new Error('OpenAI API key not configured');
     }
-    
-    console.log("✅ WHISPER EDGE: OpenAI API key found");
-    console.log("📦 WHISPER EDGE: Parsing form data...");
-    
+
+    console.log(`🔑 [${requestId}] OpenAI API key found: ${openAiApiKey.slice(0, 10)}...`);
+
+    // Parse form data
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    
-    if (!file) {
-      console.error("❌ WHISPER EDGE: No file in form data");
-      return new Response(JSON.stringify({ ok: false, error: "Missing file" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const audioFile = formData.get('file') as File;
+    const chunkIndex = formData.get('chunkIndex') as string;
+    const isFinal = formData.get('isFinal') === 'true';
+    const meetingId = formData.get('meetingId') as string;
+    const sessionId = formData.get('sessionId') as string;
+
+    console.log(`📋 [${requestId}] Form data parsed:`, {
+      hasAudioFile: !!audioFile,
+      fileName: audioFile?.name,
+      fileSize: audioFile?.size,
+      fileType: audioFile?.type,
+      chunkIndex,
+      isFinal,
+      meetingId,
+      sessionId,
+    });
+
+    if (!audioFile || audioFile.size === 0) {
+      if (isFinal) {
+        // Final empty chunk - return success with empty result
+        console.log(`🏁 [${requestId}] Final empty chunk received - session complete`);
+        return new Response(JSON.stringify({
+          text: '',
+          isFinal: true,
+          chunkIndex: parseInt(chunkIndex || '0'),
+          message: 'Session completed'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.warn(`⚠️ [${requestId}] No audio file provided or empty file`);
+      throw new Error('No audio file provided');
     }
 
-    console.log("📁 WHISPER EDGE: File received:", {
-      name: file.name,
-      size: file.size,
-      type: file.type
+    // Convert File to Blob for OpenAI
+    const audioBlob = new Blob([await audioFile.arrayBuffer()], { 
+      type: audioFile.type || 'audio/webm' 
     });
 
-    const model = Deno.env.get("TRANSCRIBE_MODEL") || "whisper-1";
-    const openAIFormData = new FormData();
-    // Keep extension so OpenAI detects format reliably
-    openAIFormData.append("file", file, file.name || "audio.webm");
-    openAIFormData.append("model", model);
-
-    const responseFormat = (formData.get("response_format") as string) || "verbose_json";
-    openAIFormData.append("response_format", responseFormat);
-
-    const language = (formData.get("language") as string) || "en";
-    openAIFormData.append("language", language);
-
-    const prompt = (formData.get("prompt") as string) || "";
-    if (prompt) openAIFormData.append("prompt", prompt);
-
-    console.log("🚀 WHISPER EDGE: Sending request to OpenAI API...", {
-      model,
-      responseFormat,
-      language,
-      hasPrompt: !!prompt
+    console.log(`📡 [${requestId}] Sending to OpenAI Whisper API...`, {
+      audioSize: audioBlob.size,
+      chunkIndex,
+      isFinal,
     });
 
-    const oaRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${openaiApiKey}` },
-      body: openAIFormData,
-    });
+    // Prepare form data for OpenAI
+    const openaiFormData = new FormData();
+    openaiFormData.append('file', audioBlob, `chunk-${chunkIndex}.webm`);
+    openaiFormData.append('model', 'whisper-1');
+    openaiFormData.append('response_format', 'json');
 
-    console.log("📨 WHISPER EDGE: OpenAI API response:", {
-      status: oaRes.status,
-      statusText: oaRes.statusText,
-      ok: oaRes.ok
-    });
-
-    const text = await oaRes.text(); // read once
-    const body = (() => { 
-      try { 
-        return JSON.parse(text); 
-      } catch { 
-        console.warn("⚠️ WHISPER EDGE: Failed to parse OpenAI response as JSON, using raw text");
-        return { raw: text }; 
-      } 
-    })();
-
-    if (!oaRes.ok) {
-      console.error("❌ WHISPER EDGE: OpenAI API error:", {
-        status: oaRes.status,
-        body: body
-      });
-      return new Response(JSON.stringify({ 
-        ok: false, 
-        providerStatus: oaRes.status, 
-        error: body 
-      }), {
-        status: 502, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log("✅ WHISPER EDGE: OpenAI API success:", {
-      hasText: !!body.text,
-      textLength: body.text?.length || 0,
-      textPreview: body.text?.slice(0, 100) || ''
-    });
-
-    const result = {
-      ok: true,
-      data: body,
-      metadata: {
-        sessionId: formData.get("sessionId"),
-        chunkIndex: Number(formData.get("chunkIndex") || 0),
-        windowStartMs: Number(formData.get("windowStartMs") || 0),
-        windowEndMs: Number(formData.get("windowEndMs") || 0),
+    // Send to OpenAI Whisper API
+    const openAiResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAiApiKey}`,
       },
+      body: openaiFormData,
+    });
+
+    console.log(`📥 [${requestId}] OpenAI API response status: ${openAiResponse.status}`);
+
+    if (!openAiResponse.ok) {
+      const errorText = await openAiResponse.text();
+      console.error(`❌ [${requestId}] OpenAI API error:`, {
+        status: openAiResponse.status,
+        statusText: openAiResponse.statusText,
+        error: errorText,
+      });
+      throw new Error(`OpenAI API error: ${openAiResponse.status} - ${errorText}`);
+    }
+
+    const result = await openAiResponse.json();
+    console.log(`✅ [${requestId}] OpenAI transcription result:`, {
+      textLength: result.text?.length || 0,
+      text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
+    });
+
+    // Return the transcription result
+    const response = {
+      text: result.text || '',
+      confidence: 0.95, // Default confidence for Whisper
+      chunkIndex: parseInt(chunkIndex || '0'),
+      isFinal,
+      sessionId,
+      meetingId,
+      timestamp: new Date().toISOString(),
     };
 
-    console.log("🎉 WHISPER EDGE: Returning successful response");
-    
-    return new Response(JSON.stringify(result), { 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    console.log(`📤 [${requestId}] Sending response:`, {
+      textLength: response.text.length,
+      chunkIndex: response.chunkIndex,
+      isFinal: response.isFinal,
+    });
+
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error("❌ WHISPER EDGE: Unexpected error:", error);
+    console.error(`❌ [${requestId}] Error in speech-to-text-chunked function:`, error);
     return new Response(JSON.stringify({ 
-      ok: false, 
-      error: String(error?.message || error) 
+      error: error.message || 'Internal server error',
+      requestId 
     }), {
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
