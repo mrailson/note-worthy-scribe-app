@@ -209,19 +209,40 @@ export default function TranscriptionComparison() {
         service: 'deepgram'
       };
 
-      setDeepgramState(prev => ({
-        ...prev,
-        transcripts: [...prev.transcripts, transcriptEntry],
-        fullTranscript: data.is_final ? 
-          (prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript) : 
-          prev.fullTranscript,
-        wordCount: data.is_final ? 
-          (prev.fullTranscript + ' ' + transcript).split(' ').filter(w => w.trim()).length :
-          prev.wordCount,
-        avgConfidence: confidence ? 
-          (prev.avgConfidence ? (prev.avgConfidence + confidence) / 2 : confidence) :
-          prev.avgConfidence
-      }));
+      console.log('📝 DEEPGRAM: Processing transcript:', {
+        text: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : ''),
+        isFinal: data.is_final,
+        confidence: confidence
+      });
+
+      setDeepgramState(prev => {
+        if (data.is_final) {
+          // Deepgram sends cumulative transcripts, so replace instead of append
+          const newWordCount = transcript.split(' ').filter(w => w.trim()).length;
+          
+          console.log('✅ DEEPGRAM: Replacing full transcript with cumulative final transcript:', {
+            newText: transcript.slice(0, 100) + (transcript.length > 100 ? '...' : ''),
+            fullTranscriptLength: transcript.length,
+            wordCount: newWordCount
+          });
+
+          return {
+            ...prev,
+            transcripts: [...prev.transcripts, transcriptEntry],
+            fullTranscript: transcript,
+            wordCount: newWordCount,
+            avgConfidence: confidence ? 
+              (prev.avgConfidence ? (prev.avgConfidence + confidence) / 2 : confidence) :
+              prev.avgConfidence
+          };
+        } else {
+          // For partial transcripts, just add to transcripts list but don't update full transcript
+          return {
+            ...prev,
+            transcripts: [...prev.transcripts, transcriptEntry]
+          };
+        }
+      });
     }
   }, []);
 
