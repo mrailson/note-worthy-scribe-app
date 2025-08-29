@@ -1,6 +1,4 @@
-// ============= v9-iterative-no-supabase WhisperTranscriber =============
-const WHISPER_IMPL_VERSION = 'v9-iterative-no-supabase';
-const USE_DIRECT_FETCH = true; // force
+// ============= Complete WebM Buffering WhisperTranscriber =============
 
 export interface TranscriptData {
   text: string;
@@ -11,17 +9,29 @@ export interface TranscriptData {
   speaker?: string;
 }
 
+type UploadMeta = {
+  isFinal: boolean;
+  language?: string;
+  meetingId?: string;
+  sessionId?: string;
+};
+
 export class WhisperTranscriber {
-  private q: Array<{ blob: Blob, meta: any }> = [];
-  private isDraining = false;
   private edgeUrl: string;
   private onPayload: (p: any) => void;
   private onError: (e: any) => void;
   private onStatusChange?: (status: string) => void;
-  private useSupabaseClient = false;
-  private accumulatedText = ''; // Add text accumulation
-  private audioChunks: Blob[] = []; // Accumulate audio chunks
-  private chunkTimeout: NodeJS.Timeout | null = null;
+  
+  // Complete WebM buffering approach
+  private chunkBuffer: Blob[] = [];
+  private flushTimer: number | null = null;
+  private chunkIndex = 0;
+  private isRecording = false;
+  private accumulatedText = '';
+  
+  private readonly MIME = 'audio/webm;codecs=opus';
+  private readonly FLUSH_INTERVAL_MS = 25000; // 25 seconds
+  private readonly MAX_BUFFER_SIZE = 2_000_000; // 2MB
 
   constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void, onStatusChange?: (status: string) => void) {
     if (!edgeUrl) throw new Error("WhisperTranscriber: edgeUrl required");
@@ -29,106 +39,92 @@ export class WhisperTranscriber {
     this.onPayload = onPayload;
     this.onError = onError;
     this.onStatusChange = onStatusChange;
-
-    // Kill any old Supabase path
-    (this as any).supabaseClient = null;
-    this.useSupabaseClient = false; // guard any legacy checks
-    console.info("WHISPER IMPL v9: direct fetch only ->", this.edgeUrl);
     
-    console.info("WHISPER CONFIG:", {
-      useDirectFetch: USE_DIRECT_FETCH,
-      edgeUrl: this.edgeUrl,
-      hasSupabaseClient: !!(this as any).supabaseClient,
-    });
+    console.log("🔧 STANDALONE WHISPER: Using complete WebM buffering with 25s intervals");
   }
 
   /** Call from MediaRecorder.ondataavailable */
   enqueueChunk(blob: Blob, meta?: any) {
     if (!blob || !blob.size) return;
-    console.debug("[Whisper] enqueueChunk", { size: blob.size, ...meta });
     
-    // Accumulate chunks - MediaRecorder only puts WebM headers in first chunk!
-    this.audioChunks.push(blob);
-    console.log(`📦 WHISPER: Accumulated ${this.audioChunks.length} chunks, total size: ${this.audioChunks.reduce((sum, b) => sum + b.size, 0)} bytes`);
+    // Buffer raw chunks - MediaRecorder only puts WebM headers in first chunk!
+    this.chunkBuffer.push(blob);
+    const totalBytes = this.chunkBuffer.reduce((sum, b) => sum + b.size, 0);
     
-    // Clear existing timeout
-    if (this.chunkTimeout) {
-      clearTimeout(this.chunkTimeout);
+    console.log(`📦 WHISPER: Buffered chunk ${this.chunkBuffer.length}, total: ${totalBytes} bytes`);
+    
+    // Optional: immediate size threshold flush
+    if (totalBytes > this.MAX_BUFFER_SIZE) {
+      console.log(`📏 WHISPER: Size threshold reached (${totalBytes}/${this.MAX_BUFFER_SIZE}), flushing...`);
+      this.flushCompleteWebM(false).catch(console.error);
+    }
+  }
+
+  startTranscription() {
+    console.log('🎙️ WHISPER: Starting transcription - resetting state');
+    this.isRecording = true;
+    this.chunkBuffer = [];
+    this.chunkIndex = 0;
+    this.accumulatedText = '';
+    
+    // Start periodic flush timer (every 25s)
+    if (this.flushTimer) {
+      window.clearInterval(this.flushTimer);
     }
     
-    // Set timeout to process accumulated chunks after 1 second of silence  
-    this.chunkTimeout = setTimeout(() => {
-      this.processAccumulatedChunks();
-    }, 1000);
-  }
-
-  private async processAccumulatedChunks() {
-    if (this.audioChunks.length === 0) return;
-    
-    console.log(`🔧 WHISPER: Processing ${this.audioChunks.length} accumulated chunks`);
-    
-    // Combine all chunks into a single blob with proper WebM headers
-    const combinedBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
-    console.log(`✅ WHISPER: Combined blob size: ${combinedBlob.size} bytes`);
-    
-    // Clear chunks
-    this.audioChunks = [];
-    
-    // Process the combined chunk
-    this.q.push({ blob: combinedBlob, meta: { combined: true } });
-    if (!this.isDraining) this.drainQueue();
-  }
-
-  private async drainQueue() {
-    if (this.isDraining) return;
-    this.isDraining = true;
-    console.debug("[Whisper] drainQueue start; q=", this.q.length);
-
-    try {
-      while (this.q.length > 0) {
-        const item = this.q.shift()!;
-        await this.uploadWithRetry(item.blob, item.meta);
+    this.flushTimer = window.setInterval(() => {
+      if (this.chunkBuffer.length > 0) {
+        console.log(`⏰ WHISPER: Timer flush (${this.chunkBuffer.length} chunks buffered)`);
+        this.flushCompleteWebM(false).catch(console.error);
       }
-    } catch (e) {
-      this.onError?.(e);
-      console.error("WHISPER: Queue processing error:", e);
-    } finally {
-      this.isDraining = false;
+    }, this.FLUSH_INTERVAL_MS);
+  }
+  
+  stopTranscription() { 
+    console.log('🛑 WHISPER: Stopping transcription - final flush');
+    this.isRecording = false;
+    
+    // Clear timer
+    if (this.flushTimer) {
+      window.clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    
+    // Final flush
+    if (this.chunkBuffer.length > 0) {
+      this.flushCompleteWebM(true).catch(console.error);
     }
   }
+  
+  /** Create complete WebM file from buffer and upload */
+  private async flushCompleteWebM(isFinal: boolean) {
+    if (!this.chunkBuffer.length) return;
 
-  private async uploadWithRetry(blob: Blob, meta?: any) {
-    const backoff = [250, 600, 1200];
-    let err: any;
+    // Create a COMPLETED WebM file (with headers)
+    const completeBlob = new Blob(this.chunkBuffer, { type: this.MIME });
+    const bufferLength = this.chunkBuffer.length;
+    
+    // Reset buffer for next segment
+    this.chunkBuffer = [];
 
-    for (let i = 0; i < backoff.length; i++) {
-      try {
-        await this.uploadOnce(blob, meta);
-        return;
-      } catch (e) {
-        err = e;
-        console.warn(`Upload attempt ${i+1}/${backoff.length} failed, retrying in ${backoff[i]}ms:`, e);
-        await new Promise(r => setTimeout(r, backoff[i]));
-      }
-    }
-    throw err ?? new Error("Upload failed after retries");
+    console.log(`🚀 WHISPER: Flushing complete WebM (${bufferLength} chunks, ${completeBlob.size} bytes, chunk #${this.chunkIndex})`);
+    
+    await this.uploadCompleteFile(completeBlob, { isFinal });
+    this.chunkIndex += 1;
   }
 
-  private async uploadOnce(blob: Blob, meta?: any) {
-    console.log("🚀 WHISPER: Starting upload to edge function:", {
-      blobSize: blob.size,
-      blobType: blob.type,
-      meta,
-      edgeUrl: this.edgeUrl
-    });
-
-    // Use FormData to send WebM blob directly to speech-to-text-chunked
+  /** Upload complete WebM file to speech-to-text-chunked */
+  private async uploadCompleteFile(blob: Blob, meta: UploadMeta) {
     const formData = new FormData();
-    formData.append("file", blob, `chunk-${Date.now()}.webm`);
-    formData.append("chunkIndex", "0");
-    formData.append("isFinal", "false");
+    formData.append('file', new File([blob], `chunk_${this.chunkIndex}.webm`, { type: this.MIME }));
+    formData.append('chunkIndex', String(this.chunkIndex));
+    formData.append('isFinal', meta.isFinal ? 'true' : 'false');
     
-    console.log("📡 WHISPER: Sending FormData to speech-to-text-chunked function...");
+    if (meta.language) formData.append('language', meta.language);
+    if (meta.meetingId) formData.append('meetingId', meta.meetingId);
+    if (meta.sessionId) formData.append('sessionId', meta.sessionId);
+
+    console.log(`📡 WHISPER: Uploading chunk ${this.chunkIndex} (${blob.size} bytes, isFinal: ${meta.isFinal})`);
 
     const response = await fetch(this.edgeUrl, {
       method: 'POST',
@@ -139,32 +135,22 @@ export class WhisperTranscriber {
       body: formData
     });
 
-    console.log("📨 WHISPER: Edge function response:", {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
     if (!response.ok) {
-      const txt = await response.text().catch(() => "");
-      console.error("❌ WHISPER: Edge function error:", {
-        status: response.status,
-        statusText: response.statusText,
-        responseText: txt
-      });
-      throw new Error(`Edge STT ${response.status}: ${txt}`);
+      const text = await response.text().catch(() => '');
+      console.error(`❌ WHISPER: Upload failed (${response.status}):`, text);
+      throw new Error(`Upload failed (${response.status}): ${text}`);
     }
 
     const payload = await response.json();
-    console.log("✅ WHISPER: Successfully parsed response:", {
-      hasText: !!payload.text,
+    console.log(`✅ WHISPER: Chunk ${this.chunkIndex} transcribed:`, {
       textLength: payload.text?.length || 0,
-      textPreview: payload.text?.slice(0, 100)
+      textPreview: payload.text?.slice(0, 50)
     });
     
-    // Handle speech-to-text response format (not chunked version)
+    // Append to accumulated text
     if (payload.text) {
       this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.text;
+      
       const convertedPayload = {
         ok: true,
         data: {
@@ -172,7 +158,11 @@ export class WhisperTranscriber {
           segments: []
         }
       };
+      
       this.onPayload?.(convertedPayload);
+      
+      // Notify status update
+      this.onStatusChange?.(`Segment #${this.chunkIndex} processed`);
     } else {
       console.error("❌ WHISPER: Invalid response format:", payload);
       this.onError?.(new Error(payload.error || 'Invalid response format'));
@@ -186,30 +176,20 @@ export class WhisperTranscriber {
   processChunkWithRetry(blob: Blob, meta?: any) { 
     this.enqueueChunk(blob, meta); 
   }
-
-  // Placeholder methods for interface compatibility
-  startTranscription() { 
-    console.log('🎙️ WhisperTranscriber startTranscription - use external MediaRecorder');
-  }
-  
-  stopTranscription() { 
-    console.log('🛑 WhisperTranscriber stopTranscription - clearing queue');
-    this.q = []; // Clear any pending uploads
-    this.isDraining = false;
-  }
   
   isActive() { 
-    return this.isDraining || this.q.length > 0; 
+    return this.isRecording; 
   }
   
   clearSummary() { 
-    this.q = []; // Clear the queue
-    this.isDraining = false;
-    this.accumulatedText = ''; // Reset accumulated text
-    this.audioChunks = []; // Clear accumulated chunks
-    if (this.chunkTimeout) {
-      clearTimeout(this.chunkTimeout);
-      this.chunkTimeout = null;
+    console.log('🧹 WHISPER: Clearing state');
+    this.chunkBuffer = [];
+    this.accumulatedText = '';
+    this.chunkIndex = 0;
+    
+    if (this.flushTimer) {
+      window.clearInterval(this.flushTimer);
+      this.flushTimer = null;
     }
   }
 }
