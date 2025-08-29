@@ -14,6 +14,7 @@ import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscr
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { ChunkedWhisperTranscriber } from '@/transcribers';
 import { normalizeTranscript } from '@/lib/transcriptNormalizer';
+import { mergeLive } from '@/utils/TranscriptMerge';
 import { Header } from '@/components/Header';
 
 // Feature flags - enable all services for testing
@@ -142,23 +143,20 @@ export default function TranscriptionComparison() {
     console.log('📝 ASSEMBLY: Adding transcript entry:', transcriptEntry);
 
     setAssemblyState(prev => {
-      // Only add to full transcript if this is a final transcript AND it's new content
+      // Only add to full transcript if this is a final transcript
       let newFullTranscript = prev.fullTranscript;
       let newWordCount = prev.wordCount;
       
       if (data.is_final) {
-        // Check if this final transcript is already included (prevent duplicates)
-        const trimmedCurrent = prev.fullTranscript.trim();
-        const trimmedNew = transcript.trim();
-        
-        // Only add if the new transcript doesn't end with the same content
-        if (!trimmedCurrent.endsWith(trimmedNew)) {
-          newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
-          newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
-          console.log('📝 ASSEMBLY: Added final transcript to full transcript');
-        } else {
-          console.log('📝 ASSEMBLY: Skipping duplicate final transcript');
-        }
+        // Use sophisticated overlap detection from TranscriptMerge
+        const mergedTranscript = mergeLive(prev.fullTranscript, transcript);
+        newFullTranscript = mergedTranscript;
+        newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
+        console.log('📝 ASSEMBLY: Merged transcript using mergeLive:', {
+          originalLength: prev.fullTranscript.length,
+          newLength: newFullTranscript.length,
+          addedText: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : '')
+        });
       }
       
       const newState = {
