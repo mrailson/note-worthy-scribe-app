@@ -142,15 +142,30 @@ export default function TranscriptionComparison() {
     console.log('📝 ASSEMBLY: Adding transcript entry:', transcriptEntry);
 
     setAssemblyState(prev => {
+      // Only add to full transcript if this is a final transcript AND it's new content
+      let newFullTranscript = prev.fullTranscript;
+      let newWordCount = prev.wordCount;
+      
+      if (data.is_final) {
+        // Check if this final transcript is already included (prevent duplicates)
+        const trimmedCurrent = prev.fullTranscript.trim();
+        const trimmedNew = transcript.trim();
+        
+        // Only add if the new transcript doesn't end with the same content
+        if (!trimmedCurrent.endsWith(trimmedNew)) {
+          newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
+          newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
+          console.log('📝 ASSEMBLY: Added final transcript to full transcript');
+        } else {
+          console.log('📝 ASSEMBLY: Skipping duplicate final transcript');
+        }
+      }
+      
       const newState = {
         ...prev,
         transcripts: [...prev.transcripts, transcriptEntry],
-        fullTranscript: data.is_final ? 
-          (prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript) : 
-          prev.fullTranscript,
-        wordCount: data.is_final ? 
-          (prev.fullTranscript + ' ' + transcript).split(' ').filter(w => w.trim()).length :
-          prev.wordCount,
+        fullTranscript: newFullTranscript,
+        wordCount: newWordCount,
         avgConfidence: data.confidence ? 
           (prev.avgConfidence ? (prev.avgConfidence + data.confidence) / 2 : data.confidence) :
           prev.avgConfidence
@@ -158,8 +173,9 @@ export default function TranscriptionComparison() {
       
       console.log('📝 ASSEMBLY: Updated state:', {
         transcriptCount: newState.transcripts.length,
-        fullTranscript: newState.fullTranscript,
-        wordCount: newState.wordCount
+        fullTranscriptLength: newState.fullTranscript.length,
+        wordCount: newState.wordCount,
+        isFinal: data.is_final
       });
       
       return newState;
