@@ -93,7 +93,7 @@ export class WhisperTranscriber {
     });
 
     const fd = new FormData();
-    fd.append("file", blob, `chunk-${Date.now()}.webm`);
+    fd.append("audio", blob, `chunk-${Date.now()}.webm`);
     fd.append("response_format", "verbose_json");
     fd.append("language", "en");
 
@@ -124,15 +124,27 @@ export class WhisperTranscriber {
 
     const payload = await res.json();
     console.log("✅ WHISPER: Successfully parsed response:", {
-      hasOk: 'ok' in payload,
-      ok: payload.ok,
-      hasData: 'data' in payload,
-      hasText: payload?.data?.text ? true : false,
-      textLength: payload?.data?.text?.length || 0,
-      textPreview: payload?.data?.text?.slice(0, 100)
+      hasSuccess: 'success' in payload,
+      success: payload.success,
+      hasTranscript: payload?.transcript ? true : false,
+      textLength: payload?.transcript?.length || 0,
+      textPreview: payload?.transcript?.slice(0, 100)
     });
     
-    this.onPayload?.(payload);
+    // Convert edge function response to expected format
+    if (payload.success && payload.transcript) {
+      const convertedPayload = {
+        ok: true,
+        data: {
+          text: payload.transcript,
+          segments: []
+        }
+      };
+      this.onPayload?.(convertedPayload);
+    } else {
+      console.error("❌ WHISPER: Invalid response format:", payload);
+      this.onError?.(new Error(payload.error || 'Invalid response format'));
+    }
   }
 
   // Back-compat shims for old call sites:
