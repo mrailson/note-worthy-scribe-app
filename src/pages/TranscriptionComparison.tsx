@@ -1503,19 +1503,6 @@ export default function TranscriptionComparison() {
           <CollapsibleContent>
             <CardContent>
           <div className="flex flex-col items-center gap-4">
-            <div className="text-center text-sm text-muted-foreground mb-2">
-              <p>🚀 <strong>Navigate to:</strong> <code>/transcription-comparison</code></p>
-              <p>Or click the button below to access the comparison interface</p>
-            </div>
-            
-            <Button
-              onClick={() => window.location.href = '/transcription-comparison'}
-              variant="default"
-              size="lg"
-              className="mb-4"
-            >
-              🔄 Go to Service Comparison
-            </Button>
             {/* Audio Level Indicator */}
             {(assemblyState.isRecording || deepgramState.isRecording || standaloneWhisperState.isRecording || browserState.isRecording) && (
               <div className="w-full max-w-xs">
