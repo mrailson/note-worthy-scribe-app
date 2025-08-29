@@ -1,17 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const CORS = (origin: string | null) => ({
-  'access-control-allow-origin': origin ?? '*',
-  'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'content-type, authorization, x-client-info, apikey',
-});
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 Deno.serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   
   if (req.method === 'OPTIONS') {
     console.log(`🔄 [${requestId}] CORS preflight check received`);
-    return new Response(null, { headers: CORS(req.headers.get('origin')) });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       const form = await req.formData();
       const f = form.get('file');
       if (!(f instanceof Blob)) {
-        return new Response(JSON.stringify({ error: 'file field missing' }), { status: 400, headers: CORS(origin) });
+        return new Response(JSON.stringify({ error: 'file field missing' }), { status: 400, headers: corsHeaders });
       }
       blob = f;
       console.log('✅ Multipart audio processed:', {
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       const { audio, audioBase64, mimeType } = await req.json();
       const audioData = audio || audioBase64;
       if (!audioData) {
-        return new Response(JSON.stringify({ error: 'audio data missing' }), { status: 400, headers: CORS(origin) });
+        return new Response(JSON.stringify({ error: 'audio data missing' }), { status: 400, headers: corsHeaders });
       }
       const bin = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
       blob = new Blob([bin], { type: mimeType || 'audio/webm' });
@@ -68,18 +68,18 @@ Deno.serve(async (req) => {
         sizeKB: Math.round(bin.length / 1024)
       });
     } else {
-      return new Response(JSON.stringify({ error: `Unsupported content-type: ${ct}` }), { status: 415, headers: CORS(origin) });
+      return new Response(JSON.stringify({ error: `Unsupported content-type: ${ct}` }), { status: 415, headers: corsHeaders });
     }
 
     // ---- 2) size guard ----
     if ((blob?.size ?? 0) > 8_000_000) {
-      return new Response(JSON.stringify({ error: 'Chunk too large (max 8MB)' }), { status: 413, headers: CORS(origin) });
+      return new Response(JSON.stringify({ error: 'Chunk too large (max 8MB)' }), { status: 413, headers: corsHeaders });
     }
 
     if ((blob?.size ?? 0) < 1000) {
       console.log('⚠️ Very small audio chunk, skipping:', blob?.size);
       return new Response(JSON.stringify({ text: '' }), {
-        headers: { 'content-type': 'application/json', ...CORS(origin) },
+        headers: { 'content-type': 'application/json', ...corsHeaders },
       });
     }
 
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
       });
       return new Response(JSON.stringify({ error: 'Upstream STT failed', status: r.status, detail }), {
         status: 502,
-        headers: { 'content-type': 'application/json', ...CORS(origin) },
+        headers: { 'content-type': 'application/json', ...corsHeaders },
       });
     }
 
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     });
 
     return new Response(JSON.stringify({ text: data.text ?? '' }), {
-      headers: { 'content-type': 'application/json', ...CORS(origin) },
+      headers: { 'content-type': 'application/json', ...corsHeaders },
     });
 
   } catch (e) {
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     });
     return new Response(JSON.stringify({ error: 'Function crash', detail: String(e) }), {
       status: 500,
-      headers: { 'content-type': 'application/json', ...CORS(req.headers.get('origin')) },
+      headers: { 'content-type': 'application/json', ...corsHeaders },
     });
   }
 });
