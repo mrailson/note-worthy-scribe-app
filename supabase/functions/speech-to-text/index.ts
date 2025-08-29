@@ -49,12 +49,32 @@ serve(async (req) => {
       
       console.log('✅ Audio conversion successful:', {
         binaryLength: binaryAudio.length,
-        arrayLength: audioArray.length
+        arrayLength: audioArray.length,
+        header: Array.from(audioArray.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('')
       });
     } catch (conversionError) {
       console.error('❌ Base64 conversion failed:', conversionError);
       throw new Error(`Audio conversion failed: ${conversionError.message}`);
     }
+    
+    // Check if this is a valid WebM file by looking for WebM signature
+    const webmSignature = [0x1A, 0x45, 0xDF, 0xA3]; // WebM/EBML signature
+    const hasWebMHeader = webmSignature.every((byte, index) => audioArray[index] === byte);
+    
+    if (!hasWebMHeader) {
+      console.log('⚠️ No WebM header detected - skipping incomplete chunk');
+      // Return empty text for raw audio chunks that don't have proper container headers
+      return new Response(JSON.stringify({ 
+        text: '',
+        avg_logprob: 0,
+        no_speech_prob: 1,
+        segments: []
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    console.log('✅ Valid WebM header detected, proceeding with transcription');
     
     // Create blob and form data
     const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
