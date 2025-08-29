@@ -1235,7 +1235,16 @@ export default function TranscriptionComparison() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              onClick={state.isRecording ? onStop : onStart}
+              onClick={() => {
+                console.log(`🎯 BUTTON CLICK: ${title} - isRecording: ${state.isRecording}, calling: ${state.isRecording ? 'onStop' : 'onStart'}`);
+                if (state.isRecording) {
+                  console.log(`🛑 ${title}: Calling onStop`);
+                  onStop();
+                } else {
+                  console.log(`▶️ ${title}: Calling onStart`);
+                  onStart();
+                }
+              }}
               disabled={state.isReconnecting}
               className="flex-1"
               variant={state.isRecording ? "destructive" : "default"}
