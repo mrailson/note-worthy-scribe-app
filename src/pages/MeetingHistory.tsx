@@ -2286,8 +2286,7 @@ const MeetingHistory = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Full Page Notes Modal */}
-        {!detectDevice().isIOS && (
+        {/* Full Page Notes Modal - now available on all devices */}
         <FullPageNotesModal
           isOpen={fullPageModalOpen}
           onClose={() => {
@@ -2299,7 +2298,6 @@ const MeetingHistory = () => {
           notes={modalNotes}
           onNotesChange={setModalNotes}
         />
-        )}
 
       </div>
     </div>

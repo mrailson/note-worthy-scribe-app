@@ -729,24 +729,23 @@ export const MeetingHistoryList = ({
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                 
                 {/* Show recording warning if operation blocked */}
-                {!isResourceOperationSafe() && !isIOS && (
+                {!isResourceOperationSafe() && (
                   <RecordingWarningBanner 
                     operation="Viewing meeting notes"
                     className="mb-2"
                   />
                 )}
                 
-                {/* Hide View Notes button on iPhone to prevent recording interference */}
-                {!isIOS && (
-                  <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Block operation during recording for safety
-                    if (!isResourceOperationSafe()) {
+                {/* View Notes button - now available on all devices when not recording */}
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Block operation during recording for safety
+                  if (!isResourceOperationSafe()) {
                       toast.error("Cannot view notes while recording is active. This prevents audio interference.");
                       return;
                     }
@@ -779,7 +778,6 @@ export const MeetingHistoryList = ({
                     </Badge>
                   )}
                 </Button>
-                )}
                 
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
