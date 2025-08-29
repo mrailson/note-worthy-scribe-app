@@ -67,7 +67,23 @@ export class AssemblyAIRealtimeTranscriber {
             return;
           }
           
-          // Handle partial transcripts (real-time feedback)
+          // Handle Turn messages (AssemblyAI's real format)
+          if (data.type === 'Turn') {
+            const transcript = data.transcript?.trim();
+            if (transcript) {
+              const transcriptData: TranscriptData = {
+                text: transcript,
+                is_final: data.end_of_turn || false,
+                confidence: data.end_of_turn_confidence || 0.8
+              };
+              
+              console.log(`📝 ${data.end_of_turn ? 'Final' : 'Partial'} transcript:`, transcriptData.text);
+              this.onTranscription(transcriptData);
+            }
+            return;
+          }
+          
+          // Handle legacy format (keep for compatibility)
           if (data.message_type === 'PartialTranscript') {
             const transcript = data.text?.trim();
             if (transcript) {
@@ -83,7 +99,7 @@ export class AssemblyAIRealtimeTranscriber {
             return;
           }
           
-          // Handle final transcripts (AssemblyAI's "turn" equivalent)
+          // Handle legacy format (keep for compatibility)
           if (data.message_type === 'FinalTranscript') {
             const transcript = data.text?.trim();
             if (transcript) {
