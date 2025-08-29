@@ -73,6 +73,9 @@ const initialServiceState = (): ServiceState => ({
 
 export default function TranscriptionComparison() {
   console.log('🚀 TranscriptionComparison component loading...');
+  console.log('🌍 Component actually mounted and running!');
+  console.log('📍 Current URL:', window.location.href);
+  console.log('📋 Feature flags:', { ENABLE_DESKTOP_WHISPER, ENABLE_BROWSER_SPEECH, ENABLE_ASSEMBLY });
   
   const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState());
   const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState());
