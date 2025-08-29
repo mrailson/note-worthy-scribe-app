@@ -57,11 +57,16 @@ serve(async (req: Request) => {
       size: file.size
     });
 
-    // Ensure filename & type for OpenAI
+    // Ensure filename & type for OpenAI - clean the mime type
     const name = file.name && file.name !== "blob" ? file.name : "chunk.webm";
-    const type = file.type || "audio/webm";
+    // Remove codecs from mime type - OpenAI only accepts "audio/webm" not "audio/webm;codecs=opus"
+    const cleanType = file.type ? file.type.split(';')[0] : "audio/webm";
+    const finalType = cleanType === "audio/webm" ? "audio/webm" : "audio/webm";
+    
+    console.log("🎵 Original type:", file.type, "-> Clean type:", finalType);
+    
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type });
+    const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type: finalType });
 
     console.log("📤 Sending to OpenAI with language=en and English prompt");
     const out = new FormData();
