@@ -1733,16 +1733,16 @@ export default function TranscriptionComparison() {
         
         <ServiceCard
           title="Whisper Alternative"
-          state={whisperState}
+          state={standaloneWhisperState}
           onStart={() => {
             console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStart called!');
-            startWhisper();
+            startStandaloneWhisper();
           }}
           onStop={() => {
             console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStop called!');
-            stopWhisper();
+            stopStandaloneWhisper();
           }}
-          onClear={() => clearService('whisper')}
+          onClear={clearStandaloneWhisper}
           color="text-violet-600"
         />
         
