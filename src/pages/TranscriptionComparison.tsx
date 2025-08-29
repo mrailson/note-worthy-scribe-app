@@ -72,10 +72,10 @@ const initialServiceState = (): ServiceState => ({
 });
 
 export default function TranscriptionComparison() {
-  const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState);
-  const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState);
-  const [whisperState, setWhisperState] = useState<ServiceState>(initialServiceState);
-  const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState);
+  const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState());
+  const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState());
+  const [whisperState, setWhisperState] = useState<ServiceState>(initialServiceState());
+  const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState());
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [uploadedAudio, setUploadedAudio] = useState<File | null>(null);
