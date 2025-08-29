@@ -46,6 +46,7 @@ import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
+import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { useMeetingData } from "@/hooks/useMeetingData";
 
 interface TranscriptData {
@@ -141,6 +142,10 @@ export const MeetingRecorder = ({
   
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
+  
+  // Auto-clean state
+  const [isAutoCleaningTranscript, setIsAutoCleaningTranscript] = useState(false);
+  const [lastAutoCleanTime, setLastAutoCleanTime] = useState<Date | null>(null);
   
   
   // Meeting history state
@@ -307,6 +312,12 @@ export const MeetingRecorder = ({
       transcriptSnippetIntervalRef.current = null;
     }
     
+    // Clear auto-clean interval
+    if (autoCleanIntervalRef.current) {
+      clearInterval(autoCleanIntervalRef.current);
+      autoCleanIntervalRef.current = null;
+    }
+    
     console.log('🔄 Meeting reset completed');
     
     // Refresh page after a short delay to let the toast display
@@ -321,6 +332,7 @@ export const MeetingRecorder = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const latestCompleteTranscriptRef = useRef<string>('');
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
@@ -445,6 +457,58 @@ export const MeetingRecorder = ({
 
       audioBackupRecorder.current.stop();
     });
+  };
+
+  // Auto transcript cleaning function
+  const performAutoTranscriptClean = async () => {
+    if (isAutoCleaningTranscript || !transcript || !meetingSettings.title) {
+      return;
+    }
+
+    const wordCount = transcript.trim().split(/\s+/).length;
+    if (wordCount < 200) {
+      console.log('📋 Auto-clean skipped - transcript too short (<200 words)');
+      return;
+    }
+
+    console.log('🧹 Starting auto Deep Clean of transcript...');
+    setIsAutoCleaningTranscript(true);
+    setLastAutoCleanTime(new Date());
+
+    try {
+      toast.loading('Auto cleaning transcript...', { id: 'auto-clean' });
+      
+      const cleanedTranscript = await cleanLargeTranscript(
+        transcript,
+        meetingSettings.title,
+        (done, total) => {
+          if (total > 1) {
+            toast.loading(`Auto cleaning transcript... ${done}/${total} chunks`, { id: 'auto-clean' });
+          }
+        }
+      );
+
+      if (cleanedTranscript && cleanedTranscript !== transcript) {
+        setTranscript(cleanedTranscript);
+        onTranscriptUpdate(cleanedTranscript);
+        
+        // Update word count
+        const newWordCount = cleanedTranscript.trim().split(/\s+/).length;
+        setWordCount(newWordCount);
+        onWordCountUpdate(newWordCount);
+        
+        toast.success('Transcript auto-cleaned successfully', { id: 'auto-clean' });
+        console.log('✅ Auto Deep Clean completed');
+      } else {
+        toast.dismiss('auto-clean');
+        console.log('📋 Auto Deep Clean - no changes needed');
+      }
+    } catch (error) {
+      console.error('❌ Auto Deep Clean failed:', error);
+      toast.error('Auto clean failed - continuing with original transcript', { id: 'auto-clean' });
+    } finally {
+      setIsAutoCleaningTranscript(false);
+    }
   };
 
   // Calculate expected word count based on duration (5000 words per hour)
@@ -2497,6 +2561,15 @@ export const MeetingRecorder = ({
 
       // Start transcript snippet monitoring
       startTranscriptSnippetMonitoring();
+      
+      // Start auto-clean interval (14 minutes)
+      if (autoCleanIntervalRef.current) {
+        clearInterval(autoCleanIntervalRef.current);
+      }
+      autoCleanIntervalRef.current = setInterval(() => {
+        performAutoTranscriptClean();
+      }, 14 * 60 * 1000); // 14 minutes
+      console.log('🧹 Auto Deep Clean scheduled every 14 minutes');
 
       const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
                       useScreenShare ? `microphone + screen audio (${isChrome ? 'Chrome' : 'Edge'})` : 'microphone + system audio';
@@ -2540,6 +2613,12 @@ export const MeetingRecorder = ({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+      }
+      
+      // Stop auto-clean interval
+      if (autoCleanIntervalRef.current) {
+        clearInterval(autoCleanIntervalRef.current);
+        autoCleanIntervalRef.current = null;
       }
       
       // Stop all transcribers immediately
@@ -2692,6 +2771,12 @@ export const MeetingRecorder = ({
       intervalRef.current = null;
     }
     
+    // Stop auto-clean interval
+    if (autoCleanIntervalRef.current) {
+      clearInterval(autoCleanIntervalRef.current);
+      autoCleanIntervalRef.current = null;
+    }
+    
     // Stop transcript snippet monitoring
     if (transcriptSnippetIntervalRef.current) {
       clearInterval(transcriptSnippetIntervalRef.current);
@@ -2776,6 +2861,9 @@ export const MeetingRecorder = ({
     }
     
     console.log('🚨 VALIDATION PASSED - proceeding to save...');
+    
+    // Perform final auto-clean before saving
+    await performAutoTranscriptClean();
     
     // Check if audio backup is needed based on word count vs duration
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);

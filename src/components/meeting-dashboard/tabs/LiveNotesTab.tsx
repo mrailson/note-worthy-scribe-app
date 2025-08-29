@@ -94,8 +94,8 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
     },
     {
       id: "live_notes",
-      label: "Live Meeting Notes",
-      description: "AI-generated meeting notes updated every 10 minutes",
+      label: "Live Meeting Notes", 
+      description: "AI-generated meeting notes updated every 15 minutes",
       content: liveNotesData?.notes_content || "No live notes generated yet. Click 'Generate Live Notes' to create automated meeting notes."
     }
   ]);
@@ -186,13 +186,13 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
     };
   }, [meetingData?.id, meetingData?.user_id, toast]);
 
-  // Set up automatic note generation every 10 minutes
+  // Set up automatic note generation every 15 minutes (1 minute after Deep Clean)
   useEffect(() => {
     if (!meetingData?.id || !meetingData?.user_id) return;
 
     const generateNotesInterval = setInterval(() => {
       generateLiveNotes(false);
-    }, 10 * 60 * 1000); // 10 minutes
+    }, 15 * 60 * 1000); // 15 minutes
 
     return () => {
       clearInterval(generateNotesInterval);
