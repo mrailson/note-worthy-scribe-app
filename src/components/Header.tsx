@@ -267,6 +267,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              <BookOpen className="h-4 w-4 mr-2" />
                              Security Documentation
                           </DropdownMenuItem>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/transcription-comparison')}
+                             className="cursor-pointer py-3"
+                           >
+                             <Mic className="h-4 w-4 mr-2" />
+                             Mic and Transcript Lab
+                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                      </DropdownMenuSub>
                    )}
@@ -445,7 +452,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               <Settings className="h-4 w-4 mr-2" />
                               User Settings
                             </Button>
-                          </DrawerClose>
+                               </DrawerClose>
+                               <DrawerClose asChild>
+                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/transcription-comparison')}>
+                                   <Mic className="h-4 w-4 mr-2" />
+                                   Mic and Transcript Lab
+                                 </Button>
+                               </DrawerClose>
 
                           <DrawerClose asChild>
                            <Button variant="destructive" className="justify-start" onClick={signOut}>
