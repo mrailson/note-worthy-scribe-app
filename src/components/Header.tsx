@@ -423,22 +423,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            </DrawerClose>
                          )}
                          
-                          {isSystemAdmin && (
-                            <>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
-                                  <Wrench className="h-4 w-4 mr-2" />
-                                  Admin Dashboard
-                                </Button>
-                              </DrawerClose>
+                           {isSystemAdmin && (
+                             <>
                                <DrawerClose asChild>
-                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/security-compliance')}>
-                                   <BookOpen className="h-4 w-4 mr-2" />
-                                   Security Documentation
+                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                                   <Wrench className="h-4 w-4 mr-2" />
+                                   Admin Dashboard
                                  </Button>
                                </DrawerClose>
-                            </>
-                           )}
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" className="justify-start" onClick={() => navigate('/security-compliance')}>
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Security Documentation
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" className="justify-start" onClick={() => navigate('/transcription-comparison')}>
+                                    <Mic className="h-4 w-4 mr-2" />
+                                    Mic and Transcript Lab
+                                  </Button>
+                                </DrawerClose>
+                             </>
+                            )}
 
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
@@ -447,18 +453,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
 
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
-                              <Settings className="h-4 w-4 mr-2" />
-                              User Settings
-                            </Button>
-                               </DrawerClose>
-                               <DrawerClose asChild>
-                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/transcription-comparison')}>
-                                   <Mic className="h-4 w-4 mr-2" />
-                                   Mic and Transcript Lab
-                                 </Button>
-                               </DrawerClose>
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                               <Settings className="h-4 w-4 mr-2" />
+                               User Settings
+                             </Button>
+                           </DrawerClose>
 
                           <DrawerClose asChild>
                            <Button variant="destructive" className="justify-start" onClick={signOut}>
