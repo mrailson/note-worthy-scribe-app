@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText, Upload, ChevronDown } from 'lucide-react';
+import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download, FileText, Upload, ChevronDown, Eye } from 'lucide-react';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { toast } from 'sonner';
 import TranscriptCleanerPanel from '@/components/TranscriptCleanerPanel';
 import TranscribeCostComparison from '@/components/TranscribeCostComparison';
+import { TranscriptModal } from '@/components/TranscriptModal';
 import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
@@ -217,6 +218,12 @@ export default function TranscriptionComparison() {
   
   // NEW: Standalone Whisper state
   const [standaloneWhisperState, setStandaloneWhisperState] = useState<ServiceState>(initialServiceState());
+
+  // Modal state for each service
+  const [assemblyModalOpen, setAssemblyModalOpen] = useState(false);
+  const [deepgramModalOpen, setDeepgramModalOpen] = useState(false);
+  const [whisperModalOpen, setWhisperModalOpen] = useState(false);
+  const [browserModalOpen, setBrowserModalOpen] = useState(false);
 
   // PATCH PLAN STEP 1: New Deepgram state shape
   const [dgPartial, setDgPartial] = useState<string>("");      // rolling partial (not saved)
@@ -1509,7 +1516,8 @@ export default function TranscriptionComparison() {
     state, 
     onStart, 
     onStop, 
-    onClear, 
+    onClear,
+    onViewTranscript,
     color 
   }: { 
     title: string;
@@ -1517,6 +1525,7 @@ export default function TranscriptionComparison() {
     onStart: () => void;
     onStop: () => void;
     onClear: () => void;
+    onViewTranscript: () => void;
     color: string;
   }) => {
     const status = getServiceStatus(state);
@@ -1577,6 +1586,15 @@ export default function TranscriptionComparison() {
                 <Play className="w-4 h-4 mr-1" />
               )}
               {state.isReconnecting ? 'Reconnecting' : state.isRecording ? 'Stop' : 'Start'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onViewTranscript}
+              disabled={state.fullTranscript.trim().length === 0}
+              title="View full transcript"
+            >
+              <Eye className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
@@ -1837,6 +1855,7 @@ export default function TranscriptionComparison() {
           onStart={startAssemblyAI}
           onStop={stopAssemblyAI}
           onClear={() => clearService('assemblyai')}
+          onViewTranscript={() => setAssemblyModalOpen(true)}
           color="text-blue-600"
         />
         
@@ -1846,6 +1865,7 @@ export default function TranscriptionComparison() {
           onStart={startDeepgram}
           onStop={stopDeepgram}
           onClear={() => clearService('deepgram')}
+          onViewTranscript={() => setDeepgramModalOpen(true)}
           color="text-green-600"
         />
         
@@ -1861,6 +1881,7 @@ export default function TranscriptionComparison() {
             handleStopStandaloneWhisper();
           }}
           onClear={clearStandaloneWhisper}
+          onViewTranscript={() => setWhisperModalOpen(true)}
           color="text-pink-600"
         />
         
@@ -1870,6 +1891,7 @@ export default function TranscriptionComparison() {
           onStart={startBrowser}
           onStop={stopBrowser}
           onClear={() => clearService('browser')}
+          onViewTranscript={() => setBrowserModalOpen(true)}
           color="text-orange-600"
         />
       </div>
@@ -1918,6 +1940,43 @@ export default function TranscriptionComparison() {
         </Card>
       </Collapsible>
     </div>
+
+    {/* Transcript Modals */}
+    <TranscriptModal
+      title="AssemblyAI"
+      fullTranscript={assemblyState.fullTranscript}
+      transcripts={assemblyState.transcripts}
+      color="text-blue-600"
+      isOpen={assemblyModalOpen}
+      onOpenChange={setAssemblyModalOpen}
+    />
+
+    <TranscriptModal
+      title="Deepgram"
+      fullTranscript={finalCombined || deepgramState.fullTranscript}
+      transcripts={deepgramState.transcripts}
+      color="text-green-600"
+      isOpen={deepgramModalOpen}
+      onOpenChange={setDeepgramModalOpen}
+    />
+
+    <TranscriptModal
+      title="Standalone Whisper"
+      fullTranscript={standaloneWhisperState.fullTranscript}
+      transcripts={standaloneWhisperState.transcripts}
+      color="text-pink-600"
+      isOpen={whisperModalOpen}
+      onOpenChange={setWhisperModalOpen}
+    />
+
+    <TranscriptModal
+      title="Browser Speech"
+      fullTranscript={browserState.fullTranscript}
+      transcripts={browserState.transcripts}
+      color="text-orange-600"
+      isOpen={browserModalOpen}
+      onOpenChange={setBrowserModalOpen}
+    />
     </>
   );
 }
