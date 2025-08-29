@@ -4045,11 +4045,11 @@ export const MeetingRecorder = ({
                        </div>
                     )}
                     
-                    {/* Real-time Transcript Card - Always visible during recording */}
+                    {/* Real-time Transcript Card - Visible during recording */}
                     {isRecording && (
                       <div className="mt-4">
                         <RealtimeTranscriptCard
-                          transcriptText={transcript}
+                          transcriptText={transcript || "Listening for speech..."}
                           isRecording={isRecording}
                           wordCount={wordCount}
                           confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
@@ -4281,9 +4281,9 @@ export const MeetingRecorder = ({
 
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
-          {/* Real-time Transcript Card */}
+          {/* Real-time Transcript Card - Always visible */}
           <RealtimeTranscriptCard
-            transcriptText={transcript}
+            transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
             isRecording={isRecording}
             wordCount={wordCount}
             confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
