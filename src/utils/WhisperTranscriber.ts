@@ -85,10 +85,19 @@ export class WhisperTranscriber {
   private async uploadOnce(blob: Blob, meta?: any) {
     if (!USE_DIRECT_FETCH) throw new Error("Direct fetch disabled unexpectedly");
 
+    console.log("🚀 WHISPER: Starting upload to edge function:", {
+      blobSize: blob.size,
+      blobType: blob.type,
+      meta,
+      edgeUrl: this.edgeUrl
+    });
+
     const fd = new FormData();
     fd.append("file", blob, `chunk-${Date.now()}.webm`);
     fd.append("response_format", "verbose_json");
     fd.append("language", "en");
+
+    console.log("📡 WHISPER: Sending request to edge function...");
 
     const res = await fetch(this.edgeUrl, {
       method: "POST",
@@ -96,12 +105,33 @@ export class WhisperTranscriber {
       headers: { "x-client": "meetingmagic-web" },
     });
 
+    console.log("📨 WHISPER: Edge function response:", {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok,
+      headers: Object.fromEntries(res.headers.entries())
+    });
+
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
+      console.error("❌ WHISPER: Edge function error:", {
+        status: res.status,
+        statusText: res.statusText,
+        responseText: txt
+      });
       throw new Error(`Edge STT ${res.status}: ${txt}`);
     }
 
     const payload = await res.json();
+    console.log("✅ WHISPER: Successfully parsed response:", {
+      hasOk: 'ok' in payload,
+      ok: payload.ok,
+      hasData: 'data' in payload,
+      hasText: payload?.data?.text ? true : false,
+      textLength: payload?.data?.text?.length || 0,
+      textPreview: payload?.data?.text?.slice(0, 100)
+    });
+    
     this.onPayload?.(payload);
   }
 

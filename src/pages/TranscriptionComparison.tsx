@@ -18,7 +18,7 @@ import { mergeLive } from '@/utils/TranscriptMerge';
 import { Header } from '@/components/Header';
 
 // Feature flags - enable all services for testing
-const ENABLE_DESKTOP_WHISPER = false;
+const ENABLE_DESKTOP_WHISPER = true; // ✅ ENABLED for testing
 const ENABLE_BROWSER_SPEECH = true; // Enable Browser Speech
 const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 
@@ -248,20 +248,34 @@ export default function TranscriptionComparison() {
 
   // Whisper payload handler for new format
   const handleWhisperPayload = useCallback((payload: any) => {
-    console.log('📝 WHISPER: Received payload:', payload);
+    console.log('📨 WHISPER: Received payload from edge function:', {
+      payload,
+      hasData: !!payload?.data,
+      hasText: !!(payload?.data?.text || payload?.text),
+      textLength: (payload?.data?.text || payload?.text || '').length
+    });
     
     // Handle response format from speech-to-text-chunked
     const text = payload?.data?.text || payload?.text || '';
+    const confidence = payload?.data?.confidence || payload?.confidence || 0.95;
     
     if (text.trim()) {
+      console.log('✅ WHISPER: Processing valid transcript:', {
+        text: text.slice(0, 100) + (text.length > 100 ? '...' : ''),
+        confidence,
+        fullLength: text.length
+      });
+      
       const transcriptData: TranscriptData = {
         text: text.trim(),
         is_final: true,
-        confidence: 0.95,
+        confidence: confidence,
         speaker: 'Speaker'
       };
       
       handleWhisperTranscript(transcriptData);
+    } else {
+      console.warn('⚠️ WHISPER: Empty or invalid text in payload:', { payload });
     }
   }, []);
 
@@ -379,18 +393,20 @@ export default function TranscriptionComparison() {
       console.log('ℹ️ AssemblyAI transcriber already exists');
     }
 
-    // Initialize Whisper with new constructor (no chunked version, direct fetch only)
-    if (!whisperTranscriberRef.current) {
+    // Initialize Whisper only if enabled
+    if (ENABLE_DESKTOP_WHISPER && !whisperTranscriberRef.current) {
       console.log('🔧 Creating new Whisper transcriber with direct fetch...');
       
       whisperTranscriberRef.current = new WhisperTranscriber(
         EDGE_URL,
         (payload) => handleWhisperPayload(payload),
-        (err) => console.error('Whisper error:', err),
+        (err) => console.error('❌ Whisper error:', err),
         (status) => handleWhisperStatus(status)
       );
       
       console.log('✅ Whisper transcriber created with direct fetch');
+    } else if (!ENABLE_DESKTOP_WHISPER) {
+      console.log('🚫 Whisper disabled by feature flag');
     } else {
       console.log('ℹ️ Whisper transcriber already exists');
     }
@@ -569,54 +585,106 @@ export default function TranscriptionComparison() {
   }, [handleDeepgramTranscript]);
 
   const startWhisper = useCallback(async () => {
+    if (!ENABLE_DESKTOP_WHISPER) {
+      console.log('🚫 WHISPER: Service disabled by feature flag');
+      return;
+    }
+    
     try {
       console.log('🚀 WHISPER: Starting Whisper service...');
+      console.log('🔍 WHISPER: Current transcriber ref:', !!whisperTranscriberRef.current);
+      
       initializeServices();
-      setWhisperState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
+      
+      console.log('🔍 WHISPER: After initializeServices, transcriber ref:', !!whisperTranscriberRef.current);
+      
+      setWhisperState(prev => ({ 
+        ...prev, 
+        error: null, 
+        sessionStartTime: new Date(), 
+        sessionCount: 1,
+        isConnected: false,
+        isRecording: false
+      }));
       
       const whisper = whisperTranscriberRef.current;
       if (!whisper) {
+        console.error('❌ WHISPER: Transcriber not initialized after initializeServices');
         throw new Error('Whisper transcriber not initialized');
       }
       
       // Check MIME type support
       const supported = MediaRecorder.isTypeSupported(MIME) ? MIME : 'audio/webm';
-      console.info("Using MIME type:", supported);
+      console.log("📡 WHISPER: Using MIME type:", supported);
       
       // Get microphone access
-      console.info("Starting Whisper mic pipeline…");
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("🎤 WHISPER: Requesting microphone access...");
+      micStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        }
+      });
+      console.log("✅ WHISPER: Microphone access granted");
+      
       mediaRecorder = new MediaRecorder(micStream, { mimeType: supported });
+      console.log("🎙️ WHISPER: MediaRecorder created");
+      
+      // Reset chunk counter for new session
+      whisperChunkIdx = 0;
       
       // IMPORTANT: feed chunks into Whisper
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size) {
-          console.debug("MediaRecorder chunk:", { size: e.data.size, chunkIndex: whisperChunkIdx });
-          (whisper as WhisperTranscriber).enqueueChunk(e.data, { chunkIndex: whisperChunkIdx++ });
+          console.log("📦 WHISPER: MediaRecorder chunk received:", { 
+            size: e.data.size, 
+            chunkIndex: whisperChunkIdx,
+            type: e.data.type
+          });
+          
+          try {
+            (whisper as WhisperTranscriber).enqueueChunk(e.data, { 
+              chunkIndex: whisperChunkIdx++,
+              timestamp: Date.now()
+            });
+            console.log("✅ WHISPER: Chunk enqueued successfully");
+          } catch (error) {
+            console.error("❌ WHISPER: Failed to enqueue chunk:", error);
+            handleWhisperError(`Failed to process audio chunk: ${error}`);
+          }
+        } else {
+          console.warn("⚠️ WHISPER: Empty or invalid chunk received");
         }
       };
       
       mediaRecorder.onstart = () => {
-        console.info("MediaRecorder started (Whisper).");
+        console.log("🎬 WHISPER: MediaRecorder started successfully");
+        setWhisperState(prev => ({ ...prev, isRecording: true, isConnected: true }));
         handleWhisperStatus("Recording");
       };
       
       mediaRecorder.onerror = (ev: any) => {
-        console.error("MediaRecorder error:", ev?.error || ev);
+        console.error("❌ WHISPER: MediaRecorder error:", ev?.error || ev);
+        setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
         handleWhisperError(`MediaRecorder error: ${ev?.error || 'Unknown error'}`);
       };
       
       mediaRecorder.onstop = () => {
-        console.info("MediaRecorder stopped (Whisper).");
+        console.log("🛑 WHISPER: MediaRecorder stopped");
+        setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
         handleWhisperStatus("Stopped");
       };
       
       // Start recording with timeslice
+      console.log(`🎯 WHISPER: Starting MediaRecorder with ${TIMESLICE_MS}ms timeslice...`);
       mediaRecorder.start(TIMESLICE_MS);
-      console.info(`MediaRecorder started with ${TIMESLICE_MS}ms timeslice`);
+      console.log("✅ WHISPER: MediaRecorder start command issued");
       
     } catch (error) {
       console.error('❌ WHISPER: Start error:', error);
+      setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
       handleWhisperError(error instanceof Error ? error.message : 'Failed to start Whisper');
     }
   }, [initializeServices, handleWhisperError, handleWhisperStatus]);
@@ -742,8 +810,12 @@ export default function TranscriptionComparison() {
       console.log('Starting Deepgram...');
       await startDeepgram();
       
-      console.log('Starting Whisper...');
-      await startWhisper();
+      if (ENABLE_DESKTOP_WHISPER) {
+        console.log('Starting Whisper...');
+        await startWhisper();
+      } else {
+        console.log('🚫 Skipping Whisper (disabled)');
+      }
       
       if (ENABLE_BROWSER_SPEECH) {
         console.log('Starting Browser Speech...');
