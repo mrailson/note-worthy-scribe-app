@@ -23,6 +23,7 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const committedTextRef = useRef('');
 
   // Deepgram streaming parameters optimized for clinical use
   const DG_PARAMS = new URLSearchParams({
@@ -122,13 +123,14 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
           const transcript = data.channel.alternatives[0].transcript || '';
           
           if (data.is_final === false) {
-            // Interim results - show live preview without overwriting committed text
+            // Interim results - show current utterance with committed text
             setPendingText(transcript);
-            const fullText = committedText + (transcript ? (committedText ? ' ' : '') + transcript : '');
+            const fullText = committedTextRef.current + (transcript ? (committedTextRef.current ? ' ' : '') + transcript : '');
             onTranscriptUpdate(fullText);
           } else if (data.is_final === true && transcript.trim()) {
-            // Final results - only commit when speech is complete
-            const newCommittedText = (committedText ? committedText + ' ' : '') + transcript.trim();
+            // Final results - append to committed text permanently
+            const newCommittedText = committedTextRef.current + (committedTextRef.current ? ' ' : '') + transcript.trim();
+            committedTextRef.current = newCommittedText;
             setCommittedText(newCommittedText);
             setPendingText('');
             onTranscriptUpdate(newCommittedText);
@@ -213,6 +215,7 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
   };
 
   const clearTranscript = () => {
+    committedTextRef.current = '';
     setCommittedText('');
     setPendingText('');
     onTranscriptUpdate('');

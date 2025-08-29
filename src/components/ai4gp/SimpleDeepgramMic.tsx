@@ -25,6 +25,7 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const committedTextRef = useRef('');
 
   useEffect(() => {
     console.log('SimpleDeepgramMic useEffect - component ready');
@@ -134,14 +135,15 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
           console.log('Transcript received:', transcript, 'is_final:', data.is_final);
           
           if (data.is_final === false) {
-            // Show interim results as preview but don't commit yet
+            // Interim results - show current utterance with committed text
             setPendingText(transcript);
-            const fullText = committedText + (transcript ? (committedText ? ' ' : '') + transcript : '');
+            const fullText = committedTextRef.current + (transcript ? (committedTextRef.current ? ' ' : '') + transcript : '');
             console.log('Updating with interim:', fullText);
             onTranscriptUpdate(fullText);
           } else if (data.is_final === true && transcript.trim()) {
-            // Only commit final results to avoid overwriting
-            const newCommittedText = (committedText ? committedText + ' ' : '') + transcript.trim();
+            // Final results - append to committed text permanently  
+            const newCommittedText = committedTextRef.current + (committedTextRef.current ? ' ' : '') + transcript.trim();
+            committedTextRef.current = newCommittedText;
             setCommittedText(newCommittedText);
             setPendingText('');
             console.log('Final transcript committed:', newCommittedText);
@@ -297,6 +299,7 @@ export const SimpleDeepgramMic: React.FC<SimpleDeepgramMicProps> = ({
   };
 
   const clearTranscript = () => {
+    committedTextRef.current = '';
     setCommittedText('');
     setPendingText('');
     onTranscriptUpdate('');
