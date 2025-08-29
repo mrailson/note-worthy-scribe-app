@@ -38,6 +38,7 @@ import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucination
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
+import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 
@@ -4041,10 +4042,23 @@ export const MeetingRecorder = ({
                           <Square className="h-5 w-5 mr-2" />
                           {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
                         </Button>
+                       </div>
+                    )}
+                    
+                    {/* Real-time Transcript Card - Always visible during recording */}
+                    {isRecording && (
+                      <div className="mt-4">
+                        <RealtimeTranscriptCard
+                          transcriptText={transcript}
+                          isRecording={isRecording}
+                          wordCount={wordCount}
+                          confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+                          className="border-accent/30"
+                        />
                       </div>
-                   )}
-                   
-                     {/* Recording Audio Player - Show after recording stops (controlled by micTestServiceVisible) */}
+                    )}
+                    
+                      {/* Recording Audio Player - Show after recording stops (controlled by micTestServiceVisible) */}
                       {recordingAudioUrl && !isRecording && micTestServiceVisible && (
                        <div className="mt-4 space-y-3">
                         {/* Mixed Stereo Playback */}
@@ -4267,6 +4281,15 @@ export const MeetingRecorder = ({
 
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
+          {/* Real-time Transcript Card */}
+          <RealtimeTranscriptCard
+            transcriptText={transcript}
+            isRecording={isRecording}
+            wordCount={wordCount}
+            confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+            className="border-accent/30"
+          />
+          
           <Card className="border-accent/30">
               <CardContent className="space-y-4">
               {/* Live Transcript with Enhanced Two-Section Layout */}
