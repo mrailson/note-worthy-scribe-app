@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw } from 'lucide-react';
+import { Mic, MicOff, Loader2, Wifi, WifiOff, Play, Square, RotateCcw, Download } from 'lucide-react';
+import { generateWordDocument } from '@/utils/documentGenerators';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { WhisperTranscriber, TranscriptData } from '@/utils/WhisperTranscriber';
 import { AssemblyAIRealtimeTranscriber } from '@/utils/AssemblyAIRealtimeTranscriber';
@@ -587,6 +589,57 @@ export default function TranscriptionComparison() {
     clearService('browser');
   };
 
+  // Export consolidated transcripts to Word
+  const exportToWord = useCallback(async () => {
+    try {
+      const services = [
+        { name: 'AssemblyAI', state: assemblyState },
+        { name: 'Deepgram', state: deepgramState },
+        { name: 'Whisper', state: whisperState },
+        { name: 'Browser Speech', state: browserState }
+      ];
+
+      // Filter services with transcripts
+      const servicesWithData = services.filter(service => service.state.fullTranscript.trim().length > 0);
+      
+      if (servicesWithData.length === 0) {
+        toast.error('No transcripts available to export');
+        return;
+      }
+
+      // Create document content
+      let documentContent = `# Transcription Service Comparison Report\n\nGenerated: ${new Date().toLocaleString()}\n\n`;
+      
+      servicesWithData.forEach((service, index) => {
+        const { name, state } = service;
+        const startTime = state.sessionStartTime ? state.sessionStartTime.toLocaleString() : 'Unknown';
+        
+        documentContent += `## ${name}\n`;
+        documentContent += `**Start Date & Time:** ${startTime}\n`;
+        documentContent += `**Word Count:** ${state.wordCount}\n`;
+        documentContent += `**Average Confidence:** ${state.avgConfidence ? `${(state.avgConfidence * 100).toFixed(1)}%` : 'N/A'}\n`;
+        documentContent += `**Transcript Segments:** ${state.transcripts.length}\n\n`;
+        documentContent += `**Full Transcript:**\n${state.fullTranscript}\n\n`;
+        
+        if (index < servicesWithData.length - 1) {
+          documentContent += '---\n\n';
+        }
+      });
+
+      // Generate and download Word document
+      await generateWordDocument(
+        documentContent,
+        `Transcription_Comparison_${new Date().toISOString().split('T')[0]}`,
+        true
+      );
+      
+      toast.success('Word document exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export Word document');
+    }
+  }, [assemblyState, deepgramState, whisperState, browserState]);
+
   // Utility functions
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -793,6 +846,20 @@ export default function TranscriptionComparison() {
                 }
               >
                 Clear All Transcripts
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={exportToWord}
+                disabled={
+                  assemblyState.fullTranscript.trim().length === 0 &&
+                  deepgramState.fullTranscript.trim().length === 0 &&
+                  whisperState.fullTranscript.trim().length === 0 &&
+                  browserState.fullTranscript.trim().length === 0
+                }
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Word
               </Button>
             </div>
           </div>
