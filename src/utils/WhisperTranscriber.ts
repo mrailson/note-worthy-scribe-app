@@ -45,8 +45,16 @@ export class WhisperTranscriber {
       console.log('✅ Microphone access granted');
 
       console.log('🔧 Creating MediaRecorder...');
-      this.mediaRecorder = new MediaRecorder(this.stream, { 
-        mimeType: "audio/webm;codecs=opus" 
+      // Use specific codec settings for better chunk compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : 'audio/webm';
+      
+      console.log('🎵 Using MediaRecorder mimeType:', mimeType);
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: mimeType,
+        audioBitsPerSecond: 128000 // Set a consistent bitrate for better chunk quality
       });
 
       this.mediaRecorder.ondataavailable = async (e) => {

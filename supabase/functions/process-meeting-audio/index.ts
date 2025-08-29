@@ -66,6 +66,18 @@ serve(async (req: Request) => {
     console.log("🎵 Original type:", file.type, "-> Clean type:", finalType);
     
     const bytes = new Uint8Array(await file.arrayBuffer());
+    
+    // Validate that we have actual audio data
+    if (bytes.length === 0) {
+      console.error("❌ Empty audio file");
+      return j(400, { success: false, error: "Empty audio file provided" });
+    }
+    
+    console.log("🔍 Audio data validation:", {
+      byteLength: bytes.length,
+      firstBytes: Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ')
+    });
+    
     const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type: finalType });
 
     console.log("📤 Sending to OpenAI with language=en and English prompt");
@@ -84,6 +96,32 @@ serve(async (req: Request) => {
     console.log("📨 OpenAI response status:", resp.status);
     const bodyText = await resp.text();
     console.log("📨 OpenAI response body:", bodyText);
+    
+    // If OpenAI returns an error, parse it and return details
+    if (!resp.ok) {
+      let errorDetails = bodyText;
+      try {
+        const errorObj = JSON.parse(bodyText);
+        if (errorObj.error?.message) {
+          errorDetails = errorObj.error.message;
+        }
+      } catch (e) {
+        console.log("Failed to parse OpenAI error response");
+      }
+      
+      console.error("❌ OpenAI API error:", {
+        status: resp.status,
+        statusText: resp.statusText,
+        errorDetails: errorDetails
+      });
+      
+      return j(resp.status, { 
+        success: false, 
+        error: `OpenAI API error (${resp.status}): ${errorDetails}`,
+        openai_status: resp.status,
+        openai_error: errorDetails
+      });
+    }
     
     const headers = { ...cors, "content-type": bodyText.trim().startsWith("{") ? "application/json" : "text/plain" };
     return new Response(bodyText, { status: resp.status, headers });
