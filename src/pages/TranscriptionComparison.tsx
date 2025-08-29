@@ -87,10 +87,10 @@ export default function TranscriptionComparison() {
   
   console.log('🔍 Component state initialized - whisperState.isReconnecting:', whisperState.isReconnecting);
   // NEW: Standalone Whisper implementation
-  const [standaloneRecorder, setStandaloneRecorder] = useState<MediaRecorder | null>(null);
-  const [standaloneStream, setStandaloneStream] = useState<MediaStream | null>(null);
-  const [standaloneChunks, setStandaloneChunks] = useState<Blob[]>([]);
-  const [standaloneTimer, setStandaloneTimer] = useState<NodeJS.Timeout | null>(null);
+  const standaloneRecorderRef = useRef<MediaRecorder | null>(null);
+  const standaloneStreamRef = useRef<MediaStream | null>(null);
+  const standaloneChunksRef = useRef<Blob[]>([]);
+  const standaloneTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // NEW: Standalone Whisper functions
   const startStandaloneWhisper = useCallback(async () => {
@@ -121,7 +121,7 @@ export default function TranscriptionComparison() {
         }
       });
       
-      setStandaloneStream(stream);
+      standaloneStreamRef.current = stream;
       console.log('✅ STANDALONE WHISPER: Microphone access granted');
 
       // Create MediaRecorder
@@ -129,13 +129,14 @@ export default function TranscriptionComparison() {
         mimeType: 'audio/webm;codecs=opus'
       });
       
-      setStandaloneRecorder(recorder);
-      setStandaloneChunks([]);
+      standaloneRecorderRef.current = recorder;
+      standaloneChunksRef.current = []; // Reset chunks
 
       recorder.ondataavailable = (event) => {
         console.log('📦 STANDALONE WHISPER: Audio data available:', event.data.size, 'bytes');
         if (event.data.size > 0) {
-          setStandaloneChunks(chunks => [...chunks, event.data]);
+          standaloneChunksRef.current.push(event.data);
+          console.log('📊 STANDALONE WHISPER: Total chunks collected:', standaloneChunksRef.current.length);
         }
       };
 
@@ -156,28 +157,33 @@ export default function TranscriptionComparison() {
             timeRemaining: seconds 
           }));
         }, 1000);
-        setStandaloneTimer(timer);
+        standaloneTimerRef.current = timer;
       };
 
       recorder.onstop = async () => {
-        console.log('⏹️ STANDALONE WHISPER: Recording stopped');
+        console.log('⏹️ STANDALONE WHISPER: Recording stopped, processing chunks...');
         setStandaloneWhisperState(prev => ({ 
           ...prev, 
           isRecording: false 
         }));
         
         // Clear timer
-        if (standaloneTimer) {
-          clearInterval(standaloneTimer);
-          setStandaloneTimer(null);
+        if (standaloneTimerRef.current) {
+          clearInterval(standaloneTimerRef.current);
+          standaloneTimerRef.current = null;
         }
 
         // Process the recording
-        if (standaloneChunks.length > 0) {
-          console.log('🔄 STANDALONE WHISPER: Processing', standaloneChunks.length, 'audio chunks');
-          await processStandaloneRecording(standaloneChunks);
+        if (standaloneChunksRef.current.length > 0) {
+          console.log('🔄 STANDALONE WHISPER: Processing', standaloneChunksRef.current.length, 'audio chunks');
+          await processStandaloneRecording();
         } else {
           console.warn('⚠️ STANDALONE WHISPER: No audio chunks to process');
+          setStandaloneWhisperState(prev => ({ 
+            ...prev, 
+            error: 'No audio data recorded. Please try again.',
+            isConnected: false
+          }));
         }
       };
 
@@ -194,35 +200,38 @@ export default function TranscriptionComparison() {
         isConnected: false
       }));
     }
-  }, [standaloneChunks, standaloneTimer]);
+  }, []);
 
   const stopStandaloneWhisper = useCallback(() => {
     console.log('⏹️ STANDALONE WHISPER: Stopping recording...');
     
-    if (standaloneRecorder && standaloneRecorder.state === 'recording') {
-      standaloneRecorder.stop();
+    if (standaloneRecorderRef.current && standaloneRecorderRef.current.state === 'recording') {
+      standaloneRecorderRef.current.stop();
     }
     
-    if (standaloneStream) {
-      standaloneStream.getTracks().forEach(track => track.stop());
-      setStandaloneStream(null);
+    if (standaloneStreamRef.current) {
+      standaloneStreamRef.current.getTracks().forEach(track => track.stop());
+      standaloneStreamRef.current = null;
     }
     
-    if (standaloneTimer) {
-      clearInterval(standaloneTimer);
-      setStandaloneTimer(null);
+    if (standaloneTimerRef.current) {
+      clearInterval(standaloneTimerRef.current);
+      standaloneTimerRef.current = null;
     }
-    
-    setStandaloneRecorder(null);
-  }, [standaloneRecorder, standaloneStream, standaloneTimer]);
+  }, []);
 
-  const processStandaloneRecording = useCallback(async (audioChunks: Blob[]) => {
+  const processStandaloneRecording = useCallback(async () => {
     try {
+      const audioChunks = standaloneChunksRef.current;
       console.log('🔄 STANDALONE WHISPER: Creating audio blob from', audioChunks.length, 'chunks');
       
       // Create audio blob
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       console.log('📊 STANDALONE WHISPER: Audio blob size:', audioBlob.size, 'bytes');
+      
+      if (audioBlob.size === 0) {
+        throw new Error('No audio data recorded');
+      }
       
       // Convert to base64
       const base64Audio = await new Promise<string>((resolve, reject) => {
@@ -237,6 +246,7 @@ export default function TranscriptionComparison() {
       });
 
       console.log('📡 STANDALONE WHISPER: Sending to speech-to-text function...');
+      console.log('📏 STANDALONE WHISPER: Base64 audio length:', base64Audio.length);
       
       // Send to speech-to-text service
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
@@ -247,7 +257,7 @@ export default function TranscriptionComparison() {
 
       if (error) {
         console.error('❌ STANDALONE WHISPER: API error:', error);
-        throw new Error('Failed to transcribe audio');
+        throw new Error(`Transcription failed: ${error.message || 'Unknown error'}`);
       }
 
       const transcriptText = data?.text || '';
@@ -260,7 +270,7 @@ export default function TranscriptionComparison() {
           text: transcriptText.trim(),
           isFinal: true,
           timestamp: new Date(),
-          confidence: 0.95,
+          confidence: data?.confidence || 0.95,
           service: 'whisper'
         };
 
@@ -276,7 +286,7 @@ export default function TranscriptionComparison() {
         console.warn('⚠️ STANDALONE WHISPER: Empty transcript received');
         setStandaloneWhisperState(prev => ({ 
           ...prev, 
-          error: 'No speech detected in audio',
+          error: 'No speech detected in audio. Please speak clearly and try again.',
           isConnected: false
         }));
       }
@@ -294,7 +304,7 @@ export default function TranscriptionComparison() {
   const clearStandaloneWhisper = useCallback(() => {
     console.log('🧹 STANDALONE WHISPER: Clearing data...');
     setStandaloneWhisperState(initialServiceState());
-    setStandaloneChunks([]);
+    standaloneChunksRef.current = [];
   }, []);
 
   const [isRunningAll, setIsRunningAll] = useState(false);
