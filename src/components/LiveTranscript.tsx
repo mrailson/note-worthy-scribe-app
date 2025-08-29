@@ -37,12 +37,14 @@ import {
   Video,
   Settings,
   Copy,
-  FileDown
+  FileDown,
+  Eye
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
+import { LiveTranscriptModal } from "@/components/LiveTranscriptModal";
 
 interface Speaker {
   id: string;
@@ -109,6 +111,7 @@ export const LiveTranscript = ({
   const [isRawExpanded, setIsRawExpanded] = useState(false);
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
+  const [isLiveTranscriptModalOpen, setIsLiveTranscriptModalOpen] = useState(false);
   
   // Live meeting notes state
   const [liveNotesData, setLiveNotesData] = useState<{
@@ -941,7 +944,15 @@ export const LiveTranscript = ({
                       Live Transcript (Interim)
                     </span>
                     <Badge variant="outline" className="text-xs">may repeat</Badge>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => setIsLiveTranscriptModalOpen(true)}
+                        disabled={!liveTranscriptText}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => setIsRawExpanded(v => !v)}>
                         {isRawExpanded ? "Collapse" : "Show more"}
                       </Button>
@@ -1169,6 +1180,13 @@ export const LiveTranscript = ({
           </CollapsibleContent>
         </Collapsible>
       </Card>
+
+      {/* Live Transcript Modal */}
+      <LiveTranscriptModal 
+        isOpen={isLiveTranscriptModalOpen}
+        onOpenChange={setIsLiveTranscriptModalOpen}
+        transcriptText={liveTranscriptText}
+      />
     </div>
   );
 };
