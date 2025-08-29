@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const CORS = (origin: string | null) => ({
   'access-control-allow-origin': origin ?? '*',
   'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'content-type, authorization',
+  'access-control-allow-headers': 'content-type, authorization, x-client-info, apikey',
 });
 
 Deno.serve(async (req) => {
