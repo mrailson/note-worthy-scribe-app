@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Square, Clock, FileText, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRecording } from '@/contexts/RecordingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +25,7 @@ interface MeetingContextData {
 
 export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps> = ({ onClose }) => {
   const { user } = useAuth();
+  const { setRecordingState } = useRecording();
   const navigate = useNavigate();
   const [isRecording, setIsRecording] = useState(false);
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
@@ -165,6 +167,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       console.log('▶️ Starting MediaRecorder...');
       mediaRecorder.start(5000); // 5-second chunks
       setIsRecording(true);
+      setRecordingState(true, meeting.id); // Notify global recording context
       setRecordingTime(0);
 
       console.log('🎬 Recording started successfully, state:', mediaRecorder.state);
@@ -238,6 +241,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setRecordingState(false); // Notify global recording context
       
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

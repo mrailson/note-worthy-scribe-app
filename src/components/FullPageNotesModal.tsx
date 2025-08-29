@@ -10,8 +10,10 @@ import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
+import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRecording } from "@/contexts/RecordingContext";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -68,7 +70,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   onNotesChange
 }) => {
   const { user } = useAuth();
-  console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title);
+  const { isRecording, isResourceOperationSafe } = useRecording();
+  console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
   
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
@@ -91,14 +94,30 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
 
-  // Fetch transcript when modal opens
+  // Fetch transcript when modal opens - defer during recording to prevent interference
   useEffect(() => {
-    console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id);
+    console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'isRecording:', isRecording);
     if (isOpen && meeting?.id) {
-      console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
-      fetchTranscriptData();
+      if (isResourceOperationSafe()) {
+        console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
+        fetchTranscriptData();
+      } else {
+        console.log('⚠️ Deferring transcript fetch - recording in progress');
+        toast.info('Database operations paused during recording to prevent interference');
+        
+        // Set up a check for when recording stops
+        const checkRecordingComplete = setInterval(() => {
+          if (isResourceOperationSafe()) {
+            console.log('✅ Recording stopped, fetching deferred data');
+            fetchTranscriptData();
+            clearInterval(checkRecordingComplete);
+          }
+        }, 1000);
+        
+        return () => clearInterval(checkRecordingComplete);
+      }
     }
-  }, [isOpen, meeting?.id]);
+  }, [isOpen, meeting?.id, isResourceOperationSafe]);
 
   const fetchTranscriptData = async () => {
     if (!meeting?.id) return;
@@ -1249,6 +1268,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] max-h-screen flex flex-col fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden">
+        <RecordingWarningBanner 
+          operation="Database operations" 
+          className="mx-6 mt-6"
+        />
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-8">
             <div className="flex items-center gap-2">
