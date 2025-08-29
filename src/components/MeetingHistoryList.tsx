@@ -737,82 +737,70 @@ export const MeetingHistoryList = ({
                 )}
                 
                 {/* View Notes button - now available on all devices when not recording */}
-                <Button
-                variant="outline"
-                size="sm"
-                style={{ 
-                  minHeight: '44px', 
-                  minWidth: '44px',
-                  touchAction: 'manipulation',
-                  WebkitTouchCallout: 'none',
-                  WebkitUserSelect: 'none',
-                  userSelect: 'none'
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  // Block operation during recording for safety
-                  if (!isResourceOperationSafe()) {
-                    toast.error("Cannot view notes while recording is active. This prevents audio interference.");
-                    return;
-                  }
-                  
-                  console.log('📱 Touch end - calling onViewSummary for:', meeting.id);
-                  toast.info('Opening notes via touch...');
-                  
-                  try {
-                    onViewSummary(meeting.id);
-                  } catch (error) {
-                    console.error('❌ Error in touch handler:', error);
-                    toast.error('Failed to open notes: ' + error.message);
-                  }
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  console.log('📱 Click event - calling onViewSummary for:', meeting.id);
-                  toast.info('Opening notes via click...');
-                  
-                  // Block operation during recording for safety
-                  if (!isResourceOperationSafe()) {
-                    toast.error("Cannot view notes while recording is active. This prevents audio interference.");
-                    return;
-                  }
-                  
-                  try {
-                    onViewSummary(meeting.id);
-                  } catch (error) {
-                    console.error('❌ Error in click handler:', error);
-                    toast.error('Failed to open notes: ' + error.message);
-                  }
-                }}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
+                <div 
+                  style={{ 
+                    display: 'inline-block',
+                    minHeight: '44px',
+                    minWidth: '120px',
+                    touchAction: 'manipulation',
+                    cursor: 'pointer',
+                    border: '1px solid #ccc',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    backgroundColor: '#fff',
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    position: 'relative',
+                    zIndex: 10
+                  }}
+                  onTouchStart={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.style.backgroundColor = '#fff';
+                    
+                    console.log('📱 iPhone: Touch registered!');
+                    
+                    // Show immediate feedback
+                    setTimeout(() => {
+                      try {
+                        if (!isResourceOperationSafe()) {
+                          alert("Cannot view notes while recording is active.");
+                          return;
+                        }
+                        
+                        console.log('📱 Calling onViewSummary for meeting:', meeting.id);
+                        onViewSummary(meeting.id);
+                      } catch (error) {
+                        console.error('❌ Error:', error);
+                        alert('Error opening notes: ' + error.message);
+                      }
+                    }, 50);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('📱 Click registered!');
+                    
+                    if (!isResourceOperationSafe()) {
+                      alert("Cannot view notes while recording is active.");
+                      return;
+                    }
+                    
+                    try {
+                      onViewSummary(meeting.id);
+                    } catch (error) {
+                      console.error('❌ Error:', error);
+                      alert('Error opening notes: ' + error.message);
+                    }
+                  }}
                 >
-                  <FileText className="h-4 w-4" />
-                  <span>View Notes</span>
-                  
-                  {/* Notes Status Indicator */}
-                  {meeting.notes_generation_status === 'generating' && (
-                    <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full ml-1" />
-                  )}
-                  {meeting.notes_generation_status === 'queued' && (
-                    <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs">
-                      ⏳
-                    </Badge>
-                  )}
-                  {meeting.notes_generation_status === 'completed' && meeting.summary_exists && (
-                    <Badge variant="secondary" className="ml-1 px-1 py-0 text-xs bg-green-100 text-green-800">
-                      ✅
-                    </Badge>
-                  )}
-                  {meeting.notes_generation_status === 'failed' && (
-                    <Badge variant="destructive" className="ml-1 px-1 py-0 text-xs">
-                      ❌
-                    </Badge>
-                  )}
-                </Button>
+                  <FileText style={{ display: 'inline', width: '16px', height: '16px', marginRight: '8px' }} />
+                  View Notes
+                </div>
                 
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
