@@ -5,6 +5,7 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { detectDevice } from "@/utils/DeviceDetection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2271,6 +2272,7 @@ const MeetingHistory = () => {
         </Dialog>
 
         {/* Full Page Notes Modal */}
+        {!detectDevice().isIOS && (
         <FullPageNotesModal
           isOpen={fullPageModalOpen}
           onClose={() => {
@@ -2282,6 +2284,7 @@ const MeetingHistory = () => {
           notes={modalNotes}
           onNotesChange={setModalNotes}
         />
+        )}
 
       </div>
     </div>

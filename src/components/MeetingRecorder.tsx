@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { detectDevice } from "@/utils/DeviceDetection";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
@@ -4650,8 +4651,8 @@ export const MeetingRecorder = ({
            </div>
          )}
 
-         {/* Full Page Notes Modal */}
-         {fullPageModalOpen && modalMeeting && (
+          {/* Full Page Notes Modal */}
+          {fullPageModalOpen && modalMeeting && !detectDevice().isIOS && (
            <FullPageNotesModal
              isOpen={fullPageModalOpen}
              onClose={() => {
