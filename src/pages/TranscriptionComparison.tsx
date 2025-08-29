@@ -72,10 +72,14 @@ const initialServiceState = (): ServiceState => ({
 });
 
 export default function TranscriptionComparison() {
+  console.log('🚀 TranscriptionComparison component loading...');
+  
   const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState());
   const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState());
   const [whisperState, setWhisperState] = useState<ServiceState>(initialServiceState());
   const [browserState, setBrowserState] = useState<ServiceState>(initialServiceState());
+  
+  console.log('🔍 Component state initialized - whisperState.isReconnecting:', whisperState.isReconnecting);
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [uploadedAudio, setUploadedAudio] = useState<File | null>(null);
@@ -1498,8 +1502,14 @@ export default function TranscriptionComparison() {
         <ServiceCard
           title="Whisper"
           state={whisperState}
-          onStart={startWhisper}
-          onStop={stopWhisper}
+          onStart={() => {
+            console.log('🎯 WHISPER ServiceCard onStart called!');
+            startWhisper();
+          }}
+          onStop={() => {
+            console.log('🎯 WHISPER ServiceCard onStop called!');
+            stopWhisper();
+          }}
           onClear={() => clearService('whisper')}
           color="text-purple-600"
         />
