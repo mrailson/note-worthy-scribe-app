@@ -19,6 +19,7 @@ export class WhisperTranscriber {
   private onError: (e: any) => void;
   private onStatusChange?: (status: string) => void;
   private useSupabaseClient = false;
+  private accumulatedText = ''; // Add text accumulation
 
   constructor(edgeUrl: string, onPayload: (p: any) => void, onError: (e: any) => void, onStatusChange?: (status: string) => void) {
     if (!edgeUrl) throw new Error("WhisperTranscriber: edgeUrl required");
@@ -131,22 +132,24 @@ export class WhisperTranscriber {
       textPreview: payload?.transcript?.slice(0, 100)
     });
     
-    // Convert edge function response to expected format
+    // Convert edge function response to expected format and accumulate text
     if (payload.success !== false && payload.transcript) {
+      this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.transcript;
       const convertedPayload = {
         ok: true,
         data: {
-          text: payload.transcript,
+          text: this.accumulatedText,
           segments: []
         }
       };
       this.onPayload?.(convertedPayload);
     } else if (payload.text) {
       // Handle speech-to-text-chunked format
+      this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.text;
       const convertedPayload = {
         ok: true,
         data: {
-          text: payload.text,
+          text: this.accumulatedText,
           segments: []
         }
       };
@@ -183,5 +186,6 @@ export class WhisperTranscriber {
   clearSummary() { 
     this.q = []; // Clear the queue
     this.isDraining = false;
+    this.accumulatedText = ''; // Reset accumulated text
   }
 }

@@ -993,9 +993,9 @@ export default function TranscriptionComparison() {
         handleWhisperStatus("Stopped");
       };
       
-      // Start recording with timeslice
-      console.log(`🎯 WHISPER: Starting MediaRecorder with ${TIMESLICE_MS}ms timeslice...`);
-      mediaRecorder.start(TIMESLICE_MS);
+      // Start recording with longer timeslice for Whisper (15 seconds for complete WebM files)
+      console.log(`🎯 WHISPER: Starting MediaRecorder with 15000ms timeslice for complete WebM chunks...`);
+      mediaRecorder.start(15000); // Use 15 second chunks for Whisper
       console.log("✅ WHISPER: MediaRecorder start command issued");
       
     } catch (error) {
