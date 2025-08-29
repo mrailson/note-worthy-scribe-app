@@ -84,6 +84,7 @@ export const MeetingRecorder = ({
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const { isResourceOperationSafe } = useRecording();
+  const isIOS = detectDevice().isIOS;
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -3925,22 +3926,24 @@ export const MeetingRecorder = ({
                             </TooltipContent>
                           </Tooltip>
 
-                          {/* Dashboard Button */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => setDashboardOpen(true)}
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                              >
-                                <Monitor className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Open Meeting Dashboard</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          {/* Dashboard Button - Hidden on iPhone to prevent recording interference */}
+                          {!isIOS && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => setDashboardOpen(true)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                                >
+                                  <Monitor className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Open Meeting Dashboard</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           
                           {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
                           {!/Edg/.test(navigator.userAgent) && (
@@ -4194,27 +4197,29 @@ export const MeetingRecorder = ({
             </Card>
           </div>
           
-          {/* Meeting Controls - Bottom Center */}
-          <div className="flex justify-center items-center gap-3 pt-4">
-            <DashboardLauncher
-              isRecording={isRecording}
-              meetingData={{
-                transcript,
-                duration,
-                wordCount,
-                connectionStatus
-              }}
-            />
-            <Button 
-              onClick={resetMeeting}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-            >
-              <RotateCcw className="h-3 w-3 mr-2" />
-              Reset Meeting
-            </Button>
-          </div>
+          {/* Meeting Controls - Bottom Center - Hidden on iPhone */}
+          {!isIOS && (
+            <div className="flex justify-center items-center gap-3 pt-4">
+              <DashboardLauncher
+                isRecording={isRecording}
+                meetingData={{
+                  transcript,
+                  duration,
+                  wordCount,
+                  connectionStatus
+                }}
+              />
+              <Button 
+                onClick={resetMeeting}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-2" />
+                Reset Meeting
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
 
