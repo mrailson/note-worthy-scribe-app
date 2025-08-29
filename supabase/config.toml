@@ -30,6 +30,9 @@ verify_jwt = true
 [functions.speech-to-text]
 verify_jwt = true
 
+[functions.speech-to-text-chunked]
+verify_jwt = true
+
 [functions.update-user-password-admin]
 verify_jwt = true
 

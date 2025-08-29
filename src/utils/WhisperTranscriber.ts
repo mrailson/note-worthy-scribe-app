@@ -9,16 +9,19 @@ export interface TranscriptData {
   speaker?: string;
 }
 
+// === Non-recursive retry-safe networking + queue ===
+const BACKOFF_MS = [250, 600, 1200];
+const MAX_ATTEMPTS = 3;
+
+type UploadItem = { blob: Blob; meta?: { chunkIndex?: number } };
+
 export class WhisperTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
   private isRecording = false;
-  private chunkTimer: number | undefined = undefined;
-  private uploadQueue: Promise<void> = Promise.resolve();
-  private audioChunks: Blob[] = [];
+  private queue: UploadItem[] = [];
+  private processing = false;
   private chunkCounter = 0;
-  private networkRetryCount = 0;
-  private maxNetworkRetries = 3;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -64,17 +67,17 @@ export class WhisperTranscriber {
         audioBitsPerSecond: 128000
       });
 
-      this.mediaRecorder.ondataavailable = async (e) => {
+      this.mediaRecorder.ondataavailable = (e) => {
         console.log('📡 MediaRecorder data available:', {
           hasData: !!e.data,
           dataSize: e.data?.size || 0,
           timestamp: new Date().toISOString(),
-          chunkNumber: this.chunkCounter++
+          chunkNumber: this.chunkCounter
         });
         
         if (e.data && e.data.size > 0) {
-          // Process each complete WebM chunk immediately
-          await this.uploadChunk(e.data);
+          // Enqueue chunk - no awaits to prevent re-entrancy
+          this.enqueueChunk(e.data, { chunkIndex: this.chunkCounter++ });
         } else {
           console.warn('⚠️ No audio data available in chunk');
         }
@@ -104,146 +107,124 @@ export class WhisperTranscriber {
   }
 
 
-  private async uploadChunk(audioData: Blob) {
-    // Queue uploads to prevent concurrent requests and give OpenAI time to process
-    this.uploadQueue = this.uploadQueue.then(async () => {
-      await this.processChunkWithRetry(audioData);
-      // Add a small delay between requests to avoid overwhelming the API
-      await new Promise(resolve => setTimeout(resolve, 500));
-    });
-    return this.uploadQueue;
+  /** Call this from mediaRecorder.ondataavailable */
+  private enqueueChunk(blob: Blob, meta?: { chunkIndex?: number }) {
+    if (!blob || !blob.size) return;
+    this.queue.push({ blob, meta });
+    // Fire-and-forget; no awaits -> no accidental re-entrancy
+    this.drainQueue().catch(e => this.onError(`Queue processing error: ${e.message}`));
   }
 
-  private async processChunkWithRetry(audioData: Blob, maxRetries = 3) {
-    let delay = 300;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await this.processChunk(audioData);
-        this.networkRetryCount = 0; // Reset network retry count on success
-        return; // Success - exit retry loop
-      } catch (error) {
-        console.warn(`❌ Upload attempt ${attempt}/${maxRetries} failed:`, error);
-        
-        // Check if it's a network error
-        const isNetworkError = error instanceof Error && (
-          error.message.includes('Failed to fetch') ||
-          error.message.includes('NetworkError') ||
-          error.message.includes('ERR_NETWORK') ||
-          error.message.includes('ERR_INTERNET_DISCONNECTED')
-        );
-        
-        if (isNetworkError) {
-          this.networkRetryCount++;
-          this.onStatusChange(`Network issue detected (${this.networkRetryCount}/${this.maxNetworkRetries})`);
+  private async drainQueue() {
+    if (this.processing) return;
+    this.processing = true;
+    try {
+      while (this.queue.length) {
+        const item = this.queue.shift()!;
+        const res = await this.uploadWithRetry(() => this.uploadOnce(item));
+        // IMPORTANT: onTranscription must NOT call enqueue/process again
+        if (res?.data?.text && res.data.text.trim()) {
+          const cleanText = res.data.text.trim();
+          console.log('📝 Whisper transcription SUCCESS:', cleanText);
           
-          if (this.networkRetryCount >= this.maxNetworkRetries) {
-            console.error('❌ Max network retries reached. Stopping transcription.');
-            this.onError(`Network connectivity lost. Tried ${this.maxNetworkRetries} times.`);
-            this.stopTranscription();
-            return;
+          const transcriptData: TranscriptData = {
+            text: cleanText,
+            is_final: true,
+            confidence: res.data.confidence || 0.9,
+            speaker: 'Speaker'
+          };
+          
+          console.log('✅ Calling onTranscription with:', transcriptData);
+          this.onTranscription(transcriptData);
+          
+          if (this.onSummary) {
+            this.onSummary(cleanText);
           }
         }
         
-        if (attempt === maxRetries) {
-          console.error('❌ All retry attempts failed');
-          this.onError(`Upload failed after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          return;
-        }
-        
-        // Wait before retrying (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
+        // Add delay between requests
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+    } finally {
+      this.processing = false;
     }
   }
 
-  private async processChunk(audioData: Blob) {
-    try {
-      console.log('🔄 [v8-DIAGNOSTIC] Processing audio chunk with Supabase client...');
-      console.log('📊 Audio chunk details:', {
-        size: audioData.size,
-        type: audioData.type,
-        sizeInKB: Math.round(audioData.size / 1024),
-        timestamp: new Date().toISOString()
-      });
-      
-      this.onStatusChange('Processing...');
-      
-      // Skip very small chunks (increased threshold for WebM)
-      if (audioData.size < 5000) {
-        console.log('🔇 Skipping small audio chunk, size:', audioData.size);
-        this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
-        return;
-      }
-
-      console.log('📤 [DIAGNOSTIC] Preparing to send audio data via Supabase client...');
-      
-      // Add network connectivity check
-      if (!navigator.onLine) {
-        console.error('❌ [DIAGNOSTIC] No internet connection available');
-        throw new Error('No internet connection available');
-      }
-      
-      console.log('🌐 [DIAGNOSTIC] Network connectivity confirmed');
-      
-      // Convert Blob to ArrayBuffer for Supabase client
-      const arrayBuffer = await audioData.arrayBuffer();
-      console.log('🚀 [DIAGNOSTIC] Sending request via Supabase client...');
-      
-      // Use Supabase client which handles authentication automatically
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: {
-          audio: btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+  private async uploadWithRetry(doUpload: () => Promise<any>) {
+    let lastErr: any;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      try {
+        return await doUpload();
+      } catch (e) {
+        lastErr = e;
+        if (i < MAX_ATTEMPTS - 1) {
+          const wait = BACKOFF_MS[i] ?? BACKOFF_MS[BACKOFF_MS.length - 1];
+          console.warn(`❌ Upload attempt ${i + 1}/${MAX_ATTEMPTS} failed, retrying in ${wait}ms:`, e);
+          await new Promise(r => setTimeout(r, wait));
         }
-      });
-      
-      console.log('📥 [DIAGNOSTIC] Received response from Supabase client:', {
-        hasData: !!data,
-        hasError: !!error,
-        error: error,
-        timestamp: new Date().toISOString()
-      });
-
-      if (error) {
-        console.error('❌ Supabase function error:', error);
-        throw new Error(`Transcription failed: ${error.message || JSON.stringify(error)}`);
       }
-
-      if (data?.text && data.text.trim()) {
-        const cleanText = data.text.trim();
-        console.log('📝 Whisper transcription SUCCESS:', cleanText);
-        
-        const transcriptData: TranscriptData = {
-          text: cleanText,
-          is_final: true,
-          confidence: data.confidence || 0.9,
-          speaker: 'Speaker'
-        };
-        
-        console.log('✅ Calling onTranscription with:', transcriptData);
-        this.onTranscription(transcriptData);
-        
-        if (this.onSummary) {
-          this.onSummary(cleanText);
-        }
-      } else {
-        console.log('ℹ️ No transcript text received. Full response:', JSON.stringify(data, null, 2));
-      }
-      
-      this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
-    } catch (error) {
-      console.error('❌ [DIAGNOSTIC] Whisper processing error details:', {
-        error: error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        name: error instanceof Error ? error.name : 'Unknown error type',
-        timestamp: new Date().toISOString()
-      });
-      
-      // Re-throw error so retry logic can handle it
-      throw error;
     }
+    console.error('❌ All retry attempts failed:', lastErr);
+    throw lastErr;
+  }
+
+  /** Single network call. Never calls drainQueue/uploadWithRetry/process* */
+  private async uploadOnce(item: UploadItem) {
+    const { blob, meta } = item;
+    
+    console.log('🔄 [v8-DIAGNOSTIC] Processing audio chunk with Supabase client...');
+    console.log('📊 Audio chunk details:', {
+      size: blob.size,
+      type: blob.type,
+      sizeInKB: Math.round(blob.size / 1024),
+      timestamp: new Date().toISOString(),
+      chunkIndex: meta?.chunkIndex
+    });
+    
+    this.onStatusChange('Processing...');
+    
+    // Skip very small chunks (increased threshold for WebM)
+    if (blob.size < 5000) {
+      console.log('🔇 Skipping small audio chunk, size:', blob.size);
+      this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
+      return { data: { text: '' } }; // Return empty result for small chunks
+    }
+
+    console.log('📤 [DIAGNOSTIC] Preparing to send audio data via Supabase client...');
+    
+    // Add network connectivity check
+    if (!navigator.onLine) {
+      console.error('❌ [DIAGNOSTIC] No internet connection available');
+      throw new Error('No internet connection available');
+    }
+    
+    console.log('🌐 [DIAGNOSTIC] Network connectivity confirmed');
+    
+    // Convert Blob to ArrayBuffer for Supabase client
+    const arrayBuffer = await blob.arrayBuffer();
+    console.log('🚀 [DIAGNOSTIC] Sending request via Supabase client...');
+    
+    // Use Supabase client which handles authentication automatically
+    const { data, error } = await supabase.functions.invoke('speech-to-text', {
+      body: {
+        audio: btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      }
+    });
+    
+    console.log('📥 [DIAGNOSTIC] Received response from Supabase client:', {
+      hasData: !!data,
+      hasError: !!error,
+      error: error,
+      timestamp: new Date().toISOString()
+    });
+
+    if (error) {
+      console.error('❌ Supabase function error:', error);
+      throw new Error(`Transcription failed: ${error.message || JSON.stringify(error)}`);
+    }
+    
+    this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
+    return { data };
   }
 
   stopTranscription() {
@@ -262,8 +243,9 @@ export class WhisperTranscriber {
     
     this.mediaRecorder = null;
     this.stream = null;
-    this.audioChunks = [];
+    this.queue = []; // Clear the queue
     this.chunkCounter = 0;
+    this.processing = false;
     
     this.onStatusChange('Stopped');
     console.log('✅ Whisper transcription stopped');

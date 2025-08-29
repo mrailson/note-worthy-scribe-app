@@ -1,11 +1,19 @@
 import { mergeByTimestamps, segmentsToPlainText, Segment } from '@/lib/segmentMerge';
 import { WHISPER_CHUNKING as C } from '@/config/whisperChunking';
 
+// === Non-recursive retry-safe networking + queue ===
+const BACKOFF_MS = [250, 600, 1200];
+const MAX_ATTEMPTS = 3;
+
+type UploadItem = { blob: Blob; windowStartMs: number; windowEndMs: number };
+
 export class ChunkedWhisperTranscriber {
   private sessionId = crypto.randomUUID();
   private chunkIndex = 0;
   private mergedSegments: Segment[] = [];
   private fallbackText = '';
+  private queue: UploadItem[] = [];
+  private processing = false;
 
   constructor(
     private onTranscription: (data: any) => void,
@@ -14,7 +22,52 @@ export class ChunkedWhisperTranscriber {
     private onSummary?: (summary: string) => void
   ) {}
 
-  async uploadWindow(blob: Blob, windowStartMs: number, windowEndMs: number) {
+  /** Call this to enqueue a window for processing */
+  enqueueWindow(blob: Blob, windowStartMs: number, windowEndMs: number) {
+    if (!blob || !blob.size) return;
+    this.queue.push({ blob, windowStartMs, windowEndMs });
+    // Fire-and-forget; no awaits -> no accidental re-entrancy
+    this.drainQueue().catch(e => this.onError(`Queue processing error: ${e.message}`));
+  }
+
+  private async drainQueue() {
+    if (this.processing) return;
+    this.processing = true;
+    try {
+      while (this.queue.length) {
+        const item = this.queue.shift()!;
+        const res = await this.uploadWithRetry(() => this.uploadOnce(item));
+        // Handle the response and call onTranscription
+        const result = this.handleProviderPayload(res);
+        this.onTranscription(result);
+      }
+    } finally {
+      this.processing = false;
+    }
+  }
+
+  private async uploadWithRetry(doUpload: () => Promise<any>) {
+    let lastErr: any;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      try {
+        return await doUpload();
+      } catch (e) {
+        lastErr = e;
+        if (i < MAX_ATTEMPTS - 1) {
+          const wait = BACKOFF_MS[i] ?? BACKOFF_MS[BACKOFF_MS.length - 1];
+          console.warn(`❌ Chunked upload attempt ${i + 1}/${MAX_ATTEMPTS} failed, retrying in ${wait}ms:`, e);
+          await new Promise(r => setTimeout(r, wait));
+        }
+      }
+    }
+    console.error('❌ All chunked retry attempts failed:', lastErr);
+    throw lastErr;
+  }
+
+  /** Single network call. Never calls drainQueue/uploadWithRetry/process* */
+  private async uploadOnce(item: UploadItem) {
+    const { blob, windowStartMs, windowEndMs } = item;
+    
     const fd = new FormData();
     fd.append('file', blob, `chunk-${this.chunkIndex}.webm`);
     fd.append('mimeType', C.mimeType);
@@ -74,10 +127,12 @@ export class ChunkedWhisperTranscriber {
   
   stopTranscription() { 
     this.onStatusChange('Stopping chunked transcription...');
+    this.queue = []; // Clear any pending uploads
+    this.processing = false;
   }
   
   isActive() { 
-    return false; 
+    return this.processing || this.queue.length > 0; 
   }
   
   clearSummary() { 
@@ -85,5 +140,7 @@ export class ChunkedWhisperTranscriber {
     this.fallbackText = '';
     this.sessionId = crypto.randomUUID();
     this.chunkIndex = 0;
+    this.queue = []; // Clear the queue
+    this.processing = false;
   }
 }
