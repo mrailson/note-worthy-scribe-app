@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mic, MicOff, Loader2, Smartphone, Bot, Radio, Headphones, Monitor, Download } from 'lucide-react';
-import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
+import { DeepgramTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramTranscriber';
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { OpenAIRealtimeTranscriber, TranscriptData as OpenAITranscriptData } from '@/utils/OpenAIRealtimeTranscriber';
 import { WhisperTranscriber, TranscriptData as WhisperTranscriptData } from '@/utils/WhisperTranscriber';
@@ -202,7 +202,7 @@ const DeepgramTest = () => {
           );
           break;
         case 'deepgram':
-          transcriber = new DeepgramRealtimeTranscriber(
+          transcriber = new DeepgramTranscriber(
             callbacks.onTranscription,
             callbacks.onError,
             callbacks.onStatusChange,
