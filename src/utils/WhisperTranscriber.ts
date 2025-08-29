@@ -14,6 +14,7 @@ export class WhisperTranscriber {
   private stream: MediaStream | null = null;
   private isRecording = false;
   private chunkTimer: number | undefined = undefined;
+  private uploadQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -125,8 +126,37 @@ export class WhisperTranscriber {
   }
 
   private async uploadChunk(audioData: Blob) {
+    // Queue uploads to prevent concurrent requests that cause 500 errors
+    this.uploadQueue = this.uploadQueue.then(() => this.processChunkWithRetry(audioData));
+    return this.uploadQueue;
+  }
+
+  private async processChunkWithRetry(audioData: Blob, maxRetries = 3) {
+    let delay = 300;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.processChunk(audioData);
+        return; // Success - exit retry loop
+      } catch (error) {
+        console.warn(`❌ Upload attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        if (attempt === maxRetries) {
+          console.error('❌ All retry attempts failed');
+          this.onError(`Upload failed after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          return;
+        }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
+  }
+
+  private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v2] Processing audio chunk with speech-to-text function...');
+      console.log('🔄 [v3] Processing audio chunk with speech-to-text function...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -184,8 +214,7 @@ export class WhisperTranscriber {
           hint: error.hint || 'No hint',
           code: error.code || 'No code'
         });
-        this.onError(`Transcription failed: ${error.message || error.toString()}`);
-        return;
+        throw new Error(`Transcription failed: ${error.message || error.toString()}`);
       }
 
       if (data?.text && data.text.trim()) {
@@ -223,7 +252,8 @@ export class WhisperTranscriber {
         stack: error instanceof Error ? error.stack : 'No stack trace',
         name: error instanceof Error ? error.name : 'Unknown error type'
       });
-      this.onError(`Whisper processing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Re-throw error so retry logic can handle it
+      throw error;
     }
   }
 
