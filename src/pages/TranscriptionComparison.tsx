@@ -32,11 +32,8 @@ let progressiveTranscript = '';
 
 const MIME_OPUS = 'audio/webm;codecs=opus';
 const TIMESLICE_MS = 30000; // emits every 30s for progressive updates
-const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
-const AUTH = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`; // anon/public key
 
-console.log('🔧 STANDALONE WHISPER: Edge URL:', EDGE_URL);
-console.log('🔧 STANDALONE WHISPER: Auth configured:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+console.log('🔧 STANDALONE WHISPER: Using Supabase client for authenticated requests');
 
 // Callback to update UI from module scope
 let updateTranscriptCallback: ((text: string) => void) | null = null;
@@ -45,45 +42,45 @@ let updateTranscriptCallback: ((text: string) => void) | null = null;
 const MIME = 'audio/webm;codecs=opus';
 let whisperChunkIdx = 0;
 
-// Uploader for a single chunk (direct fetch)
+// Uploader for a single chunk (using Supabase client for proper auth)
 async function uploadChunk(blob: Blob, meta: { chunkIndex: number; isFinal?: boolean }) {
   // Skip empty chunks
   if (!blob || !blob.size) return;
+
+  console.log('📡 STANDALONE WHISPER: Uploading chunk', meta.chunkIndex, 'size:', blob.size, 'bytes');
 
   const fd = new FormData();
   fd.append('file', blob, `chunk-${meta.chunkIndex}.webm`);
   fd.append('chunkIndex', String(meta.chunkIndex));
   if (meta.isFinal) fd.append('isFinal', 'true');
 
-  const res = await fetch(EDGE_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: AUTH,
-      // DO NOT set Content-Type; FormData sets it with boundary
-    },
-    body: fd,
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('speech-to-text-chunked', {
+      body: fd
+    });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error('Whisper upload failed', res.status, text);
-    throw new Error(`Whisper upload ${res.status}`);
-  }
-
-  // Parse response and accumulate transcript
-  const data = await res.json().catch(() => null);
-  if (data?.text) {
-    progressiveTranscript += ' ' + data.text;
-    console.debug('Progressive transcript updated:', data.text);
-    
-    // Update UI if callback is set
-    if (updateTranscriptCallback) {
-      updateTranscriptCallback(progressiveTranscript.trim());
+    if (error) {
+      console.error('❌ STANDALONE WHISPER: Supabase function error:', error);
+      throw error;
     }
-  }
 
-  console.debug('Whisper chunk uploaded successfully');
-  return data;
+    // Parse response and accumulate transcript
+    if (data?.text) {
+      progressiveTranscript += ' ' + data.text;
+      console.debug('✅ STANDALONE WHISPER: Progressive transcript updated:', data.text);
+      
+      // Update UI if callback is set
+      if (updateTranscriptCallback) {
+        updateTranscriptCallback(progressiveTranscript.trim());
+      }
+    }
+
+    console.debug('✅ STANDALONE WHISPER: Chunk uploaded successfully');
+    return data;
+  } catch (error) {
+    console.error('❌ STANDALONE WHISPER: Upload failed:', error);
+    throw error;
+  }
 }
 
 // Start (bind the recorder to the uploader)
@@ -101,10 +98,9 @@ export async function startStandaloneWhisper() {
     try {
       if (!e.data || !e.data.size) return;
       console.log('📦 STANDALONE WHISPER: Audio data available:', e.data.size, 'bytes');
-      console.log('📡 STANDALONE WHISPER: Uploading chunk', chunkIndex, 'to:', EDGE_URL);
       await uploadChunk(e.data, { chunkIndex });
     } catch (err) {
-      console.error('Upload error on chunk', chunkIndex, err);
+      console.error('❌ STANDALONE WHISPER: Upload error on chunk', chunkIndex, err);
     } finally {
       chunkIndex += 1;
     }
@@ -583,7 +579,7 @@ export default function TranscriptionComparison() {
       console.log('🔧 Creating new Whisper transcriber with direct fetch...');
       
       whisperTranscriberRef.current = new WhisperTranscriber(
-        EDGE_URL,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text`,
         (payload) => handleWhisperPayload(payload),
         (err) => console.error('❌ Whisper error:', err),
         (status) => handleWhisperStatus(status)
