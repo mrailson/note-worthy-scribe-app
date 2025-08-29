@@ -50,6 +50,7 @@ export class AssemblyAIRealtimeTranscriber {
         try {
           const data = JSON.parse(event.data);
           console.log('📝 AssemblyAI message received:', data);
+          console.log('📝 Message type:', data.message_type, 'Type:', data.type);
           
           // Handle different message types from AssemblyAI
           if (data.type === 'error') {
