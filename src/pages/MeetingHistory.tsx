@@ -139,6 +139,7 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 
 const MeetingHistory = () => {
   const { user } = useAuth();
+  const { isResourceOperationSafe } = useRecording(); // Move hook to top level
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -203,7 +204,6 @@ const MeetingHistory = () => {
     console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
     
     // Block operation during recording to prevent interference
-    const { isResourceOperationSafe } = useRecording();
     if (!isResourceOperationSafe()) {
       toast.error("Cannot view notes while recording is active. This prevents audio interference.");
       return;
@@ -504,7 +504,6 @@ const MeetingHistory = () => {
     }
 
     // Block operation during recording to prevent interference
-    const { isResourceOperationSafe } = useRecording();
     if (!isResourceOperationSafe()) {
       toast.error("Cannot view transcript while recording is active. This prevents audio interference.");
       return;
