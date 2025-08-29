@@ -1515,6 +1515,21 @@ export default function TranscriptionComparison() {
         />
         
         <ServiceCard
+          title="Whisper Alternative"
+          state={whisperState}
+          onStart={() => {
+            console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStart called!');
+            startWhisper();
+          }}
+          onStop={() => {
+            console.log('🎯 WHISPER ALTERNATIVE ServiceCard onStop called!');
+            stopWhisper();
+          }}
+          onClear={() => clearService('whisper')}
+          color="text-violet-600"
+        />
+        
+        <ServiceCard
           title="Browser Speech"
           state={browserState}
           onStart={startBrowser}
