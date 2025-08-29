@@ -84,11 +84,10 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     agenda: "",
     date: format(new Date(), 'yyyy-MM-dd'),
     startTime: generateRoundedStartTime(),
-    transcriberService: "whisper" as "whisper" | "deepgram" | "assemblyai",
+    transcriberService: "whisper" as "whisper" | "deepgram",
     transcriberThresholds: {
       whisper: 0.75,
-      deepgram: 0.80,
-      assemblyai: 0.85
+      deepgram: 0.80
     }
   });
 
@@ -422,14 +421,10 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whisper">Whisper (OpenAI)</SelectItem>
-                  <SelectItem value="assemblyai">AssemblyAI</SelectItem>
-                  <SelectItem value="deepgram">Deepgram</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {settings.transcriberService === 'whisper' && 'Using Whisper (OpenAI) for high-quality speech-to-text transcription.'}
-                {settings.transcriberService === 'assemblyai' && 'Using AssemblyAI for real-time speech-to-text transcription with high accuracy.'}
-                {settings.transcriberService === 'deepgram' && 'Using Deepgram for fast real-time speech-to-text transcription.'}
+                Using Whisper (OpenAI) for high-quality speech-to-text transcription.
               </p>
             </div>
 
@@ -455,8 +450,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                       transcriberThresholds: {
                         ...prev.transcriberThresholds,
                         whisper: newValue,
-                        deepgram: prev.transcriberThresholds?.deepgram || 0.80,
-                        assemblyai: prev.transcriberThresholds?.assemblyai || 0.85
+                        deepgram: prev.transcriberThresholds?.deepgram || 0.80
                       }
                     }));
                     onSettingsChange({
@@ -470,40 +464,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   className="text-xs"
                 />
               </div>
-              
-              {settings.transcriberService === 'assemblyai' && (
-                <div className="space-y-2">
-                  <Label htmlFor="assemblyai-threshold" className="text-xs">AssemblyAI Min Confidence</Label>
-                  <Input
-                    id="assemblyai-threshold"
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={settings.transcriberThresholds?.assemblyai || 0.85}
-                    onChange={(e) => {
-                      const newValue = Number(e.target.value);
-                      setSettings(prev => ({
-                        ...prev,
-                        transcriberThresholds: {
-                          ...prev.transcriberThresholds,
-                          whisper: prev.transcriberThresholds?.whisper || 0.75,
-                          deepgram: prev.transcriberThresholds?.deepgram || 0.80,
-                          assemblyai: newValue
-                        }
-                      }));
-                      onSettingsChange({
-                        ...settings,
-                        transcriberThresholds: {
-                          ...settings.transcriberThresholds,
-                          assemblyai: newValue,
-                        }
-                      });
-                    }}
-                    className="text-xs"
-                  />
-                </div>
-              )}
             </div>
 
             {/* Meeting Description */}

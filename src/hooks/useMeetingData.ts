@@ -29,8 +29,7 @@ export const useMeetingData = () => {
     transcriberService: "whisper",
     transcriberThresholds: {
       whisper: 0.75,
-      deepgram: 0.80,
-      assemblyai: 0.85
+      deepgram: 0.80
     }
   });
 
@@ -198,8 +197,7 @@ export const useMeetingData = () => {
           transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
           transcriberThresholds: {
             whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
-            deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80,
-            assemblyai: savedSettings.transcriberThresholds?.assemblyai || 0.85
+            deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
           }
         }));
       } else {
@@ -219,8 +217,7 @@ export const useMeetingData = () => {
             transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
             transcriberThresholds: {
               whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
-              deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80,
-              assemblyai: savedSettings.transcriberThresholds?.assemblyai || 0.85
+              deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
             }
           }));
         } else {

@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AssemblyAIRealtimeTranscriber, TranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 
 interface AttendeeInfo {
   id: string;
@@ -62,12 +61,6 @@ interface MeetingRecorderProps {
     attendees: string;
     practiceId: string;
     meetingFormat: string;
-    transcriberService?: 'whisper' | 'deepgram' | 'assemblyai';
-    transcriberThresholds?: {
-      whisper: number;
-      deepgram: number;
-      assemblyai: number;
-    };
   };
 }
 
@@ -92,11 +85,6 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   const [transcript, setTranscript] = useState('');
   const [transcriptEntries, setTranscriptEntries] = useState<TranscriptEntry[]>([]);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcriptionStatus, setTranscriptionStatus] = useState('Ready');
-  
-  // Transcriber references
-  const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
-  const selectedServiceRef = useRef<'whisper' | 'deepgram' | 'assemblyai'>('whisper');
   
   // Audio references
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -123,9 +111,6 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   useEffect(() => {
     if (initialSettings?.title) {
       setMeetingTitle(initialSettings.title);
-    }
-    if (initialSettings?.transcriberService) {
-      selectedServiceRef.current = initialSettings.transcriberService;
     }
   }, [initialSettings]);
 
@@ -157,85 +142,7 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
   }, []);
 
-  // Initialize transcriber based on selected service
-  const initializeTranscriber = useCallback(() => {
-    const service = selectedServiceRef.current;
-    console.log('🔄 Initializing transcriber for service:', service);
-    
-    if (service === 'assemblyai') {
-      assemblyTranscriberRef.current = new AssemblyAIRealtimeTranscriber(
-        (data: TranscriptData) => {
-          console.log('📝 AssemblyAI transcription received:', data);
-          const minConfidence = initialSettings?.transcriberThresholds?.assemblyai || 0.85;
-          
-          if (data.confidence >= minConfidence) {
-            const entry: TranscriptEntry = {
-              id: `entry-${Date.now()}-${Math.random()}`,
-              timestamp: new Date(),
-              text: data.text,
-              confidence: data.confidence
-            };
-            
-            if (data.is_final) {
-              console.log('✅ Final transcript entry:', entry.text);
-              setTranscriptEntries(prev => [...prev, entry]);
-              setTranscript(prev => prev + (prev ? ' ' : '') + data.text);
-            }
-          } else {
-            console.log('⚠️ Transcript confidence too low:', data.confidence, 'min:', minConfidence);
-          }
-        },
-        (error: string) => {
-          console.error('❌ AssemblyAI error:', error);
-          toast.error(`Transcription error: ${error}`);
-          setTranscriptionStatus('Error');
-        },
-        (status: string) => {
-          console.log('📊 AssemblyAI status:', status);
-          setTranscriptionStatus(status);
-        }
-      );
-    }
-  }, [initialSettings?.transcriberThresholds?.assemblyai]);
-
-  // Initialize audio context and analyzer  
-  const startTranscription = useCallback(async () => {
-    const service = selectedServiceRef.current;
-    console.log('🚀 Starting transcription with service:', service);
-    
-    try {
-      if (service === 'assemblyai') {
-        if (!assemblyTranscriberRef.current) {
-          initializeTranscriber();
-        }
-        
-        if (assemblyTranscriberRef.current) {
-          await assemblyTranscriberRef.current.startTranscription();
-          console.log('✅ AssemblyAI transcription started');
-        }
-      } else {
-        // For Whisper, we'll use the existing chunk-based approach
-        console.log('✅ Whisper transcription ready (chunk-based)');
-        setTranscriptionStatus('Ready for chunks');
-      }
-    } catch (error) {
-      console.error('❌ Failed to start transcription:', error);
-      toast.error('Failed to start transcription');
-      setTranscriptionStatus('Error');
-    }
-  }, [initializeTranscriber]);
-
-  // Stop transcription
-  const stopTranscription = useCallback(() => {
-    console.log('🛑 Stopping transcription for service:', selectedServiceRef.current);
-    
-    if (assemblyTranscriberRef.current) {
-      assemblyTranscriberRef.current.stopTranscription();
-      assemblyTranscriberRef.current = null;
-    }
-    
-    setTranscriptionStatus('Stopped');
-  }, []);
+  // Initialize audio context and analyzer
   const setupAudioAnalyzer = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -279,11 +186,8 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunks.push(event.data);
-          // Send chunk for real-time transcription based on selected service
-          if (selectedServiceRef.current === 'whisper') {
-            processAudioChunk(event.data);
-          }
-          // AssemblyAI handles audio streaming via its own capture mechanism
+          // Send chunk for real-time transcription
+          processAudioChunk(event.data);
         }
       };
 
@@ -299,9 +203,6 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       setIsRecording(true);
       setIsPaused(false);
       setIsTranscribing(true);
-      
-      // Start transcription service
-      await startTranscription();
       
       // Start duration timer
       durationIntervalRef.current = setInterval(() => {
@@ -334,19 +235,14 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       console.error('Error starting recording:', error);
       toast.error('Failed to start recording');
     }
-  }, [meetingTitle, attendees, setupAudioAnalyzer, updateAudioLevel, isPaused, startTranscription]);
+  }, [meetingTitle, attendees, setupAudioAnalyzer, updateAudioLevel, isPaused]);
 
-  // Process audio chunk for transcription (Whisper only)
+  // Process audio chunk for transcription
   const processAudioChunk = useCallback(async (audioBlob: Blob) => {
-    if (selectedServiceRef.current !== 'whisper') {
-      return; // Only process chunks for Whisper
-    }
-    
     try {
       const reader = new FileReader();
       reader.onload = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        const minConfidence = initialSettings?.transcriberThresholds?.whisper || 0.75;
 
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
           body: {
@@ -357,12 +253,12 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         });
 
         if (error) {
-          console.error('Whisper transcription error:', error);
+          console.error('Transcription error:', error);
           return;
         }
 
         const text = data.text?.trim();
-        if (text && text.length > 0 && (data.confidence || 1) >= minConfidence) {
+        if (text && text.length > 0) {
           const entry: TranscriptEntry = {
             id: `entry-${Date.now()}`,
             timestamp: new Date(),
@@ -379,7 +275,7 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     } catch (error) {
       console.error('Error processing audio chunk:', error);
     }
-  }, [initialSettings?.transcriberThresholds?.whisper]);
+  }, []);
 
   // Pause recording
   const pauseRecording = useCallback(() => {
@@ -443,9 +339,6 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     setIsPaused(false);
     setIsTranscribing(false);
     setAudioLevel(0);
-    
-    // Stop transcription service
-    stopTranscription();
 
     if (currentSession) {
       setCurrentSession(prev => prev ? {
@@ -458,7 +351,7 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     }
 
     toast.success('Recording stopped');
-  }, [duration, transcript, currentSession, stopTranscription]);
+  }, [duration, transcript, currentSession]);
 
   // Save recording session
   const saveRecordingSession = useCallback(async (audioBlob: Blob) => {
@@ -566,9 +459,6 @@ ${transcriptEntries.map(entry =>
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Stop transcription services
-      stopTranscription();
-      
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -582,7 +472,7 @@ ${transcriptEntries.map(entry =>
         audioContextRef.current.close();
       }
     };
-  }, [stopTranscription]);
+  }, []);
 
   return (
     <div className="space-y-6 p-6">
@@ -720,20 +610,15 @@ ${transcriptEntries.map(entry =>
       {/* Live Transcript */}
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Live Transcript
-              {isTranscribing && (
-                <Badge variant="outline" className="animate-pulse">
-                  {transcriptionStatus}
-                </Badge>
-              )}
-              <Badge variant="secondary" className="ml-auto">
-                {selectedServiceRef.current === 'whisper' && 'Whisper'}
-                {selectedServiceRef.current === 'assemblyai' && 'AssemblyAI'}
-                {selectedServiceRef.current === 'deepgram' && 'Deepgram'}
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Live Transcript
+            {isTranscribing && (
+              <Badge variant="outline" className="animate-pulse">
+                Transcribing...
               </Badge>
-            </CardTitle>
+            )}
+          </CardTitle>
           <CardDescription>Real-time transcription of your meeting</CardDescription>
         </CardHeader>
         <CardContent>
