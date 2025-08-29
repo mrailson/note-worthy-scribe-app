@@ -199,6 +199,7 @@ const MeetingHistory = () => {
 
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
+    console.log('🔍 Current user:', user?.id);
     console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
     
     // Block operation during recording to prevent interference
@@ -209,15 +210,29 @@ const MeetingHistory = () => {
     }
     
     try {
-      // Fetch meeting details with notes generation status
+      console.log('🔍 Fetching meeting details for:', meetingId);
+      
+      // Fetch meeting details with notes generation status - use maybeSingle to avoid errors
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup, notes_generation_status')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (meetingError) throw meetingError;
+      console.log('🔍 Meeting query result:', { meeting, meetingError });
+
+      if (meetingError) {
+        console.error('❌ Meeting query error:', meetingError);
+        throw meetingError;
+      }
+      
+      if (!meeting) {
+        console.error('❌ No meeting found for id:', meetingId);
+        toast.error("Meeting not found or you don't have access to it");
+        return;
+      }
+      
       console.log('🔍 Meeting data fetched:', meeting);
       console.log('🔍 Notes generation status:', meeting.notes_generation_status);
 
@@ -227,6 +242,10 @@ const MeetingHistory = () => {
         .select('*')
         .eq('meeting_id', meetingId)
         .maybeSingle();
+      
+      if (summaryError) {
+        console.error('❌ Summary query error:', summaryError);
+      }
       
       console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
       
@@ -253,11 +272,13 @@ const MeetingHistory = () => {
           case 'failed':
             notesToShow = '❌ Notes generation failed\n\nWe encountered an issue generating your notes automatically. You can try regenerating them manually.';
             break;
+          default:
+            notesToShow = 'No meeting notes available yet. Click "Generate Notes" to create them.';
         }
       }
       
       // Set all modal states together using React's batching
-      console.log('🔍 Setting all modal states together...');
+      console.log('🔍 Setting modal states and opening modal...');
       
       // Use React 18's automatic batching by setting states in sequence
       setModalMeeting(meeting);
@@ -266,6 +287,7 @@ const MeetingHistory = () => {
       // Use setTimeout to ensure state updates are applied before opening modal
       setTimeout(() => {
         console.log('📝 Opening modal with meeting:', meeting?.title);
+        console.log('📝 Modal notes length:', notesToShow?.length);
         setFullPageModalOpen(true);
         
         // Auto-trigger generation if needed
@@ -275,8 +297,9 @@ const MeetingHistory = () => {
       }, 100);
       
     } catch (error: any) {
-      console.error("❌ Error Loading Meeting:", error.message);
-      toast.error("Failed to load meeting notes");
+      console.error("❌ Error Loading Meeting:", error);
+      console.error("❌ Error details:", error.message, error.code, error.details);
+      toast.error(`Failed to load meeting notes: ${error.message}`);
     }
   };
 
@@ -488,20 +511,33 @@ const MeetingHistory = () => {
     }
 
     try {
+      console.log('🔍 Loading transcript for meeting:', meetingId);
+      
       // Reset states first
       setViewingTranscript("");
       setCleanedTranscript("");
       setCurrentMeetingForTranscript(null);
       
-      // Fetch meeting details
+      // Fetch meeting details - use maybeSingle to avoid errors
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (meetingError) throw meetingError;
+      console.log('🔍 Meeting query result for transcript:', { meeting, meetingError });
+
+      if (meetingError) {
+        console.error('❌ Meeting query error:', meetingError);
+        throw meetingError;
+      }
+      
+      if (!meeting) {
+        console.error('❌ No meeting found for transcript view:', meetingId);
+        toast.error("Meeting not found or you don't have access to it");
+        return;
+      }
 
       // Fetch transcript for the specific meeting
       const { data: transcripts, error: transcriptError } = await supabase
@@ -510,7 +546,12 @@ const MeetingHistory = () => {
         .eq('meeting_id', meetingId)
         .order('timestamp_seconds', { ascending: true });
 
-      if (transcriptError) throw transcriptError;
+      console.log('🔍 Transcript query result:', { transcriptCount: transcripts?.length, transcriptError });
+
+      if (transcriptError) {
+        console.error('❌ Transcript query error:', transcriptError);
+        throw transcriptError;
+      }
 
       // Debug: Log the raw transcripts to see what we're getting from DB
       console.log('Raw transcripts from DB:', transcripts?.length, 'records');
@@ -518,8 +559,19 @@ const MeetingHistory = () => {
         console.log(`Transcript ${i}:`, t.content.substring(0, 100) + '...');
       });
 
+      // Handle case where no transcripts exist
+      if (!transcripts || transcripts.length === 0) {
+        console.log('⚠️ No transcript found for meeting');
+        setViewingTranscript('No transcript available for this meeting.');
+        setCurrentMeetingForTranscript(meeting);
+        setTimeout(() => {
+          setTranscriptDialogOpen(true);
+        }, 50);
+        return;
+      }
+
       // Deduplicate and clean transcript content
-      const fullTranscript = deduplicateTranscript(transcripts?.map(t => t.content) || []);
+      const fullTranscript = deduplicateTranscript(transcripts.map(t => t.content));
       
       console.log('After deduplication, transcript length:', fullTranscript.length, 'chars');
       
@@ -529,11 +581,13 @@ const MeetingHistory = () => {
       
       // Use setTimeout to ensure state is updated before dialog opens
       setTimeout(() => {
+        console.log('🔍 Opening transcript dialog');
         setTranscriptDialogOpen(true);
       }, 50);
       
     } catch (error: any) {
-      console.error("Error loading transcript:", error.message);
+      console.error("❌ Error loading transcript:", error);
+      toast.error(`Failed to load transcript: ${error.message}`);
     }
   };
 
