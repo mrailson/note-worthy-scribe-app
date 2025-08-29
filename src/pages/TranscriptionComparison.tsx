@@ -1064,35 +1064,31 @@ export default function TranscriptionComparison() {
 
   const stopWhisper = useCallback(() => {
     console.log('🛑 WHISPER: Stopping Whisper service...');
-    try {
-      // Stop and clean up MediaRecorder
-      if (mediaRecorder) {
+    
+    // Stop the MediaRecorder and stream stored on the transcriber
+    const whisper = whisperTranscriberRef.current as any;
+    if (whisper) {
+      // Stop MediaRecorder
+      if (whisper.mediaRecorder) {
         try {
-          mediaRecorder.stop();
-        } catch (e) {
-          console.warn('MediaRecorder stop error:', e);
+          whisper.mediaRecorder.stop();
+          console.log('✅ WHISPER: MediaRecorder stopped');
+        } catch (error) {
+          console.error('❌ WHISPER: Error stopping MediaRecorder:', error);
         }
-        mediaRecorder = null;
+        whisper.mediaRecorder = null;
       }
       
-      // Stop and clean up microphone stream
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
+      // Clean up media stream
+      if (whisper.mediaStream) {
+        whisper.mediaStream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+        whisper.mediaStream = null;
+        console.log('✅ WHISPER: Media stream cleaned up');
       }
       
-      // Clean up Whisper transcriber
-      const whisper = whisperTranscriberRef.current;
-      if (whisper && 'stopTranscription' in whisper) {
-        whisper.stopTranscription();
-      }
-      
-      // Reset chunk index
-      whisperChunkIdx = 0;
-      
-      console.log('✅ WHISPER: Service stopped and cleaned up');
-    } catch (error) {
-      console.error('❌ WHISPER: Stop error:', error);
+      // Stop the transcriber queue processing
+      whisper.stopTranscription();
+      console.log('✅ WHISPER: Transcriber stopped');
     }
     
     setWhisperState(prev => ({ ...prev, isRecording: false, isConnected: false }));
