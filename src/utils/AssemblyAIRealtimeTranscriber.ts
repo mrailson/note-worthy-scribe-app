@@ -36,6 +36,7 @@ export class AssemblyAIRealtimeTranscriber {
       
       // Connect to our WebSocket proxy
       const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime`;
+      console.log('📡 Connecting to AssemblyAI WebSocket at:', wsUrl);
       this.ws = new WebSocket(wsUrl);
       this.ws.binaryType = 'arraybuffer';
 
@@ -70,6 +71,7 @@ export class AssemblyAIRealtimeTranscriber {
           // Handle Turn messages (AssemblyAI's real format)
           if (data.type === 'Turn') {
             const transcript = data.transcript?.trim();
+            console.log('🎯 Processing Turn message - transcript:', transcript, 'end_of_turn:', data.end_of_turn);
             if (transcript) {
               const transcriptData: TranscriptData = {
                 text: transcript,
@@ -77,8 +79,10 @@ export class AssemblyAIRealtimeTranscriber {
                 confidence: data.end_of_turn_confidence || 0.8
               };
               
-              console.log(`📝 ${data.end_of_turn ? 'Final' : 'Partial'} transcript:`, transcriptData.text);
+              console.log(`📝 ${data.end_of_turn ? 'Final' : 'Partial'} transcript calling onTranscription:`, transcriptData);
               this.onTranscription(transcriptData);
+            } else {
+              console.log('⚠️ Turn message has no transcript text');
             }
             return;
           }
@@ -131,6 +135,8 @@ export class AssemblyAIRealtimeTranscriber {
             return;
           }
           
+          console.log('❓ Unknown message type received:', data.type || data.message_type);
+          
         } catch (parseError) {
           console.error('❌ Error parsing AssemblyAI message:', parseError, 'Raw data:', event.data);
         }
@@ -142,13 +148,14 @@ export class AssemblyAIRealtimeTranscriber {
       };
 
       this.ws.onclose = (event) => {
-        console.log('🔌 AssemblyAI WebSocket closed:', event.code, event.reason);
+        console.log('🔌 AssemblyAI WebSocket closed - Code:', event.code, 'Reason:', event.reason, 'WasClean:', event.wasClean);
         this.isActive = false;
         
         if (event.code !== 1000 && this.shouldReconnect) {
           console.log('🔄 Connection lost unexpectedly, attempting reconnection...');
           this.handleReconnection();
         } else {
+          console.log('🔌 Clean WebSocket closure, not reconnecting');
           this.onStatusChange('Disconnected');
           this.cleanup();
         }
@@ -186,7 +193,7 @@ export class AssemblyAIRealtimeTranscriber {
   }
 
   stopTranscription() {
-    console.log('🛑 Stopping AssemblyAI transcription...');
+    console.log('🛑 Stopping AssemblyAI transcription... (called by user or auto-stop)');
     this.shouldReconnect = false;
     this.isActive = false;
     
@@ -198,6 +205,7 @@ export class AssemblyAIRealtimeTranscriber {
     // Send terminate message before closing
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
+        console.log('📤 Sending terminate message to AssemblyAI...');
         this.ws.send(JSON.stringify({ type: 'terminate' }));
       } catch (e) {
         console.log('Could not send terminate message:', e);
