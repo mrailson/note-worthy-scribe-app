@@ -31,9 +31,9 @@ let isStopping = false;
 let progressiveTranscript = '';
 
 const MIME_OPUS = 'audio/webm;codecs=opus';
-const TIMESLICE_MS = 30000; // emits every 30s for progressive updates
+const TIMESLICE_MS = 8000; // Reduced to 8s chunks for better reliability
 
-console.log('🔧 STANDALONE WHISPER: Using Supabase client for authenticated requests');
+console.log('🔧 STANDALONE WHISPER: Using Supabase client with 8s chunks and serialized uploads');
 
 // Callback to update UI from module scope
 let updateTranscriptCallback: ((text: string) => void) | null = null;
@@ -42,44 +42,74 @@ let updateTranscriptCallback: ((text: string) => void) | null = null;
 const MIME = 'audio/webm;codecs=opus';
 let whisperChunkIdx = 0;
 
-// Uploader for a single chunk (using Supabase client for proper auth)
+// Upload serialization - ensures only one upload at a time
+let uploadChain = Promise.resolve();
+
+// Uploader for a single chunk with retry logic and serialization
 async function uploadChunk(blob: Blob, meta: { chunkIndex: number; isFinal?: boolean }) {
-  // Skip empty chunks
-  if (!blob || !blob.size) return;
+  // Skip empty chunks unless final
+  if (!blob || (!blob.size && !meta.isFinal)) return;
 
-  console.log('📡 STANDALONE WHISPER: Uploading chunk', meta.chunkIndex, 'size:', blob.size, 'bytes');
+  console.log('📡 STANDALONE WHISPER: Queueing chunk', meta.chunkIndex, 'size:', blob.size, 'bytes');
 
-  const fd = new FormData();
-  fd.append('file', blob, `chunk-${meta.chunkIndex}.webm`);
-  fd.append('chunkIndex', String(meta.chunkIndex));
-  if (meta.isFinal) fd.append('isFinal', 'true');
+  // Serialize uploads to prevent race conditions
+  uploadChain = uploadChain.then(async () => {
+    return uploadWithRetry(blob, meta);
+  });
 
-  try {
-    const { data, error } = await supabase.functions.invoke('speech-to-text-chunked', {
-      body: fd
-    });
+  return uploadChain;
+}
 
-    if (error) {
-      console.error('❌ STANDALONE WHISPER: Supabase function error:', error);
+// Upload with retry logic for 429/5xx errors
+async function uploadWithRetry(blob: Blob, meta: { chunkIndex: number; isFinal?: boolean }, tries = 2) {
+  for (let attempt = 0; attempt <= tries; attempt++) {
+    try {
+      // Always build a typed Blob and unique filename
+      const typedBlob = new Blob([blob], { type: "audio/webm" });
+      
+      const fd = new FormData();
+      fd.append('file', typedBlob, `chunk_${meta.chunkIndex}.webm`);
+      fd.append('chunkIndex', String(meta.chunkIndex));
+      if (meta.isFinal) fd.append('isFinal', 'true');
+
+      console.log(`📡 STANDALONE WHISPER: Uploading chunk ${meta.chunkIndex} (attempt ${attempt + 1}/${tries + 1})`);
+
+      const { data, error } = await supabase.functions.invoke('speech-to-text-chunked', {
+        body: fd
+      });
+
+      if (error) {
+        console.error('❌ STANDALONE WHISPER: Supabase function error:', error);
+        throw error;
+      }
+
+      // Parse response and accumulate transcript
+      if (data?.text) {
+        progressiveTranscript += ' ' + data.text;
+        console.debug('✅ STANDALONE WHISPER: Progressive transcript updated:', data.text);
+        
+        // Update UI if callback is set
+        if (updateTranscriptCallback) {
+          updateTranscriptCallback(progressiveTranscript.trim());
+        }
+      }
+
+      console.debug('✅ STANDALONE WHISPER: Chunk uploaded successfully');
+      return data;
+
+    } catch (error: any) {
+      const errorMessage = `${error.message || ""}`;
+      
+      // Retry on 429/5xx errors
+      if (attempt < tries && /(429|502|503|504)/.test(errorMessage)) {
+        console.warn(`⚠️ STANDALONE WHISPER: Retryable error, attempt ${attempt + 1}/${tries + 1}:`, errorMessage);
+        await new Promise(r => setTimeout(r, 300 * (2 ** attempt) + Math.random() * 150));
+        continue;
+      }
+      
+      console.error('❌ STANDALONE WHISPER: Upload failed after retries:', error);
       throw error;
     }
-
-    // Parse response and accumulate transcript
-    if (data?.text) {
-      progressiveTranscript += ' ' + data.text;
-      console.debug('✅ STANDALONE WHISPER: Progressive transcript updated:', data.text);
-      
-      // Update UI if callback is set
-      if (updateTranscriptCallback) {
-        updateTranscriptCallback(progressiveTranscript.trim());
-      }
-    }
-
-    console.debug('✅ STANDALONE WHISPER: Chunk uploaded successfully');
-    return data;
-  } catch (error) {
-    console.error('❌ STANDALONE WHISPER: Upload failed:', error);
-    throw error;
   }
 }
 

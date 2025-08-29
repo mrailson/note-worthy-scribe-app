@@ -7,6 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
+const MODEL = "whisper-1";
+const MAX_BYTES = 1_000_000; // ~1MB max chunk size
+
+function sleep(ms: number) { 
+  return new Promise(r => setTimeout(r, ms)); 
+}
+
 console.log("🎙️ Speech-to-Text-Chunked Edge Function starting...");
 
 serve(async (req) => {
@@ -32,121 +40,161 @@ serve(async (req) => {
     const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAiApiKey) {
       console.error(`❌ [${requestId}] OpenAI API key not found`);
-      throw new Error('OpenAI API key not configured');
+      return new Response(JSON.stringify({ error: "missing-openai-key" }), { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     console.log(`🔑 [${requestId}] OpenAI API key found: ${openAiApiKey.slice(0, 10)}...`);
 
-    // Parse form data
+    // Parse form data - fresh FormData every request
     const formData = await req.formData();
-    const audioFile = formData.get('file') as File;
-    const chunkIndex = formData.get('chunkIndex') as string;
+    const blob = formData.get('file') as Blob | null;
+    const chunkIndex = Number(formData.get('chunkIndex') ?? 0);
     const isFinal = formData.get('isFinal') === 'true';
+    const language = formData.get('language') as string | null;
     const meetingId = formData.get('meetingId') as string;
     const sessionId = formData.get('sessionId') as string;
 
     console.log(`📋 [${requestId}] Form data parsed:`, {
-      hasAudioFile: !!audioFile,
-      fileName: audioFile?.name,
-      fileSize: audioFile?.size,
-      fileType: audioFile?.type,
+      hasAudioFile: !!blob,
+      fileSize: blob?.size,
+      fileType: blob?.type,
       chunkIndex,
       isFinal,
       meetingId,
       sessionId,
     });
 
-    if (!audioFile || audioFile.size === 0) {
+    if (!blob || typeof blob.stream !== "function") {
       if (isFinal) {
         // Final empty chunk - return success with empty result
         console.log(`🏁 [${requestId}] Final empty chunk received - session complete`);
         return new Response(JSON.stringify({
           text: '',
           isFinal: true,
-          chunkIndex: parseInt(chunkIndex || '0'),
+          chunkIndex,
           message: 'Session completed'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      console.warn(`⚠️ [${requestId}] No audio file provided or empty file`);
-      throw new Error('No audio file provided');
+      return new Response(JSON.stringify({ error: "no-file" }), { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // Convert File to Blob for OpenAI
-    const audioBlob = new Blob([await audioFile.arrayBuffer()], { 
-      type: audioFile.type || 'audio/webm' 
-    });
+    if (blob.size > MAX_BYTES) {
+      return new Response(JSON.stringify({ 
+        error: "chunk-too-large", 
+        size: blob.size,
+        maxSize: MAX_BYTES 
+      }), { 
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     console.log(`📡 [${requestId}] Sending to OpenAI Whisper API...`, {
-      audioSize: audioBlob.size,
+      audioSize: blob.size,
       chunkIndex,
       isFinal,
     });
 
-    // Prepare form data for OpenAI
-    const openaiFormData = new FormData();
-    openaiFormData.append('file', audioBlob, `chunk-${chunkIndex}.webm`);
-    openaiFormData.append('model', 'whisper-1');
-    openaiFormData.append('response_format', 'json');
+    // Build a NEW FormData payload for OpenAI every time - prevents reuse issues
+    const fd = new FormData();
+    fd.append("file", new File([blob], `chunk_${chunkIndex}.webm`, { type: "audio/webm" }));
+    fd.append("model", MODEL);
+    fd.append("response_format", "verbose_json");
+    if (language) fd.append("language", language);
 
-    // Send to OpenAI Whisper API
-    const openAiResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAiApiKey}`,
-      },
-      body: openaiFormData,
-    });
+    // Idempotency for safe retries
+    const idem = crypto.randomUUID();
 
-    console.log(`📥 [${requestId}] OpenAI API response status: ${openAiResponse.status}`);
-
-    if (!openAiResponse.ok) {
-      const errorText = await openAiResponse.text();
-      console.error(`❌ [${requestId}] OpenAI API error:`, {
-        status: openAiResponse.status,
-        statusText: openAiResponse.statusText,
-        error: errorText,
+    // Retry logic for 429/5xx from OpenAI with backoff
+    let lastErr: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await fetch(OPENAI_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openAiApiKey}`,
+          "Idempotency-Key": idem,
+        },
+        body: fd,
       });
-      throw new Error(`OpenAI API error: ${openAiResponse.status} - ${errorText}`);
+
+      const text = await res.text(); // loggable payload
+      console.log(`📥 [${requestId}] OpenAI API response status: ${res.status} (attempt ${attempt + 1})`);
+
+      if (res.ok) {
+        const result = JSON.parse(text);
+        console.log(`✅ [${requestId}] OpenAI transcription result:`, {
+          textLength: result.text?.length || 0,
+          text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
+        });
+
+        // Return the transcription result
+        const response = {
+          text: result.text || '',
+          confidence: 0.95, // Default confidence for Whisper
+          chunkIndex,
+          isFinal,
+          sessionId,
+          meetingId,
+          timestamp: new Date().toISOString(),
+        };
+
+        console.log(`📤 [${requestId}] Sending response:`, {
+          textLength: response.text.length,
+          chunkIndex: response.chunkIndex,
+          isFinal: response.isFinal,
+        });
+
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Bubble up OpenAI's error body so the client can see it
+      // If rate limited or transient, retry with backoff+jitter
+      if (res.status === 429 || res.status >= 500) {
+        lastErr = { status: res.status, body: text };
+        console.warn(`⚠️ [${requestId}] Retryable error ${res.status}, attempt ${attempt + 1}/3`);
+        await sleep(200 * (2 ** attempt) + Math.random() * 200);
+        continue;
+      }
+
+      // Non-retryable (e.g., 400 invalid file)
+      console.error(`❌ [${requestId}] Non-retryable OpenAI error:`, res.status, text);
+      return new Response(text || JSON.stringify({ error: "openai-failed" }), { 
+        status: res.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    const result = await openAiResponse.json();
-    console.log(`✅ [${requestId}] OpenAI transcription result:`, {
-      textLength: result.text?.length || 0,
-      text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
-    });
-
-    // Return the transcription result
-    const response = {
-      text: result.text || '',
-      confidence: 0.95, // Default confidence for Whisper
-      chunkIndex: parseInt(chunkIndex || '0'),
-      isFinal,
-      sessionId,
-      meetingId,
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log(`📤 [${requestId}] Sending response:`, {
-      textLength: response.text.length,
-      chunkIndex: response.chunkIndex,
-      isFinal: response.isFinal,
-    });
-
-    return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
-  } catch (error) {
-    console.error(`❌ [${requestId}] Error in speech-to-text-chunked function:`, error);
+    // After retries failed
+    console.error(`❌ [${requestId}] All retries failed:`, lastErr);
     return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error',
+      error: "openai-retry-failed", 
+      detail: lastErr 
+    }), { 
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (e) {
+    // Always return JSON with details; no generic 500 with empty body
+    console.error(`❌ [${requestId}] Edge function exception:`, e);
+    return new Response(JSON.stringify({ 
+      error: "edge-exception", 
+      message: String(e?.message || e),
       requestId 
-    }), {
+    }), { 
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
