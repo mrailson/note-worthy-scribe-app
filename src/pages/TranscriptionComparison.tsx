@@ -203,10 +203,12 @@ const initialServiceState = (): ServiceState => ({
 });
 
 export default function TranscriptionComparison() {
-  console.log('🚀 TranscriptionComparison component loading...');
-  console.log('🌍 Component actually mounted and running!');
-  console.log('📍 Current URL:', window.location.href);
-  console.log('📋 Feature flags:', { ENABLE_DESKTOP_WHISPER, ENABLE_BROWSER_SPEECH, ENABLE_ASSEMBLY });
+  useEffect(() => {
+    console.log('🚀 TranscriptionComparison component loading...');
+    console.log('🌍 Component actually mounted and running!');
+    console.log('📍 Current URL:', window.location.href);
+    console.log('📋 Feature flags:', { ENABLE_DESKTOP_WHISPER, ENABLE_BROWSER_SPEECH, ENABLE_ASSEMBLY });
+  }, []); // Empty dependency array to run only on mount
   
   const [assemblyState, setAssemblyState] = useState<ServiceState>(initialServiceState());
   const [deepgramState, setDeepgramState] = useState<ServiceState>(initialServiceState());
@@ -428,19 +430,21 @@ export default function TranscriptionComparison() {
 
       setDeepgramState(prev => {
         if (data.is_final) {
-          // Deepgram sends cumulative transcripts, so replace instead of append
-          const newWordCount = transcript.split(' ').filter(w => w.trim()).length;
+          // Deepgram sends incremental segments, not cumulative - append each segment
+          const newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
+          const newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
           
-          console.log('✅ DEEPGRAM: Replacing full transcript with cumulative final transcript:', {
-            newText: transcript.slice(0, 100) + (transcript.length > 100 ? '...' : ''),
-            fullTranscriptLength: transcript.length,
+          console.log('✅ DEEPGRAM: Appending final transcript segment:', {
+            previousLength: prev.fullTranscript.length,
+            newSegment: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : ''),
+            newTotalLength: newFullTranscript.length,
             wordCount: newWordCount
           });
 
           return {
             ...prev,
             transcripts: [...prev.transcripts, transcriptEntry],
-            fullTranscript: transcript,
+            fullTranscript: newFullTranscript,
             wordCount: newWordCount,
             avgConfidence: confidence ? 
               (prev.avgConfidence ? (prev.avgConfidence + confidence) / 2 : confidence) :

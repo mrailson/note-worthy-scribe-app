@@ -69,7 +69,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {user && (
             <h1 
               className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigate('/')}
             >
               <span className="hidden sm:inline">Notewell AI</span>
               <span className="sm:hidden">Notewell AI</span>
@@ -128,7 +128,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         </DropdownMenuItem>
                     {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
-                         onClick={() => window.location.href = '/'}
+                          onClick={() => navigate('/')}
                          className="cursor-pointer py-3"
                        >
                          <FileText className="h-4 w-4 mr-2" />
@@ -314,7 +314,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                         onClick={() => window.location.href = '/'}
+                          onClick={() => navigate('/')}
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home
@@ -345,7 +345,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            </DrawerClose>
                            {hasModuleAccess('meeting_recorder') && (
                              <DrawerClose asChild>
-                               <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
                                  <FileText className="h-4 w-4 mr-2" />
                                  Meeting Notes
                                </Button>

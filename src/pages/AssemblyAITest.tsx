@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Mic, MicOff, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface TranscriptEntry {
   id: string;
@@ -16,6 +17,7 @@ interface TranscriptEntry {
 }
 
 export default function AssemblyAITest() {
+  const navigate = useNavigate();
   const [isRecording, setIsRecording] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
@@ -414,13 +416,13 @@ export default function AssemblyAITest() {
           <div className="mt-4 flex gap-2">
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/assemblyai-test-simple'}
+              onClick={() => navigate('/assemblyai-test-simple')}
             >
               Go to Diagnostic Mode
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/transcription-comparison'}
+              onClick={() => navigate('/transcription-comparison')}
             >
               Compare All Services
             </Button>

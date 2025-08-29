@@ -106,27 +106,22 @@ export class BrowserSpeechTranscriber {
       };
 
       this.recognition.onend = () => {
-        console.log('🔄 Speech recognition ended, restarting...');
         if (this.isRecording) {
-          // Immediately restart recognition to minimize gaps
-          try {
-            if (this.recognition) {
-              this.recognition.start();
-            }
-          } catch (error) {
-            console.log('⚠️ Restart failed, retrying...', error);
-            // Fallback with minimal delay if immediate restart fails
-            setTimeout(() => {
-              if (this.isRecording && this.recognition) {
-                try {
-                  this.recognition.start();
-                } catch (retryError) {
-                  console.error('❌ Failed to restart speech recognition:', retryError);
-                  this.onError('Speech recognition restart failed');
-                }
+          console.log('🔄 Speech recognition ended, restarting...');
+          // Add delay to prevent infinite restart loops
+          setTimeout(() => {
+            if (this.isRecording && this.recognition) {
+              try {
+                this.recognition.start();
+                console.log('✅ Speech recognition restarted');
+              } catch (err) {
+                console.error('Failed to restart speech recognition:', err);
+                this.onError('Failed to restart speech recognition');
               }
-            }, 50);
-          }
+            }
+          }, 500); // 500ms delay to prevent rapid restarts
+        } else {
+          console.log('🛑 Speech recognition ended (stopped by user)');
         }
       };
 

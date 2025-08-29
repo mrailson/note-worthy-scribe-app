@@ -55,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 interface Meeting {
   id: string;
@@ -140,6 +141,7 @@ export const MeetingHistoryList = ({
   showRecordingPlayback = true,
   onRefresh
 }: MeetingHistoryListProps) => {
+  const navigate = useNavigate();
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
   console.log('🚨 Loading state:', loading);
@@ -632,7 +634,7 @@ export const MeetingHistoryList = ({
           <p className="text-muted-foreground mb-4">
             Start by creating your first meeting or adjust your search criteria.
           </p>
-          <Button onClick={() => window.location.href = '/'}>
+          <Button onClick={() => navigate('/')}>
             Create First Meeting
           </Button>
         </CardContent>

@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
+import { useNavigate } from 'react-router-dom';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -28,6 +29,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   onInsertIntoChat,
   onQuickResponse
 }) => {
+  const navigate = useNavigate();
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
@@ -180,7 +182,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 window.open(`/test-transcripts#${tab}`, '_blank');
               } else if (action.action === 'open-meeting-recorder') {
                 // Navigate to Meeting Recorder page (Index)
-                window.location.href = '/';
+                navigate('/');
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -230,7 +232,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             window.open(`/test-transcripts#${tab}`, '_blank');
                            } else if (subItem.action === 'open-meeting-recorder') {
                              // Navigate to Meeting Recorder page (Index)
-                             window.location.href = '/';
+                             navigate('/');
                           } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
