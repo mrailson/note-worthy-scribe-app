@@ -17,6 +17,8 @@ export class WhisperTranscriber {
   private uploadQueue: Promise<void> = Promise.resolve();
   private audioChunks: Blob[] = [];
   private chunkCounter = 0;
+  private networkRetryCount = 0;
+  private maxNetworkRetries = 3;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -133,9 +135,30 @@ export class WhisperTranscriber {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.processChunk(audioData);
+        this.networkRetryCount = 0; // Reset network retry count on success
         return; // Success - exit retry loop
       } catch (error) {
         console.warn(`❌ Upload attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        // Check if it's a network error
+        const isNetworkError = error instanceof Error && (
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError') ||
+          error.message.includes('ERR_NETWORK') ||
+          error.message.includes('ERR_INTERNET_DISCONNECTED')
+        );
+        
+        if (isNetworkError) {
+          this.networkRetryCount++;
+          this.onStatusChange(`Network issue detected (${this.networkRetryCount}/${this.maxNetworkRetries})`);
+          
+          if (this.networkRetryCount >= this.maxNetworkRetries) {
+            console.error('❌ Max network retries reached. Stopping transcription.');
+            this.onError(`Network connectivity lost. Tried ${this.maxNetworkRetries} times.`);
+            this.stopTranscription();
+            return;
+          }
+        }
         
         if (attempt === maxRetries) {
           console.error('❌ All retry attempts failed');
@@ -170,7 +193,15 @@ export class WhisperTranscriber {
 
       console.log('📤 Sending binary audio data directly...');
       
+      // Add network connectivity check
+      if (!navigator.onLine) {
+        throw new Error('No internet connection available');
+      }
+      
       // Send binary data directly for maximum efficiency
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text`, {
         method: 'POST',
         headers: {
@@ -178,8 +209,11 @@ export class WhisperTranscriber {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
         },
         body: audioData, // Send Blob directly
-        keepalive: true,
+        signal: controller.signal,
+        keepalive: false, // Disabled to prevent hanging requests
       });
+      
+      clearTimeout(timeoutId);
 
       // Enhanced error handling with detailed error information
       const responseText = await response.text();
@@ -207,7 +241,13 @@ export class WhisperTranscriber {
           detail: data?.detail,
           responseText: responseText.substring(0, 200)
         });
-        throw new Error(`Transcription failed: ${errorDetail}`);
+        
+        // Check for specific network/server errors that should trigger reconnection
+        if (response.status >= 500 || response.status === 0) {
+          throw new Error(`Server error: ${errorDetail}`);
+        } else {
+          throw new Error(`Transcription failed: ${errorDetail}`);
+        }
       }
 
       if (data?.text && data.text.trim()) {

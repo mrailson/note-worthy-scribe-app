@@ -13,6 +13,11 @@ export class AssemblyAIRealtimeTranscriber {
   private audioStream: { stop: () => void } | null = null;
   private isActive = false;
   private sessionId: string | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectTimeout: number | null = null;
+  private isReconnecting = false;
+  private shouldReconnect = true;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -26,6 +31,7 @@ export class AssemblyAIRealtimeTranscriber {
     console.log('🚀 Starting AssemblyAI realtime transcription...');
     
     try {
+      this.shouldReconnect = true;
       this.onStatusChange('Connecting...');
       
       // Connect to our WebSocket proxy
@@ -122,12 +128,13 @@ export class AssemblyAIRealtimeTranscriber {
         console.log('🔌 AssemblyAI WebSocket closed:', event.code, event.reason);
         this.isActive = false;
         
-        if (event.code !== 1000) { // Not a normal closure
-          this.onError('Connection closed unexpectedly');
+        if (event.code !== 1000 && this.shouldReconnect) {
+          console.log('🔄 Connection lost unexpectedly, attempting reconnection...');
+          this.handleReconnection();
+        } else {
+          this.onStatusChange('Disconnected');
+          this.cleanup();
         }
-        
-        this.onStatusChange('Disconnected');
-        this.cleanup();
       };
 
     } catch (error) {
@@ -163,7 +170,13 @@ export class AssemblyAIRealtimeTranscriber {
 
   stopTranscription() {
     console.log('🛑 Stopping AssemblyAI transcription...');
+    this.shouldReconnect = false;
     this.isActive = false;
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     
     // Send terminate message before closing
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -175,7 +188,7 @@ export class AssemblyAIRealtimeTranscriber {
     }
     
     this.cleanup();
-    this.onStatusChange('Disconnected');
+    this.onStatusChange('Stopped');
   }
 
   isRecording(): boolean {
@@ -192,6 +205,43 @@ export class AssemblyAIRealtimeTranscriber {
       this.ws.close();
       this.ws = null;
     }
+  }
+
+  private handleReconnection() {
+    if (!this.shouldReconnect || this.isReconnecting) {
+      return;
+    }
+
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('❌ Max reconnection attempts reached. Stopping.');
+      this.onError(`Failed to reconnect after ${this.maxReconnectAttempts} attempts`);
+      this.onStatusChange('Failed');
+      return;
+    }
+
+    this.isReconnecting = true;
+    this.reconnectAttempts++;
+    
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 16000);
+    
+    console.log(`🔄 Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+    this.onStatusChange(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    
+    this.reconnectTimeout = window.setTimeout(async () => {
+      if (!this.shouldReconnect) return;
+      
+      try {
+        await this.startTranscription();
+        this.reconnectAttempts = 0; // Reset on successful connection
+        this.isReconnecting = false;
+        console.log('✅ Reconnection successful');
+      } catch (error) {
+        console.error('❌ Reconnection failed:', error);
+        this.isReconnecting = false;
+        this.handleReconnection(); // Try again
+      }
+    }, delay);
   }
 
   async clearSummary() {
