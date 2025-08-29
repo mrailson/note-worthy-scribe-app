@@ -175,11 +175,12 @@ export class WhisperTranscriber {
 
   private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v6] Processing audio chunk with binary upload...');
+      console.log('🔄 [v7-DIAGNOSTIC] Processing audio chunk with binary upload...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
-        sizeInKB: Math.round(audioData.size / 1024)
+        sizeInKB: Math.round(audioData.size / 1024),
+        timestamp: new Date().toISOString()
       });
       
       this.onStatusChange('Processing...');
@@ -191,45 +192,83 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📤 Sending binary audio data directly...');
+      console.log('📤 [DIAGNOSTIC] Preparing to send binary audio data...');
       
       // Add network connectivity check
       if (!navigator.onLine) {
+        console.error('❌ [DIAGNOSTIC] No internet connection available');
         throw new Error('No internet connection available');
       }
       
+      console.log('🌐 [DIAGNOSTIC] Network connectivity confirmed');
+      
       // Send binary data directly for maximum efficiency
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => {
+        console.error('⏰ [DIAGNOSTIC] Request timed out after 30 seconds');
+        controller.abort();
+      }, 30000);
       
-      const response = await fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text`, {
+      const requestUrl = `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text`;
+      const requestHeaders = {
+        'content-type': 'application/octet-stream',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+      };
+      
+      console.log('🚀 [DIAGNOSTIC] Sending POST request:', {
+        url: requestUrl,
         method: 'POST',
-        headers: {
-          'content-type': 'application/octet-stream',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
-        },
+        headers: requestHeaders,
+        bodySize: audioData.size,
+        bodyType: audioData.type,
+        timestamp: new Date().toISOString()
+      });
+      
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: requestHeaders,
         body: audioData, // Send Blob directly
         signal: controller.signal,
         keepalive: false, // Disabled to prevent hanging requests
       });
       
       clearTimeout(timeoutId);
+      
+      console.log('📥 [DIAGNOSTIC] Received response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url,
+        timestamp: new Date().toISOString()
+      });
 
       // Enhanced error handling with detailed error information
       const responseText = await response.text();
       let data: any;
+      
+      console.log('📄 [DIAGNOSTIC] Raw response text:', {
+        length: responseText.length,
+        content: responseText.substring(0, 500), // First 500 chars
+        timestamp: new Date().toISOString()
+      });
+      
       try { 
         data = JSON.parse(responseText); 
-      } catch { 
+        console.log('✅ [DIAGNOSTIC] Successfully parsed JSON response');
+      } catch (parseError) { 
+        console.error('❌ [DIAGNOSTIC] Failed to parse JSON response:', parseError);
         data = { error: responseText }; 
       }
 
-      console.log('📨 Speech-to-text Response:', { 
+      console.log('📨 [DIAGNOSTIC] Processed response data:', { 
         status: response.status,
         ok: response.ok,
         hasData: !!data,
         dataKeys: data ? Object.keys(data) : [],
-        errorMessage: data?.error || 'No error message'
+        errorMessage: data?.error || 'No error message',
+        responseSize: responseText.length,
+        timestamp: new Date().toISOString()
       });
 
       if (!response.ok) {
@@ -273,12 +312,27 @@ export class WhisperTranscriber {
       
       this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
     } catch (error) {
-      console.error('❌ Whisper processing error details:', {
+      console.error('❌ [DIAGNOSTIC] Whisper processing error details:', {
         error: error,
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace',
-        name: error instanceof Error ? error.name : 'Unknown error type'
+        name: error instanceof Error ? error.name : 'Unknown error type',
+        isAbortError: error instanceof Error && error.name === 'AbortError',
+        isNetworkError: error instanceof TypeError,
+        timestamp: new Date().toISOString()
       });
+      
+      // Enhanced error classification
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.error('🚫 [DIAGNOSTIC] Request was aborted (timeout or manual cancellation)');
+        } else if (error instanceof TypeError) {
+          console.error('🌐 [DIAGNOSTIC] Network error - likely connectivity issue');
+        } else if (error.message.includes('Failed to fetch')) {
+          console.error('📡 [DIAGNOSTIC] Fetch failed - could be CORS, network, or server issue');
+        }
+      }
+      
       // Re-throw error so retry logic can handle it
       throw error;
     }
