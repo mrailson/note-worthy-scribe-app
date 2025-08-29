@@ -22,8 +22,8 @@ const ENABLE_DESKTOP_WHISPER = true; // ✅ ENABLED for testing
 const ENABLE_BROWSER_SPEECH = true; // Enable Browser Speech
 const ENABLE_ASSEMBLY = true; // Enable AssemblyAI
 
-// Edge URL for Whisper transcription
-const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/speech-to-text-chunked`;
+// Edge URL for Whisper transcription  
+const EDGE_URL = 'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text-chunked';
 
 // MediaRecorder constants for Whisper
 const MIME = 'audio/webm;codecs=opus';
