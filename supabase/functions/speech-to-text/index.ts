@@ -20,27 +20,45 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audioData, mimeType, language, temperature, prompt } = await req.json();
-    if (!audioData) {
+    const { audio, language, temperature, prompt } = await req.json();
+    if (!audio) {
       throw new Error('No audio data provided');
     }
 
-    console.log('📤 Processing binary audio data...', {
-      audioLength: audioData.length,
-      mimeType: mimeType || 'audio/webm',
-      language: language || 'en'
+    console.log('📤 Converting base64 audio to blob...', {
+      audioLength: audio.length,
+      audioPreview: audio.substring(0, 50) + '...'
     });
     
-    // Convert byte array back to Uint8Array
-    const audioArray = new Uint8Array(audioData);
+    // Enhanced base64 to binary conversion with error handling
+    let binaryAudio: string;
+    let audioArray: Uint8Array;
     
-    console.log('✅ Audio data processed:', {
-      arrayLength: audioArray.length,
-      sizeInKB: Math.round(audioArray.length / 1024)
-    });
+    try {
+      binaryAudio = atob(audio);
+      audioArray = new Uint8Array(binaryAudio.length);
+      
+      // Process in chunks to avoid memory issues
+      const chunkSize = 8192;
+      for (let i = 0; i < binaryAudio.length; i += chunkSize) {
+        const end = Math.min(i + chunkSize, binaryAudio.length);
+        for (let j = i; j < end; j++) {
+          audioArray[j] = binaryAudio.charCodeAt(j);
+        }
+      }
+      
+      console.log('✅ Audio conversion successful:', {
+        binaryLength: binaryAudio.length,
+        arrayLength: audioArray.length,
+        sizeInKB: Math.round(audioArray.length / 1024)
+      });
+    } catch (conversionError) {
+      console.error('❌ Base64 conversion failed:', conversionError);
+      throw new Error(`Audio conversion failed: ${conversionError.message}`);
+    }
     
-    // Create blob and form data using known-good approach
-    const audioBlob = new Blob([audioArray], { type: mimeType || 'audio/webm' });
+    // Create blob and form data for OpenAI
+    const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'chunk.webm');
     formData.append('model', 'whisper-1');

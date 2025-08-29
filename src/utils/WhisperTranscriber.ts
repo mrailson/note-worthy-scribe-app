@@ -15,6 +15,8 @@ export class WhisperTranscriber {
   private isRecording = false;
   private chunkTimer: number | undefined = undefined;
   private uploadQueue: Promise<void> = Promise.resolve();
+  private audioChunks: Blob[] = [];
+  private chunkCounter = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -64,11 +66,18 @@ export class WhisperTranscriber {
         console.log('📡 MediaRecorder data available:', {
           hasData: !!e.data,
           dataSize: e.data?.size || 0,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          chunkNumber: this.chunkCounter++
         });
         
         if (e.data && e.data.size > 0) {
-          await this.uploadChunk(e.data);
+          // Collect chunks instead of processing individually
+          this.audioChunks.push(e.data);
+          
+          // Process accumulated audio every few chunks or when we have enough data
+          if (this.audioChunks.length >= 1) { // Process each chunk individually but as complete WebM
+            await this.processAccumulatedAudio();
+          }
         } else {
           console.warn('⚠️ No audio data available in chunk');
         }
@@ -76,6 +85,10 @@ export class WhisperTranscriber {
 
       this.mediaRecorder.onstop = () => {
         console.log('🛑 MediaRecorder stopped');
+        // Process any remaining chunks when recording stops
+        if (this.audioChunks.length > 0) {
+          this.processAccumulatedAudio();
+        }
         this.isRecording = false;
       };
 
@@ -86,7 +99,7 @@ export class WhisperTranscriber {
 
       this.isRecording = true;
       console.log('▶️ Starting MediaRecorder...');
-      this.mediaRecorder.start(3000); // Fire dataavailable every 3s for optimal chunk size
+      this.mediaRecorder.start(5000); // 5-second chunks for better WebM structure
       
       this.onStatusChange('Recording');
       console.log('✅ API-based Whisper transcription started successfully');
@@ -97,7 +110,16 @@ export class WhisperTranscriber {
     }
   }
 
-  // Remove the old chunk scheduling methods since MediaRecorder now handles timing
+  private async processAccumulatedAudio() {
+    if (this.audioChunks.length === 0) return;
+    
+    // Take the latest chunk (which should be a complete WebM segment)
+    const latestChunk = this.audioChunks.pop()!;
+    this.audioChunks = []; // Clear the buffer
+    
+    // Process the complete chunk
+    await this.uploadChunk(latestChunk);
+  }
 
   private async uploadChunk(audioData: Blob) {
     // Queue uploads to prevent concurrent requests that cause 500 errors
@@ -130,7 +152,7 @@ export class WhisperTranscriber {
 
   private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v4] Processing audio chunk with speech-to-text function...');
+      console.log('🔄 [v5] Processing audio chunk with speech-to-text function...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -146,19 +168,28 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📤 Sending binary audio data to speech-to-text function...');
+      console.log('📤 Converting audio to base64 for transport...');
       
-      // Send binary data directly instead of base64 (more efficient)
+      // Convert to base64 for transport (standard approach that works)
       const arrayBuffer = await audioData.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Use the optimized speech-to-text function with proper parameters
+      // Process in chunks to avoid memory issues
+      const chunkSize = 32768;
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64Audio = btoa(binary);
+      
+      // Use the proven speech-to-text function with base64 (what works in meeting recorder)
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { 
-          audioData: Array.from(new Uint8Array(arrayBuffer)), // Send as byte array
-          mimeType: audioData.type,
-          language: "en",             // Force English for NHS context
-          temperature: 0,             // Stable output for meeting notes
-          // Bias decoding with common NHS terms
+          audio: base64Audio,
+          language: "en",
+          temperature: 0,
+          // NHS-specific prompt for better accuracy
           prompt: "NHS, PCN, DES, ARRS, QOF, EMIS, SystmOne, locum, CQC, practice, patient, consultation, medication, prescription, referral, appointment"
         }
       });
@@ -226,6 +257,11 @@ export class WhisperTranscriber {
     
     this.isRecording = false;
     
+    // Process any remaining audio chunks
+    if (this.audioChunks.length > 0) {
+      this.processAccumulatedAudio();
+    }
+    
     if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
       this.mediaRecorder.stop();
     }
@@ -237,6 +273,8 @@ export class WhisperTranscriber {
     
     this.mediaRecorder = null;
     this.stream = null;
+    this.audioChunks = [];
+    this.chunkCounter = 0;
     
     this.onStatusChange('Stopped');
     console.log('✅ Whisper transcription stopped');
