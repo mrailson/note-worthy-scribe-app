@@ -36,26 +36,28 @@ export class WhisperTranscriber {
       console.log('🎤 Requesting microphone access...');
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 48000,
-          channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
+          channelCount: 1,              // mono is best for STT
+          sampleRate: 48000,            // browsers usually give 48 kHz; Whisper will resample
+          noiseSuppression: true,       // useful for live mic
+          echoCancellation: true,       // true if mic + speakers
+          autoGainControl: false        // avoid volume pumping; let Whisper handle dynamics
         }
       });
       console.log('✅ Microphone access granted');
 
       console.log('🔧 Creating MediaRecorder...');
-      // Use specific codec settings for better chunk compatibility
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
-        : 'audio/webm';
+      // Use known-good settings for Whisper
+      const mimeType = 'audio/webm;codecs=opus'; // Whisper accepts webm/opus
+      
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        throw new Error(`MediaRecorder does not support ${mimeType}`);
+      }
       
       console.log('🎵 Using MediaRecorder mimeType:', mimeType);
       
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: mimeType,
-        audioBitsPerSecond: 128000 // Set a consistent bitrate for better chunk quality
+        audioBitsPerSecond: 128000 // ~128 kbps VBR is a good balance
       });
 
       this.mediaRecorder.ondataavailable = async (e) => {
@@ -73,12 +75,8 @@ export class WhisperTranscriber {
       };
 
       this.mediaRecorder.onstop = () => {
-        console.log('🛑 MediaRecorder stopped (this should not happen during continuous recording)');
-        // Don't set isRecording to false here for continuous recording
-        if (this.chunkTimer) { 
-          clearTimeout(this.chunkTimer); 
-          this.chunkTimer = undefined; 
-        }
+        console.log('🛑 MediaRecorder stopped');
+        this.isRecording = false;
       };
 
       this.mediaRecorder.onerror = (event) => {
@@ -88,8 +86,7 @@ export class WhisperTranscriber {
 
       this.isRecording = true;
       console.log('▶️ Starting MediaRecorder...');
-      this.mediaRecorder.start(); 
-      this.scheduleNextChunk();
+      this.mediaRecorder.start(3000); // Fire dataavailable every 3s for optimal chunk size
       
       this.onStatusChange('Recording');
       console.log('✅ API-based Whisper transcription started successfully');
@@ -100,30 +97,7 @@ export class WhisperTranscriber {
     }
   }
 
-  private scheduleNextChunk() {
-    if (!this.isRecording || !this.mediaRecorder) {
-      console.log('⚠️ Not scheduling next chunk - recording stopped or no recorder');
-      return;
-    }
-    
-    this.chunkTimer = window.setTimeout(() => {
-      if (!this.mediaRecorder || !this.isRecording) {
-        console.log('⚠️ Timer fired but recording stopped or no recorder');
-        return;
-      }
-      
-      if (this.mediaRecorder.state !== "recording") {
-        console.log('⚠️ MediaRecorder not in recording state:', this.mediaRecorder.state);
-        return;
-      }
-      
-      console.log('⏰ Processing 3.5s audio chunk...');
-      this.mediaRecorder.requestData(); // triggers ondataavailable
-      
-      // Don't stop the recorder - just request data and continue
-      this.scheduleNextChunk(); // Schedule the next chunk immediately
-    }, 3500); // 3.5s chunks for better audio capture
-  }
+  // Remove the old chunk scheduling methods since MediaRecorder now handles timing
 
   private async uploadChunk(audioData: Blob) {
     // Queue uploads to prevent concurrent requests that cause 500 errors
@@ -156,7 +130,7 @@ export class WhisperTranscriber {
 
   private async processChunk(audioData: Blob) {
     try {
-      console.log('🔄 [v3] Processing audio chunk with speech-to-text function...');
+      console.log('🔄 [v4] Processing audio chunk with speech-to-text function...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -165,37 +139,27 @@ export class WhisperTranscriber {
       
       this.onStatusChange('Processing...');
       
-      // Skip very small chunks (lowered threshold significantly)
+      // Skip very small chunks
       if (audioData.size < 10000) {
         console.log('🔇 Skipping very small audio chunk, size:', audioData.size);
         this.onStatusChange(this.isRecording ? 'Recording' : 'Stopped');
         return;
       }
 
-      console.log('📤 Converting audio to base64...');
+      console.log('📤 Sending binary audio data to speech-to-text function...');
       
-      // Convert audio blob to base64 (like the working transcribers)
+      // Send binary data directly instead of base64 (more efficient)
       const arrayBuffer = await audioData.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Process in chunks to avoid memory issues with large files
-      const chunkSize = 32768;
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      const base64Audio = btoa(binary);
-
-      console.log('📡 Sending to speech-to-text function...');
-      
-      // Use the working speech-to-text function with proper parameters
+      // Use the optimized speech-to-text function with proper parameters
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { 
-          audio: base64Audio,
-          temperature: 0.0,           // Deterministic
-          language: "en",             // Force English
-          condition_on_previous_text: false  // Prevent error snowballs
+          audioData: Array.from(new Uint8Array(arrayBuffer)), // Send as byte array
+          mimeType: audioData.type,
+          language: "en",             // Force English for NHS context
+          temperature: 0,             // Stable output for meeting notes
+          // Bias decoding with common NHS terms
+          prompt: "NHS, PCN, DES, ARRS, QOF, EMIS, SystmOne, locum, CQC, practice, patient, consultation, medication, prescription, referral, appointment"
         }
       });
 
@@ -260,13 +224,10 @@ export class WhisperTranscriber {
   stopTranscription() {
     console.log('🛑 Stopping Whisper transcription...');
     
-    if (!this.mediaRecorder) return;
-    if (this.mediaRecorder.state === "recording") this.mediaRecorder.stop();
     this.isRecording = false;
     
-    if (this.chunkTimer) {
-      clearTimeout(this.chunkTimer);
-      this.chunkTimer = undefined;
+    if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
+      this.mediaRecorder.stop();
     }
     
     // Stop all tracks

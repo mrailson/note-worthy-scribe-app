@@ -20,85 +20,37 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audio, temperature, language, condition_on_previous_text } = await req.json();
-    if (!audio) {
+    const { audioData, mimeType, language, temperature, prompt } = await req.json();
+    if (!audioData) {
       throw new Error('No audio data provided');
     }
 
-    console.log('📤 Converting base64 audio to blob...', {
-      audioLength: audio.length,
-      audioPreview: audio.substring(0, 50) + '...'
+    console.log('📤 Processing binary audio data...', {
+      audioLength: audioData.length,
+      mimeType: mimeType || 'audio/webm',
+      language: language || 'en'
     });
     
-    // Enhanced base64 to binary conversion with error handling
-    let binaryAudio: string;
-    let audioArray: Uint8Array;
+    // Convert byte array back to Uint8Array
+    const audioArray = new Uint8Array(audioData);
     
-    try {
-      binaryAudio = atob(audio);
-      audioArray = new Uint8Array(binaryAudio.length);
-      
-      // Process in chunks to avoid memory issues
-      const chunkSize = 8192;
-      for (let i = 0; i < binaryAudio.length; i += chunkSize) {
-        const end = Math.min(i + chunkSize, binaryAudio.length);
-        for (let j = i; j < end; j++) {
-          audioArray[j] = binaryAudio.charCodeAt(j);
-        }
-      }
-      
-      console.log('✅ Audio conversion successful:', {
-        binaryLength: binaryAudio.length,
-        arrayLength: audioArray.length,
-        header: Array.from(audioArray.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('')
-      });
-    } catch (conversionError) {
-      console.error('❌ Base64 conversion failed:', conversionError);
-      throw new Error(`Audio conversion failed: ${conversionError.message}`);
-    }
+    console.log('✅ Audio data processed:', {
+      arrayLength: audioArray.length,
+      sizeInKB: Math.round(audioArray.length / 1024)
+    });
     
-    // Check if this is a valid WebM file by looking for WebM signature
-    const webmSignature = [0x1A, 0x45, 0xDF, 0xA3]; // WebM/EBML signature
-    const hasWebMHeader = webmSignature.every((byte, index) => audioArray[index] === byte);
-    
-    if (!hasWebMHeader) {
-      console.log('⚠️ No WebM header detected - skipping incomplete chunk');
-      // Return empty text for raw audio chunks that don't have proper container headers
-      return new Response(JSON.stringify({ 
-        text: '',
-        avg_logprob: 0,
-        no_speech_prob: 1,
-        segments: []
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    console.log('✅ Valid WebM header detected, proceeding with transcription');
-    
-    // Create blob and form data
-    const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
+    // Create blob and form data using known-good approach
+    const audioBlob = new Blob([audioArray], { type: mimeType || 'audio/webm' });
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, 'chunk.webm');
     formData.append('model', 'whisper-1');
+    formData.append('language', language || 'en');
+    formData.append('temperature', String(temperature ?? 0));
     
-    // ChatGPT recommended parameters - use passed values or defaults
-    formData.append('language', language || 'en');  // UK accents + noisy rooms benefit from explicit language
-    formData.append('temperature', String(temperature ?? 0.0)); // Deterministic by default
-    
-    // Silence-safe prompt to reduce boilerplate hallucinations
-    const safetyPrompt = "Transcribe only clearly audible speech. If silence or background noise, return nothing. Never output: 'This is a recording of the meeting recording in English.'";
-    // ChatGPT recommended: condition_on_previous_text = false to prevent error snowballs
-    if (condition_on_previous_text === false) {
-      // OpenAI API lacks this flag; using neutral prompt to minimize carryover
-      formData.append('prompt', safetyPrompt);
-    } else {
-      // Keep prompt short and stable
-      formData.append('prompt', safetyPrompt);
+    // Add NHS-specific prompt for better transcription accuracy
+    if (prompt) {
+      formData.append('prompt', prompt);
     }
-    
-    // Request verbose response to get quality metrics (avg_logprob, no_speech_prob)
-    formData.append('response_format', 'verbose_json');
 
     console.log('📡 Sending to OpenAI Whisper...');
     
@@ -117,52 +69,11 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('✅ Transcription successful:', result.text);
+    console.log('✅ Transcription successful:', result.text || 'No text returned');
 
-    // Extract quality metrics for ChatGPT recommended guardrails
-    const segments = result.segments || [];
-    let avg_logprob = 0;
-    let no_speech_prob = 0;
-    
-    if (segments.length > 0) {
-      // Calculate average log probability across all segments
-      avg_logprob = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
-      // Estimate no_speech probability from segments (use max as conservative indicator)
-      no_speech_prob = segments.reduce((max: number, seg: any) => Math.max(max, seg.no_speech_prob ?? 0), 0);
-    } else {
-      avg_logprob = 0;
-      no_speech_prob = 1; // No segments -> likely silence
-    }
-
-    // Server-side filtering for known silence hallucinations and boilerplate
-    const bannedRegex = /(this\s+is\s+(a\s+)?(video\s+)?recording\s+of\s+the\s+meeting\s+recording\s+in\s+english\.?)/gi;
-    let cleanText = (result.text || '').replace(bannedRegex, ' ');
-    cleanText = cleanText
-      .replace(/Thank you for watching\.\?\s*/gi, ' ')
-      .replace(/Thanks for watching\.\?\s*/gi, ' ')
-      .replace(/Please use headphones or earphones\.\?\s*/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Silence guard: if content is very short and metrics indicate silence or low confidence, drop it
-    const likelySilence = (no_speech_prob > 0.5 || avg_logprob < -0.8);
-    if (!cleanText || cleanText.length < 10) {
-      if (likelySilence) {
-        console.log('🤫 Dropping low-confidence text due to silence/hallucination indicators');
-        cleanText = '';
-      }
-    }
-    
     return new Response(JSON.stringify({ 
-      text: cleanText,
-      avg_logprob: avg_logprob,
-      no_speech_prob: no_speech_prob,
-      segments: segments.map((seg: any) => ({
-        start: seg.start,
-        end: seg.end,
-        text: seg.text,
-        avg_logprob: seg.avg_logprob
-      }))
+      text: result.text || '',
+      confidence: 0.9 // Default confidence for successful transcriptions
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
