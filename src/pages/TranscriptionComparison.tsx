@@ -217,6 +217,19 @@ export default function TranscriptionComparison() {
   
   // NEW: Standalone Whisper state
   const [standaloneWhisperState, setStandaloneWhisperState] = useState<ServiceState>(initialServiceState());
+
+  // PATCH PLAN STEP 1: New Deepgram state shape
+  const [dgPartial, setDgPartial] = useState<string>("");      // rolling partial (not saved)
+  const [dgFinalChunks, setDgFinalChunks] = useState<string[]>([]); // committed finals
+  const [dgChunkNo, setDgChunkNo] = useState<number>(0);       // for DB ordering
+  const dgChunkNoRef = useRef<number>(0);
+  
+  // Update ref when state changes
+  useEffect(() => { dgChunkNoRef.current = dgChunkNo; }, [dgChunkNo]);
+  
+  // Derived strings for new UI
+  const rawLive = dgPartial?.trim() ? dgPartial : deepgramState.fullTranscript || "";
+  const finalCombined = dgFinalChunks.join(" ").trim();
   
   console.log('🔍 Component state initialized - whisperState.isReconnecting:', whisperState.isReconnecting);
   // NEW: Standalone Whisper UI handlers (using module-scope functions)
@@ -407,59 +420,127 @@ export default function TranscriptionComparison() {
     }));
   }, []);
 
-  // Deepgram handlers
-  const handleDeepgramTranscript = useCallback((data: any) => {
-    if (data.channel?.alternatives?.[0]?.transcript) {
-      const transcript = data.channel.alternatives[0].transcript;
-      const confidence = data.channel.alternatives[0].confidence;
-      
-      const transcriptEntry: TranscriptEntry = {
-        id: `deepgram-${Date.now()}-${Math.random()}`,
-        text: transcript,
-        isFinal: data.is_final,
-        timestamp: new Date(),
-        confidence: confidence,
-        service: 'deepgram'
-      };
+  // PATCH PLAN STEP 3: Supabase persistence with debounced flushing
+  let chunkQueue: any[] = [];
+  let flushTimer: any = null;
 
-      console.log('📝 DEEPGRAM: Processing transcript:', {
-        text: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : ''),
-        isFinal: data.is_final,
-        confidence: confidence
-      });
+  const queueChunkForDB = useCallback((row: {
+    session_id: string;
+    chunk_number: number;
+    transcription_text: string;
+    confidence_score?: number | null;
+  }) => {
+    chunkQueue.push({
+      ...row,
+      created_at: new Date().toISOString()
+    });
 
-      setDeepgramState(prev => {
-        if (data.is_final) {
-          // Deepgram sends incremental segments, not cumulative - append each segment
-          const newFullTranscript = prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + transcript;
-          const newWordCount = newFullTranscript.split(' ').filter(w => w.trim()).length;
-          
-          console.log('✅ DEEPGRAM: Appending final transcript segment:', {
-            previousLength: prev.fullTranscript.length,
-            newSegment: transcript.slice(0, 50) + (transcript.length > 50 ? '...' : ''),
-            newTotalLength: newFullTranscript.length,
-            wordCount: newWordCount
-          });
+    if (!flushTimer) {
+      flushTimer = setTimeout(async () => {
+        const payload = [...chunkQueue];
+        chunkQueue = [];
+        flushTimer = null;
 
-          return {
-            ...prev,
-            transcripts: [...prev.transcripts, transcriptEntry],
-            fullTranscript: newFullTranscript,
-            wordCount: newWordCount,
-            avgConfidence: confidence ? 
-              (prev.avgConfidence ? (prev.avgConfidence + confidence) / 2 : confidence) :
-              prev.avgConfidence
-          };
-        } else {
-          // For partial transcripts, just add to transcripts list but don't update full transcript
-          return {
-            ...prev,
-            transcripts: [...prev.transcripts, transcriptEntry]
-          };
+        try {
+          const { error } = await supabase
+            .from("meeting_transcription_chunks")
+            .insert(payload);
+          if (error) console.error("Insert chunks error:", error);
+        } catch (e) {
+          console.error("Insert chunks exception:", e);
         }
-      });
+      }, 400); // flush every ~0.4s
     }
   }, []);
+
+  // PATCH PLAN STEP 7: NHS light cleaning function
+  const nhsLightClean = useCallback((s: string) => {
+    return s
+      .replace(/\bpcn ?d(e|es)?\b/gi, "PCN DES")
+      .replace(/\bars\b/gi, "ARRS")
+      .replace(/\bsyste?m ?1\b/gi, "SystmOne")
+      .replace(/\bdoc ?man\b/gi, "DocMan")
+      .replace(/\bqof\b/gi, "QOF")
+      .replace(/\bnps?\b/gi, "NPs")
+      .replace(/\bpcm(dr|ds|da|des)\b/gi, "PCN DES"); // common variants
+  }, []);
+
+  // PATCH PLAN STEP 2: New Deepgram handler with append-only pattern
+  const norm = useCallback((s: string) => (s || "").replace(/\s+/g, " ").trim(), []);
+  
+  const handleDeepgramMessage = useCallback((evt: MessageEvent) => {
+    try {
+      const data = JSON.parse(evt.data);
+
+      if (data.type !== "transcript") return;
+      const alt = data.channel?.alternatives?.[0];
+      const text = norm(alt?.transcript || "");
+
+      if (!text) {
+        // If model sent an empty partial, just ignore
+        return;
+      }
+
+      if (data.is_final || data.speech_final) {
+        // ✅ Commit finalised chunk (APPEND, don't overwrite)
+        const cleanedFinal = nhsLightClean(text);
+        setDgFinalChunks(prev => prev.length ? [...prev, cleanedFinal] : [cleanedFinal]);
+        setDgPartial(""); // clear rolling partial
+
+        // Update legacy fullTranscript for compatibility
+        setDeepgramState(prev => ({
+          ...prev,
+          fullTranscript: prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + cleanedFinal,
+          wordCount: (prev.fullTranscript + ' ' + cleanedFinal).split(' ').filter(w => w.trim()).length,
+          avgConfidence: alt?.confidence ? 
+            (prev.avgConfidence ? (prev.avgConfidence + alt.confidence) / 2 : alt.confidence) :
+            prev.avgConfidence
+        }));
+
+        // Persist to Supabase as ordered chunk
+        const nextChunk = (dgChunkNoRef.current = (dgChunkNoRef.current || 0) + 1);
+        setDgChunkNo(nextChunk);
+        
+        queueChunkForDB({
+          session_id: `session-${Date.now()}`, // Generate session ID
+          chunk_number: nextChunk,
+          transcription_text: cleanedFinal,
+          confidence_score: alt?.confidence ?? null,
+        });
+      } else {
+        // 🟡 Partial – keep it separate so we don't pollute finals
+        setDgPartial(text);
+      }
+    } catch (e) {
+      console.error("Deepgram parse error", e);
+    }
+  }, [norm, nhsLightClean, queueChunkForDB]);
+
+  // PATCH PLAN STEP 6: End-of-utterance flush function
+  const finalizeLeftovers = useCallback(() => {
+    if (dgPartial.trim()) {
+      const cleanedFinal = nhsLightClean(dgPartial.trim());
+      setDgFinalChunks(prev => [...prev, cleanedFinal]);
+      setDgPartial("");
+      
+      // Update legacy state and persist
+      setDeepgramState(prev => ({
+        ...prev,
+        fullTranscript: prev.fullTranscript + (prev.fullTranscript ? ' ' : '') + cleanedFinal,
+        wordCount: (prev.fullTranscript + ' ' + cleanedFinal).split(' ').filter(w => w.trim()).length
+      }));
+
+      const nextChunk = (dgChunkNoRef.current = (dgChunkNoRef.current || 0) + 1);
+      setDgChunkNo(nextChunk);
+      
+      queueChunkForDB({
+        session_id: `session-${Date.now()}`,
+        chunk_number: nextChunk,
+        transcription_text: cleanedFinal,
+        confidence_score: null,
+      });
+    }
+  }, [dgPartial, nhsLightClean, queueChunkForDB]);
 
   // Whisper payload handler for new format
   const handleWhisperPayload = useCallback((payload: any) => {
@@ -687,6 +768,12 @@ export default function TranscriptionComparison() {
 
   const startDeepgram = useCallback(async () => {
     try {
+      // PATCH PLAN: Reset new state for fresh session
+      setDgPartial("");
+      setDgFinalChunks([]);
+      setDgChunkNo(0);
+      dgChunkNoRef.current = 0;
+      
       setDeepgramState(prev => ({ ...prev, error: null, sessionStartTime: new Date(), sessionCount: 1 }));
       
       // Get microphone access
@@ -700,19 +787,31 @@ export default function TranscriptionComparison() {
       });
       mediaStreamRef.current = stream;
 
-      // Connect to Deepgram via new streaming edge function
-      const ws = new WebSocket(`wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`);
+      // PATCH PLAN STEP 4: Connect with improved parameters
+      const wsUrl = new URL(`wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`);
+      wsUrl.searchParams.set("punctuate", "true");
+      wsUrl.searchParams.set("interim_results", "true");
+      wsUrl.searchParams.set("smart_format", "true");
+      wsUrl.searchParams.set("endpointing", "true");
+      wsUrl.searchParams.set("utterance_end_ms", "300");
+      
+      const ws = new WebSocket(wsUrl.toString());
       deepgramWsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('✅ DEEPGRAM: WebSocket connected');
+        console.log('✅ DEEPGRAM: WebSocket connected with enhanced parameters');
         setDeepgramState(prev => ({ ...prev, isConnected: true }));
         
-        // Send initial configuration
+        // Send initial configuration with enhanced settings
         ws.send(JSON.stringify({
           type: 'session.start',
           sample_rate: 24000,
-          channels: 1
+          channels: 1,
+          punctuate: true,
+          interim_results: true,
+          smart_format: true,
+          endpointing: true,
+          utterance_end_ms: 300
         }));
       };
 
@@ -738,13 +837,14 @@ export default function TranscriptionComparison() {
           // Handle session termination
           if (data.type === 'session_terminated') {
             console.log('🔌 DEEPGRAM: Session terminated:', data.code, data.reason);
+            finalizeLeftovers(); // PATCH PLAN STEP 6: Flush remaining partials
             setDeepgramState(prev => ({ ...prev, error: `Session ended: ${data.reason || 'Connection closed'}`, isRecording: false, isConnected: false }));
             return;
           }
           
-          // Handle transcription results
+          // PATCH PLAN STEP 2: Use new message handler
           if (data.channel?.alternatives?.[0]?.transcript) {
-            handleDeepgramTranscript(data);
+            handleDeepgramMessage(event);
           }
         } catch (error) {
           console.error('Deepgram message parse error:', error);
@@ -758,6 +858,7 @@ export default function TranscriptionComparison() {
 
       ws.onclose = (event) => {
         console.log('🔌 DEEPGRAM: WebSocket closed:', event.code, event.reason);
+        finalizeLeftovers(); // PATCH PLAN STEP 6: Flush remaining partials
         setDeepgramState(prev => ({ ...prev, isConnected: false, isRecording: false }));
         if (event.code !== 1000) {
           setDeepgramState(prev => ({ ...prev, error: `Connection failed (Code: ${event.code}): ${event.reason || 'Unknown reason'}` }));
@@ -797,7 +898,7 @@ export default function TranscriptionComparison() {
     } catch (error) {
       setDeepgramState(prev => ({ ...prev, error: error instanceof Error ? error.message : 'Failed to start Deepgram' }));
     }
-  }, [handleDeepgramTranscript]);
+  }, [handleDeepgramMessage, finalizeLeftovers]);
 
   const startWhisper = useCallback(async () => {
     if (!ENABLE_DESKTOP_WHISPER) {
@@ -1424,6 +1525,11 @@ export default function TranscriptionComparison() {
   }) => {
     const status = getServiceStatus(state);
     
+    // PATCH PLAN STEP 5: Special handling for Deepgram with new UI
+    const isDeepgram = title === "Deepgram";
+    const rawDisplay = isDeepgram ? rawLive : state.fullTranscript;
+    const finalDisplay = isDeepgram ? finalCombined : state.fullTranscript;
+    
     return (
       <Card className="h-full">
         <CardHeader className="pb-3">
@@ -1443,6 +1549,9 @@ export default function TranscriptionComparison() {
             )}
             {state.avgConfidence !== null && (
               <span>Conf: {(state.avgConfidence * 100).toFixed(1)}%</span>
+            )}
+            {isDeepgram && dgFinalChunks.length > 0 && (
+              <span>Chunks: {dgFinalChunks.length}</span>
             )}
           </CardDescription>
         </CardHeader>
@@ -1489,12 +1598,50 @@ export default function TranscriptionComparison() {
             </div>
           )}
 
-          <div className="space-y-2">
-            <div className="text-xs font-medium">Full Transcript:</div>
-            <div className="text-xs bg-muted/30 p-2 rounded max-h-24 overflow-y-auto">
-              {state.fullTranscript || 'No transcript yet...'}
+          {/* PATCH PLAN STEP 5: New UI Layout for Deepgram */}
+          {isDeepgram ? (
+            <div className="space-y-2">
+              {/* Raw/Live Section */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium">Live (Last 3 lines):</div>
+                <div className="min-h-[72px] max-h-[96px] overflow-hidden text-xs bg-muted/30 p-2 rounded">
+                  <pre className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {rawDisplay
+                      .split(/\n|(?<=\.)\s+/)
+                      .slice(-3)
+                      .join("\n") || 'Waiting for speech...'}
+                  </pre>
+                </div>
+              </div>
+              
+              {/* Final/AI Section */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium">Final Transcript (Scrollable):</div>
+                <div className="max-h-[120px] overflow-y-auto text-xs bg-muted/20 p-2 rounded">
+                  {finalDisplay ? (
+                    finalDisplay
+                      .split(/(?<=[.!?])\s+/)
+                      .filter(Boolean)
+                      .map((sentence, i) => (
+                        <div key={i} className="p-1 hover:bg-accent/20 rounded text-[11px] mb-1">
+                          {sentence.trim()}
+                        </div>
+                      ))
+                  ) : (
+                    <em className="text-muted-foreground">Waiting for finalised transcript…</em>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Standard layout for other services */
+            <div className="space-y-2">
+              <div className="text-xs font-medium">Full Transcript:</div>
+              <div className="text-xs bg-muted/30 p-2 rounded max-h-24 overflow-y-auto">
+                {state.fullTranscript || 'No transcript yet...'}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1">
             <div className="text-xs font-medium">Recent ({state.transcripts.length}):</div>
