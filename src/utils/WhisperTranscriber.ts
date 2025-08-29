@@ -50,19 +50,27 @@ export class WhisperTranscriber {
       console.log('✅ Microphone access granted');
 
       console.log('🔧 Creating MediaRecorder...');
-      // Use known-good settings for Whisper
-      const mimeType = 'audio/webm;codecs=opus'; // Whisper accepts webm/opus
+      // Use WAV format which is more reliable for chunked audio
+      const mimeType = 'audio/wav'; 
       
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        throw new Error(`MediaRecorder does not support ${mimeType}`);
+        // Fallback to WebM if WAV not supported
+        const fallbackType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(fallbackType)) {
+          throw new Error(`MediaRecorder does not support ${mimeType} or ${fallbackType}`);
+        }
+        console.log('🎵 Using fallback MediaRecorder mimeType:', fallbackType);
+        this.mediaRecorder = new MediaRecorder(this.stream, {
+          mimeType: fallbackType,
+          audioBitsPerSecond: 128000
+        });
+      } else {
+        console.log('🎵 Using MediaRecorder mimeType:', mimeType);
+        this.mediaRecorder = new MediaRecorder(this.stream, {
+          mimeType: mimeType,
+          audioBitsPerSecond: 128000
+        });
       }
-      
-      console.log('🎵 Using MediaRecorder mimeType:', mimeType);
-      
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: mimeType,
-        audioBitsPerSecond: 128000 // ~128 kbps VBR is a good balance
-      });
 
       this.mediaRecorder.ondataavailable = async (e) => {
         console.log('📡 MediaRecorder data available:', {
