@@ -153,7 +153,8 @@ export default function MeetingSummary() {
         transcriberService: "whisper",
         transcriberThresholds: {
           whisper: 0.75,
-          deepgram: 0.80
+          deepgram: 0.80,
+          assemblyai: 0.85
         }
       });
       

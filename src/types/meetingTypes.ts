@@ -37,10 +37,11 @@ export interface MeetingSettingsState {
   location?: string;
   practiceId?: string;
   meetingFormat?: string;
-  transcriberService: 'whisper' | 'deepgram';
+  transcriberService: 'whisper' | 'deepgram' | 'assemblyai';
   transcriberThresholds: {
     whisper: number;
     deepgram: number;
+    assemblyai: number;
   };
 }
 
