@@ -126,7 +126,7 @@ export class WhisperTranscriber {
 
   private async uploadChunk(audioData: Blob) {
     try {
-      console.log('🔄 Processing audio chunk with process-meeting-audio function...');
+      console.log('🔄 Processing audio chunk with speech-to-text function...');
       console.log('📊 Audio chunk details:', {
         size: audioData.size,
         type: audioData.type,
@@ -142,18 +142,34 @@ export class WhisperTranscriber {
         return;
       }
 
-      console.log('📡 Sending audio to process-meeting-audio function...');
+      console.log('📤 Converting audio to base64...');
+      
+      // Convert audio blob to base64 (like the working transcribers)
+      const arrayBuffer = await audioData.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Process in chunks to avoid memory issues with large files
+      const chunkSize = 32768;
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64Audio = btoa(binary);
 
-      // Create FormData for the robust edge function
-      const formData = new FormData();
-      formData.append('file', audioData, 'chunk.webm');
-
-      console.log('🚀 Invoking process-meeting-audio edge function...');
-      const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
-        body: formData
+      console.log('📡 Sending to speech-to-text function...');
+      
+      // Use the working speech-to-text function with proper parameters
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { 
+          audio: base64Audio,
+          temperature: 0.0,           // Deterministic
+          language: "en",             // Force English
+          condition_on_previous_text: false  // Prevent error snowballs
+        }
       });
 
-      console.log('📨 Process-meeting-audio Response:', { 
+      console.log('📨 Speech-to-text Response:', { 
         hasData: !!data,
         hasError: !!error,
         dataKeys: data ? Object.keys(data) : [],
@@ -161,7 +177,7 @@ export class WhisperTranscriber {
       });
 
       if (error) {
-        console.error('❌ Process-meeting-audio error details:', {
+        console.error('❌ Speech-to-text error details:', {
           error: error,
           message: error.message || 'No message',
           details: error.details || 'No details',
