@@ -69,6 +69,7 @@ serve(async (req) => {
     });
     formData.append('file', blob, filename || 'audio.mp3');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en'); // Force English transcription
     formData.append('response_format', 'verbose_json');
     formData.append('timestamp_granularities[]', 'word');
 
