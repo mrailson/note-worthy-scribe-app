@@ -91,7 +91,7 @@ export const LiveTranscript = ({
   onMeetingSettingsChange,
   defaultOpen
 }: LiveTranscriptProps) => {
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? true);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? false);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isMeetingSettingsOpen, setIsMeetingSettingsOpen] = useState(false); // New state for meeting settings
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);
@@ -962,7 +962,7 @@ export const LiveTranscript = ({
 
                   <div
                     className={`text-sm font-mono leading-relaxed bg-background/50 rounded-md border p-2 transition-all
-                      ${isRawExpanded ? "max-h-64 overflow-y-auto" : "line-clamp-3 overflow-hidden"}`}
+                      ${isRawExpanded ? "max-h-[768px] overflow-y-auto" : "line-clamp-[12] overflow-hidden min-h-[200px]"}`}
                     style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
                   >
                     {liveTranscriptText || (
