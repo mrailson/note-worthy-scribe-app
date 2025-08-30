@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Edit, Save, X } from "lucide-react";
+import { Edit, Save, X, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
@@ -12,21 +12,88 @@ interface MeetingOverviewEditorProps {
   currentOverview?: string;
   onOverviewChange?: (overview: string) => void;
   className?: string;
+  meetingNotes?: string;
+  meetingTitle?: string;
 }
 
 export const MeetingOverviewEditor = ({ 
   meetingId, 
   currentOverview = "", 
   onOverviewChange,
-  className = ""
+  className = "",
+  meetingNotes,
+  meetingTitle
 }: MeetingOverviewEditorProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [overview, setOverview] = useState(currentOverview);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const handleRegenerateOverview = async () => {
+    setRegenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+        body: {
+          meetingTitle: meetingTitle,
+          meetingNotes: meetingNotes
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.overview) {
+        setOverview(data.overview);
+        
+        // Auto-save the regenerated overview
+        const { data: existingOverview } = await supabase
+          .from('meeting_overviews')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+
+        if (existingOverview) {
+          const { error: updateError } = await supabase
+            .from('meeting_overviews')
+            .update({ overview: data.overview })
+            .eq('meeting_id', meetingId);
+
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from('meeting_overviews')
+            .insert({
+              meeting_id: meetingId,
+              overview: data.overview,
+              created_by: (await supabase.auth.getUser()).data.user?.id
+            });
+
+          if (insertError) throw insertError;
+        }
+        
+        toast.success("Overview regenerated successfully");
+        onOverviewChange?.(data.overview);
+      } else {
+        toast.error("Failed to generate overview");
+      }
+    } catch (error: any) {
+      console.error('Error regenerating overview:', error);
+      toast.error("Failed to regenerate overview");
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const handleSave = async () => {
+    const wordCount = overview.trim().split(' ').filter(word => word.length > 0).length;
+    
     if (!overview.trim()) {
       toast.error("Overview cannot be empty");
+      return;
+    }
+    
+    if (wordCount > 50) {
+      toast.error("Overview must be 50 words or less");
       return;
     }
 
@@ -81,15 +148,29 @@ export const MeetingOverviewEditor = ({
       <div className={`space-y-2 ${className}`}>
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Meeting Overview</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-            className="h-8 px-2"
-          >
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="h-8 px-2"
+            >
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            {(meetingNotes || meetingTitle) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateOverview}
+                disabled={regenerating}
+                className="h-8 px-2"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {regenerating ? "Regenerating..." : "Regenerate"}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[60px]">
           {currentOverview ? (
@@ -99,7 +180,7 @@ export const MeetingOverviewEditor = ({
               }}
             />
           ) : (
-            "No overview yet. Click Edit to add one."
+            "No overview yet. Click Edit to add one or Regenerate to create one automatically."
           )}
         </div>
       </div>
@@ -115,17 +196,17 @@ export const MeetingOverviewEditor = ({
         id="overview"
         value={overview}
         onChange={(e) => setOverview(e.target.value)}
-        placeholder="e.g., Meeting discussed: pay rise discussions and performance review processes for team members"
+        placeholder="Brief overview of meeting purpose and main topics discussed (max 50 words)"
         className="min-h-[80px] resize-none"
-        maxLength={500}
+        maxLength={300}
       />
       <div className="text-xs text-muted-foreground">
-        {overview.length}/500 characters
+        {overview.split(' ').filter(word => word.length > 0).length}/50 words
       </div>
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          disabled={saving || !overview.trim()}
+          disabled={saving || !overview.trim() || overview.split(' ').filter(word => word.length > 0).length > 50}
           size="sm"
         >
           <Save className="h-3 w-3 mr-1" />

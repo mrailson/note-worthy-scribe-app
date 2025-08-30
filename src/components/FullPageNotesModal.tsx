@@ -1158,8 +1158,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     if (!meeting?.id) return;
     
     try {
-      // Extract a concise overview from the detailed meeting notes
-      const overview = extractOverviewFromNotes(meetingNotes);
+      // Generate AI overview using the new Edge function
+      const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+        body: {
+          meetingTitle: meeting.title,
+          meetingNotes: meetingNotes
+        }
+      });
+      
+      if (error) throw error;
+      
+      const overview = data?.overview || extractOverviewFromNotes(meetingNotes);
       
       // Check if overview already exists
       const { data: existingOverview } = await supabase
@@ -1170,15 +1179,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (existingOverview) {
         // Update existing overview
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('meeting_overviews')
           .update({ overview: overview })
           .eq('meeting_id', meeting.id);
 
-        if (error) throw error;
+        if (updateError) throw updateError;
       } else {
         // Create new overview
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('meeting_overviews')
           .insert({
             meeting_id: meeting.id,
@@ -1186,7 +1195,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             created_by: (await supabase.auth.getUser()).data.user?.id
           });
 
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
     } catch (error) {
       console.error('Error saving meeting overview:', error);
@@ -1195,7 +1204,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
   const extractOverviewFromNotes = (meetingNotes: string): string => {
-    // Extract a concise overview from the detailed meeting notes
+    // Extract a concise overview from the detailed meeting notes (fallback method)
     const lines = meetingNotes.split('\n').filter(line => line.trim());
     
     // Look for executive summary or key points
@@ -1206,29 +1215,33 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     );
     
     if (executiveSummaryIndex !== -1) {
-      // Extract the executive summary section (next 5-10 lines)
-      const summaryLines = lines.slice(executiveSummaryIndex + 1, executiveSummaryIndex + 8)
+      // Extract the executive summary section (next 3-5 lines)
+      const summaryLines = lines.slice(executiveSummaryIndex + 1, executiveSummaryIndex + 4)
         .filter(line => line.trim() && !line.match(/^[A-Z\s]+$/)) // Filter out headers
-        .slice(0, 5); // Take first 5 meaningful lines
+        .slice(0, 2); // Take first 2 meaningful lines
       
       if (summaryLines.length > 0) {
-        return summaryLines.join(' ').replace(/^[•\-\*]\s*/, '').trim();
+        const overview = summaryLines.join(' ').replace(/^[•\-\*]\s*/, '').trim();
+        const words = overview.split(' ');
+        return words.length > 50 ? words.slice(0, 50).join(' ') + '...' : overview;
       }
     }
     
-    // Fallback: extract first meaningful paragraph or key decisions
+    // Fallback: extract first meaningful sentence or key topic
     const meaningfulLines = lines.filter(line => 
-      line.length > 50 && 
+      line.length > 30 && line.length < 200 &&
       !line.match(/^(MEETING|Date:|Time:|Present:|Attendees:|Chair:)/i) &&
       !line.match(/^[#\*\-•]/))
-      .slice(0, 3);
+      .slice(0, 1);
     
     if (meaningfulLines.length > 0) {
-      return meaningfulLines.join(' ').substring(0, 400) + (meaningfulLines.join(' ').length > 400 ? '...' : '');
+      const overview = meaningfulLines[0].substring(0, 200);
+      const words = overview.split(' ');
+      return words.length > 50 ? words.slice(0, 50).join(' ') + '...' : overview;
     }
     
     // Final fallback: create a simple overview
-    return `Meeting notes regenerated for ${meeting.title}. Detailed minutes available in the meeting notes.`;
+    return `${meeting.title} meeting notes generated.`;
   };
 
   const handleCustomInstructionSubmit = async () => {

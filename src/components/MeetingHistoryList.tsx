@@ -74,6 +74,7 @@ interface Meeting {
   summary_exists?: boolean;
   meeting_summary?: string;
   overview?: string | null;
+  transcript?: string | null;
   audio_backup_path?: string | null;
   audio_backup_created_at?: string | null;
   requires_audio_backup?: boolean;
@@ -542,70 +543,58 @@ export const MeetingHistoryList = ({
     return `${wordCount} words`;
   };
 
-  const generateOverview = (meeting: Meeting) => {
+  const generateOverview = async (meeting: Meeting): Promise<string> => {
     // Priority 1: Use stored overview if available
     if (meeting.overview && meeting.overview.trim()) {
       return meeting.overview;
     }
     
-    // Priority 2: Generate content overview from meeting summary (max 200 words)
-    if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
-      const summary = meeting.meeting_summary;
-      
-      // Extract key content from meeting minutes
-      const sections = summary.split(/\d+️⃣|##/);
-      let contentParts = [];
-      
-      // Look for discussion summary or key topics
-      const discussionSection = sections.find(section => 
-        section.toLowerCase().includes('discussion') || 
-        section.toLowerCase().includes('summary') ||
-        section.toLowerCase().includes('agenda')
-      );
-      
-      if (discussionSection) {
-        // Extract bullet points and key information
-        const bullets = discussionSection
-          .split(/[-•*]/)
-          .map(item => item.replace(/\*\*/g, '').trim())
-          .filter(item => item.length > 20 && !item.toLowerCase().includes('action item'))
-          .slice(0, 3); // Take top 3 points
+    // Priority 2: Generate AI overview from meeting summary or transcript
+    if (meeting.meeting_summary?.trim() || meeting.transcript?.trim()) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+          body: {
+            meetingTitle: meeting.title,
+            meetingNotes: meeting.meeting_summary,
+            transcript: meeting.transcript
+          }
+        });
         
-        contentParts = bullets;
+        if (error) throw error;
+        if (data?.overview) {
+          return data.overview;
+        }
+      } catch (error) {
+        console.error('Error generating AI overview:', error);
+        // Fall through to manual extraction
       }
-      
-      // If no discussion section, extract from beginning
-      if (contentParts.length === 0) {
-        const cleanedSummary = summary
-          .replace(/\*\*/g, '')
-          .replace(/##/g, '')
-          .replace(/\d+️⃣/g, '')
-          .split('\n')
-          .filter(line => line.trim() && !line.includes('Meeting Minutes') && !line.includes('Date:') && !line.includes('Time:'))
-          .slice(0, 4)
-          .join(' ');
-        
-        contentParts = [cleanedSummary];
-      }
-      
-      // Combine and limit to 200 words
-      const overview = contentParts.join('. ').trim();
-      const words = overview.split(' ');
-      
-      if (words.length > 200) {
-        return words.slice(0, 200).join(' ') + '...';
-      }
-      
-      return overview || `Meeting covered key topics including discussions and decisions.`;
     }
     
-    // Priority 3: Use description as agenda/purpose
+    // Priority 3: Manual extraction from meeting summary (fallback)
+    if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
+      const summary = meeting.meeting_summary;
+      const cleanedSummary = summary
+        .replace(/\*\*/g, '')
+        .replace(/##/g, '')
+        .replace(/\d+️⃣/g, '')
+        .split('\n')
+        .filter(line => line.trim() && !line.includes('Meeting Minutes') && !line.includes('Date:') && !line.includes('Time:'))
+        .slice(0, 2)
+        .join(' ')
+        .substring(0, 200);
+      
+      if (cleanedSummary) {
+        return cleanedSummary + (cleanedSummary.length === 200 ? '...' : '');
+      }
+    }
+    
+    // Priority 4: Use description as agenda/purpose
     if (meeting.description && meeting.description.trim()) {
       const words = meeting.description.split(' ').slice(0, 20);
       return words.join(' ') + (words.length === 20 ? '...' : '');
     }
     
-    // Priority 4: Basic meeting info fallback
+    // Priority 5: Basic meeting info fallback
     return `${getMeetingTypeLabel(meeting.meeting_type)} scheduled for ${format(new Date(meeting.start_time), 'MMM d, yyyy')}${meeting.duration_minutes ? ` (${formatDuration(meeting.duration_minutes)})` : ''}`;
   };
 
@@ -879,7 +868,7 @@ export const MeetingHistoryList = ({
               {/* Meeting Overview Editor */}
               <MeetingOverviewEditor 
                 meetingId={meeting.id}
-                currentOverview={meeting.overview || generateOverview(meeting)}
+                currentOverview={meeting.overview || ""}
                 onOverviewChange={() => onRefresh?.()}
                 className="mb-3"
               />
