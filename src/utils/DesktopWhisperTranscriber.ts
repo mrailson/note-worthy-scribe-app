@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 
 export interface TranscriptData {
   text: string;
@@ -225,36 +226,14 @@ export class DesktopWhisperTranscriber {
     // Check if we should exit early transcription mode (after 60 seconds)
     const elapsed = Date.now() - this.recordingStartTime;
     if (this.earlyTranscriptionMode && elapsed > 60000) {
-      console.log('📊 Exiting EARLY MODE after 60 seconds - switching to normal intervals');
+      console.log('📊 Exiting EARLY MODE after 60 seconds - switching to optimal intervals');
       this.earlyTranscriptionMode = false;
     }
 
-    let nextInterval: number;
+    // Phase 2: Use optimal chunk intervals for better Whisper performance
+    const nextInterval = getOptimalChunkInterval(elapsed, this.earlyTranscriptionMode);
     
-    // More frequent chunking for real-time feedback
-    if (this.earlyTranscriptionMode) {
-      // Early mode: aggressive chunking for immediate feedback
-      if (this.chunkCount === 0) {
-        nextInterval = 2000; // 2 seconds for very first chunk
-        console.log('⚡ EARLY MODE: First chunk - 2 second interval');
-      } else if (this.chunkCount === 1) {
-        nextInterval = 3000; // 3 seconds for second chunk
-        console.log('⚡ EARLY MODE: Second chunk - 3 second interval');
-      } else if (this.chunkCount < 4) {
-        nextInterval = 5000; // 5 seconds for better real-time updates
-        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 5 second interval');
-      } else {
-        nextInterval = 8000; // 8 seconds for remaining early chunks
-        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 8 second interval');
-      }
-    } else {
-      // Normal mode: faster for continuous updates  
-      if (this.chunkCount === 0) {
-        nextInterval = 5000; // 5 seconds - faster start
-      } else {
-        nextInterval = 10000; // 10 seconds - more frequent updates
-      }
-    }
+    console.log(`⚡ Chunk interval: ${nextInterval/1000}s (elapsed: ${elapsed/1000}s, early: ${this.earlyTranscriptionMode})`);
 
     console.log(`🖥️ Scheduling chunk ${this.chunkCount + 1} in ${nextInterval/1000} seconds`);
 

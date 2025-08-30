@@ -16,6 +16,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 
 export interface ChromiumTranscriptData {
   text: string;
@@ -43,8 +44,8 @@ export class ChromiumMicTranscriber {
   private lastErrorTime = 0;
   private errorCount = 0;
   
-  // Constants
-  private readonly CHUNK_MS = 1000; // 1 second chunks
+  // Constants - Phase 2: Optimized for 20-30s chunks  
+  private readonly CHUNK_MS = OPTIMAL_CHUNK_DURATION.PREFERRED_MS; // 25 second chunks
   private readonly MAX_QUEUE_SIZE = 10; // Max 10 chunks in queue
   private readonly UPLOAD_TIMEOUT_MS = 5000; // 5 second upload timeout
   private readonly ERROR_COOLDOWN_MS = 60000; // 1 minute between auto-restarts
@@ -258,6 +259,12 @@ export class ChromiumMicTranscriber {
       // Convert blob to base64
       const arrayBuffer = await chunk.blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Phase 2: Check audio activity before transcription
+      if (!hasAudioActivity(uint8Array, 0.01)) {
+        console.log(`🔇 Skipping chunk ${chunk.chunkId} due to low audio activity`);
+        return; // Skip transcription for silent chunks
+      }
       
       // Convert to base64 in chunks to prevent memory issues
       let binary = '';

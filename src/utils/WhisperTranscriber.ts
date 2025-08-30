@@ -1,4 +1,5 @@
 // ============= Complete WebM Buffering WhisperTranscriber =============
+import { hasAudioActivity } from './audioLevelDetection';
 
 export interface TranscriptData {
   text: string;
@@ -115,6 +116,19 @@ export class WhisperTranscriber {
 
   /** Upload complete WebM file to speech-to-text-chunked */
   private async uploadCompleteFile(blob: Blob, meta: UploadMeta) {
+    // Phase 2: Check audio activity before uploading
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      if (!hasAudioActivity(uint8Array, 0.01)) {
+        console.log(`🔇 Skipping WhisperTranscriber chunk ${this.chunkIndex} due to low audio activity`);
+        return; // Skip transcription for silent chunks
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not check audio activity, proceeding with transcription:', error);
+    }
+    
     const formData = new FormData();
     formData.append('file', new File([blob], `chunk_${this.chunkIndex}.webm`, { type: this.MIME }));
     formData.append('chunkIndex', String(this.chunkIndex));

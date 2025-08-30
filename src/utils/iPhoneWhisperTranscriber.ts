@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 
 export interface TranscriptData {
   text: string;
@@ -128,10 +129,9 @@ export class iPhoneWhisperTranscriber {
     this.recordingStartTime = Date.now();
     this.mediaRecorder.start();
 
+    // Phase 2: Use optimal chunk intervals  
     const getInterval = (elapsed: number) => {
-      if (elapsed < 20000) return 5000;     // Every 5s for first 20s
-      if (elapsed < 60000) return 10000;    // Every 10s until 1 min
-      return 30000;                         // Then every 30s for balance
+      return getOptimalChunkInterval(elapsed, elapsed < 60000); // Early mode for first minute
     };
 
     const scheduleNext = () => {
@@ -202,6 +202,12 @@ export class iPhoneWhisperTranscriber {
       // Convert blob to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Phase 2: Check audio activity before transcription
+      if (!hasAudioActivity(uint8Array, 0.01)) {
+        console.log(`🔇 Skipping iPhone chunk due to low audio activity`);
+        return; // Skip transcription for silent chunks
+      }
       
       // Convert to base64 in chunks to prevent memory issues
       let binary = '';
