@@ -42,8 +42,8 @@ export function withDefaultThresholds(settings: any): MeetingSettingsWithThresho
   return {
     transcriberService: settings?.transcriberService || "whisper",
     transcriberThresholds: {
-      whisper: settings?.transcriberThresholds?.whisper ?? 0.75,
-      deepgram: settings?.transcriberThresholds?.deepgram ?? 0.80,
+      whisper: settings?.transcriberThresholds?.whisper ?? 0.30,
+      deepgram: settings?.transcriberThresholds?.deepgram ?? 0.30,
     },
   };
 }
