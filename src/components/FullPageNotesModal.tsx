@@ -14,6 +14,7 @@ import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -71,6 +72,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { isRecording, isResourceOperationSafe } = useRecording();
+  const isMobile = useIsMobile();
   
   // Enhanced debugging
   console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
@@ -1292,7 +1294,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }}
     >
       <DialogContent 
-        className="max-w-6xl h-[90vh] max-h-screen flex flex-col fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden z-[100] !important"
+        className={`${isMobile 
+          ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
+          : "max-w-6xl h-[90vh] max-h-screen"
+        } flex flex-col overflow-hidden z-[100]`}
         style={{ zIndex: 100 }}
       >
         <RecordingWarningBanner 
@@ -1300,17 +1305,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           className="mx-6 mt-6"
         />
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between pr-8">
-            <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-primary" />
-              {meeting.title} - Meeting Notes
+          <DialogTitle className={`flex items-center justify-between ${isMobile ? "pr-4" : "pr-8"}`}>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Bot className="h-5 w-5 text-primary flex-shrink-0" />
+              <span className="truncate">{meeting.title} - Meeting Notes</span>
             </div>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 mr-2">
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "sm"} 
+                  className={`gap-2 ${isMobile ? "mr-1 px-2" : "mr-2"} touch-manipulation min-h-[44px] sm:min-h-[36px]`}
+                >
                   <Download className="h-4 w-4" />
-                  Quick Pick
+                  {!isMobile && "Quick Pick"}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
