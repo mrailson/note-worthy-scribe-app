@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
-import { UnifiedTranscriptProcessor } from './UnifiedTranscriptProcessor';
 
 export interface TranscriptData {
   text: string;
@@ -32,7 +31,6 @@ export class DesktopWhisperTranscriber {
   private totalWordCount = 0;
   private chunkCounter = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
-  private unifiedProcessor: UnifiedTranscriptProcessor;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -43,35 +41,6 @@ export class DesktopWhisperTranscriber {
     this.sessionId = this.generateSessionId();
     this.chunkIntervalMs = 25000; // Phase 2: Optimized chunk duration for better transcription
     this.meetingSettings = withDefaultThresholds(meetingSettings);
-    
-    // Initialize unified processor with desktop-optimized settings
-    this.unifiedProcessor = new UnifiedTranscriptProcessor(
-      this.meetingSettings,
-      {
-        enableConfidenceGating: true,
-        enableAdvancedDeduplication: true,
-        enableLegacyCompatibility: false,
-        deduplicationConfig: {
-          sentenceWindow: 5, // Larger window for desktop processing power
-          semanticThreshold: 0.90, // Higher threshold for desktop accuracy
-          chunkOverlapThreshold: 0.85,
-          temporalGapMs: 800, // Shorter gap for desktop responsiveness
-          retroactiveCleaningEnabled: true,
-          maxLookbackSentences: 15, // More lookback for desktop memory
-          conversationFlowWeight: 0.4 // Higher weight for flow analysis
-        }
-      },
-      {
-        onChunkFiltered: (chunk, reason) => {
-          console.log(`💻 Desktop chunk filtered: ${reason} - "${chunk.text?.substring(0, 40)}..."`);
-        },
-        onDeduplicationStats: (stats) => {
-          if (stats.segmentsRemoved > 0) {
-            console.log(`💻 Desktop deduplication: Removed ${stats.segmentsRemoved} segments (${stats.processingTimeMs}ms)`);
-          }
-        }
-      }
-    );
   }
 
   private generateSessionId(): string {
@@ -419,29 +388,19 @@ export class DesktopWhisperTranscriber {
           }
         }
         
-        // Process through unified processor
-        const result = this.unifiedProcessor.processChunk({
+        const transcriptData: TranscriptData = {
           text: cleanText,
-          confidence: data.confidence || 0.9,
-          isFinal: true,
-          timestamp: Date.now(),
-          source: 'desktop_whisper',
-          sessionId: this.sessionId
-        });
+          is_final: true,
+          confidence: data.confidence || 0.9, // Use actual confidence from API
+          speaker: 'Speaker'
+        };
 
-        // Send to UI if not filtered
-        if (!result.wasFiltered) {
-          const transcriptData: TranscriptData = {
-            text: result.transcript, // Send full accumulated transcript from processor
-            is_final: true,
-            confidence: data.confidence || 0.9,
-            speaker: 'Speaker'
-          };
-
-          this.onTranscription(transcriptData);
+        // Phase 3: Apply confidence gating before sending to UI
+        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
           console.log('✅ Desktop transcription:', cleanText);
+          this.onTranscription(transcriptData);
         } else {
-          console.log(`💻 Desktop chunk filtered: ${result.filterReason}`);
+          console.log(`🚫 Filtered low-confidence desktop transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
           return; // Don't process further if filtered
         }
       }

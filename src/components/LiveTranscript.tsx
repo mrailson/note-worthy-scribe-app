@@ -91,7 +91,7 @@ export const LiveTranscript = ({
   onMeetingSettingsChange,
   defaultOpen
 }: LiveTranscriptProps) => {
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? true);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isMeetingSettingsOpen, setIsMeetingSettingsOpen] = useState(false); // New state for meeting settings
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);
@@ -935,10 +935,10 @@ export const LiveTranscript = ({
               )}
 
               {/* Two Feed Transcript System */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="space-y-4">
 
-                {/* Live (Interim) Transcript – 300% wider */}
-                <div className="lg:col-span-3 p-3 bg-accent/20 rounded-lg border">
+                {/* Live (Interim) Transcript – 3 lines only */}
+                <div className="p-3 bg-accent/20 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -962,7 +962,7 @@ export const LiveTranscript = ({
 
                   <div
                     className={`text-sm font-mono leading-relaxed bg-background/50 rounded-md border p-2 transition-all
-                      ${isRawExpanded ? "max-h-[768px] overflow-y-auto" : "line-clamp-[12] overflow-hidden min-h-[200px]"}`}
+                      ${isRawExpanded ? "max-h-64 overflow-y-auto" : "line-clamp-3 overflow-hidden"}`}
                     style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
                   >
                     {liveTranscriptText || (
