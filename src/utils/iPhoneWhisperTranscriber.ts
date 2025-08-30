@@ -287,7 +287,7 @@ export class iPhoneWhisperTranscriber {
         // Send to UI if not filtered
         if (!result.wasFiltered) {
           const transcriptData: TranscriptData = {
-            text: t,
+            text: result.transcript, // Send full accumulated transcript from processor
             is_final: true,
             confidence: data.confidence || 0.9,
             speaker: 'Speaker'

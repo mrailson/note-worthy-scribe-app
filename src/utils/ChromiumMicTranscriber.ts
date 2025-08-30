@@ -339,7 +339,7 @@ export class ChromiumMicTranscriber {
         // Send processed result to UI if not filtered
         if (!result.wasFiltered) {
           const transcriptData: ChromiumTranscriptData = {
-            text: data.text.trim(), // Send original text (processor manages full transcript internally)
+            text: result.transcript, // Send full accumulated transcript from processor
             is_final: true,
             confidence: data.confidence || 0.8,
             speaker: 'Speaker'
