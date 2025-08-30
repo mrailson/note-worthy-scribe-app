@@ -39,11 +39,24 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className={
-        isMobile 
-          ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0 flex flex-col"
-          : "max-w-4xl w-[95vw] h-[90vh] max-h-[800px] flex flex-col"
-      }>
+      <DialogContent 
+        className={
+          isMobile 
+            ? "!fixed !inset-0 !transform-none !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !m-0 !rounded-none !border-0 flex flex-col"
+            : "max-w-4xl w-[95vw] h-[90vh] max-h-[800px] flex flex-col"
+        }
+        style={isMobile ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          transform: 'none',
+          margin: 0,
+          borderRadius: 0,
+          border: 'none'
+        } : {}}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <Eye className="w-5 h-5" />
