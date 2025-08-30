@@ -773,29 +773,9 @@ export const LiveTranscript = ({
           <CollapsibleContent>
              <CardContent className="space-y-4">
                <div className="flex items-center justify-between gap-2">
-                 <div className="flex items-center gap-2">
-                   <Button
-                     variant={isMeetingSettingsOpen ? 'default' : 'outline'}
-                     size="sm"
-                     onClick={() => setIsMeetingSettingsOpen(!isMeetingSettingsOpen)}
-                   >
-                     <Settings className="h-4 w-4 mr-2" />
-                     Meeting Settings
-                   </Button>
-                   
-                     <MedicalTermCorrectionDialog
-                       selectedText={selectedText}
-                       onCorrectionAdded={async () => {
-                         // Refresh corrections when new ones are added
-                         const { data: user } = await supabase.auth.getUser();
-                         if (user.user) {
-                           await medicalTermCorrector.refreshCorrections(user.user.id);
-                         }
-                         setIsMedicalCorrectionsLoaded(true);
-                       }}
-                       buttonText="Update Medical Terms, Acronyms & Missheard Names"
-                     />
-                 </div>
+                  <div className="flex items-center gap-2">
+                    {/* Meeting Settings and Medical Terms buttons removed per user request */}
+                  </div>
                  
                  {transcript && speakers.length > 0 && (
                    <div className="flex items-center gap-2">
