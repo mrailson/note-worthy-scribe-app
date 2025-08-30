@@ -57,9 +57,6 @@ import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { useMeetingData } from "@/hooks/useMeetingData";
-import { useDualTranscription } from "@/hooks/useDualTranscription";
-import { DualRecordingControls } from "@/components/DualRecordingControls";
-import { AssemblyRealtimeTicker } from "@/components/AssemblyRealtimeTicker";
 
 interface TranscriptData {
   text: string;
@@ -237,9 +234,6 @@ export const MeetingRecorder = ({
     meetingSettings,
     setMeetingSettings: updateMeetingSettings
   } = useMeetingData();
-
-  // Assembly AI dual transcription
-  const dualTranscription = useDualTranscription();
 
   // Timestamp toggle state
   const [showTimestamps, setShowTimestamps] = useState(true);
@@ -3947,23 +3941,6 @@ export const MeetingRecorder = ({
                 </div>
               </CardContent>
             </Card>
-
-            {/* Assembly AI Live Transcript Card */}
-            <AssemblyRealtimeTicker
-              transcript={dualTranscription.state.assemblyTranscript}
-              status={dualTranscription.state.assemblyStatus}
-              confidence={dualTranscription.state.assemblyConfidence}
-              isEnabled={dualTranscription.state.assemblyEnabled}
-            />
-
-            {/* Dual Transcription Controls */}
-            <DualRecordingControls
-              state={dualTranscription.state}
-              onStart={dualTranscription.startDualTranscription}
-              onStop={dualTranscription.stopDualTranscription}
-              onToggleService={dualTranscription.toggleService}
-              onSetPrimarySource={dualTranscription.setPrimarySource}
-            />
 
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
