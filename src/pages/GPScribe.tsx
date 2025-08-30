@@ -458,14 +458,12 @@ const Index = () => {
             />
 
             {/* Assembly AI Live Transcript Card */}
-            {dualTranscription.state.assemblyEnabled && (
-              <AssemblyRealtimeTicker
-                transcript={dualTranscription.state.assemblyTranscript}
-                status={dualTranscription.state.assemblyStatus}
-                confidence={dualTranscription.state.assemblyConfidence}
-                isEnabled={dualTranscription.state.assemblyEnabled}
-              />
-            )}
+            <AssemblyRealtimeTicker
+              transcript={dualTranscription.state.assemblyTranscript}
+              status={dualTranscription.state.assemblyStatus}
+              confidence={dualTranscription.state.assemblyConfidence}
+              isEnabled={dualTranscription.state.assemblyEnabled}
+            />
 
             {/* Transcript Panel with Dual Transcription Support */}
             <TranscriptPanel
