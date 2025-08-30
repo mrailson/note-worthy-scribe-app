@@ -399,17 +399,24 @@ const Index = () => {
           {/* Consultation Tab */}
           <TabsContent value="consultation" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'}`}>
             <RecordingControls
-              isRecording={recording.isRecording}
+              isRecording={dualTranscription.state.isRecording || recording.isRecording}
               isPaused={recording.isPaused}
               duration={recording.duration}
               connectionStatus={recording.connectionStatus}
               wordCount={recording.wordCount}
               currentConfidence={recording.currentConfidence}
               formatDuration={recording.formatDuration}
-              transcript={recording.transcript}
+              transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : recording.transcript}
               realtimeTranscripts={recording.realtimeTranscripts}
-              onStartRecording={recording.startRecording}
-              onStopRecording={() => recording.stopRecording(navigate)}
+              onStartRecording={() => {
+                // Start both recording systems
+                recording.startRecording();
+                dualTranscription.startDualTranscription();
+              }}
+              onStopRecording={() => {
+                recording.stopRecording(navigate);
+                dualTranscription.stopDualTranscription();
+              }}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
               onImportTranscript={(transcript) => {
@@ -425,6 +432,8 @@ const Index = () => {
                 documents.clearAllContent();
                 guidance.clearGuidance();
                 history.clearConsultation();
+                // Reset dual transcription state
+                dualTranscription.stopDualTranscription();
                 toast.success("New consultation started");
               }}
             />
