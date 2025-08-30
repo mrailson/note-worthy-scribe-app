@@ -14,7 +14,8 @@ import {
   FileText,
   TrendingUp,
   Calendar,
-  Building2
+  Building2,
+  PhoneCall
 } from 'lucide-react';
 import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
@@ -178,7 +179,23 @@ const PMGenieVoiceAgent = () => {
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error}
+              {error.includes('Failed to start conversation with PM Genie') && (
+                <div className="mt-3">
+                  <a 
+                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jwry2fzme7xsb2mwzatxseyt" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Try PM Genie Direct Link
+                  </a>
+                  <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access PM Genie directly</p>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
