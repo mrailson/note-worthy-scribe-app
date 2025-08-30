@@ -357,6 +357,34 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access GP Genie directly</p>
                 </div>
               )}
+              {(error.includes('Failed to start conversation with PM Genie') && activeTab === 'pm-genie') && (
+                <div className="mt-3">
+                  <a 
+                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jzsg04q1fwy9bfydkhszan7s" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Try PM Genie Direct Link
+                  </a>
+                  <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access PM Genie directly</p>
+                </div>
+              )}
+              {(error.includes('Failed to start conversation with Oak Lane Patient Line') && activeTab === 'patient-line') && (
+                <div className="mt-3">
+                  <a 
+                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jwrz44tyefdvhtvt7c622rj7" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Try Oak Lane Patient Line Direct Link
+                  </a>
+                  <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access Oak Lane Patient Line directly</p>
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}

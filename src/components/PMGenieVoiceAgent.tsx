@@ -184,7 +184,7 @@ const PMGenieVoiceAgent = () => {
               {error.includes('Failed to start conversation with PM Genie') && (
                 <div className="mt-3">
                   <a 
-                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jwry2fzme7xsb2mwzatxseyt" 
+                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jzsg04q1fwy9bfydkhszan7s" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
