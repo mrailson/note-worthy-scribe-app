@@ -385,6 +385,20 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access Oak Lane Patient Line directly</p>
                 </div>
               )}
+              {error.includes('Failed to start language test conversation') && (
+                <div className="mt-3">
+                  <a 
+                    href="https://elevenlabs.io/app/talk-to?agent_id=agent_01jws2qhv2essav25m8cfq2h0v" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    Try Translation Service Direct Link
+                  </a>
+                  <p className="text-xs mt-1 text-muted-foreground">Use this backup link to access the Translation Service directly</p>
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
