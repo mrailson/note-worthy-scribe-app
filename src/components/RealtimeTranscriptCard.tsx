@@ -125,7 +125,7 @@ export const RealtimeTranscriptCard = ({
 
   return (
     <Card className={cn("relative transition-all duration-300", className, {
-      "h-[60rem]": isExpanded,
+      "h-[75rem]": isExpanded,
       "h-[32rem]": !isExpanded
     })}>
       <CardHeader className="pb-2">
