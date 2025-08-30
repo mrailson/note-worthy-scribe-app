@@ -210,16 +210,18 @@ const NHSMeetingNotes = () => {
                     )}
                   </Button>
 
-                  <Button
-                    onClick={clearSession}
-                    variant="outline"
-                    size="lg"
-                    disabled={isRecording || (!transcript && duration === 0)}
-                    className="flex items-center gap-2"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Clear Session
-                  </Button>
+                  {!isRecording && (
+                    <Button
+                      onClick={clearSession}
+                      variant="outline"
+                      size="lg"
+                      disabled={!transcript && duration === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Clear Session
+                    </Button>
+                  )}
 
                   <Badge variant="outline" className="text-sm">
                     Status: {status}
