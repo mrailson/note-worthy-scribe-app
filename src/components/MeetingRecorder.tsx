@@ -2563,17 +2563,55 @@ export const MeetingRecorder = ({
     setStartTime(generateMeetingTimestamp());
     setConnectionStatus("Connected");
     
-    // Generate and store temporary meeting ID for this session
-      const tempMeetingId = crypto.randomUUID();
-      sessionStorage.setItem('currentSessionId', tempMeetingId); // Store for later retrieval
-      if (desktopTranscriberRef.current) {
-        desktopTranscriberRef.current.setMeetingId(tempMeetingId);
-        console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
+    // Create actual meeting record at recording start
+    let realMeetingId: string;
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated - cannot create meeting');
       }
+
+      const meetingData = {
+        title: meetingSettings.title || 'General Meeting',
+        duration_minutes: 0, // Will be updated when stopped
+        meeting_type: 'general',
+        start_time: generateMeetingTimestamp(),
+        status: 'recording' as const,
+        user_id: user.id,
+        practice_id: meetingSettings.practiceId || null,
+        meeting_format: meetingSettings.format || 'face-to-face'
+      };
+
+      const { data: savedMeeting, error: saveError } = await supabase
+        .from('meetings')
+        .insert(meetingData)
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('❌ Failed to create meeting record:', saveError);
+        throw saveError;
+      }
+
+      realMeetingId = savedMeeting.id;
+      console.log(`✅ Created meeting record: ${realMeetingId}`);
+      
+      // Store both session ID and meeting ID as the same value
+      sessionStorage.setItem('currentSessionId', realMeetingId);
+      sessionStorage.setItem('currentMeetingId', realMeetingId);
+      
+      if (desktopTranscriberRef.current) {
+        desktopTranscriberRef.current.setMeetingId(realMeetingId);
+        console.log(`🔗 Set meeting ID for transcriber: ${realMeetingId}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to create meeting:', error);
+      toast.error('Failed to create meeting record');
+      throw error;
+    }
 
       // Start overlapping chunk recording for system audio (only if not microphone-only and not using screen share)
       if (recordingMode === 'mic-and-system' && !useScreenShare) {
-        await startOverlappingChunks(tempMeetingId);
+        await startOverlappingChunks(realMeetingId);
       }
       
       addDebugLog('✅ Recording started successfully');
@@ -2709,6 +2747,7 @@ export const MeetingRecorder = ({
       // Clear unsaved meeting data
       localStorage.removeItem('unsaved_meeting');
       sessionStorage.removeItem('currentSessionId');
+      sessionStorage.removeItem('currentMeetingId');
       
       toast.success(`Recording stopped. Meeting was too short (${wordCount} words) to generate notes.`);
       return;
@@ -2912,14 +2951,14 @@ export const MeetingRecorder = ({
     // Only try database if state transcript is empty
     if (!finalTranscript) {
       console.log('🔍 DEBUG: State transcript empty, trying database...');
-      const sessionId = sessionStorage.getItem('currentSessionId') || '';
+      const meetingId = sessionStorage.getItem('currentMeetingId') || ''; // Use meeting ID instead of session ID
       
-      if (sessionId && user?.id) {
+      if (meetingId && user?.id) {
         try {
           const { data, error } = await supabase
             .from('meeting_transcription_chunks')
             .select('transcription_text')
-            .eq('session_id', sessionId)
+            .eq('meeting_id', meetingId) // Query by meeting_id since both are now the same
             .eq('user_id', user.id)
             .order('chunk_number');
 
@@ -2935,6 +2974,7 @@ export const MeetingRecorder = ({
     
     // Clean up session storage
     sessionStorage.removeItem('currentSessionId');
+    sessionStorage.removeItem('currentMeetingId');
     
     // Clean the final transcript
     const currentTranscript = finalTranscript
@@ -3114,32 +3154,33 @@ export const MeetingRecorder = ({
       meeting_format: meetingData.meetingFormat
     });
 
-      // 1. Save main meeting record FIRST - fix empty practice_id issue
+      // 1. Update existing meeting record with final data
+      const meetingId = sessionStorage.getItem('currentMeetingId');
+      if (!meetingId) {
+        throw new Error('No meeting ID found in session storage');
+      }
+
       const { data: savedMeeting, error: saveError } = await supabase
         .from('meetings')
-        .insert({
+        .update({
           title: meetingData.title,
           duration_minutes: Math.ceil(duration / 60),
-          meeting_type: 'general',
-          start_time: meetingData.startTime,
-          status: 'completed',
-          user_id: user?.id,
-          practice_id: meetingData.practiceId || null, // Convert empty string to null
-          meeting_format: meetingData.meetingFormat
+          status: 'completed'
         })
+        .eq('id', meetingId)
         .select()
         .single();
 
-      console.log('🚨 DATABASE SAVE RESULT:');
+      console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
 
       if (saveError) {
-        console.error('🚨 DATABASE SAVE FAILED:', saveError);
+        console.error('🚨 DATABASE UPDATE FAILED:', saveError);
         throw saveError;
       }
 
-      console.log('🚨 MEETING SAVED TO DATABASE:', savedMeeting.id);
+      console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
 
       // Step 2: Securing data
       setSavingSteps({ saving: true, securing: true, complete: false });

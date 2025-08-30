@@ -247,8 +247,8 @@ export const LiveTranscript = ({
   // Handle recording state management
   useEffect(() => {
     // Detect if we're actively recording by checking session storage
-    const currentSessionId = sessionStorage.getItem('currentSessionId');
-    const recordingStatus = currentSessionId ? true : false;
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId'); // Use meeting ID as primary identifier
+    const recordingStatus = currentMeetingId ? true : false;
     setIsRecording(recordingStatus);
     
     if (recordingStatus) {
@@ -414,11 +414,11 @@ export const LiveTranscript = ({
     if (!user?.id) return;
     if (subscribedRef.current) return;
 
-    const currentSessionId = sessionStorage.getItem('currentSessionId');
-    if (!currentSessionId) return;
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId'); // Use meeting ID consistently
+    if (!currentMeetingId) return;
 
     subscribedRef.current = true;
-    console.log('🔄 Setting up transcription chunks subscription for session:', currentSessionId, 'subscription-id:', Math.random().toString(36).substr(2, 9));
+    console.log('🔄 Setting up transcription chunks subscription for meeting:', currentMeetingId, 'subscription-id:', Math.random().toString(36).substr(2, 9));
 
     const channel = supabase
       .channel('transcription-chunks')
@@ -428,7 +428,7 @@ export const LiveTranscript = ({
           event: 'INSERT',
           schema: 'public',
           table: 'meeting_transcription_chunks',
-          filter: `session_id=eq.${currentSessionId}`
+          filter: `meeting_id=eq.${currentMeetingId}` // Use meeting_id field for consistency
         },
         (payload) => {
           const r = payload.new;
@@ -512,9 +512,8 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (!user?.id) return;
 
-    const currentSessionId = sessionStorage.getItem('currentSessionId');
     const currentMeetingId = sessionStorage.getItem('currentMeetingId');
-    if (!currentSessionId || !currentMeetingId) return;
+    if (!currentMeetingId) return;
 
     // Fetch existing live notes
     const fetchLiveNotes = async () => {
@@ -600,7 +599,7 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (transcript && transcript.trim()) {
       const processedTranscript = filterSystemMessages(transcript);
-    console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_session:', sessionStorage.getItem('currentSessionId'));
+    console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_meeting:', sessionStorage.getItem('currentMeetingId'));
     setLiveTranscriptText(prev => {
       const chunk: LiveChunk = {
         text: processedTranscript,
