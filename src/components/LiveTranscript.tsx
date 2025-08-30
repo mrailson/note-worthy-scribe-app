@@ -935,10 +935,10 @@ export const LiveTranscript = ({
               )}
 
               {/* Two Feed Transcript System */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-                {/* Live (Interim) Transcript – 3 lines only */}
-                <div className="p-3 bg-accent/20 rounded-lg border">
+                {/* Live (Interim) Transcript – 300% wider */}
+                <div className="lg:col-span-3 p-3 bg-accent/20 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
