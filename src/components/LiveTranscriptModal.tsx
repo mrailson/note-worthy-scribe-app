@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Copy, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LiveTranscriptModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
   transcriptText,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Auto-scroll to bottom when new content is added
   useEffect(() => {
@@ -37,7 +39,11 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[90vh] max-h-[800px] flex flex-col">
+      <DialogContent className={
+        isMobile 
+          ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0 flex flex-col"
+          : "max-w-4xl w-[95vw] h-[90vh] max-h-[800px] flex flex-col"
+      }>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <Eye className="w-5 h-5" />
