@@ -336,6 +336,64 @@ async function improveLayoutLetter(ctx: QuickPickContext): Promise<string> {
   return "Format the above content as a formal letter with proper letter heading, date, address placeholder, clear paragraphs with appropriate spacing, formal structure, and proper closing signature block.";
 }
 
+// AI Enhancement handlers
+async function aiMakeProfessional(ctx: QuickPickContext): Promise<string> {
+  return `Transform the above content into highly professional, formal business language suitable for executive meetings and official records. Use formal tone, proper business terminology, and structured presentation.`;
+}
+
+async function aiMakeConcise(ctx: QuickPickContext): Promise<string> {
+  return `Make the above content more concise and to-the-point while retaining all critical information, decisions, and action items. Remove redundancy and focus on key points.`;
+}
+
+async function aiAddActionItems(ctx: QuickPickContext): Promise<string> {
+  return `Analyze the above content and clearly extract and organize all action items, decisions, follow-up tasks, and responsible parties. Present them in a structured format with clear headings.`;
+}
+
+async function aiNHSFormat(ctx: QuickPickContext): Promise<string> {
+  return `Format the above content according to NHS governance and documentation standards. Include proper clinical and administrative structure, compliance requirements, and professional NHS terminology.`;
+}
+
+async function aiBoardReady(ctx: QuickPickContext): Promise<string> {
+  return `Transform the above content into board-ready format with executive summary, key decisions highlighted, strategic implications noted, and professional presentation suitable for board meetings.`;
+}
+
+async function aiCustomPrompt(ctx: QuickPickContext): Promise<string> {
+  return `Please provide a custom AI enhancement request for the above content. You can specify exactly how you want the content modified, enhanced, or transformed.`;
+}
+
+// Quick formatting handlers
+async function formatBoldTitles(ctx: QuickPickContext): Promise<string> {
+  return `Apply bold formatting (**bold text**) to all titles, headers, and important section names in the above content to improve visual hierarchy.`;
+}
+
+async function formatItalicEmphasis(ctx: QuickPickContext): Promise<string> {
+  return `Apply italic formatting (*italic text*) to add emphasis to important notes, decisions, and key points in the above content.`;
+}
+
+async function formatBulletPoints(ctx: QuickPickContext): Promise<string> {
+  return `Convert appropriate content in the above to bullet points (• bullets) to improve readability and organization, especially for lists, action items, and key points.`;
+}
+
+async function formatNumberedList(ctx: QuickPickContext): Promise<string> {
+  return `Convert appropriate content in the above to numbered lists (1. 2. 3.) to show sequence, priority, or process steps clearly.`;
+}
+
+async function formatHeaders(ctx: QuickPickContext): Promise<string> {
+  return `Add proper markdown headers (### for main sections, #### for subsections) to the above content to improve structure and navigation.`;
+}
+
+async function formatTable(ctx: QuickPickContext): Promise<string> {
+  return `Convert appropriate data in the above content into table format using markdown tables (| Column 1 | Column 2 |) where it would improve clarity and organization.`;
+}
+
+async function formatCleanSpacing(ctx: QuickPickContext): Promise<string> {
+  return `Clean up the spacing, formatting, and structure of the above content. Remove excessive whitespace, ensure consistent paragraph breaks, and improve overall presentation.`;
+}
+
+async function formatRemoveFormatting(ctx: QuickPickContext): Promise<string> {
+  return `Remove all markdown formatting from the above content and present it as clean plain text while maintaining readability and structure.`;
+}
+
 // Main handlers object
 export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> | Promise<string> | string> = {
   "approve-save": approveAndSave,
@@ -419,5 +477,23 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "improve-layout-screen": improveLayoutScreen,
   "improve-layout-email": improveLayoutEmail,
   "improve-layout-leaflet": improveLayoutLeaflet,
-  "improve-layout-letter": improveLayoutLetter
+  "improve-layout-letter": improveLayoutLetter,
+
+  // AI Enhancement handlers
+  "ai-make-professional": aiMakeProfessional,
+  "ai-make-concise": aiMakeConcise,
+  "ai-add-action-items": aiAddActionItems,
+  "ai-nhs-format": aiNHSFormat,
+  "ai-board-ready": aiBoardReady,
+  "ai-custom-prompt": aiCustomPrompt,
+
+  // Quick formatting handlers
+  "format-bold-titles": formatBoldTitles,
+  "format-italic-emphasis": formatItalicEmphasis,
+  "format-bullet-points": formatBulletPoints,
+  "format-numbered-list": formatNumberedList,
+  "format-headers": formatHeaders,
+  "format-table": formatTable,
+  "format-clean-spacing": formatCleanSpacing,
+  "format-remove-formatting": formatRemoveFormatting,
 };

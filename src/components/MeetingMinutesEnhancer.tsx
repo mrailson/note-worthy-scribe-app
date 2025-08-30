@@ -100,6 +100,36 @@ export function MeetingMinutesEnhancer({
       icon: MoreHorizontal
     },
     {
+      value: 'make_professional',
+      label: 'Make Professional',
+      description: 'Transform into formal business language for official records',
+      icon: Wand2
+    },
+    {
+      value: 'make_concise',
+      label: 'Make Concise',
+      description: 'Condense content while retaining critical information',
+      icon: Edit3
+    },
+    {
+      value: 'add_action_items',
+      label: 'Extract Action Items',
+      description: 'Identify and organize action items and decisions',
+      icon: MoreHorizontal
+    },
+    {
+      value: 'nhs_format',
+      label: 'NHS Format',
+      description: 'Format according to NHS governance standards',
+      icon: FileText
+    },
+    {
+      value: 'board_ready',
+      label: 'Board Ready',
+      description: 'Transform into board-ready format with executive summary',
+      icon: Wand2
+    },
+    {
       value: 'replace_content',
       label: 'Replace Content',
       description: 'Make specific replacements or modifications',

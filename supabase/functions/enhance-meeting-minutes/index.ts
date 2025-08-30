@@ -55,6 +55,31 @@ serve(async (req) => {
         userPrompt = `Please improve the structure and organization of the following meeting minutes by adding proper headings, sections, and formatting:\n\n${originalContent}`;
         break;
 
+      case 'make_professional':
+        systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting minutes into highly professional, formal business documents suitable for board meetings or official records.`;
+        userPrompt = `Please transform the following meeting minutes into a highly professional, formal business document:\n\n${originalContent}`;
+        break;
+
+      case 'make_concise':
+        systemPrompt = `You are an expert meeting minutes enhancer. Your task is to make meeting minutes more concise and to-the-point while retaining all critical information and decisions.`;
+        userPrompt = `Please make the following meeting minutes more concise while retaining all critical information:\n\n${originalContent}`;
+        break;
+
+      case 'add_action_items':
+        systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organizing them clearly.`;
+        userPrompt = `Please identify and clearly organize all action items, decisions, and follow-up tasks from these meeting minutes:\n\n${originalContent}`;
+        break;
+
+      case 'nhs_format':
+        systemPrompt = `You are an expert in NHS meeting documentation standards. Format meeting minutes according to NHS governance and documentation standards with proper clinical and administrative structure.`;
+        userPrompt = `Please format the following meeting minutes according to NHS governance standards:\n\n${originalContent}`;
+        break;
+
+      case 'board_ready':
+        systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting content into board-ready format with executive summaries, key decisions highlighted, and professional presentation.`;
+        userPrompt = `Please transform the following meeting minutes into board-ready format:\n\n${originalContent}`;
+        break;
+
       case 'custom':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to modify meeting minutes according to specific user requests while maintaining professionalism and accuracy.`;
         userPrompt = `Please modify the following meeting minutes according to this specific request: "${specificRequest}"\n\nOriginal content:\n${originalContent}`;
