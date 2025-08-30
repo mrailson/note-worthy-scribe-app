@@ -220,7 +220,7 @@ export const RealtimeTranscriptCard = ({
         
         <ScrollArea 
           ref={scrollAreaRef}
-          className="h-full rounded-md border bg-background/50 p-3"
+          className="h-[70%] rounded-md border bg-background/50 p-3"
           onScrollCapture={handleScroll}
         >
           <div 
