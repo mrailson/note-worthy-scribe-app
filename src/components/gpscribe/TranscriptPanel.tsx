@@ -110,6 +110,45 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
         />
       )}
 
+      {/* Prominent Transcript Source Toggle */}
+      {onPrimarySourceChange && (
+        <Card className="mb-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950 border-2">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm mb-1">Select Primary Transcript Source</h3>
+                <p className="text-xs text-muted-foreground">
+                  Choose which AI service provides your main transcript. Compare both in the Comparison tab.
+                </p>
+              </div>
+              <div className="flex rounded-lg border-2 border-primary/20 p-1 bg-background shadow-sm">
+                <Button
+                  variant={primarySource === 'whisper' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => onPrimarySourceChange('whisper')}
+                  className="flex-1 min-w-[80px] text-xs font-medium"
+                >
+                  🎤 Whisper
+                </Button>
+                <Button
+                  variant={primarySource === 'assembly' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => onPrimarySourceChange('assembly')}
+                  className="flex-1 min-w-[80px] text-xs font-medium"
+                >
+                  ⚡ Assembly AI
+                </Button>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Currently using: <span className="font-semibold text-foreground">
+                {primarySource === 'assembly' ? '⚡ Assembly AI' : '🎤 Whisper'}
+              </span> as primary source
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dual Transcription Tabs */}
       <Tabs defaultValue="live" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
