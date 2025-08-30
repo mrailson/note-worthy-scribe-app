@@ -696,6 +696,28 @@ export const MeetingHistoryList = ({
                       <Clock className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{format(new Date(meeting.start_time), 'HH:mm')}</span>
                       
+                      {/* Duration */}
+                      {meeting.duration_minutes && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate">{meeting.duration_minutes < 60 ? `${meeting.duration_minutes}m` : `${Math.floor(meeting.duration_minutes / 60)}h ${meeting.duration_minutes % 60}m`}</span>
+                        </>
+                      )}
+                      
+                      {/* Word Count */}
+                      {meeting.word_count && meeting.word_count > 0 && (
+                        <>
+                          <span>•</span>
+                          <FileText className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {meeting.word_count >= 1000 
+                              ? `${(meeting.word_count / 1000).toFixed(1)}K words`
+                              : `${meeting.word_count} words`
+                            }
+                          </span>
+                        </>
+                      )}
+                      
                       {meeting.import_source && (
                         <Badge variant="outline" className="text-xs">
                           <ExternalLink className="h-3 w-3 mr-1" />
