@@ -450,8 +450,12 @@ export const LiveTranscript = ({
           }
 
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
-          console.log("🔗 Accumulating raw transcript chunk:", r.transcription_text?.substring(0, 50) + "...");
-          setLiveTranscriptText(prev => mergeLive(prev, r.transcription_text));
+          console.log("🔗 Accumulating raw transcript chunk:", r.transcription_text?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
+          setLiveTranscriptText(prev => {
+            const merged = mergeLive(prev, r.transcription_text);
+            console.log("📈 Raw transcript updated:", prev.length, "->", merged.length, "chars");
+            return merged;
+          });
 
           // Apply lightweight cleaning for real-time processing
           const cleanedChunk = lightCleanChunk(r.transcription_text);
@@ -578,8 +582,12 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (transcript && transcript.trim()) {
       const processedTranscript = filterSystemMessages(transcript);
-      console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...");
-      setLiveTranscriptText(prev => mergeLive(prev, processedTranscript));
+      console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_session:', sessionStorage.getItem('currentSessionId'));
+      setLiveTranscriptText(prev => {
+        const merged = mergeLive(prev, processedTranscript);
+        console.log("📈 Props transcript updated:", prev.length, "->", merged.length, "chars");
+        return merged;
+      });
     }
   }, [transcript]);
 
@@ -589,8 +597,12 @@ export const LiveTranscript = ({
     
     // Always show interim in live box - accumulate instead of replace
     const processedTranscript = filterSystemMessages(transcript);
-    console.log("🔗 Accumulating client prop transcript:", processedTranscript?.substring(0, 50) + "...");
-    setLiveTranscriptText(prev => mergeLive(prev, processedTranscript));
+    console.log("🔗 Accumulating client prop transcript:", processedTranscript?.substring(0, 50) + "...", 'is_final:', isFinal);
+    setLiveTranscriptText(prev => {
+      const merged = mergeLive(prev, processedTranscript);
+      console.log("📈 Client props transcript updated:", prev.length, "->", merged.length, "chars");
+      return merged;
+    });
 
     // Handle finality from client props
     if (typeof isFinal === "boolean") {
