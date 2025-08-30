@@ -1557,7 +1557,8 @@ export const MeetingRecorder = ({
       iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
         handleBrowserTranscript, // Same handler works for both
         handleTranscriptionError,
-        handleStatusChange
+        handleStatusChange,
+        meetingSettings // Pass meeting settings for confidence gating
       );
 
       // Ensure a session/meeting id and link it to the iPhone transcriber
@@ -1584,7 +1585,8 @@ export const MeetingRecorder = ({
     const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
       handleTranscriptionError,
-      handleStatusChange
+      handleStatusChange,
+      meetingSettings // Pass meeting settings for confidence gating
     );
 
     await transcriber.startTranscription();

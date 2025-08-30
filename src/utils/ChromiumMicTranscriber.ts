@@ -17,6 +17,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
+import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 
 export interface ChromiumTranscriptData {
   text: string;
@@ -43,6 +44,7 @@ export class ChromiumMicTranscriber {
   private sessionId: string;
   private lastErrorTime = 0;
   private errorCount = 0;
+  private meetingSettings: MeetingSettingsWithThresholds;
   
   // Constants - Phase 2: Optimized for 20-30s chunks  
   private readonly CHUNK_MS = OPTIMAL_CHUNK_DURATION.PREFERRED_MS; // 25 second chunks
@@ -54,9 +56,11 @@ export class ChromiumMicTranscriber {
   constructor(
     private onTranscription: (data: ChromiumTranscriptData) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void
+    private onStatusChange: (status: string) => void,
+    meetingSettings?: any
   ) {
     this.sessionId = `chromium_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.meetingSettings = withDefaultThresholds(meetingSettings);
     this.logEvent('chromium_mic.init', { sessionId: this.sessionId });
   }
 
@@ -298,7 +302,21 @@ export class ChromiumMicTranscriber {
           speaker: 'Speaker'
         };
 
-        this.onTranscription(transcriptData);
+        // Phase 3: Apply confidence gating before sending to UI
+        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          this.onTranscription(transcriptData);
+          this.logEvent('chromium_mic.transcription', {
+            text: transcriptData.text.substring(0, 50),
+            confidence: transcriptData.confidence
+          });
+        } else {
+          this.logEvent('chromium_mic.confidence_filtered', {
+            confidence: transcriptData.confidence,
+            threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
+            text: transcriptData.text.substring(0, 50)
+          });
+          console.log(`🚫 Filtered low-confidence transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
+        }
       }
 
     } catch (error) {

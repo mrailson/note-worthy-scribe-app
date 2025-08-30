@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
+import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 
 export interface TranscriptData {
   text: string;
@@ -23,12 +24,16 @@ export class iPhoneWhisperTranscriber {
   private sessionId: string | null = null;
   private chunkCounter = 0;
   private totalWordCount = 0;
+  private meetingSettings: MeetingSettingsWithThresholds;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void
-  ) {}
+    private onStatusChange: (status: string) => void,
+    meetingSettings?: any
+  ) {
+    this.meetingSettings = withDefaultThresholds(meetingSettings);
+  }
 
   public setMeetingId(id: string) {
     this.meetingId = id;
@@ -242,12 +247,18 @@ export class iPhoneWhisperTranscriber {
         const transcriptData: TranscriptData = {
           text: t,
           is_final: true,
-          confidence: 0.9,
+          confidence: data.confidence || 0.9, // Use actual confidence from API
           speaker: 'Speaker'
         };
 
-        console.log('✅ iPhone transcription:', t);
-        this.onTranscription(transcriptData);
+        // Phase 3: Apply confidence gating before sending to UI
+        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          console.log('✅ iPhone transcription:', t);
+          this.onTranscription(transcriptData);
+        } else {
+          console.log(`🚫 Filtered low-confidence iPhone transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
+          return; // Don't process further if filtered
+        }
 
         // Update running word count
         try {
@@ -267,7 +278,7 @@ export class iPhoneWhisperTranscriber {
                 session_id: this.sessionId,
                 chunk_number: currentChunkNumber,
                 transcription_text: t,
-                confidence: 0.9,
+                confidence: transcriptData.confidence,
                 is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
                 user_id: user,
               });

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
+import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
+import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 
 export interface TranscriptData {
   text: string;
@@ -25,13 +26,21 @@ export class DesktopWhisperTranscriber {
   private earlyTranscriptionMode = true;
   private recordingStartTime = 0;
   private firstTranscriptionSent = false;
+  
+  private chunkIntervalMs: number;
+  private totalWordCount = 0;
+  private chunkCounter = 0;
+  private meetingSettings: MeetingSettingsWithThresholds;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void
+    private onStatusChange: (status: string) => void,
+    meetingSettings?: any
   ) {
     this.sessionId = this.generateSessionId();
+    this.chunkIntervalMs = 25000; // Phase 2: Optimized chunk duration for better transcription
+    this.meetingSettings = withDefaultThresholds(meetingSettings);
   }
 
   private generateSessionId(): string {
@@ -364,7 +373,7 @@ export class DesktopWhisperTranscriber {
                 session_id: this.sessionId,
                 chunk_number: currentChunkNumber,
                 transcription_text: cleanText,
-                confidence: 0.9,
+                confidence: data.confidence || 0.9, // Use actual confidence from API
                 is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
                 user_id: (await supabase.auth.getUser()).data.user?.id
               });
@@ -382,12 +391,18 @@ export class DesktopWhisperTranscriber {
         const transcriptData: TranscriptData = {
           text: cleanText,
           is_final: true,
-          confidence: 0.9,
+          confidence: data.confidence || 0.9, // Use actual confidence from API
           speaker: 'Speaker'
         };
 
-        console.log('✅ Desktop transcription:', cleanText);
-        this.onTranscription(transcriptData);
+        // Phase 3: Apply confidence gating before sending to UI
+        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          console.log('✅ Desktop transcription:', cleanText);
+          this.onTranscription(transcriptData);
+        } else {
+          console.log(`🚫 Filtered low-confidence desktop transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
+          return; // Don't process further if filtered
+        }
       }
 
     } catch (error) {
