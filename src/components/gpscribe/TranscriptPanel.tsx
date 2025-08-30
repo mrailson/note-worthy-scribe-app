@@ -7,6 +7,7 @@ import { TranscriptData } from "@/types/gpscribe";
 import { format } from "date-fns";
 import { Copy, Edit, Check, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { LowConfidenceReview } from "@/components/LowConfidenceReview";
 
 interface TranscriptPanelProps {
   transcript: string;
@@ -15,6 +16,9 @@ interface TranscriptPanelProps {
   isCleaningTranscript: boolean;
   showTranscriptTimestamps: boolean;
   isRecording: boolean;
+  meetingId?: string;
+  sessionId?: string;
+  userId?: string;
   onTranscriptChange: (transcript: string) => void;
   onCleanTranscript: () => void;
   onClearTranscript: () => void;
@@ -27,6 +31,9 @@ export const TranscriptPanel = ({
   isCleaningTranscript,
   showTranscriptTimestamps,
   isRecording,
+  meetingId,
+  sessionId,
+  userId,
   onTranscriptChange,
   onCleanTranscript,
   onClearTranscript
@@ -195,6 +202,15 @@ export const TranscriptPanel = ({
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Low Confidence Review - Only show if we have the required props */}
+      {meetingId && sessionId && userId && (
+        <LowConfidenceReview 
+          meetingId={meetingId}
+          sessionId={sessionId}
+          userId={userId}
+        />
       )}
 
       {transcript && (

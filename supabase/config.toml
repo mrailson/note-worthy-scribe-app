@@ -86,3 +86,6 @@ verify_jwt = true
 
 [functions.amazon-transcribe]
 verify_jwt = true
+
+[functions.ai-context-restorer]
+verify_jwt = false

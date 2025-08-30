@@ -10,13 +10,16 @@ export interface TranscriptData {
 export class BrowserSpeechTranscriber {
   private recognition: SpeechRecognition | null = null;
   private isRecording = false;
+  private chunkCounter = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
     private onSummary?: (summary: string) => void,
-    meetingId?: string
+    private meetingId?: string,
+    private sessionId?: string,
+    private userId?: string
   ) {}
 
   async startTranscription() {
@@ -77,9 +80,9 @@ export class BrowserSpeechTranscriber {
             };
 
             // Process both interim and final results for better UX
-            // Filter out likely hallucinations only for final results
+            // For final results: check quality and save low-confidence chunks
             if (result.isFinal) {
-              if (!this.isLikelyHallucination(transcript.toLowerCase())) {
+              if (!this.isLikelyHallucination(transcript.toLowerCase()) && transcriptData.confidence >= 0.3) {
                 this.onTranscription(transcriptData);
                 
                 // Send to summarizer
@@ -87,7 +90,10 @@ export class BrowserSpeechTranscriber {
                   this.sendToSummarizer(transcript);
                 }
               } else {
-                console.log('🚫 Filtered hallucination:', transcript);
+                console.log('🗃️ Saving low-confidence chunk:', transcript, 'Confidence:', transcriptData.confidence);
+                // Save to low-confidence chunks instead of discarding
+                this.saveLowConfidenceChunk(transcript, transcriptData.confidence, 
+                  this.isLikelyHallucination(transcript.toLowerCase()) ? 'hallucination' : 'low_confidence');
               }
             } else {
               // Send interim results for live display
@@ -217,6 +223,42 @@ export class BrowserSpeechTranscriber {
       });
     } catch (error) {
       console.error('Error clearing summary:', error);
+    }
+  }
+
+  private async saveLowConfidenceChunk(text: string, confidence: number, filterReason: string) {
+    if (!this.meetingId || !this.sessionId || !this.userId) {
+      console.warn('Cannot save low-confidence chunk: missing meetingId, sessionId, or userId');
+      return;
+    }
+
+    try {
+      this.chunkCounter++;
+      
+      // Import supabase dynamically to avoid build issues
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { error } = await supabase
+        .from('low_confidence_chunks')
+        .insert({
+          meeting_id: this.meetingId,
+          session_id: this.sessionId,
+          user_id: this.userId,
+          chunk_number: this.chunkCounter,
+          transcription_text: text,
+          confidence: confidence,
+          original_confidence: confidence,
+          transcriber_type: 'browser_speech',
+          filter_reason: filterReason
+        });
+
+      if (error) {
+        console.error('Error saving low-confidence chunk:', error);
+      } else {
+        console.log(`💾 Saved low-confidence chunk ${this.chunkCounter} to database`);
+      }
+    } catch (error) {
+      console.error('Error saving low-confidence chunk:', error);
     }
   }
 }
