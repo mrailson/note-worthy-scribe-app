@@ -26,6 +26,7 @@ import { useConsultationGuidance } from "@/hooks/useConsultationGuidance";
 import { useConsultationHistory } from "@/hooks/useConsultationHistory";
 import { useGPScribeSettings } from "@/hooks/useGPScribeSettings";
 import { useDocumentGeneration } from "@/hooks/useDocumentGeneration";
+import { useDualTranscription } from "@/hooks/useDualTranscription";
 
 // Import extracted components
 import { RecordingControls } from "@/components/gpscribe/RecordingControls";
@@ -60,6 +61,7 @@ const Index = () => {
   const history = useConsultationHistory();
   const settings = useGPScribeSettings();
   const documents = useDocumentGeneration();
+  const dualTranscription = useDualTranscription();
   
   // UI states
   const [activeTab, setActiveTab] = useState<ActiveTab>("consultation");
@@ -427,25 +429,30 @@ const Index = () => {
               }}
             />
 
-            {/* Transcript Panel with Clean Functionality */}
-            {recording.transcript && (
-              <TranscriptPanel
-                transcript={recording.transcript}
-                realtimeTranscripts={recording.realtimeTranscripts.map(t => t.text)}
-                cleanedTranscript={recording.cleanedTranscript}
-                isCleaningTranscript={recording.isCleaningTranscript}
-                isRecording={recording.isRecording}
-                onTranscriptChange={(newTranscript) => {
-                  recording.setTranscript(newTranscript);
-                  recording.setHasUnsavedEdits(true); // Mark as having unsaved edits
-                }}
-                onCleanTranscript={handleCleanTranscript}
-                onClearTranscript={() => {
-                  recording.clearTranscript();
-                  recording.setHasUnsavedEdits(false); // Clear unsaved edits flag
-                }}
-              />
-            )}
+            {/* Transcript Panel with Dual Transcription Support */}
+            <TranscriptPanel
+              transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : recording.transcript}
+              realtimeTranscripts={recording.realtimeTranscripts.map(t => t.text)}
+              cleanedTranscript={recording.cleanedTranscript}
+              isCleaningTranscript={recording.isCleaningTranscript}
+              isRecording={recording.isRecording || dualTranscription.state.isRecording}
+              onTranscriptChange={(newTranscript) => {
+                recording.setTranscript(newTranscript);
+                recording.setHasUnsavedEdits(true); // Mark as having unsaved edits
+              }}
+              onCleanTranscript={handleCleanTranscript}
+              onClearTranscript={() => {
+                recording.clearTranscript();
+                recording.setHasUnsavedEdits(false); // Clear unsaved edits flag
+              }}
+              // Dual transcription props
+              assemblyTranscript={dualTranscription.state.assemblyTranscript}
+              assemblyStatus={dualTranscription.state.assemblyStatus}
+              assemblyConfidence={dualTranscription.state.assemblyConfidence}
+              assemblyEnabled={dualTranscription.state.assemblyEnabled}
+              primarySource={dualTranscription.state.primarySource}
+              onPrimarySourceChange={dualTranscription.setPrimarySource}
+            />
           </TabsContent>
 
           {/* Summary Tab */}
