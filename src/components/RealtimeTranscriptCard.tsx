@@ -135,7 +135,7 @@ export const RealtimeTranscriptCard = ({
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
-            <span>Live Transcript</span>
+            <span>Meeting Transcript (Raw - before AI processing and Term/Name corrections)</span>
             {isRecording && (
               <Badge variant="secondary" className="bg-red-100 text-red-800 animate-pulse">
                 <div className="w-2 h-2 bg-red-500 rounded-full mr-1" />
