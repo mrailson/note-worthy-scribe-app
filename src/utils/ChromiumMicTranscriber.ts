@@ -18,6 +18,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
+import { UnifiedTranscriptProcessor } from './UnifiedTranscriptProcessor';
 
 export interface ChromiumTranscriptData {
   text: string;
@@ -45,6 +46,7 @@ export class ChromiumMicTranscriber {
   private lastErrorTime = 0;
   private errorCount = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
+  private unifiedProcessor: UnifiedTranscriptProcessor;
   
   // Constants - Phase 2: Optimized for 20-30s chunks  
   private readonly CHUNK_MS = OPTIMAL_CHUNK_DURATION.PREFERRED_MS; // 25 second chunks
@@ -61,6 +63,35 @@ export class ChromiumMicTranscriber {
   ) {
     this.sessionId = `chromium_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    
+    // Initialize unified processor with Chromium-optimized settings
+    this.unifiedProcessor = new UnifiedTranscriptProcessor(
+      this.meetingSettings,
+      {
+        enableConfidenceGating: true,
+        enableAdvancedDeduplication: true,
+        enableLegacyCompatibility: false,
+        deduplicationConfig: {
+          sentenceWindow: 4,
+          semanticThreshold: 0.88,
+          chunkOverlapThreshold: 0.82,
+          temporalGapMs: 1000, // 1 second gap for Chromium chunk overlap detection
+          retroactiveCleaningEnabled: true,
+          maxLookbackSentences: 12
+        }
+      },
+      {
+        onChunkFiltered: (chunk, reason) => {
+          console.log(`🚫 Chromium chunk filtered: ${reason} - "${chunk.text?.substring(0, 40)}..."`);
+        },
+        onDeduplicationStats: (stats) => {
+          if (stats.segmentsRemoved > 0) {
+            console.log(`📊 Chromium deduplication: Removed ${stats.segmentsRemoved} segments (${stats.processingTimeMs}ms)`);
+          }
+        }
+      }
+    );
+    
     this.logEvent('chromium_mic.init', { sessionId: this.sessionId });
   }
 
@@ -295,27 +326,38 @@ export class ChromiumMicTranscriber {
       }
 
       if (data?.text && data.text.trim()) {
-        const transcriptData: ChromiumTranscriptData = {
+        // Process through unified processor
+        const result = this.unifiedProcessor.processChunk({
           text: data.text.trim(),
-          is_final: true,
           confidence: data.confidence || 0.8,
-          speaker: 'Speaker'
-        };
+          isFinal: true,
+          timestamp: Date.now(),
+          source: 'chromium_whisper',
+          sessionId: this.sessionId
+        });
 
-        // Phase 3: Apply confidence gating before sending to UI
-        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+        // Send processed result to UI if not filtered
+        if (!result.wasFiltered) {
+          const transcriptData: ChromiumTranscriptData = {
+            text: data.text.trim(), // Send original text (processor manages full transcript internally)
+            is_final: true,
+            confidence: data.confidence || 0.8,
+            speaker: 'Speaker'
+          };
+
           this.onTranscription(transcriptData);
           this.logEvent('chromium_mic.transcription', {
             text: transcriptData.text.substring(0, 50),
-            confidence: transcriptData.confidence
+            confidence: transcriptData.confidence,
+            deduplicationStats: result.deduplicationStats
           });
         } else {
-          this.logEvent('chromium_mic.confidence_filtered', {
-            confidence: transcriptData.confidence,
-            threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
-            text: transcriptData.text.substring(0, 50)
+          console.log(`🚫 Chunk filtered by unified processor: ${result.filterReason}`);
+          this.logEvent('chromium_mic.filtered', {
+            confidence: data.confidence,
+            reason: result.filterReason,
+            text: data.text.substring(0, 50)
           });
-          console.log(`🚫 Filtered low-confidence transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
         }
       }
 

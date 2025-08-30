@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
+import { UnifiedTranscriptProcessor } from './UnifiedTranscriptProcessor';
 
 export interface TranscriptData {
   text: string;
@@ -25,6 +26,7 @@ export class iPhoneWhisperTranscriber {
   private chunkCounter = 0;
   private totalWordCount = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
+  private unifiedProcessor: UnifiedTranscriptProcessor;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -33,6 +35,34 @@ export class iPhoneWhisperTranscriber {
     meetingSettings?: any
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    
+    // Initialize unified processor with iPhone-optimized settings
+    this.unifiedProcessor = new UnifiedTranscriptProcessor(
+      this.meetingSettings,
+      {
+        enableConfidenceGating: true,
+        enableAdvancedDeduplication: true,
+        enableLegacyCompatibility: false,
+        deduplicationConfig: {
+          sentenceWindow: 3, // Smaller window for more frequent chunks
+          semanticThreshold: 0.85, // Slightly lower threshold for mobile environment
+          chunkOverlapThreshold: 0.78,
+          temporalGapMs: 2000, // 2 second gap for iPhone chunk processing
+          retroactiveCleaningEnabled: true,
+          maxLookbackSentences: 10
+        }
+      },
+      {
+        onChunkFiltered: (chunk, reason) => {
+          console.log(`📱 iPhone chunk filtered: ${reason} - "${chunk.text?.substring(0, 40)}..."`);
+        },
+        onDeduplicationStats: (stats) => {
+          if (stats.segmentsRemoved > 0) {
+            console.log(`📱 iPhone deduplication: Removed ${stats.segmentsRemoved} segments (${stats.processingTimeMs}ms)`);
+          }
+        }
+      }
+    );
   }
 
   public setMeetingId(id: string) {
@@ -244,19 +274,29 @@ export class iPhoneWhisperTranscriber {
           return;
         }
 
-        const transcriptData: TranscriptData = {
+        // Process through unified processor
+        const result = this.unifiedProcessor.processChunk({
           text: t,
-          is_final: true,
-          confidence: data.confidence || 0.9, // Use actual confidence from API
-          speaker: 'Speaker'
-        };
+          confidence: data.confidence || 0.9,
+          isFinal: true,
+          timestamp: Date.now(),
+          source: 'iphone_whisper',
+          sessionId: this.sessionId || 'unknown'
+        });
 
-        // Phase 3: Apply confidence gating before sending to UI
-        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
-          console.log('✅ iPhone transcription:', t);
+        // Send to UI if not filtered
+        if (!result.wasFiltered) {
+          const transcriptData: TranscriptData = {
+            text: t,
+            is_final: true,
+            confidence: data.confidence || 0.9,
+            speaker: 'Speaker'
+          };
+
           this.onTranscription(transcriptData);
+          console.log(`📱 iPhone transcription: "${t.substring(0, 100)}..." (confidence: ${transcriptData.confidence.toFixed(3)})`);
         } else {
-          console.log(`🚫 Filtered low-confidence iPhone transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
+          console.log(`📱 iPhone chunk filtered: ${result.filterReason}`);
           return; // Don't process further if filtered
         }
 
@@ -278,7 +318,7 @@ export class iPhoneWhisperTranscriber {
                 session_id: this.sessionId,
                 chunk_number: currentChunkNumber,
                 transcription_text: t,
-                confidence: transcriptData.confidence,
+                confidence: data.confidence || 0.9,
                 is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
                 user_id: user,
               });
