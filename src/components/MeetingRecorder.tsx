@@ -4045,18 +4045,6 @@ export const MeetingRecorder = ({
                        </div>
                     )}
                     
-                    {/* Real-time Transcript Card - Visible during recording */}
-                    {isRecording && (
-                      <div className="mt-4">
-                        <RealtimeTranscriptCard
-                          transcriptText={transcript || "Listening for speech..."}
-                          isRecording={isRecording}
-                          wordCount={wordCount}
-                          confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
-                          className="border-accent/30"
-                        />
-                      </div>
-                    )}
                     
                       {/* Recording Audio Player - Show after recording stops (controlled by micTestServiceVisible) */}
                       {recordingAudioUrl && !isRecording && micTestServiceVisible && (
