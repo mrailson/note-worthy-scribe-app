@@ -4722,7 +4722,30 @@ export const MeetingRecorder = ({
                   </div>
                   
                   <button 
-                    onClick={() => setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null })}
+                    onClick={() => {
+                      // Reset all meeting state for a fresh start
+                      setDuration(0);
+                      setTranscript("");
+                      setRealtimeTranscripts([]);
+                      setWordCount(0);
+                      setChunkCounter(0);
+                      setConnectionStatus("Disconnected");
+                      setSpeakerCount(0);
+                      setLastPhrase("");
+                      setTranscriptSnippet("");
+                      setShowTranscriptSnippet(false);
+                      setFirstTranscriptionReceived(false);
+                      
+                      // Reset the modal
+                      setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null });
+                      
+                      // Call parent callbacks to reset UI
+                      onTranscriptUpdate("");
+                      onDurationUpdate("00:00");
+                      onWordCountUpdate(0);
+                      
+                      toast.success("Ready for new meeting!");
+                    }}
                     className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
                   >
                      Continue
