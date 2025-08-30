@@ -264,13 +264,13 @@ export const RealtimeTranscriptCard = ({
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground italic">
-                <div className="text-center">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <div>Listening for speech...</div>
-                  <div className="text-xs mt-1">
-                    Transcript will appear here in real-time
+                  <div className="text-center">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <div>Listening for speech...</div>
+                    <div className="text-xs mt-1">
+                      Latest Transcript will appear here each minute
+                    </div>
                   </div>
-                </div>
               </div>
             )}
           </div>
