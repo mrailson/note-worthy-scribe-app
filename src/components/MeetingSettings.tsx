@@ -86,7 +86,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     startTime: generateRoundedStartTime(),
     transcriberService: "whisper" as "whisper" | "deepgram",
     transcriberThresholds: {
-      whisper: 0.75,
+      whisper: 0.30,
       deepgram: 0.80
     }
   });
@@ -442,7 +442,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   min={0}
                   max={1}
                   step={0.01}
-                  value={settings.transcriberThresholds?.whisper || 0.75}
+                  value={settings.transcriberThresholds?.whisper || 0.30}
                   onChange={(e) => {
                     const newValue = Number(e.target.value);
                     setSettings(prev => ({

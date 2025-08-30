@@ -152,7 +152,7 @@ export default function MeetingSummary() {
         meetingFormat: "teams",
         transcriberService: "whisper",
         transcriberThresholds: {
-          whisper: 0.75,
+          whisper: 0.30,
           deepgram: 0.80
         }
       });

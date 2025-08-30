@@ -28,8 +28,8 @@ export const useMeetingData = () => {
     meetingFormat: "teams",
     transcriberService: "whisper",
     transcriberThresholds: {
-      whisper: 0.75,
-      deepgram: 0.80
+      whisper: 0.30,
+      deepgram: 0.30
     }
   });
 
@@ -196,7 +196,7 @@ export const useMeetingData = () => {
           ...prev,
           transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
           transcriberThresholds: {
-            whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+            whisper: savedSettings.transcriberThresholds?.whisper || 0.30,
             deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
           }
         }));
@@ -216,7 +216,7 @@ export const useMeetingData = () => {
             ...prev,
             transcriberService: "whisper", // Force default to whisper since deepgram is no longer available
             transcriberThresholds: {
-              whisper: savedSettings.transcriberThresholds?.whisper || 0.75,
+              whisper: savedSettings.transcriberThresholds?.whisper || 0.30,
               deepgram: savedSettings.transcriberThresholds?.deepgram || 0.80
             }
           }));
@@ -269,7 +269,7 @@ export const useMeetingData = () => {
   // Auto-save settings when transcriber settings change
   useEffect(() => {
     if (meetingSettings.transcriberService !== "whisper" || 
-        meetingSettings.transcriberThresholds.whisper !== 0.75 ||
+        meetingSettings.transcriberThresholds.whisper !== 0.30 ||
         meetingSettings.transcriberThresholds.deepgram !== 0.80) {
       console.log('🔄 Auto-saving transcriber settings due to change:', {
         service: meetingSettings.transcriberService,
