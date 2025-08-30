@@ -3875,7 +3875,7 @@ export const MeetingRecorder = ({
                       {showLastPhrase ? (lastPhrase || "No words yet") : wordCount}
                     </div>
                     <div className="text-xs font-medium text-muted-foreground">
-                      {showLastPhrase ? "Last Phrase (click for count)" : "Word Count (click for phrase)"}
+                      {showLastPhrase ? "Last Phrase (click for count)" : "Meeting Word Count"}
                     </div>
                   </div>
                   
