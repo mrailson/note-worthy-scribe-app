@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
-import { mergeLive } from "@/utils/TranscriptMerge";
-import { type LiveChunk } from "@/utils/liveMerge";
+import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -348,12 +347,19 @@ export const LiveTranscript = ({
       console.log("🔄 Debounce timer fired - processing queued chunk");
       const cleanedChunk = lightCleanChunk(pendingRef.current);
       const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
-      if (dedupedChunk) {
-        console.log("📝 Debounce processed chunk into AI-Enhanced Transcript");
-        setCleanedTranscript(prev => mergeLive(prev, dedupedChunk));
-      } else {
-        console.log("🔄 Debounce chunk was empty after deduplication");
-      }
+        if (dedupedChunk) {
+          console.log("📝 Debounce processed chunk into AI-Enhanced Transcript");
+          setCleanedTranscript(prev => {
+            const chunk: LiveChunk = {
+              text: dedupedChunk,
+              isFinal: true,
+              source: 'debounced'
+            };
+            return mergeLive(prev, chunk);
+          });
+        } else {
+          console.log("🔄 Debounce chunk was empty after deduplication");
+        }
       pendingRef.current = "";
     }, FLUSH_MS);
   };
@@ -452,7 +458,13 @@ export const LiveTranscript = ({
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
           console.log("🔗 Accumulating raw transcript chunk:", r.transcription_text?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
           setLiveTranscriptText(prev => {
-            const merged = mergeLive(prev, r.transcription_text);
+            const chunk: LiveChunk = {
+              text: r.transcription_text,
+              isFinal: r.is_final,
+              seq: r.seq,
+              source: r.source || 'unknown'
+            };
+            const merged = mergeLive(prev, chunk);
             console.log("📈 Raw transcript updated:", prev.length, "->", merged.length, "chars");
             return merged;
           });
@@ -467,7 +479,13 @@ export const LiveTranscript = ({
             if (r.is_final && dedupedChunk) {
               console.log("🔥 Processing FINAL chunk immediately into AI-Enhanced Transcript");
               setCleanedTranscript(prev => {
-                const merged = mergeLive(prev, dedupedChunk);
+                const chunk: LiveChunk = {
+                  text: dedupedChunk,
+                  isFinal: true,
+                  seq: r.seq,
+                  source: r.source || 'unknown'
+                };
+                const merged = mergeLive(prev, chunk);
                 console.log("📝 AI-Enhanced Transcript updated, length:", merged.length);
                 return merged;
               });
@@ -582,12 +600,17 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (transcript && transcript.trim()) {
       const processedTranscript = filterSystemMessages(transcript);
-      console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_session:', sessionStorage.getItem('currentSessionId'));
-      setLiveTranscriptText(prev => {
-        const merged = mergeLive(prev, processedTranscript);
-        console.log("📈 Props transcript updated:", prev.length, "->", merged.length, "chars");
-        return merged;
-      });
+    console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_session:', sessionStorage.getItem('currentSessionId'));
+    setLiveTranscriptText(prev => {
+      const chunk: LiveChunk = {
+        text: processedTranscript,
+        isFinal: true,
+        source: 'props'
+      };
+      const merged = mergeLive(prev, chunk);
+      console.log("📈 Props transcript updated:", prev.length, "->", merged.length, "chars");
+      return merged;
+    });
     }
   }, [transcript]);
 
@@ -599,7 +622,12 @@ export const LiveTranscript = ({
     const processedTranscript = filterSystemMessages(transcript);
     console.log("🔗 Accumulating client prop transcript:", processedTranscript?.substring(0, 50) + "...", 'is_final:', isFinal);
     setLiveTranscriptText(prev => {
-      const merged = mergeLive(prev, processedTranscript);
+      const chunk: LiveChunk = {
+        text: processedTranscript,
+        isFinal: isFinal,
+        source: 'client-props'
+      };
+      const merged = mergeLive(prev, chunk);
       console.log("📈 Client props transcript updated:", prev.length, "->", merged.length, "chars");
       return merged;
     });
@@ -607,7 +635,14 @@ export const LiveTranscript = ({
     // Handle finality from client props
     if (typeof isFinal === "boolean") {
       if (isFinal) {
-        setCleanedTranscript(prev => mergeLive(prev, processedTranscript));
+        setCleanedTranscript(prev => {
+          const chunk: LiveChunk = {
+            text: processedTranscript,
+            isFinal: true,
+            source: 'client-final'
+          };
+          return mergeLive(prev, chunk);
+        });
       } else {
         queueFlushChunk(processedTranscript);
       }
