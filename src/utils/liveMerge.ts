@@ -10,7 +10,7 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 180;       // chars to scan for overlaps
-const JACCARD_THRESHOLD = 0.97; // strict near-duplicate cutoff
+const JACCARD_THRESHOLD = 0.85; // balanced near-duplicate cutoff (reduced from 0.97 to preserve content)
 const DEDUPE_WINDOW = 10;       // compare against last N sentences
 
 const norm = (s: string) =>

@@ -473,7 +473,7 @@ export const LiveTranscript = ({
           const cleanedChunk = lightCleanChunk(r.transcription_text);
           const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
 
-          // Enhanced final chunk handling with improved logging
+          // Enhanced final chunk handling with better deduplication (Phase 1 fix)
           if (typeof r.is_final === "boolean") {
             console.log("✅ Chunk has is_final field:", r.is_final);
             if (r.is_final && dedupedChunk) {
