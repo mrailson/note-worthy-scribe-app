@@ -1,4 +1,5 @@
 import { withDefaultThresholds, meetsConfidenceThreshold } from './confidenceGating';
+import { ChunkStatus } from '@/hooks/useChunkTracker';
 
 export interface TranscriptData {
   text: string;
@@ -21,7 +22,8 @@ export class BrowserSpeechTranscriber {
     private onSummary?: (summary: string) => void,
     private meetingId?: string,
     private sessionId?: string,
-    private userId?: string
+    private userId?: string,
+    private onChunkTracked?: (chunk: Omit<ChunkStatus, 'id' | 'wordCount'>) => void
   ) {}
 
   async startTranscription() {
@@ -85,18 +87,43 @@ export class BrowserSpeechTranscriber {
             // For final results: check quality and save low-confidence chunks
             if (result.isFinal) {
               const settings = withDefaultThresholds({});
-              if (!this.isLikelyHallucination(transcript.toLowerCase()) && meetsConfidenceThreshold(transcriptData.confidence, settings)) {
+              const passesConfidence = meetsConfidenceThreshold(transcriptData.confidence, settings);
+              const isHallucination = this.isLikelyHallucination(transcript.toLowerCase());
+              
+              if (!isHallucination && passesConfidence) {
                 this.onTranscription(transcriptData);
+                
+                // Track successful chunk
+                this.onChunkTracked?.({
+                  timestamp: new Date(),
+                  text: transcript,
+                  confidence: transcriptData.confidence,
+                  status: 'success',
+                  speaker: transcriptData.speaker,
+                  isFinal: true
+                });
                 
                 // Send to summarizer
                 if (this.onSummary) {
                   this.sendToSummarizer(transcript);
                 }
               } else {
+                const reason = isHallucination ? 'hallucination' : 'low_confidence';
                 console.log('🗃️ Saving low-confidence chunk:', transcript, 'Confidence:', transcriptData.confidence);
+                
+                // Track filtered/low-confidence chunk
+                this.onChunkTracked?.({
+                  timestamp: new Date(),
+                  text: transcript,
+                  confidence: transcriptData.confidence,
+                  status: reason === 'hallucination' ? 'filtered' : 'low_confidence',
+                  reason: reason,
+                  speaker: transcriptData.speaker,
+                  isFinal: true
+                });
+                
                 // Save to low-confidence chunks instead of discarding
-                this.saveLowConfidenceChunk(transcript, transcriptData.confidence, 
-                  this.isLikelyHallucination(transcript.toLowerCase()) ? 'hallucination' : 'low_confidence');
+                this.saveLowConfidenceChunk(transcript, transcriptData.confidence, reason);
               }
             } else {
               // Send interim results for live display

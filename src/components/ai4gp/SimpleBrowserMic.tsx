@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { useChunkTracker } from '@/hooks/useChunkTracker';
+import { ChunkStatusModal } from '@/components/ChunkStatusModal';
 
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
@@ -26,6 +28,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const [fullTranscript, setFullTranscript] = useState('');
   
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const { chunks, addChunk, clearChunks, getStats } = useChunkTracker();
 
   const handleTranscription = (data: TranscriptData) => {
     if (data.is_final) {
@@ -77,7 +80,12 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
       transcriberRef.current = new BrowserSpeechTranscriber(
         handleTranscription,
         handleError,
-        handleStatusChange
+        handleStatusChange,
+        undefined, // onSummary
+        undefined, // meetingId  
+        undefined, // sessionId
+        undefined, // userId
+        addChunk   // onChunkTracked
       );
 
       await transcriberRef.current.startTranscription();
@@ -114,7 +122,18 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
 
   const clearTranscript = () => {
     setFullTranscript('');
+    clearChunks();
     onTranscriptUpdate('');
+  };
+
+  const getButtonContent = () => {
+    if (status === 'connecting...') {
+      return <Loader2 className="w-4 h-4 animate-spin" />;
+    } else if (isRecording) {
+      return <MicOff className="w-4 h-4" />;
+    } else {
+      return <Mic className="w-4 h-4" />;
+    }
   };
 
   // Expose clearTranscript method through ref
@@ -144,7 +163,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   }, [isRecording]);
 
   return (
-    <div className={cn('flex items-center', className)}>
+    <div className={cn('flex items-center gap-2', className)}>
       <Button
         variant={isRecording ? "default" : "ghost"}
         size="sm"
@@ -171,26 +190,26 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
         }
         aria-pressed={isRecording}
       >
-        {status === 'connecting...' ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : isRecording ? (
-          <MicOff className="w-4 h-4" />
-        ) : (
-          <Mic className="w-4 h-4" />
-        )}
+        {getButtonContent()}
       </Button>
-
+      
+      {/* Clear button */}
       {fullTranscript && (
         <Button
-          variant="ghost"
-          size="sm"
           onClick={clearTranscript}
-          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground ml-2"
-          disabled={disabled}
+          variant="outline"
+          size="sm"
         >
           Clear
         </Button>
       )}
+      
+      {/* Chunk Status Modal */}
+      <ChunkStatusModal 
+        chunks={chunks}
+        stats={getStats()}
+        onClear={clearChunks}
+      />
     </div>
   );
 });

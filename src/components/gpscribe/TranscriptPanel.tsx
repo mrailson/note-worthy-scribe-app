@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { Copy, Edit, Check, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { LowConfidenceReview } from "@/components/LowConfidenceReview";
+import { ChunkStatusModal } from "@/components/ChunkStatusModal";
+import { ChunkStatus } from "@/hooks/useChunkTracker";
 
 interface TranscriptPanelProps {
   transcript: string;
@@ -19,9 +21,20 @@ interface TranscriptPanelProps {
   meetingId?: string;
   sessionId?: string;
   userId?: string;
+  chunks?: ChunkStatus[];
+  chunkStats?: {
+    total: number;
+    successful: number;
+    lowConfidence: number;
+    filtered: number;
+    totalWords: number;
+    avgConfidence: number;
+    successRate: number;
+  };
   onTranscriptChange: (transcript: string) => void;
   onCleanTranscript: () => void;
   onClearTranscript: () => void;
+  onClearChunks?: () => void;
 }
 
 export const TranscriptPanel = ({
@@ -34,9 +47,20 @@ export const TranscriptPanel = ({
   meetingId,
   sessionId,
   userId,
+  chunks = [],
+  chunkStats = {
+    total: 0,
+    successful: 0,
+    lowConfidence: 0,
+    filtered: 0,
+    totalWords: 0,
+    avgConfidence: 0,
+    successRate: 0
+  },
   onTranscriptChange,
   onCleanTranscript,
-  onClearTranscript
+  onClearTranscript,
+  onClearChunks
 }: TranscriptPanelProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -136,6 +160,11 @@ export const TranscriptPanel = ({
                   >
                     <RotateCcw className="h-4 w-4" />
                   </Button>
+                  <ChunkStatusModal 
+                    chunks={chunks}
+                    stats={chunkStats}
+                    onClear={onClearChunks || (() => {})}
+                  />
                 </>
               )}
             </div>
