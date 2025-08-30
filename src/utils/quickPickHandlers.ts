@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { QuickPickContext, TranslatePayload, SummarisePayload, FormatPayload } from '@/types/quickPick';
 import { NHS_LINKING_POLICY, getTopicUrl } from './nhsUrlValidation';
 import { supabase } from '@/integrations/supabase/client';
+import { applyTextFormatting } from './textFormatting';
 
 // Enhanced system prompt with formatting requirements
 const GLOBAL_SYSTEM_PROMPT = `You are an NHS AI assistant. Provide clean, accurate responses using UK NHS sources only (NICE/CKS, NHS.uk, BNF). Use proper UK spelling and NHS terminology.
@@ -496,4 +497,16 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "format-table": formatTable,
   "format-clean-spacing": formatCleanSpacing,
   "format-remove-formatting": formatRemoveFormatting,
+  
+  // Global Standardization handlers
+  "standardize-dates": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'standardize-dates'),
+  "format-numbers": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'format-numbers'),
+  "standardize-names": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'standardize-names'),
+  "format-timestamps": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'format-timestamps'),
+  "clean-punctuation": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'clean-punctuation'),
+  "standardize-abbreviations": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'standardize-abbreviations'),
+  "standardize-all": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'standardize-all'),
+  
+  // Professional Cleanup handlers
+  "remove-filler-words": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'remove-filler-words'),
 };

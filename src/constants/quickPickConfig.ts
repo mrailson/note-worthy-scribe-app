@@ -115,6 +115,29 @@ export const quickPickConfig = {
       ]
     },
     {
+      "id": "global-standardization",
+      "label": "Global Standardization",
+      "children": [
+        {"id": "standardize-dates", "label": "Standardize All Dates"},
+        {"id": "format-numbers", "label": "Format All Numbers"},
+        {"id": "standardize-names", "label": "Standardize Names & Titles"},
+        {"id": "format-timestamps", "label": "Fix Time Formats"},
+        {"id": "clean-punctuation", "label": "Clean Punctuation & Spacing"},
+        {"id": "standardize-abbreviations", "label": "Standardize Abbreviations"},
+        {"id": "standardize-all", "label": "Apply All Standards"}
+      ]
+    },
+    {
+      "id": "professional-cleanup",
+      "label": "Professional Cleanup",
+      "children": [
+        {"id": "remove-filler-words", "label": "Remove Filler Words"},
+        {"id": "enhance-professional", "label": "Professional Tone"},
+        {"id": "enhance-nhs-format", "label": "Apply NHS Style Guide"},
+        {"id": "enhance-concise", "label": "Make More Concise"}
+      ]
+    },
+    {
       "id": "improve-formatting",
       "label": "Improve Layout",
       "children": [

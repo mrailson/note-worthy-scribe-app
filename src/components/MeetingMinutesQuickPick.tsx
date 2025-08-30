@@ -15,7 +15,17 @@ import {
   Table, 
   Sparkles,
   Mic,
-  Loader2
+  Loader2,
+  ListOrdered,
+  Heading,
+  AlignLeft,
+  Calendar,
+  Clock,
+  User,
+  CheckCircle,
+  Eraser,
+  Briefcase,
+  Shield
 } from "lucide-react";
 import { SpeechToText } from "@/components/SpeechToText";
 import { applyTextFormatting } from "@/utils/textFormatting";
@@ -75,6 +85,66 @@ export function MeetingMinutesQuickPick({
     }
   ];
 
+  const globalStandardOptions = [
+    {
+      id: 'standardize-dates',
+      label: 'Standardize Dates',
+      description: 'Convert all dates to DD/MM/YYYY format',
+      icon: Calendar,
+    },
+    {
+      id: 'format-numbers',
+      label: 'Format Numbers',
+      description: 'Add commas and standardize currency',
+      icon: Hash,
+    },
+    {
+      id: 'format-timestamps',
+      label: 'Fix Times',
+      description: 'Convert to 24-hour format (14:00)',
+      icon: Clock,
+    },
+    {
+      id: 'standardize-names',
+      label: 'Standardize Names',
+      description: 'Proper capitalization for names & titles',
+      icon: User,
+    },
+    {
+      id: 'clean-punctuation',
+      label: 'Clean Punctuation',
+      description: 'Fix spacing around punctuation',
+      icon: Type,
+    },
+    {
+      id: 'standardize-all',
+      label: 'Apply All Standards',
+      description: 'Apply all standardizations at once',
+      icon: CheckCircle,
+    },
+  ];
+
+  const professionalCleanupOptions = [
+    {
+      id: 'remove-filler-words',
+      label: 'Remove Filler Words',
+      description: 'Remove "um", "uh", "like", etc.',
+      icon: Eraser,
+    },
+    {
+      id: 'enhance-professional',
+      label: 'Professional Tone',
+      description: 'Enhance with AI for professional tone',
+      icon: Briefcase,
+    },
+    {
+      id: 'enhance-nhs-format',
+      label: 'NHS Style Guide',
+      description: 'Apply NHS formatting standards',
+      icon: Shield,
+    },
+  ];
+
   const aiEnhanceOptions = [
     { 
       id: 'make_professional', 
@@ -109,9 +179,26 @@ export function MeetingMinutesQuickPick({
       return;
     }
     
-    const formatted = applyTextFormatting(content, formatType);
-    onContentChange(formatted);
-    toast.success(`Applied ${formatType.replace('format-', '').replace('-', ' ')} formatting`);
+    try {
+      const formattedContent = applyTextFormatting(content, formatType);
+      onContentChange(formattedContent);
+      
+      // Get appropriate success message based on format type
+      const getSuccessMessage = (type: string) => {
+        if (type.includes('standardize') || type.includes('format-numbers') || type.includes('format-timestamps')) {
+          return "Global standardization applied successfully.";
+        }
+        if (type.includes('clean') || type.includes('remove-filler')) {
+          return "Professional cleanup completed.";
+        }
+        return "Format applied successfully.";
+      };
+      
+      toast.success(getSuccessMessage(formatType));
+    } catch (error) {
+      console.error('Format error:', error);
+      toast.error("Failed to apply formatting. Please try again.");
+    }
   };
 
   const handleAIEnhance = async (enhanceType: string) => {
@@ -276,6 +363,75 @@ export function MeetingMinutesQuickPick({
                 </>
               )}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Global Standardization Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Global Standardization
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {globalStandardOptions.map((option) => {
+              const Icon = option.icon;
+              return (
+                <Button
+                  key={option.id}
+                  variant="outline"
+                  className="h-auto p-3 flex flex-col items-start gap-2"
+                  onClick={() => handleQuickFormat(option.id)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <Icon className="h-4 w-4" />
+                    <span className="font-medium text-sm">{option.label}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-left">
+                    {option.description}
+                  </p>
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Professional Cleanup Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Professional Cleanup
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {professionalCleanupOptions.map((option) => {
+              const Icon = option.icon;
+              const isAIOption = option.id.includes('enhance');
+              
+              return (
+                <Button
+                  key={option.id}
+                  variant={isAIOption ? "default" : "outline"}
+                  className="h-auto p-3 flex flex-col items-start gap-2"
+                  onClick={() => isAIOption ? handleAIEnhance(option.id) : handleQuickFormat(option.id)}
+                  disabled={isProcessing}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <Icon className="h-4 w-4" />
+                    <span className="font-medium text-sm">{option.label}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-left">
+                    {option.description}
+                  </p>
+                </Button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
