@@ -1,3 +1,5 @@
+import { withDefaultThresholds, meetsConfidenceThreshold } from './confidenceGating';
+
 export interface TranscriptData {
   text: string;
   is_final: boolean;
@@ -82,7 +84,8 @@ export class BrowserSpeechTranscriber {
             // Process both interim and final results for better UX
             // For final results: check quality and save low-confidence chunks
             if (result.isFinal) {
-              if (!this.isLikelyHallucination(transcript.toLowerCase()) && transcriptData.confidence >= 0.3) {
+              const settings = withDefaultThresholds({});
+              if (!this.isLikelyHallucination(transcript.toLowerCase()) && meetsConfidenceThreshold(transcriptData.confidence, settings)) {
                 this.onTranscription(transcriptData);
                 
                 // Send to summarizer

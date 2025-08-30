@@ -1,3 +1,5 @@
+import { withDefaultThresholds, meetsConfidenceThreshold } from './confidenceGating';
+
 export interface TranscriptData {
   text: string;
   is_final: boolean;
@@ -93,7 +95,8 @@ export class WebSpeechTranscriber {
 
             // Enhanced filtering for better quality
             if (result.isFinal) {
-              if (!this.isLikelyHallucination(transcript.toLowerCase()) && transcriptData.confidence >= 0.3) {
+              const settings = withDefaultThresholds({});
+              if (!this.isLikelyHallucination(transcript.toLowerCase()) && meetsConfidenceThreshold(transcriptData.confidence, settings)) {
                 this.onTranscription(transcriptData);
                 
                 // Send to summarizer if available
