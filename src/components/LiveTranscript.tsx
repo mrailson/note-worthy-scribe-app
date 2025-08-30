@@ -112,6 +112,7 @@ export const LiveTranscript = ({
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   const [isLiveTranscriptModalOpen, setIsLiveTranscriptModalOpen] = useState(false);
+  const [textAlignment, setTextAlignment] = useState<'left' | 'center'>('left');
   
   // Live meeting notes state
   const [liveNotesData, setLiveNotesData] = useState<{
@@ -1077,13 +1078,21 @@ export const LiveTranscript = ({
                       <Badge variant="default" className="text-xs">Live cleaning</Badge>
                     </div>
 
-                    <div className="mb-2 flex items-center gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
-                        Copy
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleDownloadWord}>
-                        Download Word
-                      </Button>
+                     <div className="mb-2 flex items-center gap-2 flex-wrap">
+                       <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                         Copy
+                       </Button>
+                       <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                         Download Word
+                       </Button>
+                       <Button 
+                         size="sm" 
+                         variant="outline" 
+                         onClick={() => setTextAlignment(prev => prev === 'left' ? 'center' : 'left')}
+                         title={`Switch to ${textAlignment === 'left' ? 'center' : 'left'} alignment`}
+                       >
+                         {textAlignment === 'left' ? 'Center Text' : 'Left Align'}
+                       </Button>
                       {cleanedTranscript && (
                         <Button 
                           size="sm" 
@@ -1129,9 +1138,9 @@ export const LiveTranscript = ({
                             .split(/(?<=[.!?])\s+/) // sentence boundaries
                             .filter(sentence => sentence.trim().length > 0) // filter empty sentences
                             .map((sentence, idx) => (
-                              <p key={idx} className="leading-relaxed text-foreground">
-                                {sentence.trim()}
-                              </p>
+                               <p key={idx} className={`leading-relaxed text-foreground ${textAlignment === 'center' ? 'text-center' : 'text-left'}`}>
+                                 {sentence.trim()}
+                               </p>
                             ))}
                         </div>
                       ) : (
