@@ -4293,7 +4293,7 @@ export const MeetingRecorder = ({
                   practiceId: (meetingSettings as any)?.practiceId || "",
                   meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
                   transcriberService: (meetingSettings as any)?.transcriberService || "whisper",
-                  transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.75, deepgram: 0.80 }
+                  transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.30, deepgram: 0.30 }
                 }}
                 onMeetingSettingsChange={(settings) => {
                   updateMeetingSettings(prev => ({

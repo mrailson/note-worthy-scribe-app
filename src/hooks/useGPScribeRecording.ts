@@ -326,7 +326,7 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.7, deepgram: 0.8 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
         );
         
         await iPhoneTranscriberRef.current.startTranscription();
@@ -376,7 +376,7 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.7, deepgram: 0.8 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
         );
         
         await chromiumTranscriberRef.current.startTranscription();
@@ -401,7 +401,7 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.7, deepgram: 0.8 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
         );
         
         await desktopTranscriberRef.current.startTranscription();

@@ -302,34 +302,20 @@ export class ChromiumMicTranscriber {
           speaker: 'Speaker'
         };
 
-        // Debug logging - remove after fixing
-        console.log('🔍 CHROMIUM TRANSCRIPTION DEBUG:', {
-          text: transcriptData.text.substring(0, 100),
-          confidence: transcriptData.confidence,
-          rawConfidence: data.confidence,
-          thresholds: this.meetingSettings.transcriberThresholds,
-          service: this.meetingSettings.transcriberService,
-          activeThreshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]
-        });
-
         // Phase 3: Apply confidence gating before sending to UI
         if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
-          console.log('✅ PASSED confidence gate, sending to UI');
           this.onTranscription(transcriptData);
           this.logEvent('chromium_mic.transcription', {
             text: transcriptData.text.substring(0, 50),
             confidence: transcriptData.confidence
           });
         } else {
-          console.log('🚫 FAILED confidence gate - transcription blocked');
           this.logEvent('chromium_mic.confidence_filtered', {
             confidence: transcriptData.confidence,
             threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
             text: transcriptData.text.substring(0, 50)
           });
         }
-      } else {
-        console.log('❌ No valid text in transcription response:', data);
       }
 
     } catch (error) {
