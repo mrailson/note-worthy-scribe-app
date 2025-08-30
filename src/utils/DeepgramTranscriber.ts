@@ -32,7 +32,8 @@ export class DeepgramTranscriber {
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    private onSummary?: (summary: string) => void
+    private onSummary?: (summary: string) => void,
+    meetingId?: string
   ) {}
 
   async startTranscription() {

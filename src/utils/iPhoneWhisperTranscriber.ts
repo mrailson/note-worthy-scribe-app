@@ -30,9 +30,14 @@ export class iPhoneWhisperTranscriber {
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    meetingSettings?: any
+    meetingSettings?: any,
+    meetingId?: string
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    if (meetingId) {
+      this.meetingId = meetingId;
+      this.sessionId = meetingId;
+    }
   }
 
   public setMeetingId(id: string) {

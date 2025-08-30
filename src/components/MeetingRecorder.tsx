@@ -1508,7 +1508,7 @@ export const MeetingRecorder = ({
   };
 
   // Deepgram transcription
-  const startDeepgramTranscription = async () => {
+  const startDeepgramTranscription = async (meetingId: string) => {
     try {
       console.log('🔗 Starting Deepgram transcription...');
       addDebugLog('🔗 Starting Deepgram transcription...');
@@ -1516,12 +1516,10 @@ export const MeetingRecorder = ({
       deepgramTranscriberRef.current = new DeepgramTranscriber(
         handleBrowserTranscript,
         handleTranscriptionError,
-        handleStatusChange
+        handleStatusChange,
+        handleLiveSummary,
+        meetingId
       );
-
-      // Ensure a session/meeting id 
-      const existingSession = sessionStorage.getItem('currentSessionId') || crypto.randomUUID();
-      sessionStorage.setItem('currentSessionId', existingSession);
 
       console.log('🔗 Starting Deepgram transcription...');
       await deepgramTranscriberRef.current.startTranscription();
@@ -1534,23 +1532,23 @@ export const MeetingRecorder = ({
       // Fall back to Whisper
       console.log('🔄 Falling back to Whisper transcription...');
       addDebugLog('🔄 Falling back to Whisper transcription...');
-      await startWhisperTranscription();
+      await startWhisperTranscription(meetingId);
     }
   };
 
   // Whisper transcription (original logic)
-  const startWhisperTranscription = async () => {
+  const startWhisperTranscription = async (meetingId: string) => {
     const browserSupport = checkBrowserSupport();
     
     if (browserSupport.isIOS) {
-      await startIPhoneWhisperTranscription();
+      await startIPhoneWhisperTranscription(meetingId);
     } else {
-      await startDesktopWhisperTranscription();
+      await startDesktopWhisperTranscription(meetingId);
     }
   };
 
   // iPhone-optimized transcription using Whisper AI
-  const startIPhoneWhisperTranscription = async () => {
+  const startIPhoneWhisperTranscription = async (meetingId: string) => {
     try {
       console.log('📱 Creating iPhone Whisper transcriber instance...');
       addDebugLog('📱 Starting iPhone Whisper transcription...');
@@ -1558,13 +1556,9 @@ export const MeetingRecorder = ({
         handleBrowserTranscript, // Same handler works for both
         handleTranscriptionError,
         handleStatusChange,
-        meetingSettings // Pass meeting settings for confidence gating
+        meetingSettings, // Pass meeting settings for confidence gating
+        meetingId
       );
-
-      // Ensure a session/meeting id and link it to the iPhone transcriber
-      const existingSession = sessionStorage.getItem('currentSessionId') || crypto.randomUUID();
-      sessionStorage.setItem('currentSessionId', existingSession);
-      try { iPhoneTranscriberRef.current.setMeetingId(existingSession); } catch {}
 
       console.log('📱 Starting transcription...');
       await iPhoneTranscriberRef.current.startTranscription();
@@ -1579,14 +1573,15 @@ export const MeetingRecorder = ({
   };
 
   // Desktop Whisper transcription for better accuracy
-  const startDesktopWhisperTranscription = async () => {
+  const startDesktopWhisperTranscription = async (meetingId: string) => {
     addDebugLog('🖥️ Starting Desktop Whisper transcription...');
     
     const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
       handleTranscriptionError,
       handleStatusChange,
-      meetingSettings // Pass meeting settings for confidence gating
+      meetingSettings, // Pass meeting settings for confidence gating
+      meetingId
     );
 
     await transcriber.startTranscription();
@@ -1597,7 +1592,7 @@ export const MeetingRecorder = ({
   };
 
   // Smart transcription method that chooses the best option for the device
-  const startMicrophoneTranscription = async () => {
+  const startMicrophoneTranscription = async (meetingId: string) => {
     // Check user's transcription service preference
     const selectedService = meetingSettings.transcriberService || 'whisper';
     
@@ -1605,14 +1600,14 @@ export const MeetingRecorder = ({
     addDebugLog(`🎙️ Starting transcription with service: ${selectedService}`);
     
     if (selectedService === 'deepgram') {
-      await startDeepgramTranscription();
+      await startDeepgramTranscription(meetingId);
     } else {
-      await startWhisperTranscription();
+      await startWhisperTranscription(meetingId);
     }
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
-  const startComputerAudioTranscription = async () => {
+  const startComputerAudioTranscription = async (meetingId: string) => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
     
     try {
@@ -1675,7 +1670,8 @@ export const MeetingRecorder = ({
           handleBrowserTranscript,
           handleTranscriptionError,
           handleStatusChange,
-          handleLiveSummary
+          handleLiveSummary,
+          meetingId
         );
 
         await transcriber.startTranscription();
@@ -2151,7 +2147,8 @@ export const MeetingRecorder = ({
         
         try {
           // Fallback to simple microphone recording
-          await startMicrophoneTranscription();
+          const fallbackMeetingId = sessionStorage.getItem('currentMeetingId') || crypto.randomUUID();
+          await startMicrophoneTranscription(fallbackMeetingId);
           return; // Success with fallback
         } catch (fallbackError) {
           addDebugLog(`❌ Microphone fallback also failed: ${fallbackError.message}`);
@@ -2219,7 +2216,8 @@ export const MeetingRecorder = ({
     setTestTranscripts([]);
       
       // Always use microphone transcription
-      await startMicrophoneTranscription();
+      const testMeetingId = sessionStorage.getItem('currentMeetingId') || crypto.randomUUID();
+      await startMicrophoneTranscription(testMeetingId);
       
     setIsRecording(true);
     isRecordingRef.current = true;
@@ -2531,6 +2529,47 @@ export const MeetingRecorder = ({
       if (transcriptHandler.current) {
         transcriptHandler.current.clear();
       }
+
+      // Create meeting record FIRST to get real meeting ID
+      let realMeetingId: string;
+      try {
+        if (!user?.id) {
+          throw new Error('User not authenticated - cannot create meeting');
+        }
+
+        const meetingData = {
+          title: meetingSettings.title || 'General Meeting',
+          duration_minutes: 0, // Will be updated when stopped
+          meeting_type: 'general',
+          start_time: generateMeetingTimestamp(),
+          status: 'recording' as const,
+          user_id: user.id,
+          practice_id: meetingSettings.practiceId || null,
+          meeting_format: meetingSettings.format || 'face-to-face'
+        };
+
+        const { data: savedMeeting, error: saveError } = await supabase
+          .from('meetings')
+          .insert(meetingData)
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error('❌ Failed to create meeting record:', saveError);
+          throw saveError;
+        }
+
+        realMeetingId = savedMeeting.id;
+        console.log(`✅ Created meeting record: ${realMeetingId}`);
+        
+        // Store both session ID and meeting ID as the same value
+        sessionStorage.setItem('currentSessionId', realMeetingId);
+        sessionStorage.setItem('currentMeetingId', realMeetingId);
+      } catch (error) {
+        console.error('❌ Failed to create meeting:', error);
+        toast.error('Failed to create meeting record');
+        throw error;
+      }
       
       // Check recording mode and browser
       const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
@@ -2540,74 +2579,28 @@ export const MeetingRecorder = ({
       if (recordingMode === 'mic-only') {
         // Microphone only mode
         addDebugLog('🎙️ Starting microphone-only recording...');
-        await startMicrophoneTranscription();
+        await startMicrophoneTranscription(realMeetingId);
       } else if (recordingMode === 'mic-and-system') {
         // Microphone + System audio mode
         if (useScreenShare) {
           // Chrome & Edge: Use screen share method for system audio
           const browserName = isChrome ? 'Chrome' : 'Edge';
           addDebugLog(`🖥️ ${browserName} detected - using screen share for system audio...`);
-          await startComputerAudioTranscription();
+          await startComputerAudioTranscription(realMeetingId);
         } else {
           // Other browsers: Use stereo recording
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
           await startStereoRecording();
-          await startMicrophoneTranscription();
+          await startMicrophoneTranscription(realMeetingId);
         }
       }
       
-    setIsRecording(true);
-    isRecordingRef.current = true;
-    setRealtimeTranscripts([]);
-    setSpeakerCount(1);
-    setStartTime(generateMeetingTimestamp());
-    setConnectionStatus("Connected");
-    
-    // Create actual meeting record at recording start
-    let realMeetingId: string;
-    try {
-      if (!user?.id) {
-        throw new Error('User not authenticated - cannot create meeting');
-      }
-
-      const meetingData = {
-        title: meetingSettings.title || 'General Meeting',
-        duration_minutes: 0, // Will be updated when stopped
-        meeting_type: 'general',
-        start_time: generateMeetingTimestamp(),
-        status: 'recording' as const,
-        user_id: user.id,
-        practice_id: meetingSettings.practiceId || null,
-        meeting_format: meetingSettings.format || 'face-to-face'
-      };
-
-      const { data: savedMeeting, error: saveError } = await supabase
-        .from('meetings')
-        .insert(meetingData)
-        .select()
-        .single();
-
-      if (saveError) {
-        console.error('❌ Failed to create meeting record:', saveError);
-        throw saveError;
-      }
-
-      realMeetingId = savedMeeting.id;
-      console.log(`✅ Created meeting record: ${realMeetingId}`);
-      
-      // Store both session ID and meeting ID as the same value
-      sessionStorage.setItem('currentSessionId', realMeetingId);
-      sessionStorage.setItem('currentMeetingId', realMeetingId);
-      
-      if (desktopTranscriberRef.current) {
-        desktopTranscriberRef.current.setMeetingId(realMeetingId);
-        console.log(`🔗 Set meeting ID for transcriber: ${realMeetingId}`);
-      }
-    } catch (error) {
-      console.error('❌ Failed to create meeting:', error);
-      toast.error('Failed to create meeting record');
-      throw error;
-    }
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      setRealtimeTranscripts([]);
+      setSpeakerCount(1);
+      setStartTime(generateMeetingTimestamp());
+      setConnectionStatus("Connected");
 
       // Start overlapping chunk recording for system audio (only if not microphone-only and not using screen share)
       if (recordingMode === 'mic-and-system' && !useScreenShare) {
@@ -3834,14 +3827,16 @@ export const MeetingRecorder = ({
       
       // Resume transcription based on current mode
       if (recordingMode === 'mic-only') {
-        await startMicrophoneTranscription();
+        const resumeMeetingId = sessionStorage.getItem('currentMeetingId') || crypto.randomUUID();
+        await startMicrophoneTranscription(resumeMeetingId);
       } else if (recordingMode === 'mic-and-system') {
         const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
         const isEdge = /Edg/.test(navigator.userAgent);
+        const resumeMeetingId = sessionStorage.getItem('currentMeetingId') || crypto.randomUUID();
         if (isChrome || isEdge) {
-          await startComputerAudioTranscription();
+          await startComputerAudioTranscription(resumeMeetingId);
         } else {
-          await startMicrophoneTranscription();
+          await startMicrophoneTranscription(resumeMeetingId);
         }
       }
       

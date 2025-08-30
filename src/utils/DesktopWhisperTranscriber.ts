@@ -36,9 +36,11 @@ export class DesktopWhisperTranscriber {
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    meetingSettings?: any
+    meetingSettings?: any,
+    meetingId?: string
   ) {
-    this.sessionId = this.generateSessionId();
+    this.sessionId = meetingId || this.generateSessionId();
+    this.meetingId = meetingId || null;
     this.chunkIntervalMs = 25000; // Phase 2: Optimized chunk duration for better transcription
     this.meetingSettings = withDefaultThresholds(meetingSettings);
   }

@@ -19,9 +19,10 @@ export class WebSpeechTranscriber {
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    private onSummary?: (summary: string) => void
+    private onSummary?: (summary: string) => void,
+    meetingId?: string
   ) {
-    this.sessionId = `webspeech_${Date.now()}`;
+    this.sessionId = meetingId || `webspeech_${Date.now()}`;
   }
 
   async startTranscription() {
