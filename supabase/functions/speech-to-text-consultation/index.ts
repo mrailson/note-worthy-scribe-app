@@ -59,6 +59,12 @@ serve(async (req) => {
     formData.append('file', blob, 'audio.webm');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
+    formData.append('response_format', 'verbose_json');
+    // Anti-hallucination parameters
+    formData.append('temperature', '0');
+    formData.append('no_speech_threshold', '0.6');
+    formData.append('condition_on_previous_text', 'false');
+    formData.append('prompt', ''); // Empty prompt reduces hallucinations
 
     // Send to OpenAI
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -78,8 +84,28 @@ serve(async (req) => {
     const result = await response.json();
     console.log('Speech-to-text result:', result.text);
 
+    // Calculate real confidence from segments
+    let confidence = 0.5; // Default fallback
+    if (result.segments && result.segments.length > 0) {
+      const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+        sum + (seg.avg_logprob || -2), 0) / result.segments.length;
+      const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+        sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
+      
+      // Convert log probability and no-speech probability to confidence score
+      confidence = Math.max(0, Math.min(1, 
+        (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
+      ));
+    }
+
     return new Response(
-      JSON.stringify({ text: result.text }),
+      JSON.stringify({ 
+        text: result.text,
+        confidence: confidence, // Real confidence from Whisper segments
+        duration: result.duration,
+        language: result.language,
+        segments: result.segments || []
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

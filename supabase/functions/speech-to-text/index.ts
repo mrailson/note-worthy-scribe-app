@@ -50,8 +50,12 @@ serve(async (req) => {
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
-    formData.append('prompt', 'This is an English language meeting or consultation recording.');
-    formData.append('response_format', 'json');
+    formData.append('response_format', 'verbose_json');
+    // Anti-hallucination parameters
+    formData.append('temperature', '0');
+    formData.append('no_speech_threshold', '0.6');
+    formData.append('condition_on_previous_text', 'false');
+    formData.append('prompt', ''); // Empty prompt reduces hallucinations
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
@@ -76,10 +80,29 @@ serve(async (req) => {
     console.log('✅ SPEECH-TO-TEXT: Transcription successful, text length:', result.text?.length || 0);
     console.log('📝 SPEECH-TO-TEXT: Transcript preview:', result.text?.slice(0, 100) + '...');
 
+    // Calculate real confidence from segments
+    let confidence = 0.5; // Default fallback
+    if (result.segments && result.segments.length > 0) {
+      const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+        sum + (seg.avg_logprob || -2), 0) / result.segments.length;
+      const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+        sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
+      
+      // Convert log probability and no-speech probability to confidence score
+      confidence = Math.max(0, Math.min(1, 
+        (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
+      ));
+    }
+
+    console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence);
+
     return new Response(
       JSON.stringify({ 
         text: result.text || '',
-        confidence: 0.95 // Default confidence for Whisper
+        confidence: confidence, // Real confidence from Whisper segments
+        duration: result.duration,
+        language: result.language,
+        segments: result.segments || []
       }),
       { 
         headers: { 

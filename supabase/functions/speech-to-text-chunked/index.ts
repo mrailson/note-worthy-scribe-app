@@ -112,6 +112,11 @@ serve(async (req) => {
     fd.append("file", new File([blob], `chunk_${chunkIndex}.webm`, { type: "audio/webm" }));
     fd.append("model", MODEL);
     fd.append("response_format", "verbose_json");
+    // Anti-hallucination parameters
+    fd.append("temperature", "0");
+    fd.append("no_speech_threshold", "0.6"); 
+    fd.append("condition_on_previous_text", "false");
+    fd.append("prompt", ""); // Empty prompt reduces hallucinations
     if (language) fd.append("language", language);
 
     // Idempotency for safe retries
@@ -139,13 +144,27 @@ serve(async (req) => {
           text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
         });
 
+        // Calculate real confidence from segments
+        let confidence = 0.5; // Default fallback
+        if (result.segments && result.segments.length > 0) {
+          const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+            sum + (seg.avg_logprob || -2), 0) / result.segments.length;
+          const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+            sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
+          
+          // Convert log probability and no-speech probability to confidence score
+          confidence = Math.max(0, Math.min(1, 
+            (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
+          ));
+        }
+
         // Return the transcription result with segments for timestamp-based deduplication
         const response = {
           data: {
             text: result.text || '',
             segments: result.segments || []
           },
-          confidence: 0.95, // Default confidence for Whisper
+          confidence: confidence, // Real confidence from Whisper segments
           chunkIndex,
           isFinal,
           sessionId,
