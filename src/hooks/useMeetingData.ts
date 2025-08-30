@@ -61,7 +61,7 @@ export const useMeetingData = () => {
           practice_name: data.practiceName,
           practice_id: data.practiceId,
           meeting_format: data.meetingFormat,
-          generated_notes: data.generatedNotes,
+          // generated_notes removed - using meeting_summaries table instead
           started_by: data.startedBy,
           participants: data.participants || [],
           agenda: data.agenda || '',
@@ -105,6 +105,7 @@ export const useMeetingData = () => {
 
         // Fetch transcript from meeting_transcripts table
         let transcriptContent = '';
+        let summaryContent = '';
         try {
           const { data: transcriptData } = await supabase
             .from('meeting_transcripts')
@@ -119,6 +120,19 @@ export const useMeetingData = () => {
           console.log('No transcript found in meeting_transcripts table');
         }
 
+        // Fetch meeting summary from meeting_summaries table
+        try {
+          const { data: summaryData } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', data.id)
+            .maybeSingle();
+          
+          summaryContent = summaryData?.summary || '';
+        } catch (summaryError) {
+          console.log('No summary found in meeting_summaries table');
+        }
+
         setMeetingData({
           id: data.id,
           title: data.title || 'Meeting',
@@ -130,7 +144,7 @@ export const useMeetingData = () => {
           practiceName: '',
           practiceId: '',
           meetingFormat: data.meeting_format || '',
-          generatedNotes: data.description || '',
+          generatedNotes: summaryContent || '',
           startedBy: data.user_id || '',
           participants: data.participants || [],
           agenda: data.agenda || '',

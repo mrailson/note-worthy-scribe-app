@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MeetingData } from "@/types/meetingTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,6 +12,29 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
   const [isClaudeFullScreen, setIsClaudeFullScreen] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
+
+  // Auto-load existing notes when meetingData changes
+  useEffect(() => {
+    const loadExistingNotes = async () => {
+      if (meetingData?.id && !claudeNotes) {
+        try {
+          const { data: summaryData } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meetingData.id)
+            .maybeSingle();
+          
+          if (summaryData?.summary) {
+            setClaudeNotes(summaryData.summary);
+          }
+        } catch (error) {
+          console.error('Error loading existing notes:', error);
+        }
+      }
+    };
+
+    loadExistingNotes();
+  }, [meetingData?.id]);
 
   const generateClaudeMeetingNotes = async (forceRegenerate = false, enhancedContext = null) => {
     if (!meetingData?.transcript || (!forceRegenerate && claudeNotes && claudeNotes.length > 0)) {
@@ -80,17 +103,29 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
     if (!meetingId) return;
     
     try {
+      // Save to meeting_summaries table (correct location)
       const { error } = await supabase
-        .from('meetings')
-        .update({ 
-          generated_notes: content, // Store in generated_notes field
-          description: content.substring(0, 1000) // Also store truncated version in description
-        })
-        .eq('id', meetingId);
+        .from('meeting_summaries')
+        .upsert({
+          meeting_id: meetingId,
+          summary: content,
+          ai_generated: true,
+          updated_at: new Date().toISOString()
+        });
 
       if (error) throw error;
+      
+      // Also update meeting description for quick preview
+      await supabase
+        .from('meetings')
+        .update({ 
+          description: content.substring(0, 1000)
+        })
+        .eq('id', meetingId);
+        
     } catch (error) {
       console.error('Error saving summary:', error);
+      throw error;
     }
   };
 

@@ -10,6 +10,7 @@ import { useMeetingAudio } from "@/hooks/useMeetingAudio";
 import { useMeetingExport } from "@/hooks/useMeetingExport";
 import { useClaudeAI } from "@/hooks/useClaudeAI";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -128,10 +129,27 @@ export default function MeetingSummary() {
         audioBackupBlob: data.audioBackupBlob || null
       });
       
-      // If we have generated notes, set them as Claude notes
-      if (data.generatedNotes) {
-        setClaudeNotes(data.generatedNotes);
-        toast.success('AI-generated meeting notes are ready!');
+      // If we have generated notes, load them from meeting_summaries
+      if (data.id) {
+        // Load notes from meeting_summaries table 
+        const loadNotesFromDB = async () => {
+          try {
+            const { data: summaryData } = await supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', data.id)
+              .maybeSingle();
+            
+            if (summaryData?.summary) {
+              setClaudeNotes(summaryData.summary);
+              toast.success('Meeting notes loaded successfully!');
+            }
+          } catch (error) {
+            console.error('Error loading notes:', error);
+          }
+        };
+        
+        loadNotesFromDB();
       }
       
       // Map startTime (ISO) from navigation state to Meeting Settings date/time for display
@@ -194,9 +212,28 @@ export default function MeetingSummary() {
         
         return () => clearTimeout(timer);
       } else {
-        // For existing meetings, just mark as saved and load summary
+        // For existing meetings, load notes from database
         setIsSaved(true);
         loadExistingSummary(data.id);
+        
+        // Load Claude notes from meeting_summaries table
+        const loadClaudeNotes = async () => {
+          try {
+            const { data: summaryData } = await supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', data.id)
+              .maybeSingle();
+            
+            if (summaryData?.summary) {
+              setClaudeNotes(summaryData.summary);
+            }
+          } catch (error) {
+            console.error('Error loading Claude notes:', error);
+          }
+        };
+        
+        loadClaudeNotes();
       }
       } else {
         // Handle direct URL access or query params
@@ -220,6 +257,25 @@ export default function MeetingSummary() {
             startedBy: ''
           });
           loadExistingSummary(paramId);
+          
+          // Load Claude notes for direct access
+          const loadClaudeNotes = async () => {
+            try {
+              const { data: summaryData } = await supabase
+                .from('meeting_summaries')
+                .select('summary')
+                .eq('meeting_id', paramId)
+                .maybeSingle();
+              
+              if (summaryData?.summary) {
+                setClaudeNotes(summaryData.summary);
+              }
+            } catch (error) {
+              console.error('Error loading Claude notes:', error);
+            }
+          };
+          
+          loadClaudeNotes();
         } else {
           toast.error('No meeting selected');
           navigate('/meeting-history');
