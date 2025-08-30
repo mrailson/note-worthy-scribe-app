@@ -128,7 +128,7 @@ export const RealtimeTranscriptCard = ({
 
   return (
     <Card className={cn("relative transition-all duration-300", className, {
-      "h-[75rem]": isExpanded,
+      "h-[131rem]": isExpanded,
       "h-[32rem]": !isExpanded
     })}>
       <CardHeader className="pb-2">
@@ -197,7 +197,7 @@ export const RealtimeTranscriptCard = ({
       <CardContent className="pt-0 h-full">
         
         {/* Meeting Stats Section */}
-        <div className="flex flex-col gap-3 mb-4 p-3 bg-accent/20 rounded-lg">
+        <div className="flex flex-col gap-2 mb-3 p-2 bg-accent/20 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
@@ -250,7 +250,10 @@ export const RealtimeTranscriptCard = ({
         
         <ScrollArea 
           ref={scrollAreaRef}
-          className="h-[34%] rounded-md border bg-background/50 p-3"
+          className={cn("rounded-md border bg-background/50 p-3", {
+            "h-[calc(100vh-20rem)]": isExpanded,
+            "h-[calc(100%-8rem)]": !isExpanded
+          })}
           onScrollCapture={handleScroll}
         >
           <div 
