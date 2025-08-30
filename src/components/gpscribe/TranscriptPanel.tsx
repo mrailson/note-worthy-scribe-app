@@ -1,67 +1,70 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { TranscriptData } from "@/types/gpscribe";
-import { format } from "date-fns";
-import { Copy, Edit, Check, X, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
-import { LowConfidenceReview } from "@/components/LowConfidenceReview";
-import { ChunkStatusModal } from "@/components/ChunkStatusModal";
-import { ChunkStatus } from "@/hooks/useChunkTracker";
+import { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Copy, 
+  Edit, 
+  Save, 
+  X, 
+  Trash2, 
+  Sparkles, 
+  FileText,
+  Eye,
+  EyeOff,
+  Radio,
+  Volume2
+} from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { Separator } from '@/components/ui/separator';
+import { ChunkStatusModal } from '@/components/ChunkStatusModal';
+import { AssemblyRealtimeTicker } from '@/components/AssemblyRealtimeTicker';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TranscriptPanelProps {
   transcript: string;
-  realtimeTranscripts: TranscriptData[];
-  cleanedTranscript: string;
-  isCleaningTranscript: boolean;
-  showTranscriptTimestamps: boolean;
   isRecording: boolean;
+  realtimeTranscripts?: string[];
+  cleanedTranscript?: string;
+  isCleaningTranscript?: boolean;
+  onTranscriptChange?: (transcript: string) => void;
+  onCleanTranscript?: () => void;
+  onClearTranscript?: () => void;
   meetingId?: string;
   sessionId?: string;
   userId?: string;
-  chunks?: ChunkStatus[];
-  chunkStats?: {
-    total: number;
-    successful: number;
-    lowConfidence: number;
-    filtered: number;
-    totalWords: number;
-    avgConfidence: number;
-    successRate: number;
-  };
-  onTranscriptChange: (transcript: string) => void;
-  onCleanTranscript: () => void;
-  onClearTranscript: () => void;
-  onClearChunks?: () => void;
+  chunkTracker?: any;
+  // Dual transcription props
+  assemblyTranscript?: string;
+  assemblyStatus?: string;
+  assemblyConfidence?: number;
+  assemblyEnabled?: boolean;
+  primarySource?: 'assembly' | 'whisper';
+  onPrimarySourceChange?: (source: 'assembly' | 'whisper') => void;
 }
 
-export const TranscriptPanel = ({
+export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   transcript,
-  realtimeTranscripts,
-  cleanedTranscript,
-  isCleaningTranscript,
-  showTranscriptTimestamps,
   isRecording,
-  meetingId,
-  sessionId,
-  userId,
-  chunks = [],
-  chunkStats = {
-    total: 0,
-    successful: 0,
-    lowConfidence: 0,
-    filtered: 0,
-    totalWords: 0,
-    avgConfidence: 0,
-    successRate: 0
-  },
+  realtimeTranscripts = [],
+  cleanedTranscript,
+  isCleaningTranscript = false,
   onTranscriptChange,
   onCleanTranscript,
   onClearTranscript,
-  onClearChunks
-}: TranscriptPanelProps) => {
+  meetingId,
+  sessionId,
+  userId,
+  chunkTracker,
+  assemblyTranscript = '',
+  assemblyStatus = 'idle',
+  assemblyConfidence = 0,
+  assemblyEnabled = false,
+  primarySource = 'whisper',
+  onPrimarySourceChange
+}) => {
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
 
@@ -71,9 +74,14 @@ export const TranscriptPanel = ({
   };
 
   const handleSaveEdit = () => {
-    onTranscriptChange(editValue);
+    if (onTranscriptChange) {
+      onTranscriptChange(editValue);
+    }
     setIsEditing(false);
-    toast.success("Transcript updated");
+    toast({
+      title: "Transcript Updated",
+      description: "Your changes have been saved."
+    });
   };
 
   const handleCancelEdit = () => {
@@ -81,175 +89,289 @@ export const TranscriptPanel = ({
     setEditValue("");
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast({
+      title: "Copied to Clipboard",
+      description: `${label} copied successfully.`
+    });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Live Transcript */}
-      {isRecording && realtimeTranscripts.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              Live Transcript
-              <Badge variant="secondary" className="animate-pulse text-xs">
-                ● LIVE
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-40 overflow-y-auto space-y-2">
-              {realtimeTranscripts.slice(-5).map((item, index) => (
-                <div key={index} className="text-sm">
-                  {showTranscriptTimestamps && (
-                    <span className="text-muted-foreground text-xs mr-2">
-                      {format(new Date(item.timestamp), 'HH:mm:ss')}
-                    </span>
-                  )}
-                  <span className="font-medium text-primary mr-2">
-                    {item.speaker}:
-                  </span>
-                  <span className={!item.isFinal ? "text-muted-foreground" : ""}>
-                    {item.text}
-                  </span>
-                  {item.confidence && (
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {Math.round(item.confidence * 100)}%
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      {/* Assembly AI Real-time Ticker */}
+      {assemblyEnabled && (
+        <AssemblyRealtimeTicker
+          transcript={assemblyTranscript}
+          status={assemblyStatus}
+          confidence={assemblyConfidence}
+          isEnabled={assemblyEnabled}
+          className="mb-4"
+        />
       )}
 
-      {/* Main Transcript */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Transcript</CardTitle>
-            <div className="flex items-center gap-2">
-              {transcript && (
-                <>
-                  <Button
-                    onClick={() => copyToClipboard(transcript)}
-                    variant="outline"
-                    size="sm"
-                    className="touch-manipulation min-h-[44px]"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={handleStartEdit}
-                    variant="outline"
-                    size="sm"
-                    disabled={isEditing}
-                    className="touch-manipulation min-h-[44px]"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={onCleanTranscript}
-                    variant="outline"
-                    size="sm"
-                    disabled={isCleaningTranscript}
-                    className="touch-manipulation min-h-[44px]"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <ChunkStatusModal 
-                    chunks={chunks}
-                    stats={chunkStats}
-                    onClear={onClearChunks || (() => {})}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isEditing ? (
-            <div className="space-y-3">
-              <Textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                placeholder="Edit transcript..."
-                className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  onClick={handleCancelEdit}
-                  variant="outline"
-                  size="sm"
-                  className="touch-manipulation min-h-[44px]"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveEdit}
-                  size="sm"
-                  className="bg-gradient-primary hover:bg-primary-hover touch-manipulation min-h-[44px]"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="min-h-[300px] max-h-[600px] overflow-y-auto p-3 border rounded-md bg-background text-sm font-mono whitespace-pre-wrap break-words">
-              {transcript || (isRecording ? "Listening..." : "No transcript yet. Start recording to begin.")}
-            </div>
+      {/* Dual Transcription Tabs */}
+      <Tabs defaultValue="live" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="live" className="flex items-center gap-2">
+            <Radio className="h-4 w-4" />
+            Live
+          </TabsTrigger>
+          <TabsTrigger value="transcripts" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Transcripts
+          </TabsTrigger>
+          <TabsTrigger value="comparison" className="flex items-center gap-2">
+            <Volume2 className="h-4 w-4" />
+            Comparison
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="live">
+          {/* Live Transcript Section */}
+          {isRecording && realtimeTranscripts.length > 0 && (
+            <Card className="border-green-500 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                    Live Transcript (Whisper)
+                  </CardTitle>
+                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                    Recording
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-green-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                  {realtimeTranscripts.map((chunk, index) => (
+                    <p key={index} className="text-sm mb-2 last:mb-0">
+                      {chunk}
+                    </p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value="transcripts">
+          {/* Main Transcript Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Primary Transcript
+                  {transcript && (
+                    <Badge variant="outline" className="ml-2">
+                      {transcript.split(' ').length} words
+                    </Badge>
+                  )}
+                  {primarySource && (
+                    <Badge variant={primarySource === 'assembly' ? 'default' : 'secondary'} className="ml-2">
+                      {primarySource === 'assembly' ? 'Assembly AI' : 'Whisper'}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {onPrimarySourceChange && (
+                    <div className="flex rounded-lg border p-1">
+                      <Button
+                        variant={primarySource === 'whisper' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => onPrimarySourceChange('whisper')}
+                        className="h-7 px-2"
+                      >
+                        Whisper
+                      </Button>
+                      <Button
+                        variant={primarySource === 'assembly' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => onPrimarySourceChange('assembly')}
+                        className="h-7 px-2"
+                      >
+                        Assembly
+                      </Button>
+                    </div>
+                  )}
+                  {transcript && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(transcript, 'Transcript')}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                  )}
+                  {!isEditing && transcript && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStartEdit}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {chunkTracker && chunkTracker.chunks && (
+                    <ChunkStatusModal 
+                      chunks={chunkTracker.chunks}
+                      stats={chunkTracker.stats}
+                      onClear={chunkTracker.clearChunks}
+                    />
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="min-h-[300px] resize-vertical"
+                    placeholder="Edit your transcript here..."
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveEdit} size="sm">
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Changes
+                    </Button>
+                    <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {transcript ? (
+                    <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {transcript}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] flex items-center justify-center text-gray-500">
+                      {isRecording 
+                        ? "Transcription will appear here as you speak..."
+                        : "No transcript available. Start recording to generate a transcript."
+                      }
+                    </div>
+                  )}
+                  {transcript && (
+                    <div className="flex gap-2">
+                      {onCleanTranscript && (
+                        <Button
+                          onClick={onCleanTranscript}
+                          disabled={isCleaningTranscript}
+                          variant="outline"
+                        >
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          {isCleaningTranscript ? 'Cleaning...' : 'Clean Transcript'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="comparison">
+          {/* Dual Transcript Comparison */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Whisper Transcript
+                  <Badge variant="secondary" className="text-xs">
+                    {transcript.split(' ').length} words
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-blue-50 rounded-lg p-4 min-h-[200px] max-h-96 overflow-y-auto">
+                  {transcript || (
+                    <span className="text-muted-foreground text-sm">
+                      No Whisper transcript available
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Radio className="h-4 w-4" />
+                  Assembly AI Transcript
+                  <Badge variant="default" className="text-xs">
+                    {assemblyTranscript.split(' ').filter(w => w.length > 0).length} words
+                  </Badge>
+                  {assemblyConfidence > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {Math.round(assemblyConfidence * 100)}% confidence
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-green-50 rounded-lg p-4 min-h-[200px] max-h-96 overflow-y-auto">
+                  {assemblyTranscript || (
+                    <span className="text-muted-foreground text-sm">
+                      {assemblyEnabled ? 'No Assembly AI transcript available' : 'Assembly AI disabled'}
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Cleaned Transcript */}
-      {cleanedTranscript && (
+      {cleanedTranscript && cleanedTranscript.trim() && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Cleaned Transcript</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                AI-Cleaned Transcript
+                <Badge variant="outline" className="ml-2">
+                  {cleanedTranscript.split(' ').length} words
+                </Badge>
+              </CardTitle>
               <Button
-                onClick={() => copyToClipboard(cleanedTranscript)}
                 variant="outline"
                 size="sm"
-                className="touch-manipulation min-h-[44px]"
+                onClick={() => copyToClipboard(cleanedTranscript, 'Cleaned Transcript')}
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-4 w-4 mr-1" />
+                Copy
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Textarea
-              value={cleanedTranscript}
-              readOnly
-              className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
-            />
+            <div className="bg-purple-50 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+              {cleanedTranscript}
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Low Confidence Review - Only show if we have the required props */}
-      {meetingId && sessionId && userId && (
-        <LowConfidenceReview 
-          meetingId={meetingId}
-          sessionId={sessionId}
-          userId={userId}
-        />
-      )}
-
-      {transcript && (
-        <div className="flex justify-center">
+      {/* Clear Actions */}
+      {(transcript || cleanedTranscript) && onClearTranscript && (
+        <div className="flex justify-center pt-4">
           <Button
             onClick={onClearTranscript}
             variant="outline"
-            className="touch-manipulation min-h-[44px]"
+            className="text-destructive hover:text-destructive"
           >
-            Clear Transcript
+            <Trash2 className="h-4 w-4 mr-1" />
+            Clear All Transcripts
           </Button>
         </div>
       )}

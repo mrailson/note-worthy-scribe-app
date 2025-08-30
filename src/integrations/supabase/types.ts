@@ -50,6 +50,48 @@ export type Database = {
         }
         Relationships: []
       }
+      assembly_transcripts: {
+        Row: {
+          chunk_index: number
+          confidence: number | null
+          created_at: string
+          id: string
+          is_final: boolean | null
+          meeting_id: string
+          session_id: string
+          timestamp_ms: number | null
+          transcript_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chunk_index: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          meeting_id: string
+          session_id: string
+          timestamp_ms?: number | null
+          transcript_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          meeting_id?: string
+          session_id?: string
+          timestamp_ms?: number | null
+          transcript_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attendees: {
         Row: {
           created_at: string
@@ -3088,6 +3130,8 @@ export type Database = {
       meetings: {
         Row: {
           agenda: string | null
+          assembly_confidence: number | null
+          assembly_transcript_text: string | null
           audio_backup_created_at: string | null
           audio_backup_path: string | null
           auto_generated_name: string | null
@@ -3111,6 +3155,7 @@ export type Database = {
           notes_generation_status: string | null
           participants: string[] | null
           practice_id: string | null
+          primary_transcript_source: string | null
           recording_created_at: string | null
           requires_audio_backup: boolean | null
           right_audio_url: string | null
@@ -3119,9 +3164,13 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          whisper_confidence: number | null
+          whisper_transcript_text: string | null
         }
         Insert: {
           agenda?: string | null
+          assembly_confidence?: number | null
+          assembly_transcript_text?: string | null
           audio_backup_created_at?: string | null
           audio_backup_path?: string | null
           auto_generated_name?: string | null
@@ -3145,6 +3194,7 @@ export type Database = {
           notes_generation_status?: string | null
           participants?: string[] | null
           practice_id?: string | null
+          primary_transcript_source?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
@@ -3153,9 +3203,13 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          whisper_confidence?: number | null
+          whisper_transcript_text?: string | null
         }
         Update: {
           agenda?: string | null
+          assembly_confidence?: number | null
+          assembly_transcript_text?: string | null
           audio_backup_created_at?: string | null
           audio_backup_path?: string | null
           auto_generated_name?: string | null
@@ -3179,6 +3233,7 @@ export type Database = {
           notes_generation_status?: string | null
           participants?: string[] | null
           practice_id?: string | null
+          primary_transcript_source?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
@@ -3187,6 +3242,8 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          whisper_confidence?: number | null
+          whisper_transcript_text?: string | null
         }
         Relationships: [
           {

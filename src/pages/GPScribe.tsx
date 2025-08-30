@@ -431,7 +431,7 @@ const Index = () => {
             {recording.transcript && (
               <TranscriptPanel
                 transcript={recording.transcript}
-                realtimeTranscripts={recording.realtimeTranscripts}
+                realtimeTranscripts={recording.realtimeTranscripts.map(t => t.text)}
                 cleanedTranscript={recording.cleanedTranscript}
                 isCleaningTranscript={recording.isCleaningTranscript}
                 showTranscriptTimestamps={false}
