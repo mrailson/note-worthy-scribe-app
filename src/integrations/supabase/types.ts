@@ -2392,6 +2392,71 @@ export type Database = {
         }
         Relationships: []
       }
+      low_confidence_chunks: {
+        Row: {
+          ai_suggested_restoration: boolean | null
+          chunk_number: number
+          confidence: number
+          contextual_relevance_score: number | null
+          created_at: string
+          filter_reason: string
+          id: string
+          meeting_id: string | null
+          original_confidence: number
+          processed_at: string | null
+          session_id: string
+          transcriber_type: string
+          transcription_text: string
+          user_action: string | null
+          user_edited_text: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_suggested_restoration?: boolean | null
+          chunk_number: number
+          confidence: number
+          contextual_relevance_score?: number | null
+          created_at?: string
+          filter_reason: string
+          id?: string
+          meeting_id?: string | null
+          original_confidence: number
+          processed_at?: string | null
+          session_id: string
+          transcriber_type?: string
+          transcription_text: string
+          user_action?: string | null
+          user_edited_text?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_suggested_restoration?: boolean | null
+          chunk_number?: number
+          confidence?: number
+          contextual_relevance_score?: number | null
+          created_at?: string
+          filter_reason?: string
+          id?: string
+          meeting_id?: string | null
+          original_confidence?: number
+          processed_at?: string | null
+          session_id?: string
+          transcriber_type?: string
+          transcription_text?: string
+          user_action?: string | null
+          user_edited_text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_low_confidence_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_term_corrections: {
         Row: {
           context_phrase: string | null
