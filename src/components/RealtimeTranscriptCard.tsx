@@ -218,7 +218,7 @@ export const RealtimeTranscriptCard = ({
           </div>
           
           <div className="text-xs text-muted-foreground italic border-t pt-2">
-            Raw Transcript, may duplicate - Normal and will be removed during processing
+            Raw Transcript – early view only, duplicates auto-removed later.
           </div>
         </div>
 
