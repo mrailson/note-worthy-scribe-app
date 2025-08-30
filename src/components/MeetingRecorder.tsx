@@ -3829,7 +3829,7 @@ export const MeetingRecorder = ({
           </TabsTrigger>
           <TabsTrigger value="transcript" className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            <span className="hidden sm:inline">Live Transcript</span>
+            <span className="hidden sm:inline">Meeting Transcript</span>
             <span className="sm:hidden">Transcript</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
