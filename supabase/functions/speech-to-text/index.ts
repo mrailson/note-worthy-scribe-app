@@ -49,6 +49,8 @@ serve(async (req) => {
     const audioBlob = new Blob([bytes], { type: 'audio/webm' });
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
+    formData.append('prompt', 'This is an English language meeting or consultation recording.');
     formData.append('response_format', 'json');
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
