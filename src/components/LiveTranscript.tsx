@@ -449,8 +449,9 @@ export const LiveTranscript = ({
             processedSeqRef.current.add(r.seq);
           }
 
-          // Always show latest raw text (interim or final) in the live box
-          setLiveTranscriptText(r.transcription_text);
+          // Always show latest raw text (interim or final) in the live box - accumulate chunks
+          console.log("🔗 Accumulating raw transcript chunk:", r.transcription_text?.substring(0, 50) + "...");
+          setLiveTranscriptText(prev => mergeLive(prev, r.transcription_text));
 
           // Apply lightweight cleaning for real-time processing
           const cleanedChunk = lightCleanChunk(r.transcription_text);
@@ -577,7 +578,8 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (transcript && transcript.trim()) {
       const processedTranscript = filterSystemMessages(transcript);
-      setLiveTranscriptText(processedTranscript);
+      console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...");
+      setLiveTranscriptText(prev => mergeLive(prev, processedTranscript));
     }
   }, [transcript]);
 
@@ -585,9 +587,10 @@ export const LiveTranscript = ({
   useEffect(() => {
     if (!transcript) return;
     
-    // Always show interim in live box
+    // Always show interim in live box - accumulate instead of replace
     const processedTranscript = filterSystemMessages(transcript);
-    setLiveTranscriptText(processedTranscript);
+    console.log("🔗 Accumulating client prop transcript:", processedTranscript?.substring(0, 50) + "...");
+    setLiveTranscriptText(prev => mergeLive(prev, processedTranscript));
 
     // Handle finality from client props
     if (typeof isFinal === "boolean") {
