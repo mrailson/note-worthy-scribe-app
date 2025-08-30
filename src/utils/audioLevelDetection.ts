@@ -151,12 +151,10 @@ export const OPTIMAL_CHUNK_DURATION = {
  * @returns Optimal chunk interval in milliseconds
  */
 export function getOptimalChunkInterval(elapsedMs: number, isEarlyMode: boolean = false): number {
-  // Early mode for first 60 seconds - faster initial feedback for user confirmation
+  // Early mode for first 60 seconds - reduced duplication with longer chunks
   if (isEarlyMode && elapsedMs < 60000) {
     if (elapsedMs < 8000) return 5000; // 5s for first chunk - immediate user feedback
-    if (elapsedMs < 20000) return 8000; // 8s for next chunks - balance speed/quality
-    if (elapsedMs < 40000) return 12000; // 12s for middle chunks
-    return 20000; // 20s after 40s - approaching normal mode
+    return 30000; // 30s for all subsequent chunks in early mode - reduces duplication
   }
   
   // Normal mode - use optimal 25-second chunks
