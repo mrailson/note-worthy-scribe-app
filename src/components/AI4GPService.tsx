@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -45,6 +46,7 @@ import { Message } from '@/types/ai4gp';
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -315,6 +317,10 @@ const AI4GPService = () => {
                         <DropdownMenuItem onClick={handleNewSearch}>
                           <Plus className="w-4 h-4 mr-2" />
                           New Search
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/meeting-history')}>
+                          <History className="w-4 h-4 mr-2" />
+                          My Meeting History
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
                           <GenieIcon className="w-4 h-4 mr-2" />

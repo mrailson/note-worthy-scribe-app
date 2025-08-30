@@ -12,11 +12,9 @@ import {
   Palette, 
   Newspaper, 
   Plus,
-  X,
-  History
+  X
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useNavigate } from 'react-router-dom';
 import { QuickActionsPanel } from './QuickActionsPanel';
 
 interface FloatingQuickActionsProps {
@@ -39,14 +37,8 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
 
   const quickMenuItems = [
-    {
-      icon: History,
-      label: 'My Meeting History',
-      action: () => navigate('/meeting-history')
-    },
     {
       icon: Search,
       label: 'Drug Lookup',
