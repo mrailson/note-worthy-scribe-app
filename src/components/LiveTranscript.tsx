@@ -761,7 +761,7 @@ export const LiveTranscript = ({
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Live Meeting Transcript
+                  Cleaned Meeting Transcript
                 </div>
                 <ChevronDown 
                   className={`h-4 w-4 transition-transform ${isTranscriptOpen ? 'rotate-180' : ''}`}
