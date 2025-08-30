@@ -45,6 +45,7 @@ import AI4GPService from "@/components/AI4GPService";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 import { DualRecordingControls } from '@/components/DualRecordingControls';
+import { AssemblyRealtimeTicker } from '@/components/AssemblyRealtimeTicker';
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
 import { ConsultationExample } from "@/data/consultationExamples";
@@ -455,6 +456,16 @@ const Index = () => {
               onToggleService={dualTranscription.toggleService}
               onSetPrimarySource={dualTranscription.setPrimarySource}
             />
+
+            {/* Assembly AI Live Transcript Card */}
+            {dualTranscription.state.assemblyEnabled && (
+              <AssemblyRealtimeTicker
+                transcript={dualTranscription.state.assemblyTranscript}
+                status={dualTranscription.state.assemblyStatus}
+                confidence={dualTranscription.state.assemblyConfidence}
+                isEnabled={dualTranscription.state.assemblyEnabled}
+              />
+            )}
 
             {/* Transcript Panel with Dual Transcription Support */}
             <TranscriptPanel
