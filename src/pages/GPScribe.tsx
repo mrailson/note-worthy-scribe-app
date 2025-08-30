@@ -434,7 +434,6 @@ const Index = () => {
                 realtimeTranscripts={recording.realtimeTranscripts.map(t => t.text)}
                 cleanedTranscript={recording.cleanedTranscript}
                 isCleaningTranscript={recording.isCleaningTranscript}
-                showTranscriptTimestamps={false}
                 isRecording={recording.isRecording}
                 onTranscriptChange={(newTranscript) => {
                   recording.setTranscript(newTranscript);
