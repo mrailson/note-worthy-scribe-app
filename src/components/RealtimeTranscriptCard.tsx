@@ -201,14 +201,6 @@ export const RealtimeTranscriptCard = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">Meeting Timer</span>
-                  <span className="text-lg font-mono font-semibold text-foreground">{duration}</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-primary" />
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground">Word Count</span>
