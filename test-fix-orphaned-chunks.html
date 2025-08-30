@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Orphaned Chunks Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Fix Orphaned Transcript Chunks Test</h1>
+    <button id="fixButton">Fix Orphaned Chunks</button>
+    <div id="results" style="margin-top: 20px; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        const { createClient } = supabase;
+        
+        const supabaseUrl = 'https://dphcnbricafkbtizkoal.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs';
+        
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        document.getElementById('fixButton').addEventListener('click', async () => {
+            const results = document.getElementById('results');
+            results.textContent = 'Calling fix-orphaned-transcript-chunks function...\n';
+            
+            try {
+                const { data, error } = await client.functions.invoke('fix-orphaned-transcript-chunks', {
+                    body: {}
+                });
+                
+                if (error) {
+                    results.textContent += `❌ Error: ${error.message}\n`;
+                    console.error('Function error:', error);
+                } else {
+                    results.textContent += `✅ Success!\n\n`;
+                    results.textContent += JSON.stringify(data, null, 2);
+                    console.log('Function result:', data);
+                }
+            } catch (err) {
+                results.textContent += `❌ Exception: ${err.message}\n`;
+                console.error('Exception:', err);
+            }
+        });
+    </script>
+</body>
+</html>
