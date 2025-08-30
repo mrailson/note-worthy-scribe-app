@@ -44,6 +44,7 @@ import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
+import { DualRecordingControls } from '@/components/DualRecordingControls';
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
 import { ConsultationExample } from "@/data/consultationExamples";
@@ -403,19 +404,27 @@ const Index = () => {
               isPaused={recording.isPaused}
               duration={recording.duration}
               connectionStatus={recording.connectionStatus}
-              wordCount={recording.wordCount}
+              wordCount={dualTranscription.state.isRecording ? 
+                (dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyWordCount : dualTranscription.state.whisperWordCount)
+                : recording.wordCount}
               currentConfidence={recording.currentConfidence}
               formatDuration={recording.formatDuration}
               transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : recording.transcript}
               realtimeTranscripts={recording.realtimeTranscripts}
               onStartRecording={() => {
-                // Start both recording systems
-                recording.startRecording();
-                dualTranscription.startDualTranscription();
+                // Use dual transcription if enabled, otherwise use main recording
+                if (dualTranscription.state.assemblyEnabled || dualTranscription.state.whisperEnabled) {
+                  dualTranscription.startDualTranscription();
+                } else {
+                  recording.startRecording();
+                }
               }}
               onStopRecording={() => {
-                recording.stopRecording(navigate);
-                dualTranscription.stopDualTranscription();
+                if (dualTranscription.state.isRecording) {
+                  dualTranscription.stopDualTranscription();
+                } else {
+                  recording.stopRecording(navigate);
+                }
               }}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
@@ -438,13 +447,33 @@ const Index = () => {
               }}
             />
 
+            {/* Dual Transcription Controls */}
+            <DualRecordingControls
+              state={dualTranscription.state}
+              onStart={dualTranscription.startDualTranscription}
+              onStop={dualTranscription.stopDualTranscription}
+              onToggleService={dualTranscription.toggleService}
+              onSetPrimarySource={dualTranscription.setPrimarySource}
+            />
+
             {/* Transcript Panel with Dual Transcription Support */}
             <TranscriptPanel
-              transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : recording.transcript}
+              transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : 
+                         dualTranscription.state.isRecording ? dualTranscription.state.whisperTranscript : recording.transcript}
               realtimeTranscripts={recording.realtimeTranscripts.map(t => t.text)}
               cleanedTranscript={recording.cleanedTranscript}
               isCleaningTranscript={recording.isCleaningTranscript}
               isRecording={recording.isRecording || dualTranscription.state.isRecording}
+              // Dual transcription props
+              assemblyTranscript={dualTranscription.state.assemblyTranscript}
+              assemblyStatus={dualTranscription.state.assemblyStatus}
+              assemblyConfidence={dualTranscription.state.assemblyConfidence}
+              assemblyEnabled={dualTranscription.state.assemblyEnabled}
+              primarySource={dualTranscription.state.primarySource}
+              assemblyChunks={dualTranscription.state.assemblyChunks}
+              whisperChunks={dualTranscription.state.whisperChunks}
+              assemblyWordCount={dualTranscription.state.assemblyWordCount}
+              whisperWordCount={dualTranscription.state.whisperWordCount}
               onTranscriptChange={(newTranscript) => {
                 recording.setTranscript(newTranscript);
                 recording.setHasUnsavedEdits(true); // Mark as having unsaved edits
@@ -454,12 +483,6 @@ const Index = () => {
                 recording.clearTranscript();
                 recording.setHasUnsavedEdits(false); // Clear unsaved edits flag
               }}
-              // Dual transcription props
-              assemblyTranscript={dualTranscription.state.assemblyTranscript}
-              assemblyStatus={dualTranscription.state.assemblyStatus}
-              assemblyConfidence={dualTranscription.state.assemblyConfidence}
-              assemblyEnabled={dualTranscription.state.assemblyEnabled}
-              primarySource={dualTranscription.state.primarySource}
               onPrimarySourceChange={dualTranscription.setPrimarySource}
             />
           </TabsContent>

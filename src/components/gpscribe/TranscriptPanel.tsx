@@ -42,6 +42,24 @@ interface TranscriptPanelProps {
   assemblyEnabled?: boolean;
   primarySource?: 'assembly' | 'whisper';
   onPrimarySourceChange?: (source: 'assembly' | 'whisper') => void;
+  assemblyChunks?: Array<{
+    text: string;
+    isFinal?: boolean;
+    seq?: number;
+    start_ms?: number;
+    end_ms?: number;
+    source?: string;
+  }>;
+  whisperChunks?: Array<{
+    text: string;
+    isFinal?: boolean;
+    seq?: number;
+    start_ms?: number;
+    end_ms?: number;
+    source?: string;
+  }>;
+  assemblyWordCount?: number;
+  whisperWordCount?: number;
 }
 
 export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
@@ -62,7 +80,11 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   assemblyConfidence = 0,
   assemblyEnabled = false,
   primarySource = 'whisper',
-  onPrimarySourceChange
+  onPrimarySourceChange,
+  assemblyChunks = [],
+  whisperChunks = [],
+  assemblyWordCount = 0,
+  whisperWordCount = 0
 }) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -168,30 +190,81 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
 
         <TabsContent value="live">
           {/* Live Transcript Section */}
-          {isRecording && realtimeTranscripts.length > 0 && (
-            <Card className="border-green-500 shadow-lg">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-                    Live Transcript (Whisper)
-                  </CardTitle>
-                  <Badge variant="outline" className="bg-green-50 text-green-700">
-                    Recording
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-green-50 rounded-lg p-4 max-h-48 overflow-y-auto">
-                  {realtimeTranscripts.map((chunk, index) => (
-                    <p key={index} className="text-sm mb-2 last:mb-0">
-                      {chunk}
-                    </p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <div className="space-y-4">
+            {/* Assembly AI Live Updates */}
+            {assemblyEnabled && isRecording && (
+              <Card className="border-blue-500 shadow-lg">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
+                      Assembly AI Live
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        {Math.round(assemblyConfidence * 100)}% confidence
+                      </Badge>
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      {assemblyWordCount} words
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-blue-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                    {assemblyChunks.length > 0 ? (
+                      assemblyChunks.slice(-5).map((chunk, index) => (
+                        <p key={index} className="text-sm mb-2 last:mb-0">
+                          <Badge variant="outline" className="text-xs mr-2">
+                            {chunk.source}
+                          </Badge>
+                          {chunk.text}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Waiting for Assembly AI transcription...</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Whisper Live Updates */}
+            {isRecording && realtimeTranscripts.length > 0 && (
+              <Card className="border-green-500 shadow-lg">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                      Whisper Live
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                      {whisperWordCount} words
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-green-50 rounded-lg p-4 max-h-48 overflow-y-auto">
+                    {realtimeTranscripts.map((chunk, index) => (
+                      <p key={index} className="text-sm mb-2 last:mb-0">
+                        <Badge variant="outline" className="text-xs mr-2">
+                          whisper
+                        </Badge>
+                        {chunk}
+                      </p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No live data message */}
+            {!isRecording && (
+              <Card className="border-gray-200">
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">Start recording to see live transcription updates</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="transcripts">
@@ -327,7 +400,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                   <FileText className="h-4 w-4" />
                   Whisper Transcript
                   <Badge variant="secondary" className="text-xs">
-                    {transcript.split(' ').length} words
+                    {assemblyWordCount || 0} words
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -348,7 +421,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                   <Radio className="h-4 w-4" />
                   Assembly AI Transcript
                   <Badge variant="default" className="text-xs">
-                    {assemblyTranscript.split(' ').filter(w => w.length > 0).length} words
+                    {assemblyWordCount || 0} words
                   </Badge>
                   {assemblyConfidence > 0 && (
                     <Badge variant="outline" className="text-xs">

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AssemblyAIRealtimeTranscriber, TranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { WhisperTranscriber } from '@/utils/WhisperTranscriber';
 import { useToast } from '@/components/ui/use-toast';
+import { mergeLive, LiveChunk } from '@/utils/liveMerge';
 
 export interface DualTranscriptionState {
   isRecording: boolean;
@@ -15,6 +16,10 @@ export interface DualTranscriptionState {
   assemblyEnabled: boolean;
   whisperEnabled: boolean;
   primarySource: 'assembly' | 'whisper';
+  assemblyChunks: LiveChunk[];
+  whisperChunks: LiveChunk[];
+  assemblyWordCount: number;
+  whisperWordCount: number;
 }
 
 export const useDualTranscription = (meetingId?: string, sessionId?: string) => {
@@ -29,7 +34,11 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     whisperConfidence: 0,
     assemblyEnabled: true,
     whisperEnabled: true,
-    primarySource: 'whisper'
+    primarySource: 'whisper',
+    assemblyChunks: [],
+    whisperChunks: [],
+    assemblyWordCount: 0,
+    whisperWordCount: 0
   });
 
   const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
@@ -68,6 +77,25 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     }
   }, [meetingId, sessionId]);
 
+  const resetState = useCallback(() => {
+    setState({
+      isRecording: false,
+      assemblyStatus: 'idle',
+      whisperStatus: 'idle',
+      assemblyTranscript: '',
+      whisperTranscript: '',
+      assemblyConfidence: 0,
+      whisperConfidence: 0,
+      assemblyEnabled: true,
+      whisperEnabled: true,
+      primarySource: 'whisper',
+      assemblyChunks: [],
+      whisperChunks: [],
+      assemblyWordCount: 0,
+      whisperWordCount: 0
+    });
+  }, []);
+
   const startDualTranscription = useCallback(async () => {
     try {
       updateState({ isRecording: true });
@@ -88,9 +116,31 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
       if (state.assemblyEnabled) {
         assemblyTranscriberRef.current = new AssemblyAIRealtimeTranscriber(
           (data: TranscriptData) => {
-            updateState({ 
-              assemblyTranscript: data.text,
-              assemblyConfidence: data.confidence 
+            // Create LiveChunk from TranscriptData
+            const chunk: LiveChunk = {
+              text: data.text,
+              isFinal: data.is_final,
+              seq: Date.now(),
+              start_ms: data.start ? data.start * 1000 : undefined,
+              end_ms: data.end ? data.end * 1000 : undefined,
+              source: 'assembly'
+            };
+
+            setState(prev => {
+              // Add chunk to history
+              const newChunks = [...prev.assemblyChunks, chunk];
+              
+              // Accumulate transcript using mergeLive
+              const newTranscript = mergeLive(prev.assemblyTranscript, chunk);
+              const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+              
+              return {
+                ...prev,
+                assemblyTranscript: newTranscript,
+                assemblyConfidence: data.confidence,
+                assemblyChunks: newChunks.slice(-50), // Keep last 50 chunks
+                assemblyWordCount: wordCount
+              };
             });
             
             // Save to database
@@ -123,9 +173,29 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
           "https://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-transcription",
           (payload: any) => {
             if (payload.text) {
-              updateState({ 
-                whisperTranscript: payload.text,
-                whisperConfidence: payload.confidence || 0.9 
+              // Create LiveChunk from Whisper payload
+              const chunk: LiveChunk = {
+                text: payload.text,
+                isFinal: true, // Whisper chunks are typically final
+                seq: Date.now(),
+                source: 'whisper'
+              };
+
+              setState(prev => {
+                // Add chunk to history
+                const newChunks = [...prev.whisperChunks, chunk];
+                
+                // Accumulate transcript using mergeLive
+                const newTranscript = mergeLive(prev.whisperTranscript, chunk);
+                const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+                
+                return {
+                  ...prev,
+                  whisperTranscript: newTranscript,
+                  whisperConfidence: payload.confidence || 0.9,
+                  whisperChunks: newChunks.slice(-50), // Keep last 50 chunks
+                  whisperWordCount: wordCount
+                };
               });
             }
           },
@@ -261,6 +331,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     startDualTranscription,
     stopDualTranscription,
     toggleService,
-    setPrimarySource
+    setPrimarySource,
+    resetState
   };
 };
