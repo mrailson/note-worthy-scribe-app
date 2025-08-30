@@ -14,7 +14,8 @@ import {
   Volume2,
   VolumeX,
   Eye,
-  EyeOff
+  EyeOff,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ interface RealtimeTranscriptCardProps {
   isRecording?: boolean;
   wordCount?: number;
   confidence?: number;
+  duration?: string;
   className?: string;
 }
 
@@ -32,6 +34,7 @@ export const RealtimeTranscriptCard = ({
   isRecording = false,
   wordCount = 0,
   confidence,
+  duration = "00:00",
   className
 }: RealtimeTranscriptCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -192,6 +195,35 @@ export const RealtimeTranscriptCard = ({
       </CardHeader>
       
       <CardContent className="pt-0 h-full">
+        
+        {/* Meeting Stats Section */}
+        <div className="flex items-center justify-between mb-4 p-3 bg-accent/20 rounded-lg">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground">Meeting Timer</span>
+                <span className="text-lg font-mono font-semibold text-foreground">{duration}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground">Word Count</span>
+                <span className="text-lg font-mono font-semibold text-foreground">{wordCount.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+          
+          {isRecording && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 rounded-full animate-pulse">
+              <div className="w-2 h-2 bg-red-500 rounded-full" />
+              <span className="text-sm font-medium">Live Recording</span>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
