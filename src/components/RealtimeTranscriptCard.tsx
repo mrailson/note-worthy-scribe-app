@@ -197,31 +197,37 @@ export const RealtimeTranscriptCard = ({
       <CardContent className="pt-0 h-full">
         
         {/* Meeting Stats Section */}
-        <div className="flex items-center justify-between mb-4 p-3 bg-accent/20 rounded-lg">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Meeting Timer</span>
-                <span className="text-lg font-mono font-semibold text-foreground">{duration}</span>
+        <div className="flex flex-col gap-3 mb-4 p-3 bg-accent/20 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Meeting Timer</span>
+                  <span className="text-lg font-mono font-semibold text-foreground">{duration}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Word Count</span>
+                  <span className="text-lg font-mono font-semibold text-foreground">{wordCount.toLocaleString()}</span>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Word Count</span>
-                <span className="text-lg font-mono font-semibold text-foreground">{wordCount.toLocaleString()}</span>
+            {isRecording && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 rounded-full animate-pulse">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span className="text-sm font-medium">Live Recording</span>
               </div>
-            </div>
+            )}
           </div>
           
-          {isRecording && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 rounded-full animate-pulse">
-              <div className="w-2 h-2 bg-red-500 rounded-full" />
-              <span className="text-sm font-medium">Live Recording</span>
-            </div>
-          )}
+          <div className="text-xs text-muted-foreground italic border-t pt-2">
+            Raw Transcript, may duplicate - Normal and will be removed during processing
+          </div>
         </div>
 
         <div className="flex items-center justify-between mb-2">
