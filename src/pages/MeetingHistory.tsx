@@ -1307,7 +1307,7 @@ const MeetingHistory = () => {
       const [transcriptCounts, summaryExists, transcriptResult, documentsData] = await Promise.all([
         // Get transcript counts in one query
         supabase
-          .from('meeting_transcripts')
+          .from('meeting_transcription_chunks')
           .select('meeting_id')
           .in('meeting_id', meetingIds)
           .then(({ data }) => {
