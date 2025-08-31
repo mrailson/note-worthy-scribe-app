@@ -3208,13 +3208,17 @@ export const MeetingRecorder = ({
       console.log('🤖 Triggering background notes generation for meeting:', savedMeeting.id);
       try {
         // Update meeting status to queued
-        await supabase
+        console.log('🔍 Updating meeting status to queued...');
+        const statusResult = await supabase
           .from('meetings')
           .update({ notes_generation_status: 'queued' })
           .eq('id', savedMeeting.id);
+        
+        console.log('🔍 Status update result:', statusResult);
 
         // Add to notes generation queue
-        await supabase
+        console.log('🔍 Adding to notes generation queue...');
+        const queueResult = await supabase
           .from('meeting_notes_queue')
           .insert({
             meeting_id: savedMeeting.id,
@@ -3222,19 +3226,23 @@ export const MeetingRecorder = ({
             detail_level: 'standard',
             priority: 1
           });
+        
+        console.log('🔍 Queue insertion result:', queueResult);
 
         // Trigger background generation (fire and forget)
-        supabase.functions
+        console.log('🔍 About to invoke auto-generate-meeting-notes function...');
+        const functionResult = await supabase.functions
           .invoke('auto-generate-meeting-notes', {
             body: { meetingId: savedMeeting.id }
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.error('❌ Background notes generation failed:', error);
-            } else {
-              console.log('🎉 Background notes generation started successfully');
-            }
           });
+        
+        console.log('🔍 Function invocation result:', functionResult);
+        
+        if (functionResult.error) {
+          console.error('❌ Background notes generation failed:', functionResult.error);
+        } else {
+          console.log('🎉 Background notes generation started successfully');
+        }
 
         toast.success('Meeting saved! Notes are being generated in the background.');
       } catch (noteError) {
