@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ExternalLink,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -60,6 +61,7 @@ import { useNavigate } from "react-router-dom";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { useRecording } from "@/contexts/RecordingContext";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
+import SevenStylesNotesGenerator from "@/components/SevenStylesNotesGenerator";
 
 interface Meeting {
   id: string;
@@ -166,6 +168,10 @@ export const MeetingHistoryList = ({
   
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
+  
+  // Seven styles notes generator state
+  const [sevenStylesOpen, setSevenStylesOpen] = useState(false);
+  const [selectedMeetingForStyles, setSelectedMeetingForStyles] = useState<Meeting | null>(null);
   
   // Add state for processing
   // Enhanced processing state to track individual stages
@@ -1064,6 +1070,22 @@ export const MeetingHistoryList = ({
                   View Notes
                 </div>
                 
+                 {/* Seven Note Styles Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedMeetingForStyles(meeting);
+                    setSevenStylesOpen(true);
+                  }}
+                  disabled={!meeting.transcript || meeting.transcript.trim().length === 0}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
+                  title={!meeting.transcript || meeting.transcript.trim().length === 0 ? "No transcript available" : "Generate seven different note styles"}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>Seven Note Styles</span>
+                </Button>
+
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
                   <Button
@@ -1424,6 +1446,26 @@ export const MeetingHistoryList = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Seven Styles Notes Generator Modal */}
+      {selectedMeetingForStyles && (
+        <SevenStylesNotesGenerator
+          meetingData={{
+            id: selectedMeetingForStyles.id,
+            title: selectedMeetingForStyles.title,
+            transcript: selectedMeetingForStyles.transcript || '',
+            startTime: selectedMeetingForStyles.start_time,
+            duration: selectedMeetingForStyles.duration_minutes?.toString() || '',
+            wordCount: selectedMeetingForStyles.word_count || 0,
+            speakerCount: 2, // Default value since not stored in meeting history
+          }}
+          isOpen={sevenStylesOpen}
+          onClose={() => {
+            setSevenStylesOpen(false);
+            setSelectedMeetingForStyles(null);
+          }}
+        />
+      )}
     </div>
   );
 };
