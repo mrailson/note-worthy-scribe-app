@@ -32,6 +32,7 @@ import MultiServiceMicTest from "./pages/MultiServiceMicTest";
 import DeepgramTest from "./pages/DeepgramTest";
 import BrowserRecorder from "./pages/BrowserRecorder";
 import NHSMeetingNotes from "./pages/NHSMeetingNotes";
+import MeetingRecorderV2 from "./pages/MeetingRecorderV2";
 
 import TestTranscripts from "./pages/TestTranscripts";
 import AssemblyAITest from "./pages/AssemblyAITest";
@@ -90,6 +91,7 @@ const App = () => (
             <Route path="/practice-image-maker" element={<PracticeImageMaker />} />
             <Route path="/browser-recorder" element={<BrowserRecorder />} />
             <Route path="/nhs-meeting-notes" element={<NHSMeetingNotes />} />
+            <Route path="/meeting-recorder-v2" element={<MeetingRecorderV2 />} />
             <Route path="/test-transcripts" element={<TestTranscripts />} />
             <Route path="/assemblyai-test" element={<AssemblyAITest />} />
             <Route path="/assemblyai-test-simple" element={<AssemblyAITestSimple />} />
