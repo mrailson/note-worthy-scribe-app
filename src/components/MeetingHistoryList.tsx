@@ -25,7 +25,8 @@ import {
   Share2,
   ChevronDown,
   ExternalLink,
-  MapPin
+  MapPin,
+  RefreshCw
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -165,6 +166,9 @@ export const MeetingHistoryList = ({
   
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
+  
+  // Add state for processing
+  const [processingMeetings, setProcessingMeetings] = useState<Record<string, { isProcessing: boolean; currentStep: string; error?: string }>>({});
 
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
@@ -482,6 +486,153 @@ export const MeetingHistoryList = ({
       toast.error('Failed to upload documents');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Handle full processing pipeline
+  const handleFullProcessing = async (meeting: Meeting) => {
+    const meetingId = meeting.id;
+    
+    setProcessingMeetings(prev => ({
+      ...prev,
+      [meetingId]: { isProcessing: true, currentStep: 'Starting processing...' }
+    }));
+
+    try {
+      // Step 1: Get transcript chunks and calculate word count
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: true, currentStep: 'Fetching transcript data...' }
+      }));
+
+      const { data: chunks, error: chunksError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text, created_at')
+        .eq('meeting_id', meetingId)
+        .order('chunk_number');
+
+      if (chunksError) throw new Error(`Failed to fetch transcript: ${chunksError.message}`);
+
+      const transcriptText = chunks?.map(c => c.transcription_text).join(' ') || '';
+      const wordCount = transcriptText.split(/\s+/).filter(word => word.length > 0).length;
+
+      // Step 2: Clean transcript
+      if (transcriptText.length > 0) {
+        setProcessingMeetings(prev => ({
+          ...prev,
+          [meetingId]: { isProcessing: true, currentStep: 'Cleaning transcript...' }
+        }));
+
+        const { error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
+          body: { transcript: transcriptText }
+        });
+
+        if (cleanError) throw new Error(`Transcript cleaning failed: ${cleanError.message}`);
+      }
+
+      // Step 3: Generate meeting notes
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: true, currentStep: 'Generating meeting notes...' }
+      }));
+
+      const { error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { 
+          meetingId,
+          forceGenerate: true 
+        }
+      });
+
+      if (notesError) throw new Error(`Notes generation failed: ${notesError.message}`);
+
+      // Step 4: Generate meeting overview
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: true, currentStep: 'Generating meeting overview...' }
+      }));
+
+      const { data: overviewData, error: overviewError } = await supabase.functions.invoke('generate-meeting-overview', {
+        body: {
+          transcript: transcriptText,
+          meetingTitle: meeting.title
+        }
+      });
+
+      let overviewText = null;
+      if (!overviewError && overviewData?.overview) {
+        overviewText = overviewData.overview;
+      }
+
+      // Step 5: Calculate duration
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: true, currentStep: 'Updating meeting statistics...' }
+      }));
+
+      let durationMinutes = meeting.duration_minutes;
+      if (!durationMinutes && meeting.start_time) {
+        const startTime = new Date(meeting.start_time);
+        const endTime = meeting.end_time ? new Date(meeting.end_time) : new Date();
+        durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      }
+
+      // Step 6: Update meeting record
+      const updateData: any = {
+        word_count: wordCount
+      };
+
+      if (durationMinutes) {
+        updateData.duration_minutes = durationMinutes;
+      }
+
+      if (overviewText) {
+        updateData.overview = overviewText;
+      }
+
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update(updateData)
+        .eq('id', meetingId);
+
+      if (updateError) throw new Error(`Failed to update meeting: ${updateError.message}`);
+
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: true, currentStep: 'Processing complete!' }
+      }));
+
+      toast.success(`Processing complete! Updated word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${overviewText ? ', and generated overview' : ''}.`);
+
+      // Refresh the meeting data
+      if (onRefresh) {
+        onRefresh();
+      }
+
+      // Clear processing state after a brief delay
+      setTimeout(() => {
+        setProcessingMeetings(prev => {
+          const newState = { ...prev };
+          delete newState[meetingId];
+          return newState;
+        });
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('Processing error:', error);
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: { isProcessing: false, currentStep: '', error: error.message }
+      }));
+      toast.error(`Processing failed: ${error.message}`);
+      
+      // Clear error state after delay
+      setTimeout(() => {
+        setProcessingMeetings(prev => {
+          const newState = { ...prev };
+          delete newState[meetingId];
+          return newState;
+        });
+      }, 5000);
     }
   };
   
@@ -836,6 +987,27 @@ export const MeetingHistoryList = ({
                 >
                   <Paperclip className="h-4 w-4" />
                   <span>Upload</span>
+                </Button>
+                
+                {/* Process Meeting Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFullProcessing(meeting)}
+                  disabled={processingMeetings[meeting.id]?.isProcessing}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-muted-foreground hover:text-primary"
+                  title={processingMeetings[meeting.id]?.isProcessing 
+                    ? processingMeetings[meeting.id]?.currentStep 
+                    : "Clean transcript, generate notes & overview, update statistics"
+                  }
+                >
+                  <RefreshCw className={`h-4 w-4 ${processingMeetings[meeting.id]?.isProcessing ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {processingMeetings[meeting.id]?.isProcessing ? 'Processing' : 'Process'}
+                  </span>
+                  <span className="sm:hidden">
+                    {processingMeetings[meeting.id]?.isProcessing ? '...' : 'Process'}
+                  </span>
                 </Button>
                 
                 {/* Share Meeting Button - Only show for owned meetings */}
