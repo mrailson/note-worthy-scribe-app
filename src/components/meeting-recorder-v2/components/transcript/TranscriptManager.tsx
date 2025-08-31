@@ -132,6 +132,11 @@ export const TranscriptManager = ({
                         <p className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                           {fullTranscript || 'No transcript available. Start recording to generate transcript.'}
                         </p>
+                        {fullTranscript && (
+                          <div className="mt-4 text-xs text-muted-foreground">
+                            Note: Transcript has been automatically deduplicated to remove redundant content.
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
