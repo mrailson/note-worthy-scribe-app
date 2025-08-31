@@ -509,4 +509,10 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   
   // Professional Cleanup handlers
   "remove-filler-words": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'remove-filler-words'),
+  
+  // Image Service handlers
+  "qr-code-generator": async (): Promise<void> => {
+    // Dispatch custom event to open QR Code Generator Modal
+    window.dispatchEvent(new CustomEvent('openQRCodeGenerator'));
+  },
 };

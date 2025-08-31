@@ -158,6 +158,16 @@ export const quickPickConfig = {
           "label": "Improve Layout for Letter"
         }
       ]
+    },
+    {
+      "id": "image-service",
+      "label": "Image Service",
+      "children": [
+        {
+          "id": "qr-code-generator",
+          "label": "QR Code Generator"
+        }
+      ]
     }
   ]
 };

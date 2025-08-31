@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Minus, ChevronDown } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
+import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { useNavigate } from 'react-router-dom';
 
 interface QuickActionsPanelProps {
@@ -35,9 +36,23 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
   const [isPowerPointOpen, setIsPowerPointOpen] = useState(false);
+  const [isQRCodeGeneratorOpen, setIsQRCodeGeneratorOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
+  
+  // Add event listener for QR Code Generator
+  useEffect(() => {
+    const handleOpenQRCodeGenerator = () => {
+      setIsQRCodeGeneratorOpen(true);
+    };
+
+    window.addEventListener('openQRCodeGenerator', handleOpenQRCodeGenerator);
+    
+    return () => {
+      window.removeEventListener('openQRCodeGenerator', handleOpenQRCodeGenerator);
+    };
+  }, []);
   
   // Get the appropriate actions based on selected role
   const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
@@ -295,6 +310,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <PowerPointGenerator
         open={isPowerPointOpen}
         onOpenChange={setIsPowerPointOpen}
+      />
+      
+      {/* QR Code Generator Modal */}
+      <QRCodeGeneratorModal
+        open={isQRCodeGeneratorOpen}
+        onOpenChange={setIsQRCodeGeneratorOpen}
       />
     </>
   );
