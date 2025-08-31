@@ -2083,6 +2083,7 @@ const MeetingHistory = () => {
             onViewSummary={handleViewMeetingSummary}
             onViewTranscript={handleViewTranscript}
             onDelete={handleMeetingDelete}
+            onRefresh={fetchMeetings}
             loading={loading}
             isSelectMode={isSelectMode}
             selectedMeetings={selectedMeetings}
