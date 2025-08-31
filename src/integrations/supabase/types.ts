@@ -3159,6 +3159,7 @@ export type Database = {
           meeting_type: string
           mixed_audio_url: string | null
           notes_generation_status: string | null
+          overview: string | null
           participants: string[] | null
           practice_id: string | null
           primary_transcript_source: string | null
@@ -3172,6 +3173,7 @@ export type Database = {
           user_id: string
           whisper_confidence: number | null
           whisper_transcript_text: string | null
+          word_count: number | null
         }
         Insert: {
           agenda?: string | null
@@ -3198,6 +3200,7 @@ export type Database = {
           meeting_type?: string
           mixed_audio_url?: string | null
           notes_generation_status?: string | null
+          overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
           primary_transcript_source?: string | null
@@ -3211,6 +3214,7 @@ export type Database = {
           user_id: string
           whisper_confidence?: number | null
           whisper_transcript_text?: string | null
+          word_count?: number | null
         }
         Update: {
           agenda?: string | null
@@ -3237,6 +3241,7 @@ export type Database = {
           meeting_type?: string
           mixed_audio_url?: string | null
           notes_generation_status?: string | null
+          overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
           primary_transcript_source?: string | null
@@ -3250,6 +3255,7 @@ export type Database = {
           user_id?: string
           whisper_confidence?: number | null
           whisper_transcript_text?: string | null
+          word_count?: number | null
         }
         Relationships: [
           {
