@@ -168,7 +168,18 @@ export const MeetingHistoryList = ({
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
   
   // Add state for processing
-  const [processingMeetings, setProcessingMeetings] = useState<Record<string, { isProcessing: boolean; currentStep: string; error?: string }>>({});
+  // Enhanced processing state to track individual stages
+  const [processingMeetings, setProcessingMeetings] = useState<Record<string, {
+    isProcessing: boolean;
+    currentStage: 'clean-transcript' | 'generate-notes' | 'generate-overview' | 'update-stats' | 'complete';
+    stages: {
+      'clean-transcript': 'pending' | 'processing' | 'success' | 'failed';
+      'generate-notes': 'pending' | 'processing' | 'success' | 'failed';
+      'generate-overview': 'pending' | 'processing' | 'success' | 'failed';
+      'update-stats': 'pending' | 'processing' | 'success' | 'failed';
+    };
+    error?: string;
+  }>>({});
 
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
@@ -493,18 +504,29 @@ export const MeetingHistoryList = ({
   const handleFullProcessing = async (meeting: Meeting) => {
     const meetingId = meeting.id;
     
+    if (processingMeetings[meetingId]?.isProcessing) {
+      return; // Already processing
+    }
+
+    // Initialize processing state
     setProcessingMeetings(prev => ({
       ...prev,
-      [meetingId]: { isProcessing: true, currentStep: 'Starting processing...' }
+      [meetingId]: {
+        isProcessing: true,
+        currentStage: 'clean-transcript',
+        stages: {
+          'clean-transcript': 'processing',
+          'generate-notes': 'pending',
+          'generate-overview': 'pending',
+          'update-stats': 'pending'
+        }
+      }
     }));
 
     try {
-      // Step 1: Generate meeting notes (this now handles transcript cleaning, notes generation, overview extraction, and word count)
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Processing transcript and generating notes...' }
-      }));
-
+      // Stage 1: Generate meeting notes (this now handles transcript cleaning, notes generation, overview extraction, and word count)
+      toast.info("Starting transcript cleaning and notes generation...");
+      
       const { data: notesResult, error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           meetingId,
@@ -513,16 +535,41 @@ export const MeetingHistoryList = ({
       });
 
       if (notesError) {
-        console.error('Notes generation error:', notesError);
         throw new Error(`Notes generation failed: ${notesError.message}`);
       }
 
-      // Step 2: Calculate duration if not already set
+      // Mark transcript cleaning and notes generation as success
       setProcessingMeetings(prev => ({
         ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Updating meeting statistics...' }
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'generate-overview',
+          stages: {
+            ...prev[meetingId].stages,
+            'clean-transcript': 'success',
+            'generate-notes': 'success',
+            'generate-overview': 'processing'
+          }
+        }
       }));
 
+      toast.success("Transcript cleaned and notes generated successfully!");
+
+      // Overview generation is handled by the auto-generate-meeting-notes function
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'update-stats',
+          stages: {
+            ...prev[meetingId].stages,
+            'generate-overview': 'success',
+            'update-stats': 'processing'
+          }
+        }
+      }));
+
+      // Stage 2: Calculate duration if not already set
       let durationMinutes = meeting.duration_minutes;
       if (!durationMinutes && meeting.start_time) {
         const startTime = new Date(meeting.start_time);
@@ -540,9 +587,19 @@ export const MeetingHistoryList = ({
         }
       }
 
+      // Mark all stages as complete
       setProcessingMeetings(prev => ({
         ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Processing complete!' }
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'complete',
+          stages: {
+            'clean-transcript': 'success',
+            'generate-notes': 'success',
+            'generate-overview': 'success',
+            'update-stats': 'success'
+          }
+        }
       }));
 
       // Get updated meeting data to show current stats
@@ -555,7 +612,7 @@ export const MeetingHistoryList = ({
       const wordCount = updatedMeeting?.word_count || 'Unknown';
       const hasOverview = Boolean(updatedMeeting?.overview);
 
-      toast.success(`Processing complete! Generated notes, word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${hasOverview ? ', and overview' : ''}.`);
+      toast.success(`All processing complete! Generated notes, word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${hasOverview ? ', and overview' : ''}.`);
 
       // Refresh the meeting data
       if (onRefresh) {
@@ -569,15 +626,31 @@ export const MeetingHistoryList = ({
           delete newState[meetingId];
           return newState;
         });
-      }, 2000);
+      }, 3000);
 
     } catch (error: any) {
       console.error('Processing error:', error);
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: { isProcessing: false, currentStep: '', error: error.message }
-      }));
-      toast.error(`Processing failed: ${error.message}`);
+      
+      // Mark current stage as failed
+      setProcessingMeetings(prev => {
+        const current = prev[meetingId];
+        if (!current) return prev;
+        
+        return {
+          ...prev,
+          [meetingId]: {
+            ...current,
+            isProcessing: false,
+            stages: {
+              ...current.stages,
+              [current.currentStage]: 'failed'
+            },
+            error: error.message
+          }
+        };
+      });
+      
+      toast.error(`Processing failed at ${processingMeetings[meetingId]?.currentStage?.replace('-', ' ') || 'unknown stage'}: ${error.message}`);
       
       // Clear error state after delay
       setTimeout(() => {
@@ -586,10 +659,84 @@ export const MeetingHistoryList = ({
           delete newState[meetingId];
           return newState;
         });
-      }, 5000);
+      }, 8000);
     }
   };
   
+  // Helper functions for processing button display
+  const getProcessingButtonText = (processing: any) => {
+    if (!processing?.isProcessing) return 'Process';
+    
+    switch (processing.currentStage) {
+      case 'clean-transcript': return 'Cleaning...';
+      case 'generate-notes': return 'Generating...';
+      case 'generate-overview': return 'Creating Overview...';
+      case 'update-stats': return 'Updating Stats...';
+      case 'complete': return 'Complete!';
+      default: return 'Processing...';
+    }
+  };
+
+  const getProcessingButtonIcon = (processing: any) => {
+    if (!processing) return RefreshCw;
+    
+    if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
+      return AlertCircle;
+    }
+    
+    if (processing.currentStage === 'complete') {
+      return CheckCircle;
+    }
+    
+    if (processing.isProcessing) {
+      return RefreshCw;
+    }
+    
+    return RefreshCw;
+  };
+
+  const getProcessingButtonColor = (processing: any) => {
+    if (!processing) return 'text-muted-foreground hover:text-primary';
+    
+    if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
+      return 'text-destructive hover:text-destructive/80';
+    }
+    
+    if (processing.currentStage === 'complete') {
+      return 'text-green-600 hover:text-green-700';
+    }
+    
+    if (processing.isProcessing) {
+      return 'text-blue-600 hover:text-blue-700';
+    }
+    
+    return 'text-muted-foreground hover:text-primary';
+  };
+
+  const getProcessingTooltip = (processing: any) => {
+    if (!processing) return "Clean transcript, generate notes & overview, update statistics";
+    
+    if (processing.error) {
+      return `Failed at ${processing.currentStage?.replace('-', ' ')}: ${processing.error}`;
+    }
+    
+    if (processing.currentStage === 'complete') {
+      return "All processing stages completed successfully";
+    }
+    
+    if (processing.isProcessing) {
+      const stageLabels = {
+        'clean-transcript': 'Cleaning transcript and removing duplicates',
+        'generate-notes': 'Generating meeting notes from clean transcript', 
+        'generate-overview': 'Creating overview and extracting key points',
+        'update-stats': 'Updating word count and duration statistics'
+      };
+      return stageLabels[processing.currentStage] || 'Processing...';
+    }
+    
+    return "Clean transcript, generate notes & overview, update statistics";
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -949,15 +1096,17 @@ export const MeetingHistoryList = ({
                   size="sm"
                   onClick={() => handleFullProcessing(meeting)}
                   disabled={processingMeetings[meeting.id]?.isProcessing}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-muted-foreground hover:text-primary"
-                  title={processingMeetings[meeting.id]?.isProcessing 
-                    ? processingMeetings[meeting.id]?.currentStep 
-                    : "Clean transcript, generate notes & overview, update statistics"
-                  }
+                  className={`flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] ${getProcessingButtonColor(processingMeetings[meeting.id])}`}
+                  title={getProcessingTooltip(processingMeetings[meeting.id])}
                 >
-                  <RefreshCw className={`h-4 w-4 ${processingMeetings[meeting.id]?.isProcessing ? 'animate-spin' : ''}`} />
+                  {(() => {
+                    const IconComponent = getProcessingButtonIcon(processingMeetings[meeting.id]);
+                    const processing = processingMeetings[meeting.id];
+                    const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
+                    return <IconComponent className={`h-4 w-4 ${shouldSpin ? 'animate-spin' : ''}`} />;
+                  })()}
                   <span className="hidden sm:inline">
-                    {processingMeetings[meeting.id]?.isProcessing ? 'Processing' : 'Process'}
+                    {getProcessingButtonText(processingMeetings[meeting.id])}
                   </span>
                   <span className="sm:hidden">
                     {processingMeetings[meeting.id]?.isProcessing ? '...' : 'Process'}
