@@ -212,6 +212,9 @@ export const MeetingRecorder = ({
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
   
+  // Debug: Check if component is mounting correctly
+  console.log('🔍 MeetingRecorder component rendering, dashboardOpen:', dashboardOpen);
+  
   
   // Meeting settings - use from useMeetingData hook
   const {
@@ -4570,10 +4573,6 @@ export const MeetingRecorder = ({
                     )}
                   </div>
                 </>
-              )}
-
-              {/* Success Stage */}
-              {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
                 <div className="animate-fade-in">
                   <div className="text-center">
                     <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
@@ -4635,12 +4634,6 @@ export const MeetingRecorder = ({
                      Continue
                    </button>
                   </div>
-                )}
-               
-               </div>
-             </div>
-           </div>
-         )}
 
           {/* Full Page Notes Modal */}
           {fullPageModalOpen && modalMeeting && !detectDevice().isIOS && (
