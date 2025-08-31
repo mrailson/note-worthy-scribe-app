@@ -489,15 +489,17 @@ export function useRecordingManager(
         console.log('✅ Duration interval cleared');
       }
 
-      // Always attempt to save meeting - the trigger will handle notes generation if transcript exists
-      console.log(`🔄 Stopping recording: transcript length = ${state.transcript.length}, chunks = ${state.realtimeTranscripts.length}`);
-      
+      console.log('💾 Attempting to save meeting and queue notes...');
       const saveSuccess = await saveMeetingAndQueueNotes();
+      
       if (!saveSuccess) {
-        console.error('❌ Meeting save failed but continuing with stop process');
-        toast.error('Recording stopped but failed to save properly. Meeting may need manual recovery.');
+        console.error('❌ CRITICAL: Meeting save failed - manual recovery needed');
+        toast.error('Failed to save meeting properly. Please check the Meeting Recovery Helper.');
+      } else {
+        console.log('✅ Meeting save process completed successfully');
       }
 
+      // Reset recording state
       setState(prev => ({
         ...prev,
         isRecording: false,

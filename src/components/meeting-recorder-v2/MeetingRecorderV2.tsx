@@ -1,13 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, History, Settings, Sparkles, FileText } from 'lucide-react';
+import { Mic, History, Settings, Sparkles, FileText, AlertTriangle } from 'lucide-react';
 import { useRecordingManager, RecordingSettings } from './hooks/useRecordingManager';
 import { RecordingControls } from './components/recording/RecordingControls';
 import { RecordingDashboard } from './components/recording/RecordingDashboard';
 import { LiveTranscriptDisplay } from './components/recording/LiveTranscriptDisplay';
 import { MeetingHistoryManager } from './components/meeting-history/MeetingHistoryManager';
 import { TranscriptManager } from './components/transcript/TranscriptManager';
+import { MeetingRecoveryHelper } from '../meeting-recovery/MeetingRecoveryHelper';
 
 interface MeetingRecorderV2Props {
   onTranscriptUpdate: (transcript: string) => void;
@@ -40,7 +41,7 @@ export const MeetingRecorderV2 = ({
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       <Tabs defaultValue="record" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-accent/20">
+        <TabsList className="grid w-full grid-cols-6 bg-accent/20">
           <TabsTrigger value="record" className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
             Record
@@ -56,6 +57,10 @@ export const MeetingRecorderV2 = ({
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Settings
+          </TabsTrigger>
+          <TabsTrigger value="recovery" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Recovery
           </TabsTrigger>
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -131,6 +136,17 @@ export const MeetingRecorderV2 = ({
                   <p>Meeting type: {settings.meetingType}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recovery">
+          <Card>
+            <CardHeader>
+              <CardTitle>Meeting Recovery</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MeetingRecoveryHelper />
             </CardContent>
           </Card>
         </TabsContent>
