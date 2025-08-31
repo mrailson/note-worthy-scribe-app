@@ -169,7 +169,11 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>{formatMeetingDate(meeting.start_time || meeting.created_at)}</div>
                   <div className="flex items-center justify-between">
-                    <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count ? `${meeting.word_count} words` : 'N/A words'}</span>
+                    <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count ? (
+                      meeting.word_count >= 1000 
+                        ? `${(meeting.word_count / 1000).toFixed(1)}K words`
+                        : `${meeting.word_count} words`
+                    ) : 'N/A words'}</span>
                     
                     {/* Action Buttons */}
                     <div className="flex gap-1">
