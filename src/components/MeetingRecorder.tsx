@@ -4529,16 +4529,16 @@ export const MeetingRecorder = ({
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                        false ? 'bg-primary' : 'bg-muted border border-muted-foreground'
                       }`}>
-                        {savingSteps.saving ? (
+                        {false ? (
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
                         ) : (
                           <div className="w-2 h-2 bg-muted-foreground rounded-full" />
                         )}
                       </div>
                       <span className={`text-sm transition-colors duration-300 ${
-                        savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        false ? 'text-foreground font-medium' : 'text-muted-foreground'
                       }`}>
                         Saving the meeting...
                       </span>
@@ -4546,22 +4546,22 @@ export const MeetingRecorder = ({
 
                     <div className="flex items-center space-x-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                        false ? 'bg-primary' : 'bg-muted border border-muted-foreground'
                       }`}>
-                        {savingSteps.securing ? (
+                        {false ? (
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
                         ) : (
                           <div className="w-2 h-2 bg-muted-foreground rounded-full" />
                         )}
                       </div>
                       <span className={`text-sm transition-colors duration-300 ${
-                        savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        false ? 'text-foreground font-medium' : 'text-muted-foreground'
                       }`}>
                         Securing your data...
                       </span>
                     </div>
 
-                    {savingSteps.complete && (
+                    {false && (
                       <div className="flex items-center space-x-3">
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary">
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
@@ -4584,23 +4584,23 @@ export const MeetingRecorder = ({
                   <div className="space-y-3 text-sm">
                     <div className="flex flex-col gap-2 py-2 border-b border-border">
                       <span className="text-muted-foreground">Meeting Name:</span>
-                      <span className="font-medium text-foreground text-wrap break-words">{meetingEndModal.savedData.title}</span>
+                      <span className="font-medium text-foreground text-wrap break-words">Meeting Title</span>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium text-foreground">{meetingEndModal.savedData.duration}</span>
+                      <span className="font-medium text-foreground">Duration</span>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Words Transcribed:</span>
-                      <span className="font-medium text-foreground">{meetingEndModal.savedData.wordCount}</span>
+                      <span className="font-medium text-foreground">Word Count</span>
                     </div>
                     
                     <div className="pt-2 text-center text-xs text-muted-foreground">
                       This meeting is now available in your<br />
                       <span className="font-medium">Meeting History</span> tab as:<br />
-                      <span className="font-medium text-primary">"{meetingEndModal.savedData.title}"</span>
+                      <span className="font-medium text-primary">Meeting Title</span>
                     </div>
                   </div>
                   
@@ -4620,7 +4620,7 @@ export const MeetingRecorder = ({
                       setFirstTranscriptionReceived(false);
                       
                       // Reset the modal
-                      setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null });
+                      // Modal removed - this button should not exist
                       
                       // Call parent callbacks to reset UI
                       onTranscriptUpdate("");
