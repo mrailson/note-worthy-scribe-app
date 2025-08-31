@@ -2270,6 +2270,47 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           <TabsContent value="monitoring" className="space-y-6">
             <SystemMonitoringDashboard />
             
+            {/* Database Maintenance Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Database Maintenance
+                </CardTitle>
+                <CardDescription>
+                  Manage database cleanup and maintenance tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Empty Meetings Cleanup
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Remove meetings with zero word count that are older than 5 hours. This runs automatically daily at 2 AM.
+                  </p>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke('cleanup-empty-meetings');
+                        if (error) throw error;
+                        toast.success(`Cleanup completed: ${data.message}`);
+                      } catch (error) {
+                        console.error('Cleanup error:', error);
+                        toast.error('Failed to run cleanup: ' + error.message);
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Run Manual Cleanup
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
             {/* Legacy Connection Stats and Incidents - Keep for reference */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Connection Stats */}
