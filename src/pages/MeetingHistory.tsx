@@ -1304,7 +1304,7 @@ const MeetingHistory = () => {
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
       
-      const [transcriptCounts, summaryExists, { wordCounts, transcriptContents }, documentsData] = await Promise.all([
+      const [transcriptCounts, summaryExists, transcriptResult, documentsData] = await Promise.all([
         // Get transcript counts in one query
         supabase
           .from('meeting_transcripts')
@@ -1388,6 +1388,9 @@ const MeetingHistory = () => {
             return documentsData;
           })
       ]);
+
+      // Extract transcript data from the result
+      const { wordCounts, transcriptContents } = transcriptResult;
 
       const enrichedMeetings = meetingsData.map(meeting => ({
         ...meeting,
