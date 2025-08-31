@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import { useChunkTracker } from '@/hooks/useChunkTracker';
-import { ChunkStatusModal } from '@/components/ChunkStatusModal';
 
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
@@ -28,7 +26,6 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const [fullTranscript, setFullTranscript] = useState('');
   
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
-  const { chunks, addChunk, clearChunks, getStats } = useChunkTracker();
 
   const handleTranscription = (data: TranscriptData) => {
     if (data.is_final) {
@@ -85,7 +82,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
         undefined, // meetingId  
         undefined, // sessionId
         undefined, // userId
-        addChunk   // onChunkTracked
+        undefined  // onChunkTracked - removed
       );
 
       await transcriberRef.current.startTranscription();
@@ -122,7 +119,6 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
 
   const clearTranscript = () => {
     setFullTranscript('');
-    clearChunks();
     onTranscriptUpdate('');
   };
 
@@ -204,12 +200,6 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
         </Button>
       )}
       
-      {/* Chunk Status Modal */}
-      <ChunkStatusModal 
-        chunks={chunks}
-        stats={getStats()}
-        onClear={clearChunks}
-      />
     </div>
   );
 });

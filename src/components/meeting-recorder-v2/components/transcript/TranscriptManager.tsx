@@ -21,9 +21,12 @@ import {
   Eye, 
   Edit3,
   Save,
-  Undo
+  Undo,
+  BarChart3
 } from 'lucide-react';
 import { TranscriptData } from '../../hooks/useRecordingManager';
+import { ChunkStatusModal } from '@/components/ChunkStatusModal';
+import { ChunkStatus } from '@/hooks/useChunkTracker';
 
 interface TranscriptManagerProps {
   transcripts: TranscriptData[];
@@ -41,6 +44,33 @@ export const TranscriptManager = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [editableTranscript, setEditableTranscript] = useState(fullTranscript);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Convert TranscriptData to ChunkStatus format for the chunk status modal
+  const chunks: ChunkStatus[] = transcripts.map((transcript, index) => ({
+    id: `chunk_${index}_${Date.now()}`,
+    timestamp: new Date(transcript.timestamp),
+    text: transcript.text,
+    confidence: transcript.confidence,
+    wordCount: transcript.text.trim().split(/\s+/).filter(word => word.length > 0).length,
+    status: transcript.confidence < 0.5 ? 'low_confidence' : 'success' as 'success' | 'low_confidence' | 'filtered',
+    speaker: transcript.speaker,
+    isFinal: transcript.isFinal
+  }));
+
+  const stats = {
+    total: chunks.length,
+    successful: chunks.filter(c => c.status === 'success').length,
+    lowConfidence: chunks.filter(c => c.status === 'low_confidence').length,
+    filtered: chunks.filter(c => c.status === 'filtered').length,
+    totalWords: chunks.reduce((sum, c) => sum + c.wordCount, 0),
+    avgConfidence: chunks.length > 0 ? chunks.reduce((sum, c) => sum + c.confidence, 0) / chunks.length : 0,
+    successRate: chunks.length > 0 ? (chunks.filter(c => c.status === 'success').length / chunks.length) * 100 : 0
+  };
+
+  const clearChunks = () => {
+    // In this context, clearing chunks would reset the transcript - not implemented for safety
+    console.log('Clear chunks requested - not implemented in transcript manager');
+  };
 
   const filteredTranscripts = transcripts.filter(t => 
     t.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,6 +118,11 @@ export const TranscriptManager = ({
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <ChunkStatusModal 
+            chunks={chunks}
+            stats={stats}
+            onClear={clearChunks}
+          />
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
