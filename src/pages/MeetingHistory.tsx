@@ -1335,6 +1335,9 @@ const MeetingHistory = () => {
           .select('meeting_id, content')
           .in('meeting_id', meetingIds)
           .then(({ data }) => {
+            console.log('🚨 TRANSCRIPT QUERY RESULT:', data?.length || 0, 'transcripts found for', meetingIds.length, 'meetings');
+            console.log('🚨 TRANSCRIPT DATA:', data?.map(t => ({ meetingId: t.meeting_id, contentLength: t.content?.length || 0 })));
+            
             const wordCounts: Record<string, number> = {};
             const transcriptContents: Record<string, string> = {};
             data?.forEach(transcript => {
@@ -1347,6 +1350,12 @@ const MeetingHistory = () => {
                 transcriptContents[transcript.meeting_id] = transcript.content;
               }
             });
+            
+            console.log('🚨 PROCESSED TRANSCRIPT CONTENTS:', Object.keys(transcriptContents).map(id => ({ 
+              meetingId: id, 
+              contentLength: transcriptContents[id]?.length || 0 
+            })));
+            
             return { wordCounts, transcriptContents };
           }),
 
