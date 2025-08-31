@@ -1387,7 +1387,12 @@ const MeetingHistory = () => {
 
       console.log('🚨 ENRICHED MEETINGS:', enrichedMeetings.length);
       enrichedMeetings.forEach((meeting, index) => {
-        console.log(`🚨 Enriched Meeting ${index}:`, meeting.title, meeting.id);
+        console.log(`🚨 Enriched Meeting ${index}:`, {
+          title: meeting.title, 
+          id: meeting.id,
+          hasTranscript: !!meeting.transcript,
+          transcriptLength: meeting.transcript?.length || 0
+        });
       });
       
       setMeetings(enrichedMeetings);

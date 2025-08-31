@@ -1075,6 +1075,7 @@ export const MeetingHistoryList = ({
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    console.log('🎯 Seven Styles clicked for meeting:', meeting.id, 'transcript length:', meeting.transcript?.length);
                     setSelectedMeetingForStyles(meeting);
                     setSevenStylesOpen(true);
                   }}
@@ -1084,6 +1085,10 @@ export const MeetingHistoryList = ({
                 >
                   <Sparkles className="h-4 w-4" />
                   <span>Seven Note Styles</span>
+                  {/* Debug info */}
+                  <span className="text-xs opacity-50 ml-1">
+                    {meeting.transcript ? `(${meeting.transcript.length})` : '(0)'}
+                  </span>
                 </Button>
 
                 {/* Audio Backup Button - Only show if audio backup exists */}
