@@ -5,6 +5,7 @@ import { iPhoneWhisperTranscriber } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber } from '@/utils/DesktopWhisperTranscriber';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
 import { detectDevice } from '@/utils/DeviceDetection';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface TranscriptData {
@@ -285,6 +286,11 @@ export function useRecordingManager(
         durationIntervalRef.current = null;
       }
 
+      // Save meeting and queue auto-notes generation if transcript exists
+      if (state.transcript && state.transcript.trim().length > 50) {
+        await saveMeetingAndQueueNotes();
+      }
+
       setState(prev => ({
         ...prev,
         isRecording: false,
@@ -300,7 +306,78 @@ export function useRecordingManager(
       setState(prev => ({ ...prev, isStoppingRecording: false }));
       return false;
     }
-  }, []);
+  }, [state.transcript]);
+
+  const saveMeetingAndQueueNotes = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('You must be logged in to save meetings');
+        return;
+      }
+
+      // Save meeting to database
+      const meetingData = {
+        user_id: user.id,
+        title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        duration_minutes: Math.ceil(state.duration / 60),
+        word_count: state.wordCount,
+        speaker_count: state.speakerCount,
+        status: 'completed' as const,
+        notes_generation_status: 'queued' as const
+      };
+
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert(meetingData)
+        .select()
+        .single();
+
+      if (meetingError || !meeting) {
+        console.error('Failed to save meeting:', meetingError);
+        toast.error('Failed to save meeting');
+        return;
+      }
+
+      // Save transcript chunks
+      if (state.realtimeTranscripts.length > 0) {
+        const transcriptInserts = state.realtimeTranscripts.map((transcript, index) => ({
+          meeting_id: meeting.id,
+          content: transcript.text,
+          timestamp_seconds: new Date(transcript.timestamp).getTime() / 1000,
+          confidence_score: transcript.confidence || 0.8
+        }));
+
+        const { error: transcriptError } = await supabase
+          .from('meeting_transcripts')
+          .insert(transcriptInserts);
+
+        if (transcriptError) {
+          console.error('Failed to save transcripts:', transcriptError);
+        }
+      }
+
+      // Queue auto-notes generation
+      const { error: queueError } = await supabase
+        .from('meeting_notes_queue')
+        .insert({
+          meeting_id: meeting.id,
+          status: 'pending',
+          detail_level: 'standard',
+          priority: 0
+        });
+
+      if (queueError) {
+        console.error('Failed to queue notes generation:', queueError);
+      } else {
+        toast.success('Meeting saved and notes generation queued');
+      }
+
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      toast.error('Failed to save meeting');
+    }
+  }, [state.duration, state.wordCount, state.speakerCount, state.realtimeTranscripts]);
 
   const resetRecording = useCallback(() => {
     setState({
