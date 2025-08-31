@@ -2840,9 +2840,11 @@ export type Database = {
           detail_level: string
           error_message: string | null
           id: string
+          last_processed_at: string | null
           max_attempts: number
           meeting_id: string
           priority: number
+          retry_count: number | null
           started_at: string | null
           status: string
           updated_at: string
@@ -2854,9 +2856,11 @@ export type Database = {
           detail_level?: string
           error_message?: string | null
           id?: string
+          last_processed_at?: string | null
           max_attempts?: number
           meeting_id: string
           priority?: number
+          retry_count?: number | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -2868,9 +2872,11 @@ export type Database = {
           detail_level?: string
           error_message?: string | null
           id?: string
+          last_processed_at?: string | null
           max_attempts?: number
           meeting_id?: string
           priority?: number
+          retry_count?: number | null
           started_at?: string | null
           status?: string
           updated_at?: string
