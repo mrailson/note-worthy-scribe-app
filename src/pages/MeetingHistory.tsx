@@ -1412,23 +1412,10 @@ const MeetingHistory = () => {
         overview: meeting.meeting_overviews?.overview || null
       }));
 
-      console.log('🚨 ENRICHED MEETINGS:', enrichedMeetings.length);
-      enrichedMeetings.forEach((meeting, index) => {
-        console.log(`🚨 Enriched Meeting ${index}:`, {
-          title: meeting.title, 
-          id: meeting.id,
-          hasTranscript: !!meeting.transcript,
-          transcriptLength: meeting.transcript?.length || 0
-        });
-      });
+      console.log('✅ Enriched meetings ready:', enrichedMeetings.length);
       
       setMeetings(enrichedMeetings);
       setCurrentPage(pageToFetch);
-
-      console.log('🚨 SETTING MEETINGS STATE...');
-      setMeetings(enrichedMeetings);
-      
-      console.log('🚨 MEETINGS STATE SET - should trigger re-render');
     } catch (error: any) {
       console.error("Error Loading Meetings:", error.message);
     } finally {
