@@ -1370,7 +1370,7 @@ const MeetingHistory = () => {
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
-        word_count: wordCounts[meeting.id] || 0,
+        word_count: wordCounts[meeting.id] || null,
         document_count: documentsData[meeting.id]?.length || 0,
         documents: documentsData[meeting.id] || [],
         // Extract the overview from the nested meeting_overviews object

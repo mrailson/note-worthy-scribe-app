@@ -957,18 +957,17 @@ export const MeetingHistoryList = ({
                       )}
                       
                       {/* Word Count */}
-                      {meeting.word_count && meeting.word_count > 0 && (
-                        <>
-                          <span>•</span>
-                          <FileText className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">
-                            {meeting.word_count >= 1000 
+                      <>
+                        <span>•</span>
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {meeting.word_count && meeting.word_count > 0 ? (
+                            meeting.word_count >= 1000 
                               ? `${(meeting.word_count / 1000).toFixed(1)}K words`
                               : `${meeting.word_count} words`
-                            }
-                          </span>
-                        </>
-                      )}
+                          ) : 'N/A words'}
+                        </span>
+                      </>
                       
                       {meeting.import_source && (
                         <Badge variant="outline" className="text-xs">
