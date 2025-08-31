@@ -28,7 +28,7 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
-import { RecentMeetingsModal } from '@/components/ai4gp/RecentMeetingsModal';
+import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,7 +39,8 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
-// Utils and types
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import { MeetingData } from '@/types/meetingTypes';
@@ -59,7 +60,24 @@ const AI4GPService = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   
   const [showSearchHistory, setShowSearchHistory] = useState(false);
-  const [showRecentMeetings, setShowRecentMeetings] = useState(false);
+  // Fetch recent meetings for dropdown
+  const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
+    queryKey: ['recent-meetings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('id, title, start_time, created_at, duration_minutes, word_count')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching recent meetings:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+  });
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingData | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
@@ -308,16 +326,12 @@ const AI4GPService = () => {
                         <span className="hidden sm:inline text-xs">History</span>
                       </Button>
                       
-                      {/* Meetings button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowRecentMeetings(!showRecentMeetings)}
-                        className="ml-1 px-2 sm:px-3"
-                      >
-                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                        <span className="hidden sm:inline text-xs">Meetings</span>
-                      </Button>
+                      {/* Meetings dropdown */}
+                      <MeetingsDropdown
+                        meetings={meetings}
+                        isLoading={meetingsLoading}
+                        onViewMeeting={handleViewMeeting}
+                      />
                     </CardTitle>
                   </div>
 
@@ -796,13 +810,6 @@ const AI4GPService = () => {
           }}
         />
       )}
-
-      {/* Recent Meetings Modal */}
-      <RecentMeetingsModal
-        isOpen={showRecentMeetings}
-        onOpenChange={setShowRecentMeetings}
-        onViewMeeting={handleViewMeeting}
-      />
 
       {/* Meeting Details Modal */}
       {selectedMeeting && (
