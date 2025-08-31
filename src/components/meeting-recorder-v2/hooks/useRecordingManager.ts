@@ -253,6 +253,25 @@ export function useRecordingManager(
       
       await transcriber.startTranscription();
       
+      // Create initial meeting record with "recording" status
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error: meetingError } = await supabase
+          .from('meetings')
+          .insert({
+            user_id: user.id,
+            title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+            status: 'recording',
+            notes_generation_status: 'not_started'
+          });
+          
+        if (meetingError) {
+          console.warn('Failed to create initial meeting record:', meetingError);
+        } else {
+          console.log('✅ Created initial meeting record with "recording" status');
+        }
+      }
+      
       startTimeRef.current = new Date();
       durationIntervalRef.current = setInterval(() => {
         if (startTimeRef.current) {
@@ -316,25 +335,61 @@ export function useRecordingManager(
         return;
       }
 
-      // Save meeting to database
-      const meetingData = {
-        user_id: user.id,
-        title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-        duration_minutes: Math.ceil(state.duration / 60),
-        word_count: state.wordCount,
-        speaker_count: state.speakerCount,
-        status: 'completed' as const,
-        notes_generation_status: 'queued' as const
-      };
-
-      const { data: meeting, error: meetingError } = await supabase
+      // Find existing recording meeting to update, or create new one
+      const { data: existingMeeting } = await supabase
         .from('meetings')
-        .insert(meetingData)
-        .select()
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'recording')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (meetingError || !meeting) {
-        console.error('Failed to save meeting:', meetingError);
+      let meeting;
+      
+      if (existingMeeting) {
+        // Update existing recording meeting to completed
+        const { data: updatedMeeting, error: updateError } = await supabase
+          .from('meetings')
+          .update({
+            duration_minutes: Math.ceil(state.duration / 60),
+            word_count: state.wordCount,
+            speaker_count: state.speakerCount,
+            status: 'completed',
+            title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
+          })
+          .eq('id', existingMeeting.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        meeting = updatedMeeting;
+        console.log('✅ Updated existing meeting to completed:', meeting.id);
+      } else {
+        // Create new meeting if no recording meeting found
+        const meetingData = {
+          user_id: user.id,
+          title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+          duration_minutes: Math.ceil(state.duration / 60),
+          word_count: state.wordCount,
+          speaker_count: state.speakerCount,
+          status: 'completed' as const,
+          notes_generation_status: 'not_started' as const
+        };
+
+        const { data: newMeeting, error: insertError } = await supabase
+          .from('meetings')
+          .insert(meetingData)
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        meeting = newMeeting;
+        console.log('✅ Created new completed meeting:', meeting.id);
+      }
+
+      if (!meeting) {
+        console.error('Failed to save meeting: No meeting returned');
         toast.error('Failed to save meeting');
         return;
       }
