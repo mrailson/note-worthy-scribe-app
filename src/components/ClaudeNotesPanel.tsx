@@ -54,7 +54,6 @@ interface ClaudeNotesPanelProps {
   onDownloadWord: (content: string) => void;
   onDownloadPDF: (content: string) => void;
   onDownloadText: (content: string) => void;
-  onOpenSixStyles: () => void;
 }
 
 export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
@@ -82,8 +81,7 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
   onCopy,
   onDownloadWord,
   onDownloadPDF,
-  onDownloadText,
-  onOpenSixStyles
+  onDownloadText
 }) => {
   return (
     <>
@@ -125,16 +123,6 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                 >
                   <Sparkles className="h-4 w-4" />
                   {isClaudeGenerating ? 'Generating...' : 'Generate Notes'}
-                </Button>
-                
-                <Button
-                  onClick={onOpenSixStyles}
-                  disabled={!meetingData?.transcript}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Seven Note Styles
                 </Button>
                 
                 {claudeNotes && (

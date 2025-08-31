@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-import SevenStylesNotesGenerator from "@/components/SevenStylesNotesGenerator";
+
 
 interface MeetingDataFromState {
   id?: string;
@@ -44,7 +44,6 @@ export default function MeetingSummary() {
   // UI state
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
-  const [isSixStylesOpen, setIsSixStylesOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -338,7 +337,6 @@ export default function MeetingSummary() {
           onDownloadWord={generateWordDocument}
           onDownloadPDF={generatePDF}
           onDownloadText={handleDownloadText}
-          onOpenSixStyles={() => setIsSixStylesOpen(true)}
         />
 
         <TranscriptPanel
@@ -352,11 +350,6 @@ export default function MeetingSummary() {
           onDownloadText={handleDownloadText}
         />
 
-        <SevenStylesNotesGenerator
-          meetingData={meetingData}
-          isOpen={isSixStylesOpen}
-          onClose={() => setIsSixStylesOpen(false)}
-        />
       </div>
     </div>
   );

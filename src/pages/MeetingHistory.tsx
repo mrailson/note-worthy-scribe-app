@@ -1419,7 +1419,7 @@ const MeetingHistory = () => {
         }));
 
         setMeetings(enrichedMeetings);
-        console.log('✅ Transcript enrichment complete - Seven Note Styles button should now work');
+        console.log('✅ Transcript enrichment complete');
         
       } catch (transcriptError) {
         console.error('Error during transcript enrichment:', transcriptError);
