@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-import SixStylesNotesGenerator from "@/components/SixStylesNotesGenerator";
+import SevenStylesNotesGenerator from "@/components/SevenStylesNotesGenerator";
 
 interface MeetingDataFromState {
   id?: string;
@@ -352,7 +352,7 @@ export default function MeetingSummary() {
           onDownloadText={handleDownloadText}
         />
 
-        <SixStylesNotesGenerator
+        <SevenStylesNotesGenerator
           meetingData={meetingData}
           isOpen={isSixStylesOpen}
           onClose={() => setIsSixStylesOpen(false)}

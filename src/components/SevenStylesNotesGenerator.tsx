@@ -19,7 +19,8 @@ type ViewKey =
   | "headline_summary"
   | "narrative_newsletter"
   | "decision_log"
-  | "annotated_summary";
+  | "annotated_summary"
+  | "mind_map";
 
 type StyleUnion = string | { 
   markdown?: string; 
@@ -34,17 +35,17 @@ type ApiResponse = {
   styles: Record<ViewKey, StyleUnion>;
 };
 
-interface SixStylesNotesGeneratorProps {
+interface SevenStylesNotesGeneratorProps {
   meetingData: MeetingData | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function SixStylesNotesGenerator({ 
+export default function SevenStylesNotesGenerator({
   meetingData, 
   isOpen, 
   onClose 
-}: SixStylesNotesGeneratorProps) {
+}: SevenStylesNotesGeneratorProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +103,7 @@ export default function SixStylesNotesGenerator({
     ["narrative_newsletter", "Informal Meeting Notes", "Key points and actions for circulation"],
     ["decision_log", "Newsletter Style", "Readable prose for staff bulletin"],
     ["annotated_summary", "Decision Log", "Structured table with decisions and actions"],
+    ["mind_map", "Mind Map", "Visual hierarchical representation of key topics and connections"],
   ];
 
   const userFriendlyTabs: Array<[ViewKey, string, string]> = [
@@ -111,6 +113,7 @@ export default function SixStylesNotesGenerator({
     ["narrative_newsletter", "Informal Meeting Notes", "Key points and actions for circulation"],
     ["decision_log", "Newsletter Style", "Readable prose for staff bulletin"],
     ["annotated_summary", "Decision Log", "Structured table with decisions and actions"],
+    ["mind_map", "Mind Map", "Visual hierarchical representation of key topics and connections"],
   ];
 
   async function generate() {
@@ -154,7 +157,7 @@ export default function SixStylesNotesGenerator({
       }
 
       setResult(data as ApiResponse);
-      toast.success("Six meeting note styles generated successfully!");
+      toast.success("Seven meeting note styles generated successfully!");
     } catch (e: any) {
       console.error('Generation error:', e);
       setError(e?.message || "Unexpected error");
@@ -210,7 +213,7 @@ export default function SixStylesNotesGenerator({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Six Meeting Note Styles
+            Seven Meeting Note Styles
             <Badge variant="secondary">{meetingData?.title}</Badge>
           </DialogTitle>
         </DialogHeader>
@@ -223,9 +226,9 @@ export default function SixStylesNotesGenerator({
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Generate six different professional styles of meeting notes from your transcript:
+                  Generate seven different professional styles of meeting notes from your transcript:
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                   {userFriendlyTabs.map(([key, title, desc]) => (
                     <div key={key} className="border rounded-lg p-3">
                       <h4 className="font-medium text-sm">{title}</h4>
@@ -241,10 +244,10 @@ export default function SixStylesNotesGenerator({
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating Six Note Styles...
+                      Generate Seven Note Styles...
                     </>
                   ) : (
-                    "Generate Six Note Styles"
+                    "Generate Seven Note Styles"
                   )}
                 </Button>
               </CardContent>
@@ -264,10 +267,10 @@ export default function SixStylesNotesGenerator({
                 setIsEditing(false);
               }} className="h-full flex flex-col">
                 <div className="flex flex-wrap gap-2 border-b pb-2 mb-4">
-                  <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+                  <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
                     {userFriendlyTabs.map(([key, label]) => (
                       <TabsTrigger key={key} value={key} className="text-xs">
-                        {label.split(' ')[0]}
+                        {key === "mind_map" ? "Mind Map" : label.split(' ')[0]}
                       </TabsTrigger>
                     ))}
                   </TabsList>

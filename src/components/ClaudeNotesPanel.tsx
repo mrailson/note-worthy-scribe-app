@@ -134,7 +134,7 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Six Note Styles
+                  Seven Note Styles
                 </Button>
                 
                 {claudeNotes && (
