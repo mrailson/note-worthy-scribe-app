@@ -1,36 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Waves } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { FileText, Waves, ChevronDown, ChevronUp } from 'lucide-react';
 import { TranscriptData } from '../../hooks/useRecordingManager';
 
 interface LiveTranscriptDisplayProps {
   transcripts: TranscriptData[];
   isRecording: boolean;
+  transcriptionService: string;
 }
 
-export const LiveTranscriptDisplay = ({ transcripts, isRecording }: LiveTranscriptDisplayProps) => {
+export const LiveTranscriptDisplay = ({ 
+  transcripts, 
+  isRecording, 
+  transcriptionService 
+}: LiveTranscriptDisplayProps) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const finalTranscripts = transcripts.filter(t => t.isFinal);
   const pendingTranscripts = transcripts.filter(t => !t.isFinal);
 
   return (
-    <Card className="h-[400px]">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Live Transcript
-          </CardTitle>
-          {isRecording && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Waves className="h-3 w-3 animate-pulse" />
-              Live
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
+    <Collapsible open={!isCollapsed} onOpenChange={setIsCollapsed}>
+      <Card className={isCollapsed ? "h-auto" : "h-[400px]"}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer hover:bg-accent/5 transition-colors">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Live Transcript
+                <Badge variant="outline" className="text-xs">
+                  {transcriptionService}
+                </Badge>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {isRecording && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Waves className="h-3 w-3 animate-pulse" />
+                    Live
+                  </Badge>
+                )}
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  {isCollapsed ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="p-0">
         <ScrollArea className="h-[320px] px-6 pb-6">
           <div className="space-y-3">
             {finalTranscripts.length === 0 && pendingTranscripts.length === 0 ? (
@@ -89,6 +113,8 @@ export const LiveTranscriptDisplay = ({ transcripts, isRecording }: LiveTranscri
           </div>
         </ScrollArea>
       </CardContent>
-    </Card>
+    </CollapsibleContent>
+  </Card>
+</Collapsible>
   );
 };
