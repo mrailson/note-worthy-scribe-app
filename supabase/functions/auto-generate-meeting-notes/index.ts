@@ -2,6 +2,105 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
+// Large transcript cleaning functions
+function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
+  if (text.length <= target) return [text];
+
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + target, text.length);
+
+    // try to end on a sentence boundary
+    const boundary = text.lastIndexOf('.', end);
+    if (boundary > start + target * 0.6) {
+      end = boundary + 1;
+    } else {
+      const q = text.lastIndexOf('?', end);
+      const e = text.lastIndexOf('!', end);
+      const best = Math.max(q, e);
+      if (best > start + target * 0.6) end = best + 1;
+    }
+
+    const chunk = text.slice(start, end).trim();
+    if (chunk) chunks.push(chunk);
+
+    if (end >= text.length) break;
+    start = Math.max(0, end - overlap);
+  }
+  return chunks;
+}
+
+function dedupeBoundary(prev: string, next: string): string {
+  // Remove duplicated overlap from start of next if present
+  const tail = prev.slice(-220);
+  if (!tail) return next;
+  const normalizedTail = tail.replace(/\s+/g, ' ').trim();
+  let candidate = next;
+  for (let k = 220; k >= 80; k -= 20) {
+    const t = normalizedTail.slice(-k);
+    const re = new RegExp('^' + escapeRegExp(t).replace(/\s+/g, '\\s+'));
+    if (re.test(candidate.replace(/\s+/g, ' ').trim())) {
+      // strip the matching prefix (approximate)
+      const idx = candidate.toLowerCase().indexOf(t.toLowerCase());
+      if (idx === 0) {
+        return candidate.slice(t.length).trimStart();
+      }
+    }
+  }
+  return next;
+}
+
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function mergeCleanedChunks(chunks: string[]): string {
+  if (chunks.length === 0) return '';
+  let out = chunks[0].trim();
+  for (let i = 1; i < chunks.length; i++) {
+    const cleanedNext = dedupeBoundary(out, chunks[i]);
+    out = `${out}\n\n${cleanedNext.trim()}`;
+  }
+  return out.trim();
+}
+
+async function cleanLargeTranscript(
+  rawTranscript: string,
+  meetingTitle: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string
+): Promise<string> {
+  const chunks = splitTextIntoChunks(rawTranscript, 3500, 200);
+  const results: string[] = new Array(chunks.length);
+
+  // Process chunks sequentially to avoid overwhelming the system
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/gpt-clean-transcript`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript: chunks[i] }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        results[i] = data.cleanedTranscript || chunks[i];
+      } else {
+        results[i] = chunks[i]; // fallback to original chunk
+      }
+    } catch (error) {
+      console.warn(`⚠️ Failed to clean chunk ${i + 1}/${chunks.length}:`, error);
+      results[i] = chunks[i]; // fallback to original chunk
+    }
+  }
+
+  return mergeCleanedChunks(results);
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -90,7 +189,49 @@ serve(async (req) => {
       throw new Error('No transcript available for notes generation');
     }
 
-    console.log('📄 Transcript length:', fullTranscript.length, 'chars');
+    console.log('📄 Raw transcript length:', fullTranscript.length, 'chars');
+
+    // Clean the transcript before generating notes
+    let cleanedTranscript = fullTranscript;
+    let transcriptUsed = 'raw';
+    
+    try {
+      console.log('🧹 Cleaning transcript...');
+      
+      if (fullTranscript.length <= 7000) {
+        // Use GPT cleaning for smaller transcripts
+        const cleanResponse = await fetch(`${supabaseUrl}/functions/v1/gpt-clean-transcript`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ transcript: fullTranscript }),
+        });
+
+        if (cleanResponse.ok) {
+          const cleanData = await cleanResponse.json();
+          cleanedTranscript = cleanData.cleanedTranscript || fullTranscript;
+          transcriptUsed = 'gpt-cleaned';
+          console.log('✅ GPT cleaning completed:', cleanData.originalLength, '→', cleanData.cleanedLength, 'chars');
+        } else {
+          throw new Error('GPT cleaning failed');
+        }
+      } else {
+        // For larger transcripts, use chunked cleaning approach
+        console.log('📝 Large transcript detected, using chunked cleaning');
+        cleanedTranscript = await cleanLargeTranscript(fullTranscript, meeting.title, supabaseUrl, supabaseServiceKey);
+        transcriptUsed = 'chunked-cleaned';
+        console.log('✅ Chunked cleaning completed:', fullTranscript.length, '→', cleanedTranscript.length, 'chars');
+      }
+    } catch (cleanError) {
+      console.warn('⚠️ Transcript cleaning failed, using original:', cleanError.message);
+      // Continue with original transcript if cleaning fails
+      cleanedTranscript = fullTranscript;
+      transcriptUsed = 'raw-fallback';
+    }
+
+    console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
     // Generate notes using OpenAI
     const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from the provided transcript.
@@ -130,7 +271,7 @@ Meeting Date: ${new Date(meeting.created_at).toLocaleDateString()}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 Transcript:
-${fullTranscript}`;
+${cleanedTranscript}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
