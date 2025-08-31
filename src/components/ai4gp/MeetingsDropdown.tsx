@@ -52,26 +52,49 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
     try {
       if (actionType === 'word') {
-        // Fetch transcript content from database
-        const { data: transcriptData, error } = await supabase
-          .from('meeting_transcripts')
-          .select('content')
+        // Try to fetch meeting notes from multiple sources
+        let notesContent = '';
+        let notesTitle = '';
+
+        // First try meeting_summaries table
+        const { data: summaryData, error: summaryError } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
           .eq('meeting_id', meeting.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error || !transcriptData?.content) {
+        if (summaryData?.summary) {
+          notesContent = summaryData.summary;
+          notesTitle = 'Meeting Summary';
+        } else {
+          // Fallback to meeting_auto_notes if available
+          const { data: autoNotesData, error: autoNotesError } = await supabase
+            .from('meeting_auto_notes')
+            .select('generated_notes')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (autoNotesData?.generated_notes) {
+            notesContent = autoNotesData.generated_notes;
+            notesTitle = 'Generated Meeting Notes';
+          }
+        }
+
+        if (!notesContent) {
           toast({
-            title: "No Transcript Found",
-            description: "No transcript content available for this meeting.",
+            title: "No Meeting Notes Found",
+            description: "No generated meeting notes or summaries available for this meeting.",
             variant: "destructive",
           });
           return;
         }
 
-        // Generate Word document with actual transcript content
-        await generateWordDocument(transcriptData.content, meeting.title || 'Meeting Notes');
+        // Generate Word document with meeting notes
+        await generateWordDocument(notesContent, `${meeting.title || 'Meeting'} - ${notesTitle}`);
         toast({
           title: "Word Document Generated",
           description: "Meeting notes have been downloaded as a Word document.",
