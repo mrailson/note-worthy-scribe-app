@@ -499,71 +499,25 @@ export const MeetingHistoryList = ({
     }));
 
     try {
-      // Step 1: Get transcript chunks and calculate word count
+      // Step 1: Generate meeting notes (this now handles transcript cleaning, notes generation, overview extraction, and word count)
       setProcessingMeetings(prev => ({
         ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Fetching transcript data...' }
+        [meetingId]: { isProcessing: true, currentStep: 'Processing transcript and generating notes...' }
       }));
 
-      const { data: chunks, error: chunksError } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('transcription_text, created_at')
-        .eq('meeting_id', meetingId)
-        .order('chunk_number');
-
-      if (chunksError) throw new Error(`Failed to fetch transcript: ${chunksError.message}`);
-
-      const transcriptText = chunks?.map(c => c.transcription_text).join(' ') || '';
-      const wordCount = transcriptText.split(/\s+/).filter(word => word.length > 0).length;
-
-      // Step 2: Clean transcript
-      if (transcriptText.length > 0) {
-        setProcessingMeetings(prev => ({
-          ...prev,
-          [meetingId]: { isProcessing: true, currentStep: 'Cleaning transcript...' }
-        }));
-
-        const { error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
-          body: { transcript: transcriptText }
-        });
-
-        if (cleanError) throw new Error(`Transcript cleaning failed: ${cleanError.message}`);
-      }
-
-      // Step 3: Generate meeting notes
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Generating meeting notes...' }
-      }));
-
-      const { error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+      const { data: notesResult, error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           meetingId,
-          forceGenerate: true 
+          forceRegenerate: true 
         }
       });
 
-      if (notesError) throw new Error(`Notes generation failed: ${notesError.message}`);
-
-      // Step 4: Generate meeting overview
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: { isProcessing: true, currentStep: 'Generating meeting overview...' }
-      }));
-
-      const { data: overviewData, error: overviewError } = await supabase.functions.invoke('generate-meeting-overview', {
-        body: {
-          transcript: transcriptText,
-          meetingTitle: meeting.title
-        }
-      });
-
-      let overviewText = null;
-      if (!overviewError && overviewData?.overview) {
-        overviewText = overviewData.overview;
+      if (notesError) {
+        console.error('Notes generation error:', notesError);
+        throw new Error(`Notes generation failed: ${notesError.message}`);
       }
 
-      // Step 5: Calculate duration
+      // Step 2: Calculate duration if not already set
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: { isProcessing: true, currentStep: 'Updating meeting statistics...' }
@@ -574,34 +528,34 @@ export const MeetingHistoryList = ({
         const startTime = new Date(meeting.start_time);
         const endTime = meeting.end_time ? new Date(meeting.end_time) : new Date();
         durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        
+        // Update duration in the database
+        const { error: durationError } = await supabase
+          .from('meetings')
+          .update({ duration_minutes: durationMinutes })
+          .eq('id', meetingId);
+          
+        if (durationError) {
+          console.warn('Failed to update duration:', durationError.message);
+        }
       }
-
-      // Step 6: Update meeting record
-      const updateData: any = {
-        word_count: wordCount
-      };
-
-      if (durationMinutes) {
-        updateData.duration_minutes = durationMinutes;
-      }
-
-      if (overviewText) {
-        updateData.overview = overviewText;
-      }
-
-      const { error: updateError } = await supabase
-        .from('meetings')
-        .update(updateData)
-        .eq('id', meetingId);
-
-      if (updateError) throw new Error(`Failed to update meeting: ${updateError.message}`);
 
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: { isProcessing: true, currentStep: 'Processing complete!' }
       }));
 
-      toast.success(`Processing complete! Updated word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${overviewText ? ', and generated overview' : ''}.`);
+      // Get updated meeting data to show current stats
+      const { data: updatedMeeting } = await supabase
+        .from('meetings')
+        .select('word_count, overview')
+        .eq('id', meetingId)
+        .single();
+
+      const wordCount = updatedMeeting?.word_count || 'Unknown';
+      const hasOverview = Boolean(updatedMeeting?.overview);
+
+      toast.success(`Processing complete! Generated notes, word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${hasOverview ? ', and overview' : ''}.`);
 
       // Refresh the meeting data
       if (onRefresh) {

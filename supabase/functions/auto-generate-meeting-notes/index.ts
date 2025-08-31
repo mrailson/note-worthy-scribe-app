@@ -165,19 +165,25 @@ serve(async (req) => {
       throw new Error('Meeting not found');
     }
 
-    // Get transcript from meeting_transcripts table
-    const { data: transcripts, error: transcriptError } = await supabase
-      .from('meeting_transcripts')
-      .select('content')
-      .eq('meeting_id', meetingId)
-      .order('timestamp_seconds', { ascending: true });
+    // Get transcript using the database function that checks all possible sources
+    const { data: transcriptResult, error: transcriptError } = await supabase
+      .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
     if (transcriptError) {
       console.error('❌ Error fetching transcript:', transcriptError);
+      await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'failed' })
+        .eq('id', meetingId);
       throw new Error('Failed to fetch transcript');
     }
 
-    const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+    const transcriptData = transcriptResult?.[0];
+    const fullTranscript = transcriptData?.transcript || '';
+    const transcriptSource = transcriptData?.source || 'unknown';
+    const itemCount = transcriptData?.item_count || 0;
+    
+    console.log(`📄 Found transcript from ${transcriptSource} with ${itemCount} items, ${fullTranscript.length} chars`);
     
     if (!fullTranscript.trim()) {
       console.log('⚠️ No transcript found for meeting');
@@ -190,6 +196,10 @@ serve(async (req) => {
     }
 
     console.log('📄 Raw transcript length:', fullTranscript.length, 'chars');
+
+    // Calculate word count for the meeting
+    const wordCount = fullTranscript.split(/\s+/).filter(word => word.length > 0).length;
+    console.log('📊 Word count:', wordCount);
 
     // Clean the transcript before generating notes
     let cleanedTranscript = fullTranscript;
@@ -301,6 +311,10 @@ ${cleanedTranscript}`;
 
     console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
 
+    // Extract overview from the generated notes (first section after "Meeting Overview")
+    const overviewMatch = generatedNotes.match(/📋\s*Meeting Overview\s*\n(.*?)(?=\n\d️⃣|$)/s);
+    const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
+
     // Save notes to database
     const { error: summaryError } = await supabase
       .from('meeting_summaries')
@@ -318,10 +332,14 @@ ${cleanedTranscript}`;
       throw summaryError;
     }
 
-    // Update meeting status to completed
+    // Update meeting with completion status, word count, and overview
     await supabase
       .from('meetings')
-      .update({ notes_generation_status: 'completed' })
+      .update({ 
+        notes_generation_status: 'completed',
+        word_count: wordCount,
+        overview: overview
+      })
       .eq('id', meetingId);
 
     // Update queue status if exists
