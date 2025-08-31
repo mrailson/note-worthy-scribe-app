@@ -256,12 +256,14 @@ export function useRecordingManager(
       // Create initial meeting record with "recording" status
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        const startTime = new Date();
         const { error: meetingError } = await supabase
           .from('meetings')
           .insert({
             user_id: user.id,
-            title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+            title: `Meeting ${startTime.toLocaleDateString()} ${startTime.toLocaleTimeString()}`,
             status: 'recording',
+            start_time: startTime.toISOString(),
             notes_generation_status: 'not_started'
           });
           
@@ -360,6 +362,7 @@ export function useRecordingManager(
         // Retry logic for status update
         while (retryCount < maxRetries) {
           try {
+            const endTime = new Date();
             const { data: updatedMeeting, error: updateError } = await supabase
               .from('meetings')
               .update({
@@ -367,7 +370,8 @@ export function useRecordingManager(
                 word_count: state.wordCount,
                 speaker_count: state.speakerCount,
                 status: 'completed',
-                title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
+                end_time: endTime.toISOString(),
+                title: `Meeting ${endTime.toLocaleDateString()} ${endTime.toLocaleTimeString()}`
               })
               .eq('id', existingMeeting.id)
               .select()
@@ -395,12 +399,16 @@ export function useRecordingManager(
         console.log('📄 No existing recording meeting found, creating new one...');
         
         // Create new meeting if no recording meeting found
+        const endTime = new Date();
+        const startTime = startTimeRef.current || new Date(Date.now() - (state.duration * 1000));
         const meetingData = {
           user_id: user.id,
-          title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+          title: `Meeting ${endTime.toLocaleDateString()} ${endTime.toLocaleTimeString()}`,
           duration_minutes: Math.ceil(state.duration / 60),
           word_count: state.wordCount,
           speaker_count: state.speakerCount,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
           status: 'completed' as const,
           notes_generation_status: 'not_started' as const
         };
