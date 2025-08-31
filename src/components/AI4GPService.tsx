@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -28,6 +28,7 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
+import { RecentMeetingsModal } from '@/components/ai4gp/RecentMeetingsModal';
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -41,6 +42,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 // Utils and types
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
+import { MeetingData } from '@/types/meetingTypes';
 
 
 const AI4GPService = () => {
@@ -57,6 +59,9 @@ const AI4GPService = () => {
   const [showAboutModal, setShowAboutModal] = useState(false);
   
   const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const [showRecentMeetings, setShowRecentMeetings] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingData | null>(null);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -146,6 +151,11 @@ const AI4GPService = () => {
   const handleLoadPreviousSearch = (search: any) => {
     loadPreviousSearch(search, setMessages);
     setShowSearchHistory(false);
+  };
+
+  const handleViewMeeting = (meeting: MeetingData) => {
+    setSelectedMeeting(meeting);
+    setShowMeetingModal(true);
   };
 
   const handleScrollToInput = () => {
@@ -296,6 +306,17 @@ const AI4GPService = () => {
                       >
                         <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                         <span className="hidden sm:inline text-xs">History</span>
+                      </Button>
+                      
+                      {/* Meetings button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowRecentMeetings(!showRecentMeetings)}
+                        className="ml-1 px-2 sm:px-3"
+                      >
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <span className="hidden sm:inline text-xs">Meetings</span>
                       </Button>
                     </CardTitle>
                   </div>
@@ -774,6 +795,58 @@ const AI4GPService = () => {
             setShowAboutModal(false);
           }}
         />
+      )}
+
+      {/* Recent Meetings Modal */}
+      <RecentMeetingsModal
+        isOpen={showRecentMeetings}
+        onOpenChange={setShowRecentMeetings}
+        onViewMeeting={handleViewMeeting}
+      />
+
+      {/* Meeting Details Modal */}
+      {selectedMeeting && (
+        <Dialog open={showMeetingModal} onOpenChange={setShowMeetingModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedMeeting.title || 'Meeting Details'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
+                  <p className="text-sm">{new Date(selectedMeeting.startTime).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Duration</p>
+                  <p className="text-sm">{selectedMeeting.duration} minutes</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Word Count</p>
+                  <p className="text-sm">{selectedMeeting.wordCount?.toLocaleString() || 0} words</p>
+                </div>
+              </div>
+              
+              {selectedMeeting.generatedNotes && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Meeting Notes</p>
+                  <div className="bg-muted/20 p-4 rounded-lg">
+                    <pre className="whitespace-pre-wrap text-sm">{selectedMeeting.generatedNotes}</pre>
+                  </div>
+                </div>
+              )}
+              
+              {selectedMeeting.transcript && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Transcript</p>
+                  <div className="bg-muted/20 p-4 rounded-lg max-h-60 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm">{selectedMeeting.transcript}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
