@@ -4512,28 +4512,9 @@ export const MeetingRecorder = ({
         wordCount={wordCount}
       />
 
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-md w-full mx-4 border border-border animate-scale-in">
-            <div className="p-6 space-y-6">
-              
-              {/* Processing Stage */}
-              {meetingEndModal.stage === 'processing' && (
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Finalizing your transcription{processingDots}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 opacity-75">
-                    Capturing final audio segments...
-                  </p>
-                </div>
-              )}
 
               {/* Saving Stage */}
-              {meetingEndModal.stage === 'saving' && (
+              {/* Modal content removed */}
                 <>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
