@@ -521,10 +521,13 @@ export const MeetingRecorder = ({
         setTranscript(cleanedTranscript);
         onTranscriptUpdate(cleanedTranscript);
         
-        // Update word count
-        const newWordCount = cleanedTranscript.trim().split(/\s+/).length;
-        setWordCount(newWordCount);
-        onWordCountUpdate(newWordCount);
+        // Update word count - ensure it never decreases
+        const calculatedWordCount = cleanedTranscript.trim().split(/\s+/).length;
+        setWordCount(prev => {
+          const newWordCount = Math.max(prev, calculatedWordCount);
+          onWordCountUpdate(newWordCount);
+          return newWordCount;
+        });
         
         toast.success('Transcript auto-cleaned successfully', { id: 'auto-clean' });
         console.log('✅ Auto Deep Clean completed');
@@ -1319,10 +1322,13 @@ export const MeetingRecorder = ({
         onTranscriptUpdate(fullTranscript);
         latestCompleteTranscriptRef.current = fullTranscript;
         
-        // Update word count
+        // Update word count - ensure it never decreases
         const words = fullTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        onWordCountUpdate(words.length);
+        setWordCount(prev => {
+          const newWordCount = Math.max(prev, words.length);
+          onWordCountUpdate(newWordCount);
+          return newWordCount;
+        });
         
         // Extract last phrase (max 6 words)
         const lastSixWords = words.slice(-6).join(' ');
