@@ -331,6 +331,7 @@ const MeetingHistory = () => {
         });
 
       // Call the edge function
+      console.log('🔍 Manually triggering notes generation for meeting:', meetingId);
       const { error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { meetingId }
       });
