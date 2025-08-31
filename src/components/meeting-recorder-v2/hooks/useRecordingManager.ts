@@ -327,14 +327,20 @@ export function useRecordingManager(
   }, [state.transcript, state.realtimeTranscripts.length]);
 
   const saveMeetingAndQueueNotes = useCallback(async () => {
+    console.log('🔄 Starting meeting save process...');
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.error('❌ No authenticated user found');
         toast.error('You must be logged in to save meetings');
         return;
       }
 
+      console.log('✅ User authenticated:', user.id);
+
       // Find existing recording meeting to update, or create new one
+      console.log('🔍 Looking for existing recording meeting...');
       const { data: existingMeeting } = await supabase
         .from('meetings')
         .select('id')
@@ -345,26 +351,49 @@ export function useRecordingManager(
         .single();
 
       let meeting;
+      let retryCount = 0;
+      const maxRetries = 3;
       
       if (existingMeeting) {
-        // Update existing recording meeting to completed
-        const { data: updatedMeeting, error: updateError } = await supabase
-          .from('meetings')
-          .update({
-            duration_minutes: Math.ceil(state.duration / 60),
-            word_count: state.wordCount,
-            speaker_count: state.speakerCount,
-            status: 'completed',
-            title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
-          })
-          .eq('id', existingMeeting.id)
-          .select()
-          .single();
+        console.log('📝 Found existing meeting to update:', existingMeeting.id);
+        
+        // Retry logic for status update
+        while (retryCount < maxRetries) {
+          try {
+            const { data: updatedMeeting, error: updateError } = await supabase
+              .from('meetings')
+              .update({
+                duration_minutes: Math.ceil(state.duration / 60),
+                word_count: state.wordCount,
+                speaker_count: state.speakerCount,
+                status: 'completed',
+                title: `Meeting ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
+              })
+              .eq('id', existingMeeting.id)
+              .select()
+              .single();
 
-        if (updateError) throw updateError;
-        meeting = updatedMeeting;
-        console.log('✅ Updated existing meeting to completed:', meeting.id);
+            if (updateError) {
+              console.error(`❌ Update attempt ${retryCount + 1} failed:`, updateError);
+              if (retryCount === maxRetries - 1) throw updateError;
+              retryCount++;
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+              continue;
+            }
+
+            meeting = updatedMeeting;
+            console.log('✅ Successfully updated meeting to completed:', meeting.id);
+            break;
+          } catch (error) {
+            console.error(`❌ Update attempt ${retryCount + 1} error:`, error);
+            if (retryCount === maxRetries - 1) throw error;
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
       } else {
+        console.log('📄 No existing recording meeting found, creating new one...');
+        
         // Create new meeting if no recording meeting found
         const meetingData = {
           user_id: user.id,
@@ -376,26 +405,37 @@ export function useRecordingManager(
           notes_generation_status: 'not_started' as const
         };
 
+        console.log('📋 Meeting data to insert:', meetingData);
+
         const { data: newMeeting, error: insertError } = await supabase
           .from('meetings')
           .insert(meetingData)
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('❌ Failed to create new meeting:', insertError);
+          throw insertError;
+        }
+        
         meeting = newMeeting;
-        console.log('✅ Created new completed meeting:', meeting.id);
+        console.log('✅ Successfully created new meeting:', meeting.id);
       }
 
       if (!meeting) {
-        console.error('Failed to save meeting: No meeting returned');
-        toast.error('Failed to save meeting');
+        console.error('❌ No meeting returned after save operation');
+        toast.error('Failed to save meeting - no meeting data returned');
         return;
       }
 
       // Save transcript chunks - CRITICAL for auto-notes generation
+      console.log('💬 Processing transcript data...');
+      console.log(`📊 Total realtime transcripts: ${state.realtimeTranscripts.length}`);
+      
       if (state.realtimeTranscripts.length > 0) {
         const finalTranscripts = state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim());
+        console.log(`📝 Final transcripts to save: ${finalTranscripts.length}`);
+        
         if (finalTranscripts.length > 0) {
           const transcriptInserts = finalTranscripts.map((transcript, index) => ({
             meeting_id: meeting.id,
@@ -404,26 +444,40 @@ export function useRecordingManager(
             confidence_score: transcript.confidence || 0.8
           }));
 
+          console.log('💾 Inserting transcript chunks...');
           const { error: transcriptError } = await supabase
             .from('meeting_transcripts')
             .insert(transcriptInserts);
 
           if (transcriptError) {
-            console.error('Failed to save transcripts:', transcriptError);
-            toast.error('Failed to save transcript');
+            console.error('❌ Failed to save transcripts:', transcriptError);
+            toast.error('Failed to save transcript - automation may not work');
           } else {
-            console.log(`✅ Saved ${transcriptInserts.length} transcript chunks`);
+            console.log(`✅ Successfully saved ${transcriptInserts.length} transcript chunks`);
           }
+        } else {
+          console.warn('⚠️ No final transcripts to save - this may prevent automation');
         }
+      } else {
+        console.warn('⚠️ No realtime transcripts available - automation will not trigger');
       }
 
-      // Note: No need to manually queue - the database trigger handles this automatically 
-      // when meeting status is updated to 'completed' and transcript exists
-      toast.success(`Meeting saved successfully${meeting.id === existingMeeting?.id ? ' (updated existing)' : ' (new)'}`);
+      // Verify automation trigger conditions
+      console.log('🔍 Verifying automation trigger conditions...');
+      console.log(`📋 Meeting status: ${meeting.status}`);
+      console.log(`💬 Transcript count: ${state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim()).length}`);
+      
+      if (meeting.status === 'completed' && state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim()).length > 0) {
+        console.log('✨ Automation conditions met! Database trigger should fire automatically.');
+        toast.success(`Meeting saved successfully! Notes generation will begin automatically.`);
+      } else {
+        console.warn('⚠️ Automation conditions not met - manual trigger may be needed');
+        toast.success(`Meeting saved successfully${meeting.id === existingMeeting?.id ? ' (updated existing)' : ' (new)'}`);
+      }
 
     } catch (error) {
-      console.error('Error saving meeting:', error);
-      toast.error('Failed to save meeting');
+      console.error('❌ Critical error in saveMeetingAndQueueNotes:', error);
+      toast.error('Failed to save meeting - please try manual process');
     }
   }, [state.duration, state.wordCount, state.speakerCount, state.realtimeTranscripts]);
 
