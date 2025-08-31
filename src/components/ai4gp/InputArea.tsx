@@ -90,6 +90,39 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     setInput(text);
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const pastedText = e.clipboardData.getData('text');
+    const CHARACTER_THRESHOLD = 1500;
+    
+    if (pastedText.length > CHARACTER_THRESHOLD) {
+      e.preventDefault();
+      
+      // Create a virtual file from the pasted text
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const virtualFile: UploadedFile = {
+        name: `Pasted Transcript - ${timestamp}.txt`,
+        type: 'text/plain',
+        content: `PASTED TRANSCRIPT CONTENT FROM: Clipboard
+
+${pastedText.trim()}
+
+[Pasted text content]`,
+        size: new Blob([pastedText]).size,
+        isLoading: false
+      };
+      
+      // Add to uploaded files
+      setUploadedFiles(prev => [...prev, virtualFile]);
+      
+      // Show toast notification
+      toast({
+        title: "Large text converted to file",
+        description: `Text with ${pastedText.length.toLocaleString()} characters converted to file attachment`,
+      });
+    }
+    // If text is below threshold, allow normal paste behavior
+  };
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -117,6 +150,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
             className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-32 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
