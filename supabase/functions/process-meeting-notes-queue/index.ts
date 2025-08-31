@@ -1,0 +1,166 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface QueueItem {
+  id: string;
+  meeting_id: string;
+  status: string;
+  detail_level: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("Starting meeting notes queue processing...");
+
+    // Initialize Supabase client with service role key
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get pending queue items (limit to 10 at a time)
+    const { data: queueItems, error: queueError } = await supabase
+      .from('meeting_notes_queue')
+      .select('*')
+      .eq('status', 'pending')
+      .lt('retry_count', 3) // Don't retry more than 3 times
+      .order('created_at', { ascending: true })
+      .limit(10);
+
+    if (queueError) {
+      console.error('Error fetching queue items:', queueError);
+      return new Response(JSON.stringify({ error: queueError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!queueItems || queueItems.length === 0) {
+      console.log('No pending items in queue');
+      return new Response(JSON.stringify({ 
+        message: 'No pending items in queue',
+        processed: 0 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`Found ${queueItems.length} pending items to process`);
+
+    const results = [];
+
+    // Process each queue item
+    for (const item of queueItems as QueueItem[]) {
+      try {
+        console.log(`Processing meeting ${item.meeting_id}...`);
+
+        // Update status to processing
+        await supabase
+          .from('meeting_notes_queue')
+          .update({ status: 'processing', updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+
+        // Call the auto-generate-meeting-notes function
+        const { data: functionResult, error: functionError } = await supabase.functions.invoke(
+          'auto-generate-meeting-notes',
+          {
+            body: { 
+              meetingId: item.meeting_id,
+              forceRegenerate: false
+            }
+          }
+        );
+
+        if (functionError) {
+          console.error(`Error calling auto-generate function for meeting ${item.meeting_id}:`, functionError);
+          
+          // Update queue item with error
+          await supabase
+            .from('meeting_notes_queue')
+            .update({
+              status: 'failed',
+              retry_count: item.retry_count + 1,
+              error_message: functionError.message,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', item.id);
+
+          results.push({
+            meeting_id: item.meeting_id,
+            status: 'failed',
+            error: functionError.message
+          });
+        } else {
+          console.log(`Successfully processed meeting ${item.meeting_id}`);
+          
+          // Update queue item as completed
+          await supabase
+            .from('meeting_notes_queue')
+            .update({
+              status: 'completed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', item.id);
+
+          results.push({
+            meeting_id: item.meeting_id,
+            status: 'completed',
+            result: functionResult
+          });
+        }
+
+      } catch (error) {
+        console.error(`Unexpected error processing meeting ${item.meeting_id}:`, error);
+        
+        // Update queue item with error
+        await supabase
+          .from('meeting_notes_queue')
+          .update({
+            status: 'failed',
+            retry_count: item.retry_count + 1,
+            error_message: error.message,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+
+        results.push({
+          meeting_id: item.meeting_id,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+
+    console.log('Queue processing completed');
+
+    return new Response(JSON.stringify({
+      message: 'Queue processing completed',
+      processed: results.length,
+      results: results
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error: any) {
+    console.error('Error in queue processor:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+serve(handler);
