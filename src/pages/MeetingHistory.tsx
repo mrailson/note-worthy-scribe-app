@@ -1301,12 +1301,12 @@ const MeetingHistory = () => {
         console.log(`🚨 Meeting ${index}:`, meeting.title, meeting.created_at);
       });
 
-      // Batch the remaining queries efficiently
+      // Step 1: Load critical meeting data first (counts, summaries, documents)
       const meetingIds = meetingsData.map(m => m.id);
       
-      console.log('🚨 STARTING PROMISE.ALL FOR MEETINGS:', meetingIds);
+      console.log('✅ Loading basic meeting data for:', meetingIds.length, 'meetings');
       
-      const [transcriptCounts, summaryExists, transcriptResult, documentsData] = await Promise.all([
+      const [transcriptCounts, summaryExists, documentsData] = await Promise.all([
           // Get transcript counts in one query
           supabase
             .from('meeting_transcription_chunks')
@@ -1331,91 +1331,101 @@ const MeetingHistory = () => {
               }, {} as Record<string, boolean>) || {};
             }),
 
-          // Get word counts from transcripts using the database function that handles multiple sources
-          Promise.all(
-            meetingIds.map(async (meetingId) => {
-              try {
-                console.log('🚨 FETCHING TRANSCRIPT FOR:', meetingId);
-                const { data, error } = await supabase.rpc('get_meeting_full_transcript', {
-                  p_meeting_id: meetingId
-                });
-                
-                if (error) {
-                  console.error('Error fetching transcript for meeting', meetingId, error);
-                  return { meetingId, transcript: '', wordCount: 0 };
+          // Get document details
+          supabase
+            .from('meeting_documents')
+            .select('meeting_id, file_name, file_size, uploaded_at, file_type')
+            .in('meeting_id', meetingIds)
+            .order('uploaded_at', { ascending: false })
+            .then(({ data }) => {
+              const documentsData: Record<string, any[]> = {};
+              data?.forEach(doc => {
+                if (!documentsData[doc.meeting_id]) {
+                  documentsData[doc.meeting_id] = [];
                 }
-                
-                const transcript = data?.[0]?.transcript || '';
-                const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
-                
-                console.log('🚨 TRANSCRIPT FOR MEETING', meetingId, '- Length:', transcript.length, 'Words:', wordCount, 'Source:', data?.[0]?.source);
-                
-                return { meetingId, transcript, wordCount };
-              } catch (err) {
-                console.error('🚨 EXCEPTION fetching transcript for meeting', meetingId, err);
-                return { meetingId, transcript: '', wordCount: 0 };
-              }
-            })
-          ).then(results => {
-            const wordCounts: Record<string, number> = {};
-            const transcriptContents: Record<string, string> = {};
-            
-            results.forEach(({ meetingId, transcript, wordCount }) => {
-              wordCounts[meetingId] = wordCount;
-              transcriptContents[meetingId] = transcript;
-            });
-            
-            console.log('🚨 FINAL TRANSCRIPT RESULTS:', results.map(r => ({ 
-              meetingId: r.meetingId, 
-              transcriptLength: r.transcript.length,
-              wordCount: r.wordCount 
-            })));
-            
-            return { wordCounts, transcriptContents };
-          }),
-
-        // Get document details
-        supabase
-          .from('meeting_documents')
-          .select('meeting_id, file_name, file_size, uploaded_at, file_type')
-          .in('meeting_id', meetingIds)
-          .order('uploaded_at', { ascending: false })
-          .then(({ data }) => {
-            const documentsData: Record<string, any[]> = {};
-            data?.forEach(doc => {
-              if (!documentsData[doc.meeting_id]) {
-                documentsData[doc.meeting_id] = [];
-              }
-              documentsData[doc.meeting_id].push({
-                file_name: doc.file_name,
-                file_size: doc.file_size,
-                uploaded_at: doc.uploaded_at,
-                file_type: doc.file_type
+                documentsData[doc.meeting_id].push({
+                  file_name: doc.file_name,
+                  file_size: doc.file_size,
+                  uploaded_at: doc.uploaded_at,
+                  file_type: doc.file_type
+                });
               });
-            });
-            return documentsData;
-          })
+              return documentsData;
+            })
       ]);
 
-      // Extract transcript data from the result
-      const { wordCounts, transcriptContents } = transcriptResult;
-
-      const enrichedMeetings = meetingsData.map(meeting => ({
+      // Step 2: Create meetings with basic data - this ensures the UI loads even if transcripts fail
+      const basicMeetings = meetingsData.map(meeting => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
-        word_count: wordCounts[meeting.id] || null,
-        transcript: transcriptContents[meeting.id] || null, // Add transcript content
+        word_count: null, // Will be populated by transcript data
+        transcript: null, // Will be populated by transcript data
         document_count: documentsData[meeting.id]?.length || 0,
         documents: documentsData[meeting.id] || [],
-        // Extract the overview from the nested meeting_overviews object
         overview: meeting.meeting_overviews?.overview || null
       }));
 
-      console.log('✅ Enriched meetings ready:', enrichedMeetings.length);
-      
-      setMeetings(enrichedMeetings);
+      // Set meetings immediately so UI loads
+      setMeetings(basicMeetings);
       setCurrentPage(pageToFetch);
+      console.log('✅ Basic meetings loaded, UI should be visible');
+
+      // Step 3: Enrich with transcript data separately (failures won't break the UI)
+      console.log('🔄 Starting transcript enrichment...');
+      
+      const transcriptPromises = meetingIds.map(async (meetingId) => {
+        try {
+          const { data, error } = await supabase.rpc('get_meeting_full_transcript', {
+            p_meeting_id: meetingId
+          });
+          
+          if (error) {
+            console.error('Error fetching transcript for meeting', meetingId, error);
+            return { meetingId, transcript: '', wordCount: 0 };
+          }
+          
+          const transcript = data?.[0]?.transcript || '';
+          const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
+          
+          return { meetingId, transcript, wordCount };
+        } catch (err) {
+          console.error('Exception fetching transcript for meeting', meetingId, err);
+          return { meetingId, transcript: '', wordCount: 0 };
+        }
+      });
+
+      // Wait for transcripts and update meetings (but don't fail if some transcripts fail)
+      try {
+        const transcriptResults = await Promise.allSettled(transcriptPromises);
+        const wordCounts: Record<string, number> = {};
+        const transcriptContents: Record<string, string> = {};
+        
+        transcriptResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            const { meetingId, transcript, wordCount } = result.value;
+            wordCounts[meetingId] = wordCount;
+            transcriptContents[meetingId] = transcript;
+          } else {
+            console.error('Failed to fetch transcript for meeting', meetingIds[index], result.reason);
+          }
+        });
+
+        // Step 4: Update meetings with transcript data
+        const enrichedMeetings = basicMeetings.map(meeting => ({
+          ...meeting,
+          word_count: wordCounts[meeting.id] || null,
+          transcript: transcriptContents[meeting.id] || null
+        }));
+
+        setMeetings(enrichedMeetings);
+        console.log('✅ Transcript enrichment complete - Seven Note Styles button should now work');
+        
+      } catch (transcriptError) {
+        console.error('Error during transcript enrichment:', transcriptError);
+        // UI still works with basic data, transcripts just won't be available
+      }
+      
     } catch (error: any) {
       console.error("Error Loading Meetings:", error.message);
     } finally {
