@@ -305,10 +305,9 @@ export function useRecordingManager(
         durationIntervalRef.current = null;
       }
 
-      // Save meeting and queue auto-notes generation if transcript exists
-      if (state.transcript && state.transcript.trim().length > 50) {
-        await saveMeetingAndQueueNotes();
-      }
+      // Always attempt to save meeting - the trigger will handle notes generation if transcript exists
+      console.log(`🔄 Stopping recording: transcript length = ${state.transcript.length}, chunks = ${state.realtimeTranscripts.length}`);
+      await saveMeetingAndQueueNotes();
 
       setState(prev => ({
         ...prev,
@@ -325,7 +324,7 @@ export function useRecordingManager(
       setState(prev => ({ ...prev, isStoppingRecording: false }));
       return false;
     }
-  }, [state.transcript]);
+  }, [state.transcript, state.realtimeTranscripts.length]);
 
   const saveMeetingAndQueueNotes = useCallback(async () => {
     try {
@@ -394,39 +393,33 @@ export function useRecordingManager(
         return;
       }
 
-      // Save transcript chunks
+      // Save transcript chunks - CRITICAL for auto-notes generation
       if (state.realtimeTranscripts.length > 0) {
-        const transcriptInserts = state.realtimeTranscripts.map((transcript, index) => ({
-          meeting_id: meeting.id,
-          content: transcript.text,
-          timestamp_seconds: new Date(transcript.timestamp).getTime() / 1000,
-          confidence_score: transcript.confidence || 0.8
-        }));
+        const finalTranscripts = state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim());
+        if (finalTranscripts.length > 0) {
+          const transcriptInserts = finalTranscripts.map((transcript, index) => ({
+            meeting_id: meeting.id,
+            content: transcript.text,
+            timestamp_seconds: new Date(transcript.timestamp).getTime() / 1000,
+            confidence_score: transcript.confidence || 0.8
+          }));
 
-        const { error: transcriptError } = await supabase
-          .from('meeting_transcripts')
-          .insert(transcriptInserts);
+          const { error: transcriptError } = await supabase
+            .from('meeting_transcripts')
+            .insert(transcriptInserts);
 
-        if (transcriptError) {
-          console.error('Failed to save transcripts:', transcriptError);
+          if (transcriptError) {
+            console.error('Failed to save transcripts:', transcriptError);
+            toast.error('Failed to save transcript');
+          } else {
+            console.log(`✅ Saved ${transcriptInserts.length} transcript chunks`);
+          }
         }
       }
 
-      // Queue auto-notes generation
-      const { error: queueError } = await supabase
-        .from('meeting_notes_queue')
-        .insert({
-          meeting_id: meeting.id,
-          status: 'pending',
-          detail_level: 'standard',
-          priority: 0
-        });
-
-      if (queueError) {
-        console.error('Failed to queue notes generation:', queueError);
-      } else {
-        toast.success('Meeting saved and notes generation queued');
-      }
+      // Note: No need to manually queue - the database trigger handles this automatically 
+      // when meeting status is updated to 'completed' and transcript exists
+      toast.success(`Meeting saved successfully${meeting.id === existingMeeting?.id ? ' (updated existing)' : ' (new)'}`);
 
     } catch (error) {
       console.error('Error saving meeting:', error);
