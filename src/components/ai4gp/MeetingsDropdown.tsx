@@ -165,7 +165,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           className="ml-1 px-2 sm:px-3"
         >
           <Calendar className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-          <span className="hidden sm:inline text-xs">Meetings</span>
+          <span className="hidden sm:inline text-xs">My Meetings</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
