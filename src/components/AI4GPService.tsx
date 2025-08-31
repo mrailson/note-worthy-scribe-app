@@ -66,7 +66,7 @@ const AI4GPService = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, start_time, created_at, duration_minutes, word_count')
+        .select('id, title, start_time, created_at, duration_minutes')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -75,7 +75,30 @@ const AI4GPService = () => {
         throw error;
       }
 
-      return data || [];
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Get meeting IDs for transcript word count calculation
+      const meetingIds = data.map(meeting => meeting.id);
+
+      // Fetch transcripts and calculate word counts
+      const { data: transcripts } = await supabase
+        .from('meeting_transcripts')
+        .select('meeting_id, content')
+        .in('meeting_id', meetingIds);
+
+      const wordCounts: Record<string, number> = {};
+      transcripts?.forEach(transcript => {
+        const words = transcript.content.split(/\s+/).filter(word => word.length > 0);
+        wordCounts[transcript.meeting_id] = (wordCounts[transcript.meeting_id] || 0) + words.length;
+      });
+
+      // Merge word counts into meeting data
+      return data.map(meeting => ({
+        ...meeting,
+        word_count: wordCounts[meeting.id] || null,
+      }));
     },
   });
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
