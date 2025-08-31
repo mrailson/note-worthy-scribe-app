@@ -1304,67 +1304,75 @@ const MeetingHistory = () => {
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
       
+      console.log('🚨 STARTING PROMISE.ALL FOR MEETINGS:', meetingIds);
+      
       const [transcriptCounts, summaryExists, transcriptResult, documentsData] = await Promise.all([
-        // Get transcript counts in one query
-        supabase
-          .from('meeting_transcription_chunks')
-          .select('meeting_id')
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            return data?.reduce((acc, t) => {
-              acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>) || {};
-          }),
-        
-        // Get summary existence in one query
-        supabase
-          .from('meeting_summaries')
-          .select('meeting_id')
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            return data?.reduce((acc, s) => {
-              acc[s.meeting_id] = true;
-              return acc;
-            }, {} as Record<string, boolean>) || {};
-          }),
+          // Get transcript counts in one query
+          supabase
+            .from('meeting_transcription_chunks')
+            .select('meeting_id')
+            .in('meeting_id', meetingIds)
+            .then(({ data }) => {
+              return data?.reduce((acc, t) => {
+                acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>) || {};
+            }),
+          
+          // Get summary existence in one query
+          supabase
+            .from('meeting_summaries')
+            .select('meeting_id')
+            .in('meeting_id', meetingIds)
+            .then(({ data }) => {
+              return data?.reduce((acc, s) => {
+                acc[s.meeting_id] = true;
+                return acc;
+              }, {} as Record<string, boolean>) || {};
+            }),
 
-        // Get word counts from transcripts using the database function that handles multiple sources
-        Promise.all(
-          meetingIds.map(async (meetingId) => {
-            const { data, error } = await supabase.rpc('get_meeting_full_transcript', {
-              p_meeting_id: meetingId
+          // Get word counts from transcripts using the database function that handles multiple sources
+          Promise.all(
+            meetingIds.map(async (meetingId) => {
+              try {
+                console.log('🚨 FETCHING TRANSCRIPT FOR:', meetingId);
+                const { data, error } = await supabase.rpc('get_meeting_full_transcript', {
+                  p_meeting_id: meetingId
+                });
+                
+                if (error) {
+                  console.error('Error fetching transcript for meeting', meetingId, error);
+                  return { meetingId, transcript: '', wordCount: 0 };
+                }
+                
+                const transcript = data?.[0]?.transcript || '';
+                const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
+                
+                console.log('🚨 TRANSCRIPT FOR MEETING', meetingId, '- Length:', transcript.length, 'Words:', wordCount, 'Source:', data?.[0]?.source);
+                
+                return { meetingId, transcript, wordCount };
+              } catch (err) {
+                console.error('🚨 EXCEPTION fetching transcript for meeting', meetingId, err);
+                return { meetingId, transcript: '', wordCount: 0 };
+              }
+            })
+          ).then(results => {
+            const wordCounts: Record<string, number> = {};
+            const transcriptContents: Record<string, string> = {};
+            
+            results.forEach(({ meetingId, transcript, wordCount }) => {
+              wordCounts[meetingId] = wordCount;
+              transcriptContents[meetingId] = transcript;
             });
             
-            if (error) {
-              console.error('Error fetching transcript for meeting', meetingId, error);
-              return { meetingId, transcript: '', wordCount: 0 };
-            }
+            console.log('🚨 FINAL TRANSCRIPT RESULTS:', results.map(r => ({ 
+              meetingId: r.meetingId, 
+              transcriptLength: r.transcript.length,
+              wordCount: r.wordCount 
+            })));
             
-            const transcript = data?.[0]?.transcript || '';
-            const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
-            
-            console.log('🚨 TRANSCRIPT FOR MEETING', meetingId, '- Length:', transcript.length, 'Words:', wordCount, 'Source:', data?.[0]?.source);
-            
-            return { meetingId, transcript, wordCount };
-          })
-        ).then(results => {
-          const wordCounts: Record<string, number> = {};
-          const transcriptContents: Record<string, string> = {};
-          
-          results.forEach(({ meetingId, transcript, wordCount }) => {
-            wordCounts[meetingId] = wordCount;
-            transcriptContents[meetingId] = transcript;
-          });
-          
-          console.log('🚨 FINAL TRANSCRIPT RESULTS:', results.map(r => ({ 
-            meetingId: r.meetingId, 
-            transcriptLength: r.transcript.length,
-            wordCount: r.wordCount 
-          })));
-          
-          return { wordCounts, transcriptContents };
-        }),
+            return { wordCounts, transcriptContents };
+          }),
 
         // Get document details
         supabase
