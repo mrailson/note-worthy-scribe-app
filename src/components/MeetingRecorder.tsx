@@ -211,9 +211,22 @@ export const MeetingRecorder = ({
   
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
-  
-  // Debug: Check if component is mounting correctly
-  console.log('🔍 MeetingRecorder component rendering, dashboardOpen:', dashboardOpen);
+  // Combined modal state for end-of-meeting process
+  const [meetingEndModal, setMeetingEndModal] = useState<{
+    isOpen: boolean;
+    stage: 'processing' | 'saving' | 'success';
+    savedData?: any;
+  }>({
+    isOpen: false,
+    stage: 'processing',
+    savedData: null
+  });
+  const [processingDots, setProcessingDots] = useState('');
+  const [savingSteps, setSavingSteps] = useState({
+    saving: false,
+    securing: false,
+    complete: false
+  });
   
   
   // Meeting settings - use from useMeetingData hook
@@ -2653,17 +2666,175 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    
+    // Check word count before processing - skip animation for short meetings
+    const wordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
+    console.log('📊 Meeting word count:', wordCount);
+    
+    if (wordCount < 100) {
+      console.log('📊 Skipping processing animation - meeting too short (<100 words)');
+      
+      // Just stop recording without the processing modal
+      setIsStoppingRecording(true);
+      
+      // Stop duration timer
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      // Stop auto-clean interval
+      if (autoCleanIntervalRef.current) {
+        clearInterval(autoCleanIntervalRef.current);
+        autoCleanIntervalRef.current = null;
+      }
+      
+      // Stop all transcribers immediately
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+        browserTranscriberRef.current = null;
+      }
+      
+      if (iPhoneTranscriberRef.current) {
+        iPhoneTranscriberRef.current.stopTranscription();
+        iPhoneTranscriberRef.current = null;
+      }
+      
+      if (desktopTranscriberRef.current) {
+        await desktopTranscriberRef.current.stopTranscription();
+        desktopTranscriberRef.current = null;
+      }
+      
+      if (deepgramTranscriberRef.current) {
+        deepgramTranscriberRef.current.stopTranscription();
+        deepgramTranscriberRef.current = null;
+      }
+      
+      // Stop microphone stream
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+        micAudioStreamRef.current = null;
+      }
+      
+      // Stop screen stream
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      
+      // Stop enhanced audio capture
+      if (enhancedAudioCaptureRef.current) {
+        enhancedAudioCaptureRef.current.stopCapture();
+        enhancedAudioCaptureRef.current = null;
+      }
+      
+      // Stop audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      // Stop overlapping chunks and stereo recording
+      await stopOverlappingChunks();
+      await stopStereoRecording();
+      
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      setIsStoppingRecording(false);
+      setConnectionStatus("Disconnected");
+      
+      // Clear unsaved meeting data
+      localStorage.removeItem('unsaved_meeting');
+      sessionStorage.removeItem('currentSessionId');
+      sessionStorage.removeItem('currentMeetingId');
+      
+      toast.success(`Recording stopped. Meeting was too short (${wordCount} words) to generate notes.`);
+      return;
+    }
+    
+    // Show combined modal starting with processing stage
+    setMeetingEndModal({
+      isOpen: true,
+      stage: 'processing',
+      savedData: null
+    });
+    
+    // Track initial transcript length
+    const initialTranscriptLength = transcript?.length || 0;
+    
+    // Phase 1: Continue recording while processing (4 seconds)
+    setProcessingDots('');
+    const phase1Interval = setInterval(() => {
+      setProcessingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+    
+     // Wait 1 second while still recording to capture final chunks
+     await new Promise(resolve => setTimeout(resolve, 1000));
+    clearInterval(phase1Interval);
+    
+    // Phase 2: Finalizing transcription (3 seconds)
+    setProcessingDots('');
+    const phase2Interval = setInterval(() => {
+      setProcessingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+    
+     // Wait additional 2 seconds for final processing
+     await new Promise(resolve => setTimeout(resolve, 2000));
+    clearInterval(phase2Interval);
+    
+    // Check final transcript length
+    const finalTranscriptLength = transcript?.length || 0;
+    
+    // Move to saving stage
+    setMeetingEndModal(prev => ({
+      ...prev,
+      stage: 'saving'
+    }));
+    
+    // NOW stop the transcribers after the processing delay
+    
+    // Stop browser transcriber and wait for final processing
+    if (browserTranscriberRef.current) {
+      browserTranscriberRef.current.stopTranscription();
+       // Give browser speech recognition time to process final audio segments
+       await new Promise(resolve => setTimeout(resolve, 200));
+      browserTranscriberRef.current = null;
+    }
+    
+    // Stop iPhone transcriber and wait for final processing  
+    if (iPhoneTranscriberRef.current) {
+      iPhoneTranscriberRef.current.stopTranscription();
+       // Give iPhone transcriber time to process final audio segments
+       await new Promise(resolve => setTimeout(resolve, 200));
+      iPhoneTranscriberRef.current = null;
+    }
+    
+    // Stop desktop transcriber and wait for final processing
+    if (desktopTranscriberRef.current) {
+      await desktopTranscriberRef.current.stopTranscription();
+       // Give extra time for final transcription to be processed and combined
+       await new Promise(resolve => setTimeout(resolve, 200));
+      desktopTranscriberRef.current = null;
+    }
+
+    // Stop Deepgram transcriber and wait for final processing
+    if (deepgramTranscriberRef.current) {
+      deepgramTranscriberRef.current.stopTranscription();
+       await new Promise(resolve => setTimeout(resolve, 200));
+      deepgramTranscriberRef.current = null;
+    }
+    
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     
-    // Show brief stopping message
-    toast.info('Stopping recording...');
     setIsStoppingRecording(true);
     
-    // Check word count
-    const currentWordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
-    console.log('📊 Meeting word count:', currentWordCount);
-    
-    // Stop duration timer first
+    // Stop duration timer
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -2679,27 +2850,6 @@ export const MeetingRecorder = ({
     if (transcriptSnippetIntervalRef.current) {
       clearInterval(transcriptSnippetIntervalRef.current);
       transcriptSnippetIntervalRef.current = null;
-    }
-    
-    // Stop all transcribers immediately
-    if (browserTranscriberRef.current) {
-      browserTranscriberRef.current.stopTranscription();
-      browserTranscriberRef.current = null;
-    }
-    
-    if (iPhoneTranscriberRef.current) {
-      iPhoneTranscriberRef.current.stopTranscription();
-      iPhoneTranscriberRef.current = null;
-    }
-    
-    if (desktopTranscriberRef.current) {
-      await desktopTranscriberRef.current.stopTranscription();
-      desktopTranscriberRef.current = null;
-    }
-
-    if (deepgramTranscriberRef.current) {
-      deepgramTranscriberRef.current.stopTranscription();
-      deepgramTranscriberRef.current = null;
     }
     
     // Stop microphone stream
@@ -2752,8 +2902,8 @@ export const MeetingRecorder = ({
       setRecordingBlob(null);
     }
     
-    setIsRecording(false);
-    isRecordingRef.current = false;
+      setIsRecording(false);
+      isRecordingRef.current = false;
     setIsStoppingRecording(false);
     setConnectionStatus("Disconnected");
     
@@ -2761,47 +2911,21 @@ export const MeetingRecorder = ({
     localStorage.removeItem('unsaved_meeting');
     
     console.log('Recording stopped');
+    toast.success('Recording stopped');
     
-    console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', currentWordCount);
-    
-    // Helper function to reset meeting state
-    const resetToInitialState = () => {
-      // Reset all meeting state for a fresh start
-      setDuration(0);
-      setTranscript("");
-      setRealtimeTranscripts([]);
-      setWordCount(0);
-      setChunkCounter(0);
-      setConnectionStatus("Disconnected");
-      setSpeakerCount(0);
-      setLastPhrase("");
-      setTranscriptSnippet("");
-      setShowTranscriptSnippet(false);
-      setFirstTranscriptionReceived(false);
-      
-      // Call parent callbacks to reset UI
-      onTranscriptUpdate("");
-      onDurationUpdate("00:00");
-      onWordCountUpdate(0);
-      
-      console.log('Meeting state reset for new recording');
-    };
+    console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', wordCount);
     
     // Relaxed validation - only require 5 seconds and any transcript content
     if (duration < 5) {
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
       toast.error('Recording too short. Minimum 5 seconds required.');
-      // Reset immediately even on failure
-      resetToInitialState();
       return;
     }
 
     // For iPhone compatibility - accept any transcript content
-    if (!transcript && currentWordCount < 5) {
-      console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount: currentWordCount });
+    if (!transcript && wordCount < 5) {
+      console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount });
       toast.error('No transcript content detected.');
-      // Reset immediately even on failure
-      resetToInitialState();
       return;
     }
     
@@ -3002,7 +3126,9 @@ export const MeetingRecorder = ({
     
     try {
       
-      // Save meeting without modal steps
+      // Step 1: Saving
+      setSavingSteps({ saving: true, securing: false, complete: false });
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
@@ -3055,7 +3181,9 @@ export const MeetingRecorder = ({
 
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
 
-      // Save transcript
+      // Step 2: Securing data
+      setSavingSteps({ saving: true, securing: true, complete: false });
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // 2. Save transcript
       if (meetingData.transcript) {
@@ -3072,7 +3200,9 @@ export const MeetingRecorder = ({
 
       toast.success('Meeting saved successfully!');
 
-      // Continue with background processing
+      // Step 3: Complete
+      setSavingSteps({ saving: true, securing: true, complete: true });
+      await new Promise(resolve => setTimeout(resolve, 200)); // Phase 4 total now 500ms
 
       // Trigger background notes generation
       console.log('🤖 Triggering background notes generation for meeting:', savedMeeting.id);
@@ -3116,22 +3246,28 @@ export const MeetingRecorder = ({
         // Signal to Meeting History and trigger localStorage communication
         signalMeetingHistoryRefresh();
       
-      // Clear session storage
-      sessionStorage.removeItem('currentSessionId');
-      sessionStorage.removeItem('currentMeetingId');
-      
-      // Immediately reset meeting state for next recording
-      resetToInitialState();
-      
-      // Show success message
+      // Show final success modal with meeting details
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-      toast.success(`Meeting "${formattedTitle}" saved successfully! Ready for new meeting.`);
+      setMeetingEndModal(prev => ({
+        ...prev,
+        stage: 'success',
+        savedData: {
+          title: formattedTitle,
+          duration: formatDuration(duration),
+          wordCount: wordCount,
+          id: savedMeeting.id
+        }
+      }));
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
       
-      // Still reset on error to avoid broken state
-      resetToInitialState();
+      // Close modal on error
+      setMeetingEndModal({
+        isOpen: false,
+        stage: 'processing',
+        savedData: null
+      });
       toast.error('Failed to save meeting to database');
     }
   };
@@ -3944,11 +4080,11 @@ export const MeetingRecorder = ({
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
                           size="lg"
-                           disabled={isStoppingRecording}
+                           disabled={isStoppingRecording || meetingEndModal.isOpen}
                           className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
                           <Square className="h-5 w-5 mr-2" />
-                          {isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording")}
+                          {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
                         </Button>
                        </div>
                     )}
@@ -4077,8 +4213,8 @@ export const MeetingRecorder = ({
                   <div className="max-w-sm mx-auto">
                      <button
                        type="button"
-                        onClick={() => { 
-                          if (!isStoppingRecording) {
+                       onClick={() => { 
+                         if (!isStoppingRecording && !meetingEndModal.isOpen) {
                            if (isRecording) {
                              handleDoubleClickProtection();
                            } else {
@@ -4086,7 +4222,7 @@ export const MeetingRecorder = ({
                            }
                          }
                        }}
-                       disabled={isStoppingRecording}
+                       disabled={isStoppingRecording || meetingEndModal.isOpen}
                        className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                          doubleClickProtection 
                            ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
@@ -4515,9 +4651,30 @@ export const MeetingRecorder = ({
         wordCount={wordCount}
       />
 
+      {/* Combined End-of-Meeting Modal */}
+      {meetingEndModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-md w-full mx-4 border border-border animate-scale-in">
+            <div className="p-6 space-y-6">
+              
+              {/* Processing Stage */}
+              {meetingEndModal.stage === 'processing' && (
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Finalizing your transcription{processingDots}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 opacity-75">
+                    Capturing final audio segments...
+                  </p>
+                </div>
+              )}
 
               {/* Saving Stage */}
-              {/* Modal content removed */}
+              {meetingEndModal.stage === 'saving' && (
                 <>
                   <div className="text-center">
                     <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -4529,16 +4686,16 @@ export const MeetingRecorder = ({
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        false ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                        savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
                       }`}>
-                        {false ? (
+                        {savingSteps.saving ? (
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
                         ) : (
                           <div className="w-2 h-2 bg-muted-foreground rounded-full" />
                         )}
                       </div>
                       <span className={`text-sm transition-colors duration-300 ${
-                        false ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
                       }`}>
                         Saving the meeting...
                       </span>
@@ -4546,22 +4703,22 @@ export const MeetingRecorder = ({
 
                     <div className="flex items-center space-x-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        false ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                        savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
                       }`}>
-                        {false ? (
+                        {savingSteps.securing ? (
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
                         ) : (
                           <div className="w-2 h-2 bg-muted-foreground rounded-full" />
                         )}
                       </div>
                       <span className={`text-sm transition-colors duration-300 ${
-                        false ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
                       }`}>
                         Securing your data...
                       </span>
                     </div>
 
-                    {false && (
+                    {savingSteps.complete && (
                       <div className="flex items-center space-x-3">
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary">
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
@@ -4573,6 +4730,10 @@ export const MeetingRecorder = ({
                     )}
                   </div>
                 </>
+              )}
+
+              {/* Success Stage */}
+              {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
                 <div className="animate-fade-in">
                   <div className="text-center">
                     <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
@@ -4584,23 +4745,23 @@ export const MeetingRecorder = ({
                   <div className="space-y-3 text-sm">
                     <div className="flex flex-col gap-2 py-2 border-b border-border">
                       <span className="text-muted-foreground">Meeting Name:</span>
-                      <span className="font-medium text-foreground text-wrap break-words">Meeting Title</span>
+                      <span className="font-medium text-foreground text-wrap break-words">{meetingEndModal.savedData.title}</span>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium text-foreground">Duration</span>
+                      <span className="font-medium text-foreground">{meetingEndModal.savedData.duration}</span>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-b border-border">
                       <span className="text-muted-foreground">Words Transcribed:</span>
-                      <span className="font-medium text-foreground">Word Count</span>
+                      <span className="font-medium text-foreground">{meetingEndModal.savedData.wordCount}</span>
                     </div>
                     
                     <div className="pt-2 text-center text-xs text-muted-foreground">
                       This meeting is now available in your<br />
                       <span className="font-medium">Meeting History</span> tab as:<br />
-                      <span className="font-medium text-primary">Meeting Title</span>
+                      <span className="font-medium text-primary">"{meetingEndModal.savedData.title}"</span>
                     </div>
                   </div>
                   
@@ -4620,7 +4781,7 @@ export const MeetingRecorder = ({
                       setFirstTranscriptionReceived(false);
                       
                       // Reset the modal
-                      // Modal removed - this button should not exist
+                      setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null });
                       
                       // Call parent callbacks to reset UI
                       onTranscriptUpdate("");
@@ -4634,6 +4795,12 @@ export const MeetingRecorder = ({
                      Continue
                    </button>
                   </div>
+                )}
+               
+               </div>
+             </div>
+           </div>
+         )}
 
           {/* Full Page Notes Modal */}
           {fullPageModalOpen && modalMeeting && !detectDevice().isIOS && (
