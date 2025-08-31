@@ -78,8 +78,6 @@ const AI4GPService = () => {
       return data || [];
     },
   });
-  const [selectedMeeting, setSelectedMeeting] = useState<MeetingData | null>(null);
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -171,10 +169,6 @@ const AI4GPService = () => {
     setShowSearchHistory(false);
   };
 
-  const handleViewMeeting = (meeting: MeetingData) => {
-    setSelectedMeeting(meeting);
-    setShowMeetingModal(true);
-  };
 
   const handleScrollToInput = () => {
     // Scroll to bottom of viewport
@@ -330,7 +324,6 @@ const AI4GPService = () => {
                       <MeetingsDropdown
                         meetings={meetings}
                         isLoading={meetingsLoading}
-                        onViewMeeting={handleViewMeeting}
                       />
                     </CardTitle>
                   </div>
@@ -811,50 +804,6 @@ const AI4GPService = () => {
         />
       )}
 
-      {/* Meeting Details Modal */}
-      {selectedMeeting && (
-        <Dialog open={showMeetingModal} onOpenChange={setShowMeetingModal}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedMeeting.title || 'Meeting Details'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
-                  <p className="text-sm">{new Date(selectedMeeting.startTime).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Duration</p>
-                  <p className="text-sm">{selectedMeeting.duration} minutes</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Word Count</p>
-                  <p className="text-sm">{selectedMeeting.wordCount?.toLocaleString() || 0} words</p>
-                </div>
-              </div>
-              
-              {selectedMeeting.generatedNotes && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Meeting Notes</p>
-                  <div className="bg-muted/20 p-4 rounded-lg">
-                    <pre className="whitespace-pre-wrap text-sm">{selectedMeeting.generatedNotes}</pre>
-                  </div>
-                </div>
-              )}
-              
-              {selectedMeeting.transcript && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Transcript</p>
-                  <div className="bg-muted/20 p-4 rounded-lg max-h-60 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm">{selectedMeeting.transcript}</pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, FileText, Copy, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -17,14 +18,13 @@ import { MeetingData } from '@/types/meetingTypes';
 interface MeetingsDropdownProps {
   meetings: any[];
   isLoading: boolean;
-  onViewMeeting: (meeting: MeetingData) => void;
 }
 
 export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   meetings,
   isLoading,
-  onViewMeeting,
 }) => {
+  const navigate = useNavigate();
   const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
@@ -113,16 +113,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
   const handleMeetingClick = (meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
-    const meetingData: MeetingData = {
-      id: meeting.id,
-      title: meeting.title || 'Untitled Meeting',
-      duration: meeting.duration_minutes?.toString() || '0',
-      wordCount: meeting.word_count || 0,
-      transcript: '',
-      speakerCount: 1,
-      startTime: meeting.start_time || meeting.created_at,
-    };
-    onViewMeeting(meetingData);
+    navigate('/meetings', { state: { scrollToMeetingId: meeting.id } });
   };
 
   return (
@@ -178,7 +169,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>{formatMeetingDate(meeting.start_time || meeting.created_at)}</div>
                   <div className="flex items-center justify-between">
-                    <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count || 0} words</span>
+                    <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count ? `${meeting.word_count} words` : 'N/A words'}</span>
                     
                     {/* Action Buttons */}
                     <div className="flex gap-1">
