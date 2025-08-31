@@ -1304,7 +1304,7 @@ const MeetingHistory = () => {
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
       
-      const [transcriptCounts, summaryExists, wordCounts, documentsData] = await Promise.all([
+      const [transcriptCounts, summaryExists, { wordCounts, transcriptContents }, documentsData] = await Promise.all([
         // Get transcript counts in one query
         supabase
           .from('meeting_transcripts')
@@ -1329,18 +1329,25 @@ const MeetingHistory = () => {
             }, {} as Record<string, boolean>) || {};
           }),
 
-        // Get word counts from transcripts
+        // Get word counts from transcripts and store transcript content
         supabase
           .from('meeting_transcripts')
           .select('meeting_id, content')
           .in('meeting_id', meetingIds)
           .then(({ data }) => {
             const wordCounts: Record<string, number> = {};
+            const transcriptContents: Record<string, string> = {};
             data?.forEach(transcript => {
               const words = transcript.content.split(/\s+/).filter(word => word.length > 0);
               wordCounts[transcript.meeting_id] = (wordCounts[transcript.meeting_id] || 0) + words.length;
+              // Store the transcript content (concatenate if multiple segments)
+              if (transcriptContents[transcript.meeting_id]) {
+                transcriptContents[transcript.meeting_id] += ' ' + transcript.content;
+              } else {
+                transcriptContents[transcript.meeting_id] = transcript.content;
+              }
             });
-            return wordCounts;
+            return { wordCounts, transcriptContents };
           }),
 
         // Get document details
@@ -1371,6 +1378,7 @@ const MeetingHistory = () => {
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         word_count: wordCounts[meeting.id] || null,
+        transcript: transcriptContents[meeting.id] || null, // Add transcript content
         document_count: documentsData[meeting.id]?.length || 0,
         documents: documentsData[meeting.id] || [],
         // Extract the overview from the nested meeting_overviews object
