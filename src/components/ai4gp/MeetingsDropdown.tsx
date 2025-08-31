@@ -52,18 +52,26 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
     try {
       if (actionType === 'word') {
-        // Generate Word document
-        const meetingData: MeetingData = {
-          id: meeting.id,
-          title: meeting.title || 'Untitled Meeting',
-          duration: meeting.duration_minutes?.toString() || '0',
-          wordCount: meeting.word_count || 0,
-          transcript: '', // Will be fetched by the export hook
-          speakerCount: 1,
-          startTime: meeting.start_time || meeting.created_at,
-        };
+        // Fetch transcript content from database
+        const { data: transcriptData, error } = await supabase
+          .from('meeting_transcripts')
+          .select('content')
+          .eq('meeting_id', meeting.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-        await generateWordDocument(meetingData.transcript || '', meeting.title || 'Meeting Notes');
+        if (error || !transcriptData?.content) {
+          toast({
+            title: "No Transcript Found",
+            description: "No transcript content available for this meeting.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Generate Word document with actual transcript content
+        await generateWordDocument(transcriptData.content, meeting.title || 'Meeting Notes');
         toast({
           title: "Word Document Generated",
           description: "Meeting notes have been downloaded as a Word document.",
