@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Copy, Loader2 } from 'lucide-react';
+import { Calendar, FileText, Copy, Loader2, Sparkles } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { useToast } from '@/hooks/use-toast';
 import { MeetingData } from '@/types/meetingTypes';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingsDropdownProps {
   meetings: any[];
@@ -84,6 +85,38 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           title: "Transcript Copied",
           description: "Meeting transcript has been copied to your clipboard.",
         });
+      } else if (actionType === 'trigger') {
+        // Manually trigger note generation
+        console.log('🔧 Manual trigger for meeting:', meeting.id);
+        
+        // First check if meeting has completed status and transcript
+        if (meeting.status !== 'completed') {
+          toast({
+            title: "Cannot Generate Notes",
+            description: "Meeting must be completed to generate notes.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+          body: { meetingId: meeting.id, forceRegenerate: true }
+        });
+
+        if (error) {
+          console.error('❌ Failed to trigger notes generation:', error);
+          toast({
+            title: "Generation Failed",
+            description: "Failed to trigger note generation. Please try again.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('✅ Notes generation triggered successfully:', data);
+          toast({
+            title: "Notes Generation Started",
+            description: "Meeting notes are being generated. This may take a few minutes.",
+          });
+        }
       }
     } catch (error) {
       console.error(`Error performing ${actionType} action:`, error);
@@ -175,33 +208,48 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                         : `${meeting.word_count} words`
                     ) : 'N/A words'}</span>
                     
-                    {/* Action Buttons */}
-                    <div className="flex gap-1">
-                      <button
-                        onClick={(e) => handleAction('word', meeting, e)}
-                        disabled={processingActions[`${meeting.id}-word`]}
-                        className="p-1 hover:bg-accent rounded transition-colors"
-                        title="Download Word"
-                      >
-                        {processingActions[`${meeting.id}-word`] ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <FileText className="w-3 h-3" />
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => handleAction('copy', meeting, e)}
-                        disabled={processingActions[`${meeting.id}-copy`]}
-                        className="p-1 hover:bg-accent rounded transition-colors"
-                        title="Copy Transcript"
-                      >
-                        {processingActions[`${meeting.id}-copy`] ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
-                    </div>
+                     {/* Action Buttons */}
+                     <div className="flex gap-1">
+                       {/* Manual Trigger Button - Only show for completed meetings */}
+                       {meeting.status === 'completed' && (
+                         <button
+                           onClick={(e) => handleAction('trigger', meeting, e)}
+                           disabled={processingActions[`${meeting.id}-trigger`]}
+                           className="p-1 hover:bg-accent rounded transition-colors"
+                           title="Generate Notes (Manual)"
+                         >
+                           {processingActions[`${meeting.id}-trigger`] ? (
+                             <Loader2 className="w-3 h-3 animate-spin" />
+                           ) : (
+                             <Sparkles className="w-3 h-3 text-primary" />
+                           )}
+                         </button>
+                       )}
+                       <button
+                         onClick={(e) => handleAction('word', meeting, e)}
+                         disabled={processingActions[`${meeting.id}-word`]}
+                         className="p-1 hover:bg-accent rounded transition-colors"
+                         title="Download Word"
+                       >
+                         {processingActions[`${meeting.id}-word`] ? (
+                           <Loader2 className="w-3 h-3 animate-spin" />
+                         ) : (
+                           <FileText className="w-3 h-3" />
+                         )}
+                       </button>
+                       <button
+                         onClick={(e) => handleAction('copy', meeting, e)}
+                         disabled={processingActions[`${meeting.id}-copy`]}
+                         className="p-1 hover:bg-accent rounded transition-colors"
+                         title="Copy Transcript"
+                       >
+                         {processingActions[`${meeting.id}-copy`] ? (
+                           <Loader2 className="w-3 h-3 animate-spin" />
+                         ) : (
+                           <Copy className="w-3 h-3" />
+                         )}
+                       </button>
+                     </div>
                   </div>
                 </div>
               </div>
