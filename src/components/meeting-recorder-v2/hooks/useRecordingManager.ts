@@ -293,41 +293,6 @@ export function useRecordingManager(
     }
   }, [isResourceOperationSafe, createTranscriber, onDurationUpdate, formatDuration]);
 
-  const stopRecording = useCallback(async () => {
-    setState(prev => ({ ...prev, isStoppingRecording: true }));
-
-    try {
-      if (transcriberRef.current) {
-        await transcriberRef.current.stopTranscription();
-        transcriberRef.current = null;
-      }
-
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
-      }
-
-      // Always attempt to save meeting - the trigger will handle notes generation if transcript exists
-      console.log(`🔄 Stopping recording: transcript length = ${state.transcript.length}, chunks = ${state.realtimeTranscripts.length}`);
-      await saveMeetingAndQueueNotes();
-
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isStoppingRecording: false,
-        isConnected: false
-      }));
-
-      toast.success('Recording stopped');
-      return true;
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      toast.error('Failed to stop recording');
-      setState(prev => ({ ...prev, isStoppingRecording: false }));
-      return false;
-    }
-  }, [state.transcript, state.realtimeTranscripts.length]);
-
   const saveMeetingAndQueueNotes = useCallback(async () => {
     console.log('🔄 Starting meeting save process...');
     
@@ -336,7 +301,7 @@ export function useRecordingManager(
       if (!user) {
         console.error('❌ No authenticated user found');
         toast.error('You must be logged in to save meetings');
-        return;
+        return false;
       }
 
       console.log('✅ User authenticated:', user.id);
@@ -433,7 +398,7 @@ export function useRecordingManager(
       if (!meeting) {
         console.error('❌ No meeting returned after save operation');
         toast.error('Failed to save meeting - no meeting data returned');
-        return;
+        return false;
       }
 
       // Save transcript chunks - CRITICAL for auto-notes generation
@@ -483,11 +448,87 @@ export function useRecordingManager(
         toast.success(`Meeting saved successfully${meeting.id === existingMeeting?.id ? ' (updated existing)' : ' (new)'}`);
       }
 
+      return true; // Indicate success
     } catch (error) {
       console.error('❌ Critical error in saveMeetingAndQueueNotes:', error);
-      toast.error('Failed to save meeting - please try manual process');
+      
+      // Detailed error logging for debugging
+      console.error('Save meeting error details:', {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stackTrace: error instanceof Error ? error.stack : undefined,
+        meetingData: {
+          duration: state.duration,
+          wordCount: state.wordCount,
+          transcriptChunks: state.realtimeTranscripts.length,
+          finalTranscripts: state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim()).length
+        }
+      });
+      
+      toast.error('Failed to save meeting - please try manual process or use meeting recovery');
+      return false; // Indicate failure
     }
   }, [state.duration, state.wordCount, state.speakerCount, state.realtimeTranscripts]);
+
+  const stopRecording = useCallback(async () => {
+    console.log('🛑 Stop recording initiated');
+    setState(prev => ({ ...prev, isStoppingRecording: true }));
+
+    try {
+      console.log('🔄 Stopping transcriber...');
+      if (transcriberRef.current) {
+        await transcriberRef.current.stopTranscription();
+        transcriberRef.current = null;
+        console.log('✅ Transcriber stopped successfully');
+      }
+
+      console.log('⏱️ Clearing duration interval...');
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+        console.log('✅ Duration interval cleared');
+      }
+
+      // Always attempt to save meeting - the trigger will handle notes generation if transcript exists
+      console.log(`🔄 Stopping recording: transcript length = ${state.transcript.length}, chunks = ${state.realtimeTranscripts.length}`);
+      
+      const saveSuccess = await saveMeetingAndQueueNotes();
+      if (!saveSuccess) {
+        console.error('❌ Meeting save failed but continuing with stop process');
+        toast.error('Recording stopped but failed to save properly. Meeting may need manual recovery.');
+      }
+
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        isStoppingRecording: false,
+        isConnected: false
+      }));
+
+      console.log('✅ Recording stop process completed');
+      toast.success('Recording stopped');
+      return true;
+    } catch (error) {
+      console.error('❌ Critical error in stop recording process:', error);
+      toast.error(`Failed to stop recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setState(prev => ({ ...prev, isStoppingRecording: false }));
+      
+      // Log detailed error information for debugging
+      console.error('Stop recording error details:', {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stackTrace: error instanceof Error ? error.stack : undefined,
+        state: {
+          isRecording: state.isRecording,
+          duration: state.duration,
+          transcriptLength: state.transcript.length,
+          chunksCount: state.realtimeTranscripts.length
+        }
+      });
+      
+      return false;
+    }
+  }, [state.transcript, state.realtimeTranscripts.length, state.isRecording, state.duration, saveMeetingAndQueueNotes]);
 
   const resetRecording = useCallback(() => {
     setState({
