@@ -18,82 +18,24 @@ const AI4GP = () => {
   const [loading, setLoading] = useState(false);
   const [drugModalOpen, setDrugModalOpen] = useState(false);
   
-  // Function to regenerate meeting notes using Claude for consistent formatting
+  // Function to regenerate meeting notes using GPT auto-generation for consistent formatting
   const regenerateMeetingNotes = async (meetingId: string) => {
     try {
       console.log('🔄 Regenerating meeting notes for meeting:', meetingId);
       
-      // First fetch the meeting data
-      const { data: meetingData, error: meetingError } = await supabase
-        .from('meetings')
-        .select('*')
-        .eq('id', meetingId)
-        .single();
-
-      if (meetingError) throw meetingError;
-
-      // Get transcript using the same database function as auto-generate-meeting-notes
-      const { data: transcriptResult, error: transcriptError } = await supabase
-        .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
-
-      if (transcriptError) throw transcriptError;
-
-      const transcriptData = transcriptResult?.[0];
-      const transcript = transcriptData?.transcript || '';
-      
-      if (!transcript.trim()) {
-        throw new Error('No transcript available for this meeting');
-      }
-
-      // Use the same Claude function that generates well-formatted notes
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-        body: {
-          transcript: transcript,
-          meetingTitle: meetingData.title || 'Meeting Notes',
-          meetingDate: new Date(meetingData.start_time).toLocaleDateString('en-GB'),
-          meetingTime: new Date(meetingData.start_time).toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          detailLevel: 'standard', // Use standard detail level for professional formatting
-          meetingContext: {
-            participants: meetingData.participants || [],
-            agenda: meetingData.agenda || '',
-            meetingFormat: meetingData.meeting_format || '',
-            meetingLocation: meetingData.meeting_location || ''
-          }
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { 
+          meetingId: meetingId, 
+          forceRegenerate: true 
         }
       });
 
       if (error) {
-        console.error('❌ Error regenerating notes:', error);
+        console.error('❌ Error regenerating meeting notes:', error);
         throw error;
       }
 
-      // Save the regenerated notes to the database
-      if (data?.generatedNotes) {
-        // Save to meeting_summaries table
-        const { error: summaryError } = await supabase
-          .from('meeting_summaries')
-          .upsert({
-            meeting_id: meetingId,
-            summary: data.generatedNotes,
-            ai_generated: true,
-            updated_at: new Date().toISOString()
-          });
-
-        if (summaryError) throw summaryError;
-        
-        // Also update meeting description for quick preview
-        await supabase
-          .from('meetings')
-          .update({ 
-            description: data.generatedNotes.substring(0, 1000)
-          })
-          .eq('id', meetingId);
-      }
-
-      console.log('✅ Successfully regenerated meeting notes with Claude formatting');
+      console.log('✅ Successfully regenerated meeting notes with GPT formatting');
       return data;
     } catch (error) {
       console.error('❌ Failed to regenerate meeting notes:', error);
