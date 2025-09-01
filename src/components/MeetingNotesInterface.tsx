@@ -23,16 +23,16 @@ interface MeetingSettings {
 }
 
 interface GeneratedNotes {
-  warm_welcoming?: string;
-  kind_agenda_based?: string;
-  empathetic_action_items?: string;
-  supportive_informal?: string;
-  encouraging_brainstorming?: string;
-  gentle_hr?: string;
-  friendly_project_update?: string;
-  positive_supplier?: string;
-  bright_executive?: string;
-  cheerful_retrospective?: string;
+  formal_board?: string;
+  informal_team?: string;
+  agenda_based?: string;
+  narrative_complex?: string;
+  resolution_style?: string;
+  brainstorming_session?: string;
+  hr_performance?: string;
+  gp_partnership?: string;
+  supplier_negotiation?: string;
+  executive_confidential?: string;
   [key: string]: any;
 }
 
@@ -54,7 +54,7 @@ export default function MeetingNotesInterface() {
   const [loading, setLoading] = useState(false);
   const [generatedNotes, setGeneratedNotes] = useState<GeneratedNotes | null>(null);
   const [styleNames, setStyleNames] = useState<StyleNames>({});
-  const [activeTab, setActiveTab] = useState('warm_welcoming');
+  const [activeTab, setActiveTab] = useState('formal_board');
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
@@ -284,37 +284,37 @@ export default function MeetingNotesInterface() {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <div className="mb-4">
                   <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-                    <TabsTrigger value="warm_welcoming" className="text-xs px-2 py-2">
-                      Warm Overview
+                    <TabsTrigger value="formal_board" className="text-xs px-2 py-2">
+                      Formal Board
                     </TabsTrigger>
-                    <TabsTrigger value="kind_agenda_based" className="text-xs px-2 py-2">
+                    <TabsTrigger value="informal_team" className="text-xs px-2 py-2">
+                      Informal Team
+                    </TabsTrigger>
+                    <TabsTrigger value="agenda_based" className="text-xs px-2 py-2">
                       Agenda-Based
                     </TabsTrigger>
-                    <TabsTrigger value="empathetic_action_items" className="text-xs px-2 py-2">
-                      Action Items
+                    <TabsTrigger value="narrative_complex" className="text-xs px-2 py-2">
+                      Narrative
                     </TabsTrigger>
-                    <TabsTrigger value="supportive_informal" className="text-xs px-2 py-2">
-                      Informal Recap
-                    </TabsTrigger>
-                    <TabsTrigger value="encouraging_brainstorming" className="text-xs px-2 py-2">
-                      Brainstorming
+                    <TabsTrigger value="resolution_style" className="text-xs px-2 py-2">
+                      Resolution
                     </TabsTrigger>
                   </TabsList>
                   <TabsList className="grid w-full grid-cols-5 h-auto p-1 mt-2">
-                    <TabsTrigger value="gentle_hr" className="text-xs px-2 py-2">
-                      HR Summary
+                    <TabsTrigger value="brainstorming_session" className="text-xs px-2 py-2">
+                      Brainstorming
                     </TabsTrigger>
-                    <TabsTrigger value="friendly_project_update" className="text-xs px-2 py-2">
-                      Project Update
+                    <TabsTrigger value="hr_performance" className="text-xs px-2 py-2">
+                      HR Performance
                     </TabsTrigger>
-                    <TabsTrigger value="positive_supplier" className="text-xs px-2 py-2">
-                      Supplier Recap
+                    <TabsTrigger value="gp_partnership" className="text-xs px-2 py-2">
+                      GP Partnership
                     </TabsTrigger>
-                    <TabsTrigger value="bright_executive" className="text-xs px-2 py-2">
+                    <TabsTrigger value="supplier_negotiation" className="text-xs px-2 py-2">
+                      Supplier
+                    </TabsTrigger>
+                    <TabsTrigger value="executive_confidential" className="text-xs px-2 py-2">
                       Executive
-                    </TabsTrigger>
-                    <TabsTrigger value="cheerful_retrospective" className="text-xs px-2 py-2">
-                      Retrospective
                     </TabsTrigger>
                   </TabsList>
                 </div>

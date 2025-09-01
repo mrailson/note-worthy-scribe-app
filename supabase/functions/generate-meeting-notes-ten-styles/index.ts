@@ -9,45 +9,45 @@ const corsHeaders = {
 };
 
 const MEETING_STYLES = {
-  warm_welcoming: {
-    name: "Warm, Welcoming Meeting Overview",
-    prompt: "Summarise this meeting transcript with a friendly introduction that sets a positive tone. Include the meeting's title, date, time, location, and attendees. Briefly state the meeting's purpose in a way that makes everyone feel valued. Then summarise the discussion points with brief, clear bullet points, highlighting key decisions and follow-up actions. Conclude with a warm closing that thanks participants and notes the next meeting date."
+  formal_board: {
+    name: "Formal board/committee minutes",
+    prompt: "Summarise this transcript into formal board/committee meeting minutes. Start with the meeting title, date, start–end time, venue and a list of attendees. Use the agenda as your outline and under each agenda item write a one‑ or two‑sentence summary of the discussion and the decision taken. Record motions and votes in neutral language (e.g., 'Action: motion made, seconded and carried') and include names only when legally required. Highlight approved actions and decisions separately, showing who is responsible and any deadlines. Finish with the next meeting date. Use clear, objective language and omit direct quotations and side conversations."
   },
-  kind_agenda_based: {
-    name: "Kind Agenda-Based Summary",
-    prompt: "Transform the meeting transcript into notes that are both structured and heartening. Present the agenda items as headings, and under each heading summarise the discussion in a warm, encouraging tone. Include decisions made and agreed actions, noting who is responsible. End with a kind reminder of the next steps and date."
+  informal_team: {
+    name: "Informal team meeting summary",
+    prompt: "Create a concise, informal meeting summary. Provide the meeting title, date/time and attendees. Write a one‑sentence meeting purpose. Use bullet points to capture the main discussion points, interesting ideas and any questions raised. List key decisions and action steps, noting who will do each task and the due date. Include a line for the next meeting date. Use a friendly tone and keep each bullet under three sentences."
   },
-  empathetic_action_items: {
-    name: "Empathetic Action-Item Summary",
-    prompt: "Please provide a friendly summary that focuses on action items and decisions. Start with a short greeting and meeting details (title, date, attendees). Then list action items with a positive note on who will take them and why they're important. Use a tone that motivates and appreciates contributions. Finish with a supportive closing statement and any next meeting information."
+  agenda_based: {
+    name: "Agenda‑based notes for structured meetings",
+    prompt: "Generate meeting notes that follow the agenda. Begin with meeting details (title, date, time, location, attendees) and the meeting purpose. For each agenda item, create a heading and summarise the discussion, key responses, questions and decisions. Capture action items with names and deadlines. End with a summary of all decisions and a 'follow‑up' section that lists unresolved items or action items carried over from previous meetings."
   },
-  supportive_informal: {
-    name: "Supportive Informal Meeting Recap",
-    prompt: "Create an informal meeting recap that reads like a friendly note. Include the meeting's basic details and a heartfelt explanation of why the meeting was held. Summarise the main ideas, questions, and decisions with compassion and encouragement. Note any action items with a focus on teamwork and follow-through. Close by thanking attendees and gently reminding them of the next meeting."
+  narrative_complex: {
+    name: "Narrative minutes for complex or negotiation meetings",
+    prompt: "Write narrative‑style minutes for this strategic or negotiation meeting. Open with the meeting title, date/time, location and participants. Provide a paragraph‑style summary of the discussion that conveys the flow of topics, different viewpoints and rationales. Use objective phrasing (e.g., 'Participant expressed concerns') rather than emotional descriptions. Where appropriate, note external documents or references mentioned. Conclude with a section listing the decisions made and action items, including responsible individuals and deadlines, and include any scheduled follow‑up meeting."
   },
-  encouraging_brainstorming: {
-    name: "Encouraging Brainstorming Notes",
-    prompt: "Write a positive, supportive summary of this brainstorming session. Start with the meeting details and a motivating statement about the session's goals. Organise ideas into themes, highlighting the most inspiring suggestions. Capture decisions or selected ideas in an uplifting way. Conclude with action items and a warm note inviting further collaboration."
+  resolution_style: {
+    name: "Resolution‑style minutes",
+    prompt: "Produce resolution‑style minutes focused on the outcomes of the meeting. State the meeting title, date/time, location and attendees. List each resolution or decision approved, along with a brief note of any motion made and the result (e.g., 'Motion to approve budget carried unanimously'). Note any assignments or deadlines arising from each decision. Omit the details of the discussion, simply stating that discussion occurred. Finish with the next meeting date."
   },
-  gentle_hr: {
-    name: "Gentle HR Meeting Summary",
-    prompt: "Craft a meeting summary that is sensitive and supportive, ideal for an HR performance or feedback discussion. Provide the meeting details, then summarise key topics (performance feedback, goals, or policy updates) in a compassionate, neutral tone. Capture decisions and next steps, focusing on growth and positivity. Wrap up with an encouraging closing."
+  brainstorming_session: {
+    name: "Brainstorming session summary",
+    prompt: "Turn this brainstorming transcript into organised notes. Include the session title, date/time and attendees. Briefly describe the objective. Group ideas under thematic headings (e.g., 'Patient‑care ideas', 'Operational improvements') and list notable ideas under each heading. Note any key questions and answers. Identify which ideas were selected for further exploration and why. Record action items with responsible people and timelines. Close with the next steps or follow‑up meeting date."
   },
-  friendly_project_update: {
-    name: "Friendly Project Update Notes",
-    prompt: "Summarise this project update meeting in a way that underscores teamwork and progress. Include the basic meeting details, then list each agenda item or project component with an upbeat description of what was discussed and any decisions made. Capture action items with names and deadlines, using language that acknowledges people's efforts. End with a motivating message about future collaboration."
+  hr_performance: {
+    name: "HR meeting/performance‑review summary",
+    prompt: "Create a confidential HR meeting summary. Provide meeting details (title, date/time, location) and participants by role rather than name if necessary. Summarise each topic discussed (such as performance feedback, policy updates or disciplinary issues) using neutral, objective language. Document the decisions and agreed actions, including who will do what and by when. Avoid including personal opinions or verbatim remarks; instead, describe sensitive matters generically and focus on outcomes. Conclude with follow‑up steps and the next meeting date."
   },
-  positive_supplier: {
-    name: "Positive Supplier Meeting Recap",
-    prompt: "Generate a cheerful summary of a meeting with a supplier or external partner. Provide the meeting's specifics, then briefly outline each discussion point (e.g., pricing, delivery, partnership opportunities) in a friendly and respectful tone. Note any agreements or action items in a way that reinforces partnership and trust. Conclude with an expression of gratitude and a note on next steps."
+  gp_partnership: {
+    name: "GP partnership (primary care) meeting notes",
+    prompt: "Summarise a GP partnership meeting. Start with the meeting title, date/time, venue and attendees (roles). State the meeting purpose. For each agenda topic (e.g., clinical updates, operational issues, supplier contracts, staffing), summarise the key points discussed, questions raised and any ideas or proposals. Highlight decisions made and action items with responsible partners and deadlines. Maintain patient confidentiality by omitting patient‑specific information. End with unresolved issues and the next meeting date."
   },
-  bright_executive: {
-    name: "Bright Executive Summary",
-    prompt: "Provide a concise and warm executive summary of this meeting, focusing on key decisions and outcomes. Begin with the meeting details, then summarise the main points and actions, using language that reflects unity and shared success. Ensure that the tone remains professional but optimistic. End with next steps and a heartfelt thank-you to attendees."
+  supplier_negotiation: {
+    name: "Supplier‑negotiation meeting summary",
+    prompt: "Generate notes for a supplier‑negotiation meeting. Include meeting details (title, date/time, location, attendees from both sides) and a brief meeting objective. Summarise each proposal and negotiation point discussed, such as pricing, deliverables and contract terms. Record agreements reached, including pricing or terms approved, and any outstanding questions or issues that require follow‑up. List action items with responsible parties and deadlines. Use clear, factual language and avoid disclosing sensitive numbers; present the essence of the agreements instead."
   },
-  cheerful_retrospective: {
-    name: "Cheerful Retrospective Summary",
-    prompt: "Transform the transcript into a retrospective summary that balances honesty with kindness. Note the meeting details and then divide the notes into 'What Went Well,' 'Challenges,' and 'Opportunities.' Describe each section with supportive language, giving credit to people for successes and framing challenges as opportunities for learning. Include action items for improvement, ending with an encouraging outlook."
+  executive_confidential: {
+    name: "Executive session/confidential minutes",
+    prompt: "Draft minutes for a confidential executive session. Provide the meeting title, date/time, location and attendees (e.g., board members). Note that the meeting was held in executive session for confidential discussions. For each agenda item, record only the action or decision taken using neutral phrasing (e.g., 'Action: motion made, seconded and carried'). Do not include details of the discussion or direct quotations. Identify any names only when legally required (e.g., when recording votes on conflicts of interest). List any approved resolutions or actions and the next meeting date."
   }
 };
 
