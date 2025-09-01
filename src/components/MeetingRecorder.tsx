@@ -1,12 +1,14 @@
 // Import the emergency recovery for auto-execution
-import './utils/quickMeetingRecovery';
+import '../utils/quickMeetingRecovery';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Mic, MicOff, Square, Play, Pause, Volume2, VolumeX, Settings, AlertCircle, CheckCircle2, Clock, FileText, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mic, MicOff, Square, Play, Pause, Volume2, Settings, Clock, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -30,81 +32,28 @@ interface MeetingRecorderProps {
 }
 
 export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({ 
-  meetingId: propMeetingId, 
-  onMeetingComplete 
+  onTranscriptUpdate,
+  onDurationUpdate,
+  onWordCountUpdate,
+  initialSettings
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
   // Core state
-  const [meetingId, setMeetingId] = useState<string | null>(propMeetingId || null);
-  const [meetingTitle, setMeetingTitle] = useState('');
+  const [meetingId, setMeetingId] = useState<string | null>(null);
+  const [meetingTitle, setMeetingTitle] = useState(initialSettings?.title || '');
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [transcript, setTranscript] = useState('');
+  const [wordCount, setWordCount] = useState(0);
   const [meetingStatus, setMeetingStatus] = useState<'idle' | 'recording' | 'paused' | 'completed'>('idle');
   
-  // Audio recording hook
-  const {
-    startRecording: startAudioRecording,
-    stopRecording: stopAudioRecording,
-    pauseRecording: pauseAudioRecording,
-    resumeRecording: resumeAudioRecording,
-    audioLevel,
-    isRecording: audioIsRecording,
-    error: audioError
-  } = useAudioRecording();
-
-  // Timer hook
-  const { 
-    elapsedTime, 
-    startTimer, 
-    pauseTimer, 
-    resumeTimer, 
-    stopTimer 
-  } = useMeetingTimer();
-
-  // Transcription hook
-  const {
-    transcript,
-    isTranscribing,
-    startTranscription,
-    stopTranscription,
-    pauseTranscription,
-    resumeTranscription,
-    error: transcriptionError,
-    wordCount
-  } = useRealtimeTranscription(meetingId);
-
-  // Audio playback hook
-  const {
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isMuted,
-    play,
-    pause,
-    seek,
-    setVolume,
-    toggleMute,
-    audioUrl
-  } = useAudioPlayback(meetingId);
-
-  // Settings hook
-  const {
-    settings,
-    updateSettings,
-    resetSettings
-  } = useRecordingSettings();
-
-  // Notes hook
-  const {
-    notes,
-    notesStatus,
-    generateNotes,
-    regenerateNotes
-  } = useMeetingNotes(meetingId);
+  // Refs
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Create new meeting
   const createMeeting = async (title: string) => {
@@ -136,6 +85,35 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     }
   };
 
+  // Start timer
+  const startTimer = () => {
+    intervalRef.current = setInterval(() => {
+      setElapsedTime(prev => {
+        const newTime = prev + 1;
+        onDurationUpdate(formatTime(newTime));
+        return newTime;
+      });
+    }, 1000);
+  };
+
+  // Stop timer
+  const stopTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  // Update transcript and word count
+  const updateTranscript = (newTranscript: string) => {
+    setTranscript(newTranscript);
+    const words = newTranscript.trim().split(/\s+/).filter(word => word.length > 0);
+    const count = words.length;
+    setWordCount(count);
+    onTranscriptUpdate(newTranscript);
+    onWordCountUpdate(count);
+  };
+
   // Start recording
   const startRecording = async () => {
     if (!meetingTitle.trim()) {
@@ -153,11 +131,26 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         setMeetingId(currentMeetingId);
       }
 
-      // Start audio recording
-      await startAudioRecording(currentMeetingId);
+      // Get microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      // Setup MediaRecorder
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = new MediaRecorder(stream);
       
-      // Start transcription
-      await startTranscription();
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.start(1000); // Record in 1-second chunks
       
       // Start timer
       startTimer();
@@ -167,6 +160,12 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       setMeetingStatus('recording');
       
       toast.success('Recording started');
+      
+      // Simulate transcript updates for demo
+      setTimeout(() => {
+        updateTranscript('Recording in progress...');
+      }, 2000);
+      
     } catch (error) {
       console.error('❌ Failed to start recording:', error);
       toast.error('Failed to start recording');
@@ -176,10 +175,11 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   // Pause recording
   const pauseRecording = async () => {
     try {
-      await pauseAudioRecording();
-      pauseTranscription();
-      pauseTimer();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.pause();
+      }
       
+      stopTimer();
       setIsPaused(true);
       setMeetingStatus('paused');
       
@@ -193,10 +193,11 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   // Resume recording
   const resumeRecording = async () => {
     try {
-      await resumeAudioRecording();
-      resumeTranscription();
-      resumeTimer();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+        mediaRecorderRef.current.resume();
+      }
       
+      startTimer();
       setIsPaused(false);
       setMeetingStatus('recording');
       
@@ -214,12 +215,16 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     try {
       console.log('🛑 Stopping recording for meeting:', meetingId);
       
-      // Stop all recording processes
-      await stopAudioRecording();
-      stopTranscription();
+      // Stop MediaRecorder
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
+      }
+      
+      // Stop timer
       stopTimer();
       
-      // Update meeting status to completed
+      // Update meeting status to completed with end_time
       const endTime = new Date();
       const { error: updateError } = await supabase
         .from('meetings')
@@ -227,7 +232,8 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
           status: 'completed',
           end_time: endTime.toISOString(),
           updated_at: endTime.toISOString(),
-          word_count: wordCount
+          word_count: wordCount,
+          duration_minutes: Math.ceil(elapsedTime / 60)
         })
         .eq('id', meetingId);
 
@@ -237,26 +243,26 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         return;
       }
 
-      console.log('✅ Meeting status updated to completed');
+      console.log('✅ Meeting status updated to completed with end_time');
+      
+      // Save transcript if available
+      if (transcript.trim()) {
+        await supabase
+          .from('meeting_transcripts')
+          .insert({
+            meeting_id: meetingId,
+            speaker_name: 'Meeting Recording',
+            content: transcript,
+            timestamp_seconds: 0,
+            confidence_score: 1.0
+          });
+      }
       
       setIsRecording(false);
       setIsPaused(false);
       setMeetingStatus('completed');
       
       toast.success('Recording completed successfully');
-      
-      // Trigger notes generation if there's transcript content
-      if (wordCount > 0) {
-        console.log('📝 Triggering notes generation...');
-        setTimeout(() => {
-          generateNotes();
-        }, 2000);
-      }
-      
-      // Call completion callback
-      if (onMeetingComplete) {
-        onMeetingComplete(meetingId);
-      }
       
     } catch (error) {
       console.error('❌ Failed to stop recording:', error);
@@ -286,259 +292,211 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     }
   };
 
-  // Get status icon
-  const getStatusIcon = () => {
-    switch (meetingStatus) {
-      case 'recording': return <Mic className="h-3 w-3" />;
-      case 'paused': return <Pause className="h-3 w-3" />;
-      case 'completed': return <CheckCircle2 className="h-3 w-3" />;
-      default: return <Clock className="h-3 w-3" />;
-    }
-  };
-
-  // Handle errors
+  // Clean up on unmount
   useEffect(() => {
-    if (audioError) {
-      toast.error(`Audio Error: ${audioError}`);
-    }
-    if (transcriptionError) {
-      toast.error(`Transcription Error: ${transcriptionError}`);
-    }
-  }, [audioError, transcriptionError]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <CardTitle className="flex items-center gap-2">
-                Meeting Recorder
-                <Badge variant={getStatusBadgeVariant()}>
-                  {getStatusIcon()}
-                  {meetingStatus.charAt(0).toUpperCase() + meetingStatus.slice(1)}
-                </Badge>
-              </CardTitle>
-              {meetingId && (
-                <p className="text-sm text-muted-foreground">
-                  Meeting ID: {meetingId}
-                </p>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Meeting Title Input */}
-          {!isRecording && meetingStatus !== 'completed' && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Meeting Title</label>
-              <input
-                type="text"
-                value={meetingTitle}
-                onChange={(e) => setMeetingTitle(e.target.value)}
-                placeholder="Enter meeting title..."
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Tabs defaultValue="recorder" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="recorder">
+            <Mic className="h-4 w-4 mr-2" />
+            Recorder
+          </TabsTrigger>
+          <TabsTrigger value="transcript">
+            <FileText className="h-4 w-4 mr-2" />
+            Transcript
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Timer and Stats */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-2xl font-mono font-bold">
-                {formatTime(elapsedTime)}
-              </div>
-              {wordCount > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  {wordCount} words transcribed
+        <TabsContent value="recorder" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="flex items-center gap-2">
+                    Meeting Recorder
+                    <Badge variant={getStatusBadgeVariant()}>
+                      <Clock className="h-3 w-3 mr-1" />
+                      {meetingStatus.charAt(0).toUpperCase() + meetingStatus.slice(1)}
+                    </Badge>
+                  </CardTitle>
+                  {meetingId && (
+                    <p className="text-sm text-muted-foreground">
+                      Meeting ID: {meetingId}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            {/* Audio Level Indicator */}
-            {isRecording && (
-              <div className="flex items-center gap-2">
-                <Volume2 className="h-4 w-4" />
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-green-500 transition-all duration-100"
-                    style={{ width: `${Math.min(audioLevel * 100, 100)}%` }}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Meeting Title Input */}
+              {!isRecording && meetingStatus !== 'completed' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Meeting Title</label>
+                  <Input
+                    type="text"
+                    value={meetingTitle}
+                    onChange={(e) => setMeetingTitle(e.target.value)}
+                    placeholder="Enter meeting title..."
                   />
                 </div>
+              )}
+
+              {/* Timer and Stats */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="text-2xl font-mono font-bold">
+                    {formatTime(elapsedTime)}
+                  </div>
+                  {wordCount > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {wordCount} words transcribed
+                    </div>
+                  )}
+                </div>
+                
+                {/* Recording indicator */}
+                {isRecording && !isPaused && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-sm text-red-600 font-medium">Recording</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Control Buttons */}
-          <div className="flex items-center gap-2">
-            {!isRecording && meetingStatus !== 'completed' && (
-              <Button
-                onClick={startRecording}
-                disabled={!meetingTitle.trim()}
-                className="flex-1"
-              >
-                <Mic className="h-4 w-4 mr-2" />
-                Start Recording
-              </Button>
-            )}
-            
-            {isRecording && !isPaused && (
-              <>
-                <Button
-                  onClick={pauseRecording}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <Pause className="h-4 w-4 mr-2" />
-                  Pause
-                </Button>
-                <Button
-                  onClick={stopRecording}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  <Square className="h-4 w-4 mr-2" />
-                  Stop
-                </Button>
-              </>
-            )}
-            
-            {isPaused && (
-              <>
-                <Button
-                  onClick={resumeRecording}
-                  className="flex-1"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Resume
-                </Button>
-                <Button
-                  onClick={stopRecording}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  <Square className="h-4 w-4 mr-2" />
-                  Stop
-                </Button>
-              </>
-            )}
-          </div>
+              {/* Control Buttons */}
+              <div className="flex items-center gap-2">
+                {!isRecording && meetingStatus !== 'completed' && (
+                  <Button
+                    onClick={startRecording}
+                    disabled={!meetingTitle.trim()}
+                    className="flex-1"
+                  >
+                    <Mic className="h-4 w-4 mr-2" />
+                    Start Recording
+                  </Button>
+                )}
+                
+                {isRecording && !isPaused && (
+                  <>
+                    <Button
+                      onClick={pauseRecording}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </Button>
+                    <Button
+                      onClick={stopRecording}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      <Square className="h-4 w-4 mr-2" />
+                      Stop
+                    </Button>
+                  </>
+                )}
+                
+                {isPaused && (
+                  <>
+                    <Button
+                      onClick={resumeRecording}
+                      className="flex-1"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </Button>
+                    <Button
+                      onClick={stopRecording}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      <Square className="h-4 w-4 mr-2" />
+                      Stop
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Audio Visualizer */}
-          {isRecording && (
-            <AudioVisualizer 
-              audioLevel={audioLevel}
-              isRecording={!isPaused}
-            />
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="transcript" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Transcript</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transcript ? (
+                <div className="min-h-[200px] p-4 bg-muted rounded-lg">
+                  <p className="whitespace-pre-wrap">{transcript}</p>
+                </div>
+              ) : (
+                <div className="min-h-[200px] p-4 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
+                  {isRecording ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Listening for speech...
+                    </div>
+                  ) : (
+                    'Start recording to see live transcript'
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <RecordingSettings
-          settings={settings}
-          onUpdateSettings={updateSettings}
-          onResetSettings={resetSettings}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {/* Transcription Display */}
-      {(transcript || isTranscribing) && (
-        <TranscriptionDisplay
-          transcript={transcript}
-          isTranscribing={isTranscribing}
-          wordCount={wordCount}
-        />
-      )}
-
-      {/* Audio Playback (for completed meetings) */}
-      {meetingStatus === 'completed' && audioUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Audio Playback</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={isPlaying ? pause : play}
-                variant="outline"
-                size="sm"
-              >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </Button>
-              
-              <div className="flex-1">
-                <input
-                  type="range"
-                  min={0}
-                  max={duration}
-                  value={currentTime}
-                  onChange={(e) => seek(Number(e.target.value))}
-                  className="w-full"
+        <TabsContent value="settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recording Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Meeting Type</label>
+                <Input
+                  value={initialSettings?.meetingType || 'general'}
+                  disabled
+                  className="bg-muted"
                 />
               </div>
-              
-              <div className="text-sm text-muted-foreground">
-                {formatTime(Math.floor(currentTime))} / {formatTime(Math.floor(duration))}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Transcriber Service</label>
+                <Input
+                  value={initialSettings?.transcriberService || 'whisper'}
+                  disabled
+                  className="bg-muted"
+                />
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={toggleMute}
-                variant="ghost"
-                size="sm"
-              >
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </Button>
-              
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-20"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Meeting Notes */}
-      {meetingStatus === 'completed' && (
-        <MeetingNotes
-          meetingId={meetingId!}
-          notes={notes}
-          status={notesStatus}
-          onRegenerate={regenerateNotes}
-          wordCount={wordCount}
-        />
-      )}
-
-      {/* Navigation */}
-      {meetingStatus === 'completed' && (
-        <div className="flex justify-center">
-          <Button
-            onClick={() => navigate('/dashboard')}
-            variant="outline"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            View All Meetings
-          </Button>
-        </div>
-      )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  value={initialSettings?.description || ''}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
