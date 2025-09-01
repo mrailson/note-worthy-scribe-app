@@ -153,7 +153,49 @@ export const practiceManagerQuickActions: QuickAction[] = [
     icon: NotebookPen,
     prompt: pmSafetyPreamble + '\n\nSummarise meeting notes into key decisions, actions, and follow-up items with responsible parties and deadlines.',
     requiresFile: true,
-    action: 'open-meeting-recorder'
+    action: 'open-meeting-recorder',
+    submenu: [
+      {
+        label: 'Formal board/committee minutes',
+        prompt: 'Summarise this transcript into formal board/committee meeting minutes. Start with the meeting title, date, start–end time, venue and a list of attendees. Use the agenda as your outline and under each agenda item write a one‑ or two‑sentence summary of the discussion and the decision taken. Record motions and votes in neutral language (e.g., "Action: motion made, seconded and carried") and include names only when legally required. Highlight approved actions and decisions separately, showing who is responsible and any deadlines. Finish with the next meeting date. Use clear, objective language and omit direct quotations and side conversations.'
+      },
+      {
+        label: 'Informal team meeting summary',
+        prompt: 'Create a concise, informal meeting summary. Provide the meeting title, date/time and attendees. Write a one‑sentence meeting purpose. Use bullet points to capture the main discussion points, interesting ideas and any questions raised. List key decisions and action steps, noting who will do each task and the due date. Include a line for the next meeting date. Use a friendly tone and keep each bullet under three sentences.'
+      },
+      {
+        label: 'Agenda‑based notes for structured meetings',
+        prompt: 'Generate meeting notes that follow the agenda. Begin with meeting details (title, date, time, location, attendees) and the meeting purpose. For each agenda item, create a heading and summarise the discussion, key responses, questions and decisions. Capture action items with names and deadlines. End with a summary of all decisions and a "follow‑up" section that lists unresolved items or action items carried over from previous meetings.'
+      },
+      {
+        label: 'Narrative minutes for complex or negotiation meetings',
+        prompt: 'Write narrative‑style minutes for this strategic or negotiation meeting. Open with the meeting title, date/time, location and participants. Provide a paragraph‑style summary of the discussion that conveys the flow of topics, different viewpoints and rationales. Use objective phrasing (e.g., "Participant expressed concerns") rather than emotional descriptions. Where appropriate, note external documents or references mentioned. Conclude with a section listing the decisions made and action items, including responsible individuals and deadlines, and include any scheduled follow‑up meeting.'
+      },
+      {
+        label: 'Resolution‑style minutes',
+        prompt: 'Produce resolution‑style minutes focused on the outcomes of the meeting. State the meeting title, date/time, location and attendees. List each resolution or decision approved, along with a brief note of any motion made and the result (e.g., "Motion to approve budget carried unanimously"). Note any assignments or deadlines arising from each decision. Omit the details of the discussion, simply stating that discussion occurred. Finish with the next meeting date.'
+      },
+      {
+        label: 'Brainstorming session summary',
+        prompt: 'Turn this brainstorming transcript into organised notes. Include the session title, date/time and attendees. Briefly describe the objective. Group ideas under thematic headings (e.g., "Patient‑care ideas", "Operational improvements") and list notable ideas under each heading. Note any key questions and answers. Identify which ideas were selected for further exploration and why. Record action items with responsible people and timelines. Close with the next steps or follow‑up meeting date.'
+      },
+      {
+        label: 'HR meeting/performance‑review summary',
+        prompt: 'Create a confidential HR meeting summary. Provide meeting details (title, date/time, location) and participants by role rather than name if necessary. Summarise each topic discussed (such as performance feedback, policy updates or disciplinary issues) using neutral, objective language. Document the decisions and agreed actions, including who will do what and by when. Avoid including personal opinions or verbatim remarks; instead, describe sensitive matters generically and focus on outcomes. Conclude with follow‑up steps and the next meeting date.'
+      },
+      {
+        label: 'GP partnership (primary care) meeting notes',
+        prompt: 'Summarise a GP partnership meeting. Start with the meeting title, date/time, venue and attendees (roles). State the meeting purpose. For each agenda topic (e.g., clinical updates, operational issues, supplier contracts, staffing), summarise the key points discussed, questions raised and any ideas or proposals. Highlight decisions made and action items with responsible partners and deadlines. Maintain patient confidentiality by omitting patient‑specific information. End with unresolved issues and the next meeting date.'
+      },
+      {
+        label: 'Supplier‑negotiation meeting summary',
+        prompt: 'Generate notes for a supplier‑negotiation meeting. Include meeting details (title, date/time, location, attendees from both sides) and a brief meeting objective. Summarise each proposal and negotiation point discussed, such as pricing, deliverables and contract terms. Record agreements reached, including pricing or terms approved, and any outstanding questions or issues that require follow‑up. List action items with responsible parties and deadlines. Use clear, factual language and avoid disclosing sensitive numbers; present the essence of the agreements instead.'
+      },
+      {
+        label: 'Executive session/confidential minutes',
+        prompt: 'Draft minutes for a confidential executive session. Provide the meeting title, date/time, location and attendees (e.g., board members). Note that the meeting was held in executive session for confidential discussions. For each agenda item, record only the action or decision taken using neutral phrasing (e.g., "Action: motion made, seconded and carried"). Do not include details of the discussion or direct quotations. Identify any names only when legally required (e.g., when recording votes on conflicts of interest). List any approved resolutions or actions and the next meeting date.'
+      }
+    ]
   },
   {
     label: 'PowerPoint Generator',
