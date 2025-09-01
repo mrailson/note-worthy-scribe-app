@@ -244,7 +244,13 @@ serve(async (req) => {
     console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
     // Generate notes using OpenAI
-    const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from the provided transcript.
+    const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
+
+CRITICAL INSTRUCTIONS:
+- ALWAYS generate structured business meeting notes regardless of the content type (meetings, discussions, educational content, documentaries, etc.)
+- Transform any audio/video transcript into professional business-style meeting notes
+- Extract business-relevant information, decisions, action items, and discussion points from any content
+- Never refuse to generate notes based on content type - treat all content as meeting material
 
 CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
@@ -254,35 +260,38 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-Start with a detailed Meeting Overview that provides substantial context about what this meeting covered. This overview should be comprehensive enough that someone reading it weeks later can immediately understand the main focus, key initiatives discussed, important decisions made, and critical context. Think of it as a rich summary that helps distinguish this meeting from others.
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (using professional business formatting, no emojis):
 
-Then format the rest of your response with clear sections using emojis:
-
-📋 Meeting Overview
-Write 2-3 substantial paragraphs that capture the essence of the meeting. Include:
+**EXECUTIVE SUMMARY**
+Write 2-3 substantial paragraphs that capture the essence of the content. Include:
 - Main focus areas, initiatives, or programmes discussed  
 - Key decisions made and their context
 - Important timelines, deadlines, or milestones mentioned
 - Critical issues, concerns, or challenges raised
-- Specific details that make this meeting memorable and distinguishable
+- Specific details that make this content memorable and distinguishable
 - Financial, operational, or strategic implications discussed
 
-1️⃣ Attendees
-List all attendees mentioned in the meeting
+**ATTENDEES**
+- List all participants, speakers, or individuals mentioned
 
-2️⃣ Key Discussion Points  
-Detailed breakdown of main topics with context and outcomes
+**KEY DISCUSSION POINTS**
+1. Detailed breakdown of main topics with context and outcomes
+2. Important themes, initiatives, or programmes covered
+3. Educational content or knowledge shared
 
-3️⃣ Decisions Made
-Specific decisions reached during the meeting with reasoning
+**DECISIONS MADE**
+- Specific decisions reached or recommendations made with reasoning
+- Strategic directions or policy changes discussed
 
-4️⃣ Action Items
-Specific tasks, assignments, and next steps with responsible parties and deadlines
+**ACTION ITEMS**
+- Specific tasks, assignments, and next steps with responsible parties and deadlines
+- Follow-up activities or commitments identified
 
-5️⃣ Next Steps & Follow-up
-Any scheduled follow-up meetings, review dates, or important future milestones
+**NEXT STEPS & FOLLOW-UP**
+- Any scheduled follow-up meetings, review dates, or important future milestones
+- Planned activities or continuation of programmes
 
-Make the overview rich in detail and context. Focus on creating a narrative that captures the meeting's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this meeting was about even months later.`;
+Make the executive summary rich in detail and context. Focus on creating a narrative that captures the content's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this was about even months later.`;
 
     // Format date in British format
     const meetingDate = new Date(meeting.created_at);
@@ -334,14 +343,22 @@ ${cleanedTranscript}`;
 
     console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
 
-    // Extract overview from the generated notes (first section after "Meeting Overview")
-    const overviewMatch = generatedNotes.match(/📋\s*Meeting Overview\s*\n(.*?)(?=\n\d️⃣|$)/s);
+    // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
+    const overviewMatch = generatedNotes.match(/\*\*EXECUTIVE SUMMARY\*\*\s*\n(.*?)(?=\n\*\*|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
 
-    // Save notes to database
+    // Save or update notes in database - handle forceRegenerate properly
+    if (forceRegenerate) {
+      // Delete existing record first, then insert new one
+      await supabase
+        .from('meeting_summaries')
+        .delete()
+        .eq('meeting_id', meetingId);
+    }
+
     const { error: summaryError } = await supabase
       .from('meeting_summaries')
-      .upsert({
+      .insert({
         meeting_id: meetingId,
         summary: generatedNotes,
         key_points: [],
