@@ -44,6 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
 import { ClinicalVerificationModal } from '@/components/ClinicalVerificationModal';
+import { CustomizableOutputBubble } from '@/components/CustomizableOutputBubble';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { quickPickConfig } from '@/constants/quickPickConfig';
 import { handlers } from '@/utils/quickPickHandlers';
@@ -696,22 +697,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           {!(message.role === 'user' && isUserMessageCollapsed) && (
             <div className="space-y-2 flex-1 min-h-0">
               {message.role === 'assistant' ? (
-                <div 
-                  ref={contentRef}
-                  className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
-                  style={{
-                    maxWidth: 'none',
-                    width: '100%',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}
-                >
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true })
-                    }}
-                  />
-                  {message.isStreaming && !displayContent && (
+                <div ref={contentRef} className="w-full">
+                  {message.isStreaming && !displayContent ? (
                     <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
                       <span className="text-sm">Notewell AI is thinking</span>
                       <span className="inline-flex items-center gap-0.5">
@@ -721,6 +708,22 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                         <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
                       </span>
                     </div>
+                  ) : (
+                    <CustomizableOutputBubble
+                      content={displayContent}
+                      title="AI Response"
+                      onExportWord={onExportWord}
+                      onExportPowerPoint={onExportPowerPoint}
+                      className={isModal ? '' : '-mx-4 -my-3'}
+                      defaultCustomization={{
+                        contentType: 'general',
+                        useNHSStyling: true,
+                        enhanceReadability: true,
+                        addSmartBreaks: true,
+                        backgroundColor: isModal ? 'bg-background' : 'bg-transparent',
+                        padding: isModal ? 16 : 0
+                      }}
+                    />
                   )}
                 </div>
               ) : (
