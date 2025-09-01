@@ -67,6 +67,31 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Italic text
     .replace(/\*(.*?)\*/g, `<em class="italic ${isUserMessage ? 'text-white' : ''}">$1</em>`)
     
+    // Process markdown tables
+    .replace(/\n\s*\|(.+)\|\s*\n\s*\|[\s\-:]+\|\s*\n((?:\s*\|.+\|\s*\n)*)/g, (match, headerRow, bodyRows) => {
+      const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+      const rows = bodyRows.trim().split('\n').map(row => 
+        row.split('|').map(cell => cell.trim()).filter(cell => cell)
+      );
+      
+      const headerHtml = headers.map(header => 
+        `<th class="border border-border px-3 py-2 bg-muted font-semibold text-left ${isUserMessage ? 'text-white border-white/20 bg-white/10' : ''}">${header}</th>`
+      ).join('');
+      
+      const bodyHtml = rows.map(row => 
+        `<tr>${row.map(cell => 
+          `<td class="border border-border px-3 py-2 ${isUserMessage ? 'text-white border-white/20' : ''}">${cell}</td>`
+        ).join('')}</tr>`
+      ).join('');
+      
+      return `<div class="overflow-x-auto my-4">
+        <table class="w-full border-collapse border border-border ${isUserMessage ? 'border-white/20' : ''} rounded-lg">
+          <thead><tr>${headerHtml}</tr></thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      </div>`;
+    })
+    
     // Convert list items to regular paragraphs (no bullets)
     .replace(/^[-•]\s+(.+)$/gm, `<p class="mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}">$1</p>`)
     
@@ -103,7 +128,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Sanitize the HTML
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br'],
+    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
     ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
   });
 }
