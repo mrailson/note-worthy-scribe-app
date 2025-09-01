@@ -190,6 +190,11 @@ export const useAI4GPService = () => {
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     console.log('🔧 Building system prompt with practice context:', practiceContext);
+    
+    // Detect if files contain numerical data for enhanced calculation prompts
+    const hasNumericalData = uploadedFiles.some(file => file.metadata?.hasNumericalData);
+    const fileCount = uploadedFiles.length;
+    
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
@@ -204,6 +209,31 @@ You understand and can explain:
 - Always stay professional, evidence-based, and clinically appropriate
 
 ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. These files contain content that you can directly analyze and reference. You have full access to the file contents, so you can answer questions about them, summarize them, or analyze them without asking the user to upload again.` : ''}`;
+
+    // Add enhanced calculation instructions if numerical data detected
+    if (hasNumericalData) {
+      prompt += `\n\n🔢 CALCULATION ACCURACY PROTOCOL:
+The uploaded files contain numerical data (invoices, financial documents, spreadsheets, etc.). When performing ANY calculations:
+
+1. DOUBLE-CHECK YOUR MATH: Always verify calculations step-by-step before providing final answers
+2. SHOW YOUR WORK: Display calculations clearly (e.g., "£500 + £750 + £1,200 = £2,450")
+3. VERIFY TOTALS: Cross-reference any totals you calculate with totals mentioned in the source documents
+4. CURRENCY FORMAT: Use consistent formatting (e.g., £1,234.56) throughout your response
+5. HIGHLIGHT DISCREPANCIES: If you find discrepancies between your calculations and document totals, point them out explicitly
+6. MULTIPLE FILE PROCESSING: When analyzing multiple files with numbers, process them systematically and clearly indicate which calculations belong to which files
+
+CRITICAL: If you're unsure about any calculation, explicitly state your uncertainty and suggest the user double-check the figures manually.`;
+    }
+
+    // Add file complexity warnings for large file sets
+    if (fileCount > 3) {
+      prompt += `\n\n📁 MULTIPLE FILE PROCESSING:
+You are processing ${fileCount} files. To ensure accuracy:
+- Process files systematically, one at a time when possible
+- Clearly indicate which information comes from which file
+- If calculations span multiple files, break them down by source
+- Double-check any cross-file calculations or comparisons`;
+    }
 
     // Add practice context if available
     if (practiceContext.practiceName) {

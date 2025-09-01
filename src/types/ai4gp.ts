@@ -46,6 +46,11 @@ export interface UploadedFile {
   content: string;
   size: number;
   isLoading?: boolean;
+  metadata?: {
+    hasNumericalData?: boolean;
+    wordCount?: number;
+    issues?: string[];
+  };
 }
 
 export interface SearchHistory {

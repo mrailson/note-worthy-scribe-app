@@ -5,9 +5,10 @@ import { Switch } from '@/components/ui/switch';
 import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
-import { useFileUpload } from '@/hooks/useFileUpload';
+import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
+import { FileProcessingProgress } from './FileProcessingProgress';
 
 interface InputAreaProps {
   input: string;
@@ -37,7 +38,11 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<SimpleBrowserMicRef>(null);
-  const { processFiles } = useFileUpload();
+  const { 
+    processFilesWithValidation, 
+    isProcessing: isFileProcessing,
+    getProcessingSummary 
+  } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
 
@@ -62,7 +67,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     setUploadedFiles(prev => [...prev, ...loadingFiles]);
 
     try {
-      const processedFiles = await processFiles(files);
+      const processedFiles = await processFilesWithValidation(files);
       // Replace loading files with processed ones
       setUploadedFiles(prev => {
         const withoutLoading = prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading));
@@ -137,6 +142,10 @@ ${pastedText.trim()}
 
   return (
     <>
+      <FileProcessingProgress 
+        stats={getProcessingSummary()}
+        isProcessing={isFileProcessing}
+      />
       <div className="p-3 space-y-3 bg-accent rounded-xl">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
@@ -199,7 +208,7 @@ ${pastedText.trim()}
             setInput('');
             micRef.current?.clearTranscript();
           }} 
-          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading)}
+          disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading) || isFileProcessing}
           size="default"
           className={`h-[120px] px-6 flex-shrink-0 rounded-lg ${
             uploadedFiles.some(file => file.isLoading) ? 'opacity-50 cursor-not-allowed' : ''
