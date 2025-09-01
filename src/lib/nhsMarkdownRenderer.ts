@@ -137,8 +137,8 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
       return tableHtml;
     })
     
-    // Convert list items to regular paragraphs (no bullets)
-    .replace(/^[-•]\s+(.+)$/gm, `<p class="mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}">$1</p>`)
+    // Convert list items to dashes for consistent formatting
+    .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     
     // Line breaks for paragraphs
     .replace(/\n\n/g, `</p><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)

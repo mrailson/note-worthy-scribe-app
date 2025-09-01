@@ -35,18 +35,21 @@ export function formatItalicEmphasis(text: string): string {
   return formatted;
 }
 
-// Convert to bullet points
+// Convert to dash bullet points for consistent formatting
 export function formatBulletPoints(text: string): string {
   if (!text) return text;
   
-  // Convert numbered lists to bullets
-  let formatted = text.replace(/^\s*\d+\.\s+/gm, '• ');
+  // Convert numbered lists to dashes
+  let formatted = text.replace(/^\s*\d+\.\s+/gm, '- ');
   
-  // Convert dash lists to bullets
-  formatted = formatted.replace(/^\s*[-–—]\s+/gm, '• ');
+  // Convert bullets to dashes for consistency
+  formatted = formatted.replace(/^\s*[•·]\s+/gm, '- ');
+  
+  // Standardize different dash types to regular dash
+  formatted = formatted.replace(/^\s*[–—]\s+/gm, '- ');
   
   // Convert lines that start with capital letters and look like list items
-  formatted = formatted.replace(/^([A-Z][^.]*[.!?])$/gm, '• $1');
+  formatted = formatted.replace(/^([A-Z][^.]*[.!?])$/gm, '- $1');
   
   return formatted;
 }
