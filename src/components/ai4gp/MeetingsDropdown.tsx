@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Copy, Loader2, Sparkles } from 'lucide-react';
+import { Calendar, FileText, Copy, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -420,7 +420,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>{formatMeetingDate(meeting.start_time || meeting.created_at)}</div>
                   <div className="flex items-center justify-between">
-                    {meeting.word_count > 0 ? (
+                    {meeting.word_count && meeting.word_count > 0 ? (
                       <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count >= 1000 
                         ? `${(meeting.word_count / 1000).toFixed(1)}K words`
                         : `${meeting.word_count} words`}</span>
@@ -429,23 +429,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                     )}
                     
                      {/* Action Buttons - Only show if word count > 0 */}
-                     {meeting.word_count > 0 && (
+                     {meeting.word_count && meeting.word_count > 0 && (
                        <div className="flex gap-1">
-                         {/* Manual Trigger Button - Only show for completed meetings */}
-                         {meeting.status === 'completed' && (
-                           <button
-                             onClick={(e) => handleAction('trigger', meeting, e)}
-                             disabled={processingActions[`${meeting.id}-trigger`]}
-                             className="p-1 hover:bg-accent rounded transition-colors"
-                             title="Generate Notes (Manual)"
-                           >
-                             {processingActions[`${meeting.id}-trigger`] ? (
-                               <Loader2 className="w-3 h-3 animate-spin" />
-                             ) : (
-                               <Sparkles className="w-3 h-3 text-primary" />
-                             )}
-                           </button>
-                         )}
                          <button
                            onClick={(e) => handleAction('word', meeting, e)}
                            disabled={processingActions[`${meeting.id}-word`]}
