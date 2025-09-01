@@ -69,17 +69,12 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     
     // Process markdown tables - improved regex to handle different formats
     .replace(/\|(.+?)\|\s*\n\s*\|[\s\-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
-      console.log('🔍 TABLE MATCH FOUND:', match);
-      
       const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
-      console.log('🔍 TABLE HEADERS:', headers);
       
       const rows = bodyRows.trim().split('\n').map(row => {
         const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
         return cells;
       }).filter(row => row.length > 0);
-      
-      console.log('🔍 TABLE ROWS:', rows);
       
       const headerHtml = headers.map(header => 
         `<th class="border border-border px-3 py-2 bg-muted font-semibold text-left ${isUserMessage ? 'text-white border-white/20 bg-white/10' : ''}">${header}</th>`
@@ -91,15 +86,12 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
         ).join('')}</tr>`
       ).join('');
       
-      const tableHtml = `<div class="overflow-x-auto my-4">
+      return `<div class="overflow-x-auto my-4">
         <table class="w-full border-collapse border border-border ${isUserMessage ? 'border-white/20' : ''} rounded-lg">
           <thead><tr>${headerHtml}</tr></thead>
           <tbody>${bodyHtml}</tbody>
         </table>
       </div>`;
-      
-      console.log('🔍 TABLE HTML:', tableHtml);
-      return tableHtml;
     })
     
     // Convert list items to regular paragraphs (no bullets)
