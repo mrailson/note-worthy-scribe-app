@@ -142,10 +142,12 @@ ${pastedText.trim()}
 
   return (
     <>
-      <FileProcessingProgress 
-        stats={getProcessingSummary()}
-        isProcessing={isFileProcessing}
-      />
+      {uploadedFiles.length > 0 && (
+        <FileProcessingProgress 
+          stats={getProcessingSummary()}
+          isProcessing={isFileProcessing}
+        />
+      )}
       <div className="p-3 space-y-3 bg-accent rounded-xl">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
