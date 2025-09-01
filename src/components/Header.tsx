@@ -80,7 +80,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
               <Button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/ai4gp')}
                 variant="secondary"
                 size="sm"
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -314,7 +314,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                          onClick={() => navigate('/')}
+                          onClick={() => navigate('/ai4gp')}
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home
