@@ -246,13 +246,21 @@ serve(async (req) => {
     // Generate notes using OpenAI
     const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from the provided transcript.
 
+CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
+- Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
+- Use British terminology: whilst (not while), amongst (not among), programme (not program), fulfil (not fulfill), learnt (not learned)
+- Use British date format: 31st August 2025 (not August 31, 2025) - include ordinal indicators (1st, 2nd, 3rd, etc.)
+- Use 24-hour time format where appropriate: 14:30 rather than 2:30 PM
+- Follow NHS/UK business conventions for professional language and formatting
+- Use £ symbol positioning following UK conventions
+
 Start with a detailed Meeting Overview that provides substantial context about what this meeting covered. This overview should be comprehensive enough that someone reading it weeks later can immediately understand the main focus, key initiatives discussed, important decisions made, and critical context. Think of it as a rich summary that helps distinguish this meeting from others.
 
 Then format the rest of your response with clear sections using emojis:
 
 📋 Meeting Overview
 Write 2-3 substantial paragraphs that capture the essence of the meeting. Include:
-- Main focus areas, initiatives, or programs discussed  
+- Main focus areas, initiatives, or programmes discussed  
 - Key decisions made and their context
 - Important timelines, deadlines, or milestones mentioned
 - Critical issues, concerns, or challenges raised
@@ -276,8 +284,23 @@ Any scheduled follow-up meetings, review dates, or important future milestones
 
 Make the overview rich in detail and context. Focus on creating a narrative that captures the meeting's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this meeting was about even months later.`;
 
+    // Format date in British format
+    const meetingDate = new Date(meeting.created_at);
+    const day = meetingDate.getDate();
+    const ordinalSuffix = (day: number) => {
+      if (day > 3 && day < 21) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const formattedDate = `${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
+
     const userPrompt = `Meeting Title: ${meeting.title}
-Meeting Date: ${new Date(meeting.created_at).toLocaleDateString()}
+Meeting Date: ${formattedDate}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 Transcript:

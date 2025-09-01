@@ -103,6 +103,14 @@ serve(async (req) => {
     // Generate meeting notes using OpenAI
     const systemPrompt = `You are an AI assistant that generates live meeting notes in real-time. Create professional, structured meeting notes based on the transcript provided.
 
+CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
+- Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
+- Use British terminology: whilst (not while), amongst (not among), programme (not program), fulfil (not fulfill), learnt (not learned)
+- Use British date format: 31st August 2025 (not August 31, 2025) - include ordinal indicators (1st, 2nd, 3rd, etc.)
+- Use 24-hour time format where appropriate: 14:30 rather than 2:30 PM
+- Follow NHS/UK business conventions for professional language and formatting
+- Use £ symbol positioning following UK conventions
+
 Format the notes as a clean, Portrait A4-sized document with:
 1. **Meeting Overview** (brief summary of what's being discussed)
 2. **Key Discussion Points** (main topics covered so far)

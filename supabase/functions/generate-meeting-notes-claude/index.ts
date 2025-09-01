@@ -101,9 +101,12 @@ CRITICAL PLACEHOLDER REMOVAL:
 - Do NOT add any placeholder text in brackets like [Not identified] or [To be confirmed]
 
 LANGUAGE AND SPELLING REQUIREMENTS:
-- Use British English spelling throughout (e.g., organised, realise, colour, centre, recognised, specialise, summarise, prioritise)
-- Use British terminology (e.g., "whilst" not "while", "amongst" not "among", "programme" not "program")
+- Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
+- Use British terminology: whilst (not while), amongst (not among), programme (not program), fulfil (not fulfill), learnt (not learned)
+- Use British date format: 31st August 2025 (not August 31, 2025) - include ordinal indicators (1st, 2nd, 3rd, etc.)
+- Use 24-hour time format where appropriate: 14:30 rather than 2:30 PM
 - Follow NHS/UK business conventions for dates, times, and formal language
+- Use £ symbol positioning following UK conventions
 
 LARGE MEETING HANDLING:
 - Process the ENTIRE transcript systematically from start to finish
