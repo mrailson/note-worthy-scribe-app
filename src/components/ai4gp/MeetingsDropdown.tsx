@@ -420,10 +420,14 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>{formatMeetingDate(meeting.start_time || meeting.created_at)}</div>
                   <div className="flex items-center justify-between">
-                    {meeting.word_count && meeting.word_count > 0 ? (
-                      <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count >= 1000 
-                        ? `${(meeting.word_count / 1000).toFixed(1)}K words`
-                        : `${meeting.word_count} words`}</span>
+                    {meeting.status === 'completed' ? (
+                      meeting.word_count && meeting.word_count > 0 ? (
+                        <span>{formatDuration(meeting.duration_minutes)} • {meeting.word_count >= 1000 
+                          ? `${(meeting.word_count / 1000).toFixed(1)}K words`
+                          : `${meeting.word_count} words`}</span>
+                      ) : (
+                        <span className="text-muted-foreground">{formatDuration(meeting.duration_minutes)} • Completed</span>
+                      )
                     ) : (
                       <span className="text-amber-600">Awaiting Processing</span>
                     )}
