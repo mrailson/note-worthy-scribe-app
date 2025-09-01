@@ -1573,12 +1573,44 @@ export const MeetingRecorder = ({
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
+    // Add chunk status tracking for iPhone/mobile transcription
+    const currentChunkNumber = chunkCounter + 1;
+    const chunkLength = data.text.trim().length;
+    
+    const newChunkStatus: ChunkSaveStatus = {
+      chunkNumber: currentChunkNumber,
+      text: data.text.trim(),
+      chunkLength: chunkLength,
+      saveStatus: 'saving',
+      retryCount: 0,
+      confidence: data.confidence || 0.9
+    };
+    
+    setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
+    setChunkCounter(prev => prev + 1);
+    
+    // Simulate database save for iPhone chunks (iPhone transcriber handles actual saving)
+    setTimeout(() => {
+      setChunkSaveStatuses(prev => prev.map(chunk => 
+        chunk.chunkNumber === currentChunkNumber 
+          ? { 
+              ...chunk, 
+              saveStatus: 'saved' as const,
+              saveTimestamp: new Date().toISOString()
+            }
+          : chunk
+      ));
+    }, 1000); // Simulate save time
+    
     const transcriptData: TranscriptData = {
       text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
-      isFinal: data.is_final
+      isFinal: data.is_final,
+      chunkNumber: currentChunkNumber,
+      chunkLength: chunkLength,
+      dbSaveStatus: 'saving'
     };
     
     

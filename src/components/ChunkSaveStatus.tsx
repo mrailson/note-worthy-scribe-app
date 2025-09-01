@@ -54,73 +54,90 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
   const pendingChunks = chunks.filter(c => c.saveStatus === 'saving' || c.saveStatus === 'retrying').length;
   
   const successRate = chunks.length > 0 ? Math.round((savedChunks / chunks.length) * 100) : 0;
+  
+  // Add console logging for debugging on mobile
+  console.log('📊 ChunkSaveStatus render:', { 
+    totalChunks: chunks.length, 
+    savedChunks, 
+    pendingChunks, 
+    failedChunks, 
+    isRecording 
+  });
 
   return (
-    <Card className="border-accent/30">
+    <Card className="border-accent/30 bg-card/95">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <RefreshCw className="h-5 w-5 text-primary" />
-          Chunk Save Status
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          📱 Chunk Save Status
         </CardTitle>
         
         {/* Statistics */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant="outline" className="bg-success/10 text-success">
+        <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
+          <Badge variant="outline" className="bg-success/10 text-success text-xs">
             ✅ Saved: {savedChunks}
           </Badge>
           {pendingChunks > 0 && (
-            <Badge variant="outline" className="bg-warning/10 text-warning">
+            <Badge variant="outline" className="bg-warning/10 text-warning text-xs">
               ⏳ Saving: {pendingChunks}
             </Badge>
           )}
           {failedChunks > 0 && (
-            <Badge variant="outline" className="bg-destructive/10 text-destructive">
+            <Badge variant="outline" className="bg-destructive/10 text-destructive text-xs">
               ❌ Failed: {failedChunks}
             </Badge>
           )}
-          <Badge variant="outline" className="bg-primary/10 text-primary">
-            Success Rate: {successRate}%
+          <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+            Rate: {successRate}%
           </Badge>
+        </div>
+        
+        {/* Mobile-friendly status indicator */}
+        <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
+          📊 <strong>Total:</strong> {chunks.length} chunks • 
+          <span className="text-success ml-1">✅ {savedChunks}</span> • 
+          <span className="text-warning ml-1">⏳ {pendingChunks}</span>
+          {failedChunks > 0 && <span className="text-destructive ml-1">❌ {failedChunks}</span>}
         </div>
       </CardHeader>
       
       <CardContent>
-        <ScrollArea className="h-48">
+        <ScrollArea className="h-40 sm:h-48">
           <div className="space-y-2">
             {chunks.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                {isRecording ? "Listening for speech chunks..." : "No chunks processed yet"}
+                {isRecording ? "📱 Listening for speech chunks..." : "No chunks processed yet"}
               </div>
             ) : (
               chunks.slice(-10).reverse().map((chunk) => (
                 <div
                   key={chunk.chunkNumber}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  className="flex items-start justify-between p-2 sm:p-3 rounded-lg border bg-card/50"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                     {getStatusIcon(chunk.saveStatus)}
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium">
                         Chunk #{chunk.chunkNumber}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {chunk.chunkLength} chars • {Math.round(chunk.confidence * 100)}% conf
                       </div>
-                      <div className="text-xs text-muted-foreground max-w-xs truncate">
-                        "{chunk.text.substring(0, 50)}..."
+                      <div className="text-xs text-muted-foreground truncate">
+                        "{chunk.text.substring(0, 30)}..."
                       </div>
                     </div>
                   </div>
                   
-                  <div className="text-right">
+                  <div className="text-right ml-2 flex-shrink-0">
                     <Badge 
                       variant="outline" 
-                      className={getStatusColor(chunk.saveStatus)}
+                      className={`${getStatusColor(chunk.saveStatus)} text-xs`}
                     >
-                      {chunk.saveStatus === 'saved' && '✅ Saved'}
-                      {chunk.saveStatus === 'saving' && '⏳ Saving...'}
-                      {chunk.saveStatus === 'failed' && `❌ Failed ${chunk.retryCount > 0 ? `(${chunk.retryCount}/3)` : ''}`}
-                      {chunk.saveStatus === 'retrying' && `🔄 Retry ${chunk.retryCount}/3`}
+                      {chunk.saveStatus === 'saved' && '✅'}
+                      {chunk.saveStatus === 'saving' && '⏳'}
+                      {chunk.saveStatus === 'failed' && `❌`}
+                      {chunk.saveStatus === 'retrying' && `🔄`}
                     </Badge>
                     {chunk.saveTimestamp && (
                       <div className="text-xs text-muted-foreground mt-1">
