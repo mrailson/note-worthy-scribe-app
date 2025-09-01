@@ -76,6 +76,18 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     }
   }, [open, user]);
 
+  // Add auto-refresh when modal is open
+  useEffect(() => {
+    if (open && user) {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing practice details...');
+        fetchPracticeDetails();
+      }, 5000); // Refresh every 5 seconds when modal is open
+      
+      return () => clearInterval(interval);
+    }
+  }, [open, user]);
+
   const fetchUserProfile = async () => {
     if (!user) return;
 
@@ -121,11 +133,12 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     console.log('Fetching practice details for user:', user.id);
 
     try {
-      // First, get user's practice assignments from user_roles
+      // First, get user's practice assignments from user_roles (filter out null practice_ids)
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('practice_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .not('practice_id', 'is', null);
 
       console.log('User roles query result:', { userRoles, rolesError });
 
@@ -134,14 +147,15 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         return;
       }
 
-      if (userRoles && userRoles.length > 0 && userRoles[0].practice_id) {
-        console.log('Found practice_id:', userRoles[0].practice_id);
+      if (userRoles && userRoles.length > 0) {
+        const practiceId = userRoles[0].practice_id;
+        console.log('Found practice_id:', practiceId);
         
         // Get practice details by practice_id
         const { data: practiceData, error: practiceError } = await supabase
           .from('practice_details')
           .select('*')
-          .eq('id', userRoles[0].practice_id)
+          .eq('id', practiceId)
           .maybeSingle();
 
         console.log('Practice details query result:', { practiceData, practiceError });
