@@ -49,8 +49,7 @@ import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
 import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
 import { Message, UploadedFile } from '@/types/ai4gp';
-import { useCalculationValidator } from '@/hooks/useCalculationValidator';
-import { CalculationVerificationPanel } from './ai4gp/CalculationVerificationPanel';
+// Calculation validation imports removed per user request
 
 interface MessageRendererProps {
   message: Message;
@@ -94,47 +93,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     message.role === 'user' && (autoCollapseUserPrompts || message.isQuickPick === true)
   );
   
-  // Calculation verification state
-  const [isCalculationVerifying, setIsCalculationVerifying] = useState(false);
-  const [calculationVerificationResult, setCalculationVerificationResult] = useState<{
-    isValid: boolean;
-    issues: string[];
-    suggestions: string[];
-  } | null>(null);
-  
-  const { validateCalculation, requestVerification } = useCalculationValidator();
+  // Calculation verification code removed per user request
   const { user } = useAuth();
   
-  // Calculation verification handlers
-  const handleCalculationVerification = async () => {
-    if (!message.content) return;
-    
-    setIsCalculationVerifying(true);
-    try {
-      const result = await validateCalculation('', message.content);
-      setCalculationVerificationResult(result);
-      
-      if (!result.isValid) {
-        toast.warning('Potential calculation issues detected', {
-          description: 'Check the verification panel for details'
-        });
-      } else {
-        toast.success('Calculations verified successfully');
-      }
-    } catch (error) {
-      console.error('Verification error:', error);
-      toast.error('Failed to verify calculations');
-    } finally {
-      setIsCalculationVerifying(false);
-    }
-  };
-
-  const handleRequestVerification = () => {
-    requestVerification('', message.content, (verifiedResponse) => {
-      // In a real implementation, this would update the message content
-      toast.success('Verification complete');
-    });
-  };
+  // Calculation verification handlers removed per user request
   
   // Toggle user message collapse
   const toggleUserMessageCollapse = () => {
@@ -830,16 +792,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             </div>
           )}
 
-          {/* Calculation Verification Panel - only for assistant messages */}
-          {message.role === 'assistant' && !isModal && (
-            <CalculationVerificationPanel
-              messageContent={message.content}
-              originalPrompt=""
-              onRequestVerification={handleRequestVerification}
-              isVerifying={isCalculationVerifying}
-              verificationResult={calculationVerificationResult}
-            />
-          )}
+          {/* Calculation Verification Panel removed per user request */}
 
           {/* Quick Action Buttons - only for assistant messages, not in modal, and only if not streaming */}
           {message.role === 'assistant' && !isModal && onQuickResponse && (
