@@ -163,7 +163,7 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-32 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-44 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '120px' }}
           />
@@ -181,12 +181,12 @@ ${pastedText.trim()}
             <Button
               variant="ghost"
               size="sm"
-              className="h-10 w-10 p-0 hover:bg-accent rounded-md"
+              className="h-20 w-20 p-0 hover:bg-accent rounded-md"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               title="Attach files"
             >
-              <Paperclip className="w-6 h-6" />
+              <Paperclip className="w-14 h-14" />
             </Button>
             
             <div className="flex flex-col gap-1">
