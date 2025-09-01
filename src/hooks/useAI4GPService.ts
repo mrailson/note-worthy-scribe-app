@@ -216,13 +216,16 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
 The uploaded files contain numerical data (invoices, financial documents, spreadsheets, etc.). When performing ANY calculations:
 
 1. DOUBLE-CHECK YOUR MATH: Always verify calculations step-by-step before providing final answers
-2. SHOW YOUR WORK: Display calculations clearly (e.g., "£500 + £750 + £1,200 = £2,450")
+2. SHOW YOUR WORK: Display calculations clearly using standard mathematical symbols (×, ÷, +, -, =)
 3. VERIFY TOTALS: Cross-reference any totals you calculate with totals mentioned in the source documents
-4. CURRENCY FORMAT: Use consistent formatting (e.g., £1,234.56) throughout your response
-5. HIGHLIGHT DISCREPANCIES: If you find discrepancies between your calculations and document totals, point them out explicitly
-6. MULTIPLE FILE PROCESSING: When analyzing multiple files with numbers, process them systematically and clearly indicate which calculations belong to which files
+4. CURRENCY FORMAT: Use consistent formatting (e.g., £1,234.56) throughout your response - NO LaTeX notation
+5. MATHEMATICAL SYMBOLS: Use Unicode symbols (×, ÷) NOT LaTeX (\\times, \\div, \\(, \\))
+6. CLEAN FORMATTING: Format currency amounts as £1,234.56 NOT \\£1,234.56
+7. HIGHLIGHT DISCREPANCIES: If you find discrepancies between your calculations and document totals, point them out explicitly
+8. MULTIPLE FILE PROCESSING: When analyzing multiple files with numbers, process them systematically and clearly indicate which calculations belong to which files
 
-CRITICAL: If you're unsure about any calculation, explicitly state your uncertainty and suggest the user double-check the figures manually.`;
+CRITICAL: Avoid ALL LaTeX mathematical notation including \\times, \\div, \\(, \\), \\[, \\]. Use standard symbols: × ÷ + - = instead.
+If you're unsure about any calculation, explicitly state your uncertainty and suggest the user double-check the figures manually.`;
     }
 
     // Add file complexity warnings for large file sets

@@ -16,6 +16,41 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Convert markdown to HTML
   let html = content
+    // Process LaTeX mathematical expressions first
+    .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\pm/g, '±')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\leq/g, '≤')
+    .replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\sum/g, '∑')
+    .replace(/\\prod/g, '∏')
+    .replace(/\\sqrt/g, '√')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\beta/g, 'β')
+    .replace(/\\gamma/g, 'γ')
+    .replace(/\\delta/g, 'δ')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\mu/g, 'μ')
+    .replace(/\\sigma/g, 'σ')
+    .replace(/\\omega/g, 'ω')
+    
+    // Handle inline math expressions \( ... \)
+    .replace(/\\?\\\(/g, '<span class="inline-math">')
+    .replace(/\\?\\\)/g, '</span>')
+    
+    // Handle display math expressions \[ ... \]
+    .replace(/\\?\\\[/g, '<div class="display-math">')
+    .replace(/\\?\\\]/g, '</div>')
+    
+    // Clean up stray backslashes before mathematical operations
+    .replace(/\\([+\-*/=<>])/g, '$1')
+    .replace(/\\\s*([£$€¥])/g, '$1')
+    
     // Preprocess: Move inline headers to new lines
     .replace(/([^#])(#{1,6}\s+)/g, '$1\n$2')
     
@@ -127,9 +162,40 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // URLs to links
     .replace(/(https?:\/\/[^\s<>"]+)/g, `<a href="$1" target="_blank" rel="noopener noreferrer" class="${isUserMessage ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'} underline">$1</a>`);
 
-  // NHS-specific styling wrapper
+  // NHS-specific styling wrapper with mathematical expression styles
   if (enableNHSStyling) {
-    html = `<div class="ai4gp-content nhs-content prose prose-sm max-w-none dark:prose-invert">${html}</div>`;
+    html = `<div class="ai4gp-content nhs-content prose prose-sm max-w-none dark:prose-invert">
+      <style>
+        .inline-math { 
+          font-family: 'Times New Roman', serif; 
+          font-style: italic; 
+          background: hsl(var(--accent) / 0.1); 
+          padding: 2px 4px; 
+          border-radius: 3px; 
+          font-size: 0.95em;
+        }
+        .display-math { 
+          font-family: 'Times New Roman', serif; 
+          text-align: center; 
+          margin: 1rem 0; 
+          padding: 0.75rem; 
+          background: hsl(var(--accent) / 0.05); 
+          border-left: 3px solid hsl(var(--primary)); 
+          border-radius: 4px;
+          font-size: 1.1em;
+        }
+        .calculation-result {
+          font-weight: 600;
+          color: hsl(var(--primary));
+          background: hsl(var(--primary) / 0.1);
+          padding: 4px 8px;
+          border-radius: 4px;
+          display: inline-block;
+          margin: 0 2px;
+        }
+      </style>
+      ${html}
+    </div>`;
   }
 
   
@@ -138,7 +204,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Sanitize the HTML
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-    ALLOWED_ATTR: ['class', 'href', 'target', 'rel']
+    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style'],
+    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style']
   });
 }
