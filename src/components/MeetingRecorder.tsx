@@ -41,6 +41,7 @@ import { LiveTranscript } from "@/components/LiveTranscript";
 import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
+import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -64,6 +65,21 @@ interface TranscriptData {
   confidence: number;
   timestamp: string;
   isFinal: boolean;
+  chunkNumber?: number;
+  chunkLength?: number;
+  dbSaveStatus?: 'saving' | 'saved' | 'failed' | 'retrying';
+  dbSaveTimestamp?: string;
+  retryCount?: number;
+}
+
+interface ChunkSaveStatus {
+  chunkNumber: number;
+  text: string;
+  chunkLength: number;
+  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying';
+  saveTimestamp?: string;
+  retryCount: number;
+  confidence: number;
 }
 
 interface MeetingRecorderProps {
@@ -98,6 +114,7 @@ export const MeetingRecorder = ({
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
+  const [chunkSaveStatuses, setChunkSaveStatuses] = useState<ChunkSaveStatus[]>([]);
   
   // Update removed segments periodically
   useEffect(() => {
@@ -798,6 +815,18 @@ export const MeetingRecorder = ({
 
       console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
       
+      // Add chunk to status tracking immediately
+      const currentChunkNumber = chunkCounter + 1;
+      const newChunkStatus: ChunkSaveStatus = {
+        chunkNumber: currentChunkNumber,
+        text: "",
+        chunkLength: 0,
+        saveStatus: 'saving',
+        retryCount: 0,
+        confidence: 0
+      };
+      
+      setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
       
       // Create blob from chunks
       const chunkBlob = new Blob(chunks, { type: 'audio/webm' });
@@ -809,6 +838,13 @@ export const MeetingRecorder = ({
         controller.abort();
         console.log(`⏰ Chunk ${chunkId} transcription timed out after 30 seconds`);
         addDebugLog(`⏰ Chunk ${chunkId}: timeout`);
+        
+        // Update status to failed
+        setChunkSaveStatuses(prev => prev.map(chunk => 
+          chunk.chunkNumber === currentChunkNumber 
+            ? { ...chunk, saveStatus: 'failed' as const }
+            : chunk
+        ));
       }, 30000); // 30 second timeout
 
       try {
@@ -831,6 +867,13 @@ export const MeetingRecorder = ({
           const errorText = await response.text();
           console.error(`❌ Transcription failed for chunk ${chunkId}:`, response.status, errorText);
           
+          // Update status to failed
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.chunkNumber === currentChunkNumber 
+              ? { ...chunk, saveStatus: 'failed' as const, text: 'Transcription failed' }
+              : chunk
+          ));
+          
           return;
         }
 
@@ -846,6 +889,18 @@ export const MeetingRecorder = ({
           duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
         });
 
+        // Update chunk status with transcription data
+        setChunkSaveStatuses(prev => prev.map(chunk => 
+          chunk.chunkNumber === currentChunkNumber 
+            ? { 
+                ...chunk, 
+                text: transcriptionText, 
+                chunkLength: transcriptionText.length,
+                confidence: confidence
+              }
+            : chunk
+        ));
+
         // Add to transcript with timestamp and overlap handling
         if (transcriptionText.trim() && transcriptionText.length > 3) {
           addDebugLog(`📝 Chunk ${chunkId}: "${transcriptionText.substring(0, 30)}..." (${Math.round(confidence * 100)}%)`);
@@ -853,25 +908,109 @@ export const MeetingRecorder = ({
           const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
           setChunkCounter(prev => prev + 1);
 
-          // Save raw chunk to database
+          // Save raw chunk to database with proper error handling
           if (meetingId) {
             console.log('🔍 Saving raw chunk to database...');
-            supabase
-              .from('raw_transcript_chunks')
-              .insert({
-                meeting_id: meetingId,
-                chunk_id: chunkCounter + 1,
-                text: transcriptionText,
-                timestamp: chunkTimestamp,
-                confidence: confidence
-              })
-              .then(({ error }) => {
-                if (error) {
-                  console.error('Error saving raw chunk:', error);
-                } else {
-                  console.log('🔍 Raw chunk saved successfully');
+            
+            try {
+              const { error } = await supabase
+                .from('raw_transcript_chunks')
+                .insert({
+                  meeting_id: meetingId,
+                  chunk_id: currentChunkNumber,
+                  text: transcriptionText,
+                  timestamp: chunkTimestamp,
+                  confidence: confidence
+                });
+
+              if (error) {
+                console.error('Error saving raw chunk:', error);
+                
+                // Update status to failed and increment retry count
+                setChunkSaveStatuses(prev => prev.map(chunk => 
+                  chunk.chunkNumber === currentChunkNumber 
+                    ? { 
+                        ...chunk, 
+                        saveStatus: 'failed' as const,
+                        retryCount: chunk.retryCount + 1
+                      }
+                    : chunk
+                ));
+
+                // Attempt retry if under limit
+                if (newChunkStatus.retryCount < 3) {
+                  setTimeout(async () => {
+                    setChunkSaveStatuses(prev => prev.map(chunk => 
+                      chunk.chunkNumber === currentChunkNumber 
+                        ? { ...chunk, saveStatus: 'retrying' as const }
+                        : chunk
+                    ));
+                    
+                    try {
+                      const { error: retryError } = await supabase
+                        .from('raw_transcript_chunks')
+                        .insert({
+                          meeting_id: meetingId,
+                          chunk_id: currentChunkNumber,
+                          text: transcriptionText,
+                          timestamp: chunkTimestamp,
+                          confidence: confidence
+                        });
+
+                      if (retryError) {
+                        setChunkSaveStatuses(prev => prev.map(chunk => 
+                          chunk.chunkNumber === currentChunkNumber 
+                            ? { 
+                                ...chunk, 
+                                saveStatus: 'failed' as const,
+                                retryCount: chunk.retryCount + 1
+                              }
+                            : chunk
+                        ));
+                      } else {
+                        setChunkSaveStatuses(prev => prev.map(chunk => 
+                          chunk.chunkNumber === currentChunkNumber 
+                            ? { 
+                                ...chunk, 
+                                saveStatus: 'saved' as const,
+                                saveTimestamp: new Date().toISOString()
+                              }
+                            : chunk
+                        ));
+                        console.log('🔍 Raw chunk saved successfully on retry');
+                      }
+                    } catch (retryError) {
+                      console.error('Retry failed:', retryError);
+                      setChunkSaveStatuses(prev => prev.map(chunk => 
+                        chunk.chunkNumber === currentChunkNumber 
+                          ? { ...chunk, saveStatus: 'failed' as const }
+                          : chunk
+                      ));
+                    }
+                  }, 2000 * newChunkStatus.retryCount); // Exponential backoff
                 }
-              });
+              } else {
+                console.log('🔍 Raw chunk saved successfully');
+                
+                // Update status to saved with timestamp
+                setChunkSaveStatuses(prev => prev.map(chunk => 
+                  chunk.chunkNumber === currentChunkNumber 
+                    ? { 
+                        ...chunk, 
+                        saveStatus: 'saved' as const,
+                        saveTimestamp: new Date().toISOString()
+                      }
+                    : chunk
+                ));
+              }
+            } catch (saveError) {
+              console.error('Database save error:', saveError);
+              setChunkSaveStatuses(prev => prev.map(chunk => 
+                chunk.chunkNumber === currentChunkNumber 
+                  ? { ...chunk, saveStatus: 'failed' as const }
+                  : chunk
+              ));
+            }
           }
 
           // Update the main transcript with immediate state update
@@ -2604,6 +2743,7 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       isRecordingRef.current = true;
       setRealtimeTranscripts([]);
+      setChunkSaveStatuses([]);
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
@@ -4323,6 +4463,12 @@ export const MeetingRecorder = ({
 
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
+          {/* Chunk Save Status - Show real-time chunk confirmations */}
+          <ChunkSaveStatus 
+            chunks={chunkSaveStatuses} 
+            isRecording={isRecording}
+          />
+          
           {/* Real-time Transcript Card - Always visible */}
           <RealtimeTranscriptCard
             transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
