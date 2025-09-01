@@ -23,9 +23,21 @@ interface MeetingSettings {
 }
 
 interface GeneratedNotes {
-  decisions_and_actions?: string;
-  secretariat_resolution?: string;
+  warm_welcoming?: string;
+  kind_agenda_based?: string;
+  empathetic_action_items?: string;
+  supportive_informal?: string;
+  encouraging_brainstorming?: string;
+  gentle_hr?: string;
+  friendly_project_update?: string;
+  positive_supplier?: string;
+  bright_executive?: string;
+  cheerful_retrospective?: string;
   [key: string]: any;
+}
+
+interface StyleNames {
+  [key: string]: string;
 }
 
 export default function MeetingNotesInterface() {
@@ -41,7 +53,8 @@ export default function MeetingNotesInterface() {
   });
   const [loading, setLoading] = useState(false);
   const [generatedNotes, setGeneratedNotes] = useState<GeneratedNotes | null>(null);
-  const [activeTab, setActiveTab] = useState('decisions_and_actions');
+  const [styleNames, setStyleNames] = useState<StyleNames>({});
+  const [activeTab, setActiveTab] = useState('warm_welcoming');
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
@@ -54,7 +67,7 @@ export default function MeetingNotesInterface() {
     setError(null);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-six-styles', {
+      const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-ten-styles', {
         body: {
           transcript: transcript.trim(),
           settings
@@ -66,6 +79,7 @@ export default function MeetingNotesInterface() {
       }
 
       setGeneratedNotes(data.styles);
+      setStyleNames(data.styleNames || {});
       toast.success('Meeting notes generated successfully');
     } catch (e: any) {
       console.error('Error generating notes:', e);
@@ -268,10 +282,42 @@ export default function MeetingNotesInterface() {
           <CardContent>
             {generatedNotes ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="decisions_and_actions">Decisions & Actions</TabsTrigger>
-                  <TabsTrigger value="secretariat_resolution">Resolution Minutes</TabsTrigger>
-                </TabsList>
+                <div className="mb-4">
+                  <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+                    <TabsTrigger value="warm_welcoming" className="text-xs px-2 py-2">
+                      Warm Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="kind_agenda_based" className="text-xs px-2 py-2">
+                      Agenda-Based
+                    </TabsTrigger>
+                    <TabsTrigger value="empathetic_action_items" className="text-xs px-2 py-2">
+                      Action Items
+                    </TabsTrigger>
+                    <TabsTrigger value="supportive_informal" className="text-xs px-2 py-2">
+                      Informal Recap
+                    </TabsTrigger>
+                    <TabsTrigger value="encouraging_brainstorming" className="text-xs px-2 py-2">
+                      Brainstorming
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsList className="grid w-full grid-cols-5 h-auto p-1 mt-2">
+                    <TabsTrigger value="gentle_hr" className="text-xs px-2 py-2">
+                      HR Summary
+                    </TabsTrigger>
+                    <TabsTrigger value="friendly_project_update" className="text-xs px-2 py-2">
+                      Project Update
+                    </TabsTrigger>
+                    <TabsTrigger value="positive_supplier" className="text-xs px-2 py-2">
+                      Supplier Recap
+                    </TabsTrigger>
+                    <TabsTrigger value="bright_executive" className="text-xs px-2 py-2">
+                      Executive
+                    </TabsTrigger>
+                    <TabsTrigger value="cheerful_retrospective" className="text-xs px-2 py-2">
+                      Retrospective
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
                 
                 <div className="mt-4 space-y-3">
                   <div className="flex gap-2">
@@ -288,7 +334,7 @@ export default function MeetingNotesInterface() {
                       size="sm"
                       onClick={() => handleDownload(
                         generatedNotes[activeTab] || '', 
-                        `meeting-${activeTab.replace('_', '-')}`
+                        `meeting-${activeTab.replace(/_/g, '-')}`
                       )}
                     >
                       <Download className="w-4 h-4 mr-2" />
@@ -296,21 +342,16 @@ export default function MeetingNotesInterface() {
                     </Button>
                   </div>
 
-                  <TabsContent value="decisions_and_actions" className="mt-0">
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md max-h-[400px] overflow-y-auto">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {generatedNotes.decisions_and_actions || 'No content generated'}
-                      </ReactMarkdown>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="secretariat_resolution" className="mt-0">
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md max-h-[400px] overflow-y-auto">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {generatedNotes.secretariat_resolution || 'No content generated'}
-                      </ReactMarkdown>
-                    </div>
-                  </TabsContent>
+                  {/* Dynamic tab content for all 10 styles */}
+                  {Object.keys(generatedNotes).map((styleKey) => (
+                    <TabsContent key={styleKey} value={styleKey} className="mt-0">
+                      <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md max-h-[400px] overflow-y-auto">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {generatedNotes[styleKey] || 'No content generated'}
+                        </ReactMarkdown>
+                      </div>
+                    </TabsContent>
+                  ))}
                 </div>
               </Tabs>
             ) : (
