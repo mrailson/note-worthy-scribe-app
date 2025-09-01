@@ -46,26 +46,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('user_roles')
         .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
-        .eq('user_id', userId)
-        .limit(1)
-        .single();
+        .eq('user_id', userId);
       
       if (error) {
         console.error('Error fetching user modules:', error);
         return;
       }
       
-      // Convert the access flags to module names array
-      const modules: string[] = [];
-      if (data?.meeting_notes_access) modules.push('meeting_recorder');
-      if (data?.gp_scribe_access) modules.push('gp_scribe');
-      if (data?.complaints_manager_access) modules.push('complaints_system');
-      if (data?.enhanced_access) modules.push('enhanced_access');
-      if (data?.cqc_compliance_access) modules.push('cqc_compliance');
-      if (data?.shared_drive_access) modules.push('shared_drive_access');
-      if (data?.mic_test_service_access) modules.push('mic_test_service_access');
-      if (data?.api_testing_service_access) modules.push('api_testing_service');
+      // Handle empty result set
+      if (!data || data.length === 0) {
+        setUserModules([]);
+        return;
+      }
       
+      // Aggregate access flags across ALL role records using OR logic
+      // If ANY role grants access to a module, the user gets access
+      const aggregatedAccess = data.reduce((acc, roleRecord) => ({
+        meeting_notes_access: acc.meeting_notes_access || roleRecord.meeting_notes_access,
+        gp_scribe_access: acc.gp_scribe_access || roleRecord.gp_scribe_access,
+        complaints_manager_access: acc.complaints_manager_access || roleRecord.complaints_manager_access,
+        enhanced_access: acc.enhanced_access || roleRecord.enhanced_access,
+        cqc_compliance_access: acc.cqc_compliance_access || roleRecord.cqc_compliance_access,
+        shared_drive_access: acc.shared_drive_access || roleRecord.shared_drive_access,
+        mic_test_service_access: acc.mic_test_service_access || roleRecord.mic_test_service_access,
+        api_testing_service_access: acc.api_testing_service_access || roleRecord.api_testing_service_access,
+      }), {
+        meeting_notes_access: false,
+        gp_scribe_access: false,
+        complaints_manager_access: false,
+        enhanced_access: false,
+        cqc_compliance_access: false,
+        shared_drive_access: false,
+        mic_test_service_access: false,
+        api_testing_service_access: false,
+      });
+      
+      // Convert the aggregated access flags to module names array
+      const modules: string[] = [];
+      if (aggregatedAccess.meeting_notes_access) modules.push('meeting_recorder');
+      if (aggregatedAccess.gp_scribe_access) modules.push('gp_scribe');
+      if (aggregatedAccess.complaints_manager_access) modules.push('complaints_system');
+      if (aggregatedAccess.enhanced_access) modules.push('enhanced_access');
+      if (aggregatedAccess.cqc_compliance_access) modules.push('cqc_compliance');
+      if (aggregatedAccess.shared_drive_access) modules.push('shared_drive_access');
+      if (aggregatedAccess.mic_test_service_access) modules.push('mic_test_service_access');
+      if (aggregatedAccess.api_testing_service_access) modules.push('api_testing_service');
+      
+      console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);
     } catch (error) {
       console.error('Error fetching user modules:', error);
