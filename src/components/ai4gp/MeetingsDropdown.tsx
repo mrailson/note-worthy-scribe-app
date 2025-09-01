@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
+import { generateWordDocument } from '@/utils/documentGenerators';
 import { useToast } from '@/hooks/use-toast';
 import { MeetingData } from '@/types/meetingTypes';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +42,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
     transcriberThresholds: { whisper: 0.5, deepgram: 0.7 }
   };
 
-  const { copyToClipboard, generateWordDocument } = useMeetingExport(null, mockMeetingSettings);
+  const { copyToClipboard } = useMeetingExport(null, mockMeetingSettings);
 
   const handleAction = async (actionType: string, meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
