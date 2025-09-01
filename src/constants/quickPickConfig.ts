@@ -89,32 +89,6 @@ export const quickPickConfig = {
       ]
     },
     {
-      "id": "ai-enhance",
-      "label": "AI Enhancement",
-      "children": [
-        {"id": "ai-make-professional", "label": "Make Professional"},
-        {"id": "ai-make-concise", "label": "Make Concise"},
-        {"id": "ai-add-action-items", "label": "Extract Action Items"},
-        {"id": "ai-nhs-format", "label": "NHS Format"},
-        {"id": "ai-board-ready", "label": "Board Ready"},
-        {"id": "ai-custom-prompt", "label": "Custom AI Request..."}
-      ]
-    },
-    {
-      "id": "quick-formatting",
-      "label": "Quick Formatting",
-      "children": [
-        {"id": "format-bold-titles", "label": "**Bold All Titles**"},
-        {"id": "format-italic-emphasis", "label": "*Italic Emphasis*"},
-        {"id": "format-bullet-points", "label": "• Convert to Bullets"},
-        {"id": "format-numbered-list", "label": "1. Numbered Lists"},
-        {"id": "format-headers", "label": "### Add Headers"},
-        {"id": "format-table", "label": "Convert to Table"},
-        {"id": "format-clean-spacing", "label": "Clean Up Spacing"},
-        {"id": "format-remove-formatting", "label": "Remove All Formatting"}
-      ]
-    },
-    {
       "id": "improve-formatting",
       "label": "Improve Layout",
       "children": [
