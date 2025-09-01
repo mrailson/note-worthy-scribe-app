@@ -214,11 +214,11 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 hover:bg-accent"
+                  className="h-10 w-10 p-0 hover:bg-accent"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading}
                 >
-                  <Paperclip className="w-4 h-4" />
+                  <Paperclip className="w-6 h-6" />
                 </Button>
               </div>
             </div>
