@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import ExampleMeetingFlyout from './ExampleMeetingFlyout';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CustomizableOutputBubble } from './CustomizableOutputBubble';
 
 interface MeetingSettings {
   title: string;
@@ -111,6 +112,10 @@ export default function MeetingNotesInterface() {
     } catch (e: any) {
       toast.error(`Export failed: ${e.message}`);
     }
+  };
+
+  const handleExportWord = (content: string, title?: string) => {
+    handleDownload(content, title || 'meeting-notes');
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -297,19 +302,31 @@ export default function MeetingNotesInterface() {
                   </div>
 
                   <TabsContent value="decisions_and_actions" className="mt-0">
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md max-h-[400px] overflow-y-auto">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {generatedNotes.decisions_and_actions || 'No content generated'}
-                      </ReactMarkdown>
-                    </div>
+                    <CustomizableOutputBubble
+                      content={generatedNotes.decisions_and_actions || 'No content generated'}
+                      title="Decisions & Actions"
+                      onExportWord={handleExportWord}
+                      defaultCustomization={{
+                        contentType: 'meeting-notes',
+                        useNHSStyling: true,
+                        enhanceReadability: true,
+                        addSmartBreaks: true
+                      }}
+                    />
                   </TabsContent>
                   
                   <TabsContent value="secretariat_resolution" className="mt-0">
-                    <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md max-h-[400px] overflow-y-auto">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {generatedNotes.secretariat_resolution || 'No content generated'}
-                      </ReactMarkdown>
-                    </div>
+                    <CustomizableOutputBubble
+                      content={generatedNotes.secretariat_resolution || 'No content generated'}
+                      title="Resolution Minutes"
+                      onExportWord={handleExportWord}
+                      defaultCustomization={{
+                        contentType: 'meeting-notes',
+                        useNHSStyling: true,
+                        enhanceReadability: true,
+                        addSmartBreaks: true
+                      }}
+                    />
                   </TabsContent>
                 </div>
               </Tabs>

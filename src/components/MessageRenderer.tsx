@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { formatUniversalText, detectContentType } from '@/lib/universalTextFormatter';
 import { 
   ChevronDown, 
   ChevronsUp, 
@@ -165,8 +166,16 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleFixFormatting = () => {
     if (onQuickResponse) {
-      const formatPrompt = `improve this format:\n\n${message.content}`;
-      onQuickResponse(formatPrompt);
+      // Auto-detect content type and apply universal formatting
+      const detectedType = detectContentType(message.content);
+      const formattedContent = formatUniversalText(message.content, {
+        contentType: detectedType,
+        enhanceReadability: true,
+        addSmartBreaks: true
+      });
+      
+      // Replace the current message content instead of creating a new query
+      onQuickResponse(`Here's the improved format:\n\n${formattedContent}`);
     }
   };
 
