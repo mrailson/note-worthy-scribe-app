@@ -432,8 +432,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                       <span className="text-amber-600">Awaiting Processing</span>
                     )}
                     
-                     {/* Action Buttons - Only show if word count > 0 */}
-                     {meeting.word_count && meeting.word_count > 0 && (
+                     {/* Action Buttons - Show for completed meetings */}
+                     {meeting.status === 'completed' && (
                        <div className="flex gap-1">
                          <button
                            onClick={(e) => handleAction('word', meeting, e)}
