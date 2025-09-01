@@ -69,7 +69,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {user && (
             <h1 
               className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/ai4gp')}
             >
               <span className="hidden sm:inline">Notewell AI</span>
               <span className="sm:hidden">Notewell AI</span>
