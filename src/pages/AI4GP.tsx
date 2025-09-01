@@ -18,6 +18,52 @@ const AI4GP = () => {
   const [loading, setLoading] = useState(false);
   const [drugModalOpen, setDrugModalOpen] = useState(false);
   
+  // Function to regenerate meeting notes
+  const regenerateMeetingNotes = async (meetingId: string) => {
+    try {
+      console.log('🔄 Regenerating meeting notes for meeting:', meetingId);
+      
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { 
+          meetingId: meetingId, 
+          forceRegenerate: true 
+        }
+      });
+
+      if (error) {
+        console.error('❌ Error regenerating notes:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully regenerated meeting notes:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to regenerate meeting notes:', error);
+      throw error;
+    }
+  };
+  
+  // Trigger regeneration for the General Meeting (one-time demo)
+  useEffect(() => {
+    const triggerRegeneration = async () => {
+      try {
+        toast.info('🔄 Regenerating meeting notes with British English formatting...');
+        await regenerateMeetingNotes('77b6b634-4946-4d96-a403-7bf1b641cb89');
+        toast.success('✅ Meeting notes regenerated successfully! Check your meetings list.');
+      } catch (error) {
+        console.error('Failed to regenerate notes:', error);
+        toast.error('❌ Failed to regenerate meeting notes');
+      }
+    };
+    
+    // Only run once per session
+    const hasRun = sessionStorage.getItem('notes-regenerated-demo');
+    if (!hasRun && user) {
+      triggerRegeneration();
+      sessionStorage.setItem('notes-regenerated-demo', 'true');
+    }
+  }, [user]);
+  
 
   // Keyboard shortcut for Northamptonshire Prescribing Guidance (Ctrl+K)
   useEffect(() => {
