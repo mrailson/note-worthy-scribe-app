@@ -257,23 +257,74 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (!currentMeetingId) return;
 
     try {
+      console.log('🔄 Starting recording processing for meeting:', currentMeetingId);
+      
       // Generate basic transcript from stored chunks or use simple note
       const basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
       
       setTranscript(basicTranscript);
       
-      await supabase.from('meetings').update({
-        end_time: new Date().toISOString(),
-        status: 'completed',
-        duration: `${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`
-      }).eq('id', currentMeetingId);
+      // Retry logic for status update
+      let retryCount = 0;
+      const maxRetries = 3;
+      let updateSuccess = false;
+      
+      while (retryCount < maxRetries && !updateSuccess) {
+        try {
+          console.log(`📝 Attempting to update meeting status (attempt ${retryCount + 1}/${maxRetries})`);
+          
+          const { error: updateError } = await supabase.from('meetings').update({
+            end_time: new Date().toISOString(),
+            status: 'completed',
+            duration: `${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`,
+            word_count: Math.floor(basicTranscript.split(' ').length)
+          }).eq('id', currentMeetingId);
+
+          if (updateError) {
+            throw updateError;
+          }
+          
+          console.log('✅ Meeting status updated successfully');
+          updateSuccess = true;
+          
+        } catch (retryError) {
+          retryCount++;
+          console.error(`❌ Attempt ${retryCount} failed:`, retryError);
+          
+          if (retryCount < maxRetries) {
+            // Exponential backoff: wait 1s, 2s, 4s
+            const delay = Math.pow(2, retryCount - 1) * 1000;
+            console.log(`⏳ Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      if (!updateSuccess) {
+        throw new Error('Failed to update meeting status after multiple attempts');
+      }
 
       setProcessingStatus('completed');
       toast({ title: "Recording completed", description: "Ready for enhancement" });
 
     } catch (error) {
-      console.error('Error processing recording:', error);
-      toast({ title: "Error", description: "Failed to process recording", variant: "destructive" });
+      console.error('❌ Critical error processing recording:', error);
+      
+      // Log critical failure for monitoring
+      console.error('🚨 STUCK MEETING ALERT:', {
+        meetingId: currentMeetingId,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        recordingTime
+      });
+      
+      toast({ 
+        title: "Recording Error", 
+        description: "Recording saved but status update failed. Meeting may need manual recovery.", 
+        variant: "destructive" 
+      });
+      
+      setProcessingStatus('completed'); // Allow user to continue despite error
     }
   };
 
