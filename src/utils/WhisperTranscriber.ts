@@ -1,5 +1,6 @@
 // ============= Complete WebM Buffering WhisperTranscriber =============
 import { hasAudioActivity } from './audioLevelDetection';
+import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 
 export interface TranscriptData {
   text: string;
@@ -28,7 +29,8 @@ export class WhisperTranscriber {
   private flushTimer: number | null = null;
   private chunkIndex = 0;
   private isRecording = false;
-  private accumulatedText = '';
+  private mergedSegments: Segment[] = [];
+  private sessionId = crypto.randomUUID();
   
   private readonly MIME = 'audio/webm;codecs=opus';
   private readonly FLUSH_INTERVAL_MS = 25000; // 25 seconds
@@ -66,7 +68,8 @@ export class WhisperTranscriber {
     this.isRecording = true;
     this.chunkBuffer = [];
     this.chunkIndex = 0;
-    this.accumulatedText = '';
+    this.mergedSegments = [];
+    this.sessionId = crypto.randomUUID();
     
     // Start periodic flush timer (every 25s)
     if (this.flushTimer) {
@@ -133,10 +136,10 @@ export class WhisperTranscriber {
     formData.append('file', new File([blob], `chunk_${this.chunkIndex}.webm`, { type: this.MIME }));
     formData.append('chunkIndex', String(this.chunkIndex));
     formData.append('isFinal', meta.isFinal ? 'true' : 'false');
+    formData.append('sessionId', this.sessionId);
     
     if (meta.language) formData.append('language', meta.language);
     if (meta.meetingId) formData.append('meetingId', meta.meetingId);
-    if (meta.sessionId) formData.append('sessionId', meta.sessionId);
 
     console.log(`📡 WHISPER: Uploading chunk ${this.chunkIndex} (${blob.size} bytes, isFinal: ${meta.isFinal})`);
 
@@ -157,26 +160,64 @@ export class WhisperTranscriber {
 
     const payload = await response.json();
     console.log(`✅ WHISPER: Chunk ${this.chunkIndex} transcribed:`, {
-      textLength: payload.text?.length || 0,
-      textPreview: payload.text?.slice(0, 50)
+      textLength: payload.data?.text?.length || 0,
+      textPreview: payload.data?.text?.slice(0, 50),
+      segmentsCount: payload.data?.segments?.length || 0
     });
     
-    // Append to accumulated text
-    if (payload.text) {
-      this.accumulatedText += (this.accumulatedText ? ' ' : '') + payload.text;
+    // Use timestamp-based segment merging instead of simple concatenation
+    if (payload.data?.segments?.length > 0) {
+      // Convert Whisper segments to our Segment format
+      const incomingSegments: Segment[] = payload.data.segments.map((seg: any) => ({
+        start: seg.start || 0,
+        end: seg.end || seg.start || 0,
+        text: (seg.text || '').trim()
+      })).filter((seg: Segment) => seg.text.length > 0);
+
+      console.log(`🔗 WHISPER: Merging ${incomingSegments.length} segments with ${this.mergedSegments.length} existing segments`);
+      
+      // Merge segments using timestamp-based deduplication
+      this.mergedSegments = mergeByTimestamps(this.mergedSegments, incomingSegments);
+      
+      // Generate clean plain text from merged segments
+      const mergedText = segmentsToPlainText(this.mergedSegments);
+      
+      console.log(`📝 WHISPER: Merged text: ${mergedText.length} chars, ${this.mergedSegments.length} total segments`);
       
       const convertedPayload = {
         ok: true,
         data: {
-          text: this.accumulatedText,
-          segments: []
+          text: mergedText,
+          segments: this.mergedSegments
         }
       };
       
       this.onPayload?.(convertedPayload);
       
       // Notify status update
-      this.onStatusChange?.(`Segment #${this.chunkIndex} processed`);
+      this.onStatusChange?.(`Segment #${this.chunkIndex} processed (${this.mergedSegments.length} segments)`);
+    } else if (payload.data?.text) {
+      // Fallback for responses without segments - create a basic segment
+      console.log(`⚠️ WHISPER: No segments in response, creating fallback segment`);
+      const fallbackSegment: Segment = {
+        start: this.chunkIndex * 25, // Estimate based on 25s chunks
+        end: (this.chunkIndex + 1) * 25,
+        text: payload.data.text.trim()
+      };
+      
+      this.mergedSegments = mergeByTimestamps(this.mergedSegments, [fallbackSegment]);
+      const mergedText = segmentsToPlainText(this.mergedSegments);
+      
+      const convertedPayload = {
+        ok: true,
+        data: {
+          text: mergedText,
+          segments: this.mergedSegments
+        }
+      };
+      
+      this.onPayload?.(convertedPayload);
+      this.onStatusChange?.(`Segment #${this.chunkIndex} processed (fallback)`);
     } else {
       console.error("❌ WHISPER: Invalid response format:", payload);
       this.onError?.(new Error(payload.error || 'Invalid response format'));
@@ -198,8 +239,9 @@ export class WhisperTranscriber {
   clearSummary() { 
     console.log('🧹 WHISPER: Clearing state');
     this.chunkBuffer = [];
-    this.accumulatedText = '';
+    this.mergedSegments = [];
     this.chunkIndex = 0;
+    this.sessionId = crypto.randomUUID();
     
     if (this.flushTimer) {
       window.clearInterval(this.flushTimer);

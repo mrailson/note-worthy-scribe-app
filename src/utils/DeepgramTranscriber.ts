@@ -1,5 +1,6 @@
 // Enhanced Deepgram Transcriber with proper WebSocket integration
 import { supabase } from '@/integrations/supabase/client';
+import { mergeLive, type LiveChunk } from '@/utils/liveMerge';
 
 export interface TranscriptData {
   text: string;
@@ -27,6 +28,8 @@ export class DeepgramTranscriber {
   private maxReconnectAttempts = 3;
   private keepAlive: NodeJS.Timeout | null = null;
   private fallbackToWhisper = false;
+  private accumulatedTranscript = '';
+  private sessionId = crypto.randomUUID();
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -164,9 +167,27 @@ export class DeepgramTranscriber {
       const alternative = message.channel.alternatives[0];
       
       if (alternative.transcript && alternative.transcript.trim()) {
-        const transcriptData: TranscriptData = {
+        // Use liveMerge for consistent deduplication across all transcribers
+        const chunk: LiveChunk = {
           text: alternative.transcript.trim(),
-          is_final: message.is_final || false,
+          isFinal: message.is_final || false,
+          start_ms: message.start ? message.start * 1000 : undefined,
+          end_ms: message.start && message.duration ? (message.start + message.duration) * 1000 : undefined,
+          source: 'deepgram',
+          speaker: 'Speaker'
+        };
+
+        console.log(`📝 Deepgram chunk: ${chunk.text.substring(0, 50)}... (${chunk.isFinal ? 'final' : 'interim'})`);
+        
+        // Only process final chunks to avoid duplication
+        if (chunk.isFinal) {
+          this.accumulatedTranscript = mergeLive(this.accumulatedTranscript, chunk);
+          console.log(`🔗 Deepgram merged transcript: ${this.accumulatedTranscript.length} chars`);
+        }
+
+        const transcriptData: TranscriptData = {
+          text: chunk.isFinal ? this.accumulatedTranscript : chunk.text,
+          is_final: chunk.isFinal || false,
           confidence: alternative.confidence || 0.8,
           start: message.start,
           end: message.start + message.duration,
@@ -174,11 +195,10 @@ export class DeepgramTranscriber {
           words: alternative.words || []
         };
 
-        console.log('📝 Deepgram transcription:', transcriptData.text, `(${transcriptData.is_final ? 'final' : 'interim'})`);
         this.onTranscription(transcriptData);
 
         if (this.onSummary && transcriptData.is_final) {
-          this.onSummary(transcriptData.text);
+          this.onSummary(this.accumulatedTranscript);
         }
       }
     }
@@ -315,8 +335,19 @@ export class DeepgramTranscriber {
             }
 
             if (data?.text && data.text.trim()) {
-              const transcriptData: TranscriptData = {
+              // Use liveMerge for consistent deduplication
+              const chunk: LiveChunk = {
                 text: data.text.trim(),
+                isFinal: true,
+                source: 'whisper-fallback',
+                speaker: 'Speaker'
+              };
+
+              this.accumulatedTranscript = mergeLive(this.accumulatedTranscript, chunk);
+              console.log(`🔗 Whisper fallback merged transcript: ${this.accumulatedTranscript.length} chars`);
+
+              const transcriptData: TranscriptData = {
+                text: this.accumulatedTranscript,
                 is_final: true,
                 confidence: 0.8,
                 speaker: 'Speaker'
@@ -325,7 +356,7 @@ export class DeepgramTranscriber {
               this.onTranscription(transcriptData);
               
               if (this.onSummary) {
-                this.onSummary(transcriptData.text);
+                this.onSummary(this.accumulatedTranscript);
               }
             }
             
@@ -379,7 +410,8 @@ export class DeepgramTranscriber {
   }
 
   async clearSummary() {
-    console.log('🧹 Clearing transcription summary');
-    // Implementation depends on how summary is maintained
+    console.log('🧹 Clearing Deepgram transcription summary');
+    this.accumulatedTranscript = '';
+    this.sessionId = crypto.randomUUID();
   }
 }
