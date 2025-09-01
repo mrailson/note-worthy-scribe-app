@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Copy, Loader2 } from 'lucide-react';
+import { Calendar, FileText, Copy, Loader2, Play } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -335,6 +335,48 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
             description: "Meeting notes are being generated. This may take a few minutes.",
           });
         }
+      } else if (actionType === 'complete') {
+        // Mark meeting as completed and trigger notes generation
+        console.log('🔧 Completing meeting and triggering notes generation:', meeting.id);
+        
+        // First update meeting status to completed
+        const { error: updateError } = await supabase
+          .from('meetings')
+          .update({ 
+            status: 'completed',
+            end_time: new Date().toISOString()
+          })
+          .eq('id', meeting.id);
+
+        if (updateError) {
+          console.error('❌ Failed to update meeting status:', updateError);
+          toast({
+            title: "Update Failed",
+            description: "Failed to update meeting status. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Then trigger notes generation
+        const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+          body: { meetingId: meeting.id, forceRegenerate: false }
+        });
+
+        if (error) {
+          console.error('❌ Failed to trigger notes generation:', error);
+          toast({
+            title: "Notes Generation Failed",
+            description: "Meeting marked as completed, but notes generation failed. Please try manual generation.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('✅ Meeting completed and notes generation triggered successfully:', data);
+          toast({
+            title: "Meeting Completed",
+            description: "Meeting status updated to completed and notes generation started.",
+          });
+        }
       }
     } catch (error) {
       console.error(`Error performing ${actionType} action:`, error);
@@ -429,7 +471,21 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                         <span className="text-muted-foreground">{formatDuration(meeting.duration_minutes)} • Completed</span>
                       )
                     ) : (
-                      <span className="text-amber-600">Awaiting Processing</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-600">Awaiting Processing</span>
+                        <button
+                          onClick={(e) => handleAction('complete', meeting, e)}
+                          disabled={processingActions[`${meeting.id}-complete`]}
+                          className="p-1 hover:bg-accent rounded transition-colors"
+                          title="Mark as completed and generate notes"
+                        >
+                          {processingActions[`${meeting.id}-complete`] ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Play className="w-3 h-3 text-green-600" />
+                          )}
+                        </button>
+                      </div>
                     )}
                     
                      {/* Action Buttons - Show for completed meetings */}
