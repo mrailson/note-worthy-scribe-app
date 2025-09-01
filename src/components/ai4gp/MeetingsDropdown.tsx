@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
-import { generateWordDocument } from '@/utils/documentGenerators';
 import { useToast } from '@/hooks/use-toast';
 import { MeetingData } from '@/types/meetingTypes';
 import { supabase } from '@/integrations/supabase/client';
+import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface MeetingsDropdownProps {
   meetings: any[];
@@ -43,6 +44,184 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   };
 
   const { copyToClipboard } = useMeetingExport(null, mockMeetingSettings);
+
+  // Advanced Word export with full formatting (from FullPageNotesModal.tsx)
+  const generateAdvancedWordDocument = async (content: string, title: string) => {
+    try {
+      console.log('🔍 Generating full-featured Word document with formatting!');
+      toast({ title: 'Generating Word document...', description: 'Please wait while we format your document.' });
+      
+      // Clean and format content for professional Word document
+      const stripHtmlAndFormat = (htmlContent: string) => {
+        if (!htmlContent) return [];
+        
+        // Clean HTML but preserve basic structure
+        let cleanText = htmlContent
+          // Convert HTML breaks to newlines first
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<p[^>]*>/gi, '')
+          // Remove all other HTML tags
+          .replace(/<[^>]*>/g, '')
+          // Decode HTML entities
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          // Clean up excessive whitespace but preserve structure
+          .replace(/[ \t]+/g, ' ')
+          .replace(/\n[ \t]+/g, '\n')
+          .replace(/[ \t]+\n/g, '\n')
+          .trim();
+
+        const paragraphs = [];
+        const lines = cleanText.split('\n');
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Skip empty lines but add spacing
+          if (!line) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text: "", size: 12 })],
+              spacing: { after: 120 }
+            }));
+            continue;
+          }
+          
+          // Detect different types of content
+          const isEmojiHeader = /^[1-9]️⃣/.test(line);
+          const isNumberedSection = /^##?\s*\d+\.?\s/.test(line);
+          const isMainHeader = /^#\s/.test(line) || (line.includes('MEETING') && line.length < 100);
+          const isBulletPoint = /^[-•*]\s/.test(line);
+          const isHeader = isEmojiHeader || isNumberedSection || isMainHeader;
+          
+          // Clean and format the text
+          let displayText = line;
+          
+          // Remove ALL hash symbols and markdown formatting
+          displayText = displayText.replace(/^#+\s*/, ''); // Remove any number of # at start
+          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
+          displayText = displayText.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
+          
+          if (isBulletPoint) {
+            // Format bullet points
+            const bulletText = displayText.replace(/^[-•*]\s*/, '');
+            paragraphs.push(new Paragraph({
+              children: [
+                new TextRun({ text: "• ", size: 22 }),
+                new TextRun({ text: bulletText, size: 22 })
+              ],
+              spacing: { after: 100 },
+              indent: { left: 360 }
+            }));
+          } else if (isHeader) {
+            // Format headers
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: displayText,
+                bold: true,
+                size: isMainHeader ? 24 : 22,
+                color: "1f2937"
+              })],
+              spacing: { 
+                before: 200,
+                after: 120
+              }
+            }));
+          } else {
+            // Regular paragraph
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: displayText,
+                size: 22
+              })],
+              spacing: { after: 120 }
+            }));
+          }
+        }
+        
+        return paragraphs;
+      };
+      
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,    // 1 inch
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
+          children: [
+            // Title
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: title,
+                  bold: true,
+                  size: 36,
+                  color: "1f2937"
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 480 }
+            }),
+            
+            // Meeting Details
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Date: ",
+                  bold: true,
+                  size: 24,
+                  color: "1f2937"
+                }),
+                new TextRun({
+                  text: new Date().toLocaleDateString(),
+                  size: 24,
+                  color: "374151"
+                }),
+              ],
+              spacing: { after: 360 }
+            }),
+            
+            // Content Section
+            ...stripHtmlAndFormat(content),
+            
+            // Footer
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+                  italics: true,
+                  size: 18,
+                  color: "6b7280"
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 480 }
+            }),
+          ],
+        }],
+      });
+      
+      console.log('🔍 Document created, converting to blob...');
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`);
+      toast({ title: 'Success!', description: 'Word document downloaded successfully!' });
+      
+    } catch (error) {
+      console.error('Word generation error:', error);
+      toast({ title: 'Error', description: 'Failed to generate Word document', variant: 'destructive' });
+    }
+  };
 
   const handleAction = async (actionType: string, meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
@@ -95,7 +274,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         }
 
         // Generate Word document with meeting notes
-        await generateWordDocument(notesContent, `${meeting.title || 'Meeting'} - ${notesTitle}`);
+        await generateAdvancedWordDocument(notesContent, `${meeting.title || 'Meeting'} - ${notesTitle}`);
         toast({
           title: "Word Document Generated",
           description: "Meeting notes have been downloaded as a Word document.",
