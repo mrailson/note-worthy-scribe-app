@@ -1,6 +1,3 @@
-// Import the emergency recovery for auto-execution
-import '../utils/quickMeetingRecovery';
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mic, MicOff, Square, Play, Pause, Volume2, Settings, Clock, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRecordingManager } from '@/components/meeting-recorder-v2/hooks/useRecordingManager';
 
 interface MeetingRecorderProps {
   onTranscriptUpdate: (transcript: string) => void;
@@ -31,31 +28,168 @@ interface MeetingRecorderProps {
   };
 }
 
+const AudioVisualizer: React.FC<{ isActive: boolean }> = ({ isActive }) => {
+  return (
+    <div className="flex items-center justify-center space-x-1 h-8">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className={`w-1 bg-primary rounded-full transition-all duration-150 ${
+            isActive ? 'animate-pulse' : 'h-2'
+          }`}
+          style={{
+            height: isActive ? `${Math.random() * 24 + 8}px` : '8px',
+            animationDelay: `${i * 100}ms`
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+const RecordingSettings: React.FC<{
+  settings: any;
+  onSettingsChange: (settings: any) => void;
+}> = ({ settings, onSettingsChange }) => {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Meeting Type</label>
+        <Input
+          value={settings.meetingType || 'general'}
+          onChange={(e) => onSettingsChange({ ...settings, meetingType: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Transcriber Service</label>
+        <select
+          value={settings.transcriberService || 'whisper'}
+          onChange={(e) => onSettingsChange({ ...settings, transcriberService: e.target.value })}
+          className="w-full p-2 border rounded-md"
+        >
+          <option value="whisper">Whisper</option>
+          <option value="deepgram">Deepgram</option>
+        </select>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Description</label>
+        <Textarea
+          value={settings.description || ''}
+          onChange={(e) => onSettingsChange({ ...settings, description: e.target.value })}
+          placeholder="Meeting description..."
+        />
+      </div>
+    </div>
+  );
+};
+
+const TranscriptionDisplay: React.FC<{
+  transcript: string;
+  isRecording: boolean;
+  realtimeTranscripts?: any[];
+}> = ({ transcript, isRecording, realtimeTranscripts = [] }) => {
+  return (
+    <div className="space-y-4">
+      {transcript ? (
+        <div className="min-h-[300px] p-4 bg-muted rounded-lg">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{transcript}</p>
+        </div>
+      ) : (
+        <div className="min-h-[300px] p-4 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
+          {isRecording ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Listening for speech...
+            </div>
+          ) : (
+            'Start recording to see live transcript'
+          )}
+        </div>
+      )}
+      
+      {realtimeTranscripts.length > 0 && (
+        <div className="text-xs text-muted-foreground">
+          Processed {realtimeTranscripts.length} transcript segments
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MeetingNotes: React.FC<{ meetingId: string | null }> = ({ meetingId }) => {
+  const [notes, setNotes] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateNotes = async () => {
+    if (!meetingId) return;
+    
+    setIsGenerating(true);
+    try {
+      // This would integrate with your notes generation system
+      toast.success('Notes generation started');
+    } catch (error) {
+      toast.error('Failed to generate notes');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Meeting Notes</h3>
+        <Button 
+          onClick={generateNotes}
+          disabled={!meetingId || isGenerating}
+          size="sm"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            'Generate Notes'
+          )}
+        </Button>
+      </div>
+      
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Meeting notes will appear here..."
+        className="min-h-[200px]"
+      />
+    </div>
+  );
+};
+
 export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({ 
   onTranscriptUpdate,
   onDurationUpdate,
   onWordCountUpdate,
   initialSettings
 }) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  
-  // Core state
   const [meetingId, setMeetingId] = useState<string | null>(null);
   const [meetingTitle, setMeetingTitle] = useState(initialSettings?.title || '');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [transcript, setTranscript] = useState('');
-  const [wordCount, setWordCount] = useState(0);
-  const [meetingStatus, setMeetingStatus] = useState<'idle' | 'recording' | 'paused' | 'completed'>('idle');
-  
-  // Refs
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
-  // Create new meeting
+  const {
+    state,
+    settings,
+    setSettings,
+    startRecording,
+    stopRecording,
+    resetRecording,
+    formatDuration
+  } = useRecordingManager(
+    onTranscriptUpdate,
+    onDurationUpdate,
+    onWordCountUpdate,
+    initialSettings
+  );
+
+  // Create new meeting when recording starts
   const createMeeting = async (title: string) => {
     if (!user) {
       toast.error('Please sign in to create a meeting');
@@ -75,235 +209,46 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
         .single();
 
       if (error) throw error;
-
-      console.log('✅ Meeting created:', data);
       return data.id;
     } catch (error) {
-      console.error('❌ Failed to create meeting:', error);
+      console.error('Failed to create meeting:', error);
       toast.error('Failed to create meeting');
       return null;
     }
   };
 
-  // Start timer
-  const startTimer = () => {
-    intervalRef.current = setInterval(() => {
-      setElapsedTime(prev => {
-        const newTime = prev + 1;
-        onDurationUpdate(formatTime(newTime));
-        return newTime;
-      });
-    }, 1000);
-  };
-
-  // Stop timer
-  const stopTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
-  // Update transcript and word count
-  const updateTranscript = (newTranscript: string) => {
-    setTranscript(newTranscript);
-    const words = newTranscript.trim().split(/\s+/).filter(word => word.length > 0);
-    const count = words.length;
-    setWordCount(count);
-    onTranscriptUpdate(newTranscript);
-    onWordCountUpdate(count);
-  };
-
-  // Start recording
-  const startRecording = async () => {
+  const handleStartRecording = async () => {
     if (!meetingTitle.trim()) {
       toast.error('Please enter a meeting title');
       return;
     }
 
-    try {
-      let currentMeetingId = meetingId;
-      
-      // Create meeting if it doesn't exist
-      if (!currentMeetingId) {
-        currentMeetingId = await createMeeting(meetingTitle);
-        if (!currentMeetingId) return;
-        setMeetingId(currentMeetingId);
-      }
-
-      // Get microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-
-      // Setup MediaRecorder
-      audioChunksRef.current = [];
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.start(1000); // Record in 1-second chunks
-      
-      // Start timer
-      startTimer();
-      
-      setIsRecording(true);
-      setIsPaused(false);
-      setMeetingStatus('recording');
-      
-      toast.success('Recording started');
-      
-      // Simulate transcript updates for demo
-      setTimeout(() => {
-        updateTranscript('Recording in progress...');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('❌ Failed to start recording:', error);
-      toast.error('Failed to start recording');
+    // Create meeting record
+    const newMeetingId = await createMeeting(meetingTitle);
+    if (newMeetingId) {
+      setMeetingId(newMeetingId);
     }
+
+    // Start the actual recording
+    await startRecording();
   };
 
-  // Pause recording
-  const pauseRecording = async () => {
-    try {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.pause();
-      }
-      
-      stopTimer();
-      setIsPaused(true);
-      setMeetingStatus('paused');
-      
-      toast.info('Recording paused');
-    } catch (error) {
-      console.error('❌ Failed to pause recording:', error);
-      toast.error('Failed to pause recording');
-    }
+  const handleStopRecording = async () => {
+    await stopRecording();
+    // Meeting will be automatically updated by the recording manager
   };
 
-  // Resume recording
-  const resumeRecording = async () => {
-    try {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
-        mediaRecorderRef.current.resume();
-      }
-      
-      startTimer();
-      setIsPaused(false);
-      setMeetingStatus('recording');
-      
-      toast.success('Recording resumed');
-    } catch (error) {
-      console.error('❌ Failed to resume recording:', error);
-      toast.error('Failed to resume recording');
-    }
-  };
-
-  // Stop recording
-  const stopRecording = async () => {
-    if (!meetingId) return;
-
-    try {
-      console.log('🛑 Stopping recording for meeting:', meetingId);
-      
-      // Stop MediaRecorder
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
-      }
-      
-      // Stop timer
-      stopTimer();
-      
-      // Update meeting status to completed with end_time
-      const endTime = new Date();
-      const { error: updateError } = await supabase
-        .from('meetings')
-        .update({
-          status: 'completed',
-          end_time: endTime.toISOString(),
-          updated_at: endTime.toISOString(),
-          word_count: wordCount,
-          duration_minutes: Math.ceil(elapsedTime / 60)
-        })
-        .eq('id', meetingId);
-
-      if (updateError) {
-        console.error('❌ Failed to update meeting status:', updateError);
-        toast.error('Failed to complete meeting');
-        return;
-      }
-
-      console.log('✅ Meeting status updated to completed with end_time');
-      
-      // Save transcript if available
-      if (transcript.trim()) {
-        await supabase
-          .from('meeting_transcripts')
-          .insert({
-            meeting_id: meetingId,
-            speaker_name: 'Meeting Recording',
-            content: transcript,
-            timestamp_seconds: 0,
-            confidence_score: 1.0
-          });
-      }
-      
-      setIsRecording(false);
-      setIsPaused(false);
-      setMeetingStatus('completed');
-      
-      toast.success('Recording completed successfully');
-      
-    } catch (error) {
-      console.error('❌ Failed to stop recording:', error);
-      toast.error('Failed to stop recording');
-    }
-  };
-
-  // Format time display
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Get status badge variant
   const getStatusBadgeVariant = () => {
-    switch (meetingStatus) {
-      case 'recording': return 'destructive';
-      case 'paused': return 'secondary';
-      case 'completed': return 'default';
-      default: return 'outline';
-    }
+    if (state.isRecording) return 'destructive';
+    if (state.isStoppingRecording) return 'secondary';
+    return 'outline';
   };
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+  const getStatusText = () => {
+    if (state.isStoppingRecording) return 'Stopping';
+    if (state.isRecording) return 'Recording';
+    return 'Idle';
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -332,7 +277,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
                     Meeting Recorder
                     <Badge variant={getStatusBadgeVariant()}>
                       <Clock className="h-3 w-3 mr-1" />
-                      {meetingStatus.charAt(0).toUpperCase() + meetingStatus.slice(1)}
+                      {getStatusText()}
                     </Badge>
                   </CardTitle>
                   {meetingId && (
@@ -345,7 +290,7 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Meeting Title Input */}
-              {!isRecording && meetingStatus !== 'completed' && (
+              {!state.isRecording && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Meeting Title</label>
                   <Input
@@ -357,34 +302,37 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
                 </div>
               )}
 
+              {/* Audio Visualizer */}
+              <AudioVisualizer isActive={state.isRecording} />
+
               {/* Timer and Stats */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="text-2xl font-mono font-bold">
-                    {formatTime(elapsedTime)}
+                    {formatDuration(state.duration)}
                   </div>
-                  {wordCount > 0 && (
+                  {state.wordCount > 0 && (
                     <div className="text-sm text-muted-foreground">
-                      {wordCount} words transcribed
+                      {state.wordCount} words • {state.speakerCount} speakers
                     </div>
                   )}
                 </div>
                 
-                {/* Recording indicator */}
-                {isRecording && !isPaused && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-sm text-red-600 font-medium">Recording</span>
-                  </div>
-                )}
+                {/* Connection Status */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${state.isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <span className="text-xs text-muted-foreground">
+                    {state.isConnected ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
               </div>
 
               {/* Control Buttons */}
               <div className="flex items-center gap-2">
-                {!isRecording && meetingStatus !== 'completed' && (
+                {!state.isRecording && (
                   <Button
-                    onClick={startRecording}
-                    disabled={!meetingTitle.trim()}
+                    onClick={handleStartRecording}
+                    disabled={!meetingTitle.trim() || state.isStoppingRecording}
                     className="flex-1"
                   >
                     <Mic className="h-4 w-4 mr-2" />
@@ -392,45 +340,25 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
                   </Button>
                 )}
                 
-                {isRecording && !isPaused && (
-                  <>
-                    <Button
-                      onClick={pauseRecording}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Pause className="h-4 w-4 mr-2" />
-                      Pause
-                    </Button>
-                    <Button
-                      onClick={stopRecording}
-                      variant="destructive"
-                      className="flex-1"
-                    >
-                      <Square className="h-4 w-4 mr-2" />
-                      Stop
-                    </Button>
-                  </>
-                )}
-                
-                {isPaused && (
-                  <>
-                    <Button
-                      onClick={resumeRecording}
-                      className="flex-1"
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Resume
-                    </Button>
-                    <Button
-                      onClick={stopRecording}
-                      variant="destructive"
-                      className="flex-1"
-                    >
-                      <Square className="h-4 w-4 mr-2" />
-                      Stop
-                    </Button>
-                  </>
+                {state.isRecording && (
+                  <Button
+                    onClick={handleStopRecording}
+                    variant="destructive"
+                    disabled={state.isStoppingRecording}
+                    className="flex-1"
+                  >
+                    {state.isStoppingRecording ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Stopping...
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4 mr-2" />
+                        Stop Recording
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
             </CardContent>
@@ -443,24 +371,25 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
               <CardTitle>Live Transcript</CardTitle>
             </CardHeader>
             <CardContent>
-              {transcript ? (
-                <div className="min-h-[200px] p-4 bg-muted rounded-lg">
-                  <p className="whitespace-pre-wrap">{transcript}</p>
-                </div>
-              ) : (
-                <div className="min-h-[200px] p-4 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-                  {isRecording ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Listening for speech...
-                    </div>
-                  ) : (
-                    'Start recording to see live transcript'
-                  )}
-                </div>
-              )}
+              <TranscriptionDisplay
+                transcript={state.transcript}
+                isRecording={state.isRecording}
+                realtimeTranscripts={state.realtimeTranscripts}
+              />
             </CardContent>
           </Card>
+
+          {/* Meeting Notes Section */}
+          {meetingId && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Meeting Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MeetingNotes meetingId={meetingId} />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
@@ -468,31 +397,11 @@ export const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
             <CardHeader>
               <CardTitle>Recording Settings</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Meeting Type</label>
-                <Input
-                  value={initialSettings?.meetingType || 'general'}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Transcriber Service</label>
-                <Input
-                  value={initialSettings?.transcriberService || 'whisper'}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Textarea
-                  value={initialSettings?.description || ''}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+            <CardContent>
+              <RecordingSettings
+                settings={settings}
+                onSettingsChange={setSettings}
+              />
             </CardContent>
           </Card>
         </TabsContent>
