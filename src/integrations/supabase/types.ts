@@ -5166,6 +5166,13 @@ export type Database = {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
       }
+      cleanup_stuck_meetings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fixed_meeting_ids: string[]
+          fixed_meetings_count: number
+        }[]
+      }
       create_default_attendee_templates: {
         Args: { p_practice_id: string; p_user_id: string }
         Returns: undefined
