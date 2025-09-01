@@ -109,6 +109,22 @@ export const quickPickConfig = {
           "label": "Improve Layout for Letter"
         }
       ]
+    },
+    {
+      "id": "meeting-notes-service",
+      "label": "Meeting Notes Service",
+      "children": [
+        {"id": "meeting-notes-formal-board", "label": "Formal board/committee minutes"},
+        {"id": "meeting-notes-informal-team", "label": "Informal team meeting summary"},
+        {"id": "meeting-notes-agenda-based", "label": "Agenda-based notes for structured meetings"},
+        {"id": "meeting-notes-narrative", "label": "Narrative minutes for complex/negotiation meetings"},
+        {"id": "meeting-notes-resolution", "label": "Resolution-style minutes"},
+        {"id": "meeting-notes-brainstorming", "label": "Brainstorming session summary"},
+        {"id": "meeting-notes-hr", "label": "HR meeting/performance-review summary"},
+        {"id": "meeting-notes-gp-partnership", "label": "GP partnership (primary care) meeting notes"},
+        {"id": "meeting-notes-supplier-negotiation", "label": "Supplier-negotiation meeting summary"},
+        {"id": "meeting-notes-executive-session", "label": "Executive session/confidential minutes"}
+      ]
     }
   ]
 };
