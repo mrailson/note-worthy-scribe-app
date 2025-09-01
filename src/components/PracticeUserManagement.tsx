@@ -84,6 +84,17 @@ export const PracticeUserManagement = () => {
     }
   }, [user]);
 
+  // Auto-refresh when practice assignment changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user && !practiceInfo) {
+        loadPracticeInfo();
+      }
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [user, practiceInfo]);
+
   const loadPracticeInfo = async () => {
     try {
       const { data: practiceId, error: practiceError } = await supabase
