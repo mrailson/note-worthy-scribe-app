@@ -185,8 +185,8 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
                 // Add chunk to history
                 const newChunks = [...prev.whisperChunks, chunk];
                 
-                // Accumulate transcript using mergeLive
-                const newTranscript = mergeLive(prev.whisperTranscript, chunk);
+                // WhisperTranscriber already handles segment merging internally - use the merged text directly
+                const newTranscript = payload.data?.text || '';
                 const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
                 
                 return {
