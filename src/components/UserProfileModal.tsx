@@ -36,7 +36,6 @@ interface PracticeDetails {
   phone: string;
   direct_dial?: string;
   practice_logo_url?: string;
-  email_signature?: string;
   letter_signature?: string;
 }
 
@@ -64,7 +63,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     phone: '',
     direct_dial: '',
     practice_logo_url: '',
-    email_signature: '',
     letter_signature: ''
   });
 
@@ -173,7 +171,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
             phone: practiceData.phone || '',
             direct_dial: '',
             practice_logo_url: (practiceData as any).practice_logo_url || '',
-            email_signature: (practiceData as any).email_signature || '',
             letter_signature: (practiceData as any).letter_signature || ''
           });
           console.log('Practice details state updated successfully');
@@ -203,7 +200,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           phone: directPracticeData[0].phone || '',
           direct_dial: '',
           practice_logo_url: (directPracticeData[0] as any).practice_logo_url || '',
-          email_signature: (directPracticeData[0] as any).email_signature || '',
           letter_signature: (directPracticeData[0] as any).letter_signature || ''
         });
         console.log('Practice details state updated from direct lookup');
@@ -228,7 +224,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         website: practiceDetails.website,
         phone: practiceDetails.phone,
         practice_logo_url: practiceDetails.practice_logo_url,
-        email_signature: practiceDetails.email_signature,
         letter_signature: practiceDetails.letter_signature,
         updated_at: new Date().toISOString()
       };
@@ -388,10 +383,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
 
     setSignatureLoading(true);
     try {
-      console.log('Saving signatures for user:', user.id);
+      console.log('Saving signature for user:', user.id);
       console.log('Current practiceDetails.id:', practiceDetails.id);
-      console.log('Email signature length:', practiceDetails.email_signature?.length || 0);
-      console.log('Letter signature length:', practiceDetails.letter_signature?.length || 0);
+      console.log('Signature length:', practiceDetails.letter_signature?.length || 0);
 
       if (practiceDetails.id) {
         // Update existing record
@@ -399,7 +393,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         const { data, error } = await supabase
           .from('practice_details')
           .update({
-            email_signature: practiceDetails.email_signature || '',
             letter_signature: practiceDetails.letter_signature || '',
             updated_at: new Date().toISOString()
           })
@@ -421,7 +414,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           email: practiceDetails.email || user.email || '',
           website: practiceDetails.website || '',
           phone: practiceDetails.phone || '',
-          email_signature: practiceDetails.email_signature || '',
           letter_signature: practiceDetails.letter_signature || ''
         };
         
@@ -438,14 +430,14 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         console.log('Insert successful:', data);
       }
 
-      // Refetch practice details to ensure signatures persist
+      // Refetch practice details to ensure signature persists
       console.log('Refetching practice details...');
       await fetchPracticeDetails();
       
-      toast.success('Signatures saved successfully');
+      toast.success('Signature saved successfully');
     } catch (error: any) {
-      console.error('Error saving signatures:', error);
-      toast.error('Failed to save signatures: ' + error.message);
+      console.error('Error saving signature:', error);
+      toast.error('Failed to save signature: ' + error.message);
     } finally {
       setSignatureLoading(false);
     }
@@ -656,40 +648,25 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
             </CardContent>
           </Card>
 
-          {/* Email & Letter Signatures */}
+          {/* Digital Signature */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PenTool className="h-5 w-5" />
-                Digital Signatures
+                Digital Signature
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Email Signature */}
-              <div>
-                <Label className="flex items-center gap-2 mb-3">
-                  <Mail className="h-4 w-4" />
-                  Email Signature
-                </Label>
-                <SignatureEditor
-                  content={practiceDetails.email_signature || ''}
-                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, email_signature: content }))}
-                  placeholder="Create your professional email signature..."
-                />
-              </div>
-
-              <Separator />
-
-              {/* Letter Signature */}
+              {/* Signature */}
               <div>
                 <Label className="flex items-center gap-2 mb-3">
                   <FileText className="h-4 w-4" />
-                  Letter Signature
+                  Signature
                 </Label>
                 <SignatureEditor
                   content={practiceDetails.letter_signature || ''}
                   onChange={(content) => setPracticeDetails(prev => ({ ...prev, letter_signature: content }))}
-                  placeholder="Create your professional letter signature..."
+                  placeholder="Create your professional signature..."
                 />
               </div>
 
@@ -701,12 +678,12 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 {signatureLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving Signatures...
+                    Saving Signature...
                   </>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Signatures
+                    Save Signature
                   </>
                 )}
               </Button>
