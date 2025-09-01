@@ -564,7 +564,7 @@ export const CustomizableOutputBubble: React.FC<CustomizableOutputBubbleProps> =
           </PopoverContent>
         </Popover>
 
-        <ScrollArea className="max-h-[600px]">
+        <ScrollArea className="max-h-[800px] md:max-h-none">
           {isPreviewMode ? (
             <div 
               className="prose prose-sm max-w-none dark:prose-invert"

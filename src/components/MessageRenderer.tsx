@@ -709,21 +709,22 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </span>
                     </div>
                   ) : (
-                    <CustomizableOutputBubble
-                      content={displayContent}
-                      title="AI Response"
-                      onExportWord={onExportWord}
-                      onExportPowerPoint={onExportPowerPoint}
-                      className={isModal ? '' : '-mx-4 -my-3'}
-                      defaultCustomization={{
-                        contentType: 'general',
-                        useNHSStyling: true,
-                        enhanceReadability: true,
-                        addSmartBreaks: true,
-                        backgroundColor: isModal ? 'bg-background' : 'bg-transparent',
-                        padding: isModal ? 16 : 0
-                      }}
-                    />
+                    <div className={isModal ? '' : '-mx-4 -my-3'}>
+                      <CustomizableOutputBubble
+                        content={displayContent}
+                        title="AI Response"
+                        onExportWord={onExportWord}
+                        onExportPowerPoint={onExportPowerPoint}
+                        defaultCustomization={{
+                          contentType: 'general',
+                          useNHSStyling: true,
+                          enhanceReadability: true,
+                          addSmartBreaks: true,
+                          backgroundColor: isModal ? 'bg-background' : 'bg-transparent',
+                          padding: isModal ? 16 : 0
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               ) : (
