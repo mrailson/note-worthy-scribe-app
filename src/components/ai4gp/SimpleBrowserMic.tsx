@@ -3,12 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import stringSimilarity from 'string-similarity';
 
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
   onRecordingStart?: () => void;
-  onAutoSend?: (transcribedText: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -20,7 +18,6 @@ export interface SimpleBrowserMicRef {
 export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMicProps>(({
   onTranscriptUpdate,
   onRecordingStart,
-  onAutoSend,
   disabled = false,
   className = ''
 }, ref) => {
@@ -30,50 +27,18 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
-  const detectCodeWord = (text: string): { hasCodeWord: boolean; cleanText: string } => {
-    // Voice command: "Enter Enter" to send message
-    const codeWords = ['enter enter'];
-    const words = text.toLowerCase().trim().split(' ');
-    
-    // Check for "enter enter" at the end of the sentence
-    if (words.length >= 2) {
-      const lastTwoWords = words.slice(-2).join(' ');
-      
-      for (const codeWord of codeWords) {
-        const similarity = stringSimilarity.compareTwoStrings(lastTwoWords, codeWord);
-        if (similarity > 0.8) { // High threshold for precision
-          // Remove the code word from the text
-          const cleanText = words.slice(0, -2).join(' ').trim();
-          return { hasCodeWord: true, cleanText };
-        }
-      }
-    }
-    
-    return { hasCodeWord: false, cleanText: text };
-  };
+  // Voice command detection removed - no auto-send functionality
 
   const handleTranscription = (data: TranscriptData) => {
     if (data.is_final) {
-      // For final results, check for code word and handle accordingly
-      const { hasCodeWord, cleanText } = detectCodeWord(data.text);
-      
+      // For final results, append to full transcript
       setFullTranscript(prev => {
-        const newTranscript = prev ? `${prev} ${cleanText}` : cleanText;
-        
-        // Always update the transcript first
+        const newTranscript = prev ? `${prev} ${data.text}` : data.text;
         onTranscriptUpdate(newTranscript);
-        
-        if (hasCodeWord && newTranscript.trim().length > 0 && onAutoSend) {
-          // Pass the actual content to auto-send instead of relying on state
-          setTimeout(() => {
-            onAutoSend(newTranscript.trim());
-          }, 200);
-        }
-        
         return newTranscript;
       });
     } else {
-      // For interim results, show preview with current text (no code word detection)
+      // For interim results, show preview with current text
       const previewText = fullTranscript ? `${fullTranscript} ${data.text}` : data.text;
       onTranscriptUpdate(previewText);
     }
