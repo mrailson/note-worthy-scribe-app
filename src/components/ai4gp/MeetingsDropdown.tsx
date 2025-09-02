@@ -273,7 +273,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           .eq('meeting_id', meeting.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (error || !transcriptData?.content) {
           toast({
