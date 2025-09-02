@@ -646,13 +646,13 @@ export function useRecordingManager(
                 completionError: 'Verification failed - please check meeting status',
                 isConnected: false
               }));
-              // Still reset after showing completion
-              setTimeout(() => resetRecording(), 2000);
               toast.warning('Recording completed but verification failed. Please check your meetings.');
+              // Reset immediately after showing completion status
+              resetRecording();
             } else {
               console.log('✅ Meeting completion verified:', completedMeeting.id);
               
-              // Set completed state first, then reset after a delay
+              // Set completed state first, then reset immediately
               setState(prev => ({
                 ...prev,
                 isCompleting: false,
@@ -661,16 +661,15 @@ export function useRecordingManager(
                 isConnected: false
               }));
               
-              // Reset the recording state after showing completion
-              setTimeout(() => resetRecording(), 2000);
-              
               toast.success(`Meeting "${completedMeeting.title}" saved successfully! Notes generation will begin automatically.`);
+              // Reset immediately after showing completion status
+              resetRecording();
             }
           }
         } catch (verificationError) {
           console.error('❌ Error verifying meeting completion:', verificationError);
           
-          // Set completed state first, then reset
+          // Set completed state first, then reset immediately
           setState(prev => ({
             ...prev,
             isCompleting: false,
@@ -679,8 +678,8 @@ export function useRecordingManager(
             isConnected: false
           }));
           
-          // Reset recording state after showing completion
-          setTimeout(() => resetRecording(), 2000);
+          // Reset recording state immediately
+          resetRecording();
         }
       }
 
