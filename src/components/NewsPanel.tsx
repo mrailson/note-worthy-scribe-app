@@ -1,3 +1,4 @@
+// NewsPanel component for displaying and filtering GP news articles
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
