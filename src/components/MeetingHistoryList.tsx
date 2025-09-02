@@ -1113,19 +1113,6 @@ export const MeetingHistoryList = ({
                   </span>
                 </Button>
                 
-                {/* Share Meeting Button - Only show for owned meetings */}
-                {(!meeting.access_type || meeting.access_type === 'owner') && (
-                  <ShareMeetingDialog meetingId={meeting.id} meetingTitle={meeting.title}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span>Share</span>
-                    </Button>
-                  </ShareMeetingDialog>
-                )}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Edit, Save, X, Sparkles } from "lucide-react";
+import { Edit, Save, X, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
@@ -166,8 +166,8 @@ export const MeetingOverviewEditor = ({
                 disabled={regenerating}
                 className="h-8 px-2"
               >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {regenerating ? "Regenerating..." : "Regenerate"}
+                <RefreshCw className={`h-3 w-3 mr-1 ${regenerating ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
             )}
           </div>
