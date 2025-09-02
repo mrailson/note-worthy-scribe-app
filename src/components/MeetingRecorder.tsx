@@ -3543,8 +3543,10 @@ export const MeetingRecorder = ({
       // Show success immediately - user doesn't need to wait for AI processing
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
       
-      setMeetingEndModal(prev => ({
-        ...prev,
+      console.log('✅ Setting modal to success stage for immediate close');
+      
+      setMeetingEndModal({
+        isOpen: true,
         stage: 'success',
         savedData: {
           title: formattedTitle,
@@ -3552,13 +3554,22 @@ export const MeetingRecorder = ({
           wordCount: wordCount,
           id: savedMeeting.id
         }
-      }));
+      });
 
-      // Clear timeout since we're going directly to success
+      // Clear all existing timeouts
       clearModalTimeout();
       
-      // Auto-close after 5 seconds so user can continue
-      startAutoCloseCountdown(5);
+      // Use a simple setTimeout instead of the complex countdown mechanism
+      console.log('⏰ Setting 5-second auto-close timer');
+      setTimeout(() => {
+        console.log('🔄 Auto-closing modal after 5 seconds');
+        setMeetingEndModal({
+          isOpen: false,
+          stage: 'processing',
+          savedData: null
+        });
+        setModalAutoCloseCountdown(null);
+      }, 5000);
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
