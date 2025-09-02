@@ -2808,8 +2808,8 @@ export const MeetingRecorder = ({
       }
       autoCleanIntervalRef.current = setInterval(() => {
         performAutoTranscriptClean();
-      }, 14 * 60 * 1000); // 14 minutes
-      console.log('🧹 Auto Deep Clean scheduled every 14 minutes');
+      }, 10 * 60 * 1000); // 10 minutes
+      console.log('🧹 Auto Deep Clean scheduled every 10 minutes');
 
       const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
                       useScreenShare ? `microphone + screen audio (${isChrome ? 'Chrome' : 'Edge'})` : 'microphone + system audio';

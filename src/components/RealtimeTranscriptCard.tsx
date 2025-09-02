@@ -40,6 +40,7 @@ export const RealtimeTranscriptCard = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [showConfidence, setShowConfidence] = useState(false);
+  const [showTimestamps, setShowTimestamps] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
@@ -112,18 +113,42 @@ export const RealtimeTranscriptCard = ({
     return "text-red-600";
   };
 
+  const formatTimestamp = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const formatTranscriptForDisplay = (text: string) => {
     if (!text) return "";
     
     // Split into sentences for better readability
-    return text
+    const sentences = text
       .split(/(?<=[.!?])\s+/)
-      .filter(sentence => sentence.trim().length > 0)
-      .map((sentence, index) => (
+      .filter(sentence => sentence.trim().length > 0);
+
+    return sentences.map((sentence, index) => {
+      const shouldShowTimestamp = showTimestamps && index % 5 === 0; // Show timestamp every 5 sentences
+      const estimatedTime = Math.floor(index * 3); // Rough estimate: 3 seconds per sentence
+      
+      return (
         <div key={index} className="mb-1 leading-relaxed">
-          {sentence.trim()}
+          {shouldShowTimestamp && (
+            <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span className="font-mono">{formatTimestamp(estimatedTime)}</span>
+              <div className="flex-1 h-px bg-border"></div>
+            </div>
+          )}
+          <div>{sentence.trim()}</div>
         </div>
-      ));
+      );
+    });
   };
 
   return (
@@ -163,6 +188,16 @@ export const RealtimeTranscriptCard = ({
             )}
             
             {/* Controls */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowTimestamps(!showTimestamps)}
+              className="h-6 w-6 p-0"
+              title="Toggle timestamps"
+            >
+              <Clock className="h-3 w-3" />
+            </Button>
+            
             <Button
               variant="ghost"
               size="sm"
