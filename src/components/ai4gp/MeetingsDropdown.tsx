@@ -429,6 +429,16 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         <DropdownMenuLabel>Recent Meetings</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
+        {/* Start New Meeting Option */}
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/meeting-recorder-v2')}
+        >
+          <Play className="w-4 h-4 mr-2" />
+          Start New Meeting
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        
         {isLoading ? (
           <DropdownMenuItem disabled className="justify-center py-4">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
