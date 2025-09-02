@@ -272,11 +272,13 @@ export const TranscriptManager = ({
         </CardContent>
       </Card>
 
-      {/* Chunk Save Status moved to the very bottom */}
-      <ChunkSaveStatus 
-        chunks={chunkSaveStatuses} 
-        isRecording={isRecording}
-      />
+      {/* ✅ MOVED: Chunk Save Status now positioned below Meeting Transcript Card */}
+      <div className="border-2 border-dashed border-primary/30 p-1 rounded">
+        <ChunkSaveStatus 
+          chunks={chunkSaveStatuses} 
+          isRecording={isRecording}
+        />
+      </div>
     </div>
   );
 };
