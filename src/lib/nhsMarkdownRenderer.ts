@@ -14,8 +14,19 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   // Debug: Log the original content to see what we're processing
   console.log('🔍 MARKDOWN INPUT:', content);
   
+  // Preprocess numbered lists that are run together
+  let preprocessedContent = content
+    // Add line breaks before numbered items that are run together
+    .replace(/(\d+\.\s+[^0-9]+?)(\s+\d+\.\s+)/g, '$1\n$2')
+    // Handle various numbered list patterns
+    .replace(/(\d+\)\s+[^0-9]+?)(\s+\d+\)\s+)/g, '$1\n$2')
+    // Ensure proper spacing for numbered items at start of lines
+    .replace(/^(\d+[\.)]\s*)/gm, '\n$1')
+    // Clean up extra line breaks
+    .replace(/\n{3,}/g, '\n\n');
+  
   // Convert markdown to HTML
-  let html = content
+  let html = preprocessedContent
     // Process LaTeX mathematical expressions first
     .replace(/\\times/g, '×')
     .replace(/\\div/g, '÷')
@@ -137,7 +148,10 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
       return tableHtml;
     })
     
-    // Convert list items to dashes for consistent formatting
+    // Convert numbered list items
+    .replace(/^(\d+)[\.)]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-medium">$1.</span><span class="flex-1 leading-relaxed">$2</span></div>`)
+    
+    // Convert bullet list items to dashes for consistent formatting
     .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     
     // Line breaks for paragraphs

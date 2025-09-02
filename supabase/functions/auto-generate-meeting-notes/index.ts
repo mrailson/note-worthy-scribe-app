@@ -276,7 +276,9 @@ Write 2-3 substantial paragraphs that capture the essence of the content. Includ
 
 **KEY DISCUSSION POINTS**
 1. Detailed breakdown of main topics with context and outcomes
+
 2. Important themes, initiatives, or programmes covered
+
 3. Educational content or knowledge shared
 
 **DECISIONS MADE**
