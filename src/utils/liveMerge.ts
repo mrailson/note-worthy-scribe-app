@@ -10,7 +10,7 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const JACCARD_THRESHOLD = 0.70; // more aggressive duplicate detection (reduced from 0.85)
+const JACCARD_THRESHOLD = 0.85; // strict duplicate detection to prevent false positives
 const DEDUPE_WINDOW = 15;       // compare against last N sentences (increased window)
 
 const norm = (s: string) =>
@@ -86,7 +86,7 @@ function hasLargeBlockOverlap(existingText: string, newText: string): boolean {
   }
   
   const overlapRatio = matchingWords / newWords.length;
-  if (overlapRatio > 0.7) {
+  if (overlapRatio > 0.85) {
     console.log(`🔍 Large block overlap detected: ${(overlapRatio * 100).toFixed(1)}% word overlap`);
     return true;
   }

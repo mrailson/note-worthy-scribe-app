@@ -99,22 +99,25 @@ export class ChunkedWhisperTranscriber {
     const txt = (payload?.data?.text as string) || '';
 
     if (segs.length) {
-      // Mark segments as final to prevent duplicates from interim processing  
+      // Only mark segments as final if they have high confidence
+      const avgConfidence = segs.reduce((sum, seg) => sum + ((seg as any).confidence || 0), 0) / segs.length;
+      const isFinal = avgConfidence > 0.8; // Only final if high confidence
+      
       const finalSegments = segs.map(seg => ({
         ...seg,
-        isFinal: true // Explicitly mark as final for proper deduplication
+        isFinal // Use confidence-based finality
       }));
       
       // Use stricter merging with overlap detection
       this.mergedSegments = mergeByTimestamps(this.mergedSegments, finalSegments);
       
       const finalText = segmentsToPlainText(this.mergedSegments);
-      console.log(`📝 Chunked transcriber: processed ${finalSegments.length} segments, total text: ${finalText.length} chars`);
+      console.log(`📝 Chunked transcriber: processed ${finalSegments.length} segments (confidence: ${avgConfidence.toFixed(2)}, final: ${isFinal}), total text: ${finalText.length} chars`);
       
       return {
         text: finalText,
         segments: this.mergedSegments,
-        isFinal: true // Mark the entire response as final
+        isFinal // Use confidence-based finality
       };
     } else {
       // Fallback to simple tail-trim merge if only flat text arrives
@@ -124,7 +127,7 @@ export class ChunkedWhisperTranscriber {
       }
       return { 
         text: this.fallbackText,
-        isFinal: true // Mark fallback text as final too
+        isFinal: false // Mark fallback text as interim since no confidence available
       };
     }
   }

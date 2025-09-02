@@ -24,7 +24,7 @@ export class TimestampedSegmentMerger {
   private static readonly GRACE_MS = 50; // Reduced to 50ms for stricter timing (was 100ms)
   private static readonly MIN_SEGMENT_LENGTH = 8; // Slightly reduced minimum length
   private static readonly HASH_LENGTH = 80; // Reduced hash length for better duplicate detection
-  private static readonly OVERLAP_THRESHOLD = 0.65; // More aggressive overlap detection (was 0.7)
+  private static readonly OVERLAP_THRESHOLD = 0.85; // strict overlap detection to prevent false positives
   
   private state: MergerState;
   
