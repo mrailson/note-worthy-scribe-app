@@ -21,9 +21,10 @@ export interface MergerState {
 }
 
 export class TimestampedSegmentMerger {
-  private static readonly GRACE_MS = 100; // 100ms grace period for timing variations
-  private static readonly MIN_SEGMENT_LENGTH = 10;
-  private static readonly HASH_LENGTH = 120; // Characters to hash for content fingerprinting
+  private static readonly GRACE_MS = 50; // Reduced to 50ms for stricter timing (was 100ms)
+  private static readonly MIN_SEGMENT_LENGTH = 8; // Slightly reduced minimum length
+  private static readonly HASH_LENGTH = 80; // Reduced hash length for better duplicate detection
+  private static readonly OVERLAP_THRESHOLD = 0.65; // More aggressive overlap detection (was 0.7)
   
   private state: MergerState;
   
@@ -155,20 +156,38 @@ export class TimestampedSegmentMerger {
   }
 
   private hasLargeTextOverlap(newText: string, existingText: string): boolean {
-    if (!existingText || existingText.length < 100) return false;
+    if (!existingText || existingText.length < 80) return false;
     
     const newNormalized = this.normalizeForComparison(newText);
     const existingNormalized = this.normalizeForComparison(existingText);
     
-    // Check for substantial overlaps (500+ characters)
-    const scanWindow = 500;
-    const minOverlapLength = 100;
+    // More aggressive overlap detection with smaller windows
+    const scanWindow = 200; // Reduced from 500
+    const minOverlapLength = 60; // Reduced from 100
+    const stepSize = 25; // Reduced from 50 for more thorough scanning
     
-    // Check if large chunks of new text already exist in the existing text
-    for (let i = 0; i <= newNormalized.length - minOverlapLength; i += 50) {
+    // Check if chunks of new text already exist in the existing text
+    for (let i = 0; i <= newNormalized.length - minOverlapLength; i += stepSize) {
       const chunk = newNormalized.substring(i, i + scanWindow);
       if (chunk.length >= minOverlapLength && existingNormalized.includes(chunk)) {
         console.log(`🔍 Large overlap found: "${chunk.substring(0, 50)}..." (${chunk.length} chars)`);
+        return true;
+      }
+    }
+    
+    // Additional check: word-based overlap detection
+    const newWords = newNormalized.split(/\s+/).filter(w => w.length > 3);
+    const existingWords = new Set(existingNormalized.split(/\s+/).filter(w => w.length > 3));
+    
+    if (newWords.length > 10) {
+      let matchingWords = 0;
+      for (const word of newWords) {
+        if (existingWords.has(word)) matchingWords++;
+      }
+      
+      const overlapRatio = matchingWords / newWords.length;
+      if (overlapRatio > TimestampedSegmentMerger.OVERLAP_THRESHOLD) {
+        console.log(`🔍 Word-based overlap detected: ${(overlapRatio * 100).toFixed(1)}% word overlap`);
         return true;
       }
     }

@@ -9,9 +9,9 @@ export type LiveChunk = {
   speaker?: string | null;
 };
 
-const OVERLAP_SCAN = 180;       // chars to scan for overlaps
-const JACCARD_THRESHOLD = 0.85; // balanced near-duplicate cutoff (reduced from 0.97 to preserve content)
-const DEDUPE_WINDOW = 10;       // compare against last N sentences
+const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
+const JACCARD_THRESHOLD = 0.70; // more aggressive duplicate detection (reduced from 0.85)
+const DEDUPE_WINDOW = 15;       // compare against last N sentences (increased window)
 
 const norm = (s: string) =>
   s.replace(/\u2026/g, "...")      // normalize ellipsis
@@ -46,16 +46,52 @@ function stitchWithOverlap(prev: string, next: string) {
   const b = next.slice(0, OVERLAP_SCAN);
   if (!a || !b) return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
 
-  for (let k = Math.min(a.length, b.length); k >= 40; k -= 10) {
+  // Enhanced overlap detection with more aggressive thresholds
+  for (let k = Math.min(a.length, b.length); k >= 30; k -= 8) { // Reduced min overlap and step size
     const suf = a.slice(-k);
     const pre = b.slice(0, k);
-    if (sim(suf, pre) >= JACCARD_THRESHOLD) {
-      // drop the overlapping prefix from next
-      console.log(`🔗 Detected overlap (${k} chars, similarity: ${sim(suf, pre).toFixed(3)}), merging without duplication`);
+    const similarity = sim(suf, pre);
+    
+    if (similarity >= JACCARD_THRESHOLD) {
+      console.log(`🔗 Detected overlap (${k} chars, similarity: ${similarity.toFixed(3)}), merging without duplication`);
       return prev + next.slice(k);
     }
   }
+  
+  // Additional check for large block duplicates
+  if (hasLargeBlockOverlap(prev, next)) {
+    console.log(`🚫 Large block overlap detected, skipping duplicate content`);
+    return prev; // Don't add the duplicate content
+  }
+  
   return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
+}
+
+// New function to detect large block overlaps
+function hasLargeBlockOverlap(existingText: string, newText: string): boolean {
+  if (existingText.length < 200 || newText.length < 100) return false;
+  
+  const existingNorm = norm(existingText);
+  const newNorm = norm(newText);
+  
+  // Check if 70% or more of the new text already exists in the existing text
+  const newWords = newNorm.split(/\s+/).filter(Boolean);
+  const existingWords = new Set(existingNorm.split(/\s+/).filter(Boolean));
+  
+  let matchingWords = 0;
+  for (const word of newWords) {
+    if (word.length > 3 && existingWords.has(word)) { // Only count meaningful words
+      matchingWords++;
+    }
+  }
+  
+  const overlapRatio = matchingWords / newWords.length;
+  if (overlapRatio > 0.7) {
+    console.log(`🔍 Large block overlap detected: ${(overlapRatio * 100).toFixed(1)}% word overlap`);
+    return true;
+  }
+  
+  return false;
 }
 
 function dedupeTail(text: string) {

@@ -99,15 +99,33 @@ export class ChunkedWhisperTranscriber {
     const txt = (payload?.data?.text as string) || '';
 
     if (segs.length) {
-      this.mergedSegments = mergeByTimestamps(this.mergedSegments, segs);
+      // Mark segments as final to prevent duplicates from interim processing  
+      const finalSegments = segs.map(seg => ({
+        ...seg,
+        isFinal: true // Explicitly mark as final for proper deduplication
+      }));
+      
+      // Use stricter merging with overlap detection
+      this.mergedSegments = mergeByTimestamps(this.mergedSegments, finalSegments);
+      
+      const finalText = segmentsToPlainText(this.mergedSegments);
+      console.log(`📝 Chunked transcriber: processed ${finalSegments.length} segments, total text: ${finalText.length} chars`);
+      
       return {
-        text: segmentsToPlainText(this.mergedSegments),
+        text: finalText,
         segments: this.mergedSegments,
+        isFinal: true // Mark the entire response as final
       };
     } else {
       // Fallback to simple tail-trim merge if only flat text arrives
-      this.fallbackText = this.mergeWithOverlap(this.fallbackText, txt);
-      return { text: this.fallbackText };
+      if (txt && txt.trim()) {
+        this.fallbackText = this.mergeWithOverlap(this.fallbackText, txt);
+        console.log(`📝 Chunked transcriber fallback: processed ${txt.length} chars, total: ${this.fallbackText.length} chars`);
+      }
+      return { 
+        text: this.fallbackText,
+        isFinal: true // Mark fallback text as final too
+      };
     }
   }
 

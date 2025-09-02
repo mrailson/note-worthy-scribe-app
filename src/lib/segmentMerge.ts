@@ -1,8 +1,8 @@
 export type Segment = { start: number; end: number; text: string }; // seconds
 
 // Keep everything strictly after the last accepted boundary.
-// Small grace avoids flicker from near-identical timings.
-const GRACE_S = 0.10; // 100 ms
+// Reduced grace period for stricter deduplication.
+const GRACE_S = 0.05; // 50 ms (reduced from 100ms for stricter timing)
 
 export function mergeByTimestamps(
   existing: Segment[],
