@@ -2915,10 +2915,8 @@ export const MeetingRecorder = ({
       setIsStoppingRecording(false);
       setConnectionStatus("Disconnected");
       
-      // Clear unsaved meeting data
+      // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
-      sessionStorage.removeItem('currentSessionId');
-      sessionStorage.removeItem('currentMeetingId');
       
       toast.success(`Recording stopped. Meeting was too short (${wordCount} words) to generate notes.`);
       return;
@@ -3142,10 +3140,6 @@ export const MeetingRecorder = ({
         }
       }
     }
-    
-    // Clean up session storage
-    sessionStorage.removeItem('currentSessionId');
-    sessionStorage.removeItem('currentMeetingId');
     
     // Clean the final transcript
     const currentTranscript = finalTranscript
@@ -3422,6 +3416,16 @@ export const MeetingRecorder = ({
         // Don't fail the whole save process for this
         toast.success('Meeting saved successfully!');
       }
+
+      // Clean up session storage after successful save
+      sessionStorage.removeItem('currentSessionId');
+      sessionStorage.removeItem('currentMeetingId');
+      console.log('✅ Session storage cleaned after successful meeting save');
+
+      // Reset all recording state to prepare for next recording
+      console.log('🔄 Resetting recording state after successful save');
+      await resetMeeting();
+      console.log('✅ Recording state reset - timer and word count should be at zero');
 
         // Signal to Meeting History and trigger localStorage communication
         signalMeetingHistoryRefresh();
