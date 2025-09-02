@@ -149,6 +149,8 @@ export function useRecordingManager(
   const transcriberRef = useRef<any>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<Date | null>(null);
+  const earlyChunkTimeout5sRef = useRef<NodeJS.Timeout | null>(null);
+  const earlyChunkTimeout15sRef = useRef<NodeJS.Timeout | null>(null);
   const isIOS = detectDevice().isIOS;
 
   const formatDuration = useCallback((seconds: number): string => {
@@ -239,6 +241,59 @@ export function useRecordingManager(
     }
   }, [settings.transcriberService, isIOS, handleTranscriptData]);
 
+  const saveEarlyChunk = useCallback(async (chunkLabel: string) => {
+    console.log(`📝 Saving early chunk at ${chunkLabel}`);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Find the current recording meeting
+      const { data: recordingMeeting } = await supabase
+        .from('meetings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'recording')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!recordingMeeting || state.realtimeTranscripts.length === 0) {
+        console.log(`⚠️ No recording meeting or transcripts for ${chunkLabel} chunk`);
+        return;
+      }
+
+      // Get final transcripts only
+      const finalTranscripts = state.realtimeTranscripts.filter(t => t.isFinal && t.text.trim());
+      
+      if (finalTranscripts.length === 0) {
+        console.log(`⚠️ No final transcripts available for ${chunkLabel} chunk`);
+        return;
+      }
+
+      const transcriptInserts = finalTranscripts.map((transcript) => ({
+        meeting_id: recordingMeeting.id,
+        content: transcript.text,
+        timestamp_seconds: new Date(transcript.timestamp).getTime() / 1000,
+        confidence_score: transcript.confidence || 0.8
+      }));
+
+      console.log(`💾 Inserting ${transcriptInserts.length} transcript chunks for ${chunkLabel}`);
+      const { error: transcriptError } = await supabase
+        .from('meeting_transcripts')
+        .insert(transcriptInserts);
+
+      if (transcriptError) {
+        console.error(`❌ Failed to save ${chunkLabel} transcripts:`, transcriptError);
+      } else {
+        console.log(`✅ Successfully saved ${chunkLabel} transcript chunks`);
+        toast.success(`Transcription active - ${finalTranscripts.length} chunks saved`);
+      }
+    } catch (error) {
+      console.error(`❌ Error saving ${chunkLabel} chunk:`, error);
+    }
+  }, [state.realtimeTranscripts]);
+
   const startRecording = useCallback(async () => {
     if (!isResourceOperationSafe()) {
       toast.error('Cannot start recording while another operation is in progress');
@@ -283,6 +338,16 @@ export function useRecordingManager(
         }
       }, 1000);
 
+      // Set up early chunking timeouts for user feedback
+      earlyChunkTimeout5sRef.current = setTimeout(() => {
+        saveEarlyChunk('5-second');
+      }, 5000);
+      
+      earlyChunkTimeout15sRef.current = setTimeout(() => {
+        saveEarlyChunk('15-second');
+      }, 15000);
+
+      console.log('⏰ Early chunking timeouts set for 5s and 15s');
       toast.success('Recording started');
       return true;
     } catch (error) {
@@ -291,7 +356,7 @@ export function useRecordingManager(
       setState(prev => ({ ...prev, isRecording: false }));
       return false;
     }
-  }, [isResourceOperationSafe, createTranscriber, onDurationUpdate, formatDuration]);
+  }, [isResourceOperationSafe, createTranscriber, onDurationUpdate, formatDuration, saveEarlyChunk]);
 
   const saveMeetingAndQueueNotes = useCallback(async () => {
     console.log('🔄 Starting meeting save process...');
@@ -489,6 +554,17 @@ export function useRecordingManager(
         console.log('✅ Duration interval cleared');
       }
 
+      // Clear early chunk timeouts
+      if (earlyChunkTimeout5sRef.current) {
+        clearTimeout(earlyChunkTimeout5sRef.current);
+        earlyChunkTimeout5sRef.current = null;
+      }
+      if (earlyChunkTimeout15sRef.current) {
+        clearTimeout(earlyChunkTimeout15sRef.current);
+        earlyChunkTimeout15sRef.current = null;
+      }
+      console.log('✅ Early chunk timeouts cleared');
+
       console.log('💾 Attempting to save meeting and queue notes...');
       const saveSuccess = await saveMeetingAndQueueNotes();
       
@@ -562,6 +638,12 @@ export function useRecordingManager(
       }
       if (transcriberRef.current) {
         transcriberRef.current.stopTranscription();
+      }
+      if (earlyChunkTimeout5sRef.current) {
+        clearTimeout(earlyChunkTimeout5sRef.current);
+      }
+      if (earlyChunkTimeout15sRef.current) {
+        clearTimeout(earlyChunkTimeout15sRef.current);
       }
     };
   }, []);
