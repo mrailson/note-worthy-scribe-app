@@ -261,9 +261,10 @@ const AI4GPService = () => {
         data-component="ai4gp-service"
         style={{ 
           WebkitOverflowScrolling: 'touch',
-          maxWidth: 'calc(100vw - 200px)',
-          width: 'calc(100vw - 200px)',
-          margin: '0 auto'
+          maxWidth: 'calc(100vw - 220px)',
+          width: 'calc(100vw - 220px)',
+          margin: '0 auto',
+          overflowX: 'hidden'
         }}
       >
         <div className="flex flex-1 min-h-0">
