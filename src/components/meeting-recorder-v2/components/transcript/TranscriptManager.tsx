@@ -205,12 +205,12 @@ export const TranscriptManager = ({
         />
       </div>
 
-      {/* Transcript Segments */}
+      {/* Meeting Transcript Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Transcript Segments
+            Meeting Transcript
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -272,7 +272,7 @@ export const TranscriptManager = ({
         </CardContent>
       </Card>
 
-      {/* Chunk Save Status */}
+      {/* Chunk Save Status - positioned below Meeting Transcript Card */}
       <ChunkSaveStatus 
         chunks={chunkSaveStatuses} 
         isRecording={isRecording}
