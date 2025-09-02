@@ -272,7 +272,7 @@ export const TranscriptManager = ({
         </CardContent>
       </Card>
 
-      {/* Chunk Save Status - positioned below Meeting Transcript Card */}
+      {/* Chunk Save Status moved to the very bottom */}
       <ChunkSaveStatus 
         chunks={chunkSaveStatuses} 
         isRecording={isRecording}
