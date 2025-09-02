@@ -59,14 +59,14 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
       setFullTranscript(prev => {
         const newTranscript = prev ? `${prev} ${cleanText}` : cleanText;
         
+        // Update the transcript first
+        onTranscriptUpdate(newTranscript);
+        
         if (hasCodeWord && newTranscript.trim().length > 0 && onAutoSend) {
-          // Update with clean text first, then trigger auto-send after a brief delay
-          onTranscriptUpdate(newTranscript);
+          // Delay auto-send to ensure input state is updated
           setTimeout(() => {
             onAutoSend();
-          }, 100);
-        } else {
-          onTranscriptUpdate(newTranscript);
+          }, 200);
         }
         
         return newTranscript;

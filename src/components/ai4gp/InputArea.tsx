@@ -196,42 +196,35 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 onAutoSend={() => {
-                  // Check if there's content to send - include both input and current transcript
-                  const currentContent = input.trim() || browserTranscript.trim();
-                  const canSend = !isLoading && (currentContent.length > 0 || uploadedFiles.length > 0) && 
-                                 !uploadedFiles.some(file => file.isLoading) && !isFileProcessing;
-                  
-                  console.log('Auto-send validation:', { 
-                    input: input.trim(), 
-                    browserTranscript: browserTranscript.trim(),
-                    currentContent,
-                    uploadedFiles: uploadedFiles.length,
-                    canSend 
-                  });
-                  
-                  if (canSend) {
-                    // Show toast notification for voice command
-                    toast({
-                      title: "Voice command detected",
-                      description: "Sending message via \"Enter Go\" command",
-                      duration: 2000,
-                    });
-                    // Trigger send after brief delay to allow toast to show
-                    setTimeout(() => {
+                  // Use a longer delay to ensure input state is fully updated
+                  setTimeout(() => {
+                    // Check if there's content to send - include both input and current transcript
+                    const currentContent = input.trim() || browserTranscript.trim();
+                    const canSend = !isLoading && (currentContent.length > 0 || uploadedFiles.length > 0) && 
+                                   !uploadedFiles.some(file => file.isLoading) && !isFileProcessing;
+                    
+                    if (canSend) {
+                      // Show toast notification for voice command
+                      toast({
+                        title: "Voice command detected",
+                        description: "Sending message via \"Enter Go\" command",
+                        duration: 2000,
+                      });
+                      // Send immediately since we've already validated
                       onSend();
                       setBrowserTranscript('');
                       setInput('');
                       micRef.current?.clearTranscript();
-                    }, 150);
-                  } else {
-                    // Show error toast if can't send
-                    toast({
-                      title: "Cannot send message",
-                      description: "No content to send or system is busy",
-                      variant: "destructive",
-                      duration: 2000,
-                    });
-                  }
+                    } else {
+                      // Show error toast if can't send
+                      toast({
+                        title: "Cannot send message",
+                        description: "No content to send or system is busy",
+                        variant: "destructive",
+                        duration: 2000,
+                      });
+                    }
+                  }, 100); // Small delay to ensure state is updated
                 }}
                 disabled={isLoading}
                 className="justify-center"
