@@ -416,9 +416,14 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const handleEditMeeting = (meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setEditingMeeting(meeting);
-    setEditModalOpen(true);
-    setDropdownOpen(false); // Close dropdown when opening modal
+    
+    // Use setTimeout to ensure dropdown closes first, then open modal
+    setTimeout(() => {
+      setEditingMeeting(meeting);
+      setEditModalOpen(true);
+    }, 100);
+    
+    setDropdownOpen(false); // Close dropdown first
   };
 
   const handleMeetingUpdated = () => {
@@ -472,13 +477,20 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
             <DropdownMenuItem 
               key={meeting.id} 
               className="p-0 focus:bg-accent"
-              onSelect={(e) => e.preventDefault()}
+              onSelect={(e) => {
+                e.preventDefault();
+                return false;
+              }}
             >
               <div className="w-full p-3 space-y-2">
                 {/* Meeting Title with Edit Icon on Left */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={(e) => handleEditMeeting(meeting, e)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleEditMeeting(meeting, e);
+                    }}
                     className="p-1 hover:bg-accent rounded transition-colors flex-shrink-0"
                     title="Edit meeting details"
                   >
