@@ -1356,6 +1356,7 @@ export const MeetingRecorder = ({
   const deepgramTranscriberRef = useRef<DeepgramTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
+  const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -3369,6 +3370,7 @@ export const MeetingRecorder = ({
       duration: formatDuration(duration),
       wordCount: wordCount,
       transcript: currentTranscript,
+      liveTranscriptText: liveTranscriptRef.current?.getCurrentTranscript() || undefined, // Add live transcript from the meeting
       speakerCount: speakerCount,
       startTime: startTime,
       startedBy: user?.email || 'Unknown User',
@@ -4761,6 +4763,7 @@ export const MeetingRecorder = ({
               <CardContent className="space-y-4">
               {/* Live Transcript with Enhanced Two-Section Layout */}
               <LiveTranscript
+                ref={liveTranscriptRef}
                 transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
                 confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
                 showTimestamps={showTimestamps}

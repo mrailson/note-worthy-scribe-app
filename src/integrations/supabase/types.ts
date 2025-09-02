@@ -3180,6 +3180,7 @@ export type Database = {
           import_metadata: Json | null
           import_source: string | null
           left_audio_url: string | null
+          live_transcript_text: string | null
           location: string | null
           meeting_configuration: Json | null
           meeting_context: Json | null
@@ -3221,6 +3222,7 @@ export type Database = {
           import_metadata?: Json | null
           import_source?: string | null
           left_audio_url?: string | null
+          live_transcript_text?: string | null
           location?: string | null
           meeting_configuration?: Json | null
           meeting_context?: Json | null
@@ -3262,6 +3264,7 @@ export type Database = {
           import_metadata?: Json | null
           import_source?: string | null
           left_audio_url?: string | null
+          live_transcript_text?: string | null
           location?: string | null
           meeting_configuration?: Json | null
           meeting_context?: Json | null

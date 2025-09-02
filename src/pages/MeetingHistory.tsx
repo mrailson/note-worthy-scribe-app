@@ -60,7 +60,8 @@ interface Meeting {
   summary_exists?: boolean;
   word_count?: number;
   document_count?: number;
-  notes_generation_status?: string; // Add this field
+  notes_generation_status?: string;
+  live_transcript_text?: string | null; // Add live transcript field
   documents?: Array<{
     file_name: string;
     file_size: number | null;
@@ -525,10 +526,10 @@ const MeetingHistory = () => {
       setCleanedTranscript("");
       setCurrentMeetingForTranscript(null);
       
-      // Fetch meeting details - use maybeSingle to avoid errors
+      // Fetch meeting details with live_transcript_text - use maybeSingle to avoid errors
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup, live_transcript_text')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
         .maybeSingle();

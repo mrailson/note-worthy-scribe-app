@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,11 @@ interface LiveTranscriptProps {
   defaultOpen?: boolean;
 }
 
-export const LiveTranscript = ({ 
+interface LiveTranscriptHandle {
+  getCurrentTranscript: () => string;
+}
+
+export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptProps>(({ 
   transcript, 
   confidence,
   isFinal,
@@ -89,7 +93,7 @@ export const LiveTranscript = ({
   meetingSettings,
   onMeetingSettingsChange,
   defaultOpen
-}: LiveTranscriptProps) => {
+}, ref) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? false);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isMeetingSettingsOpen, setIsMeetingSettingsOpen] = useState(false); // New state for meeting settings
@@ -1227,4 +1231,4 @@ export const LiveTranscript = ({
       />
     </div>
   );
-};
+});
