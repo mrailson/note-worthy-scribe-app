@@ -3472,103 +3472,105 @@ export const MeetingRecorder = ({
 
       toast.success('Meeting saved successfully!');
 
-      // Step 3: Complete
-      setSavingSteps({ saving: true, securing: true, complete: true, aiProcessing: true, aiComplete: false });
-      await new Promise(resolve => setTimeout(resolve, 200)); // Phase 4 total now 500ms
-
-      // Trigger background notes generation
-      console.log('🤖 Triggering background notes generation for meeting:', savedMeeting.id);
-      try {
-        // Update meeting status to queued
-        console.log('🔍 Updating meeting status to queued...');
-        const statusResult = await supabase
-          .from('meetings')
-          .update({ notes_generation_status: 'queued' })
-          .eq('id', savedMeeting.id);
-        
-        console.log('🔍 Status update result:', statusResult);
-
-        // Add to notes generation queue
-        console.log('🔍 Adding to notes generation queue...');
-        const queueResult = await supabase
-          .from('meeting_notes_queue')
-          .insert({
-            meeting_id: savedMeeting.id,
-            status: 'pending',
-            detail_level: 'standard',
-            priority: 1
-          });
-        
-        console.log('🔍 Queue insertion result:', queueResult);
-
-        // Trigger background generation (fire and forget)
-        console.log('🔍 About to invoke auto-generate-meeting-notes function...');
-        const functionResult = await supabase.functions
-          .invoke('auto-generate-meeting-notes', {
-            body: { meetingId: savedMeeting.id }
-          });
-        
-        console.log('🔍 Function invocation result:', functionResult);
-        
-        if (functionResult.error) {
-          console.error('❌ Background notes generation failed:', functionResult.error);
-        } else {
-          console.log('🎉 Background notes generation started successfully');
-        }
-
-        toast.success('Meeting saved! AI notes will be generated in the background.');
-
-        // Skip AI processing stage - go directly to success
-        // AI processing happens in background, user doesn't need to wait
-      } catch (noteError) {
-        console.error('⚠️ Failed to queue notes generation:', noteError);
-        // Don't fail the whole save process for this
-        toast.success('Meeting saved successfully!');
-      }
-
-      // Clean up session storage after successful save
-      sessionStorage.removeItem('currentSessionId');
-      sessionStorage.removeItem('currentMeetingId');
-      console.log('✅ Session storage cleaned after successful meeting save');
-
-      // Reset all recording state to prepare for next recording
-      console.log('🔄 Resetting recording state after successful save');
-      await resetMeeting();
-      console.log('✅ Recording state reset - timer and word count should be at zero');
-
-        // Signal to Meeting History and trigger localStorage communication
-        signalMeetingHistoryRefresh();
+      // Step 3: Complete - Show "Nearly There" for maximum 3 seconds
+      setSavingSteps({ saving: true, securing: true, complete: true, aiProcessing: false, aiComplete: false });
       
-      // Show success immediately - user doesn't need to wait for AI processing
-      const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-      
-      console.log('✅ Setting modal to success stage for immediate close');
-      
-      setMeetingEndModal({
-        isOpen: true,
-        stage: 'success',
-        savedData: {
-          title: formattedTitle,
-          duration: formatDuration(duration),
-          wordCount: wordCount,
-          id: savedMeeting.id
-        }
-      });
-
-      // Clear all existing timeouts
-      clearModalTimeout();
-      
-      // Use a simple setTimeout instead of the complex countdown mechanism
-      console.log('⏰ Setting 5-second auto-close timer');
+      // Start 3-second timeout for "Nearly There" stage
+      console.log('⏰ Starting 3-second "Nearly There" timeout');
       setTimeout(() => {
-        console.log('🔄 Auto-closing modal after 5 seconds');
+        console.log('✅ Moving to success stage after 3-second "Nearly There" timeout');
+        
+        // Show success immediately - user doesn't need to wait for AI processing
+        const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
+        
         setMeetingEndModal({
-          isOpen: false,
-          stage: 'processing',
-          savedData: null
+          isOpen: true,
+          stage: 'success',
+          savedData: {
+            title: formattedTitle,
+            duration: formatDuration(duration),
+            wordCount: wordCount,
+            id: savedMeeting.id
+          }
         });
-        setModalAutoCloseCountdown(null);
-      }, 5000);
+
+        // Clear all existing timeouts
+        clearModalTimeout();
+        
+        // Use a simple setTimeout for auto-close
+        console.log('⏰ Setting 5-second auto-close timer');
+        setTimeout(() => {
+          console.log('🔄 Auto-closing modal after 5 seconds');
+          setMeetingEndModal({
+            isOpen: false,
+            stage: 'processing',
+            savedData: null
+          });
+          setModalAutoCloseCountdown(null);
+        }, 5000);
+      }, 3000);
+
+      // Start background processing immediately (don't block UI)
+      console.log('🤖 Starting background processing (notes generation, cleanup)...');
+      
+      // Background processing - this runs asynchronously without blocking the UI
+      const backgroundProcessing = async () => {
+        try {
+          // Update meeting status to queued
+          console.log('🔍 Background: Updating meeting status to queued...');
+          await supabase
+            .from('meetings')
+            .update({ notes_generation_status: 'queued' })
+            .eq('id', savedMeeting.id);
+
+          // Add to notes generation queue
+          console.log('🔍 Background: Adding to notes generation queue...');
+          await supabase
+            .from('meeting_notes_queue')
+            .insert({
+              meeting_id: savedMeeting.id,
+              status: 'pending',
+              detail_level: 'standard',
+              priority: 1
+            });
+
+          // Trigger background generation (fire and forget)
+          console.log('🔍 Background: Invoking auto-generate-meeting-notes function...');
+          const functionResult = await supabase.functions
+            .invoke('auto-generate-meeting-notes', {
+              body: { meetingId: savedMeeting.id }
+            });
+          
+          if (functionResult.error) {
+            console.error('❌ Background notes generation failed:', functionResult.error);
+          } else {
+            console.log('🎉 Background notes generation started successfully');
+          }
+
+          // Clean up session storage
+          sessionStorage.removeItem('currentSessionId');
+          sessionStorage.removeItem('currentMeetingId');
+          console.log('✅ Background: Session storage cleaned');
+
+          // Reset all recording state
+          console.log('🔄 Background: Resetting recording state');
+          await resetMeeting();
+          console.log('✅ Background: Recording state reset');
+
+          // Signal to Meeting History
+          signalMeetingHistoryRefresh();
+          
+          console.log('✅ Background processing completed');
+        } catch (error) {
+          console.error('⚠️ Background processing error:', error);
+          // Don't fail the main save process for background errors
+        }
+      };
+
+      // Start background processing without awaiting
+      backgroundProcessing();
+      
+      toast.success('Meeting saved! AI notes will be generated in the background.');
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
