@@ -364,6 +364,12 @@ export const MeetingRecorder = ({
       autoCleanIntervalRef.current = null;
     }
     
+    // Clear live notes interval
+    if (liveNotesIntervalRef.current) {
+      clearInterval(liveNotesIntervalRef.current);
+      liveNotesIntervalRef.current = null;
+    }
+    
     console.log('🔄 Meeting reset completed');
     
     // Refresh page after a short delay to let the toast display
@@ -379,6 +385,7 @@ export const MeetingRecorder = ({
   const latestCompleteTranscriptRef = useRef<string>('');
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const autoCleanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const liveNotesIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
@@ -557,6 +564,53 @@ export const MeetingRecorder = ({
       toast.error('Auto clean failed - continuing with original transcript', { id: 'auto-clean' });
     } finally {
       setIsAutoCleaningTranscript(false);
+    }
+  };
+
+  // Live notes generation function
+  const generateLiveNotes = async () => {
+    if (!transcript || !meetingSettings.title) {
+      console.log('📝 Live notes generation skipped - missing requirements');
+      return;
+    }
+
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    const currentSessionId = sessionStorage.getItem('currentSessionId');
+    
+    if (!currentMeetingId || !currentSessionId) {
+      console.log('📝 Live notes generation skipped - no meeting/session ID');
+      return;
+    }
+
+    const wordCount = transcript.trim().split(/\s+/).length;
+    if (wordCount < 500) {
+      console.log('📝 Live notes generation skipped - transcript too short (<500 words)');
+      return;
+    }
+
+    console.log('📝 Generating live meeting notes...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('live-meeting-notes-generator', {
+        body: {
+          meetingId: currentMeetingId,
+          userId: user?.id,
+          sessionId: currentSessionId,
+          forceGenerate: false
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        console.log(`✅ Live Notes generated: Version ${data.version} (${data.wordCount} words processed)`);
+        toast.success(`Live notes updated - Version ${data.version}`, { duration: 3000 });
+      } else {
+        console.log('📝 Live notes generation skipped:', data?.message);
+      }
+    } catch (error) {
+      console.error('❌ Live notes generation failed:', error);
+      // Don't show error toast as this is background process
     }
   };
 
@@ -2802,7 +2856,7 @@ export const MeetingRecorder = ({
       // Start transcript snippet monitoring
       startTranscriptSnippetMonitoring();
       
-      // Start auto-clean interval (14 minutes)
+      // Start auto-clean interval (10 minutes)
       if (autoCleanIntervalRef.current) {
         clearInterval(autoCleanIntervalRef.current);
       }
@@ -2810,6 +2864,15 @@ export const MeetingRecorder = ({
         performAutoTranscriptClean();
       }, 10 * 60 * 1000); // 10 minutes
       console.log('🧹 Auto Deep Clean scheduled every 10 minutes');
+      
+      // Start live notes generation interval (15 minutes)
+      if (liveNotesIntervalRef.current) {
+        clearInterval(liveNotesIntervalRef.current);
+      }
+      liveNotesIntervalRef.current = setInterval(() => {
+        generateLiveNotes();
+      }, 15 * 60 * 1000); // 15 minutes
+      console.log('📝 Live Notes generation scheduled every 15 minutes');
 
       const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
                       useScreenShare ? `microphone + screen audio (${isChrome ? 'Chrome' : 'Edge'})` : 'microphone + system audio';
@@ -2859,6 +2922,12 @@ export const MeetingRecorder = ({
       if (autoCleanIntervalRef.current) {
         clearInterval(autoCleanIntervalRef.current);
         autoCleanIntervalRef.current = null;
+      }
+      
+      // Stop live notes interval
+      if (liveNotesIntervalRef.current) {
+        clearInterval(liveNotesIntervalRef.current);
+        liveNotesIntervalRef.current = null;
       }
       
       // Stop all transcribers immediately
@@ -3014,6 +3083,12 @@ export const MeetingRecorder = ({
     if (autoCleanIntervalRef.current) {
       clearInterval(autoCleanIntervalRef.current);
       autoCleanIntervalRef.current = null;
+    }
+    
+    // Stop live notes interval
+    if (liveNotesIntervalRef.current) {
+      clearInterval(liveNotesIntervalRef.current);
+      liveNotesIntervalRef.current = null;
     }
     
     // Stop transcript snippet monitoring

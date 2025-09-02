@@ -963,10 +963,22 @@ export const MeetingHistoryList = ({
                         <FileText className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">
                           {meeting.word_count && meeting.word_count > 0 ? (
-                            meeting.word_count >= 1000 
-                              ? `${(meeting.word_count / 1000).toFixed(1)}K words`
-                              : `${meeting.word_count} words`
-                          ) : 'N/A words'}
+                            <>
+                              {meeting.word_count >= 1000 
+                                ? `${(meeting.word_count / 1000).toFixed(1)}K words`
+                                : `${meeting.word_count} words`}
+                              {meeting.status === 'recording' && (
+                                <span className="text-green-600 font-medium"> (Recording Now)</span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              N/A words
+                              {meeting.status === 'recording' && (
+                                <span className="text-green-600 font-medium"> (Recording Now)</span>
+                              )}
+                            </>
+                          )}
                         </span>
                       </>
                       
