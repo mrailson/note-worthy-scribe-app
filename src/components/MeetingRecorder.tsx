@@ -3023,8 +3023,7 @@ export const MeetingRecorder = ({
       }
     });
     
-    // Start timeout protection
-    startModalTimeout();
+    // Timeout protection is now handled by simple 5-second close after save
     
     // Track initial transcript length
     const initialTranscriptLength = transcript?.length || 0;
