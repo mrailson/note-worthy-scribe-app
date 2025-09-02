@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import stringSimilarity from 'string-similarity';
 
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
   onRecordingStart?: () => void;
+  onAutoSend?: () => void;
   disabled?: boolean;
   className?: string;
 }
@@ -18,6 +20,7 @@ export interface SimpleBrowserMicRef {
 export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMicProps>(({
   onTranscriptUpdate,
   onRecordingStart,
+  onAutoSend,
   disabled = false,
   className = ''
 }, ref) => {
@@ -27,16 +30,49 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
+  const detectCodeWord = (text: string): { hasCodeWord: boolean; cleanText: string } => {
+    const codeWords = ['enter go', 'enter goal', 'and to go', 'into go'];
+    const words = text.toLowerCase().trim().split(' ');
+    
+    // Check for "enter go" at the end of the sentence
+    if (words.length >= 2) {
+      const lastTwoWords = words.slice(-2).join(' ');
+      
+      for (const codeWord of codeWords) {
+        const similarity = stringSimilarity.compareTwoStrings(lastTwoWords, codeWord);
+        if (similarity > 0.7) {
+          // Remove the code word from the text
+          const cleanText = words.slice(0, -2).join(' ').trim();
+          return { hasCodeWord: true, cleanText };
+        }
+      }
+    }
+    
+    return { hasCodeWord: false, cleanText: text };
+  };
+
   const handleTranscription = (data: TranscriptData) => {
     if (data.is_final) {
-      // For final results, append to the full transcript
+      // For final results, check for code word and handle accordingly
+      const { hasCodeWord, cleanText } = detectCodeWord(data.text);
+      
       setFullTranscript(prev => {
-        const newTranscript = prev ? `${prev} ${data.text}` : data.text;
-        onTranscriptUpdate(newTranscript);
+        const newTranscript = prev ? `${prev} ${cleanText}` : cleanText;
+        
+        if (hasCodeWord && cleanText.trim().length > 0 && onAutoSend) {
+          // Update with clean text first, then trigger auto-send after a brief delay
+          onTranscriptUpdate(newTranscript);
+          setTimeout(() => {
+            onAutoSend();
+          }, 100);
+        } else {
+          onTranscriptUpdate(newTranscript);
+        }
+        
         return newTranscript;
       });
     } else {
-      // For interim results, show preview with current text
+      // For interim results, show preview with current text (no code word detection)
       const previewText = fullTranscript ? `${fullTranscript} ${data.text}` : data.text;
       onTranscriptUpdate(previewText);
     }

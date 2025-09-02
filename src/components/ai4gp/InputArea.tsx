@@ -195,6 +195,21 @@ ${pastedText.trim()}
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
+                onAutoSend={() => {
+                  // Show toast notification for voice command
+                  toast({
+                    title: "Voice command detected",
+                    description: "Sending message via \"Enter Go\" command",
+                    duration: 2000,
+                  });
+                  // Trigger send after brief delay to allow toast to show
+                  setTimeout(() => {
+                    onSend();
+                    setBrowserTranscript('');
+                    setInput('');
+                    micRef.current?.clearTranscript();
+                  }, 150);
+                }}
                 disabled={isLoading}
                 className="justify-center"
               />
@@ -223,7 +238,7 @@ ${pastedText.trim()}
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Bored of Typing? - click mic to talk!</span>
+        <span className="text-blue-600 font-medium">🎙️ Say "Enter Go" to auto-send via voice!</span>
       </div>
     </div>
     </>
