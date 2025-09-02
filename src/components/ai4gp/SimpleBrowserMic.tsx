@@ -8,7 +8,7 @@ import stringSimilarity from 'string-similarity';
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
   onRecordingStart?: () => void;
-  onAutoSend?: () => void;
+  onAutoSend?: (transcribedText: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -59,13 +59,13 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
       setFullTranscript(prev => {
         const newTranscript = prev ? `${prev} ${cleanText}` : cleanText;
         
-        // Update the transcript first
+        // Always update the transcript first
         onTranscriptUpdate(newTranscript);
         
         if (hasCodeWord && newTranscript.trim().length > 0 && onAutoSend) {
-          // Delay auto-send to ensure input state is updated
+          // Pass the actual content to auto-send instead of relying on state
           setTimeout(() => {
-            onAutoSend();
+            onAutoSend(newTranscript.trim());
           }, 200);
         }
         
