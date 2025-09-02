@@ -267,15 +267,54 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           description: "Meeting notes have been downloaded as a Word document.",
         });
       } else if (actionType === 'copy') {
-        const { data: transcriptData, error } = await supabase
-          .from('meeting_transcripts')
-          .select('content')
-          .eq('meeting_id', meeting.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        let transcriptContent = '';
+        
+        // Try the comprehensive RPC function first
+        try {
+          const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { 
+            p_meeting_id: meeting.id 
+          });
+          
+          if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+            transcriptContent = rpcRows[0]?.transcript || '';
+          }
+        } catch (e) {
+          console.warn('RPC get_meeting_full_transcript failed, falling back to table fetch');
+        }
 
-        if (error || !transcriptData?.content) {
+        // If no transcript from RPC, try meeting_transcription_chunks
+        if (!transcriptContent) {
+          try {
+            const { data: chunksData, error: chunksError } = await supabase
+              .from('meeting_transcription_chunks')
+              .select('transcription_text, chunk_number')
+              .eq('meeting_id', meeting.id)
+              .order('chunk_number', { ascending: true });
+            
+            if (!chunksError && chunksData && chunksData.length > 0) {
+              transcriptContent = chunksData.map(chunk => chunk.transcription_text).join(' ');
+            }
+          } catch (e) {
+            console.warn('meeting_transcription_chunks not available');
+          }
+        }
+
+        // Fallback to meeting_transcripts table
+        if (!transcriptContent) {
+          const { data: transcriptData, error } = await supabase
+            .from('meeting_transcripts')
+            .select('content')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!error && transcriptData?.content) {
+            transcriptContent = transcriptData.content;
+          }
+        }
+
+        if (!transcriptContent) {
           toast({
             title: "No Transcript Found",
             description: "No transcript content available for this meeting.",
@@ -284,7 +323,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           return;
         }
 
-        await copyToClipboard(transcriptData.content);
+        await copyToClipboard(transcriptContent);
         toast({
           title: "Transcript Copied",
           description: "Meeting transcript has been copied to your clipboard.",
