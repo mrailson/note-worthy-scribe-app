@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, Activity, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface NewsArticle {
   id: string;
@@ -90,6 +91,22 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
   const [filterTag, setFilterTag] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterTime, setFilterTime] = useState<string>('all');
+  
+  // Quick toggle states
+  const [showLocal, setShowLocal] = useState(() => {
+    const saved = localStorage.getItem('newsPanel-showLocal');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [healthcareLocalOnly, setHealthcareLocalOnly] = useState(() => {
+    const saved = localStorage.getItem('newsPanel-healthcareLocalOnly');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [pulseEnabled, setPulseEnabled] = useState(() => {
+    const saved = localStorage.getItem('newsPanel-pulseEnabled');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  
+  const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   const fetchNews = async () => {
     try {
       console.log('Fetching news articles...');
@@ -157,6 +174,39 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
     }
   };
 
+  // Auto-refresh functionality
+  const startAutoRefresh = useCallback(() => {
+    if (autoRefreshInterval.current) {
+      clearInterval(autoRefreshInterval.current);
+    }
+    
+    if (pulseEnabled) {
+      autoRefreshInterval.current = setInterval(() => {
+        refreshNews();
+      }, 300000); // 5 minutes
+    }
+  }, [pulseEnabled]);
+
+  // Persist toggle states to localStorage
+  useEffect(() => {
+    localStorage.setItem('newsPanel-showLocal', JSON.stringify(showLocal));
+  }, [showLocal]);
+  
+  useEffect(() => {
+    localStorage.setItem('newsPanel-healthcareLocalOnly', JSON.stringify(healthcareLocalOnly));
+  }, [healthcareLocalOnly]);
+  
+  useEffect(() => {
+    localStorage.setItem('newsPanel-pulseEnabled', JSON.stringify(pulseEnabled));
+    startAutoRefresh();
+    
+    return () => {
+      if (autoRefreshInterval.current) {
+        clearInterval(autoRefreshInterval.current);
+      }
+    };
+  }, [pulseEnabled, startAutoRefresh]);
+
   useEffect(() => {
     fetchNews();
   }, []);
@@ -186,10 +236,16 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
     ));
   };
 
-  // Filter articles based on selected filters
+  // Filter articles based on selected filters and toggles
   const filteredArticles = articles.filter(article => {
+    const isLocal = isLocalArticle(article);
+    
+    // Local toggle: if showLocal is false, exclude all local articles
+    if (!showLocal && isLocal) return false;
+    
     // Front view should only show articles with images, except allow local Northamptonshire items without images
-    if ((!article.image_url || !article.image_url.trim()) && !isLocalArticle(article)) return false;
+    if ((!article.image_url || !article.image_url.trim()) && !isLocal) return false;
+    
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
     if (filterSource !== 'all' && article.source !== filterSource) return false;
     
@@ -202,8 +258,8 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
       if (filterTime === '7d' && diffHours > 24 * 7) return false;
     }
 
-    // Restrict local items to NHS/GP/health-related only
-    if (isLocalArticle(article)) {
+    // Healthcare Local toggle: if enabled, restrict local items to NHS/GP/health-related only
+    if (isLocal && healthcareLocalOnly) {
       if (article.source === 'Northampton Chronicle & Echo') {
         if (!(isHealthRelated(article) || isHealthRelatedByUrl(article) || isHealthRelatedByTags(article))) return false;
       } else {
@@ -228,33 +284,6 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
   // Get unique tags and sources for filters
   const allTags = [...new Set(articles.flatMap(article => article.tags))];
   const allSources = [...new Set(articles.map(article => article.source))];
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-end">
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-10" />
-          </div>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   const FilterControls = () => (
     <div className="flex gap-2">
@@ -348,6 +377,93 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-end">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refreshNews()}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Loading...' : 'Refresh'}
+            </Button>
+            <FilterControls />
+          </div>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const QuickToggleBar = () => (
+    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/30 rounded-lg mb-4">
+      <div className="flex flex-wrap gap-2">
+        <ToggleGroup type="multiple" value={[
+          ...(showLocal ? ['local'] : []),
+          ...(healthcareLocalOnly ? ['healthcare'] : []),
+          ...(pulseEnabled ? ['pulse'] : [])
+        ]} onValueChange={(values) => {
+          setShowLocal(values.includes('local'));
+          setHealthcareLocalOnly(values.includes('healthcare'));
+          setPulseEnabled(values.includes('pulse'));
+        }} className="justify-start">
+          <ToggleGroupItem
+            value="local"
+            className="text-xs gap-1"
+          >
+            <MapPin className="w-3 h-3" />
+            Local
+          </ToggleGroupItem>
+          
+          <ToggleGroupItem
+            value="healthcare"
+            disabled={!showLocal}
+            className="text-xs gap-1"
+          >
+            <Tag className="w-3 h-3" />
+            Healthcare Local
+          </ToggleGroupItem>
+          
+          <ToggleGroupItem
+            value="pulse"
+            className="text-xs gap-1"
+          >
+            {pulseEnabled ? <Radio className="w-3 h-3 animate-pulse" /> : <Activity className="w-3 h-3" />}
+            Auto-Refresh
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Badge variant="outline" className="text-xs">
+          {prioritizedArticles.length} articles
+        </Badge>
+        {pulseEnabled && (
+          <Badge variant="secondary" className="text-xs animate-pulse">
+            Live
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+
   if (showFiltersInHeader) {
     // Return just the filter controls for header rendering
     return <FilterControls />;
@@ -355,6 +471,25 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
 
   return (
     <div>
+      {/* Header with Refresh and Filter Controls */}
+      <div className="flex items-center justify-end mb-4">
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => refreshNews()}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Loading...' : 'Refresh'}
+          </Button>
+          <FilterControls />
+        </div>
+      </div>
+
+      {/* Quick Toggle Bar */}
+      <QuickToggleBar />
+
       {/* Desktop filters - collapsible */}
       {showFilters && (
         <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg mb-4">
