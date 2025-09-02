@@ -2612,11 +2612,14 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
+          integrity_check_at: string | null
+          integrity_check_passed: boolean | null
           is_reprocessed: boolean | null
           meeting_id: string
           reprocessed_at: string | null
           reprocessed_by: string | null
           transcription_quality_score: number | null
+          transcription_status: string | null
           updated_at: string
           user_id: string
           word_count: number | null
@@ -2629,11 +2632,14 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          integrity_check_at?: string | null
+          integrity_check_passed?: boolean | null
           is_reprocessed?: boolean | null
           meeting_id: string
           reprocessed_at?: string | null
           reprocessed_by?: string | null
           transcription_quality_score?: number | null
+          transcription_status?: string | null
           updated_at?: string
           user_id: string
           word_count?: number | null
@@ -2646,11 +2652,14 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          integrity_check_at?: string | null
+          integrity_check_passed?: boolean | null
           is_reprocessed?: boolean | null
           meeting_id?: string
           reprocessed_at?: string | null
           reprocessed_by?: string | null
           transcription_quality_score?: number | null
+          transcription_status?: string | null
           updated_at?: string
           user_id?: string
           word_count?: number | null
@@ -3058,6 +3067,7 @@ export type Database = {
       }
       meeting_transcription_chunks: {
         Row: {
+          audio_backup_id: string | null
           chunk_number: number
           confidence: number | null
           created_at: string
@@ -3066,10 +3076,14 @@ export type Database = {
           meeting_id: string
           seq: number | null
           session_id: string
+          transcriber_type: string | null
           transcription_text: string
           user_id: string
+          validation_status: string | null
+          word_count: number | null
         }
         Insert: {
+          audio_backup_id?: string | null
           chunk_number: number
           confidence?: number | null
           created_at?: string
@@ -3078,10 +3092,14 @@ export type Database = {
           meeting_id: string
           seq?: number | null
           session_id: string
+          transcriber_type?: string | null
           transcription_text: string
           user_id: string
+          validation_status?: string | null
+          word_count?: number | null
         }
         Update: {
+          audio_backup_id?: string | null
           chunk_number?: number
           confidence?: number | null
           created_at?: string
@@ -3090,10 +3108,21 @@ export type Database = {
           meeting_id?: string
           seq?: number | null
           session_id?: string
+          transcriber_type?: string | null
           transcription_text?: string
           user_id?: string
+          validation_status?: string | null
+          word_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcription_chunks_audio_backup_id_fkey"
+            columns: ["audio_backup_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_audio_backups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_transcripts: {
         Row: {
@@ -5162,6 +5191,15 @@ export type Database = {
         }
         Returns: string
       }
+      check_transcript_integrity: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          description: string
+          issue_type: string
+          metadata: Json
+          severity: string
+        }[]
+      }
       check_user_practice_assignment: {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
@@ -5180,6 +5218,18 @@ export type Database = {
       deduplicate_medicines: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      emergency_detect_transcript_data_loss: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          chunk_count: number
+          created_at: string
+          meeting_id: string
+          meeting_title: string
+          severity: string
+          user_id: string
+          word_count: number
+        }[]
       }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
