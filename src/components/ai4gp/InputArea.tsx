@@ -227,9 +227,9 @@ ${pastedText.trim()}
                     // Show error toast if can't send
                     toast({
                       title: "Cannot send message",
-                      description: `Debug: input="${input.trim()}" transcript="${browserTranscript.trim()}" files=${uploadedFiles.length}`,
+                      description: "No content to send or system is busy",
                       variant: "destructive",
-                      duration: 3000,
+                      duration: 2000,
                     });
                   }
                 }}
