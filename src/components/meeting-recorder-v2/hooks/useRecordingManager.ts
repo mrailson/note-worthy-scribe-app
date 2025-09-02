@@ -544,6 +544,26 @@ export function useRecordingManager(
     }
   }, [state.duration, state.wordCount, state.speakerCount, state.realtimeTranscripts]);
 
+  const resetRecording = useCallback(() => {
+    setState({
+      isRecording: false,
+      isStoppingRecording: false,
+      isCompleting: false,
+      isCompleted: false,
+      duration: 0,
+      transcript: '',
+      realtimeTranscripts: [],
+      wordCount: 0,
+      speakerCount: 1,
+      isConnected: false,
+      chunkCounter: 0
+    });
+    
+    onTranscriptUpdate('');
+    onDurationUpdate('0:00');
+    onWordCountUpdate(0);
+  }, [onTranscriptUpdate, onDurationUpdate, onWordCountUpdate]);
+
   const stopRecording = useCallback(async () => {
     console.log('🛑 Stop recording initiated');
     setState(prev => ({ ...prev, isStoppingRecording: true }));
@@ -629,25 +649,18 @@ export function useRecordingManager(
               toast.warning('Recording completed but verification failed. Please check your meetings.');
             } else {
               console.log('✅ Meeting completion verified:', completedMeeting.id);
-              setState(prev => ({
-                ...prev,
-                isCompleting: false,
-                isCompleted: true,
-                completionError: undefined,
-                isConnected: false
-              }));
+              
+              // Reset the recording state to prepare for next recording
+              resetRecording();
+              
               toast.success(`Meeting "${completedMeeting.title}" saved successfully! Notes generation will begin automatically.`);
             }
           }
         } catch (verificationError) {
           console.error('❌ Error verifying meeting completion:', verificationError);
-          setState(prev => ({
-            ...prev,
-            isCompleting: false,
-            isCompleted: true,
-            completionError: 'Could not verify completion',
-            isConnected: false
-          }));
+          
+          // Reset recording state even if verification failed 
+          resetRecording();
         }
       }
 
@@ -682,27 +695,7 @@ export function useRecordingManager(
       
       return false;
     }
-  }, [state.transcript, state.realtimeTranscripts.length, state.isRecording, state.duration, saveMeetingAndQueueNotes]);
-
-  const resetRecording = useCallback(() => {
-    setState({
-      isRecording: false,
-      isStoppingRecording: false,
-      isCompleting: false,
-      isCompleted: false,
-      duration: 0,
-      transcript: '',
-      realtimeTranscripts: [],
-      wordCount: 0,
-      speakerCount: 1,
-      isConnected: false,
-      chunkCounter: 0
-    });
-    
-    onTranscriptUpdate('');
-    onDurationUpdate('0:00');
-    onWordCountUpdate(0);
-  }, [onTranscriptUpdate, onDurationUpdate, onWordCountUpdate]);
+  }, [state.transcript, state.realtimeTranscripts.length, state.isRecording, state.duration, saveMeetingAndQueueNotes, resetRecording]);
 
   // Update word count when transcript changes
   useEffect(() => {
