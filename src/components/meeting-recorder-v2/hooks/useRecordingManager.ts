@@ -545,6 +545,9 @@ export function useRecordingManager(
   }, [state.duration, state.wordCount, state.speakerCount, state.realtimeTranscripts]);
 
   const resetRecording = useCallback(() => {
+    console.log('🔄 resetRecording called - clearing all state');
+    console.log('Before reset - duration:', state.duration, 'wordCount:', state.wordCount, 'isCompleted:', state.isCompleted);
+    
     setState({
       isRecording: false,
       isStoppingRecording: false,
@@ -559,10 +562,12 @@ export function useRecordingManager(
       chunkCounter: 0
     });
     
+    console.log('🔄 State reset, now updating callbacks');
     onTranscriptUpdate('');
     onDurationUpdate('0:00');
     onWordCountUpdate(0);
-  }, [onTranscriptUpdate, onDurationUpdate, onWordCountUpdate]);
+    console.log('✅ resetRecording completed - timer should show 0:00 and words should be 0');
+  }, [onTranscriptUpdate, onDurationUpdate, onWordCountUpdate, state.duration, state.wordCount, state.isCompleted]);
 
   const stopRecording = useCallback(async () => {
     console.log('🛑 Stop recording initiated');
@@ -647,12 +652,17 @@ export function useRecordingManager(
                 isConnected: false
               }));
               toast.warning('Recording completed but verification failed. Please check your meetings.');
-              // Reset immediately after showing completion status
-              resetRecording();
+              
+              // Reset after a brief delay
+              setTimeout(() => {
+                console.log('⏰ Timeout triggered (verification failed) - calling resetRecording now');
+                resetRecording();
+              }, 1000);
             } else {
               console.log('✅ Meeting completion verified:', completedMeeting.id);
               
-              // Set completed state first, then reset immediately
+              // Set completed state first
+              console.log('🎯 Setting isCompleted to true');
               setState(prev => ({
                 ...prev,
                 isCompleting: false,
@@ -662,8 +672,13 @@ export function useRecordingManager(
               }));
               
               toast.success(`Meeting "${completedMeeting.title}" saved successfully! Notes generation will begin automatically.`);
-              // Reset immediately after showing completion status
-              resetRecording();
+              
+              // Reset after a brief delay to show completion status
+              console.log('⏰ Setting timeout to reset recording in 1 second');
+              setTimeout(() => {
+                console.log('⏰ Timeout triggered - calling resetRecording now');
+                resetRecording();
+              }, 1000);
             }
           }
         } catch (verificationError) {
