@@ -110,13 +110,13 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-base text-muted-foreground mb-2 font-medium">
                       {llm.assessment}
                     </p>
                     {llm.concerns && llm.concerns.length > 0 && (
                       <div className="mt-2">
-                        <p className="text-xs font-medium text-amber-700 mb-1">Concerns:</p>
-                        <ul className="text-xs text-amber-600 list-disc list-inside">
+                        <p className="text-sm font-medium text-amber-700 mb-1">Concerns:</p>
+                        <ul className="text-sm text-amber-600 list-disc list-inside font-medium">
                           {llm.concerns.map((concern, i) => (
                             <li key={i}>{concern}</li>
                           ))}
