@@ -206,7 +206,7 @@ ${pastedText.trim()}
                     // Show toast notification for voice command
                     toast({
                       title: "Voice command detected",
-                      description: "Sending message via \"Enter Go\" command",
+                      description: "Sending message via \"Enter Enter\" command",
                       duration: 2000,
                     });
                      // Pass the transcribed text directly to onSend to avoid state timing issues
@@ -258,7 +258,7 @@ ${pastedText.trim()}
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Say "Enter Go" to auto-send via voice!</span>
+        <span className="text-blue-600 font-medium">🎙️ Say "Enter Enter" to auto-send via voice!</span>
       </div>
     </div>
     </>

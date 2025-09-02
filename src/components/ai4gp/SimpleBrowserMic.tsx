@@ -31,17 +31,17 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
   const detectCodeWord = (text: string): { hasCodeWord: boolean; cleanText: string } => {
-    // More specific code words to avoid false positives with natural speech
-    const codeWords = ['enter go', 'enter goal'];
+    // Voice command: "Enter Enter" to send message
+    const codeWords = ['enter enter'];
     const words = text.toLowerCase().trim().split(' ');
     
-    // Check for "enter go" at the end of the sentence
+    // Check for "enter enter" at the end of the sentence
     if (words.length >= 2) {
       const lastTwoWords = words.slice(-2).join(' ');
       
       for (const codeWord of codeWords) {
         const similarity = stringSimilarity.compareTwoStrings(lastTwoWords, codeWord);
-        if (similarity > 0.8) { // Increased threshold for more precision
+        if (similarity > 0.8) { // High threshold for precision
           // Remove the code word from the text
           const cleanText = words.slice(0, -2).join(' ').trim();
           return { hasCodeWord: true, cleanText };
