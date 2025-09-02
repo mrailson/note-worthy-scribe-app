@@ -209,11 +209,15 @@ ${pastedText.trim()}
                       description: "Sending message via \"Enter Go\" command",
                       duration: 2000,
                     });
-                    // Send immediately since we have the content
-                    onSend();
-                    setBrowserTranscript('');
-                    setInput('');
-                    micRef.current?.clearTranscript();
+                     // Send first, then clear after a delay to ensure onSend has processed the input
+                     onSend();
+                     
+                     // Clear after delay to ensure send has processed
+                     setTimeout(() => {
+                       setBrowserTranscript('');
+                       setInput('');
+                       micRef.current?.clearTranscript();
+                     }, 100);
                   } else {
                     // Show error toast if can't send
                     toast({
