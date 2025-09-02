@@ -196,9 +196,18 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 onAutoSend={() => {
-                  // Check if there's content to send (same logic as send button)
-                  const canSend = !isLoading && (input.trim() || uploadedFiles.length > 0) && 
+                  // Check if there's content to send - include both input and current transcript
+                  const currentContent = input.trim() || browserTranscript.trim();
+                  const canSend = !isLoading && (currentContent.length > 0 || uploadedFiles.length > 0) && 
                                  !uploadedFiles.some(file => file.isLoading) && !isFileProcessing;
+                  
+                  console.log('Auto-send validation:', { 
+                    input: input.trim(), 
+                    browserTranscript: browserTranscript.trim(),
+                    currentContent,
+                    uploadedFiles: uploadedFiles.length,
+                    canSend 
+                  });
                   
                   if (canSend) {
                     // Show toast notification for voice command
@@ -218,9 +227,9 @@ ${pastedText.trim()}
                     // Show error toast if can't send
                     toast({
                       title: "Cannot send message",
-                      description: "No content to send or system is busy",
+                      description: `Debug: input="${input.trim()}" transcript="${browserTranscript.trim()}" files=${uploadedFiles.length}`,
                       variant: "destructive",
-                      duration: 2000,
+                      duration: 3000,
                     });
                   }
                 }}
