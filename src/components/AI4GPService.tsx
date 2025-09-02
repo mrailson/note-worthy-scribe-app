@@ -276,14 +276,8 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className={`flex-1 flex flex-col bg-background relative h-full overflow-x-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)}`}
+        className={`flex-1 flex flex-col bg-background relative h-full overflow-x-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)} w-full max-w-7xl mx-auto px-2 sm:px-4`}
         data-component="ai4gp-service"
-        style={{ 
-          WebkitOverflowScrolling: 'touch',
-          maxWidth: '96%',
-          width: '96%',
-          margin: '0 auto'
-        }}
       >
         <div className="flex flex-1 min-h-0">
           {/* Search History Sidebar */}
