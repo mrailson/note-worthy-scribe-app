@@ -771,9 +771,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length < 2) return; // Need at least user + assistant message
 
+    console.log('🔄 Auto-saving search with:', {
+      messagesCount: messagesData.length,
+      currentSearchId,
+      userId: user.id
+    });
+
     try {
       // If we have a current search ID, update it instead of creating a new one
       if (currentSearchId) {
+        console.log('📝 Updating existing search:', currentSearchId);
+        
         // Generate updated brief overview
         const aiMessages = messagesData.filter(m => m.role === 'assistant');
         const overview = aiMessages.length > 0 
@@ -787,22 +795,28 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             brief_overview: overview,
             updated_at: new Date().toISOString()
           })
-          .eq('id', currentSearchId);
+          .eq('id', currentSearchId)
+          .eq('user_id', user.id); // Add user_id check for security
         
         if (error) {
-          console.error('Error updating search:', error);
+          console.error('❌ Error updating existing search:', error);
+          // If update fails, try to create a new search instead
+          console.log('⚠️ Falling back to create new search due to update failure');
         } else {
+          console.log('✅ Successfully updated existing search');
           // Update local search history to reflect changes
           setSearchHistory(prev => prev.map(search => 
             search.id === currentSearchId 
               ? { ...search, messages: messagesData, brief_overview: overview, updated_at: new Date().toISOString() }
               : search
           ));
+          return;
         }
-        return;
       }
 
-      // Create new search only if we don't have a current search ID
+      // Create new search (either no current search ID or update failed)
+      console.log('➕ Creating new search entry');
+      
       const firstUserMessage = messagesData.find(m => m.role === 'user');
       const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
       
@@ -826,6 +840,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       if (!error && data) {
         // Set the current search ID so future updates modify this entry
         setCurrentSearchId(data.id);
+        console.log('✅ Created new search with ID:', data.id);
         
         // Add the new search to the beginning of the local state
         const newSearch: SearchHistory = {
@@ -838,10 +853,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
         
         setSearchHistory(prev => [newSearch, ...prev.slice(0, 19)]); // Keep only 20 items
+      } else {
+        console.error('❌ Failed to create new search:', error);
       }
     } catch (error) {
-      // Silent failure for auto-save
-      console.error('Error auto-saving search:', error);
+      console.error('❌ Error auto-saving search:', error);
     }
   };
 
