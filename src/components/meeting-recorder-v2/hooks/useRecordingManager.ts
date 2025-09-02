@@ -646,12 +646,23 @@ export function useRecordingManager(
                 completionError: 'Verification failed - please check meeting status',
                 isConnected: false
               }));
+              // Still reset after showing completion
+              setTimeout(() => resetRecording(), 2000);
               toast.warning('Recording completed but verification failed. Please check your meetings.');
             } else {
               console.log('✅ Meeting completion verified:', completedMeeting.id);
               
-              // Reset the recording state to prepare for next recording
-              resetRecording();
+              // Set completed state first, then reset after a delay
+              setState(prev => ({
+                ...prev,
+                isCompleting: false,
+                isCompleted: true,
+                completionError: undefined,
+                isConnected: false
+              }));
+              
+              // Reset the recording state after showing completion
+              setTimeout(() => resetRecording(), 2000);
               
               toast.success(`Meeting "${completedMeeting.title}" saved successfully! Notes generation will begin automatically.`);
             }
@@ -659,8 +670,17 @@ export function useRecordingManager(
         } catch (verificationError) {
           console.error('❌ Error verifying meeting completion:', verificationError);
           
-          // Reset recording state even if verification failed 
-          resetRecording();
+          // Set completed state first, then reset
+          setState(prev => ({
+            ...prev,
+            isCompleting: false,
+            isCompleted: true,
+            completionError: 'Verification error',
+            isConnected: false
+          }));
+          
+          // Reset recording state after showing completion
+          setTimeout(() => resetRecording(), 2000);
         }
       }
 
