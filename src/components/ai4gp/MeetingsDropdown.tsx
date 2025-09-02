@@ -432,7 +432,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         {/* Start New Meeting Option */}
         <DropdownMenuItem 
           className="cursor-pointer"
-          onClick={() => navigate('/meeting-recorder-v2')}
+          onClick={() => navigate('/')}
         >
           <Play className="w-4 h-4 mr-2" />
           Start New Meeting
