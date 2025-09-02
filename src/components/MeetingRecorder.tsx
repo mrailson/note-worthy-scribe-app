@@ -3517,18 +3517,10 @@ export const MeetingRecorder = ({
           console.log('🎉 Background notes generation started successfully');
         }
 
-        toast.success('Meeting saved! Notes are being generated in the background.');
+        toast.success('Meeting saved! AI notes will be generated in the background.');
 
-        // Transition to AI processing stage
-        setMeetingEndModal(prev => ({
-          ...prev,
-          stage: 'ai-processing',
-          progress: {
-            ...prev.progress,
-            currentStep: 'AI is generating meeting notes...',
-            estimatedTimeRemaining: 60 // 1 minute estimate
-          }
-        }));
+        // Skip AI processing stage - go directly to success
+        // AI processing happens in background, user doesn't need to wait
       } catch (noteError) {
         console.error('⚠️ Failed to queue notes generation:', noteError);
         // Don't fail the whole save process for this
@@ -3548,11 +3540,12 @@ export const MeetingRecorder = ({
         // Signal to Meeting History and trigger localStorage communication
         signalMeetingHistoryRefresh();
       
-      // Store data for success stage (will be shown when AI processing completes)
+      // Show success immediately - user doesn't need to wait for AI processing
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
       
       setMeetingEndModal(prev => ({
         ...prev,
+        stage: 'success',
         savedData: {
           title: formattedTitle,
           duration: formatDuration(duration),
@@ -3561,8 +3554,11 @@ export const MeetingRecorder = ({
         }
       }));
 
-      // AI processing will be tracked via real-time subscription
-      // Modal will automatically transition to success when AI completes
+      // Clear timeout since we're going directly to success
+      clearModalTimeout();
+      
+      // Auto-close after 5 seconds so user can continue
+      startAutoCloseCountdown(5);
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
@@ -3648,15 +3644,13 @@ export const MeetingRecorder = ({
     }, 1000);
   };
 
-  // Real-time meeting status subscription
+  // Optional: Background notification when AI notes complete
   useEffect(() => {
-    if (!meetingEndModal.isOpen || meetingEndModal.stage !== 'ai-processing') {
-      return;
-    }
+    if (!user?.id) return;
 
-    // Subscribe to meeting status updates
+    // Subscribe to meeting status updates for background notifications
     const channel = supabase
-      .channel('meeting-status-updates')
+      .channel('meeting-notes-completion')
       .on(
         'postgres_changes',
         {
@@ -3666,32 +3660,22 @@ export const MeetingRecorder = ({
           filter: `user_id=eq.${user?.id}`
         },
         (payload) => {
-          console.log('📡 Real-time meeting update received:', payload);
+          console.log('📡 Background AI update received:', payload);
           
           if (payload.new.notes_generation_status === 'completed') {
-            console.log('✅ AI processing completed - detected via real-time');
-            setSavingSteps(prev => ({ ...prev, aiComplete: true }));
-            
-            setTimeout(() => {
-              setMeetingEndModal(prev => ({
-                ...prev,
-                stage: 'success'
-              }));
-              clearModalTimeout();
-              startAutoCloseCountdown(15); // 15 second countdown for success stage
-            }, 1000);
+            console.log('✅ AI notes completed in background');
+            // Optional: Show subtle toast notification
+            toast.success('🤖 AI meeting notes are ready!', {
+              description: 'Check your Meeting History to view the generated notes.',
+              duration: 4000
+            });
           } else if (payload.new.notes_generation_status === 'error') {
-            console.log('❌ AI processing failed - detected via real-time');
-            toast.error('AI note generation failed, but meeting was saved successfully');
-            
-            setTimeout(() => {
-              setMeetingEndModal(prev => ({
-                ...prev,
-                stage: 'success'
-              }));
-              clearModalTimeout();
-              startAutoCloseCountdown(10);
-            }, 1000);
+            console.log('❌ AI processing failed in background');
+            // Optional: Show error notification
+            toast.error('AI note generation encountered an error', {
+              description: 'Your meeting transcript is still saved and accessible.',
+              duration: 3000
+            });
           }
         }
       )
@@ -3700,7 +3684,7 @@ export const MeetingRecorder = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [meetingEndModal.isOpen, meetingEndModal.stage, user?.id]);
+  }, [user?.id]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
