@@ -62,9 +62,13 @@ const PMGenieVoiceAgent = () => {
   const generateSignedUrl = async () => {
     setIsLoading(true);
     try {
+      console.log('[PM Genie] Generating signed URL for agentId: agent_01jzsg04q1fwy9bfydkhszan7s');
+      
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s' }
       });
+
+      console.log('[PM Genie] Supabase function response:', { data, error });
 
       if (error) throw error;
       if (!data?.signed_url) throw new Error('No signed URL received');
@@ -96,13 +100,13 @@ const PMGenieVoiceAgent = () => {
         return;
       }
 
-      console.log('Starting conversation with signed URL');
+      console.log('[PM Genie] Starting conversation with signed URL:', signedUrl);
       const conversationId = await conversation.startSession({ 
         agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s',
         signedUrl
       });
 
-      console.log('PM Genie conversation started:', conversationId);
+      console.log('[PM Genie] Conversation started successfully:', conversationId);
       
     } catch (err: any) {
       console.error('Failed to start conversation:', err);

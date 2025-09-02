@@ -99,9 +99,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
         : 'agent_01jwrz44tyefdvhtvt7c622rj7';  // Oak Lane Patient Line
 
+      console.log(`[${activeTab}] Generating signed URL for agentId:`, agentId);
+
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId }
       });
+
+      console.log(`[${activeTab}] Supabase function response:`, { data, error });
 
       if (error) throw error;
       
@@ -135,7 +139,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         return;
       }
 
-      console.log('Starting conversation with signed URL');
+      console.log(`[${activeTab}] Starting conversation with signed URL:`, signedUrl);
       const conversationId = await conversation.startSession({ 
         agentId: activeTab === 'gp-genie' 
           ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
@@ -144,6 +148,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           : 'agent_01jwrz44tyefdvhtvt7c622rj7',  // Oak Lane Patient Line
         signedUrl
       });
+      
+      console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
 
       // Apply current volume immediately after connect
       await conversation.setVolume({ volume: isMuted ? 0 : volume });
