@@ -196,19 +196,33 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 onAutoSend={() => {
-                  // Show toast notification for voice command
-                  toast({
-                    title: "Voice command detected",
-                    description: "Sending message via \"Enter Go\" command",
-                    duration: 2000,
-                  });
-                  // Trigger send after brief delay to allow toast to show
-                  setTimeout(() => {
-                    onSend();
-                    setBrowserTranscript('');
-                    setInput('');
-                    micRef.current?.clearTranscript();
-                  }, 150);
+                  // Check if there's content to send (same logic as send button)
+                  const canSend = !isLoading && (input.trim() || uploadedFiles.length > 0) && 
+                                 !uploadedFiles.some(file => file.isLoading) && !isFileProcessing;
+                  
+                  if (canSend) {
+                    // Show toast notification for voice command
+                    toast({
+                      title: "Voice command detected",
+                      description: "Sending message via \"Enter Go\" command",
+                      duration: 2000,
+                    });
+                    // Trigger send after brief delay to allow toast to show
+                    setTimeout(() => {
+                      onSend();
+                      setBrowserTranscript('');
+                      setInput('');
+                      micRef.current?.clearTranscript();
+                    }, 150);
+                  } else {
+                    // Show error toast if can't send
+                    toast({
+                      title: "Cannot send message",
+                      description: "No content to send or system is busy",
+                      variant: "destructive",
+                      duration: 2000,
+                    });
+                  }
                 }}
                 disabled={isLoading}
                 className="justify-center"
