@@ -19,6 +19,9 @@ export interface TranscriptData {
 export interface RecordingState {
   isRecording: boolean;
   isStoppingRecording: boolean;
+  isCompleting: boolean;
+  isCompleted: boolean;
+  completionError?: string;
   duration: number;
   transcript: string;
   realtimeTranscripts: TranscriptData[];
@@ -124,6 +127,8 @@ export function useRecordingManager(
   const [state, setState] = useState<RecordingState>({
     isRecording: false,
     isStoppingRecording: false,
+    isCompleting: false,
+    isCompleted: false,
     duration: 0,
     transcript: '',
     realtimeTranscripts: [],
@@ -565,36 +570,103 @@ export function useRecordingManager(
       }
       console.log('✅ Early chunk timeouts cleared');
 
+      // Update state to show completion in progress
+      setState(prev => ({
+        ...prev,
+        isRecording: false,
+        isStoppingRecording: false,
+        isCompleting: true,
+        isCompleted: false,
+        completionError: undefined
+      }));
+
       console.log('💾 Attempting to save meeting and queue notes...');
       const saveSuccess = await saveMeetingAndQueueNotes();
       
       if (!saveSuccess) {
         console.error('❌ CRITICAL: Meeting save failed - manual recovery needed');
+        const errorMessage = 'Meeting save failed - please use Meeting Recovery Helper';
+        
+        setState(prev => ({
+          ...prev,
+          isCompleting: false,
+          isCompleted: false,
+          completionError: errorMessage,
+          isConnected: false
+        }));
+        
         toast.error('Failed to save meeting properly. Please check the Meeting Recovery Helper.');
+        return false;
       } else {
         console.log('✅ Meeting save process completed successfully');
+        
+        // Verify the meeting was actually saved and completed
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: completedMeeting, error: verificationError } = await supabase
+              .from('meetings')
+              .select('id, status, title')
+              .eq('user_id', user.id)
+              .eq('status', 'completed')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (verificationError || !completedMeeting) {
+              console.warn('⚠️ Could not verify meeting completion - may need recovery');
+              setState(prev => ({
+                ...prev,
+                isCompleting: false,
+                isCompleted: true,
+                completionError: 'Verification failed - please check meeting status',
+                isConnected: false
+              }));
+              toast.warning('Recording completed but verification failed. Please check your meetings.');
+            } else {
+              console.log('✅ Meeting completion verified:', completedMeeting.id);
+              setState(prev => ({
+                ...prev,
+                isCompleting: false,
+                isCompleted: true,
+                completionError: undefined,
+                isConnected: false
+              }));
+              toast.success(`Meeting "${completedMeeting.title}" saved successfully! Notes generation will begin automatically.`);
+            }
+          }
+        } catch (verificationError) {
+          console.error('❌ Error verifying meeting completion:', verificationError);
+          setState(prev => ({
+            ...prev,
+            isCompleting: false,
+            isCompleted: true,
+            completionError: 'Could not verify completion',
+            isConnected: false
+          }));
+        }
       }
 
-      // Reset recording state
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isStoppingRecording: false,
-        isConnected: false
-      }));
-
       console.log('✅ Recording stop process completed');
-      toast.success('Recording stopped');
       return true;
     } catch (error) {
       console.error('❌ Critical error in stop recording process:', error);
-      toast.error(`Failed to stop recording: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setState(prev => ({ ...prev, isStoppingRecording: false }));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      setState(prev => ({ 
+        ...prev, 
+        isStoppingRecording: false,
+        isCompleting: false,
+        completionError: `Stop failed: ${errorMessage}`,
+        isConnected: false
+      }));
+      
+      toast.error(`Failed to stop recording: ${errorMessage}`);
       
       // Log detailed error information for debugging
       console.error('Stop recording error details:', {
         errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: errorMessage,
         stackTrace: error instanceof Error ? error.stack : undefined,
         state: {
           isRecording: state.isRecording,
@@ -612,6 +684,8 @@ export function useRecordingManager(
     setState({
       isRecording: false,
       isStoppingRecording: false,
+      isCompleting: false,
+      isCompleted: false,
       duration: 0,
       transcript: '',
       realtimeTranscripts: [],
