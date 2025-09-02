@@ -261,8 +261,8 @@ const AI4GPService = () => {
         data-component="ai4gp-service"
         style={{ 
           WebkitOverflowScrolling: 'touch',
-          maxWidth: '98vw',
-          width: '98vw',
+          maxWidth: 'calc(100vw - 200px)',
+          width: 'calc(100vw - 200px)',
           margin: '0 auto'
         }}
       >
