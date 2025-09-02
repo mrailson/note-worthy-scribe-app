@@ -31,7 +31,8 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
   const detectCodeWord = (text: string): { hasCodeWord: boolean; cleanText: string } => {
-    const codeWords = ['enter go', 'enter goal', 'and to go', 'into go'];
+    // More specific code words to avoid false positives with natural speech
+    const codeWords = ['enter go', 'enter goal'];
     const words = text.toLowerCase().trim().split(' ');
     
     // Check for "enter go" at the end of the sentence
@@ -40,7 +41,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
       
       for (const codeWord of codeWords) {
         const similarity = stringSimilarity.compareTwoStrings(lastTwoWords, codeWord);
-        if (similarity > 0.7) {
+        if (similarity > 0.8) { // Increased threshold for more precision
           // Remove the code word from the text
           const cleanText = words.slice(0, -2).join(' ').trim();
           return { hasCodeWord: true, cleanText };
