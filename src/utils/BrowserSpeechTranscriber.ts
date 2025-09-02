@@ -14,6 +14,8 @@ export class BrowserSpeechTranscriber {
   private recognition: SpeechRecognition | null = null;
   private isRecording = false;
   private chunkCounter = 0;
+  private restartTimeout: NodeJS.Timeout | null = null;
+  private isRestarting = false;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -136,6 +138,15 @@ export class BrowserSpeechTranscriber {
       this.recognition.onerror = (event) => {
         console.error('❌ Speech recognition error:', event.error);
         
+        // Handle different error types
+        if (event.error === 'aborted') {
+          // Aborted errors often indicate conflicts - stop restart attempts
+          this.clearRestartTimeout();
+          this.isRestarting = false;
+          console.log('🚫 Speech recognition aborted - stopping restart attempts');
+          return;
+        }
+        
         // Don't treat "no-speech" as an actual error - it's normal during silence
         if (event.error !== 'no-speech') {
           this.onError(`Speech recognition error: ${event.error}`);
@@ -143,22 +154,11 @@ export class BrowserSpeechTranscriber {
       };
 
       this.recognition.onend = () => {
-        if (this.isRecording) {
+        if (this.isRecording && !this.isRestarting) {
           console.log('🔄 Speech recognition ended, restarting...');
-          // Add delay to prevent infinite restart loops
-          setTimeout(() => {
-            if (this.isRecording && this.recognition) {
-              try {
-                this.recognition.start();
-                console.log('✅ Speech recognition restarted');
-              } catch (err) {
-                console.error('Failed to restart speech recognition:', err);
-                this.onError('Failed to restart speech recognition');
-              }
-            }
-          }, 500); // 500ms delay to prevent rapid restarts
+          this.scheduleRestart();
         } else {
-          console.log('🛑 Speech recognition ended (stopped by user)');
+          console.log('🛑 Speech recognition ended (stopped by user or restart in progress)');
         }
       };
 
@@ -173,6 +173,8 @@ export class BrowserSpeechTranscriber {
   stopTranscription() {
     console.log('🛑 Stopping browser speech recognition...');
     this.isRecording = false;
+    this.clearRestartTimeout();
+    this.isRestarting = false;
     
     if (this.recognition) {
       this.recognition.stop();
@@ -180,6 +182,33 @@ export class BrowserSpeechTranscriber {
     }
     
     this.onStatusChange('Stopped');
+  }
+
+  private clearRestartTimeout() {
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = null;
+    }
+  }
+
+  private scheduleRestart() {
+    // Clear any existing restart timeout first
+    this.clearRestartTimeout();
+    this.isRestarting = true;
+    
+    this.restartTimeout = setTimeout(() => {
+      if (this.isRecording && !this.recognition) {
+        try {
+          this.startTranscription();
+          console.log('✅ Speech recognition restarted');
+        } catch (err) {
+          console.error('Failed to restart speech recognition:', err);
+          this.onError('Failed to restart speech recognition');
+        }
+      }
+      this.isRestarting = false;
+      this.restartTimeout = null;
+    }, 1000); // Increased delay to prevent conflicts
   }
 
   isActive(): boolean {
