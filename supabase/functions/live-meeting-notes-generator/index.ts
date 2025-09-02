@@ -93,12 +93,21 @@ serve(async (req) => {
 
     const newVersionNumber = existingNotes ? existingNotes.current_version + 1 : 1;
 
-    // Get meeting details for context
-    const { data: meeting } = await supabase
+    // Get meeting details for context - use maybeSingle to avoid errors if not found yet
+    const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
       .select('title, agenda, attendees')
       .eq('id', meetingId)
-      .single();
+      .maybeSingle();
+      
+    if (meetingError) {
+      console.error('Error fetching meeting details:', meetingError);
+    }
+    
+    // If meeting not found yet, it might still be creating - continue anyway
+    if (!meeting) {
+      console.log('Meeting record not found yet, using fallback values');
+    }
 
     // Generate meeting notes using OpenAI
     const systemPrompt = `You are an AI assistant that generates live meeting notes in real-time. Create professional, structured meeting notes based on the transcript provided.

@@ -600,7 +600,10 @@ export const MeetingRecorder = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Live notes generation failed:', error);
+        return;
+      }
 
       if (data?.success) {
         console.log(`✅ Live Notes generated: Version ${data.version} (${data.wordCount} words processed)`);
@@ -2873,6 +2876,12 @@ export const MeetingRecorder = ({
         generateLiveNotes();
       }, 15 * 60 * 1000); // 15 minutes
       console.log('📝 Live Notes generation scheduled every 15 minutes');
+      
+      // First live notes generation after 5 minutes to ensure meeting is saved
+      setTimeout(() => {
+        console.log('📝 Triggering first live notes generation...');
+        generateLiveNotes();
+      }, 5 * 60 * 1000); // 5 minutes
 
       const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
                       useScreenShare ? `microphone + screen audio (${isChrome ? 'Chrome' : 'Edge'})` : 'microphone + system audio';
@@ -3517,6 +3526,23 @@ export const MeetingRecorder = ({
           id: savedMeeting.id
         }
       }));
+
+      // Auto-close modal after 10 seconds as fallback
+      setTimeout(() => {
+        setMeetingEndModal(prev => {
+          if (prev.isOpen && prev.stage === 'success') {
+            console.log('🔄 Auto-closing meeting end modal after timeout');
+            return { isOpen: false, stage: 'processing', savedData: null };
+          }
+          return prev;
+        });
+        
+        // Also trigger UI reset as fallback
+        onTranscriptUpdate("");
+        onDurationUpdate("00:00");
+        onWordCountUpdate(0);
+        toast.success("Meeting saved successfully!");
+      }, 10000);
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
