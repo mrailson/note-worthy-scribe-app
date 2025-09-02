@@ -27,6 +27,7 @@ import {
 import { TranscriptData } from '../../hooks/useRecordingManager';
 import { ChunkStatusModal } from '@/components/ChunkStatusModal';
 import { ChunkStatus } from '@/hooks/useChunkTracker';
+import { ChunkSaveStatus } from '@/components/ChunkSaveStatus';
 
 interface TranscriptManagerProps {
   transcripts: TranscriptData[];
@@ -55,6 +56,17 @@ export const TranscriptManager = ({
     status: transcript.confidence < 0.5 ? 'low_confidence' : 'success' as 'success' | 'low_confidence' | 'filtered',
     speaker: transcript.speaker,
     isFinal: transcript.isFinal
+  }));
+
+  // Convert TranscriptData to ChunkSaveStatus format for the chunk save status component
+  const chunkSaveStatuses = transcripts.map((transcript, index) => ({
+    chunkNumber: index + 1,
+    text: transcript.text,
+    chunkLength: transcript.text.length,
+    saveStatus: transcript.isFinal ? 'saved' : 'saving' as 'saving' | 'saved' | 'failed' | 'retrying',
+    saveTimestamp: transcript.timestamp,
+    retryCount: 0,
+    confidence: transcript.confidence
   }));
 
   const stats = {
@@ -259,6 +271,12 @@ export const TranscriptManager = ({
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Chunk Save Status */}
+      <ChunkSaveStatus 
+        chunks={chunkSaveStatuses} 
+        isRecording={isRecording}
+      />
     </div>
   );
 };
