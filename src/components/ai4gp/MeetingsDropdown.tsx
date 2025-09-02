@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Copy, Loader2, Play } from 'lucide-react';
+import { Calendar, FileText, Copy, Loader2, Play, Edit } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import { MeetingData } from '@/types/meetingTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import { EditMeetingModal } from './EditMeetingModal';
 
 interface MeetingsDropdownProps {
   meetings: any[];
@@ -29,6 +30,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 }) => {
   const navigate = useNavigate();
   const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
+  const [editingMeeting, setEditingMeeting] = useState<any>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const { toast } = useToast();
 
   // Mock meeting data for export functions
@@ -409,6 +412,18 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
     navigate('/meetings', { state: { scrollToMeetingId: meeting.id } });
   };
 
+  const handleEditMeeting = (meeting: any, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setEditingMeeting(meeting);
+    setEditModalOpen(true);
+  };
+
+  const handleMeetingUpdated = () => {
+    // Refresh meetings list or trigger parent component refresh
+    window.location.reload(); // Simple refresh for now
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -458,15 +473,24 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               onSelect={(e) => e.preventDefault()}
             >
               <div className="w-full p-3 space-y-2">
-                {/* Meeting Title - clickable */}
-                <button
-                  onClick={(e) => handleMeetingClick(meeting, e)}
-                  className="w-full text-left hover:underline focus:underline outline-none"
-                >
-                  <div className="font-medium text-sm truncate">
-                    {meeting.title || 'Untitled Meeting'}
-                  </div>
-                </button>
+                {/* Meeting Title with Edit Icon */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={(e) => handleMeetingClick(meeting, e)}
+                    className="flex-1 text-left hover:underline focus:underline outline-none"
+                  >
+                    <div className="font-medium text-sm truncate">
+                      {meeting.title || 'Untitled Meeting'}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => handleEditMeeting(meeting, e)}
+                    className="p-1 hover:bg-accent rounded transition-colors ml-2"
+                    title="Edit meeting details"
+                  >
+                    <Edit className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </div>
                 
                 {/* Meeting Details */}
                 <div className="text-xs text-muted-foreground space-y-1">
@@ -532,6 +556,16 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               </div>
             </DropdownMenuItem>
           ))
+        )}
+
+        {/* Edit Meeting Modal */}
+        {editingMeeting && (
+          <EditMeetingModal
+            meeting={editingMeeting}
+            open={editModalOpen}
+            onOpenChange={setEditModalOpen}
+            onMeetingUpdated={handleMeetingUpdated}
+          />
         )}
       </DropdownMenuContent>
     </DropdownMenu>
