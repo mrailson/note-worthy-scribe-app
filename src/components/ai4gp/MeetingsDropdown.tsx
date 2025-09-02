@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Copy, Loader2, Play, Edit } from 'lucide-react';
+import { Calendar, FileText, Copy, Loader2, Play, Edit, CheckCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { EditMeetingModal } from './EditMeetingModal';
+import { recoverStuckMeeting } from '@/utils/meetingRecovery';
 
 interface MeetingsDropdownProps {
   meetings: any[];
@@ -35,7 +36,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { toast } = useToast();
 
-  // Mock meeting data for export functions
   const mockMeetingSettings = {
     title: '',
     description: '',
@@ -49,25 +49,19 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
   const { copyToClipboard } = useMeetingExport(null, mockMeetingSettings);
 
-  // Advanced Word export with full formatting (from FullPageNotesModal.tsx)
   const generateAdvancedWordDocument = async (content: string, title: string) => {
     try {
       console.log('🔍 Generating full-featured Word document with formatting!');
       toast({ title: 'Generating Word document...', description: 'Please wait while we format your document.' });
       
-      // Clean and format content for professional Word document
       const stripHtmlAndFormat = (htmlContent: string) => {
         if (!htmlContent) return [];
         
-        // Clean HTML but preserve basic structure
         let cleanText = htmlContent
-          // Convert HTML breaks to newlines first
           .replace(/<br\s*\/?>/gi, '\n')
           .replace(/<\/p>/gi, '\n\n')
           .replace(/<p[^>]*>/gi, '')
-          // Remove all other HTML tags
           .replace(/<[^>]*>/g, '')
-          // Decode HTML entities
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
@@ -75,7 +69,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
           .replace(/&apos;/g, "'")
-          // Clean up excessive whitespace but preserve structure
           .replace(/[ \t]+/g, ' ')
           .replace(/\n[ \t]+/g, '\n')
           .replace(/[ \t]+\n/g, '\n')
@@ -87,7 +80,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
           
-          // Skip empty lines but add spacing
           if (!line) {
             paragraphs.push(new Paragraph({
               children: [new TextRun({ text: "", size: 12 })],
@@ -96,23 +88,19 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
             continue;
           }
           
-          // Detect different types of content
           const isEmojiHeader = /^[1-9]️⃣/.test(line);
           const isNumberedSection = /^##?\s*\d+\.?\s/.test(line);
           const isMainHeader = /^#\s/.test(line) || (line.includes('MEETING') && line.length < 100);
           const isBulletPoint = /^[-•*]\s/.test(line);
           const isHeader = isEmojiHeader || isNumberedSection || isMainHeader;
           
-          // Clean and format the text
           let displayText = line;
           
-          // Remove ALL hash symbols and markdown formatting
-          displayText = displayText.replace(/^#+\s*/, ''); // Remove any number of # at start
-          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
-          displayText = displayText.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
+          displayText = displayText.replace(/^#+\s*/, '');
+          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
+          displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
           
           if (isBulletPoint) {
-            // Format bullet points
             const bulletText = displayText.replace(/^[-•*]\s*/, '');
             paragraphs.push(new Paragraph({
               children: [
@@ -123,7 +111,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               indent: { left: 360 }
             }));
           } else if (isHeader) {
-            // Format headers
             paragraphs.push(new Paragraph({
               children: [new TextRun({
                 text: displayText,
@@ -137,7 +124,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               }
             }));
           } else {
-            // Regular paragraph
             paragraphs.push(new Paragraph({
               children: [new TextRun({
                 text: displayText,
@@ -164,7 +150,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
             },
           },
           children: [
-            // Title
             new Paragraph({
               children: [
                 new TextRun({
@@ -178,7 +163,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               spacing: { after: 480 }
             }),
             
-            // Meeting Details
             new Paragraph({
               children: [
                 new TextRun({
@@ -196,10 +180,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               spacing: { after: 360 }
             }),
             
-            // Content Section
             ...stripHtmlAndFormat(content),
             
-            // Footer
             new Paragraph({
               children: [
                 new TextRun({
@@ -235,12 +217,15 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
     setProcessingActions(prev => ({ ...prev, [actionKey]: true }));
 
     try {
-      if (actionType === 'word') {
-        // Try to fetch meeting notes from multiple sources
+      if (actionType === 'complete') {
+        const success = await recoverStuckMeeting(meeting.id);
+        if (success) {
+          window.location.reload();
+        }
+      } else if (actionType === 'word') {
         let notesContent = '';
         let notesTitle = '';
 
-        // First try meeting_summaries table
         const { data: summaryData, error: summaryError } = await supabase
           .from('meeting_summaries')
           .select('summary')
@@ -253,7 +238,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           notesContent = summaryData.summary;
           notesTitle = 'Meeting Summary';
         } else {
-          // Fallback to meeting_auto_notes if available
           const { data: autoNotesData, error: autoNotesError } = await supabase
             .from('meeting_auto_notes')
             .select('generated_notes')
@@ -277,14 +261,12 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           return;
         }
 
-        // Generate Word document with meeting notes
         await generateAdvancedWordDocument(notesContent, `${meeting.title || 'Meeting'} - ${notesTitle}`);
         toast({
           title: "Word Document Generated",
           description: "Meeting notes have been downloaded as a Word document.",
         });
       } else if (actionType === 'copy') {
-        // Fetch and copy transcript to clipboard
         const { data: transcriptData, error } = await supabase
           .from('meeting_transcripts')
           .select('content')
@@ -308,10 +290,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           description: "Meeting transcript has been copied to your clipboard.",
         });
       } else if (actionType === 'trigger') {
-        // Manually trigger note generation
         console.log('🔧 Manual trigger for meeting:', meeting.id);
         
-        // First check if meeting has completed status and transcript
         if (meeting.status !== 'completed') {
           toast({
             title: "Cannot Generate Notes",
@@ -337,48 +317,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           toast({
             title: "Notes Generation Started",
             description: "Meeting notes are being generated. This may take a few minutes.",
-          });
-        }
-      } else if (actionType === 'complete') {
-        // Mark meeting as completed and trigger notes generation
-        console.log('🔧 Completing meeting and triggering notes generation:', meeting.id);
-        
-        // First update meeting status to completed
-        const { error: updateError } = await supabase
-          .from('meetings')
-          .update({ 
-            status: 'completed',
-            end_time: new Date().toISOString()
-          })
-          .eq('id', meeting.id);
-
-        if (updateError) {
-          console.error('❌ Failed to update meeting status:', updateError);
-          toast({
-            title: "Update Failed",
-            description: "Failed to update meeting status. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Then trigger notes generation
-        const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-          body: { meetingId: meeting.id, forceRegenerate: false }
-        });
-
-        if (error) {
-          console.error('❌ Failed to trigger notes generation:', error);
-          toast({
-            title: "Notes Generation Failed",
-            description: "Meeting marked as completed, but notes generation failed. Please try manual generation.",
-            variant: "destructive",
-          });
-        } else {
-          console.log('✅ Meeting completed and notes generation triggered successfully:', data);
-          toast({
-            title: "Meeting Completed",
-            description: "Meeting status updated to completed and notes generation started.",
           });
         }
       }
@@ -417,18 +355,16 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
     event.preventDefault();
     event.stopPropagation();
     
-    // Use setTimeout to ensure dropdown closes first, then open modal
     setTimeout(() => {
       setEditingMeeting(meeting);
       setEditModalOpen(true);
     }, 100);
     
-    setDropdownOpen(false); // Close dropdown first
+    setDropdownOpen(false);
   };
 
   const handleMeetingUpdated = () => {
-    // Refresh meetings list or trigger parent component refresh
-    window.location.reload(); // Simple refresh for now
+    window.location.reload();
   };
 
   return (
@@ -451,7 +387,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         <DropdownMenuLabel>Recent Meetings</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {/* Start New Meeting Option */}
         <DropdownMenuItem 
           className="cursor-pointer"
           onClick={() => navigate('/')}
@@ -474,16 +409,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           </DropdownMenuItem>
         ) : (
           meetings.map((meeting) => (
-            <DropdownMenuItem 
-              key={meeting.id} 
-              className="p-0 focus:bg-accent"
-              onSelect={(e) => {
-                e.preventDefault();
-                return false;
-              }}
-            >
-              <div className="w-full p-3 space-y-2">
-                {/* Meeting Title with Edit Icon on Left */}
+            <div key={meeting.id} className="border-b border-border last:border-b-0">
+              <div className="p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => {
@@ -506,7 +433,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                   </button>
                 </div>
                 
-                {/* Meeting Details */}
                 <div className="text-xs text-muted-foreground space-y-1">
                   <div>{formatMeetingDate(meeting.start_time || meeting.created_at)}</div>
                   <div className="flex items-center justify-between">
@@ -520,7 +446,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                       )
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="text-amber-600">Awaiting Processing</span>
+                        <span className="text-amber-600">In Recording Status</span>
                         <button
                           onClick={(e) => handleAction('complete', meeting, e)}
                           disabled={processingActions[`${meeting.id}-complete`]}
@@ -530,49 +456,47 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                           {processingActions[`${meeting.id}-complete`] ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
-                            <Play className="w-3 h-3 text-green-600" />
+                            <CheckCircle className="w-3 h-3 text-green-600" />
                           )}
                         </button>
                       </div>
                     )}
                     
-                     {/* Action Buttons - Show for completed meetings */}
-                     {meeting.status === 'completed' && (
-                       <div className="flex gap-1">
-                         <button
-                           onClick={(e) => handleAction('word', meeting, e)}
-                           disabled={processingActions[`${meeting.id}-word`]}
-                           className="p-1 hover:bg-accent rounded transition-colors"
-                           title="Download Word"
-                         >
-                           {processingActions[`${meeting.id}-word`] ? (
-                             <Loader2 className="w-3 h-3 animate-spin" />
-                           ) : (
-                             <FileText className="w-3 h-3" />
-                           )}
-                         </button>
-                         <button
-                           onClick={(e) => handleAction('copy', meeting, e)}
-                           disabled={processingActions[`${meeting.id}-copy`]}
-                           className="p-1 hover:bg-accent rounded transition-colors"
-                           title="Copy Transcript"
-                         >
-                           {processingActions[`${meeting.id}-copy`] ? (
-                             <Loader2 className="w-3 h-3 animate-spin" />
-                           ) : (
-                             <Copy className="w-3 h-3" />
-                           )}
-                         </button>
-                       </div>
-                     )}
+                    {meeting.status === 'completed' && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => handleAction('word', meeting, e)}
+                          disabled={processingActions[`${meeting.id}-word`]}
+                          className="p-1 hover:bg-accent rounded transition-colors"
+                          title="Download Word"
+                        >
+                          {processingActions[`${meeting.id}-word`] ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <FileText className="w-3 h-3" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => handleAction('copy', meeting, e)}
+                          disabled={processingActions[`${meeting.id}-copy`]}
+                          className="p-1 hover:bg-accent rounded transition-colors"
+                          title="Copy Transcript"
+                        >
+                          {processingActions[`${meeting.id}-copy`] ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </DropdownMenuItem>
+            </div>
           ))
         )}
 
-        {/* Edit Meeting Modal */}
         {editingMeeting && (
           <EditMeetingModal
             meeting={editingMeeting}
