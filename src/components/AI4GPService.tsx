@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -188,6 +188,25 @@ const AI4GPService = () => {
       inputRef.current?.focus();
     }, 300);
   };
+
+  // Auto-scroll to input when AI response finishes
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        // Scroll to bottom to show input area
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+        
+        // Also try to focus the input if it exists
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 300);
+      }, 200);
+    }
+  }, [isLoading, messages.length]);
 
   // Check if we need to show disclaimer modal on first use
   React.useEffect(() => {
