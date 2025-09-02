@@ -4499,12 +4499,6 @@ export const MeetingRecorder = ({
 
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
-          {/* Chunk Save Status - Show real-time chunk confirmations */}
-          <ChunkSaveStatus 
-            chunks={chunkSaveStatuses} 
-            isRecording={isRecording}
-          />
-          
           {/* Real-time Transcript Card - Always visible */}
           <RealtimeTranscriptCard
             transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
@@ -4541,6 +4535,12 @@ export const MeetingRecorder = ({
               />
             </CardContent>
           </Card>
+
+          {/* Chunk Save Status - Show real-time chunk confirmations */}
+          <ChunkSaveStatus 
+            chunks={chunkSaveStatuses} 
+            isRecording={isRecording}
+          />
         </TabsContent>
 
 
