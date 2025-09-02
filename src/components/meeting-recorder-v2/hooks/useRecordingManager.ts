@@ -306,7 +306,11 @@ export function useRecordingManager(
     }
 
     try {
-      setState(prev => ({ ...prev, isRecording: true }));
+      setState(prev => ({ 
+        ...prev, 
+        isRecording: true,
+        duration: 0 
+      }));
       
       const transcriber = createTranscriber();
       transcriberRef.current = transcriber;
