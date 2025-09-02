@@ -257,14 +257,13 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className={`flex-1 flex flex-col bg-background relative h-full overflow-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)}`}
+        className={`flex-1 flex flex-col bg-background relative h-full overflow-x-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)}`}
         data-component="ai4gp-service"
         style={{ 
           WebkitOverflowScrolling: 'touch',
-          maxWidth: 'calc(100vw - 220px)',
-          width: 'calc(100vw - 220px)',
-          margin: '0 auto',
-          overflowX: 'hidden'
+          maxWidth: '96%',
+          width: '96%',
+          margin: '0 auto'
         }}
       >
         <div className="flex flex-1 min-h-0">
