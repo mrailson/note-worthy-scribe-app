@@ -32,6 +32,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { toast } = useToast();
 
   // Mock meeting data for export functions
@@ -417,6 +418,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
     event.stopPropagation();
     setEditingMeeting(meeting);
     setEditModalOpen(true);
+    setDropdownOpen(false); // Close dropdown when opening modal
   };
 
   const handleMeetingUpdated = () => {
@@ -425,7 +427,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -473,22 +475,22 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
               onSelect={(e) => e.preventDefault()}
             >
               <div className="w-full p-3 space-y-2">
-                {/* Meeting Title with Edit Icon */}
-                <div className="flex items-center justify-between">
+                {/* Meeting Title with Edit Icon on Left */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => handleEditMeeting(meeting, e)}
+                    className="p-1 hover:bg-accent rounded transition-colors flex-shrink-0"
+                    title="Edit meeting details"
+                  >
+                    <Edit className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  </button>
                   <button
                     onClick={(e) => handleMeetingClick(meeting, e)}
-                    className="flex-1 text-left hover:underline focus:underline outline-none"
+                    className="flex-1 text-left hover:underline focus:underline outline-none min-w-0"
                   >
                     <div className="font-medium text-sm truncate">
                       {meeting.title || 'Untitled Meeting'}
                     </div>
-                  </button>
-                  <button
-                    onClick={(e) => handleEditMeeting(meeting, e)}
-                    className="p-1 hover:bg-accent rounded transition-colors ml-2"
-                    title="Edit meeting details"
-                  >
-                    <Edit className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                   </button>
                 </div>
                 
