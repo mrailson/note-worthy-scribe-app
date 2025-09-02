@@ -346,17 +346,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'claude-4-sonnet') => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'claude-4-sonnet', messageOverride?: string) => {
     console.log('🚀 handleSend called with:', { 
       hasInput: !!input.trim(), 
       inputLength: input.length,
+      messageOverride: messageOverride ? `"${messageOverride.substring(0, 50)}..."` : 'none',
       filesCount: uploadedFiles.length, 
       selectedModel, 
       practiceContext: !!practiceContext,
       isLoading 
     });
     
-    if (!input.trim() && uploadedFiles.length === 0) {
+    const messageToUse = messageOverride || input;
+    
+    if (!messageToUse.trim() && uploadedFiles.length === 0) {
       console.log('❌ Aborting send: no input and no files');
       return;
     }
@@ -368,10 +371,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     console.log('🤖 Model selection:', { selectedModel, modelToUse });
     
     // Enhance the message content when files are attached
-    let messageContent = input;
-    if (uploadedFiles.length > 0 && input.trim()) {
-      messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
-    } else if (uploadedFiles.length > 0 && !input.trim()) {
+    let messageContent = messageToUse;
+    if (uploadedFiles.length > 0 && messageToUse.trim()) {
+      messageContent = `${messageToUse}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
+    } else if (uploadedFiles.length > 0 && !messageToUse.trim()) {
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
     }
     

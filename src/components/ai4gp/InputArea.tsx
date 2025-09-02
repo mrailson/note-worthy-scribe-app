@@ -15,7 +15,7 @@ interface InputAreaProps {
   setInput: (input: string) => void;
   uploadedFiles: UploadedFile[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
-  onSend: () => void;
+  onSend: (messageOverride?: string) => void;
   isLoading: boolean;
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
@@ -209,20 +209,15 @@ ${pastedText.trim()}
                       description: "Sending message via \"Enter Go\" command",
                       duration: 2000,
                     });
-                     // CRITICAL: Set the input to transcribed text so onSend can read it
-                     setInput(transcribedText);
+                     // Pass the transcribed text directly to onSend to avoid state timing issues
+                     onSend(transcribedText);
                      
-                     // Call onSend after a brief delay to ensure state update
+                     // Clear after a brief delay
                      setTimeout(() => {
-                       onSend();
-                       
-                       // Clear after send completes
-                       setTimeout(() => {
-                         setBrowserTranscript('');
-                         setInput('');
-                         micRef.current?.clearTranscript();
-                       }, 200);
-                     }, 50);
+                       setBrowserTranscript('');
+                       setInput('');
+                       micRef.current?.clearTranscript();
+                     }, 100);
                   } else {
                     // Show error toast if can't send
                     toast({

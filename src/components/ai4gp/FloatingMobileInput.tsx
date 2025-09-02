@@ -15,7 +15,7 @@ interface FloatingMobileInputProps {
   setInput: (input: string) => void;
   uploadedFiles: UploadedFile[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
-  onSend: () => void;
+  onSend: (messageOverride?: string) => void;
   isLoading: boolean;
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;

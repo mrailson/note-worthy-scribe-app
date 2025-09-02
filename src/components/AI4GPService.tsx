@@ -164,11 +164,11 @@ const AI4GPService = () => {
     toggleSearchProtection
   } = useSearchHistory();
 
-  const handleSendWithContext = () => {
+  const handleSendWithContext = (messageOverride?: string) => {
     console.log('🏥 Practice context being sent to AI:', practiceContext);
     console.log('📋 Practice details available:', practiceDetails);
     // Use the selected model from settings
-    handleSend(practiceContext, selectedModel);
+    handleSend(practiceContext, selectedModel, messageOverride);
   };
 
   const handleLoadPreviousSearch = (search: any) => {
