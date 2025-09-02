@@ -231,8 +231,13 @@ export const MeetingRecorder = ({
   // Combined modal state for end-of-meeting process
   const [meetingEndModal, setMeetingEndModal] = useState<{
     isOpen: boolean;
-    stage: 'processing' | 'saving' | 'success';
+    stage: 'processing' | 'saving' | 'ai-processing' | 'success' | 'timeout';
     savedData?: any;
+    progress?: {
+      currentStep: string;
+      estimatedTimeRemaining?: number;
+      startTime?: Date;
+    };
   }>({
     isOpen: false,
     stage: 'processing',
@@ -242,8 +247,15 @@ export const MeetingRecorder = ({
   const [savingSteps, setSavingSteps] = useState({
     saving: false,
     securing: false,
-    complete: false
+    complete: false,
+    aiProcessing: false,
+    aiComplete: false
   });
+
+  // Modal timeout and close management
+  const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const modalStartTimeRef = useRef<Date | null>(null);
+  const [modalAutoCloseCountdown, setModalAutoCloseCountdown] = useState<number | null>(null);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -3004,8 +3016,15 @@ export const MeetingRecorder = ({
     setMeetingEndModal({
       isOpen: true,
       stage: 'processing',
-      savedData: null
+      savedData: null,
+      progress: {
+        currentStep: 'Processing transcript...',
+        startTime: new Date()
+      }
     });
+    
+    // Start timeout protection
+    startModalTimeout();
     
     // Track initial transcript length
     const initialTranscriptLength = transcript?.length || 0;
@@ -3042,7 +3061,11 @@ export const MeetingRecorder = ({
     // Move to saving stage
     setMeetingEndModal(prev => ({
       ...prev,
-      stage: 'saving'
+      stage: 'saving',
+      progress: {
+        ...prev.progress,
+        currentStep: 'Saving meeting data...'
+      }
     }));
     
     // NOW stop the transcribers after the processing delay
@@ -3377,7 +3400,7 @@ export const MeetingRecorder = ({
     try {
       
       // Step 1: Saving
-      setSavingSteps({ saving: true, securing: false, complete: false });
+      setSavingSteps({ saving: true, securing: false, complete: false, aiProcessing: false, aiComplete: false });
       await new Promise(resolve => setTimeout(resolve, 150));
       
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
@@ -3432,7 +3455,7 @@ export const MeetingRecorder = ({
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
 
       // Step 2: Securing data
-      setSavingSteps({ saving: true, securing: true, complete: false });
+      setSavingSteps({ saving: true, securing: true, complete: false, aiProcessing: false, aiComplete: false });
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // 2. Save transcript
@@ -3451,7 +3474,7 @@ export const MeetingRecorder = ({
       toast.success('Meeting saved successfully!');
 
       // Step 3: Complete
-      setSavingSteps({ saving: true, securing: true, complete: true });
+      setSavingSteps({ saving: true, securing: true, complete: true, aiProcessing: true, aiComplete: false });
       await new Promise(resolve => setTimeout(resolve, 200)); // Phase 4 total now 500ms
 
       // Trigger background notes generation
@@ -3495,6 +3518,17 @@ export const MeetingRecorder = ({
         }
 
         toast.success('Meeting saved! Notes are being generated in the background.');
+
+        // Transition to AI processing stage
+        setMeetingEndModal(prev => ({
+          ...prev,
+          stage: 'ai-processing',
+          progress: {
+            ...prev.progress,
+            currentStep: 'AI is generating meeting notes...',
+            estimatedTimeRemaining: 60 // 1 minute estimate
+          }
+        }));
       } catch (noteError) {
         console.error('⚠️ Failed to queue notes generation:', noteError);
         // Don't fail the whole save process for this
@@ -3514,11 +3548,11 @@ export const MeetingRecorder = ({
         // Signal to Meeting History and trigger localStorage communication
         signalMeetingHistoryRefresh();
       
-      // Show final success modal with meeting details
+      // Store data for success stage (will be shown when AI processing completes)
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
+      
       setMeetingEndModal(prev => ({
         ...prev,
-        stage: 'success',
         savedData: {
           title: formattedTitle,
           duration: formatDuration(duration),
@@ -3527,22 +3561,8 @@ export const MeetingRecorder = ({
         }
       }));
 
-      // Auto-close modal after 10 seconds as fallback
-      setTimeout(() => {
-        setMeetingEndModal(prev => {
-          if (prev.isOpen && prev.stage === 'success') {
-            console.log('🔄 Auto-closing meeting end modal after timeout');
-            return { isOpen: false, stage: 'processing', savedData: null };
-          }
-          return prev;
-        });
-        
-        // Also trigger UI reset as fallback
-        onTranscriptUpdate("");
-        onDurationUpdate("00:00");
-        onWordCountUpdate(0);
-        toast.success("Meeting saved successfully!");
-      }, 10000);
+      // AI processing will be tracked via real-time subscription
+      // Modal will automatically transition to success when AI completes
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
@@ -3556,6 +3576,138 @@ export const MeetingRecorder = ({
       toast.error('Failed to save meeting to database');
     }
   };
+
+  // Modal timeout and close management functions
+  const startModalTimeout = () => {
+    console.log('⏰ Starting modal timeout protection (3 minutes)');
+    modalStartTimeRef.current = new Date();
+    
+    // Clear any existing timeout
+    if (modalTimeoutRef.current) {
+      clearTimeout(modalTimeoutRef.current);
+    }
+    
+    // Set 3-minute timeout
+    modalTimeoutRef.current = setTimeout(() => {
+      console.log('⏰ Modal timeout reached - force closing');
+      setMeetingEndModal(prev => {
+        if (prev.isOpen) {
+          toast.error('Processing timeout - modal closed automatically');
+          return {
+            isOpen: false,
+            stage: 'timeout',
+            savedData: prev.savedData
+          };
+        }
+        return prev;
+      });
+    }, 180000); // 3 minutes
+  };
+
+  const clearModalTimeout = () => {
+    if (modalTimeoutRef.current) {
+      clearTimeout(modalTimeoutRef.current);
+      modalTimeoutRef.current = null;
+    }
+    modalStartTimeRef.current = null;
+  };
+
+  const forceCloseModal = () => {
+    console.log('🔒 Force closing modal - user initiated');
+    clearModalTimeout();
+    setMeetingEndModal({
+      isOpen: false,
+      stage: 'processing',
+      savedData: null
+    });
+    setModalAutoCloseCountdown(null);
+    toast.success('Modal closed - meeting was saved successfully');
+  };
+
+  // Enhanced auto-close with countdown
+  const startAutoCloseCountdown = (delay: number = 10) => {
+    console.log(`⏰ Starting auto-close countdown: ${delay} seconds`);
+    setModalAutoCloseCountdown(delay);
+    
+    const countdownInterval = setInterval(() => {
+      setModalAutoCloseCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(countdownInterval);
+          // Auto-close the modal
+          setMeetingEndModal(prev => {
+            if (prev.isOpen && prev.stage === 'success') {
+              console.log('🔄 Auto-closing modal after countdown');
+              return { isOpen: false, stage: 'processing', savedData: null };
+            }
+            return prev;
+          });
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Real-time meeting status subscription
+  useEffect(() => {
+    if (!meetingEndModal.isOpen || meetingEndModal.stage !== 'ai-processing') {
+      return;
+    }
+
+    // Subscribe to meeting status updates
+    const channel = supabase
+      .channel('meeting-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('📡 Real-time meeting update received:', payload);
+          
+          if (payload.new.notes_generation_status === 'completed') {
+            console.log('✅ AI processing completed - detected via real-time');
+            setSavingSteps(prev => ({ ...prev, aiComplete: true }));
+            
+            setTimeout(() => {
+              setMeetingEndModal(prev => ({
+                ...prev,
+                stage: 'success'
+              }));
+              clearModalTimeout();
+              startAutoCloseCountdown(15); // 15 second countdown for success stage
+            }, 1000);
+          } else if (payload.new.notes_generation_status === 'error') {
+            console.log('❌ AI processing failed - detected via real-time');
+            toast.error('AI note generation failed, but meeting was saved successfully');
+            
+            setTimeout(() => {
+              setMeetingEndModal(prev => ({
+                ...prev,
+                stage: 'success'
+              }));
+              clearModalTimeout();
+              startAutoCloseCountdown(10);
+            }, 1000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meetingEndModal.isOpen, meetingEndModal.stage, user?.id]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      clearModalTimeout();
+    };
+  }, []);
 
   const getConnectionStatusIcon = () => {
     switch (connectionStatus) {
@@ -5014,9 +5166,9 @@ export const MeetingRecorder = ({
                         <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary">
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
                         </div>
-                        <span className="text-sm text-foreground font-medium">
-                          All done!
-                        </span>
+                         <span className="text-sm text-foreground font-medium">
+                          Nearly There.... (max one minute)
+                         </span>
                       </div>
                     )}
                   </div>
