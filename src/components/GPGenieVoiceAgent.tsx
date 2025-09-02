@@ -137,6 +137,11 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
       console.log('Starting conversation with signed URL');
       const conversationId = await conversation.startSession({ 
+        agentId: activeTab === 'gp-genie' 
+          ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
+          : activeTab === 'pm-genie'
+          ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
+          : 'agent_01jwrz44tyefdvhtvt7c622rj7',  // Oak Lane Patient Line
         signedUrl
       });
 
@@ -172,6 +177,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       console.log('Starting language test conversation with signed URL');
       const conversationId = await conversation.startSession({ 
+        agentId: 'agent_01jws2qhv2essav25m8cfq2h0v',
         signedUrl: data.signed_url
       });
 

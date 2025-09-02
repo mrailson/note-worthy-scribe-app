@@ -63,7 +63,7 @@ const PMGenieVoiceAgent = () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentType: 'pm-genie' }
+        body: { agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s' }
       });
 
       if (error) throw error;
@@ -98,6 +98,7 @@ const PMGenieVoiceAgent = () => {
 
       console.log('Starting conversation with signed URL');
       const conversationId = await conversation.startSession({ 
+        agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s',
         signedUrl
       });
 
