@@ -1,3 +1,5 @@
+import { TimestampedSegmentMerger, type TimestampedChunk } from './TimestampedSegmentMerger';
+
 export interface IncrementalTranscriptData {
   text: string;
   is_final: boolean;
@@ -5,10 +7,13 @@ export interface IncrementalTranscriptData {
   timestamp?: string;
   speaker?: string;
   segment_id?: string;
+  start_ms?: number;
+  end_ms?: number;
+  source?: string;
 }
 
 export class IncrementalTranscriptHandler {
-  private finalSegments: string[] = [];
+  private merger: TimestampedSegmentMerger;
   private lastInterimText: string = '';
   private processedSegmentIds: Set<string> = new Set();
   private lastFinalText: string = '';
@@ -16,7 +21,9 @@ export class IncrementalTranscriptHandler {
   constructor(
     private onTranscriptUpdate: (fullTranscript: string) => void,
     private onInterimUpdate?: (interimText: string) => void
-  ) {}
+  ) {
+    this.merger = new TimestampedSegmentMerger();
+  }
 
   processTranscript(data: IncrementalTranscriptData): void {
     // Generate a unique segment ID if not provided
@@ -33,33 +40,46 @@ export class IncrementalTranscriptHandler {
     if (!cleanedText.trim()) return;
 
     if (data.is_final) {
-      // Handle final text
-      this.processFinalText(cleanedText, segmentId);
+      // Handle final text using timestamp-based merging
+      this.processFinalText(cleanedText, segmentId, data);
     } else {
       // Handle interim text
       this.processInterimText(cleanedText);
     }
   }
 
-  private processFinalText(text: string, segmentId: string): void {
-    // Check if this text is a duplicate of what we already have
-    if (this.isDuplicateContent(text)) {
-      console.log('🚫 Skipping duplicate final content');
+  private processFinalText(text: string, segmentId: string, data: IncrementalTranscriptData): void {
+    // Create timestamped chunk for enhanced merging
+    const chunk: TimestampedChunk = {
+      text,
+      start_ms: data.start_ms,
+      end_ms: data.end_ms,
+      timestamp: data.timestamp ? new Date(data.timestamp).getTime() : undefined,
+      confidence: data.confidence,
+      isFinal: data.is_final,
+      source: data.source || 'incremental',
+      speaker: data.speaker,
+      id: segmentId
+    };
+
+    // Use timestamp-based merger to prevent duplicates
+    const result = this.merger.processChunk(chunk);
+    
+    if (!result.wasProcessed) {
+      console.log(`🚫 Chunk not processed: ${result.reason}`);
       return;
     }
 
-    // Add to final segments
-    this.finalSegments.push(text);
+    // Mark as processed and update
     this.processedSegmentIds.add(segmentId);
+    this.lastInterimText = ''; // Clear interim text since we now have final text
+    this.lastFinalText = result.text;
     
-    // Clear interim text since we now have final text
-    this.lastInterimText = '';
+    // Notify of update
+    this.onTranscriptUpdate(this.lastFinalText);
     
-    // Update the complete transcript
-    this.updateFullTranscript();
-    
-    console.log('✅ Added final segment:', text.substring(0, 50) + '...');
-    console.log('📊 Total final segments:', this.finalSegments.length);
+    console.log('✅ Added final segment via timestamp merger:', text.substring(0, 50) + '...');
+    console.log('📊 Total transcript length:', this.lastFinalText.length);
   }
 
   private processInterimText(text: string): void {
@@ -78,8 +98,8 @@ export class IncrementalTranscriptHandler {
   }
 
   private updateFullTranscript(): void {
-    // Combine all final segments
-    let fullTranscript = this.finalSegments.join(' ').trim();
+    // Get the current text from the merger
+    let fullTranscript = this.merger.getState().lastText;
     
     // Add current interim text if available
     if (this.lastInterimText.trim()) {
@@ -96,26 +116,8 @@ export class IncrementalTranscriptHandler {
   }
 
   private isDuplicateContent(newText: string): boolean {
-    const normalizedNew = this.normalizeText(newText);
-    
-    // Check if this text is already in our final segments
-    for (const segment of this.finalSegments) {
-      const normalizedSegment = this.normalizeText(segment);
-      
-      // Check for exact match
-      if (normalizedSegment === normalizedNew) return true;
-      
-      // Check if new text is a subset of existing segment (but be less aggressive)
-      if (normalizedSegment.includes(normalizedNew) && normalizedNew.length > 20 && normalizedNew.length < normalizedSegment.length * 0.9) return true;
-      
-      // Check if new text is a superset that includes existing segment (but be less aggressive)
-      if (normalizedNew.includes(normalizedSegment) && normalizedSegment.length > 20) {
-        // This might be an expanded version, but we should be careful
-        const overlap = this.calculateOverlap(normalizedSegment, normalizedNew);
-        if (overlap > 0.95) return true; // 95% overlap considered duplicate (was 80%)
-      }
-    }
-    
+    // This method is no longer used since we moved to timestamp-based merging
+    // but keeping it for compatibility
     return false;
   }
 
@@ -160,9 +162,9 @@ export class IncrementalTranscriptHandler {
     return this.lastFinalText;
   }
 
-  // Get only final segments
+  // Get final segments from merger
   getFinalSegments(): string[] {
-    return [...this.finalSegments];
+    return this.merger.getState().finalizedSegments.map(s => s.text);
   }
 
   // Get current interim text
@@ -172,7 +174,7 @@ export class IncrementalTranscriptHandler {
 
   // Clear all transcript data
   clear(): void {
-    this.finalSegments = [];
+    this.merger.reset();
     this.lastInterimText = '';
     this.processedSegmentIds.clear();
     this.lastFinalText = '';
@@ -186,8 +188,9 @@ export class IncrementalTranscriptHandler {
     totalCharacters: number;
     processedSegments: number;
   } {
+    const mergerState = this.merger.getState();
     return {
-      finalSegments: this.finalSegments.length,
+      finalSegments: mergerState.finalizedSegments.length,
       hasInterim: this.lastInterimText.length > 0,
       totalCharacters: this.lastFinalText.length,
       processedSegments: this.processedSegmentIds.size

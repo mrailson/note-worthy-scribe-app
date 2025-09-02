@@ -1,6 +1,5 @@
 // Enhanced Deepgram Transcriber with proper WebSocket integration
 import { supabase } from '@/integrations/supabase/client';
-import { mergeLive, type LiveChunk } from '@/utils/liveMerge';
 
 export interface TranscriptData {
   text: string;
@@ -28,7 +27,6 @@ export class DeepgramTranscriber {
   private maxReconnectAttempts = 3;
   private keepAlive: NodeJS.Timeout | null = null;
   private fallbackToWhisper = false;
-  private accumulatedTranscript = '';
   private sessionId = crypto.randomUUID();
 
   constructor(
@@ -167,27 +165,13 @@ export class DeepgramTranscriber {
       const alternative = message.channel.alternatives[0];
       
       if (alternative.transcript && alternative.transcript.trim()) {
-        // Use liveMerge for consistent deduplication across all transcribers
-        const chunk: LiveChunk = {
-          text: alternative.transcript.trim(),
-          isFinal: message.is_final || false,
-          start_ms: message.start ? message.start * 1000 : undefined,
-          end_ms: message.start && message.duration ? (message.start + message.duration) * 1000 : undefined,
-          source: 'deepgram',
-          speaker: 'Speaker'
-        };
-
-        console.log(`📝 Deepgram chunk: ${chunk.text.substring(0, 50)}... (${chunk.isFinal ? 'final' : 'interim'})`);
+        console.log(`📝 Deepgram chunk: ${alternative.transcript.substring(0, 50)}... (${message.is_final ? 'final' : 'interim'})`);
         
-        // Only process final chunks to avoid duplication
-        if (chunk.isFinal) {
-          this.accumulatedTranscript = mergeLive(this.accumulatedTranscript, chunk);
-          console.log(`🔗 Deepgram merged transcript: ${this.accumulatedTranscript.length} chars`);
-        }
-
+        // Send ONLY the individual chunk, not accumulated text
+        // This prevents double processing and accumulation issues
         const transcriptData: TranscriptData = {
-          text: chunk.isFinal ? this.accumulatedTranscript : chunk.text,
-          is_final: chunk.isFinal || false,
+          text: alternative.transcript.trim(), // Send only the new chunk
+          is_final: message.is_final || false,
           confidence: alternative.confidence || 0.8,
           start: message.start,
           end: message.start + message.duration,
@@ -195,10 +179,12 @@ export class DeepgramTranscriber {
           words: alternative.words || []
         };
 
+        // Let the downstream handler (IncrementalTranscriptHandler) do the merging
         this.onTranscription(transcriptData);
 
+        // Only send summary when we have a final chunk (but don't accumulate here)
         if (this.onSummary && transcriptData.is_final) {
-          this.onSummary(this.accumulatedTranscript);
+          this.onSummary(alternative.transcript.trim());
         }
       }
     }
@@ -335,19 +321,11 @@ export class DeepgramTranscriber {
             }
 
             if (data?.text && data.text.trim()) {
-              // Use liveMerge for consistent deduplication
-              const chunk: LiveChunk = {
-                text: data.text.trim(),
-                isFinal: true,
-                source: 'whisper-fallback',
-                speaker: 'Speaker'
-              };
+              console.log(`🔗 Whisper fallback chunk: ${data.text.length} chars`);
 
-              this.accumulatedTranscript = mergeLive(this.accumulatedTranscript, chunk);
-              console.log(`🔗 Whisper fallback merged transcript: ${this.accumulatedTranscript.length} chars`);
-
+              // Send only the individual chunk, let downstream handle merging
               const transcriptData: TranscriptData = {
-                text: this.accumulatedTranscript,
+                text: data.text.trim(), // Send only the new chunk
                 is_final: true,
                 confidence: 0.8,
                 speaker: 'Speaker'
@@ -356,7 +334,7 @@ export class DeepgramTranscriber {
               this.onTranscription(transcriptData);
               
               if (this.onSummary) {
-                this.onSummary(this.accumulatedTranscript);
+                this.onSummary(data.text.trim());
               }
             }
             
@@ -411,7 +389,6 @@ export class DeepgramTranscriber {
 
   async clearSummary() {
     console.log('🧹 Clearing Deepgram transcription summary');
-    this.accumulatedTranscript = '';
     this.sessionId = crypto.randomUUID();
   }
 }
