@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { renderPoeticContent } from '@/lib/poeticRenderer';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
@@ -2244,7 +2245,7 @@ ${transcript}`;
                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
                                 <div 
                                   dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notesStyle5, { enableNHSStyling: true })
+                                    __html: renderPoeticContent(notesStyle5)
                                   }}
                                 />
                               </div>
