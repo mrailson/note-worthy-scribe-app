@@ -16,118 +16,194 @@ interface NoteTypeConfig {
 const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
-    model: 'gpt-5-mini-2025-08-07',
-    systemPrompt: `Create a BRIEF meeting summary. Focus on key decisions and action items only. Maximum 200 words.
+    model: 'claude-sonnet-4-20250514',
+    systemPrompt: `Create a BRIEF meeting summary with excellent formatting. Focus on key decisions and action items only. Use clear headings and bullet points.
 
 Format:
 # Brief Meeting Summary
 
-**Key Decisions:**
-- [Decision 1]
-- [Decision 2]
+## Key Decisions Made
+• [Decision 1 with brief context]
+• [Decision 2 with brief context]
 
-**Action Items:**
-- [Item] - [Owner] - [Due date]
+## Action Items
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
 
-**Next Steps:**
-- [Next step]`,
-    maxTokens: 300
+## Next Steps
+• [Next step with timeframe]
+
+Keep it concise but well-formatted with clear sections and proper bullet points.`,
+    maxTokens: 500
   },
   {
     type: 'executive',
-    model: 'gpt-5-mini-2025-08-07',
-    systemPrompt: `Create an EXECUTIVE SUMMARY for senior leadership. Focus on strategic decisions, financial impact, and high-level outcomes. Professional tone.
+    model: 'claude-sonnet-4-20250514',
+    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting for senior leadership. Focus on strategic decisions, impact, and outcomes.
 
 Format:
 # Executive Summary
 
-**Meeting Overview:**
-[Brief context]
+## Meeting Overview
+Brief context and purpose of the meeting.
 
-**Strategic Decisions:**
-- [Decision with rationale]
+## Strategic Decisions
+• **[Decision]** - [Rationale and expected impact]
+• **[Decision]** - [Rationale and expected impact]
 
-**Financial/Business Impact:**
-- [Impact details]
+## Business Impact & Outcomes
+• **Financial:** [Impact details]
+• **Operational:** [Impact details]
+• **Strategic:** [Impact details]
 
-**Key Risks & Mitigation:**
-- [Risk] - [Mitigation]
+## Key Risks & Mitigation
+• **Risk:** [Description] | **Mitigation:** [Action plan]
 
-**Executive Actions Required:**
-- [Action] - [Timeline]`,
-    maxTokens: 500
+## Executive Actions Required
+• **[Action]** - [Owner] | [Timeline] | [Priority]
+
+Use professional language with clear formatting and bullet points throughout.`,
+    maxTokens: 800
   },
   {
     type: 'detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create DETAILED meeting minutes with comprehensive coverage of all discussion points, decisions, and context.
+    systemPrompt: `Create DETAILED meeting minutes with excellent formatting and comprehensive coverage. Use clear headings, bullet points, and structured layout.
 
 Format:
 # Detailed Meeting Minutes
 
-**Attendees:** [List]
-**Date & Time:** [Details]
+## Meeting Information
+• **Date:** [Date]
+• **Time:** [Time]
+• **Attendees:** [List with roles if available]
+• **Chair:** [Name if identified]
 
 ## Discussion Points
-[Detailed coverage of all topics discussed]
+### [Topic 1]
+• [Key point discussed]
+• [Decision or outcome]
+• [Any concerns raised]
+
+### [Topic 2]
+• [Key point discussed]
+• [Decision or outcome]
 
 ## Decisions Made
-[Full context and rationale for each decision]
+• **[Decision 1]** - [Full context and rationale]
+• **[Decision 2]** - [Full context and rationale]
 
 ## Action Items
-[Comprehensive list with details, owners, timelines]
+• **[Item]** - Assigned to: [Owner] | Due: [Date] | Priority: [Level]
+• **[Item]** - Assigned to: [Owner] | Due: [Date] | Priority: [Level]
 
-## Next Steps
-[Detailed planning for follow-up activities]
+## Next Steps & Follow-up
+• [Detailed next step with timeline]
+• [Follow-up meeting or check-in details]
 
 ## Additional Notes
-[Any other relevant information]`,
+• [Any other relevant information]
+
+Use clear formatting with consistent bullet points and bold text for emphasis.`,
     maxTokens: 2000
   },
   {
     type: 'very_detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create VERY DETAILED meeting minutes with verbatim quotes, full context, and comprehensive documentation suitable for legal/compliance purposes.
+    systemPrompt: `Create VERY DETAILED meeting minutes with exceptional formatting and comprehensive documentation. Include verbatim quotes where significant and full context.
 
 Format:
 # Very Detailed Meeting Minutes
 
-**Meeting Details:** [Full metadata]
-**Attendees:** [Complete list with roles]
+## Meeting Details
+• **Date:** [Full date]
+• **Time:** [Start - End time]
+• **Location/Platform:** [Details]
+• **Meeting Type:** [Format]
+• **Chair:** [Name and role]
+• **Secretary/Recorder:** [If applicable]
+
+## Attendees
+• **[Name]** - [Role/Title] - [Present/Apologies]
+• **[Name]** - [Role/Title] - [Present/Apologies]
 
 ## Comprehensive Discussion Record
-[Detailed conversation flow with speaker attribution where possible]
+### [Topic 1] - [Time if available]
+• **Background:** [Context provided]
+• **Discussion Points:**
+  - [Speaker if known]: "[Key point or quote]"
+  - [Response or counterpoint]
+  - [Resolution or agreement reached]
+• **Outcome:** [Decision or next step]
+
+### [Topic 2] - [Time if available]
+• **Background:** [Context]
+• **Key Arguments:**
+  - [Position 1 with supporting rationale]
+  - [Position 2 with supporting rationale]
+• **Resolution:** [How it was resolved]
 
 ## Decision Documentation
-[Full rationale, alternatives considered, voting if applicable]
+• **[Decision 1]**
+  - **Proposed by:** [Name if known]
+  - **Discussion:** [Summary of debate]
+  - **Alternatives considered:** [Other options discussed]
+  - **Rationale:** [Why this decision was made]
+  - **Vote/Consensus:** [How decision was reached]
 
 ## Complete Action Item Registry
-[Detailed specifications, acceptance criteria, dependencies]
+• **[Detailed Action Item]**
+  - **Assigned to:** [Full name and role]
+  - **Due date:** [Specific date]
+  - **Acceptance criteria:** [What constitutes completion]
+  - **Dependencies:** [What must happen first]
+  - **Resources needed:** [Budget, people, tools]
 
 ## Risk Assessment & Compliance Notes
-[Comprehensive risk documentation]
+• **Identified Risks:** [Potential issues discussed]
+• **Mitigation Strategies:** [How risks will be managed]
+• **Compliance Requirements:** [Any regulatory or policy matters]
 
-## Appendices
-[Supporting information, references, follow-up items]`,
+## Follow-up Requirements
+• **Next meeting:** [Date, time, agenda items]
+• **Interim reporting:** [Status updates required]
+• **Review points:** [When decisions will be evaluated]
+
+Use exceptional formatting with clear hierarchy, consistent bullet points, and bold emphasis throughout.`,
     maxTokens: 4000
   },
   {
     type: 'limerick',
-    model: 'gpt-4.1-2025-04-14',
-    systemPrompt: `Create a creative LIMERICK-style summary of the meeting. Make it fun but informative, capturing the essence of key decisions and outcomes in limerick form.
+    model: 'claude-sonnet-4-20250514',
+    systemPrompt: `Create a creative LIMERICK-style summary with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
 
 Format:
 # Meeting Limerick Summary
 
-[Creative limerick that captures the meeting essence]
+## The Meeting Limerick
+*[Write a proper limerick with AABBA rhyme scheme that captures the meeting's essence]*
 
-**Translation:**
-- Key Point 1: [Brief explanation]
-- Key Point 2: [Brief explanation]
-- Action Items: [List]
+There once was a meeting so bright,
+Where decisions were made left and right,
+With actions to do,
+And outcomes so true,
+The future now looks quite all right!
 
-Have fun with it while keeping it professional and informative!`,
-    maxTokens: 300
+## What It Actually Means
+• **Key Point 1:** [Clear explanation of main decision/outcome]
+• **Key Point 2:** [Clear explanation of secondary point]
+• **Key Point 3:** [Clear explanation of third point]
+
+## Action Items (The Serious Stuff)
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+
+## Next Meeting
+• **When:** [Date/Time]
+• **Purpose:** [What we'll cover]
+
+Keep it fun but informative with proper formatting and clear action items!`,
+    maxTokens: 600
   }
 ];
 
@@ -151,7 +227,6 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -163,23 +238,21 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log(`Generating ${config.type} notes with ${config.model}...`);
 
-        let apiResponse;
-        if (config.model.includes('claude')) {
-          // Use Anthropic API
-          apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': anthropicApiKey,
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: config.model,
-              max_tokens: config.maxTokens || 2000,
-              messages: [
-                {
-                  role: 'user',
-                  content: `${config.systemPrompt}
+        // All configs now use Claude, so always use Anthropic API
+        const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: config.model,
+            max_tokens: config.maxTokens || 2000,
+            messages: [
+              {
+                role: 'user',
+                content: `${config.systemPrompt}
 
 Meeting: ${meetingTitle || 'Meeting'}
 Date: ${meetingDate || 'Not specified'}
@@ -187,45 +260,10 @@ Time: ${meetingTime || 'Not specified'}
 
 Transcript:
 ${transcript}`
-                }
-              ]
-            })
-          });
-        } else {
-          // Use OpenAI API
-          const messages = [
-            { role: 'system', content: config.systemPrompt },
-            { 
-              role: 'user', 
-              content: `Meeting: ${meetingTitle || 'Meeting'}
-Date: ${meetingDate || 'Not specified'}
-Time: ${meetingTime || 'Not specified'}
-
-Transcript:
-${transcript}`
-            }
-          ];
-
-          const requestBody: any = {
-            model: config.model,
-            messages,
-            max_completion_tokens: config.maxTokens || 2000
-          };
-
-          // Add temperature for legacy models
-          if (config.model.includes('gpt-4o') || config.model.includes('gpt-4.1')) {
-            requestBody.temperature = 0.3;
-          }
-
-          apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-          });
-        }
+              }
+            ]
+          })
+        });
 
         if (!apiResponse.ok) {
           const errorText = await apiResponse.text();
@@ -234,16 +272,10 @@ ${transcript}`
         }
 
         const data = await apiResponse.json();
-        let content: string;
-        let tokenCount = 0;
-
-        if (config.model.includes('claude')) {
-          content = data.content[0].text;
-          tokenCount = data.usage?.output_tokens || 0;
-        } else {
-          content = data.choices[0].message.content;
-          tokenCount = data.usage?.total_tokens || 0;
-        }
+        
+        // All responses are now from Claude
+        const content = data.content[0].text;
+        const tokenCount = data.usage?.output_tokens || 0;
 
         const processingTime = Date.now() - startTime;
 
