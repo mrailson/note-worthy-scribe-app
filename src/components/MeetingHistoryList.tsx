@@ -233,15 +233,26 @@ export const MeetingHistoryList = ({
   // Handle viewing notes - mobile vs desktop
   const handleViewNotes = async (meeting: Meeting) => {
     console.log('🔍 HandleViewNotes called for:', meeting.title, 'isMobile:', isMobile);
+    console.log('📱 Device detection - window.innerWidth:', window.innerWidth);
+    console.log('📱 User agent:', navigator.userAgent);
+    
+    // Add alert for immediate feedback on mobile
+    alert(`Debug: isMobile=${isMobile}, width=${window.innerWidth}`);
     
     // Use the meeting_summary that's already loaded in the meeting object
     const notes = meeting.meeting_summary || '';
+    console.log('📝 Notes length:', notes.length);
+    
     setMeetingNotes(notes);
     setSelectedMeetingForNotes(meeting);
     
     if (isMobile) {
+      console.log('📱 Opening mobile sheet');
+      alert('Opening mobile sheet');
       setMobileNotesOpen(true);
     } else {
+      console.log('💻 Opening desktop modal');
+      alert('Opening desktop modal');
       setDesktopNotesOpen(true);
       // For desktop, also call the original callback if needed
       onViewSummary(meeting.id);
@@ -1098,8 +1109,13 @@ export const MeetingHistoryList = ({
                           return;
                         }
                         
-                        console.log('📱 Calling handleViewNotes for meeting:', meeting.id);
-                        handleViewNotes(meeting);
+                        console.log('📱 iPhone: Touch end - calling handleViewNotes for meeting:', meeting.id);
+                        try {
+                          handleViewNotes(meeting);
+                        } catch (error) {
+                          console.error('❌ Error in handleViewNotes:', error);
+                          alert('Error: ' + error.message);
+                        }
                       } catch (error) {
                         console.error('❌ Error:', error);
                         alert('Error opening notes: ' + error.message);
@@ -1117,6 +1133,7 @@ export const MeetingHistoryList = ({
                       return;
                     }
                     
+                    console.log('📱 Click event - calling handleViewNotes for meeting:', meeting.id);
                     try {
                       handleViewNotes(meeting);
                     } catch (error) {
