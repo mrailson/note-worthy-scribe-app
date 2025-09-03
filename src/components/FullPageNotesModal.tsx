@@ -1974,7 +1974,7 @@ ${transcript}`;
                           Meeting Notes Style 2
                         </TabsTrigger>
                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                          Meeting Notes Style 1
+                          Minutes - Brief
                         </TabsTrigger>
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
                           Meeting Notes Style 4
