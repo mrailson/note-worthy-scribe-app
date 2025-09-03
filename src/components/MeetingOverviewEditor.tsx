@@ -33,6 +33,8 @@ export const MeetingOverviewEditor = ({
     setRegenerating(true);
     
     try {
+      console.log('🔄 Starting overview regeneration...', { meetingTitle, hasNotes: !!meetingNotes });
+      
       const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
         body: {
           meetingTitle: meetingTitle,
@@ -40,9 +42,15 @@ export const MeetingOverviewEditor = ({
         }
       });
       
-      if (error) throw error;
+      console.log('📝 Edge function response:', { data, error });
+      
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw error;
+      }
       
       if (data?.overview) {
+        console.log('✅ Overview generated:', data.overview);
         setOverview(data.overview);
         
         // Auto-save the regenerated overview
@@ -74,11 +82,12 @@ export const MeetingOverviewEditor = ({
         toast.success("Overview regenerated successfully");
         onOverviewChange?.(data.overview);
       } else {
-        toast.error("Failed to generate overview");
+        console.warn('⚠️ No overview in response:', data);
+        toast.error("Failed to generate overview - empty response");
       }
     } catch (error: any) {
-      console.error('Error regenerating overview:', error);
-      toast.error("Failed to regenerate overview");
+      console.error('❌ Error regenerating overview:', error);
+      toast.error(`Failed to regenerate overview: ${error.message || 'Unknown error'}`);
     } finally {
       setRegenerating(false);
     }
