@@ -17,6 +17,7 @@ import {
   Pill
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TranslationEntry {
   id: string;
@@ -89,20 +90,24 @@ export const NHSTranslationInterface = () => {
     try {
       console.log(`🔄 Translating: "${text}" from ${fromLang} to ${toLang}`);
       
-      // Using MyMemory Translation API (free tier)
-      const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
-      );
-      const data = await response.json();
+      // Use Supabase edge function for translation
+      const { data, error } = await supabase.functions.invoke('translate-text-simple', {
+        body: { text, fromLang, toLang }
+      });
       
-      console.log('Translation API response:', data);
+      console.log('Translation API response:', data, error);
       
-      if (data.responseStatus === 200) {
-        console.log(`✅ Translation successful: "${data.responseData.translatedText}"`);
-        return data.responseData.translatedText;
-      } else {
-        console.error('Translation API error:', data);
+      if (error) {
+        console.error('Translation API error:', error);
         throw new Error('Translation failed');
+      }
+
+      if (data?.translatedText) {
+        console.log(`✅ Translation successful: "${data.translatedText}"`);
+        return data.translatedText;
+      } else {
+        console.error('No translation returned:', data);
+        throw new Error('No translation returned');
       }
     } catch (error) {
       console.error('Translation error:', error);
@@ -123,6 +128,12 @@ export const NHSTranslationInterface = () => {
   const startRecording = (speaker: 'gp' | 'patient') => {
     if (!recognitionSupported || !recognitionRef.current) {
       toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    // Prevent starting if already recording
+    if (isRecording || currentSpeaker) {
+      console.log('Already recording, ignoring start request');
       return;
     }
 
