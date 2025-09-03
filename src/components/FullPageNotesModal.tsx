@@ -1253,69 +1253,76 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     try {
       const style2Prompt = `Please analyze the provided meeting transcript and create brief, professional meeting minutes with the following structure. Focus on capturing every point discussed while keeping descriptions concise and actionable.
 
-**FORMATTING REQUIREMENTS**
-• Use clear, concise bullet points
-• Keep each point to 1-2 lines maximum
-• Maintain professional tone
-• Prioritize actionable information
-• Use consistent formatting throughout
+FORMATTING REQUIREMENTS
 
-**REQUIRED STRUCTURE**
+Use clear, concise bullet points
+Keep each point to 1-2 lines maximum
+Maintain professional tone
+Prioritize actionable information
+Use consistent formatting throughout
 
-**MEETING OVERVIEW**
-• Date: [Extract date]
-• Time: [Meeting time and duration]
-• Attendees: [Names and roles if mentioned]
-• Meeting Purpose: [One sentence objective]
+REQUIRED STRUCTURE
+MEETING OVERVIEW
 
-**AGENDA ITEMS DISCUSSED**
+Date: [Extract date]
+Time: [Meeting time and duration]
+Attendees: [Names and roles if mentioned]
+Meeting Purpose: [One sentence objective]
 
-**[TOPIC 1 NAME]**
-• [Key point 1 - one line summary]
-• [Key point 2 - one line summary]  
-• [Key point 3 - one line summary]
-• Decision: [Final outcome if any]
+AGENDA ITEMS DISCUSSED
+[TOPIC 1 NAME]
 
-**[TOPIC 2 NAME]**
-• [Key point 1 - one line summary]
-• [Key point 2 - one line summary]
-• Decision: [Final outcome if any]
+[Key point 1 - one line summary]
+[Key point 2 - one line summary]
+[Key point 3 - one line summary]
+Decision: [Final outcome if any]
+
+[TOPIC 2 NAME]
+
+[Key point 1 - one line summary]
+[Key point 2 - one line summary]
+Decision: [Final outcome if any]
 
 [Continue for all topics discussed]
+DECISIONS MADE
 
-**DECISIONS MADE**
-• [Decision 1] - [Brief rationale]
-• [Decision 2] - [Brief rationale]
-• [Decision 3] - [Brief rationale]
+[Decision 1] - [Brief rationale]
+[Decision 2] - [Brief rationale]
+[Decision 3] - [Brief rationale]
 
-**ACTION ITEMS**
-• [Task] - Owner: [Name] | Due: [Date]
-• [Task] - Owner: [Name] | Due: [Date]
-• [Task] - Owner: [Name] | Due: [Date]
+ACTION ITEMS
 
-**NEXT STEPS**
-• [Immediate next step 1]
-• [Immediate next step 2]
-• [Future meeting scheduled/required]
+[Task] - Owner: [Name] | Due: [Date]
+[Task] - Owner: [Name] | Due: [Date]
+[Task] - Owner: [Name] | Due: [Date]
 
-**PARKING LOT**
-• [Unresolved item 1]
-• [Unresolved item 2]
-• [Items for future discussion]
+NEXT STEPS
 
-**SPECIFIC INSTRUCTIONS:**
-• Capture Every Point: Don't skip topics - include all substantive discussion points
-• One Line Per Point: Keep individual bullets concise but comprehensive
-• Clear Ownership: Always identify who is responsible for actions
-• Specific Timelines: Include exact dates and deadlines mentioned
-• Precise Language: Use concrete terms, avoid vague descriptions
-• Consistent Format: Maintain the same structure throughout
-• Complete Coverage: Ensure no significant discussion is omitted
+[Immediate next step 1]
+[Immediate next step 2]
+[Future meeting scheduled/required]
 
-**TONE:** Professional, neutral, factual - suitable for formal distribution and record-keeping.
-**LENGTH TARGET:** Aim for 1-2 pages maximum while ensuring completeness.
+PARKING LOT
 
-Here is the meeting transcript to process:
+[Unresolved item 1]
+[Unresolved item 2]
+[Items for future discussion]
+
+
+SPECIFIC INSTRUCTIONS:
+
+Capture Every Point: Don't skip topics - include all substantive discussion points
+One Line Per Point: Keep individual bullets concise but comprehensive
+Clear Ownership: Always identify who is responsible for actions
+Specific Timelines: Include exact dates and deadlines mentioned
+Precise Language: Use concrete terms, avoid vague descriptions
+Consistent Format: Maintain the same structure throughout
+Complete Coverage: Ensure no significant discussion is omitted
+
+TONE: Professional, neutral, factual - suitable for formal distribution and record-keeping.
+LENGTH TARGET: Aim for 1-2 pages maximum while ensuring completeness.
+
+Paste your meeting transcript after this prompt for processing.
 
 ${transcript}`;
 
