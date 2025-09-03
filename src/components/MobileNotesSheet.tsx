@@ -194,22 +194,22 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] flex flex-col">
-        <SheetHeader className="pb-4 border-b">
-          <SheetTitle className="text-lg font-semibold text-left">
-            {meeting?.title || 'Meeting Notes'}
-          </SheetTitle>
-          <SheetDescription className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              {meeting?.start_time ? formatDate(meeting.start_time) : 'N/A'}
-            </span>
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
+        <div className="flex flex-col h-full">
+          <SheetHeader className="p-4 pb-3 border-b flex-shrink-0">
+            <SheetTitle className="text-lg font-semibold text-left">
+              {meeting?.title || 'Meeting Notes'}
+            </SheetTitle>
+            <SheetDescription className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {meeting?.start_time ? formatDate(meeting.start_time) : 'N/A'}
+              </span>
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="flex justify-between items-center py-3 border-b">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 pb-3 border-b flex-shrink-0">
               <TabsList className="grid w-full max-w-lg grid-cols-5 h-9">
                 <TabsTrigger value="brief" className="text-xs px-1">Brief</TabsTrigger>
                 <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
@@ -228,8 +228,8 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
               </Button>
             </div>
 
-            <div className="flex-1 min-h-0">
-              <ScrollArea className="h-full w-full">
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
                 <div className="p-4">
                   <TabsContent value="brief" className="mt-0">
                     <div className="prose prose-sm max-w-none">
