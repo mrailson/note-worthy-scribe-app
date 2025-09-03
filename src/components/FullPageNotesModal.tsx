@@ -2084,7 +2084,7 @@ ${transcript}`;
                             const getGenerateFunction = () => {
                               switch (activeNotesStyleTab) {
                                 case 'style1': return generateNotesStyle3;
-                                case 'style2': return () => {}; // Notes style 2 doesn't have regenerate
+                                case 'style2': return handleRegenerateNotes; // Minutes - Brief uses handleRegenerateNotes
                                 case 'style3': return generateNotesStyle2;
                                 case 'style4': return generateNotesStyle4;
                                 case 'style5': return generateNotesStyle5;
@@ -2095,7 +2095,7 @@ ${transcript}`;
                             const getGeneratingState = () => {
                               switch (activeNotesStyleTab) {
                                 case 'style1': return isGeneratingStyle3;
-                                case 'style2': return false;
+                                case 'style2': return isGenerating; // Minutes - Brief uses isGenerating
                                 case 'style3': return isGeneratingStyle2;
                                 case 'style4': return isGeneratingStyle4;
                                 case 'style5': return isGeneratingStyle5;
@@ -2141,22 +2141,20 @@ ${transcript}`;
                                   <Copy className="h-4 w-4" />
                                   Copy
                                 </Button>
-                                {activeNotesStyleTab !== 'style2' && (
-                                  <Button
-                                    onClick={generateFunction}
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={isGenerating}
-                                    className="gap-2"
-                                  >
-                                    {isGenerating ? (
-                                      <RefreshCw className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <RefreshCw className="h-4 w-4" />
-                                    )}
-                                    Regenerate
-                                  </Button>
-                                )}
+                                <Button
+                                  onClick={generateFunction}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGenerating}
+                                  className="gap-2"
+                                >
+                                  {isGenerating ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
                               </>
                             ) : null;
                           })()}
