@@ -4722,28 +4722,17 @@ export const MeetingRecorder = ({
           </div>
           
           {/* Meeting Controls - Bottom Center - Hidden on iPhone */}
-          {!isIOS && (
+          {!isIOS && !isRecording && (
             <div className="flex justify-center items-center gap-3 pt-4">
-              <DashboardLauncher
-                isRecording={isRecording}
-                meetingData={{
-                  transcript,
-                  duration,
-                  wordCount,
-                  connectionStatus
-                }}
-              />
-              {!isRecording && (
-                <Button 
-                  onClick={resetMeeting}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  <RotateCcw className="h-3 w-3 mr-2" />
-                  Reset Meeting
-                </Button>
-              )}
+              <Button 
+                onClick={resetMeeting}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-2" />
+                Reset Meeting
+              </Button>
             </div>
           )}
         </TabsContent>
