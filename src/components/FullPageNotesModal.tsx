@@ -2404,32 +2404,15 @@ ${transcript}`;
                               </Button>
                             </div>
                           ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Professional meeting minutes format</p>
-                                <Button
-                                  onClick={generateNotesStyle2}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isGeneratingStyle2}
-                                  className="gap-2"
-                                >
-                                  {isGeneratingStyle2 ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
-                              </div>
-                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notesStyle2, { enableNHSStyling: true })
-                                  }}
-                                />
-                              </div>
-                            </div>
+                             <div className="space-y-4">
+                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                 <div 
+                                   dangerouslySetInnerHTML={{ 
+                                     __html: renderNHSMarkdown(notesStyle2, { enableNHSStyling: true })
+                                   }}
+                                 />
+                               </div>
+                             </div>
                           )}
                         </div>
                       </TabsContent>
@@ -2460,32 +2443,15 @@ ${transcript}`;
                               </Button>
                             </div>
                           ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">GP Partner update format</p>
-                                <Button
-                                  onClick={generateNotesStyle4}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isGeneratingStyle4}
-                                  className="gap-2"
-                                >
-                                  {isGeneratingStyle4 ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
-                              </div>
-                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
-                                  }}
-                                />
-                              </div>
-                            </div>
+                             <div className="space-y-4">
+                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                 <div 
+                                   dangerouslySetInnerHTML={{ 
+                                     __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                   }}
+                                 />
+                               </div>
+                             </div>
                           )}
                         </div>
                       </TabsContent>
@@ -2516,32 +2482,15 @@ ${transcript}`;
                               </Button>
                             </div>
                           ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Poetic meeting summary format</p>
-                                <Button
-                                  onClick={generateNotesStyle5}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isGeneratingStyle5}
-                                  className="gap-2"
-                                >
-                                  {isGeneratingStyle5 ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
-                              </div>
-                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderPoeticContent(notesStyle5)
-                                  }}
-                                />
-                              </div>
-                            </div>
+                             <div className="space-y-4">
+                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                 <div 
+                                   dangerouslySetInnerHTML={{ 
+                                     __html: renderPoeticContent(notesStyle5)
+                                   }}
+                                 />
+                               </div>
+                             </div>
                           )}
                         </div>
                       </TabsContent>
