@@ -1966,7 +1966,7 @@ ${transcript}`;
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
-                      <TabsList className="grid w-full grid-cols-4 mb-4">
+                      <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-4">
                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
                           Meeting Notes Style 1
                         </TabsTrigger>
