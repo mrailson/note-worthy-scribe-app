@@ -1610,6 +1610,44 @@ const MeetingHistory = () => {
     }
   };
 
+  // Merge meetings handler
+  const handleMergeMeetings = async () => {
+    if (selectedMeetings.length < 2) {
+      toast.error("Please select at least 2 meetings to merge");
+      return;
+    }
+
+    try {
+      console.log('🔄 Starting merge for meetings:', selectedMeetings);
+      
+      const { data, error } = await supabase.functions.invoke('merge-meetings', {
+        body: { meetingIds: selectedMeetings }
+      });
+
+      if (error) throw error;
+
+      toast.success(
+        `Successfully merged ${data.deletedMeetings + 1} meetings. New notes are being generated.`
+      );
+
+      // Reset multi-select state
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      
+      // Refresh meetings list
+      fetchMeetings();
+
+      // Navigate to the merged meeting after a short delay
+      setTimeout(() => {
+        navigate(`/meeting-history`);
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('❌ Error merging meetings:', error);
+      toast.error(`Failed to merge meetings: ${error.message}`);
+    }
+  };
+
   const handleDeleteSelected = async () => {
     try {
       const { error } = await supabase

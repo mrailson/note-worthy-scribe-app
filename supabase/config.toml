@@ -54,6 +54,9 @@ verify_jwt = true
 [functions.merge-meeting-minutes]
 verify_jwt = true
 
+[functions.merge-meetings]
+verify_jwt = true
+
 [functions.ingest-transcript-chunk]
 verify_jwt = true
 
