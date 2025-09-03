@@ -538,16 +538,16 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
             </div>
           ))
         )}
-
-        {editingMeeting && (
-          <EditMeetingModal
-            meeting={editingMeeting}
-            open={editModalOpen}
-            onOpenChange={setEditModalOpen}
-            onMeetingUpdated={handleMeetingUpdated}
-          />
-        )}
       </DropdownMenuContent>
+      
+      {editingMeeting && (
+        <EditMeetingModal
+          meeting={editingMeeting}
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          onMeetingUpdated={handleMeetingUpdated}
+        />
+      )}
     </DropdownMenu>
   );
 };
