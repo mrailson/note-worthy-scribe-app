@@ -1342,35 +1342,36 @@ ${transcript}`;
 
 The minutes should be detailed, structured, and professional.  
 
-Follow this format and style:
+CRITICAL: Do not include any meeting title, heading, or phrases like "Meeting - Date Not Specified" at the top. Start directly with the Meeting Details section.
 
-1. **Meeting Details Section**
-   - Date: ${meetingDate}
-   - Start Time: ${meetingTime}
-   - Attendees (if available in transcript, otherwise leave blank or note "Attendees: not specified").  
+Follow this exact format:
 
-2. **Agenda Items / Sections**
-   - Each major topic discussed should be presented as a numbered section (e.g., 1. Patient List Growth, 2. Finance Update, etc.).  
-   - Within each section, provide **subsections** where appropriate:  
-     - *Discussion* – a detailed summary of the points raised.  
-     - *Decisions* – clearly record any formal decisions or agreements reached.  
-     - *Matters Arising / Follow-Up* – highlight issues to be revisited in future meetings (if mentioned).  
+**Meeting Details**
+Date: ${meetingDate}
+Start Time: ${meetingTime}
+Attendees: [if available in transcript, otherwise state "Attendees: not specified"]
 
-3. **Formality and Detail**
-   - Use formal language consistent with NHS Partnership/PCN/LMC meetings.  
-   - Be detailed: capture nuance, examples, case references, and background information provided in the discussion.  
-   - Where multiple viewpoints are expressed, summarise them clearly.  
+**Agenda Items Discussed**
 
-4. **Accuracy**
-   - Do not repeat verbatim conversation. Instead, write in a concise but comprehensive narrative style.  
-   - Avoid speculation or informal phrasing.  
-   - Summarise repetitions once only.  
-   - DO NOT include any meeting title or heading at the top - start directly with the Meeting Details section.
+Each major topic discussed should be presented as a numbered section (e.g., 1. Patient List Growth, 2. Finance Update, etc.).  
 
-5. **Closing**
-   - Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
+Within each section, provide **subsections** where appropriate:  
+- *Discussion* – a detailed summary of the points raised.  
+- *Decisions* – clearly record any formal decisions or agreements reached.  
+- *Matters Arising / Follow-Up* – highlight issues to be revisited in future meetings (if mentioned).  
 
-The final output should read like **formal NHS meeting minutes**: structured, precise, and comprehensive.
+**Formality and Detail Requirements:**
+- Use formal language consistent with NHS Partnership/PCN/LMC meetings.  
+- Be detailed: capture nuance, examples, case references, and background information provided in the discussion.  
+- Where multiple viewpoints are expressed, summarise them clearly.  
+- Do not repeat verbatim conversation. Instead, write in a concise but comprehensive narrative style.  
+- Avoid speculation or informal phrasing.  
+- Summarise repetitions once only.
+
+**Closing**
+- Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
+
+IMPORTANT: Begin your response immediately with "**Meeting Details**" - do not include any title, heading, or introductory text before this.
 
 Here is the transcript to process:
 
