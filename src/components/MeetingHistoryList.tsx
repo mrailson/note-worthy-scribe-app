@@ -450,14 +450,17 @@ export const MeetingHistoryList = ({
         return;
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       for (const file of selectedFiles) {
-        // Upload file to Supabase storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${selectedMeetingForUpload.id}/${Date.now()}-${file.name}`;
+        // Upload file to Supabase storage with user-based path for RLS
+        const fileName = `${Date.now()}-${file.name}`;
+        const filePath = `${user.id}/meetings/${selectedMeetingForUpload.id}/${fileName}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('meeting-documents')
-          .upload(fileName, file);
+          .from('meeting-files')
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
@@ -471,7 +474,7 @@ export const MeetingHistoryList = ({
             file_type: file.type,
             file_size: file.size,
             description: null,
-            uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+            uploaded_by: user.id,
           });
 
         if (insertError) throw insertError;
@@ -495,7 +498,7 @@ export const MeetingHistoryList = ({
       setSelectedMeetingForUpload(null);
     } catch (error: any) {
       console.error('Error uploading documents:', error.message);
-      toast.error('Failed to upload documents');
+      toast.error(`Failed to upload documents: ${error.message}`);
     } finally {
       setUploading(false);
     }
