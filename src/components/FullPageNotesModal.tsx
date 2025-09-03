@@ -1192,17 +1192,27 @@ ${transcript}`;
 
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          meetingId: meeting.id,
-          customPrompt: style2Prompt,
-          regenerate: true
+          transcript: transcript,
+          meetingTitle: meeting.title,
+          meetingDate: new Date().toLocaleDateString('en-GB'),
+          meetingTime: new Date().toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          detailLevel: 'standard',
+          customPrompt: style2Prompt
         }
       });
 
       if (error) throw error;
 
-      if (data?.meetingMinutes) {
-        setNotesStyle2(data.meetingMinutes);
+      if (data?.meetingMinutes || data?.generatedNotes) {
+        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        setNotesStyle2(generatedContent);
         toast.success("Meeting Notes Style 2 generated successfully!");
+      } else {
+        console.error('No content in response:', data);
+        toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('Error generating notes style 2:', error);
@@ -1685,8 +1695,8 @@ ${transcript}`;
                     </div>
                   </div>
 
-                  {/* Sub-tabs for different meeting notes styles */}
-                  <div className="flex-1 overflow-hidden px-6">
+                  {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
+                  <div className="flex-1 overflow-hidden px-6 -mt-4">
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
                       <TabsList className="grid w-full grid-cols-3 mb-4">
                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
