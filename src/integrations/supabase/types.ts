@@ -3192,6 +3192,7 @@ export type Database = {
           notes_style_2: string | null
           notes_style_3: string | null
           notes_style_4: string | null
+          notes_style_5: string | null
           overview: string | null
           participants: string[] | null
           practice_id: string | null
@@ -3237,6 +3238,7 @@ export type Database = {
           notes_style_2?: string | null
           notes_style_3?: string | null
           notes_style_4?: string | null
+          notes_style_5?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
@@ -3282,6 +3284,7 @@ export type Database = {
           notes_style_2?: string | null
           notes_style_3?: string | null
           notes_style_4?: string | null
+          notes_style_5?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null

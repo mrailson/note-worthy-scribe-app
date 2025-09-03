@@ -1978,6 +1978,9 @@ ${transcript}`;
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
                           Meeting Notes Style 4
                         </TabsTrigger>
+                        <TabsTrigger value="style5" className="text-xs sm:text-sm">
+                          Meeting Notes Style 5
+                        </TabsTrigger>
                       </TabsList>
 
                       {/* Meeting Notes header and controls moved below sub-tabs */}
@@ -2186,6 +2189,62 @@ ${transcript}`;
                                 <div 
                                   dangerouslySetInnerHTML={{ 
                                     __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
+                        <div className="space-y-4">
+                          {!notesStyle5 ? (
+                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                              <p className="text-muted-foreground text-center">
+                                Generate a light-hearted poetic summary with rhyming verses and professional humor
+                              </p>
+                              <Button
+                                onClick={generateNotesStyle5}
+                                disabled={isGeneratingStyle5 || !transcript}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle5 ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    Generating Style 5...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Meeting Notes Style 5
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Poetic meeting summary format</p>
+                                <Button
+                                  onClick={generateNotesStyle5}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGeneratingStyle5}
+                                  className="gap-2"
+                                >
+                                  {isGeneratingStyle5 ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: renderNHSMarkdown(notesStyle5, { enableNHSStyling: true })
                                   }}
                                 />
                               </div>
