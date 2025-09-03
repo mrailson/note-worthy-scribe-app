@@ -1971,10 +1971,10 @@ ${transcript}`;
                           Minutes - Detailed
                         </TabsTrigger>
                         <TabsTrigger value="style2" className="text-xs sm:text-sm">
-                          Meeting Notes Style 2
+                          Minutes - Brief
                         </TabsTrigger>
                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                          Minutes - Brief
+                          Meeting Notes Style 2
                         </TabsTrigger>
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
                           Meeting Notes Style 4
@@ -2068,6 +2068,25 @@ ${transcript}`;
                       </TabsContent>
                       
                       <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
+                        {isEditing ? (
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="h-full w-full font-mono text-sm resize-none"
+                            placeholder="Meeting notes will appear here..."
+                          />
+                        ) : (
+                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                            <div 
+                              dangerouslySetInnerHTML={{ 
+                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
+                              }}
+                            />
+                          </div>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
                         <div className="space-y-4">
                           {!notesStyle2 ? (
                             <div className="flex flex-col items-center justify-center h-32 space-y-4">
@@ -2121,25 +2140,6 @@ ${transcript}`;
                             </div>
                           )}
                         </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
-                        {isEditing ? (
-                          <Textarea
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="h-full w-full font-mono text-sm resize-none"
-                            placeholder="Meeting notes will appear here..."
-                          />
-                        ) : (
-                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                            <div 
-                              dangerouslySetInnerHTML={{ 
-                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
-                              }}
-                            />
-                          </div>
-                        )}
                       </TabsContent>
                       
                       <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
