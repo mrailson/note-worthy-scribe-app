@@ -151,7 +151,9 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
           console.log('🔇 Stopping track:', track.kind, track.readyState);
           track.stop();
         });
-        console.log('🔄 Setting showCompletionModal to true');
+        console.log('🔄 Processing recording and setting showCompletionModal to true');
+        setProcessingStatus('processing');
+        processRecordingBasic();
         setShowCompletionModal(true);
       };
 
@@ -255,9 +257,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         intervalRef.current = null;
       }
 
-      console.log('🔄 Setting processing status and calling processRecordingBasic...');
-      setProcessingStatus('processing');
-      processRecordingBasic();
+      console.log('🔄 MediaRecorder stop initiated, processing will happen in onstop event');
     } else {
       console.log('⚠️ MediaRecorder not in recording state:', mediaRecorderRef.current?.state);
     }
