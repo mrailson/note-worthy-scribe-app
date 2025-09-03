@@ -427,6 +427,7 @@ export const MeetingHistoryList = ({
   };
 
   const handleUploadClick = (meeting: Meeting) => {
+    console.log('🔵 Upload button clicked for meeting:', meeting.id, meeting.title);
     setSelectedMeetingForUpload(meeting);
     setSelectedFiles([]);
     setUploadDialogOpen(true);
