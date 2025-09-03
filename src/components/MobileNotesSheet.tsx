@@ -22,7 +22,9 @@ import {
   Clock,
   Users,
   RefreshCw,
-  Share
+  Share,
+  RotateCcw,
+  Loader2
 } from "lucide-react";
 
 interface Meeting {
@@ -56,6 +58,19 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   const [notesStyle4, setNotesStyle4] = useState("");
   const [notesStyle5, setNotesStyle5] = useState("");
   const [loading, setLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState<{
+    brief: boolean;
+    detailed: boolean;
+    comprehensive: boolean;
+    executive: boolean;
+    creative: boolean;
+  }>({
+    brief: false,
+    detailed: false,
+    comprehensive: false,
+    executive: false,
+    creative: false,
+  });
 
   // Load existing note styles from database
   const loadExistingNoteStyles = async () => {
@@ -192,6 +207,70 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     });
   };
 
+  // Regenerate notes functions
+  const regenerateNotes = async (noteType: keyof typeof regenerating) => {
+    if (!meeting?.id || !user?.id) return;
+
+    setRegenerating(prev => ({ ...prev, [noteType]: true }));
+
+    try {
+      let result;
+      
+      switch (noteType) {
+        case 'brief':
+          // Use auto-generate-meeting-notes for standard notes
+          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+            body: { meetingId: meeting.id, noteType: 'standard' }
+          });
+          break;
+          
+        case 'detailed':
+          // Use auto-generate-meeting-notes for detailed notes
+          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+            body: { meetingId: meeting.id, noteType: 'detailed' }
+          });
+          break;
+          
+        case 'comprehensive':
+          // Use auto-generate-meeting-notes for comprehensive notes
+          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+            body: { meetingId: meeting.id, noteType: 'comprehensive' }
+          });
+          break;
+          
+        case 'executive':
+          // Use auto-generate-meeting-notes for executive notes
+          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+            body: { meetingId: meeting.id, noteType: 'executive' }
+          });
+          break;
+          
+        case 'creative':
+          // Use generate-limerick-notes for creative notes
+          result = await supabase.functions.invoke('generate-limerick-notes', {
+            body: { meetingIds: [meeting.id] }
+          });
+          break;
+      }
+
+      if (result.error) {
+        console.error(`Error regenerating ${noteType} notes:`, result.error);
+        toast.error(`Failed to regenerate ${noteType} notes: ${result.error.message}`);
+        return;
+      }
+
+      // Reload the notes to get the updated content
+      await loadExistingNoteStyles();
+      toast.success(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes regenerated successfully!`);
+
+    } catch (error) {
+      console.error(`Error regenerating ${noteType} notes:`, error);
+      toast.error(`Failed to regenerate ${noteType} notes`);
+    } finally {
+      setRegenerating(prev => ({ ...prev, [noteType]: false }));
+    }
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
@@ -232,6 +311,25 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
               <ScrollArea className="h-full">
                 <div className="p-4">
                   <TabsContent value="brief" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Brief Notes</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('brief')}
+                        disabled={regenerating.brief}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.brief ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.brief ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
                     <div className="prose prose-sm max-w-none">
                       {notes ? (
                         <div 
@@ -239,12 +337,43 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           dangerouslySetInnerHTML={{ __html: formatContent(notes) }}
                         />
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">No brief notes available</p>
+                        <p className="text-muted-foreground text-center py-8">
+                          No brief notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('brief')}
+                            disabled={regenerating.brief}
+                          >
+                            Generate Brief Notes
+                          </Button>
+                        </p>
                       )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="detailed" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Detailed Notes</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('detailed')}
+                        disabled={regenerating.detailed}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.detailed ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.detailed ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
                     <div className="prose prose-sm max-w-none">
                       {notesStyle2 ? (
                         <div 
@@ -252,12 +381,43 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           dangerouslySetInnerHTML={{ __html: formatContent(notesStyle2) }}
                         />
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">No detailed notes available</p>
+                        <p className="text-muted-foreground text-center py-8">
+                          No detailed notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('detailed')}
+                            disabled={regenerating.detailed}
+                          >
+                            Generate Detailed Notes
+                          </Button>
+                        </p>
                       )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="comprehensive" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Comprehensive Notes</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('comprehensive')}
+                        disabled={regenerating.comprehensive}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.comprehensive ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
                     <div className="prose prose-sm max-w-none">
                       {notesStyle3 ? (
                         <div 
@@ -265,12 +425,43 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
                         />
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">No comprehensive notes available</p>
+                        <p className="text-muted-foreground text-center py-8">
+                          No comprehensive notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('comprehensive')}
+                            disabled={regenerating.comprehensive}
+                          >
+                            Generate Comprehensive Notes
+                          </Button>
+                        </p>
                       )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="executive" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Executive Summary</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('executive')}
+                        disabled={regenerating.executive}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.executive ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.executive ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
                     <div className="prose prose-sm max-w-none">
                       {notesStyle4 ? (
                         <div 
@@ -278,12 +469,43 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           dangerouslySetInnerHTML={{ __html: formatContent(notesStyle4) }}
                         />
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">No executive notes available</p>
+                        <p className="text-muted-foreground text-center py-8">
+                          No executive notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('executive')}
+                            disabled={regenerating.executive}
+                          >
+                            Generate Executive Summary
+                          </Button>
+                        </p>
                       )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="creative" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Creative Notes (Limericks)</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('creative')}
+                        disabled={regenerating.creative}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.creative ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.creative ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
                     <div className="prose prose-sm max-w-none">
                       {notesStyle5 ? (
                         <div 
@@ -291,7 +513,19 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           dangerouslySetInnerHTML={{ __html: formatContent(notesStyle5) }}
                         />
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">No creative notes available</p>
+                        <p className="text-muted-foreground text-center py-8">
+                          No creative notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('creative')}
+                            disabled={regenerating.creative}
+                          >
+                            Generate Limerick Notes
+                          </Button>
+                        </p>
                       )}
                     </div>
                   </TabsContent>
