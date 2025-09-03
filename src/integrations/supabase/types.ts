@@ -5280,6 +5280,10 @@ export type Database = {
           fixed_meetings_count: number
         }[]
       }
+      complete_meeting: {
+        Args: { meeting_id: string }
+        Returns: Json
+      }
       create_default_attendee_templates: {
         Args: { p_practice_id: string; p_user_id: string }
         Returns: undefined

@@ -8,72 +8,29 @@ export const recoverStuckMeeting = async (meetingId: string) => {
   try {
     console.log(`🔄 Starting recovery process for meeting: ${meetingId}`);
     
-    // Get current user first
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('❌ Authentication error:', userError);
-      toast.error('Authentication required');
-      return false;
-    }
-    console.log('👤 Current user:', user.id);
+    // Use the new database function for safe completion
+    const { data, error } = await supabase.rpc('complete_meeting', {
+      meeting_id: meetingId
+    });
 
-    // Get meeting details with user filter to ensure RLS compliance
-    const { data: meeting, error: meetingError } = await supabase
-      .from('meetings')
-      .select('id, title, status, user_id, created_at')
-      .eq('id', meetingId)
-      .eq('user_id', user.id)  // Add user filter for RLS
-      .single();
+    console.log('📊 Complete meeting result:', { data, error });
 
-    console.log('📊 Meeting data:', meeting);
-    console.log('📊 Meeting error:', meetingError);
-
-    if (meetingError) {
-      console.error('❌ Failed to fetch meeting:', meetingError);
-      toast.error(`Meeting error: ${meetingError.message}`);
+    if (error) {
+      console.error('❌ RPC function error:', error);
+      toast.error(`Database error: ${error.message}`);
       return false;
     }
 
-    if (!meeting) {
-      console.error('❌ Meeting not found or not accessible');
-      toast.error('Meeting not found or you do not have permission to access it');
+    // Type assertion for the JSON response from our database function
+    const result = data as { success: boolean; error?: string; meeting?: any } | null;
+
+    if (!result || !result.success) {
+      console.error('❌ Meeting completion failed:', result?.error);
+      toast.error(result?.error || 'Unknown error completing meeting');
       return false;
     }
 
-    // Check if meeting is not already completed
-    if (meeting.status === 'completed') {
-      console.log('ℹ️ Meeting is already completed');
-      toast.info('Meeting is already completed');
-      return false;
-    }
-
-    console.log(`📊 Meeting current status: ${meeting.status} - proceeding with completion...`);
-
-    // Update meeting status with user context for RLS
-    console.log('🔄 Updating meeting status to completed...');
-    const { data: updateData, error: updateError } = await supabase
-      .from('meetings')
-      .update({ status: 'completed' })
-      .eq('id', meetingId)
-      .eq('user_id', user.id)  // Include user filter in update for RLS
-      .select('id, status');
-
-    console.log('📊 Update result data:', updateData);
-    console.log('📊 Update result error:', updateError);
-
-    if (updateError) {
-      console.error('❌ Failed to update meeting status:', updateError);
-      toast.error(`Failed to update meeting: ${updateError.message || 'Unknown error'}`);
-      return false;
-    }
-
-    if (!updateData || updateData.length === 0) {
-      console.error('❌ No meeting was updated');
-      toast.error('No meeting was updated - check permissions');
-      return false;
-    }
-
-    console.log('✅ Successfully updated meeting status:', updateData[0]);
+    console.log('✅ Successfully completed meeting:', result.meeting);
     toast.success('Meeting marked as completed successfully!');
     return true;
 
