@@ -1314,15 +1314,39 @@ ${transcript}`;
 
     setIsGeneratingStyle3(true);
     try {
+      // Round time to nearest 15 minutes
+      const roundToNearest15Minutes = (date: Date) => {
+        const minutes = date.getMinutes();
+        const rounded = Math.round(minutes / 15) * 15;
+        const newDate = new Date(date);
+        newDate.setMinutes(rounded, 0, 0);
+        return newDate;
+      };
+
+      const startDate = new Date(meeting.start_time || meeting.created_at);
+      const roundedTime = roundToNearest15Minutes(startDate);
+      
+      const meetingDate = roundedTime.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const meetingTime = roundedTime.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
       const style3Prompt = `You are producing formal NHS-style meeting minutes from a transcript.
 
 The minutes should be detailed, structured, and professional.  
 
 Follow this format and style:
 
-1. **Heading**
-   - Meeting title (e.g., "PCN Board Meeting Minutes")  
-   - Date  
+1. **Meeting Details Section**
+   - Date: ${meetingDate}
+   - Start Time: ${meetingTime}
    - Attendees (if available in transcript, otherwise leave blank or note "Attendees: not specified").  
 
 2. **Agenda Items / Sections**
@@ -1341,6 +1365,7 @@ Follow this format and style:
    - Do not repeat verbatim conversation. Instead, write in a concise but comprehensive narrative style.  
    - Avoid speculation or informal phrasing.  
    - Summarise repetitions once only.  
+   - DO NOT include any meeting title or heading at the top - start directly with the Meeting Details section.
 
 5. **Closing**
    - Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
@@ -1355,11 +1380,8 @@ ${transcript}`;
         body: {
           transcript: transcript,
           meetingTitle: meeting.title,
-          meetingDate: new Date().toLocaleDateString('en-GB'),
-          meetingTime: new Date().toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
+          meetingDate: meetingDate,
+          meetingTime: meetingTime,
           detailLevel: 'standard',
           customPrompt: style3Prompt
         }
@@ -2008,6 +2030,22 @@ ${transcript}`;
                             <Edit3 className="h-4 w-4" />
                             {isEditing ? 'Save' : 'Edit'}
                           </Button>
+                          {activeNotesStyleTab === 'style1' && notesStyle3 && (
+                            <Button
+                              onClick={generateNotesStyle3}
+                              variant="outline"
+                              size="sm"
+                              disabled={isGeneratingStyle3}
+                              className="gap-2"
+                            >
+                              {isGeneratingStyle3 ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4" />
+                              )}
+                              Regenerate
+                            </Button>
+                          )}
                         </div>
                       </div>
                       
@@ -2038,23 +2076,6 @@ ${transcript}`;
                             </div>
                           ) : (
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Formal NHS-style meeting minutes</p>
-                                <Button
-                                  onClick={generateNotesStyle3}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isGeneratingStyle3}
-                                  className="gap-2"
-                                >
-                                  {isGeneratingStyle3 ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
-                              </div>
                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
                                 <div 
                                   dangerouslySetInnerHTML={{ 
