@@ -41,6 +41,7 @@ const LANGUAGES: Language[] = [
   { code: 'ur', name: 'Urdu', flag: '🇵🇰', speechLang: 'ur-PK' },
   { code: 'bn', name: 'Bengali', flag: '🇧🇩', speechLang: 'bn-BD' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸', speechLang: 'es-ES' },
+  { code: 'fr', name: 'French', flag: '🇫🇷', speechLang: 'fr-FR' },
   { code: 'ar', name: 'Arabic', flag: '🇸🇦', speechLang: 'ar-SA' }
 ];
 
