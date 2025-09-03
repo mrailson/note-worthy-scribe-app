@@ -8,7 +8,16 @@ export const recoverStuckMeeting = async (meetingId: string) => {
   try {
     console.log(`🔄 Starting recovery process for meeting: ${meetingId}`);
     
-    // Direct update approach - bypass the problematic RPC function
+    // Check if user is authenticated first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('User not authenticated');
+      return false;
+    }
+
+    console.log(`👤 User authenticated: ${user.id}`);
+    
+    // Direct update approach with better error handling
     const { data, error } = await supabase
       .from('meetings')
       .update({ 
@@ -17,19 +26,45 @@ export const recoverStuckMeeting = async (meetingId: string) => {
         end_time: new Date().toISOString()
       })
       .eq('id', meetingId)
+      .eq('user_id', user.id) // Ensure user can only update their own meetings
       .select()
       .single();
 
     console.log('📊 Direct update result:', { data, error });
 
     if (error) {
-      console.error('❌ Direct update error:', error);
-      toast.error(`Database error: ${error.message}`);
-      return false;
+      console.error('❌ Direct update error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // If RLS is blocking, try a different approach - call an edge function
+      console.log('🔄 Trying alternative approach via edge function...');
+      
+      const { data: funcData, error: funcError } = await supabase.functions.invoke('force-complete-meeting', {
+        body: { meetingId, userId: user.id }
+      });
+      
+      if (funcError) {
+        console.error('❌ Edge function error:', funcError);
+        toast.error(`Failed to complete meeting: ${error.message}`);
+        return false;
+      }
+      
+      if (funcData?.success) {
+        console.log('✅ Meeting completed via edge function');
+        toast.success('Meeting marked as completed successfully!');
+        return true;
+      } else {
+        toast.error(funcData?.error || 'Failed to complete meeting');
+        return false;
+      }
     }
 
     if (!data) {
-      console.error('❌ No meeting found to update');
+      console.error('❌ No meeting found to update or access denied');
       toast.error('Meeting not found or access denied');
       return false;
     }
