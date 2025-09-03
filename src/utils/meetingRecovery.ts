@@ -15,6 +15,8 @@ export const recoverStuckMeeting = async (meetingId: string) => {
       .eq('id', meetingId)
       .single();
 
+    console.log('📊 Meeting data:', meeting);
+
     if (meetingError) {
       console.error('❌ Failed to fetch meeting:', meetingError);
       toast.error('Meeting not found');
@@ -52,20 +54,19 @@ export const recoverStuckMeeting = async (meetingId: string) => {
     const hasTranscriptData = transcriptChunks && transcriptChunks.length > 0;
     console.log(`📊 Transcript data available: ${hasTranscriptData}`);
 
-    // Update meeting status to completed
-    const endTime = new Date();
-    const { error: updateError } = await supabase
+    // Update meeting status to completed with simpler update
+    console.log('🔄 Updating meeting status to completed...');
+    const { data: updateData, error: updateError } = await supabase
       .from('meetings')
-      .update({
-        status: 'completed',
-        end_time: endTime.toISOString(),
-        updated_at: endTime.toISOString()
-      })
-      .eq('id', meetingId);
+      .update({ status: 'completed' })
+      .eq('id', meetingId)
+      .select();
+
+    console.log('📊 Update result:', { updateData, updateError });
 
     if (updateError) {
       console.error('❌ Failed to update meeting status:', updateError);
-      toast.error('Failed to recover meeting');
+      toast.error(`Failed to update meeting: ${updateError.message}`);
       return false;
     }
 
