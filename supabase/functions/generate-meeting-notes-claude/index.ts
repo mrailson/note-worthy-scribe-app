@@ -439,13 +439,21 @@ serve(async (req) => {
   try {
     const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt } = await req.json();
 
+    console.log('🔍 Request details:', {
+      hasTranscript: !!transcript,
+      hasCustomPrompt: !!customPrompt,
+      customPromptLength: customPrompt ? customPrompt.length : 0,
+      detailLevel: detailLevel
+    });
+
     if (!transcript) {
       throw new Error('Transcript is required');
     }
 
     // If customPrompt is provided, use it directly with Claude
     if (customPrompt) {
-      console.log('🎨 Using custom prompt for Style 5 - Poetic format');
+      console.log('🎨 Using custom prompt for limerick generation');
+      console.log('📝 Custom prompt preview:', customPrompt.substring(0, 200) + '...');
       
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -474,8 +482,8 @@ serve(async (req) => {
       const data = await response.json();
       const generatedNotes = data.content[0].text;
       
-      console.log('✅ Custom prompt Style 5 generated successfully');
-      console.log('Generated notes preview:', generatedNotes.substring(0, 500));
+      console.log('✅ Custom prompt limerick generated successfully');
+      console.log('📝 Generated limerick preview:', generatedNotes.substring(0, 300));
 
       return new Response(JSON.stringify({
         meetingMinutes: generatedNotes,
