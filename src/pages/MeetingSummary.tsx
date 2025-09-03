@@ -311,6 +311,14 @@ export default function MeetingSummary() {
         
         <MeetingStats meetingData={meetingData} />
         
+        {/* Multi-Type Notes Panel */}
+        {meetingData?.id && (
+          <MultiTypeNotesPanel 
+            meetingId={meetingData.id}
+            meetingTitle={meetingData.title || 'Meeting'}
+          />
+        )}
+        
         <ClaudeNotesPanel
           meetingData={meetingData}
           claudeDetailLevel={claudeDetailLevel}
