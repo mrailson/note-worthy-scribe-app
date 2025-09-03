@@ -53,6 +53,14 @@ ${content}
 Remember: Only include meeting purpose and main discussion topics. No attendees, locations, or administrative details.`;
 
     console.log('Calling OpenAI API for meeting overview generation...');
+    console.log('Request payload:', {
+      model: 'gpt-5-2025-08-07',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_completion_tokens: 100,
+    });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -70,14 +78,24 @@ Remember: Only include meeting purpose and main discussion topics. No attendees,
       }),
     });
 
+    console.log('OpenAI response status:', response.status);
+    console.log('OpenAI response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
+      console.error('OpenAI API error response:', errorData);
       throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    const overview = data.choices[0].message.content.trim();
+    console.log('OpenAI response data:', JSON.stringify(data, null, 2));
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid OpenAI response structure:', data);
+      throw new Error('Invalid response from OpenAI API');
+    }
+    
+    const overview = data.choices[0].message.content?.trim() || '';
 
     console.log('Generated overview:', overview);
     console.log('Word count:', overview.split(' ').length);
