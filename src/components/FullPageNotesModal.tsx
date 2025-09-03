@@ -1292,6 +1292,87 @@ ${transcript}`;
     }
   };
 
+  const generateNotesStyle3 = async () => {
+    if (!meeting?.id || !transcript) {
+      toast.error("No transcript available to generate notes");
+      return;
+    }
+
+    setIsGeneratingStyle3(true);
+    try {
+      const style3Prompt = `You are producing formal NHS-style meeting minutes from a transcript.
+
+The minutes should be detailed, structured, and professional.  
+
+Follow this format and style:
+
+1. **Heading**
+   - Meeting title (e.g., "PCN Board Meeting Minutes")  
+   - Date  
+   - Attendees (if available in transcript, otherwise leave blank or note "Attendees: not specified").  
+
+2. **Agenda Items / Sections**
+   - Each major topic discussed should be presented as a numbered section (e.g., 1. Patient List Growth, 2. Finance Update, etc.).  
+   - Within each section, provide **subsections** where appropriate:  
+     - *Discussion* – a detailed summary of the points raised.  
+     - *Decisions* – clearly record any formal decisions or agreements reached.  
+     - *Matters Arising / Follow-Up* – highlight issues to be revisited in future meetings (if mentioned).  
+
+3. **Formality and Detail**
+   - Use formal language consistent with NHS Partnership/PCN/LMC meetings.  
+   - Be detailed: capture nuance, examples, case references, and background information provided in the discussion.  
+   - Where multiple viewpoints are expressed, summarise them clearly.  
+
+4. **Accuracy**
+   - Do not repeat verbatim conversation. Instead, write in a concise but comprehensive narrative style.  
+   - Avoid speculation or informal phrasing.  
+   - Summarise repetitions once only.  
+
+5. **Closing**
+   - Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
+
+The final output should read like **formal NHS meeting minutes**: structured, precise, and comprehensive.
+
+Here is the transcript to process:
+
+${transcript}`;
+
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+        body: {
+          transcript: transcript,
+          meetingTitle: meeting.title,
+          meetingDate: new Date().toLocaleDateString('en-GB'),
+          meetingTime: new Date().toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          detailLevel: 'standard',
+          customPrompt: style3Prompt
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.meetingMinutes || data?.generatedNotes) {
+        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        setNotesStyle3(generatedContent);
+        
+        // Save to database
+        await saveNoteStyleToDatabase(3, generatedContent);
+        
+        toast.success("Meeting Notes Style 3 generated and saved successfully!");
+      } else {
+        console.error('No content in response:', data);
+        toast.error("No content generated - please try again");
+      }
+    } catch (error) {
+      console.error('Error generating notes style 3:', error);
+      toast.error("Failed to generate Meeting Notes Style 3");
+    } finally {
+      setIsGeneratingStyle3(false);
+    }
+  };
+
   const generateAndSaveOverview = async (meetingNotes: string) => {
     if (!meeting?.id) return;
     
@@ -1860,10 +1941,58 @@ ${transcript}`;
                       </TabsContent>
                       
                       <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
-                        <div className="flex items-center justify-center h-32">
-                          <p className="text-muted-foreground text-center">
-                            Meeting Notes Style 3 will be available soon
-                          </p>
+                        <div className="space-y-4">
+                          {!notesStyle3 ? (
+                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                              <p className="text-muted-foreground text-center">
+                                Generate formal NHS-style meeting minutes with structured agenda and detailed sections
+                              </p>
+                              <Button
+                                onClick={generateNotesStyle3}
+                                disabled={isGeneratingStyle3 || !transcript}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle3 ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    Generating Style 3...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Meeting Notes Style 3
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Formal NHS-style meeting minutes</p>
+                                <Button
+                                  onClick={generateNotesStyle3}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGeneratingStyle3}
+                                  className="gap-2"
+                                >
+                                  {isGeneratingStyle3 ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
                       
