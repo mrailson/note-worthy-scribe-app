@@ -1248,103 +1248,69 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     setIsGeneratingStyle2(true);
     try {
-      const style2Prompt = `Please analyze the provided meeting transcript and create detailed, professional meeting notes with the following structure and formatting requirements:
+      const style2Prompt = `Please analyze the provided meeting transcript and create brief, professional meeting minutes with the following structure. Focus on capturing every point discussed while keeping descriptions concise and actionable.
 
 **FORMATTING REQUIREMENTS**
-• Use clear headings and subheadings with proper hierarchy
-• Include bullet points for easy scanning
-• Provide comprehensive detail under each section
-• Use professional, concise language
-• Ensure logical flow and organization
+• Use clear, concise bullet points
+• Keep each point to 1-2 lines maximum
+• Maintain professional tone
+• Prioritize actionable information
+• Use consistent formatting throughout
 
 **REQUIRED STRUCTURE**
 
-**MEETING DETAILS**
-Date: [Extract from transcript or context]
-Time: [Extract meeting time]
-Attendees: [List all participants mentioned, identify roles where possible]
-Meeting Type: [Identify purpose - planning, review, decision-making, etc.]
+**MEETING OVERVIEW**
+• Date: [Extract date]
+• Time: [Meeting time and duration]
+• Attendees: [Names and roles if mentioned]
+• Meeting Purpose: [One sentence objective]
 
-**EXECUTIVE SUMMARY**
-Provide a comprehensive 2-3 paragraph overview that includes:
-• Primary purpose and objectives of the meeting
-• Key themes and topics discussed
-• Major outcomes and decisions reached
-• Overall meeting effectiveness and next steps overview
+**AGENDA ITEMS DISCUSSED**
 
-**KEY DISCUSSION POINTS**
-For each major topic discussed, provide:
+**[TOPIC 1 NAME]**
+• [Key point 1 - one line summary]
+• [Key point 2 - one line summary]  
+• [Key point 3 - one line summary]
+• Decision: [Final outcome if any]
 
-**[TOPIC NAME]**
-Context: Brief background on why this topic was discussed
+**[TOPIC 2 NAME]**
+• [Key point 1 - one line summary]
+• [Key point 2 - one line summary]
+• Decision: [Final outcome if any]
 
-Key Points Raised:
-• Detailed summary of main arguments/perspectives presented
-• Specific data, examples, or evidence mentioned
-• Different viewpoints or concerns expressed
-• Technical details or specifications discussed
-
-Participant Contributions:
-• Summarize who contributed what insights
-• Note areas of agreement and disagreement
-• Highlight expertise shared by specific individuals
+[Continue for all topics discussed]
 
 **DECISIONS MADE**
-For each decision, include:
-• Decision: Clear statement of what was decided
-• Rationale: Why this decision was made
-• Stakeholders Affected: Who this impacts
-• Implementation Timeline: When this takes effect
-• Success Metrics: How success will be measured (if discussed)
+• [Decision 1] - [Brief rationale]
+• [Decision 2] - [Brief rationale]
+• [Decision 3] - [Brief rationale]
 
 **ACTION ITEMS**
-Format as detailed task list:
-• Task: [Specific action required]
-• Owner: [Person responsible]
-• Deadline: [When due]
-• Dependencies: [What needs to happen first]
-• Resources Needed: [Support, tools, budget required]
-• Success Criteria: [How completion will be measured]
+• [Task] - Owner: [Name] | Due: [Date]
+• [Task] - Owner: [Name] | Due: [Date]
+• [Task] - Owner: [Name] | Due: [Date]
 
-**NEXT STEPS & FOLLOW-UP**
-• Immediate Actions: What happens in the next 48 hours
-• Short-term Milestones: Key deliverables in next 1-2 weeks
-• Long-term Objectives: Broader goals and timelines
-• Future Meetings: Scheduled follow-ups, required check-ins
-• Communication Plan: How progress will be shared and tracked
+**NEXT STEPS**
+• [Immediate next step 1]
+• [Immediate next step 2]
+• [Future meeting scheduled/required]
 
-**RISKS & CHALLENGES IDENTIFIED**
-• Risk: [Potential issue]
-• Impact: [Consequence if not addressed]
-• Mitigation Strategy: [How to prevent/address]
-• Owner: [Who monitors this risk]
+**PARKING LOT**
+• [Unresolved item 1]
+• [Unresolved item 2]
+• [Items for future discussion]
 
-**PARKING LOT ITEMS**
-• Issues raised but not resolved
-• Topics requiring future discussion
-• Ideas for consideration at later meetings
+**SPECIFIC INSTRUCTIONS:**
+• Capture Every Point: Don't skip topics - include all substantive discussion points
+• One Line Per Point: Keep individual bullets concise but comprehensive
+• Clear Ownership: Always identify who is responsible for actions
+• Specific Timelines: Include exact dates and deadlines mentioned
+• Precise Language: Use concrete terms, avoid vague descriptions
+• Consistent Format: Maintain the same structure throughout
+• Complete Coverage: Ensure no significant discussion is omitted
 
-**RESOURCES & REFERENCES**
-• Documents mentioned during meeting
-• Tools, systems, or platforms discussed
-• External contacts or vendors referenced
-• Research or data sources cited
-
-**MEETING EFFECTIVENESS NOTES**
-• Participation Level: How engaged were attendees
-• Time Management: Whether agenda was covered efficiently
-• Decision Quality: How well decisions were researched and debated
-• Process Improvements: Suggestions for better future meetings
-
-**ADDITIONAL INSTRUCTIONS FOR HIGH-QUALITY OUTPUT:**
-• Extract Maximum Detail: Don't just summarize - capture the nuance, context, and reasoning behind discussions
-• Maintain Professional Tone: Use business-appropriate language throughout
-• Ensure Actionability: Make action items specific and measurable
-• Add Context: Explain technical terms or provide background where helpful
-• Cross-Reference: Link related discussion points and decisions
-• Prioritize Clarity: Use formatting to make notes easily scannable
-• Include Verbatim Quotes: When important decisions or commitments are made, include exact wording
-• Note Emotional Tone: Capture enthusiasm, concerns, or resistance where relevant
+**TONE:** Professional, neutral, factual - suitable for formal distribution and record-keeping.
+**LENGTH TARGET:** Aim for 1-2 pages maximum while ensuring completeness.
 
 Here is the meeting transcript to process:
 
