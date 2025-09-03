@@ -1248,25 +1248,105 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     setIsGeneratingStyle2(true);
     try {
-      const style2Prompt = `You are creating professional meeting minutes from a transcript.
+      const style2Prompt = `Please analyze the provided meeting transcript and create detailed, professional meeting notes with the following structure and formatting requirements:
 
-Format the output as follows:
+**FORMATTING REQUIREMENTS**
+• Use clear headings and subheadings with proper hierarchy
+• Include bullet points for easy scanning
+• Provide comprehensive detail under each section
+• Use professional, concise language
+• Ensure logical flow and organization
 
-- Present a clear **itemised summary** of each point discussed.  
-- Under each item, capture **any decision made** (e.g., "Decision: Agreed to give staff a pay rise").  
-- Do not label items as "actions" unless explicitly discussed; just record the decision clearly.  
-- Avoid repetition – if a topic is repeated, summarise it once in the most concise way.  
-- Highlight **important information shared** during the meeting, even if no decision was made.  
-- Do not force a fixed agenda structure – adapt to the flow of the conversation, as all meetings are different.  
-- An overview at the start is optional: include only if the transcript naturally lends itself to a short one-paragraph context.  
-- Do not add a second action table or appendix unless explicitly requested.  
+**REQUIRED STRUCTURE**
 
-The final output should look like professional minutes:  
-1. Itemised points (one per discussion topic).  
-2. Clearly marked **Decisions** when they occurred.  
-3. Concise, factual, non-repetitive writing.
+**MEETING DETAILS**
+Date: [Extract from transcript or context]
+Time: [Extract meeting time]
+Attendees: [List all participants mentioned, identify roles where possible]
+Meeting Type: [Identify purpose - planning, review, decision-making, etc.]
 
-Here is the transcript to process:
+**EXECUTIVE SUMMARY**
+Provide a comprehensive 2-3 paragraph overview that includes:
+• Primary purpose and objectives of the meeting
+• Key themes and topics discussed
+• Major outcomes and decisions reached
+• Overall meeting effectiveness and next steps overview
+
+**KEY DISCUSSION POINTS**
+For each major topic discussed, provide:
+
+**[TOPIC NAME]**
+Context: Brief background on why this topic was discussed
+
+Key Points Raised:
+• Detailed summary of main arguments/perspectives presented
+• Specific data, examples, or evidence mentioned
+• Different viewpoints or concerns expressed
+• Technical details or specifications discussed
+
+Participant Contributions:
+• Summarize who contributed what insights
+• Note areas of agreement and disagreement
+• Highlight expertise shared by specific individuals
+
+**DECISIONS MADE**
+For each decision, include:
+• Decision: Clear statement of what was decided
+• Rationale: Why this decision was made
+• Stakeholders Affected: Who this impacts
+• Implementation Timeline: When this takes effect
+• Success Metrics: How success will be measured (if discussed)
+
+**ACTION ITEMS**
+Format as detailed task list:
+• Task: [Specific action required]
+• Owner: [Person responsible]
+• Deadline: [When due]
+• Dependencies: [What needs to happen first]
+• Resources Needed: [Support, tools, budget required]
+• Success Criteria: [How completion will be measured]
+
+**NEXT STEPS & FOLLOW-UP**
+• Immediate Actions: What happens in the next 48 hours
+• Short-term Milestones: Key deliverables in next 1-2 weeks
+• Long-term Objectives: Broader goals and timelines
+• Future Meetings: Scheduled follow-ups, required check-ins
+• Communication Plan: How progress will be shared and tracked
+
+**RISKS & CHALLENGES IDENTIFIED**
+• Risk: [Potential issue]
+• Impact: [Consequence if not addressed]
+• Mitigation Strategy: [How to prevent/address]
+• Owner: [Who monitors this risk]
+
+**PARKING LOT ITEMS**
+• Issues raised but not resolved
+• Topics requiring future discussion
+• Ideas for consideration at later meetings
+
+**RESOURCES & REFERENCES**
+• Documents mentioned during meeting
+• Tools, systems, or platforms discussed
+• External contacts or vendors referenced
+• Research or data sources cited
+
+**MEETING EFFECTIVENESS NOTES**
+• Participation Level: How engaged were attendees
+• Time Management: Whether agenda was covered efficiently
+• Decision Quality: How well decisions were researched and debated
+• Process Improvements: Suggestions for better future meetings
+
+**ADDITIONAL INSTRUCTIONS FOR HIGH-QUALITY OUTPUT:**
+• Extract Maximum Detail: Don't just summarize - capture the nuance, context, and reasoning behind discussions
+• Maintain Professional Tone: Use business-appropriate language throughout
+• Ensure Actionability: Make action items specific and measurable
+• Add Context: Explain technical terms or provide background where helpful
+• Cross-Reference: Link related discussion points and decisions
+• Prioritize Clarity: Use formatting to make notes easily scannable
+• Include Verbatim Quotes: When important decisions or commitments are made, include exact wording
+• Note Emotional Tone: Capture enthusiasm, concerns, or resistance where relevant
+
+Here is the meeting transcript to process:
 
 ${transcript}`;
 
