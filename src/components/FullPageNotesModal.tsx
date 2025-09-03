@@ -2253,23 +2253,23 @@ ${transcript}`;
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
-                      <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-4">
-                        <TabsTrigger value="style1" className="text-xs sm:text-sm">
-                          Minutes - Detailed
-                        </TabsTrigger>
-                        <TabsTrigger value="style2" className="text-xs sm:text-sm">
-                          Minutes - Brief
-                        </TabsTrigger>
-                        <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                          Minutes - Very Detailed
-                        </TabsTrigger>
-                        <TabsTrigger value="style4" className="text-xs sm:text-sm">
-                          Minutes - Executive
-                        </TabsTrigger>
-                        <TabsTrigger value="style5" className="text-xs sm:text-sm">
-                          Minutes - Limerick
-                        </TabsTrigger>
-                      </TabsList>
+                       <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-4">
+                         <TabsTrigger value="style2" className="text-xs sm:text-sm">
+                           Minutes - Brief
+                         </TabsTrigger>
+                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
+                           Minutes - Detailed
+                         </TabsTrigger>
+                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
+                           Minutes - Very Detailed
+                         </TabsTrigger>
+                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
+                           Minutes - Executive
+                         </TabsTrigger>
+                         <TabsTrigger value="style5" className="text-xs sm:text-sm">
+                           Minutes - Limerick
+                         </TabsTrigger>
+                       </TabsList>
 
                       {/* Meeting Notes header and controls moved below sub-tabs */}
                       <div className="flex items-center justify-between pb-4 flex-shrink-0">
