@@ -1167,6 +1167,8 @@ export const MeetingHistoryList = ({
                 currentOverview={meeting.overview || ""}
                 onOverviewChange={() => onRefresh?.()}
                 className="mb-3"
+                meetingNotes={meeting.meeting_summary || meeting.transcript || ""}
+                meetingTitle={meeting.title}
               />
               
               {/* File Upload Summary - Show if documents exist */}
