@@ -5,6 +5,7 @@ import { MeetingHeader } from "@/components/MeetingHeader";
 import { MeetingStats } from "@/components/MeetingStats";
 import { ClaudeNotesPanel } from "@/components/ClaudeNotesPanel";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
+import { MultiTypeNotesPanel } from "@/components/MultiTypeNotesPanel";
 import { useMeetingData } from "@/hooks/useMeetingData";
 import { useMeetingAudio } from "@/hooks/useMeetingAudio";
 import { useMeetingExport } from "@/hooks/useMeetingExport";
