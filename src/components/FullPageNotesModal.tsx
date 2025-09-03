@@ -2106,7 +2106,7 @@ ${transcript}`;
                             const content = getTabContent();
                             const tabName = getTabName();
                             const generateFunction = getGenerateFunction();
-                            const isGenerating = getGeneratingState();
+                            const isCurrentlyGenerating = getGeneratingState();
                             
                             return content ? (
                               <>
@@ -2145,10 +2145,10 @@ ${transcript}`;
                                   onClick={generateFunction}
                                   variant="outline"
                                   size="sm"
-                                  disabled={isGenerating}
+                                  disabled={isCurrentlyGenerating}
                                   className="gap-2"
                                 >
-                                  {isGenerating ? (
+                                  {isCurrentlyGenerating ? (
                                     <RefreshCw className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <RefreshCw className="h-4 w-4" />
