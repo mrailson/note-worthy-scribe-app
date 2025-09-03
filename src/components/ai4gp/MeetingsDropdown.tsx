@@ -487,19 +487,16 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                       )
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="text-amber-600">In Recording Status</span>
                         <button
-                          onClick={(e) => handleAction('complete', meeting, e)}
+                          onClick={(e) => {
+                            handleAction('complete', meeting, e);
+                            setRecordingState(false);
+                          }}
                           disabled={processingActions[`${meeting.id}-complete`]}
-                          className="p-1 hover:bg-accent rounded transition-colors"
-                          title="Mark as completed and generate notes"
-                        >
-                          {processingActions[`${meeting.id}-complete`] ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-3 h-3 text-green-600" />
-                          )}
-                        </button>
+                          className="w-3 h-3 bg-red-500 rounded-full animate-pulse hover:bg-red-600 transition-colors cursor-pointer"
+                          title="Click to stop recording and mark as complete"
+                        />
+                        <span className="text-amber-600 text-xs">Recording</span>
                       </div>
                     )}
                     
