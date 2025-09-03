@@ -1340,11 +1340,7 @@ ${transcript}`;
 
       const style3Prompt = `You are producing formal NHS-style meeting minutes from a transcript.
 
-The minutes should be detailed, structured, and professional.  
-
-CRITICAL: Do not include any meeting title, heading, or phrases like "Meeting - Date Not Specified" at the top. Start directly with the Meeting Details section.
-
-Follow this exact format:
+CRITICAL INSTRUCTION: Your response must start immediately with "**Meeting Details**" - absolutely no title, no "Meeting - Date Not Specified", no "MINUTES", no header text of any kind before this.
 
 **Meeting Details**
 Date: ${meetingDate}
@@ -1360,18 +1356,18 @@ Within each section, provide **subsections** where appropriate:
 - *Decisions* – clearly record any formal decisions or agreements reached.  
 - *Matters Arising / Follow-Up* – highlight issues to be revisited in future meetings (if mentioned).  
 
-**Formality and Detail Requirements:**
+**Requirements:**
 - Use formal language consistent with NHS Partnership/PCN/LMC meetings.  
-- Be detailed: capture nuance, examples, case references, and background information provided in the discussion.  
+- Be detailed: capture nuance, examples, case references, and background information.  
 - Where multiple viewpoints are expressed, summarise them clearly.  
-- Do not repeat verbatim conversation. Instead, write in a concise but comprehensive narrative style.  
+- Do not repeat verbatim conversation. Write in a concise but comprehensive narrative style.  
 - Avoid speculation or informal phrasing.  
 - Summarise repetitions once only.
 
 **Closing**
 - Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
 
-IMPORTANT: Begin your response immediately with "**Meeting Details**" - do not include any title, heading, or introductory text before this.
+REMEMBER: Begin your response with "**Meeting Details**" immediately - no other text before this.
 
 Here is the transcript to process:
 
