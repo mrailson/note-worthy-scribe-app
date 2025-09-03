@@ -85,11 +85,13 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
     const newFiles = [];
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${meeting.id}/${Date.now()}-${file.name}`;
-        const filePath = `meeting-documents/${fileName}`;
+        const fileName = `${Date.now()}-${file.name}`;
+        const filePath = `${user.id}/meetings/${meeting.id}/${fileName}`;
 
         // Upload file to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -107,7 +109,7 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
             file_path: filePath,
             file_type: file.type,
             file_size: file.size,
-            uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+            uploaded_by: user.id,
             description: 'Meeting agenda/presentation'
           });
 
@@ -131,7 +133,7 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
       console.error('Upload error:', error);
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload files. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to upload files. Please try again.',
         variant: 'destructive',
       });
     } finally {
