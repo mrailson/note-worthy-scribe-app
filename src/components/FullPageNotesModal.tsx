@@ -1549,22 +1549,76 @@ ${transcript}`;
 
     setIsGeneratingStyle4(true);
     try {
-      const style4Prompt = `You are creating a very short update for GP Partners who did not attend a PCN or Partnership meeting.
+      const style4Prompt = `Please analyze the provided PCN meeting transcript and create a brief executive overview specifically for non-attending GP partners. Focus on financial impacts, operational changes affecting practices, and strategic decisions while avoiding administrative detail.
 
-Requirements:
-- Length: no more than 4–6 bullet points, readable in 30 seconds.  
-- Tone: clear, professional, and suitable for busy GP Partners.  
-- Focus only on high-level items that directly matter to practices:
-   • Money and finance (funding, reimbursements, overspends, savings)  
-   • Operational updates (staffing, access, new services, ICB changes)  
-   • Key decisions agreed (yes/no outcomes, not full debates)  
-- Do NOT include transcript detail, case studies, or side discussions.  
-- Each bullet point should be one crisp sentence.  
-- End with any agreed next steps if mentioned.
+**TARGET AUDIENCE**
+• GP partners from member practices who didn't attend
+• Limited PCN operational knowledge
+• Need key information affecting their practice/finances
+• Want updates without lengthy detail
 
-The final output should look like a short "PCN Partner Update" email or WhatsApp message — concise, factual, and focused on what was agreed.
+**REQUIRED STRUCTURE**
 
-Here is the transcript to process:
+📋 **MEETING SNAPSHOT**
+Date: [Meeting date] | Duration: [Length] | Attendees: [Key roles only]
+Meeting Focus: [One sentence - what this meeting was primarily about]
+
+💰 **FINANCIAL HIGHLIGHTS**
+Money Matters That Affect You:
+• [Financial decision/impact in plain terms with £ amounts]
+• [Budget allocation affecting member practices]
+• [Revenue/funding changes and practice implications]
+• [Any financial commitments requiring practice input]
+
+🏥 **OPERATIONAL UPDATES**
+Changes to How We Work:
+• [Service delivery changes affecting patient flow]
+• [Staffing decisions impacting practice operations]
+• [New processes or requirements for member practices]
+• [Technology/system changes you need to know about]
+
+⚡ **KEY DECISIONS MADE**
+• [Decision 1] - [Impact on practices in 1 line]
+• [Decision 2] - [What this means for GPs in 1 line]
+• [Decision 3] - [Practice implications briefly stated]
+
+📅 **WHAT YOU NEED TO DO**
+Action Required from Member Practices:
+• [Specific task] - Due: [Date] - Contact: [Who to ask]
+• [Information needed] - Due: [Date] - Details: [Brief requirement]
+• [Decision input required] - Due: [Date] - Context: [Why needed]
+
+Nothing Required But FYI:
+• [Updates that don't need action but good to know]
+
+🔄 **NEXT STEPS**
+• [Immediate next action affecting practices]
+• [Upcoming decision that might impact you]
+• [Next meeting date if input needed]
+
+❓ **QUESTIONS OR CONCERNS?**
+Contact: [Primary contact name and method]
+For: [What types of queries they handle]
+
+**GENERATION GUIDELINES:**
+• Lead with Money: Always prioritize financial impacts first
+• Practice Impact Focus: Only include what affects day-to-day practice operations
+• Plain English: Avoid PCN jargon - explain acronyms briefly
+• Bottom Line Up Front: Start each section with the most important point
+• Quantify Everything: Include specific amounts, dates, and numbers
+• Action Clarity: Make any required actions crystal clear
+• Skip Process Detail: Don't explain how decisions were reached, just what was decided
+• Time Respect: Maximum 1 page - these are busy clinicians
+
+**CRITICAL FILTERS:**
+• Include: Financial changes, operational impacts, required actions, strategic shifts
+• Exclude: Administrative process, detailed discussions, background context, procedural updates
+• Emphasize: Anything costing money, making money, or changing patient care delivery
+
+**TONE:** Professional but conversational - like briefing a colleague over coffee.
+**LENGTH TARGET:** Maximum 1 page that can be read in under 3 minutes.
+
+Here is the PCN meeting transcript to process:
 
 ${transcript}`;
 
