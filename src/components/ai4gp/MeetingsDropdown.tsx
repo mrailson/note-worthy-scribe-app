@@ -19,6 +19,7 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { EditMeetingModal } from './EditMeetingModal';
 import { recoverStuckMeeting } from '@/utils/meetingRecovery';
+import { useRecording } from '@/contexts/RecordingContext';
 
 interface MeetingsDropdownProps {
   meetings: any[];
