@@ -489,6 +489,10 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🔴 Clicked red dot for meeting:', meeting);
+                            console.log('🔴 Meeting status:', meeting.status);
                             handleAction('complete', meeting, e);
                             setRecordingState(false);
                           }}

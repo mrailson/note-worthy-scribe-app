@@ -29,12 +29,14 @@ export const recoverStuckMeeting = async (meetingId: string) => {
       return false;
     }
 
-    // Check if meeting is actually stuck in recording status
-    if (meeting.status !== 'recording') {
-      console.log('ℹ️ Meeting is not in recording status:', meeting.status);
-      toast.info(`Meeting is already in ${meeting.status} status`);
+    // Check if meeting is not already completed
+    if (meeting.status === 'completed') {
+      console.log('ℹ️ Meeting is already completed');
+      toast.info('Meeting is already completed');
       return false;
     }
+
+    console.log(`📊 Meeting current status: ${meeting.status} - proceeding with completion...`);
 
     // Check for existing transcript chunks
     const { data: transcriptChunks, error: chunksError } = await supabase
