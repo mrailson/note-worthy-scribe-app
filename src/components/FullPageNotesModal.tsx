@@ -1373,14 +1373,14 @@ ${transcript}`;
         // Save to database
         await saveNoteStyleToDatabase(2, generatedContent);
         
-        toast.success("Meeting Notes Style 2 generated and saved successfully!");
+        toast.success("Minutes - Very Detailed generated and saved successfully!");
       } else {
         console.error('No content in response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('Error generating notes style 2:', error);
-      toast.error("Failed to generate Meeting Notes Style 2");
+      toast.error("Failed to generate Minutes - Very Detailed");
     } finally {
       setIsGeneratingStyle2(false);
     }
@@ -2103,7 +2103,7 @@ ${transcript}`;
                           Minutes - Brief
                         </TabsTrigger>
                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                          Meeting Notes Style 2
+                          Minutes - Very Detailed
                         </TabsTrigger>
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
                           Meeting Notes Style 4
@@ -2154,7 +2154,7 @@ ${transcript}`;
                               switch (activeNotesStyleTab) {
                                 case 'style1': return 'Minutes - Detailed';
                                 case 'style2': return 'Minutes - Brief';
-                                case 'style3': return 'Meeting Notes Style 2';
+                                case 'style3': return 'Minutes - Very Detailed';
                                 case 'style4': return 'Meeting Notes Style 4';
                                 case 'style5': return 'Meeting Notes Style 5';
                                 default: return 'Meeting Notes';
@@ -2319,7 +2319,7 @@ ${transcript}`;
                                 ) : (
                                   <>
                                     <Sparkles className="h-4 w-4" />
-                                    Generate Meeting Notes Style 2
+                                    Generate Minutes - Very Detailed
                                   </>
                                 )}
                               </Button>
