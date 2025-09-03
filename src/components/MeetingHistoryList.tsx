@@ -148,7 +148,7 @@ export const MeetingHistoryList = ({
   onRefresh
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
-  const { isRecording, isResourceOperationSafe } = useRecording();
+  const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
