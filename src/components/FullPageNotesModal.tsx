@@ -1384,51 +1384,110 @@ ${transcript}`;
         minute: '2-digit' 
       });
 
-      const style3Prompt = `You are producing formal NHS-style meeting minutes from a transcript.
+      const style3Prompt = `Please analyze the provided meeting transcript and create standard meeting minutes that balance detail with readability. Provide enough context for understanding while keeping content focused and actionable.
 
-❌ ABSOLUTELY FORBIDDEN: Do NOT include "Meeting - Date Not Specified", "MINUTES", any title, header, or introductory text
-❌ FORBIDDEN: Do NOT start with any meeting title or heading
-❌ FORBIDDEN: Do NOT include "MINUTES" anywhere at the top
-❌ FORBIDDEN: Do NOT write any text before "**Meeting Details**"
+**FORMATTING REQUIREMENTS**
+• Use clear headings with bullet points and sub-bullets
+• Include 2-3 sentences per major point
+• Maintain professional, accessible language
+• Ensure logical flow between sections
+• Use bold text for emphasis on key items
 
-MANDATORY START: Your response MUST begin immediately with "**Meeting Details**" as the very first text
+**REQUIRED STRUCTURE**
 
-**Meeting Details**
-Date: ${meetingDate}
-Start Time: ${meetingTime}
-Attendees: [if available in transcript, otherwise state "Attendees: not specified"]
+**MEETING DETAILS**
+• Date: ${meetingDate}
+• Time: ${meetingTime}
+• Attendees: [Names with roles/departments where mentioned]
+• Meeting Objective: [1-2 sentence summary of purpose]
 
-**Agenda Items Discussed**
+**EXECUTIVE SUMMARY**
+Brief 3-4 sentence overview covering:
+• Meeting's main focus and why it was called
+• Primary outcomes achieved
+• Key decisions made and next steps
 
-Each major topic discussed should be presented as a numbered section (e.g., 1. Patient List Growth, 2. Finance Update, etc.).  
+**DISCUSSION SUMMARY**
 
-Within each section, provide **subsections** where appropriate:  
-- *Discussion* – a detailed summary of the points raised.  
-- *Decisions* – clearly record any formal decisions or agreements reached.  
-- *Matters Arising / Follow-Up* – highlight issues to be revisited in future meetings (if mentioned).  
+**[TOPIC 1 NAME]**
+Background: [1-2 sentences on context/why this was discussed]
+Key Points:
+• [Main point with brief explanation - 2-3 sentences]
+• [Secondary point with context - 2-3 sentences]
+• [Additional considerations raised - 2-3 sentences]
+Outcome: [What was concluded or decided for this topic]
 
-**Requirements:**
-- Use formal language consistent with NHS Partnership/PCN/LMC meetings.  
-- Be detailed: capture nuance, examples, case references, and background information.  
-- Where multiple viewpoints are expressed, summarise them clearly.  
-- Do not repeat verbatim conversation. Write in a concise but comprehensive narrative style.  
-- Avoid speculation or informal phrasing.  
-- Summarise repetitions once only.
+**[TOPIC 2 NAME]**
+Background: [Brief context]
+Key Points:
+• [Detailed point with reasoning]
+• [Alternative viewpoints discussed]
+• [Technical/practical considerations]
+Outcome: [Resolution or next steps]
 
-**Closing**
-- Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
+[Continue for all major topics]
 
-REMEMBER: Begin your response with "**Meeting Details**" immediately - absolutely no other text before this.
+**DECISIONS & RESOLUTIONS**
 
-DO NOT INCLUDE:
-- "Meeting - Date Not Specified" 
-- "MINUTES"
-- Any title or header
-- Any text before "**Meeting Details**"
+**[Decision Title]**
+• What: [Clear statement of decision]
+• Why: [Brief rationale - 1-2 sentences]
+• Impact: [Who/what this affects]
 
-Your response must start with: **Meeting Details**
+**[Decision Title]**
+• What: [Decision details]
+• Why: [Reasoning behind decision]
+• Impact: [Scope of impact]
 
-Here is the transcript to process:
+**ACTION ITEMS**
+| Task | Owner | Due Date | Details |
+|------|-------|----------|---------|
+| [Specific task description] | [Name] | [Date] | [Context/requirements] |
+| [Task with deliverable] | [Name] | [Date] | [Specifications/criteria] |
+
+**FOLLOW-UP REQUIREMENTS**
+
+Immediate Actions (Next 48 hours):
+• [Urgent task with brief description]
+• [Critical follow-up required]
+
+Short-term Deliverables (1-2 weeks):
+• [Milestone with context and owner]
+• [Preparation needed for next phase]
+
+Long-term Objectives:
+• [Strategic goals established]
+• [Future planning requirements]
+
+**OPEN ITEMS & RISKS**
+
+Unresolved Issues:
+• [Item requiring further discussion with brief context]
+• [Decision pending additional information]
+
+Identified Risks:
+• [Potential challenge with brief impact description]
+• [Resource/timeline concerns noted]
+
+**NEXT MEETING**
+• Date/Time: [If scheduled]
+• Focus: [Primary agenda for next session]
+• Preparation Required: [What attendees need to do beforehand]
+
+**GENERATION INSTRUCTIONS:**
+• Balanced Detail: Provide enough context for non-attendees to understand decisions without overwhelming detail
+• Complete Coverage: Include all substantive topics discussed, even if brief
+• Clear Attribution: Note who raised points or made commitments when important
+• Actionable Language: Use specific, measurable terms for action items
+• Logical Grouping: Organize related discussion points together
+• Professional Tone: Suitable for sharing with senior stakeholders
+• Scan-Friendly: Easy to quickly find specific information
+• Context Preservation: Include enough background for future reference
+
+**TARGET LENGTH:** 2-4 pages - comprehensive without being verbose.
+**TONE:** Professional, objective, informative - appropriate for formal business records.
+
+Here is the meeting transcript to process:
 
 ${transcript}`;
 
