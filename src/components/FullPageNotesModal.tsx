@@ -2032,20 +2032,53 @@ ${transcript}`;
                             {isEditing ? 'Save' : 'Edit'}
                           </Button>
                           {activeNotesStyleTab === 'style1' && notesStyle3 && (
-                            <Button
-                              onClick={generateNotesStyle3}
-                              variant="outline"
-                              size="sm"
-                              disabled={isGeneratingStyle3}
-                              className="gap-2"
-                            >
-                              {isGeneratingStyle3 ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <RefreshCw className="h-4 w-4" />
-                              )}
-                              Regenerate
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() => {
+                                  if (notesStyle3) {
+                                    generateAdvancedWordDocument(notesStyle3, 'Minutes - Detailed');
+                                  }
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                              >
+                                <FileText className="h-4 w-4" />
+                                Word
+                              </Button>
+                              <Button
+                                onClick={async () => {
+                                  if (notesStyle3) {
+                                    try {
+                                      await navigator.clipboard.writeText(notesStyle3.replace(/<[^>]*>/g, ''));
+                                      toast.success('Minutes copied to clipboard');
+                                    } catch (error) {
+                                      toast.error('Failed to copy to clipboard');
+                                    }
+                                  }
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                              >
+                                <Copy className="h-4 w-4" />
+                                Copy
+                              </Button>
+                              <Button
+                                onClick={generateNotesStyle3}
+                                variant="outline"
+                                size="sm"
+                                disabled={isGeneratingStyle3}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle3 ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                                Regenerate
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
