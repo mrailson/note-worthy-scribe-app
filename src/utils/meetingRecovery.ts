@@ -8,29 +8,33 @@ export const recoverStuckMeeting = async (meetingId: string) => {
   try {
     console.log(`🔄 Starting recovery process for meeting: ${meetingId}`);
     
-    // Use the new database function for safe completion
-    const { data, error } = await supabase.rpc('complete_meeting', {
-      meeting_id: meetingId
-    });
+    // Direct update approach - bypass the problematic RPC function
+    const { data, error } = await supabase
+      .from('meetings')
+      .update({ 
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+        end_time: new Date().toISOString()
+      })
+      .eq('id', meetingId)
+      .select()
+      .single();
 
-    console.log('📊 Complete meeting result:', { data, error });
+    console.log('📊 Direct update result:', { data, error });
 
     if (error) {
-      console.error('❌ RPC function error:', error);
+      console.error('❌ Direct update error:', error);
       toast.error(`Database error: ${error.message}`);
       return false;
     }
 
-    // Type assertion for the JSON response from our database function
-    const result = data as { success: boolean; error?: string; meeting?: any } | null;
-
-    if (!result || !result.success) {
-      console.error('❌ Meeting completion failed:', result?.error);
-      toast.error(result?.error || 'Unknown error completing meeting');
+    if (!data) {
+      console.error('❌ No meeting found to update');
+      toast.error('Meeting not found or access denied');
       return false;
     }
 
-    console.log('✅ Successfully completed meeting:', result.meeting);
+    console.log('✅ Successfully completed meeting:', data);
     toast.success('Meeting marked as completed successfully!');
     return true;
 
