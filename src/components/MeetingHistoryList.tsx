@@ -437,6 +437,8 @@ export const MeetingHistoryList = ({
 
     setUploading(true);
     try {
+      console.log('🔄 Starting upload for meeting:', selectedMeetingForUpload.id);
+      
       // Check for duplicate file names in this meeting
       const existingFileNames = selectedMeetingForUpload.documents?.map(doc => doc.file_name) || [];
       const duplicateFiles = selectedFiles.filter(file => 
@@ -450,19 +452,31 @@ export const MeetingHistoryList = ({
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('❌ Authentication error:', authError);
+        throw new Error('Not authenticated');
+      }
+      
+      console.log('✅ User authenticated:', user.id);
 
       for (const file of selectedFiles) {
         // Upload file to Supabase storage with user-based path for RLS
         const fileName = `${Date.now()}-${file.name}`;
         const filePath = `${user.id}/meetings/${selectedMeetingForUpload.id}/${fileName}`;
         
+        console.log('📁 Uploading to path:', filePath);
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('meeting-files')
           .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('❌ Storage upload error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('✅ File uploaded successfully:', uploadData.path);
 
         // Save document metadata to database
         const { error: insertError } = await supabase
@@ -477,9 +491,15 @@ export const MeetingHistoryList = ({
             uploaded_by: user.id,
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('❌ Database insert error:', insertError);
+          throw insertError;
+        }
+
+        console.log('✅ Database record created for:', file.name);
       }
 
+      console.log('🎉 All files uploaded successfully');
       toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
       
       // Update the document count and documents array locally
@@ -497,8 +517,8 @@ export const MeetingHistoryList = ({
       setUploadDialogOpen(false);
       setSelectedMeetingForUpload(null);
     } catch (error: any) {
-      console.error('Error uploading documents:', error.message);
-      toast.error(`Failed to upload documents: ${error.message}`);
+      console.error('💥 Upload error:', error);
+      toast.error(`Failed to upload documents: ${error.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
