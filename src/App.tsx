@@ -42,6 +42,7 @@ import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
+import NHSTranslationTool from "./pages/NHSTranslationTool";
 
 
 const App = () => (
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/assemblyai-test" element={<AssemblyAITest />} />
             <Route path="/assemblyai-test-simple" element={<AssemblyAITestSimple />} />
             <Route path="/transcription-comparison" element={<TranscriptionComparison />} />
+            <Route path="/nhs-translation" element={<NHSTranslationTool />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             
