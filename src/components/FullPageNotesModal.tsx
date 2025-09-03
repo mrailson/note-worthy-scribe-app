@@ -1749,7 +1749,7 @@ When appropriate, incorporate:
 **Inspiration:** [1-2 sentences explaining which part of the meeting inspired this limerick and why it was amusing/noteworthy]
 
 **TONE:** Light, clever, good-natured - something that would get a chuckle in the coffee room without causing offense.
-**QUALITY CHECK:** The limerick should be something colleagues would actually enjoy receiving and possibly share with others.
+**QUALITY CHECK:** Each limerick should be clever and meeting-relevant. For longer meetings, aim for 3-5 limericks covering different aspects. For shorter meetings, 2-3 limericks may suffice.
 
 Here is the meeting transcript to process:
 
