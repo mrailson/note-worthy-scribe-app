@@ -5,7 +5,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +21,8 @@ import {
   Calendar,
   Clock,
   Users,
-  RefreshCw
+  RefreshCw,
+  Share
 } from "lucide-react";
 
 interface Meeting {
@@ -133,6 +133,20 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     }
   };
 
+  // Format content for better display
+  const formatContent = (content: string) => {
+    if (!content) return '';
+    
+    // Convert markdown-style formatting to HTML
+    return content
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italic
+      .replace(/\n\n/g, '</p><p>') // Paragraphs
+      .replace(/\n/g, '<br/>') // Line breaks
+      .replace(/^/, '<p>') // Start with paragraph
+      .replace(/$/, '</p>'); // End with paragraph
+  };
+
   // Download notes as text file
   const downloadNotes = () => {
     const content = getCurrentTabContent();
@@ -180,9 +194,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh]">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="text-lg font-semibold">
+      <SheetContent side="bottom" className="h-[85vh] flex flex-col">
+        <SheetHeader className="pb-4 border-b">
+          <SheetTitle className="text-lg font-semibold text-left">
             {meeting?.title || 'Meeting Notes'}
           </SheetTitle>
           <SheetDescription className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -193,13 +207,15 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col h-full">
+        <div className="flex-1 flex flex-col min-h-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <TabsList className="grid w-full max-w-md grid-cols-3 h-8">
-                <TabsTrigger value="brief" className="text-xs">Brief</TabsTrigger>
-                <TabsTrigger value="detailed" className="text-xs">Detailed</TabsTrigger>
-                <TabsTrigger value="comprehensive" className="text-xs">Full</TabsTrigger>
+            <div className="flex justify-between items-center py-3 border-b">
+              <TabsList className="grid w-full max-w-lg grid-cols-5 h-9">
+                <TabsTrigger value="brief" className="text-xs px-1">Brief</TabsTrigger>
+                <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
+                <TabsTrigger value="comprehensive" className="text-xs px-1">Full</TabsTrigger>
+                <TabsTrigger value="executive" className="text-xs px-1">Exec</TabsTrigger>
+                <TabsTrigger value="creative" className="text-xs px-1">Fun</TabsTrigger>
               </TabsList>
               
               <Button
@@ -212,80 +228,111 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 border rounded-md">
-              <TabsContent value="brief" className="mt-0 p-4">
-                <div className="prose prose-sm max-w-none">
-                  {notes ? (
-                    <div 
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: notes.replace(/\n/g, '<br/>') }}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No brief notes available</p>
-                  )}
-                </div>
-              </TabsContent>
+            <div className="flex-1 min-h-0">
+              <ScrollArea className="h-full w-full">
+                <div className="p-4">
+                  <TabsContent value="brief" className="mt-0">
+                    <div className="prose prose-sm max-w-none">
+                      {notes ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notes) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No brief notes available</p>
+                      )}
+                    </div>
+                  </TabsContent>
 
-              <TabsContent value="detailed" className="mt-0 p-4">
-                <div className="prose prose-sm max-w-none">
-                  {notesStyle2 ? (
-                    <div 
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: notesStyle2.replace(/\n/g, '<br/>') }}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No detailed notes available</p>
-                  )}
-                </div>
-              </TabsContent>
+                  <TabsContent value="detailed" className="mt-0">
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle2 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle2) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No detailed notes available</p>
+                      )}
+                    </div>
+                  </TabsContent>
 
-              <TabsContent value="comprehensive" className="mt-0 p-4">
-                <div className="prose prose-sm max-w-none">
-                  {notesStyle3 ? (
-                    <div 
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: notesStyle3.replace(/\n/g, '<br/>') }}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No comprehensive notes available</p>
-                  )}
-                </div>
-              </TabsContent>
-            </ScrollArea>
+                  <TabsContent value="comprehensive" className="mt-0">
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle3 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No comprehensive notes available</p>
+                      )}
+                    </div>
+                  </TabsContent>
 
-            {/* Action buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-4 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={shareNotes}
-                disabled={!getCurrentTabContent()}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadNotes}
-                disabled={!getCurrentTabContent()}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
+                  <TabsContent value="executive" className="mt-0">
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle4 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle4) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No executive notes available</p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="creative" className="mt-0">
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle5 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle5) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">No creative notes available</p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </div>
+              </ScrollArea>
             </div>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={openInNewTab}
-              disabled={!getCurrentTabContent()}
-              className="mt-2"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Full View
-            </Button>
+            {/* Action buttons */}
+            <div className="border-t pt-3 pb-1">
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={shareNotes}
+                  disabled={!getCurrentTabContent()}
+                >
+                  <Share className="h-4 w-4 mr-1" />
+                  Share
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadNotes}
+                  disabled={!getCurrentTabContent()}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openInNewTab}
+                  disabled={!getCurrentTabContent()}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Full
+                </Button>
+              </div>
+            </div>
           </Tabs>
         </div>
       </SheetContent>

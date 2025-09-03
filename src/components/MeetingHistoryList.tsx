@@ -233,26 +233,15 @@ export const MeetingHistoryList = ({
   // Handle viewing notes - mobile vs desktop
   const handleViewNotes = async (meeting: Meeting) => {
     console.log('🔍 HandleViewNotes called for:', meeting.title, 'isMobile:', isMobile);
-    console.log('📱 Device detection - window.innerWidth:', window.innerWidth);
-    console.log('📱 User agent:', navigator.userAgent);
-    
-    // Add alert for immediate feedback on mobile
-    alert(`Debug: isMobile=${isMobile}, width=${window.innerWidth}`);
     
     // Use the meeting_summary that's already loaded in the meeting object
     const notes = meeting.meeting_summary || '';
-    console.log('📝 Notes length:', notes.length);
-    
     setMeetingNotes(notes);
     setSelectedMeetingForNotes(meeting);
     
     if (isMobile) {
-      console.log('📱 Opening mobile sheet');
-      alert('Opening mobile sheet');
       setMobileNotesOpen(true);
     } else {
-      console.log('💻 Opening desktop modal');
-      alert('Opening desktop modal');
       setDesktopNotesOpen(true);
       // For desktop, also call the original callback if needed
       onViewSummary(meeting.id);
