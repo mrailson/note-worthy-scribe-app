@@ -3189,6 +3189,9 @@ export type Database = {
           meeting_type: string
           mixed_audio_url: string | null
           notes_generation_status: string | null
+          notes_style_2: string | null
+          notes_style_3: string | null
+          notes_style_4: string | null
           overview: string | null
           participants: string[] | null
           practice_id: string | null
@@ -3231,6 +3234,9 @@ export type Database = {
           meeting_type?: string
           mixed_audio_url?: string | null
           notes_generation_status?: string | null
+          notes_style_2?: string | null
+          notes_style_3?: string | null
+          notes_style_4?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
@@ -3273,6 +3279,9 @@ export type Database = {
           meeting_type?: string
           mixed_audio_url?: string | null
           notes_generation_status?: string | null
+          notes_style_2?: string | null
+          notes_style_3?: string | null
+          notes_style_4?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null

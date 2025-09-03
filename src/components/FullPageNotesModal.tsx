@@ -46,6 +46,9 @@ interface Meeting {
   title: string;
   start_time: string;
   created_at: string;
+  notes_style_2?: string;
+  notes_style_3?: string;
+  notes_style_4?: string;
 }
 
 interface FullPageNotesModalProps {
@@ -158,6 +161,66 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.error('Error fetching transcript data:', error);
     } finally {
       setIsLoadingTranscript(false);
+    }
+  };
+
+  // Load existing note styles from database
+  const loadExistingNoteStyles = async () => {
+    if (!meeting?.id) return;
+
+    try {
+      console.log('🔍 Loading existing note styles for meeting:', meeting.id);
+      
+      const { data: meetingData, error } = await supabase
+        .from('meetings')
+        .select('notes_style_2, notes_style_3, notes_style_4')
+        .eq('id', meeting.id)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error loading note styles:', error);
+        return;
+      }
+
+      if (meetingData) {
+        if (meetingData.notes_style_2) {
+          setNotesStyle2(meetingData.notes_style_2);
+        }
+        if (meetingData.notes_style_3) {
+          setNotesStyle3(meetingData.notes_style_3);
+        }
+        if (meetingData.notes_style_4) {
+          setNotesStyle4(meetingData.notes_style_4);
+        }
+        console.log('✅ Loaded existing note styles');
+      }
+    } catch (error) {
+      console.error('Error loading note styles:', error);
+    }
+  };
+
+  // Save note style to database
+  const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
+    if (!meeting?.id || !user?.id || !content.trim()) return;
+
+    try {
+      const columnName = `notes_style_${styleNumber}`;
+      const { error } = await supabase
+        .from('meetings')
+        .update({ [columnName]: content })
+        .eq('id', meeting.id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error(`❌ Error saving notes style ${styleNumber}:`, error);
+        toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
+      } else {
+        console.log(`✅ Meeting Notes Style ${styleNumber} saved to database`);
+      }
+    } catch (error) {
+      console.error(`Error saving notes style ${styleNumber}:`, error);
+      toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
     }
   };
 
@@ -1212,7 +1275,11 @@ ${transcript}`;
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
         setNotesStyle2(generatedContent);
-        toast.success("Meeting Notes Style 2 generated successfully!");
+        
+        // Save to database
+        await saveNoteStyleToDatabase(2, generatedContent);
+        
+        toast.success("Meeting Notes Style 2 generated and saved successfully!");
       } else {
         console.error('No content in response:', data);
         toast.error("No content generated - please try again");
