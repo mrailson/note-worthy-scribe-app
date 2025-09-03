@@ -49,6 +49,7 @@ interface Meeting {
   notes_style_2?: string;
   notes_style_3?: string;
   notes_style_4?: string;
+  notes_style_5?: string;
 }
 
 interface FullPageNotesModalProps {
@@ -91,9 +92,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
+  const [notesStyle5, setNotesStyle5] = useState("");
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
+  const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
@@ -173,7 +176,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       
       const { data: meetingData, error } = await supabase
         .from('meetings')
-        .select('notes_style_2, notes_style_3, notes_style_4')
+        .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
         .eq('id', meeting.id)
         .eq('user_id', user?.id)
         .single();
@@ -192,6 +195,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
         if (meetingData.notes_style_4) {
           setNotesStyle4(meetingData.notes_style_4);
+        }
+        if (meetingData.notes_style_5) {
+          setNotesStyle5(meetingData.notes_style_5);
         }
         console.log('✅ Loaded existing note styles');
       }
@@ -1440,6 +1446,72 @@ ${transcript}`;
       toast.error("Failed to generate Meeting Notes Style 4");
     } finally {
       setIsGeneratingStyle4(false);
+    }
+  };
+
+  const generateNotesStyle5 = async () => {
+    if (!meeting?.id || !transcript) {
+      toast.error("No transcript available to generate notes");
+      return;
+    }
+
+    setIsGeneratingStyle5(true);
+    try {
+      const style5Prompt = `You are creating a culturally sensitive, light-hearted poetic summary of a meeting transcript.  
+
+Requirements:
+- Format as a rhyming poem or limerick-style verses.  
+- The humour should be gentle, professional, and appropriate for NHS/GP/PCN/LMC contexts.  
+- Do not mock patients, staff, or sensitive issues; instead, keep it witty but respectful.  
+- Content should still reflect the meeting's main themes (e.g., finance, staffing, service changes, decisions).  
+- Use playful phrasing, light exaggeration, or clever rhymes to make it memorable.  
+- Always ensure cultural sensitivity and appropriateness for a professional NHS audience.  
+
+Verse length rules based on meeting duration:
+- Meeting < 20 minutes → 5 verses.  
+- Meeting 21–60 minutes → 7 verses.  
+- Meeting > 60 minutes → 12 verses.  
+
+Each verse should be 3–4 lines, easy to read, and flow naturally.  
+Finish with a closing verse that lightly wraps up what was decided.  
+
+Here is the transcript to process:
+
+${transcript}`;
+
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+        body: {
+          transcript: transcript,
+          meetingTitle: meeting.title,
+          meetingDate: new Date().toLocaleDateString('en-GB'),
+          meetingTime: new Date().toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          detailLevel: 'standard',
+          customPrompt: style5Prompt
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.meetingMinutes || data?.generatedNotes) {
+        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        setNotesStyle5(generatedContent);
+        
+        // Save to database
+        await saveNoteStyleToDatabase(5, generatedContent);
+        
+        toast.success("Meeting Notes Style 5 generated and saved successfully!");
+      } else {
+        console.error('No content in response:', data);
+        toast.error("No content generated - please try again");
+      }
+    } catch (error) {
+      console.error('Error generating notes style 5:', error);
+      toast.error("Failed to generate Meeting Notes Style 5");
+    } finally {
+      setIsGeneratingStyle5(false);
     }
   };
 
