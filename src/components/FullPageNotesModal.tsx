@@ -1340,7 +1340,12 @@ ${transcript}`;
 
       const style3Prompt = `You are producing formal NHS-style meeting minutes from a transcript.
 
-CRITICAL INSTRUCTION: Your response must start immediately with "**Meeting Details**" - absolutely no title, no "Meeting - Date Not Specified", no "MINUTES", no header text of any kind before this.
+❌ ABSOLUTELY FORBIDDEN: Do NOT include "Meeting - Date Not Specified", "MINUTES", any title, header, or introductory text
+❌ FORBIDDEN: Do NOT start with any meeting title or heading
+❌ FORBIDDEN: Do NOT include "MINUTES" anywhere at the top
+❌ FORBIDDEN: Do NOT write any text before "**Meeting Details**"
+
+MANDATORY START: Your response MUST begin immediately with "**Meeting Details**" as the very first text
 
 **Meeting Details**
 Date: ${meetingDate}
@@ -1367,7 +1372,15 @@ Within each section, provide **subsections** where appropriate:
 **Closing**
 - Note any concluding remarks, next meeting details (if given), or summary of unresolved issues.  
 
-REMEMBER: Begin your response with "**Meeting Details**" immediately - no other text before this.
+REMEMBER: Begin your response with "**Meeting Details**" immediately - absolutely no other text before this.
+
+DO NOT INCLUDE:
+- "Meeting - Date Not Specified" 
+- "MINUTES"
+- Any title or header
+- Any text before "**Meeting Details**"
+
+Your response must start with: **Meeting Details**
 
 Here is the transcript to process:
 
@@ -1387,7 +1400,24 @@ ${transcript}`;
       if (error) throw error;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
-        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        let generatedContent = data.meetingMinutes || data.generatedNotes;
+        
+        // POST-PROCESSING CLEANUP: Remove any unwanted header text
+        // Remove "Meeting - Date Not Specified" and "MINUTES" from the beginning
+        generatedContent = generatedContent
+          .replace(/^.*Meeting\s*-\s*Date\s*Not\s*Specified.*$/gim, '')
+          .replace(/^.*MINUTES.*$/gim, '')
+          .replace(/^[^\*]*\*\*Meeting Details\*\*/, '**Meeting Details**')
+          .trim();
+        
+        // Ensure it starts with **Meeting Details**
+        if (!generatedContent.startsWith('**Meeting Details**')) {
+          const meetingDetailsMatch = generatedContent.match(/\*\*Meeting Details\*\*/);
+          if (meetingDetailsMatch) {
+            generatedContent = generatedContent.substring(generatedContent.indexOf('**Meeting Details**'));
+          }
+        }
+        
         setNotesStyle3(generatedContent);
         
         // Save to database
