@@ -87,15 +87,21 @@ export const NHSTranslationInterface = () => {
 
   const translateText = async (text: string, fromLang: string, toLang: string): Promise<string> => {
     try {
+      console.log(`🔄 Translating: "${text}" from ${fromLang} to ${toLang}`);
+      
       // Using MyMemory Translation API (free tier)
       const response = await fetch(
         `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
       );
       const data = await response.json();
       
+      console.log('Translation API response:', data);
+      
       if (data.responseStatus === 200) {
+        console.log(`✅ Translation successful: "${data.responseData.translatedText}"`);
         return data.responseData.translatedText;
       } else {
+        console.error('Translation API error:', data);
         throw new Error('Translation failed');
       }
     } catch (error) {
@@ -131,19 +137,29 @@ export const NHSTranslationInterface = () => {
     
     recognitionRef.current.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
+      console.log(`🎤 Received transcript from ${speaker}: "${transcript}"`);
       setIsProcessing(true);
       
       try {
         // Automatic translation logic:
-        // GP always speaks English, translates to patient language
+        // GP always speaks English, translates to patient language  
         // Patient always speaks their language, translates to English
         const sourceLang = speaker === 'gp' ? 'en-GB' : (patientLanguage === 'auto' ? 'en-GB' : patientLanguage);
         const targetLang = speaker === 'gp' ? (patientLanguage === 'auto' ? 'en-GB' : patientLanguage) : 'en-GB';
         
+        console.log(`🔄 Translation setup: ${sourceLang} → ${targetLang}, Patient language: ${patientLanguage}`);
+        
         let translatedText = transcript;
         // Only translate if languages are different and not auto-detect
         if (sourceLang !== targetLang && patientLanguage !== 'auto') {
-          translatedText = await translateText(transcript, sourceLang.split('-')[0], targetLang.split('-')[0]);
+          // Convert language codes for API (remove country codes)
+          const apiSourceLang = sourceLang.split('-')[0]; // en-GB → en
+          const apiTargetLang = targetLang.split('-')[0]; // fr → fr
+          
+          console.log(`🌐 API call: ${apiSourceLang} → ${apiTargetLang}`);
+          translatedText = await translateText(transcript, apiSourceLang, apiTargetLang);
+        } else {
+          console.log('📝 No translation needed - same language or auto-detect');
         }
         
         const newTranslation: TranslationEntry = {
@@ -161,6 +177,7 @@ export const NHSTranslationInterface = () => {
         // Automatically speak the translation (not the original)
         if (sourceLang !== targetLang && patientLanguage !== 'auto') {
           const targetSpeechLang = LANGUAGES.find(lang => lang.code === targetLang)?.speechLang || 'en-GB';
+          console.log(`🔊 Speaking translation in: ${targetSpeechLang}`);
           setTimeout(() => speakText(translatedText, targetSpeechLang), 500);
         }
         
