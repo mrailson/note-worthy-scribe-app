@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -190,6 +190,7 @@ const MeetingHistory = () => {
   // Transcript view state
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const [viewingTranscript, setViewingTranscript] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
@@ -2281,20 +2282,51 @@ const MeetingHistory = () => {
                 </Button>
               </div>
 
-              {/* Simplified transcript display */}
-              <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] sm:max-h-[55vh] overflow-y-auto">
-                {cleanedTranscript ? (
-                  <div className="prose max-w-none prose-sm sm:prose">
-                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                      {cleanedTranscript}
-                    </div>
+              {/* Tabbed transcript display */}
+              <Tabs defaultValue="final" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="final" className="text-xs sm:text-sm">
+                    Final Transcript
+                  </TabsTrigger>
+                  <TabsTrigger value="live" className="text-xs sm:text-sm">
+                    Live Transcript shown in Meeting
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="final" className="mt-4">
+                  <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] sm:max-h-[55vh] overflow-y-auto">
+                    {cleanedTranscript ? (
+                      <div className="prose max-w-none prose-sm sm:prose">
+                        <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                          {cleanedTranscript}
+                        </div>
+                      </div>
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                        {viewingTranscript || "No final transcript available for this meeting."}
+                      </pre>
+                    )}
+                    {viewingTranscript && (
+                      <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                        Final transcript: {viewingTranscript.split(' ').length} words
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                    {viewingTranscript || "No transcript available for this meeting."}
-                  </pre>
-                )}
-              </div>
+                </TabsContent>
+                
+                <TabsContent value="live" className="mt-4">
+                  <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] sm:max-h-[55vh] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                      {liveTranscript || "No live transcript available for this meeting."}
+                    </pre>
+                    {liveTranscript && (
+                      <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                        Live transcript: {liveTranscript.split(' ').length} words
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
 
             </div>
             
