@@ -72,6 +72,35 @@ export const MeetingRecoveryHelper = () => {
     }
   };
 
+  const forceStopMeeting = async (meetingId: string) => {
+    setRecovering(meetingId);
+    try {
+      // Direct database update using service role
+      const { data, error } = await supabase.functions.invoke('force-stop-meeting', {
+        body: { meetingId }
+      });
+      
+      if (error) {
+        console.error('Force stop failed:', error);
+        toast.error('Failed to stop meeting');
+        return;
+      }
+      
+      if (data?.success) {
+        toast.success('Meeting stopped successfully!');
+        // Remove from stuck meetings list
+        setStuckMeetings(prev => prev.filter(m => m.id !== meetingId));
+      } else {
+        toast.error(data?.error || 'Failed to stop meeting');
+      }
+    } catch (error) {
+      console.error('Force stop error:', error);
+      toast.error('Failed to stop meeting');
+    } finally {
+      setRecovering(null);
+    }
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -118,24 +147,41 @@ export const MeetingRecoveryHelper = () => {
                     Status: {meeting.notes_generation_status}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => recoverMeeting(meeting.id)}
-                  disabled={recovering === meeting.id}
-                  variant="outline"
-                >
-                  {recovering === meeting.id ? (
-                    <>
-                      <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                      Recovering...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Recover
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => recoverMeeting(meeting.id)}
+                    disabled={recovering === meeting.id}
+                    variant="outline"
+                  >
+                    {recovering === meeting.id ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        Recovering...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Recover
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => forceStopMeeting(meeting.id)}
+                    disabled={recovering === meeting.id}
+                    variant="destructive"
+                  >
+                    {recovering === meeting.id ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        Stopping...
+                      </>
+                    ) : (
+                      'Stop'
+                    )}
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
