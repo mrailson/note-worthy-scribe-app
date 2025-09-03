@@ -8,26 +8,35 @@ export const recoverStuckMeeting = async (meetingId: string) => {
   try {
     console.log(`🔄 Starting recovery process for meeting: ${meetingId}`);
     
-    // Get meeting details
+    // Get current user first
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('❌ Authentication error:', userError);
+      toast.error('Authentication required');
+      return false;
+    }
+    console.log('👤 Current user:', user.id);
+
+    // Get meeting details with user filter to ensure RLS compliance
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
       .select('id, title, status, user_id, created_at')
       .eq('id', meetingId)
+      .eq('user_id', user.id)  // Add user filter for RLS
       .single();
 
     console.log('📊 Meeting data:', meeting);
+    console.log('📊 Meeting error:', meetingError);
 
     if (meetingError) {
       console.error('❌ Failed to fetch meeting:', meetingError);
-      toast.error('Meeting not found');
+      toast.error(`Meeting error: ${meetingError.message}`);
       return false;
     }
 
-    // Verify user owns this meeting
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== meeting.user_id) {
-      console.error('❌ User not authorized for this meeting');
-      toast.error('Not authorized to recover this meeting');
+    if (!meeting) {
+      console.error('❌ Meeting not found or not accessible');
+      toast.error('Meeting not found or you do not have permission to access it');
       return false;
     }
 
@@ -40,48 +49,37 @@ export const recoverStuckMeeting = async (meetingId: string) => {
 
     console.log(`📊 Meeting current status: ${meeting.status} - proceeding with completion...`);
 
-    // Check for existing transcript chunks
-    const { data: transcriptChunks, error: chunksError } = await supabase
-      .from('meeting_transcription_chunks')
-      .select('id')
-      .eq('meeting_id', meetingId)
-      .limit(1);
-
-    if (chunksError) {
-      console.error('❌ Failed to check transcript chunks:', chunksError);
-    }
-
-    const hasTranscriptData = transcriptChunks && transcriptChunks.length > 0;
-    console.log(`📊 Transcript data available: ${hasTranscriptData}`);
-
-    // Update meeting status to completed with simpler update
+    // Update meeting status with user context for RLS
     console.log('🔄 Updating meeting status to completed...');
     const { data: updateData, error: updateError } = await supabase
       .from('meetings')
       .update({ status: 'completed' })
       .eq('id', meetingId)
-      .select();
+      .eq('user_id', user.id)  // Include user filter in update for RLS
+      .select('id, status');
 
-    console.log('📊 Update result:', { updateData, updateError });
+    console.log('📊 Update result data:', updateData);
+    console.log('📊 Update result error:', updateError);
 
     if (updateError) {
       console.error('❌ Failed to update meeting status:', updateError);
-      toast.error(`Failed to update meeting: ${updateError.message}`);
+      toast.error(`Failed to update meeting: ${updateError.message || 'Unknown error'}`);
       return false;
     }
 
-    console.log('✅ Successfully recovered meeting and updated status to completed');
-    
-    if (hasTranscriptData) {
-      toast.success('Meeting recovered successfully! Notes generation will begin automatically.');
-    } else {
-      toast.success('Meeting recovered successfully! No transcript data available for notes generation.');
+    if (!updateData || updateData.length === 0) {
+      console.error('❌ No meeting was updated');
+      toast.error('No meeting was updated - check permissions');
+      return false;
     }
 
+    console.log('✅ Successfully updated meeting status:', updateData[0]);
+    toast.success('Meeting marked as completed successfully!');
     return true;
+
   } catch (error) {
     console.error('❌ Critical error in meeting recovery:', error);
-    toast.error('Failed to recover meeting due to unexpected error');
+    toast.error(`Critical error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
