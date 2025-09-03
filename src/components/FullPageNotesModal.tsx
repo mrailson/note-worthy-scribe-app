@@ -1669,34 +1669,8 @@ ${transcript}`;
               
               <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
-                  <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                    <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={handleUndo}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={notesVersions.length === 0}
-                        title={`Undo (${notesVersions.length} versions available)`}
-                      >
-                        <Undo2 className="h-4 w-4" />
-                        Undo
-                      </Button>
-                      <Button
-                        onClick={handleEditToggle}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        {isEditing ? 'Save' : 'Edit'}
-                      </Button>
-                    </div>
-                  </div>
-
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
-                  <div className="flex-1 overflow-hidden px-6 -mt-4">
+                  <div className="flex-1 overflow-hidden px-6 pt-4">
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
                       <TabsList className="grid w-full grid-cols-3 mb-4">
                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
@@ -1709,6 +1683,33 @@ ${transcript}`;
                           Meeting Notes Style 3
                         </TabsTrigger>
                       </TabsList>
+
+                      {/* Meeting Notes header and controls moved below sub-tabs */}
+                      <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                        <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={handleUndo}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            disabled={notesVersions.length === 0}
+                            title={`Undo (${notesVersions.length} versions available)`}
+                          >
+                            <Undo2 className="h-4 w-4" />
+                            Undo
+                          </Button>
+                          <Button
+                            onClick={handleEditToggle}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            {isEditing ? 'Save' : 'Edit'}
+                          </Button>
+                        </div>
+                      </div>
                       
                       <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
                         {isEditing ? (
