@@ -2057,55 +2057,109 @@ ${transcript}`;
                             <Edit3 className="h-4 w-4" />
                             {isEditing ? 'Save' : 'Edit'}
                           </Button>
-                          {activeNotesStyleTab === 'style1' && notesStyle3 && (
-                            <>
-                              <Button
-                                onClick={() => {
-                                  if (notesStyle3) {
-                                    generateAdvancedWordDocument(notesStyle3, 'Minutes - Detailed');
-                                  }
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                              >
-                                <FileText className="h-4 w-4" />
-                                Word
-                              </Button>
-                              <Button
-                                onClick={async () => {
-                                  if (notesStyle3) {
-                                    try {
-                                      await navigator.clipboard.writeText(notesStyle3.replace(/<[^>]*>/g, ''));
-                                      toast.success('Minutes copied to clipboard');
-                                    } catch (error) {
-                                      toast.error('Failed to copy to clipboard');
+                          {/* Action buttons for each tab when content exists */}
+                          {(() => {
+                            const getTabContent = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return notesStyle3;
+                                case 'style2': return notes;
+                                case 'style3': return notesStyle2;
+                                case 'style4': return notesStyle4;
+                                case 'style5': return notesStyle5;
+                                default: return null;
+                              }
+                            };
+                            
+                            const getTabName = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return 'Minutes - Detailed';
+                                case 'style2': return 'Minutes - Brief';
+                                case 'style3': return 'Meeting Notes Style 2';
+                                case 'style4': return 'Meeting Notes Style 4';
+                                case 'style5': return 'Meeting Notes Style 5';
+                                default: return 'Meeting Notes';
+                              }
+                            };
+                            
+                            const getGenerateFunction = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return generateNotesStyle3;
+                                case 'style2': return () => {}; // Notes style 2 doesn't have regenerate
+                                case 'style3': return generateNotesStyle2;
+                                case 'style4': return generateNotesStyle4;
+                                case 'style5': return generateNotesStyle5;
+                                default: return () => {};
+                              }
+                            };
+                            
+                            const getGeneratingState = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return isGeneratingStyle3;
+                                case 'style2': return false;
+                                case 'style3': return isGeneratingStyle2;
+                                case 'style4': return isGeneratingStyle4;
+                                case 'style5': return isGeneratingStyle5;
+                                default: return false;
+                              }
+                            };
+                            
+                            const content = getTabContent();
+                            const tabName = getTabName();
+                            const generateFunction = getGenerateFunction();
+                            const isGenerating = getGeneratingState();
+                            
+                            return content ? (
+                              <>
+                                <Button
+                                  onClick={() => {
+                                    if (content) {
+                                      generateAdvancedWordDocument(content, tabName);
                                     }
-                                  }
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                              >
-                                <Copy className="h-4 w-4" />
-                                Copy
-                              </Button>
-                              <Button
-                                onClick={generateNotesStyle3}
-                                variant="outline"
-                                size="sm"
-                                disabled={isGeneratingStyle3}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle3 ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="h-4 w-4" />
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  Word
+                                </Button>
+                                <Button
+                                  onClick={async () => {
+                                    if (content) {
+                                      try {
+                                        await navigator.clipboard.writeText(content.replace(/<[^>]*>/g, ''));
+                                        toast.success(`${tabName} copied to clipboard`);
+                                      } catch (error) {
+                                        toast.error('Failed to copy to clipboard');
+                                      }
+                                    }
+                                  }}
+                                  variant="outline"
+                                  size="sm"  
+                                  className="gap-2"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                  Copy
+                                </Button>
+                                {activeNotesStyleTab !== 'style2' && (
+                                  <Button
+                                    onClick={generateFunction}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isGenerating}
+                                    className="gap-2"
+                                  >
+                                    {isGenerating ? (
+                                      <RefreshCw className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-4 w-4" />
+                                    )}
+                                    Regenerate
+                                  </Button>
                                 )}
-                                Regenerate
-                              </Button>
-                            </>
-                          )}
+                              </>
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                       
