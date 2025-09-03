@@ -4072,6 +4072,28 @@ export const MeetingRecorder = ({
     }
   };
 
+  const handleMergeMeetings = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('merge-meetings', {
+        body: { meetingIds: selectedMeetings }
+      });
+
+      if (error) throw error;
+
+      toast.success(`${selectedMeetings.length} meetings merged successfully into "${data.meeting.title}"`);
+      
+      // Navigate to the merged meeting's notes
+      navigate(`/meeting-summary/${data.meeting.id}`);
+      
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error merging meetings:", error.message);
+      toast.error("Failed to merge meetings: " + error.message);
+    }
+  };
+
   const handleDeleteSelected = async () => {
     try {
       const { error } = await supabase
