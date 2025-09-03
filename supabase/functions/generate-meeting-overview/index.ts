@@ -13,8 +13,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('🚀 Function called');
+
   if (!openAIApiKey) {
-    console.error('OpenAI API key not found');
+    console.error('❌ OpenAI API key not found');
     return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -22,9 +24,17 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, meetingTitle, meetingNotes } = await req.json();
+    console.log('📝 Parsing request body...');
+    const requestBody = await req.json();
+    console.log('✅ Request body parsed:', { 
+      hasTitle: !!requestBody.meetingTitle, 
+      hasNotes: !!requestBody.meetingNotes 
+    });
+
+    const { transcript, meetingTitle, meetingNotes } = requestBody;
 
     if (!transcript && !meetingNotes) {
+      console.log('❌ No content provided');
       return new Response(JSON.stringify({ error: 'Either transcript or meetingNotes is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -32,27 +42,21 @@ serve(async (req) => {
     }
 
     const content = meetingNotes || transcript;
-    const systemPrompt = `You are an expert at creating ultra-concise meeting overviews. Your task is to create a brief, factual summary that captures ONLY:
-1. What type of meeting this was (the purpose/topic)
-2. The main discussion points or topics covered
+    console.log('📄 Content length:', content.length);
 
-STRICT REQUIREMENTS:
-- Maximum 50 words (aim for 35-45)
-- Focus only on meeting purpose and main topics discussed
-- Do NOT mention attendees, location, date, or administrative details
-- Use clear, professional language
-- Be factual and objective
-- Start with the meeting type/purpose, then list main topics
+    const systemPrompt = `You are an expert at creating ultra-concise meeting overviews. Create a brief summary (35-50 words max) that captures:
+1. What type of meeting this was
+2. The main discussion points
 
-Example format: "Team meeting focused on quarterly planning. Discussed budget allocations, resource requirements, project timelines, and performance metrics."`;
+Be factual and objective. Do not mention attendees, location, or date.`;
 
-    const userPrompt = `Create a concise overview (35-50 words max) from this ${meetingTitle ? `meeting titled "${meetingTitle}"` : 'meeting'}:
+    const userPrompt = `Create a concise overview from this meeting titled "${meetingTitle || 'Meeting'}":
 
-${content}
+${content.substring(0, 2000)}...
 
-Remember: Only include meeting purpose and main discussion topics. No attendees, locations, or administrative details.`;
+Maximum 50 words. Focus on meeting purpose and main topics only.`;
 
-    console.log('Calling OpenAI API for meeting overview generation...');
+    console.log('🤖 Calling OpenAI API...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,43 +65,41 @@ Remember: Only include meeting purpose and main discussion topics. No attendees,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 100,
+        max_tokens: 100,
+        temperature: 0.7,
       }),
     });
 
-    console.log('OpenAI response status:', response.status);
+    console.log('📡 OpenAI response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error response:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+      console.error('❌ OpenAI API error:', errorData);
+      return new Response(JSON.stringify({ error: `OpenAI API error: ${response.status}` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
-    console.log('OpenAI response received');
+    console.log('✅ OpenAI response received');
     
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid OpenAI response structure');
-      throw new Error('Invalid response from OpenAI API');
-    }
-    
-    const overview = data.choices[0].message.content?.trim() || '';
-
-    console.log('Generated overview:', overview);
-    console.log('Word count:', overview.split(' ').length);
+    const overview = data.choices?.[0]?.message?.content?.trim() || '';
+    console.log('📝 Generated overview:', overview);
 
     return new Response(JSON.stringify({ overview }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-meeting-overview function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('💥 Function error:', error.message);
+    console.error('📚 Error stack:', error.stack);
+    return new Response(JSON.stringify({ error: `Function error: ${error.message}` }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
