@@ -60,6 +60,9 @@ import { useNavigate } from "react-router-dom";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { useRecording } from "@/contexts/RecordingContext";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
+import { MobileNotesSheet } from "@/components/MobileNotesSheet";
+import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 interface Meeting {
@@ -162,6 +165,13 @@ export const MeetingHistoryList = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   
+  // Mobile notes sheet state
+  const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
+  const [selectedMeetingForNotes, setSelectedMeetingForNotes] = useState<Meeting | null>(null);
+  const [desktopNotesOpen, setDesktopNotesOpen] = useState(false);
+  const [meetingNotes, setMeetingNotes] = useState("");
+  const isMobile = useIsMobile();
+  
   // Add state for signed URLs
   const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
   
@@ -217,6 +227,24 @@ export const MeetingHistoryList = ({
       setAudioUrls(prev => ({ ...prev, [meetingId]: urls }));
     } catch (error) {
       console.error('Error generating signed URLs:', error);
+    }
+  };
+
+  // Handle viewing notes - mobile vs desktop
+  const handleViewNotes = async (meeting: Meeting) => {
+    console.log('🔍 HandleViewNotes called for:', meeting.title, 'isMobile:', isMobile);
+    
+    // Use the meeting_summary that's already loaded in the meeting object
+    const notes = meeting.meeting_summary || '';
+    setMeetingNotes(notes);
+    setSelectedMeetingForNotes(meeting);
+    
+    if (isMobile) {
+      setMobileNotesOpen(true);
+    } else {
+      setDesktopNotesOpen(true);
+      // For desktop, also call the original callback if needed
+      onViewSummary(meeting.id);
     }
   };
 
@@ -1070,8 +1098,8 @@ export const MeetingHistoryList = ({
                           return;
                         }
                         
-                        console.log('📱 Calling onViewSummary for meeting:', meeting.id);
-                        onViewSummary(meeting.id);
+                        console.log('📱 Calling handleViewNotes for meeting:', meeting.id);
+                        handleViewNotes(meeting);
                       } catch (error) {
                         console.error('❌ Error:', error);
                         alert('Error opening notes: ' + error.message);
@@ -1090,7 +1118,7 @@ export const MeetingHistoryList = ({
                     }
                     
                     try {
-                      onViewSummary(meeting.id);
+                      handleViewNotes(meeting);
                     } catch (error) {
                       console.error('❌ Error:', error);
                       alert('Error opening notes: ' + error.message);
@@ -1450,6 +1478,25 @@ export const MeetingHistoryList = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Notes Sheet */}
+      <MobileNotesSheet
+        isOpen={mobileNotesOpen}
+        onOpenChange={setMobileNotesOpen}
+        meeting={selectedMeetingForNotes}
+        notes={meetingNotes}
+      />
+
+      {/* Desktop Notes Modal (fallback) */}
+      {!isMobile && (
+        <FullPageNotesModal
+          isOpen={desktopNotesOpen}
+          onClose={() => setDesktopNotesOpen(false)}
+          meeting={selectedMeetingForNotes}
+          notes={meetingNotes}
+          onNotesChange={setMeetingNotes}
+        />
+      )}
     </div>
   );
 };
