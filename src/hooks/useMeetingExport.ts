@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MeetingData, MeetingSettingsState } from "@/types/meetingTypes";
 import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 

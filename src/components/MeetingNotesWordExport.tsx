@@ -44,9 +44,53 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         throw new Error('No meeting data available');
       }
       
-      const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
+      const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType } = await import('docx');
       
       console.log('🔍 Creating formatted document...');
+      
+      // Parse markdown tables and format text
+      const parseMarkdownTables = (content: string) => {
+        const lines = content.split('\n');
+        const result = [];
+        let i = 0;
+        
+        while (i < lines.length) {
+          const line = lines[i];
+          
+          // Check if this line looks like a table header
+          if (line.includes('|') && line.trim().startsWith('|') && line.trim().endsWith('|')) {
+            // Look ahead for separator line
+            const nextLine = lines[i + 1];
+            if (nextLine && nextLine.includes('|') && nextLine.includes('-')) {
+              // This is a table - collect all table rows
+              const tableRows = [];
+              
+              // Add header row
+              const headerCells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+              tableRows.push(headerCells);
+              
+              // Skip separator line
+              i += 2;
+              
+              // Collect data rows
+              while (i < lines.length && lines[i].includes('|') && lines[i].trim().startsWith('|')) {
+                const dataCells = lines[i].split('|').map(cell => cell.trim()).filter(cell => cell);
+                tableRows.push(dataCells);
+                i++;
+              }
+              
+              result.push({ type: 'table', content: tableRows });
+              continue;
+            }
+          }
+          
+          // Regular text line
+          result.push({ type: 'text', content: line });
+          i++;
+        }
+        
+        return result;
+      };
       
       // Strip HTML and process content to preserve formatting
       const stripHtmlAndFormat = (htmlContent: string) => {
@@ -72,120 +116,183 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           .replace(/&#39;/g, "'")
           .replace(/^---+$/gm, ''); // Remove horizontal rules (--- characters)
 
+        // Parse for tables first
+        const parsedContent = parseMarkdownTables(processedText);
         const paragraphs = [];
-        const lines = processedText.split('\n');
         
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (!trimmedLine) {
-            // Add minimal spacing for empty lines
+        for (const item of parsedContent) {
+          if (item.type === 'table') {
+            // Create table
+            const tableRows = item.content.map((row, rowIndex) => 
+              new TableRow({
+                children: row.map(cellText => {
+                  // Parse cell text for formatting
+                  const cellRuns = [];
+                  let currentText = cellText;
+                  
+                  // Handle bold text in cells
+                  const boldRegex = /(\*\*|__)(.*?)\1/g;
+                  let lastIndex = 0;
+                  let match;
+                  
+                  while ((match = boldRegex.exec(currentText)) !== null) {
+                    // Add text before bold
+                    if (match.index > lastIndex) {
+                      const beforeText = currentText.slice(lastIndex, match.index);
+                      if (beforeText) cellRuns.push(new TextRun({ text: beforeText, size: rowIndex === 0 ? 22 : 20 }));
+                    }
+                    
+                    // Add bold text
+                    cellRuns.push(new TextRun({ text: match[2], bold: true, size: rowIndex === 0 ? 22 : 20 }));
+                    lastIndex = match.index + match[0].length;
+                  }
+                  
+                  // Add remaining text
+                  if (lastIndex < currentText.length) {
+                    const remainingText = currentText.slice(lastIndex);
+                    if (remainingText) cellRuns.push(new TextRun({ text: remainingText, size: rowIndex === 0 ? 22 : 20 }));
+                  }
+                  
+                  if (cellRuns.length === 0) {
+                    cellRuns.push(new TextRun({ text: cellText, size: rowIndex === 0 ? 22 : 20, bold: rowIndex === 0 }));
+                  }
+                  
+                  return new TableCell({
+                    children: [new Paragraph({ children: cellRuns })],
+                    width: {
+                      size: 100 / row.length,
+                      type: WidthType.PERCENTAGE,
+                    },
+                  });
+                })
+              })
+            );
+            
+            paragraphs.push(new Table({
+              rows: tableRows,
+              width: {
+                size: 100,
+                type: WidthType.PERCENTAGE,
+              },
+            }));
+            
+            // Add space after table
             paragraphs.push(new Paragraph({
               children: [new TextRun({ text: "", size: 22 })],
-              spacing: { after: 60 }
+              spacing: { after: 120 }
             }));
-            continue;
-          }
-          
-          // Check for bold markers
-          const boldMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
-          if (boldMatch) {
-            // Bold text without ** markers
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({
-                text: boldMatch[1],
+          } else {
+            // Process regular text
+            const trimmedLine = item.content.trim();
+            if (!trimmedLine) {
+              // Add minimal spacing for empty lines
+              paragraphs.push(new Paragraph({
+                children: [new TextRun({ text: "", size: 22 })],
+                spacing: { after: 60 }
+              }));
+              continue;
+            }
+            
+            // Check for bold markers
+            const boldMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
+            if (boldMatch) {
+              // Bold text without ** markers
+              paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                  text: boldMatch[1],
+                  bold: true,
+                  size: 24,
+                  color: "1f2937"
+                })],
+                spacing: { after: 80 }
+              }));
+              continue;
+            }
+            
+            // Check for section headers and clean hashtags
+            const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
+                            /^[A-Z\s]{8,}$/.test(trimmedLine) ||
+                            trimmedLine.includes('ATTENDEES') ||
+                            trimmedLine.includes('OVERVIEW') ||
+                            trimmedLine.includes('CONTENT') ||
+                            trimmedLine.includes('DECISIONS') ||
+                            trimmedLine.includes('ACTION') ||
+                            trimmedLine.includes('RISKS') ||
+                            trimmedLine.includes('MEETING OVERVIEW') ||
+                            trimmedLine.includes('DETAILED MEETING');
+            
+            // Clean hashtags from headers
+            let cleanedLine = trimmedLine;
+            if (isHeader && /^[#]{1,4}\s/.test(trimmedLine)) {
+              cleanedLine = trimmedLine.replace(/^[#]{1,4}\s*/, '');
+            }
+            
+            // Handle inline bold markers within text
+            const parts = [];
+            let lastIndex = 0;
+            
+            // Find all **text** patterns (including single * patterns)
+            const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
+            let match;
+            
+            while ((match = boldRegex.exec(cleanedLine)) !== null) {
+              // Add normal text before the bold part
+              if (match.index > lastIndex) {
+                const normalText = cleanedLine.substring(lastIndex, match.index);
+                if (normalText) {
+                  parts.push(new TextRun({
+                    text: normalText,
+                    size: 22,
+                    color: "374151"
+                  }));
+                }
+              }
+              
+              // Add bold text
+              parts.push(new TextRun({
+                text: match[1],
                 bold: true,
-                size: 24,
+                size: 22,
                 color: "1f2937"
-              })],
-              spacing: { after: 80 }
-            }));
-            continue;
-          }
-          
-          // Check for section headers and clean hashtags
-          const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
-                          /^[A-Z\s]{8,}$/.test(trimmedLine) ||
-                          trimmedLine.includes('ATTENDEES') ||
-                          trimmedLine.includes('OVERVIEW') ||
-                          trimmedLine.includes('CONTENT') ||
-                          trimmedLine.includes('DECISIONS') ||
-                          trimmedLine.includes('ACTION') ||
-                          trimmedLine.includes('RISKS') ||
-                          trimmedLine.includes('MEETING OVERVIEW') ||
-                          trimmedLine.includes('DETAILED MEETING');
-          
-          // Clean hashtags from headers
-          let cleanedLine = trimmedLine;
-          if (isHeader && /^[#]{1,4}\s/.test(trimmedLine)) {
-            cleanedLine = trimmedLine.replace(/^[#]{1,4}\s*/, '');
-          }
-          
-          // Handle inline bold markers within text
-          let processedText = cleanedLine; // Use cleaned line instead of trimmedLine
-          const parts = [];
-          let lastIndex = 0;
-          
-          // Find all **text** patterns (including single * patterns)
-          const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
-          let match;
-          
-          while ((match = boldRegex.exec(cleanedLine)) !== null) { // Use cleanedLine here too
-            // Add normal text before the bold part
-            if (match.index > lastIndex) {
-              const normalText = cleanedLine.substring(lastIndex, match.index);
-              if (normalText) {
+              }));
+              
+              lastIndex = match.index + match[0].length;
+            }
+            
+            // Add remaining normal text
+            if (lastIndex < cleanedLine.length) {
+              const remainingText = cleanedLine.substring(lastIndex);
+              if (remainingText) {
                 parts.push(new TextRun({
-                  text: normalText,
+                  text: remainingText,
                   size: 22,
                   color: "374151"
                 }));
               }
             }
             
-            // Add bold text
-            parts.push(new TextRun({
-              text: match[1],
-              bold: true,
-              size: 22,
-              color: "1f2937"
-            }));
-            
-            lastIndex = match.index + match[0].length;
-          }
-          
-          // Add remaining normal text
-          if (lastIndex < cleanedLine.length) { // Use cleanedLine here too
-            const remainingText = cleanedLine.substring(lastIndex);
-            if (remainingText) {
+            // If no bold parts found, use the whole cleaned line
+            if (parts.length === 0) {
               parts.push(new TextRun({
-                text: remainingText,
-                size: 22,
-                color: "374151"
+                text: cleanedLine,
+                size: isHeader ? 24 : 22,
+                bold: isHeader,
+                color: isHeader ? "1f2937" : "374151"
               }));
             }
-          }
-          
-          // If no bold parts found, use the whole cleaned line
-          if (parts.length === 0) {
-            parts.push(new TextRun({
-              text: cleanedLine, // Use cleanedLine instead of processedText
-              size: isHeader ? 24 : 22,
-              bold: isHeader,
-              color: isHeader ? "1f2937" : "374151"
+            
+            // Check for bullet points
+            const isBullet = cleanedLine.startsWith('-') || cleanedLine.startsWith('•');
+            
+            paragraphs.push(new Paragraph({
+              children: parts,
+              spacing: { 
+                after: isHeader ? 120 : (isBullet ? 40 : 60),
+                before: isHeader ? 160 : 0
+              },
+              indent: isBullet ? { left: 360 } : undefined
             }));
           }
-          
-          // Check for bullet points
-          const isBullet = cleanedLine.startsWith('-') || cleanedLine.startsWith('•'); // Use cleanedLine here too
-          
-          paragraphs.push(new Paragraph({
-            children: parts,
-            spacing: { 
-              after: isHeader ? 120 : (isBullet ? 40 : 60),
-              before: isHeader ? 160 : 0
-            },
-            indent: isBullet ? { left: 360 } : undefined
-          }));
         }
         
         return paragraphs;
