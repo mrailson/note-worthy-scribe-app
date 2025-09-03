@@ -263,6 +263,8 @@ export const useMeetingData = () => {
           user_id: user.id,
           setting_key: 'meeting_transcriber_preferences',
           setting_value: settingsToSave
+        }, {
+          onConflict: 'user_id,setting_key'
         });
 
       // Also save to localStorage as backup
