@@ -437,10 +437,53 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel } = await req.json();
+    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt } = await req.json();
 
     if (!transcript) {
       throw new Error('Transcript is required');
+    }
+
+    // If customPrompt is provided, use it directly with Claude
+    if (customPrompt) {
+      console.log('🎨 Using custom prompt for Style 5 - Poetic format');
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicApiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8192,
+          messages: [
+            { 
+              role: 'user', 
+              content: customPrompt
+            }
+          ]
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      const generatedNotes = data.content[0].text;
+      
+      console.log('✅ Custom prompt Style 5 generated successfully');
+      console.log('Generated notes preview:', generatedNotes.substring(0, 500));
+
+      return new Response(JSON.stringify({
+        meetingMinutes: generatedNotes,
+        generatedNotes: generatedNotes,
+        success: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const level = (detailLevel || 'standard').toString().toLowerCase();
