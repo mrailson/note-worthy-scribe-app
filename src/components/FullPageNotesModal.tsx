@@ -1745,14 +1745,14 @@ ${transcript}`;
         // Save to database
         await saveNoteStyleToDatabase(5, generatedContent);
         
-        toast.success("Meeting Notes Style 5 generated and saved successfully!");
+        toast.success("Minutes - Limerick generated and saved successfully!");
       } else {
         console.error('No content in response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('Error generating notes style 5:', error);
-      toast.error("Failed to generate Meeting Notes Style 5");
+      toast.error("Failed to generate Minutes - Limerick");
     } finally {
       setIsGeneratingStyle5(false);
     }
@@ -2222,7 +2222,7 @@ ${transcript}`;
                           Minutes - Executive
                         </TabsTrigger>
                         <TabsTrigger value="style5" className="text-xs sm:text-sm">
-                          Meeting Notes Style 5
+                          Minutes - Limerick
                         </TabsTrigger>
                       </TabsList>
 
@@ -2269,7 +2269,7 @@ ${transcript}`;
                                 case 'style2': return 'Minutes - Brief';
                                 case 'style3': return 'Minutes - Very Detailed';
                                 case 'style4': return 'Minutes - Executive';
-                                case 'style5': return 'Meeting Notes Style 5';
+                                case 'style5': return 'Minutes - Limerick';
                                 default: return 'Meeting Notes';
                               }
                             };
@@ -2510,7 +2510,7 @@ ${transcript}`;
                                 ) : (
                                   <>
                                     <Sparkles className="h-4 w-4" />
-                                    Generate Meeting Notes Style 5
+                                    Generate Minutes - Limerick
                                   </>
                                 )}
                               </Button>
