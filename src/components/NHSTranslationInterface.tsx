@@ -122,8 +122,9 @@ export const NHSTranslationInterface = () => {
     setCurrentSpeaker(speaker);
     setIsRecording(true);
     
-    const targetLang = speaker === 'gp' ? staffLanguage : patientLanguage === 'auto' ? 'en-GB' : patientLanguage;
-    const speechLang = LANGUAGES.find(lang => lang.code === targetLang)?.speechLang || 'en-GB';
+    // Set recognition language based on who is speaking
+    const recognitionLang = speaker === 'gp' ? 'en-GB' : (patientLanguage === 'auto' ? 'en-GB' : patientLanguage);
+    const speechLang = LANGUAGES.find(lang => lang.code === recognitionLang)?.speechLang || 'en-GB';
     
     recognitionRef.current.lang = speechLang;
     
@@ -132,11 +133,15 @@ export const NHSTranslationInterface = () => {
       setIsProcessing(true);
       
       try {
-        const sourceLang = speaker === 'gp' ? staffLanguage : patientLanguage === 'auto' ? 'en-GB' : patientLanguage;
-        const targetLang = speaker === 'gp' ? (patientLanguage === 'auto' ? 'en-GB' : patientLanguage) : staffLanguage;
+        // Automatic translation logic:
+        // GP always speaks English, translates to patient language
+        // Patient always speaks their language, translates to English
+        const sourceLang = speaker === 'gp' ? 'en-GB' : (patientLanguage === 'auto' ? 'en-GB' : patientLanguage);
+        const targetLang = speaker === 'gp' ? (patientLanguage === 'auto' ? 'en-GB' : patientLanguage) : 'en-GB';
         
         let translatedText = transcript;
-        if (sourceLang !== targetLang) {
+        // Only translate if languages are different and not auto-detect
+        if (sourceLang !== targetLang && patientLanguage !== 'auto') {
           translatedText = await translateText(transcript, sourceLang.split('-')[0], targetLang.split('-')[0]);
         }
         
@@ -152,13 +157,13 @@ export const NHSTranslationInterface = () => {
         
         setTranslations(prev => [...prev, newTranslation]);
         
-        // Speak the translation
-        if (sourceLang !== targetLang) {
+        // Automatically speak the translation (not the original)
+        if (sourceLang !== targetLang && patientLanguage !== 'auto') {
           const targetSpeechLang = LANGUAGES.find(lang => lang.code === targetLang)?.speechLang || 'en-GB';
           setTimeout(() => speakText(translatedText, targetSpeechLang), 500);
         }
         
-        toast.success('Translation completed');
+        toast.success(`${speaker === 'gp' ? 'GP' : 'Patient'} speech translated`);
       } catch (error) {
         console.error('Processing error:', error);
         toast.error('Failed to process speech');
@@ -199,11 +204,13 @@ export const NHSTranslationInterface = () => {
   const handleEmergencyPhrase = async (phrase: string) => {
     setIsProcessing(true);
     try {
+      // Emergency phrases are always from GP (English) to patient language
+      const sourceLang = 'en-GB';
       const targetLang = patientLanguage === 'auto' ? 'en-GB' : patientLanguage;
       let translatedText = phrase;
       
-      if (staffLanguage !== targetLang) {
-        translatedText = await translateText(phrase, staffLanguage.split('-')[0], targetLang.split('-')[0]);
+      if (sourceLang !== targetLang && patientLanguage !== 'auto') {
+        translatedText = await translateText(phrase, sourceLang.split('-')[0], targetLang.split('-')[0]);
       }
       
       const newTranslation: TranslationEntry = {
@@ -211,20 +218,20 @@ export const NHSTranslationInterface = () => {
         speaker: 'gp',
         originalText: phrase,
         translatedText,
-        originalLanguage: staffLanguage,
+        originalLanguage: sourceLang,
         targetLanguage: targetLang,
         timestamp: new Date()
       };
       
       setTranslations(prev => [...prev, newTranslation]);
       
-      // Speak the translation
-      if (staffLanguage !== targetLang) {
+      // Speak the translation automatically
+      if (sourceLang !== targetLang && patientLanguage !== 'auto') {
         const targetSpeechLang = LANGUAGES.find(lang => lang.code === targetLang)?.speechLang || 'en-GB';
         setTimeout(() => speakText(translatedText, targetSpeechLang), 500);
       }
       
-      toast.success('Emergency phrase translated');
+      toast.success('Emergency phrase translated to patient language');
     } catch (error) {
       console.error('Emergency phrase error:', error);
       toast.error('Failed to translate emergency phrase');
@@ -266,19 +273,14 @@ export const NHSTranslationInterface = () => {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Staff Language</label>
-              <Select value={staffLanguage} onValueChange={setStaffLanguage}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium mb-2">GP/Staff Language (Fixed)</label>
+              <div className="flex items-center p-3 border rounded-md bg-muted">
+                <span className="text-lg">🇬🇧 English (UK)</span>
+                <Badge variant="secondary" className="ml-2">GP Default</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                GP always speaks English - automatically translates to patient language
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Patient Language</label>
@@ -288,13 +290,16 @@ export const NHSTranslationInterface = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto">🔄 Auto Detect</SelectItem>
-                  {LANGUAGES.map((lang) => (
+                  {LANGUAGES.filter(lang => lang.code !== 'en-GB').map((lang) => (
                     <SelectItem key={lang.code} value={lang.code}>
                       {lang.flag} {lang.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Patient speech automatically translates to English
+              </p>
             </div>
           </div>
         </CardContent>
@@ -322,7 +327,10 @@ export const NHSTranslationInterface = () => {
                 )}
                 <span>🩺 GP/STAFF</span>
                 <span className="text-sm opacity-90">
-                  {isRecording && currentSpeaker === 'gp' ? 'Recording...' : 'Press & Hold to Speak'}
+                  {isRecording && currentSpeaker === 'gp' 
+                    ? 'Recording English...' 
+                    : 'English → Patient Language'
+                  }
                 </span>
               </div>
             </Button>
@@ -349,7 +357,10 @@ export const NHSTranslationInterface = () => {
                 )}
                 <span>👤 PATIENT</span>
                 <span className="text-sm opacity-90">
-                  {isRecording && currentSpeaker === 'patient' ? 'Recording...' : 'Press & Hold to Speak'}
+                  {isRecording && currentSpeaker === 'patient' 
+                    ? `Recording ${getLanguageName(patientLanguage)}...` 
+                    : 'Patient Language → English'
+                  }
                 </span>
               </div>
             </Button>
