@@ -238,7 +238,14 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
   };
 
   const stopRecording = () => {
+    console.log('🛑 stopRecording called', { 
+      recorderState: mediaRecorderRef.current?.state,
+      currentMeetingId,
+      isRecording
+    });
+    
     if (mediaRecorderRef.current?.state === 'recording') {
+      console.log('⏹️ Stopping MediaRecorder...');
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setRecordingState(false); // Notify global recording context
@@ -248,13 +255,21 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         intervalRef.current = null;
       }
 
+      console.log('🔄 Setting processing status and calling processRecordingBasic...');
       setProcessingStatus('processing');
       processRecordingBasic();
+    } else {
+      console.log('⚠️ MediaRecorder not in recording state:', mediaRecorderRef.current?.state);
     }
   };
 
   const processRecordingBasic = async () => {
-    if (!currentMeetingId) return;
+    console.log('🔄 processRecordingBasic called', { currentMeetingId, recordingTime });
+    
+    if (!currentMeetingId) {
+      console.error('❌ No currentMeetingId found, cannot process recording');
+      return;
+    }
 
     try {
       console.log('🔄 Starting recording processing for meeting:', currentMeetingId);
