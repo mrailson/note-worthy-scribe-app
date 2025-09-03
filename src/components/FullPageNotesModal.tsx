@@ -1659,7 +1659,10 @@ ${transcript}`;
   };
 
   const generateNotesStyle5 = async () => {
+    console.log('🎭 Starting limerick generation...');
+    
     if (!meeting?.id || !transcript) {
+      console.error('❌ Missing required data:', { meetingId: meeting?.id, hasTranscript: !!transcript });
       toast.error("No transcript available to generate notes");
       return;
     }
@@ -1722,6 +1725,9 @@ Here is the meeting transcript to process:
 
 ${transcript}`;
 
+      console.log('📝 Limerick prompt created, length:', style5Prompt.length);
+      console.log('🚀 Calling Supabase function...');
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcript,
@@ -1736,10 +1742,18 @@ ${transcript}`;
         }
       });
 
-      if (error) throw error;
+      console.log('📋 Function response:', { data: !!data, error: !!error });
+
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw error;
+      }
 
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
+        console.log('✅ Limerick generated, length:', generatedContent.length);
+        console.log('🎭 Limerick preview:', generatedContent.substring(0, 200));
+        
         setNotesStyle5(generatedContent);
         
         // Save to database
@@ -1747,13 +1761,14 @@ ${transcript}`;
         
         toast.success("Minutes - Limerick generated and saved successfully!");
       } else {
-        console.error('No content in response:', data);
+        console.error('❌ No content in response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('Error generating notes style 5:', error);
+      console.error('❌ Error generating limerick:', error);
       toast.error("Failed to generate Minutes - Limerick");
     } finally {
+      console.log('🏁 Limerick generation finished');
       setIsGeneratingStyle5(false);
     }
   };
