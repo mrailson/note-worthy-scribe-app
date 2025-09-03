@@ -87,7 +87,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
+  const [notesStyle4, setNotesStyle4] = useState("");
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
+  const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
+  const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
@@ -1672,7 +1675,7 @@ ${transcript}`;
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
-                      <TabsList className="grid w-full grid-cols-3 mb-4">
+                      <TabsList className="grid w-full grid-cols-4 mb-4">
                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
                           Meeting Notes Style 1
                         </TabsTrigger>
@@ -1681,6 +1684,9 @@ ${transcript}`;
                         </TabsTrigger>
                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
                           Meeting Notes Style 3
+                        </TabsTrigger>
+                        <TabsTrigger value="style4" className="text-xs sm:text-sm">
+                          Meeting Notes Style 4
                         </TabsTrigger>
                       </TabsList>
 
@@ -1790,6 +1796,14 @@ ${transcript}`;
                         <div className="flex items-center justify-center h-32">
                           <p className="text-muted-foreground text-center">
                             Meeting Notes Style 3 will be available soon
+                          </p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
+                        <div className="flex items-center justify-center h-32">
+                          <p className="text-muted-foreground text-center">
+                            Meeting Notes Style 4 will be available soon
                           </p>
                         </div>
                       </TabsContent>
