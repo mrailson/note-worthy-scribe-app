@@ -1241,7 +1241,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
   const generateNotesStyle2 = async () => {
+    console.log('📄 Starting Minutes - Very Detailed regeneration...');
+    
     if (!meeting?.id || !transcript) {
+      console.error('❌ Missing required data for Very Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
       toast.error("No transcript available to generate notes");
       return;
     }
@@ -1316,6 +1319,9 @@ Here is the meeting transcript to process:
 
 ${transcript}`;
 
+      console.log('📝 Very Detailed prompt created, length:', style2Prompt.length);
+      console.log('🚀 Calling Very Detailed generation...');
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcript,
@@ -1330,10 +1336,13 @@ ${transcript}`;
         }
       });
 
+      console.log('📋 Very Detailed response:', { data: !!data, error: !!error });
+
       if (error) throw error;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
+        console.log('✅ Very Detailed notes generated, length:', generatedContent.length);
         setNotesStyle2(generatedContent);
         
         // Save to database
@@ -1341,19 +1350,23 @@ ${transcript}`;
         
         toast.success("Minutes - Very Detailed generated and saved successfully!");
       } else {
-        console.error('No content in response:', data);
+        console.error('❌ No content in Very Detailed response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('Error generating notes style 2:', error);
+      console.error('❌ Error generating Very Detailed notes:', error);
       toast.error("Failed to generate Minutes - Very Detailed");
     } finally {
+      console.log('🏁 Very Detailed generation finished');
       setIsGeneratingStyle2(false);
     }
   };
 
   const generateNotesStyle3 = async () => {
+    console.log('📋 Starting Minutes - Detailed regeneration...');
+    
     if (!meeting?.id || !transcript) {
+      console.error('❌ Missing required data for Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
       toast.error("No transcript available to generate notes");
       return;
     }
@@ -1491,6 +1504,9 @@ Here is the meeting transcript to process:
 
 ${transcript}`;
 
+      console.log('📝 Detailed prompt created, length:', style3Prompt.length);
+      console.log('🚀 Calling Detailed generation...');
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcript,
@@ -1502,10 +1518,13 @@ ${transcript}`;
         }
       });
 
+      console.log('📋 Detailed response:', { data: !!data, error: !!error });
+
       if (error) throw error;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
         let generatedContent = data.meetingMinutes || data.generatedNotes;
+        console.log('✅ Detailed notes generated, length:', generatedContent.length);
         
         // POST-PROCESSING CLEANUP: Remove any unwanted header text
         // Remove "Meeting - Date Not Specified" and "MINUTES" from the beginning
@@ -1530,19 +1549,23 @@ ${transcript}`;
         
         toast.success("Meeting Notes Style 3 generated and saved successfully!");
       } else {
-        console.error('No content in response:', data);
+        console.error('❌ No content in Detailed response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('Error generating notes style 3:', error);
+      console.error('❌ Error generating Detailed notes:', error);
       toast.error("Failed to generate Meeting Notes Style 3");
     } finally {
+      console.log('🏁 Detailed generation finished');
       setIsGeneratingStyle3(false);
     }
   };
 
   const generateNotesStyle4 = async () => {
+    console.log('💼 Starting Minutes - Executive regeneration...');
+    
     if (!meeting?.id || !transcript) {
+      console.error('❌ Missing required data for Executive:', { meetingId: meeting?.id, hasTranscript: !!transcript });
       toast.error("No transcript available to generate notes");
       return;
     }
@@ -1622,6 +1645,9 @@ Here is the PCN meeting transcript to process:
 
 ${transcript}`;
 
+      console.log('📝 Executive prompt created, length:', style4Prompt.length);
+      console.log('🚀 Calling Executive generation...');
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcript,
@@ -1636,10 +1662,13 @@ ${transcript}`;
         }
       });
 
+      console.log('📋 Executive response:', { data: !!data, error: !!error });
+
       if (error) throw error;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
+        console.log('✅ Executive notes generated, length:', generatedContent.length);
         setNotesStyle4(generatedContent);
         
         // Save to database
@@ -1647,13 +1676,14 @@ ${transcript}`;
         
         toast.success("Minutes - Executive generated and saved successfully!");
       } else {
-        console.error('No content in response:', data);
+        console.error('❌ No content in Executive response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('Error generating notes style 4:', error);
+      console.error('❌ Error generating Executive notes:', error);
       toast.error("Failed to generate Minutes - Executive");
     } finally {
+      console.log('🏁 Executive generation finished');
       setIsGeneratingStyle4(false);
     }
   };
