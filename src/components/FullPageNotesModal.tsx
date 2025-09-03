@@ -200,6 +200,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  // Call loadExistingNoteStyles when modal opens and meeting data is available
+  useEffect(() => {
+    if (isOpen && meeting?.id && user?.id) {
+      loadExistingNoteStyles();
+    }
+  }, [isOpen, meeting?.id, user?.id]);
+
   // Save note style to database
   const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
     if (!meeting?.id || !user?.id || !content.trim()) return;
@@ -1373,6 +1380,69 @@ ${transcript}`;
     }
   };
 
+  const generateNotesStyle4 = async () => {
+    if (!meeting?.id || !transcript) {
+      toast.error("No transcript available to generate notes");
+      return;
+    }
+
+    setIsGeneratingStyle4(true);
+    try {
+      const style4Prompt = `You are creating a very short update for GP Partners who did not attend a PCN or Partnership meeting.
+
+Requirements:
+- Length: no more than 4–6 bullet points, readable in 30 seconds.  
+- Tone: clear, professional, and suitable for busy GP Partners.  
+- Focus only on high-level items that directly matter to practices:
+   • Money and finance (funding, reimbursements, overspends, savings)  
+   • Operational updates (staffing, access, new services, ICB changes)  
+   • Key decisions agreed (yes/no outcomes, not full debates)  
+- Do NOT include transcript detail, case studies, or side discussions.  
+- Each bullet point should be one crisp sentence.  
+- End with any agreed next steps if mentioned.
+
+The final output should look like a short "PCN Partner Update" email or WhatsApp message — concise, factual, and focused on what was agreed.
+
+Here is the transcript to process:
+
+${transcript}`;
+
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+        body: {
+          transcript: transcript,
+          meetingTitle: meeting.title,
+          meetingDate: new Date().toLocaleDateString('en-GB'),
+          meetingTime: new Date().toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          detailLevel: 'standard',
+          customPrompt: style4Prompt
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.meetingMinutes || data?.generatedNotes) {
+        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        setNotesStyle4(generatedContent);
+        
+        // Save to database
+        await saveNoteStyleToDatabase(4, generatedContent);
+        
+        toast.success("Meeting Notes Style 4 generated and saved successfully!");
+      } else {
+        console.error('No content in response:', data);
+        toast.error("No content generated - please try again");
+      }
+    } catch (error) {
+      console.error('Error generating notes style 4:', error);
+      toast.error("Failed to generate Meeting Notes Style 4");
+    } finally {
+      setIsGeneratingStyle4(false);
+    }
+  };
+
   const generateAndSaveOverview = async (meetingNotes: string) => {
     if (!meeting?.id) return;
     
@@ -1997,10 +2067,58 @@ ${transcript}`;
                       </TabsContent>
                       
                       <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
-                        <div className="flex items-center justify-center h-32">
-                          <p className="text-muted-foreground text-center">
-                            Meeting Notes Style 4 will be available soon
-                          </p>
+                        <div className="space-y-4">
+                          {!notesStyle4 ? (
+                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                              <p className="text-muted-foreground text-center">
+                                Generate a concise GP Partner update with key decisions and finance highlights
+                              </p>
+                              <Button
+                                onClick={generateNotesStyle4}
+                                disabled={isGeneratingStyle4 || !transcript}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle4 ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    Generating Style 4...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Meeting Notes Style 4
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">GP Partner update format</p>
+                                <Button
+                                  onClick={generateNotesStyle4}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGeneratingStyle4}
+                                  className="gap-2"
+                                >
+                                  {isGeneratingStyle4 ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
                     </Tabs>
