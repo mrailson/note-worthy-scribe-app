@@ -1968,13 +1968,13 @@ ${transcript}`;
                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
                       <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-4">
                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
-                          Meeting Notes Style 1
+                          Meeting Notes Style 3
                         </TabsTrigger>
                         <TabsTrigger value="style2" className="text-xs sm:text-sm">
                           Meeting Notes Style 2
                         </TabsTrigger>
                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                          Meeting Notes Style 3
+                          Meeting Notes Style 1
                         </TabsTrigger>
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
                           Meeting Notes Style 4
