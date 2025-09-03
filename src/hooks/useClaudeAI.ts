@@ -62,7 +62,7 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
             meetingFormat: meetingData.meetingFormat || '',
             meetingLocation: meetingData.meetingLocation || ''
           },
-          customInstruction: customInstruction || undefined
+          customPrompt: customInstruction || undefined
         }
       });
 
