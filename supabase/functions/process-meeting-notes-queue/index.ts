@@ -73,16 +73,59 @@ const handler = async (req: Request): Promise<Response> => {
           .update({ status: 'processing', updated_at: new Date().toISOString() })
           .eq('id', item.id);
 
-        // Call the auto-generate-meeting-notes function
-        const { data: functionResult, error: functionError } = await supabase.functions.invoke(
-          'auto-generate-meeting-notes',
-          {
-            body: { 
-              meetingId: item.meeting_id,
-              forceRegenerate: false
+        // Get meeting details for multi-type generation
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('title, created_at')
+          .eq('id', item.meeting_id)
+          .single();
+
+        if (meetingError) {
+          throw new Error(`Failed to fetch meeting: ${meetingError.message}`);
+        }
+
+        // Get transcript
+        const { data: transcriptData, error: transcriptError } = await supabase
+          .rpc('get_meeting_full_transcript', { p_meeting_id: item.meeting_id });
+
+        if (transcriptError || !transcriptData?.[0]?.transcript) {
+          throw new Error(`Failed to fetch transcript: ${transcriptError?.message || 'No transcript found'}`);
+        }
+
+        // Check if this is part of a batch (multi-type generation)
+        const { data: batchItems, error: batchError } = await supabase
+          .from('meeting_notes_queue')
+          .select('*')
+          .eq('batch_id', item.batch_id)
+          .eq('status', 'pending');
+
+        if (item.batch_id && batchItems && batchItems.length > 1) {
+          // This is a multi-type batch, call the new function
+          const { data: functionResult, error: functionError } = await supabase.functions.invoke(
+            'generate-multi-type-notes',
+            {
+              body: { 
+                meetingId: item.meeting_id,
+                batchId: item.batch_id,
+                transcript: transcriptData[0].transcript,
+                meetingTitle: meeting.title,
+                meetingDate: new Date(meeting.created_at).toLocaleDateString(),
+                meetingTime: new Date(meeting.created_at).toLocaleTimeString()
+              }
             }
-          }
-        );
+          );
+        } else {
+          // Single note generation (legacy support)
+          const { data: functionResult, error: functionError } = await supabase.functions.invoke(
+            'auto-generate-meeting-notes',
+            {
+              body: { 
+                meetingId: item.meeting_id,
+                forceRegenerate: false
+              }
+            }
+          );
+        }
 
         if (functionError) {
           console.error(`Error calling auto-generate function for meeting ${item.meeting_id}:`, functionError);

@@ -2841,9 +2841,49 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_notes_multi: {
+        Row: {
+          content: string
+          created_at: string | null
+          generated_at: string | null
+          id: string
+          meeting_id: string
+          model_used: string | null
+          note_type: string
+          processing_time_ms: number | null
+          token_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          meeting_id: string
+          model_used?: string | null
+          note_type: string
+          processing_time_ms?: number | null
+          token_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          meeting_id?: string
+          model_used?: string | null
+          note_type?: string
+          processing_time_ms?: number | null
+          token_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       meeting_notes_queue: {
         Row: {
           attempts: number
+          batch_id: string | null
           completed_at: string | null
           created_at: string
           detail_level: string
@@ -2852,14 +2892,19 @@ export type Database = {
           last_processed_at: string | null
           max_attempts: number
           meeting_id: string
+          note_type: string | null
           priority: number
+          processing_model: string | null
+          processing_time_ms: number | null
           retry_count: number | null
           started_at: string | null
           status: string
+          token_count: number | null
           updated_at: string
         }
         Insert: {
           attempts?: number
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string
           detail_level?: string
@@ -2868,14 +2913,19 @@ export type Database = {
           last_processed_at?: string | null
           max_attempts?: number
           meeting_id: string
+          note_type?: string | null
           priority?: number
+          processing_model?: string | null
+          processing_time_ms?: number | null
           retry_count?: number | null
           started_at?: string | null
           status?: string
+          token_count?: number | null
           updated_at?: string
         }
         Update: {
           attempts?: number
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string
           detail_level?: string
@@ -2884,10 +2934,14 @@ export type Database = {
           last_processed_at?: string | null
           max_attempts?: number
           meeting_id?: string
+          note_type?: string | null
           priority?: number
+          processing_model?: string | null
+          processing_time_ms?: number | null
           retry_count?: number | null
           started_at?: string | null
           status?: string
+          token_count?: number | null
           updated_at?: string
         }
         Relationships: [
