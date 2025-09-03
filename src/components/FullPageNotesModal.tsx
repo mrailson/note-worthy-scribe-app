@@ -1645,14 +1645,14 @@ ${transcript}`;
         // Save to database
         await saveNoteStyleToDatabase(4, generatedContent);
         
-        toast.success("Meeting Notes Style 4 generated and saved successfully!");
+        toast.success("Minutes - Executive generated and saved successfully!");
       } else {
         console.error('No content in response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('Error generating notes style 4:', error);
-      toast.error("Failed to generate Meeting Notes Style 4");
+      toast.error("Failed to generate Minutes - Executive");
     } finally {
       setIsGeneratingStyle4(false);
     }
@@ -2185,7 +2185,7 @@ ${transcript}`;
                           Minutes - Very Detailed
                         </TabsTrigger>
                         <TabsTrigger value="style4" className="text-xs sm:text-sm">
-                          Meeting Notes Style 4
+                          Minutes - Executive
                         </TabsTrigger>
                         <TabsTrigger value="style5" className="text-xs sm:text-sm">
                           Meeting Notes Style 5
@@ -2234,7 +2234,7 @@ ${transcript}`;
                                 case 'style1': return 'Minutes - Detailed';
                                 case 'style2': return 'Minutes - Brief';
                                 case 'style3': return 'Minutes - Very Detailed';
-                                case 'style4': return 'Meeting Notes Style 4';
+                                case 'style4': return 'Minutes - Executive';
                                 case 'style5': return 'Meeting Notes Style 5';
                                 default: return 'Meeting Notes';
                               }
@@ -2454,7 +2454,7 @@ ${transcript}`;
                                 ) : (
                                   <>
                                     <Sparkles className="h-4 w-4" />
-                                    Generate Meeting Notes Style 4
+                                    Generate Minutes - Executive
                                   </>
                                 )}
                               </Button>
