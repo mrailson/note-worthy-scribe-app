@@ -1815,8 +1815,44 @@ const MeetingHistory = () => {
               )}
             </div>
 
-            {/* Delete actions */}
+            {/* Merge and Delete actions */}
             <div className="flex gap-2">
+              {isSelectMode && selectedMeetings.length >= 2 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Merge Selected ({selectedMeetings.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="mx-4 max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Merge Selected Meetings</AlertDialogTitle>
+                      <AlertDialogDescription className="text-sm">
+                        This will combine {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be merged chronologically. Secondary meetings will be deleted after merging.
+                        <br /><br />
+                        New meeting notes will be generated automatically.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleMergeMeetings}
+                        className="touch-manipulation min-h-[44px]"
+                      >
+                        Merge Meetings
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
               {isSelectMode && selectedMeetings.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
