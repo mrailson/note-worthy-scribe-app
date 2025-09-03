@@ -210,37 +210,38 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
             <TabsTrigger value="documents">Documents & Files</TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="max-h-[400px] mt-4">
-            <TabsContent value="details" className="space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <Label htmlFor="title">Meeting Name</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="Enter meeting name"
-                  />
-                </div>
+          <div className="mt-4">
+            <TabsContent value="details" className="space-y-4 overflow-hidden">
+              <ScrollArea className="max-h-[400px] pr-4">
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="title">Meeting Name</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      placeholder="Enter meeting name"
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor="meeting_type">Meeting Type</Label>
-                  <Select 
-                    value={formData.meeting_type} 
-                    onValueChange={(value) => handleInputChange('meeting_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MEETING_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div>
+                    <Label htmlFor="meeting_type">Meeting Type</Label>
+                    <Select 
+                      value={formData.meeting_type} 
+                      onValueChange={(value) => handleInputChange('meeting_type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[10000]">
+                        {MEETING_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                 <div>
                   <Label htmlFor="description">Description</Label>
@@ -274,10 +275,13 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
                     rows={6}
                   />
                 </div>
-              </div>
+                </div>
+              </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="documents" className="space-y-4">
+            <TabsContent value="documents" className="space-y-4 overflow-hidden">
+              <ScrollArea className="max-h-[400px] pr-4">
+                <div className="space-y-4">
               <div>
                 <Label>Upload Documents</Label>
                 <div className="mt-2">
@@ -341,17 +345,19 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
                 </div>
               )}
 
-              <div>
-                <Label>Paste Content</Label>
-                <Textarea
-                  placeholder="Paste agenda, attendee list, or other meeting context here..."
-                  rows={8}
-                  value={formData.agenda}
-                  onChange={(e) => handleInputChange('agenda', e.target.value)}
-                />
-              </div>
+                <div>
+                  <Label>Paste Content</Label>
+                  <Textarea
+                    placeholder="Paste agenda, attendee list, or other meeting context here..."
+                    rows={8}
+                    value={formData.agenda}
+                    onChange={(e) => handleInputChange('agenda', e.target.value)}
+                  />
+                </div>
+                </div>
+              </ScrollArea>
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
 
         <DialogFooter>
