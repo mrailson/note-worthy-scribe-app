@@ -36,6 +36,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { toast } = useToast();
+  const { setRecordingState } = useRecording();
 
   const mockMeetingSettings = {
     title: '',
