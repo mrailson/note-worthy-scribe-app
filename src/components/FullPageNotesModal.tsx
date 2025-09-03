@@ -84,6 +84,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [customInstruction, setCustomInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
+  const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
+  const [notesStyle2, setNotesStyle2] = useState("");
+  const [notesStyle3, setNotesStyle3] = useState("");
+  const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
@@ -1156,6 +1160,58 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  const generateNotesStyle2 = async () => {
+    if (!meeting?.id || !transcript) {
+      toast.error("No transcript available to generate notes");
+      return;
+    }
+
+    setIsGeneratingStyle2(true);
+    try {
+      const style2Prompt = `You are creating professional meeting minutes from a transcript.
+
+Format the output as follows:
+
+- Present a clear **itemised summary** of each point discussed.  
+- Under each item, capture **any decision made** (e.g., "Decision: Agreed to give staff a pay rise").  
+- Do not label items as "actions" unless explicitly discussed; just record the decision clearly.  
+- Avoid repetition – if a topic is repeated, summarise it once in the most concise way.  
+- Highlight **important information shared** during the meeting, even if no decision was made.  
+- Do not force a fixed agenda structure – adapt to the flow of the conversation, as all meetings are different.  
+- An overview at the start is optional: include only if the transcript naturally lends itself to a short one-paragraph context.  
+- Do not add a second action table or appendix unless explicitly requested.  
+
+The final output should look like professional minutes:  
+1. Itemised points (one per discussion topic).  
+2. Clearly marked **Decisions** when they occurred.  
+3. Concise, factual, non-repetitive writing.
+
+Here is the transcript to process:
+
+${transcript}`;
+
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+        body: {
+          meetingId: meeting.id,
+          customPrompt: style2Prompt,
+          regenerate: true
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.meetingMinutes) {
+        setNotesStyle2(data.meetingMinutes);
+        toast.success("Meeting Notes Style 2 generated successfully!");
+      }
+    } catch (error) {
+      console.error('Error generating notes style 2:', error);
+      toast.error("Failed to generate Meeting Notes Style 2");
+    } finally {
+      setIsGeneratingStyle2(false);
+    }
+  };
+
   const generateAndSaveOverview = async (meetingNotes: string) => {
     if (!meeting?.id) return;
     
@@ -1629,26 +1685,107 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-auto px-6 pb-6">
-                    {isEditing ? (
-                      <Textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="h-full w-full font-mono text-sm resize-none"
-                        placeholder="Meeting notes will appear here..."
-                      />
-                    ) : (
-                      <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                        <div 
-                          dangerouslySetInnerHTML={{ 
-                            __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
-                          }}
-                        />
-                      </div>
-                    )}
+                  {/* Sub-tabs for different meeting notes styles */}
+                  <div className="flex-1 overflow-hidden px-6">
+                    <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
+                      <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <TabsTrigger value="style1" className="text-xs sm:text-sm">
+                          Meeting Notes Style 1
+                        </TabsTrigger>
+                        <TabsTrigger value="style2" className="text-xs sm:text-sm">
+                          Meeting Notes Style 2
+                        </TabsTrigger>
+                        <TabsTrigger value="style3" className="text-xs sm:text-sm">
+                          Meeting Notes Style 3
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
+                        {isEditing ? (
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="h-full w-full font-mono text-sm resize-none"
+                            placeholder="Meeting notes will appear here..."
+                          />
+                        ) : (
+                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                            <div 
+                              dangerouslySetInnerHTML={{ 
+                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
+                              }}
+                            />
+                          </div>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
+                        <div className="space-y-4">
+                          {!notesStyle2 ? (
+                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                              <p className="text-muted-foreground text-center">
+                                Generate professional meeting minutes with itemized summary and clear decisions
+                              </p>
+                              <Button
+                                onClick={generateNotesStyle2}
+                                disabled={isGeneratingStyle2 || !transcript}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle2 ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    Generating Style 2...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Meeting Notes Style 2
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Professional meeting minutes format</p>
+                                <Button
+                                  onClick={generateNotesStyle2}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGeneratingStyle2}
+                                  className="gap-2"
+                                >
+                                  {isGeneratingStyle2 ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: renderNHSMarkdown(notesStyle2, { enableNHSStyling: true })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
+                        <div className="flex items-center justify-center h-32">
+                          <p className="text-muted-foreground text-center">
+                            Meeting Notes Style 3 will be available soon
+                          </p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                 </div>
-               </TabsContent>
+                </div>
+              </TabsContent>
                
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
