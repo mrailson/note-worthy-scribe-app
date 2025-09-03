@@ -89,7 +89,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [customInstruction, setCustomInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
-  const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
+  const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style3");
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
@@ -2012,22 +2012,59 @@ ${transcript}`;
                       </div>
                       
                       <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
-                        {isEditing ? (
-                          <Textarea
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="h-full w-full font-mono text-sm resize-none"
-                            placeholder="Meeting notes will appear here..."
-                          />
-                        ) : (
-                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                            <div 
-                              dangerouslySetInnerHTML={{ 
-                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
-                              }}
-                            />
-                          </div>
-                        )}
+                        <div className="space-y-4">
+                          {!notesStyle3 ? (
+                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                              <p className="text-muted-foreground text-center">
+                                Generate formal NHS-style meeting minutes with structured agenda and detailed sections
+                              </p>
+                              <Button
+                                onClick={generateNotesStyle3}
+                                disabled={isGeneratingStyle3 || !transcript}
+                                className="gap-2"
+                              >
+                                {isGeneratingStyle3 ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    Generating Style 1...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Meeting Notes Style 1
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">Formal NHS-style meeting minutes</p>
+                                <Button
+                                  onClick={generateNotesStyle3}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isGeneratingStyle3}
+                                  className="gap-2"
+                                >
+                                  {isGeneratingStyle3 ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                              </div>
+                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                <div 
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </TabsContent>
                       
                       <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
@@ -2087,59 +2124,22 @@ ${transcript}`;
                       </TabsContent>
                       
                       <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
-                        <div className="space-y-4">
-                          {!notesStyle3 ? (
-                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                              <p className="text-muted-foreground text-center">
-                                Generate formal NHS-style meeting minutes with structured agenda and detailed sections
-                              </p>
-                              <Button
-                                onClick={generateNotesStyle3}
-                                disabled={isGeneratingStyle3 || !transcript}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle3 ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                    Generating Style 3...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Meeting Notes Style 3
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Formal NHS-style meeting minutes</p>
-                                <Button
-                                  onClick={generateNotesStyle3}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isGeneratingStyle3}
-                                  className="gap-2"
-                                >
-                                  {isGeneratingStyle3 ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
-                              </div>
-                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        {isEditing ? (
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="h-full w-full font-mono text-sm resize-none"
+                            placeholder="Meeting notes will appear here..."
+                          />
+                        ) : (
+                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                            <div 
+                              dangerouslySetInnerHTML={{ 
+                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
+                              }}
+                            />
+                          </div>
+                        )}
                       </TabsContent>
                       
                       <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
