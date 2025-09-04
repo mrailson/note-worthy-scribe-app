@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
+import { ManualCQCReportGenerator } from '@/components/ManualCQCReportGenerator';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -621,6 +622,16 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                 </Button>
               )}
             </div>
+
+            {/* CQC Compliance Report Section */}
+            {decision && (
+              <div className="pt-4 border-t">
+                <ManualCQCReportGenerator 
+                  complaintId={complaintId}
+                  complaintReference={complaintReferenceNumber}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
