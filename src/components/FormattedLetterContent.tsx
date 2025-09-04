@@ -7,8 +7,14 @@ interface FormattedLetterContentProps {
 
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ content }) => {
   // Extract practice logo URL from HTML comment if present
-  const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+)\s*-->/);
+  const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
+  
+  console.log('FormattedLetterContent debug:', {
+    contentStart: content.substring(0, 200),
+    logoUrlMatch,
+    logoUrl
+  });
   
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
@@ -95,8 +101,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
             src={logoUrl}
             alt="Practice Logo" 
             className="h-24 w-auto mx-auto object-contain"
+            onLoad={() => console.log('Logo loaded successfully:', logoUrl)}
             onError={(e) => {
-              console.error('Logo failed to load:', logoUrl);
+              console.error('Logo failed to load:', logoUrl, e);
               e.currentTarget.style.display = 'none';
             }}
           />

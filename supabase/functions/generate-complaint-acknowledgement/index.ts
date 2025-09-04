@@ -89,17 +89,25 @@ serve(async (req) => {
         practiceDetails = userPractice.practice_details;
         console.log('Retrieved practice details from user roles:', practiceDetails);
       } else {
-        console.log('Fallback: fetching practice details directly');
+        console.log('Fallback: fetching practice details directly by practice name');
         const { data: directPractice } = await supabase
           .from('practice_details')
-          .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
-          .eq('user_id', complaint.created_by)
+          .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
+          .eq('practice_name', 'Oak Lane Medical Practice')
+          .order('updated_at', { ascending: false })
           .limit(1)
           .single();
         
         if (directPractice) {
           practiceDetails = directPractice;
-          console.log('Retrieved practice details directly:', practiceDetails);
+          console.log('Retrieved practice details directly (latest):', {
+            practice_name: practiceDetails.practice_name,
+            logo_url: practiceDetails.logo_url,
+            practice_logo_url: practiceDetails.practice_logo_url,
+            updated_at: practiceDetails.updated_at
+          });
+        } else {
+          console.log('No practice details found by name');
         }
       }
     }
