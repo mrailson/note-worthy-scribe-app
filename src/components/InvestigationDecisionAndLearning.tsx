@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen } from 'lucide-react';
+import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,10 +38,37 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
   const [generatingDecision, setGeneratingDecision] = useState(false);
   const [generatingReasoning, setGeneratingReasoning] = useState(false);
   const [generatingLessons, setGeneratingLessons] = useState(false);
+  const [generatingOutcomeLetter, setGeneratingOutcomeLetter] = useState(false);
+  const [outcomeLetter, setOutcomeLetter] = useState<string>('');
+  const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
+  const [editingOutcomeLetter, setEditingOutcomeLetter] = useState(false);
+  const [editedOutcomeLetter, setEditedOutcomeLetter] = useState<string>('');
+  const [savingOutcomeLetter, setSavingOutcomeLetter] = useState(false);
+  const [existingOutcome, setExistingOutcome] = useState<any>(null);
 
   useEffect(() => {
     fetchInvestigationDecision();
+    fetchExistingOutcome();
   }, [complaintId]);
+
+  const fetchExistingOutcome = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('complaint_outcomes')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setExistingOutcome(data);
+        setOutcomeLetter(data.outcome_letter || '');
+      }
+    } catch (error) {
+      console.error('Error fetching existing outcome:', error);
+    }
+  };
 
   const fetchInvestigationDecision = async () => {
     try {
@@ -225,6 +253,199 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
     }
   };
 
+  const generateOutcomeLetter = async () => {
+    if (!decision) return;
+
+    setGeneratingOutcomeLetter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-complaint-outcome-letter', {
+        body: {
+          complaintId,
+          outcomeType: decision.decision_type,
+          outcomeSummary: decision.decision_reasoning
+        }
+      });
+
+      if (error) throw error;
+
+      if (data && data.outcomeLetter) {
+        const newOutcomeLetter = data.outcomeLetter;
+        setOutcomeLetter(newOutcomeLetter);
+        
+        // Save to database and create audit log
+        await saveOutcomeLetterToDatabase(newOutcomeLetter, true);
+        
+        setShowOutcomeLetter(true);
+        toast.success('Outcome letter generated successfully');
+      } else {
+        throw new Error('No outcome letter generated');
+      }
+    } catch (error) {
+      console.error('Error generating outcome letter:', error);
+      toast.error('Failed to generate outcome letter');
+    } finally {
+      setGeneratingOutcomeLetter(false);
+    }
+  };
+
+  const mapDecisionTypeToOutcomeType = (decisionType: string) => {
+    switch (decisionType) {
+      case 'uphold':
+        return 'upheld';
+      case 'reject':
+        return 'not_upheld';
+      case 'partially_uphold':
+        return 'partially_upheld';
+      default:
+        return decisionType;
+    }
+  };
+
+  const saveOutcomeLetterToDatabase = async (letterContent: string, isGenerated = false) => {
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
+      if (existingOutcome) {
+        // Update existing outcome
+        const { error } = await supabase
+          .from('complaint_outcomes')
+          .update({ 
+            outcome_letter: letterContent,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingOutcome.id);
+
+        if (error) throw error;
+        
+        // Update complaint status to closed if not already
+        const { error: statusError } = await supabase
+          .from('complaints')
+          .update({ 
+            status: 'closed',
+            closed_at: new Date().toISOString()
+          })
+          .eq('id', complaintId)
+          .neq('status', 'closed'); // Only update if not already closed
+
+        if (statusError) {
+          console.error('Failed to update complaint status:', statusError);
+          // Don't throw error here, outcome letter was still saved successfully
+        }
+      } else {
+        // Create new outcome (this would require decision data)
+        if (!decision) return;
+        
+        const { data, error } = await supabase
+          .from('complaint_outcomes')
+          .insert({
+            complaint_id: complaintId,
+            outcome_type: mapDecisionTypeToOutcomeType(decision.decision_type),
+            outcome_summary: decision.decision_reasoning,
+            outcome_letter: letterContent,
+            decided_by: user.data.user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setExistingOutcome(data);
+        
+        // Status will be automatically updated by the database trigger
+      }
+
+      // Add audit log
+      await supabase.functions.invoke('log-complaint-activity', {
+        body: {
+          complaintId,
+          actionType: isGenerated ? 'outcome_letter_generated' : 'outcome_letter_edited',
+          actionDescription: isGenerated 
+            ? 'Outcome letter generated using AI' 
+            : 'Outcome letter manually edited',
+          newValues: { outcome_letter_length: letterContent.length }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error saving outcome letter:', error);
+      throw error;
+    }
+  };
+
+  const handleEditOutcomeLetter = () => {
+    setEditedOutcomeLetter(outcomeLetter);
+    setEditingOutcomeLetter(true);
+  };
+
+  const handleSaveOutcomeLetter = async () => {
+    if (!editedOutcomeLetter.trim()) {
+      toast.error('Outcome letter cannot be empty');
+      return;
+    }
+
+    setSavingOutcomeLetter(true);
+    try {
+      await saveOutcomeLetterToDatabase(editedOutcomeLetter, false);
+      setOutcomeLetter(editedOutcomeLetter);
+      setEditingOutcomeLetter(false);
+      toast.success('Outcome letter saved successfully');
+    } catch (error) {
+      console.error('Error saving outcome letter:', error);
+      toast.error('Failed to save outcome letter');
+    } finally {
+      setSavingOutcomeLetter(false);
+    }
+  };
+
+  const handleCancelEditOutcomeLetter = () => {
+    setEditedOutcomeLetter('');
+    setEditingOutcomeLetter(false);
+  };
+
+  const handleDownloadOutcomeLetter = async () => {
+    if (!outcomeLetter) return;
+    
+    try {
+      // Get complaint details for filename
+      const { data: complaint } = await supabase
+        .from('complaints')
+        .select('reference_number')
+        .eq('id', complaintId)
+        .single();
+
+      const filename = complaint?.reference_number 
+        ? `${complaint.reference_number}-outcome-letter.docx`
+        : `complaint-${complaintId}-outcome-letter.docx`;
+      
+      // Import here to avoid bundling unless needed
+      const { createLetterDocument } = await import('@/utils/letterFormatter');
+      const { Packer } = await import('docx');
+      
+      const letterDoc = await createLetterDocument(outcomeLetter, 'Outcome Letter', filename);
+      const buffer = await Packer.toBuffer(letterDoc);
+      
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Outcome letter downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading outcome letter:', error);
+      toast.error('Failed to download outcome letter');
+    }
+  };
+
   const getDecisionBadgeVariant = (type: string) => {
     switch (type) {
       case 'uphold':
@@ -301,6 +522,50 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                 </div>
               </div>
             )}
+
+            {/* Outcome Letter Section */}
+            <div className="pt-4 border-t space-y-4">
+              {outcomeLetter ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Outcome Letter</h4>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowOutcomeLetter(true)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDownloadOutcomeLetter}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Export DOCX
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-md text-sm">
+                    <p className="text-muted-foreground">
+                      Outcome letter has been generated and saved. 
+                      {outcomeLetter.length} characters.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <Button 
+                  onClick={generateOutcomeLetter}
+                  disabled={disabled || generatingOutcomeLetter}
+                  className="w-full"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -451,6 +716,85 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
           </div>
         )}
       </CardContent>
+
+      {/* Outcome Letter Dialog */}
+      <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {editingOutcomeLetter ? (
+              <Textarea
+                value={editedOutcomeLetter}
+                onChange={(e) => setEditedOutcomeLetter(e.target.value)}
+                className="min-h-[400px] font-mono text-sm"
+                placeholder="Edit outcome letter content..."
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded-lg border min-h-[400px]">
+                {outcomeLetter}
+              </pre>
+            )}
+          </div>
+          <div className="flex justify-between gap-2 mt-4">
+            <div className="flex gap-2">
+              {!editingOutcomeLetter && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleEditOutcomeLetter}
+                  disabled={disabled}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadOutcomeLetter}
+                disabled={!outcomeLetter}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export DOCX
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              {editingOutcomeLetter ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelEditOutcomeLetter}
+                    disabled={savingOutcomeLetter}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveOutcomeLetter}
+                    disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingOutcomeLetter ? 'Saving...' : 'Save'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
+                    Close
+                  </Button>
+                  <Button onClick={() => {
+                    navigator.clipboard.writeText(outcomeLetter);
+                    toast.success('Letter copied to clipboard');
+                  }}>
+                    Copy to Clipboard
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
