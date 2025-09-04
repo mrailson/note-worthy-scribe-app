@@ -1707,7 +1707,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
               {/* Outcome Letter Dialog */}
               <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
@@ -2324,7 +2324,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
@@ -2401,7 +2401,7 @@ I am committed to ensuring that all patients receive the care and service they d
                   <Textarea
                     value={editedAcknowledgementContent}
                     onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
+                    className="min-h-[600px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
                     placeholder="Edit the acknowledgement letter content..."
                   />
                 </div>
