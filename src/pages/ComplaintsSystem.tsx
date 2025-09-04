@@ -548,6 +548,40 @@ const ComplaintsSystem = () => {
     }
   };
 
+  // Function to update practice logo
+  const updatePracticeLogo = async (newLogoUrl: string) => {
+    try {
+      const { error } = await supabase
+        .from('practice_details')
+        .update({ 
+          practice_logo_url: newLogoUrl,
+          logo_url: newLogoUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('Error updating practice logo:', error);
+        toast.error('Failed to update practice logo');
+      } else {
+        toast.success('Practice logo updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating practice logo:', error);
+      toast.error('Failed to update practice logo');
+    }
+  };
+
+  // Update the logo on component mount
+  useEffect(() => {
+    const updateLogo = async () => {
+      if (user?.id) {
+        await updatePracticeLogo("/lovable-uploads/5237eaf4-7d4a-4ae4-97ac-2c6e0e55c165.png");
+      }
+    };
+    updateLogo();
+  }, [user?.id]);
+
   const handleSendStaffNotifications = async (complaintId: string) => {
     if (involvedParties.length === 0) {
       toast.error('Please add at least one staff member to notify');

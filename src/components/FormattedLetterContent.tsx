@@ -92,9 +92,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
       {logoUrl && (
         <div className="p-8 text-center border-b border-gray-100">
           <img 
-            src={logoUrl} 
+            src={logoUrl}
             alt="Practice Logo" 
-            className="h-20 w-auto mx-auto object-contain"
+            className="h-24 w-auto mx-auto object-contain"
             onError={(e) => {
               console.error('Logo failed to load:', logoUrl);
               e.currentTarget.style.display = 'none';
