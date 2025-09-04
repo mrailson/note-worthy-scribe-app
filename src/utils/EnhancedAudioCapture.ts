@@ -4,6 +4,7 @@ export class EnhancedAudioCapture {
   private isRecording = false;
   private stream: MediaStream | null = null;
   private processor: ScriptProcessorNode | null = null;
+  private mutationObserver: MutationObserver | null = null;
 
   constructor(
     private onTranscript: (transcript: any) => void,
@@ -143,39 +144,53 @@ export class EnhancedAudioCapture {
   }
 
   private monitorForNewAudio(destination: MediaStreamAudioDestinationNode) {
-    const observer = new MutationObserver((mutations) => {
+    // Clean up any existing observer first
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+    }
+
+    this.mutationObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            const mediaElements = element.querySelectorAll('audio, video');
-            
-            mediaElements.forEach((media) => {
-              const mediaElement = media as HTMLMediaElement;
-              // Wait a bit for the element to start playing
-              setTimeout(() => {
-                if (!mediaElement.paused && mediaElement.currentTime > 0 && !mediaElement.muted) {
-                  try {
-                    console.log('New active media element detected');
-                    const mediaSource = this.audioContext!.createMediaElementSource(mediaElement);
-                    const mediaGain = this.audioContext!.createGain();
-                    mediaGain.gain.value = 1.2;
-                    
-                    mediaSource.connect(mediaGain);
-                    mediaGain.connect(destination);
-                    mediaGain.connect(this.audioContext!.destination);
-                  } catch (error) {
-                    console.log('Could not connect new media element:', error);
-                  }
-                }
-              }, 1000);
-            });
-          }
-        });
+        if (mutation.addedNodes) {
+          mutation.addedNodes.forEach((node) => {
+            // Only process element nodes, not text nodes or comments
+            if (node.nodeType === Node.ELEMENT_NODE && node instanceof Element) {
+              const element = node as Element;
+              try {
+                const mediaElements = element.querySelectorAll('audio, video');
+                
+                mediaElements.forEach((media) => {
+                  const mediaElement = media as HTMLMediaElement;
+                  // Wait a bit for the element to start playing
+                  setTimeout(() => {
+                    if (!mediaElement.paused && mediaElement.currentTime > 0 && !mediaElement.muted) {
+                      try {
+                        console.log('New active media element detected');
+                        if (this.audioContext) {
+                          const mediaSource = this.audioContext.createMediaElementSource(mediaElement);
+                          const mediaGain = this.audioContext.createGain();
+                          mediaGain.gain.value = 1.2;
+                          
+                          mediaSource.connect(mediaGain);
+                          mediaGain.connect(destination);
+                          mediaGain.connect(this.audioContext.destination);
+                        }
+                      } catch (error) {
+                        console.log('Could not connect new media element:', error);
+                      }
+                    }
+                  }, 1000);
+                });
+              } catch (error) {
+                console.log('Error processing added node:', error);
+              }
+            }
+          });
+        }
       });
     });
 
-    observer.observe(document.body, {
+    this.mutationObserver.observe(document.body, {
       childList: true,
       subtree: true
     });
@@ -291,6 +306,12 @@ export class EnhancedAudioCapture {
   stopCapture() {
     this.isRecording = false;
     this.onStatusChange('Stopping enhanced capture...');
+
+    // Disconnect the mutation observer first to prevent further DOM processing
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+    }
 
     if (this.processor) {
       this.processor.disconnect();
