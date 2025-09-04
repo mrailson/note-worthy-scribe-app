@@ -72,6 +72,10 @@ serve(async (req) => {
           staff_name: party.staffName,
           staff_email: party.staffEmail,
           staff_role: party.staffRole,
+          response_requested_at: new Date().toISOString(),
+          // Explicitly ensure response_submitted_at is NULL
+          response_submitted_at: null,
+          response_text: null
         })
         .select('access_token')
         .single();

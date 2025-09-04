@@ -218,18 +218,29 @@ const ComplaintDetails = () => {
 
       // Convert database records to inputRequests format
       if (data && data.length > 0) {
-        const requests = data.map(party => ({
-          id: party.id,
-          staffName: party.staff_name,
-          staffEmail: party.staff_email,
-          status: party.response_submitted_at ? 'completed' : 'pending',
-          sentAt: party.response_requested_at,
-          responseReceived: !!party.response_submitted_at,
-          responseReceivedAt: party.response_submitted_at,
-          responseText: party.response_text,
-          isTestResponse: !!party.response_text // If there's response text, it might be a test response
-        }));
+        const requests = data.map(party => {
+          // Debug: Log what we're getting from the database
+          console.log('Staff response data from DB:', {
+            staffName: party.staff_name,
+            staffEmail: party.staff_email,
+            response_submitted_at: party.response_submitted_at,
+            response_text: party.response_text
+          });
+          
+          return {
+            id: party.id,
+            staffName: party.staff_name,
+            staffEmail: party.staff_email,
+            status: party.response_submitted_at ? 'completed' : 'pending',
+            sentAt: party.response_requested_at,
+            responseReceived: !!party.response_submitted_at,
+            responseReceivedAt: party.response_submitted_at,
+            responseText: party.response_text,
+            isTestResponse: !!party.response_text // If there's response text, it might be a test response
+          };
+        });
         
+        console.log('Processed input requests:', requests);
         setInputRequests(requests);
         
         // Also update selectedStaff if needed
@@ -365,6 +376,36 @@ const ComplaintDetails = () => {
         () => {
           // Refresh compliance data when any check is updated
           fetchComplianceData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, complaintId]);
+
+  // Set up real-time listener for involved parties changes
+  useEffect(() => {
+    if (!user || !complaintId) return;
+
+    const channel = supabase
+      .channel('involved-parties-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'complaint_involved_parties',
+          filter: `complaint_id=eq.${complaintId}`
+        },
+        (payload) => {
+          console.log('Involved parties database change detected:', payload);
+          // Only refresh if the change is from external source (not local user action)
+          // Add small delay to ensure database consistency
+          setTimeout(() => {
+            fetchStaffResponses();
+          }, 1000);
         }
       )
       .subscribe();
@@ -937,12 +978,12 @@ const ComplaintDetails = () => {
 
       if (error) throw error;
 
-      // Update local state with sent requests
+      // Update local state with sent requests - but don't mark as completed yet
       const newInputRequests = involvedParties.map(party => ({
         id: Math.random().toString(36).substr(2, 9), // temporary ID
         staffName: party.staffName,
         staffEmail: party.staffEmail,
-        status: 'Sent',
+        status: 'pending', // Always start as pending, not 'Sent'
         sentAt: new Date().toISOString(),
         responseReceived: false
       }));
@@ -2008,6 +2049,12 @@ I am committed to ensuring that all patients receive the care and service they d
                                                 updatedStaff[index].email = e.target.value;
                                                 setSelectedStaff(updatedStaff);
                                               }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  e.preventDefault();
+                                                  setEditingStaffIndex(null);
+                                                }
+                                              }}
                                               className="text-xs h-6 w-60"
                                               maxLength={50}
                                               autoFocus
@@ -2057,6 +2104,12 @@ I am committed to ensuring that all patients receive the care and service they d
                                               const updatedStaff = [...selectedStaff];
                                               updatedStaff[index].email = e.target.value;
                                               setSelectedStaff(updatedStaff);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                // Don't auto-save, wait for user to click save
+                                              }
                                             }}
                                             className="text-xs h-6 w-60"
                                             maxLength={50}
