@@ -188,19 +188,6 @@ Format:
 • **Backup Plans:** [Alternative arrangements for service delivery or operational continuity]
 • **Risk Monitoring:** [How risks will be tracked and managed ongoing]
 
-## NEXT STEPS & FOLLOW-UP
-### Immediate Actions (Next 2 weeks)
-• [Critical operational tasks that must be completed quickly]
-• [Urgent patient service implications to address]
-
-### Short-term Implementation (1-3 months)
-• [Service changes to be implemented in the coming months]
-• [Staff training, system changes, or process improvements]
-
-### Long-term Strategy (3+ months)
-• [Strategic developments and major service changes]
-• [Partnership developments and collaborative initiatives]
-
 ## COMMUNICATION REQUIREMENTS
 ### Internal Communication
 • **Practice Staff:** [What needs to be communicated to practice teams]
