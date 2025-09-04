@@ -125,6 +125,13 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
     return colors[domain as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const truncateDescription = (text: string | null, maxWords: number = 120) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    return words.slice(0, maxWords).join(' ') + '...';
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -168,7 +175,7 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
                           </CardTitle>
                           {report.description && (
                             <p className="text-sm text-muted-foreground">
-                              {report.description}
+                              {truncateDescription(report.description)}
                             </p>
                           )}
                         </div>
