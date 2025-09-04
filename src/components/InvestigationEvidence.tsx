@@ -141,6 +141,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
     setTranscribing(audioFile.id);
     try {
+      console.log('Starting audio transcription for file:', audioFile.file_name);
+      
+      // Check file size first (limit to 25MB)
+      if (audioFile.file_size > 25 * 1024 * 1024) {
+        throw new Error('Audio file too large. Maximum size is 25MB.');
+      }
+
       // Download the audio file from storage
       const { data: fileData, error: downloadError } = await supabase.storage
         .from('communication-files')
@@ -148,14 +155,40 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
       if (downloadError) throw downloadError;
 
+      console.log('Audio file downloaded, size:', fileData.size);
+
       // Convert to base64 for the transcription service
       const arrayBuffer = await fileData.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binaryString = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        binaryString += String.fromCharCode(uint8Array[i]);
+      let base64Audio;
+      
+      // Use a more memory-efficient approach for large files
+      if (arrayBuffer.byteLength > 10 * 1024 * 1024) { // 10MB+
+        // For large files, use chunks to avoid memory issues
+        const chunkSize = 1024 * 1024; // 1MB chunks
+        const chunks = [];
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.slice(i, i + chunkSize);
+          let chunkString = '';
+          for (let j = 0; j < chunk.length; j++) {
+            chunkString += String.fromCharCode(chunk[j]);
+          }
+          chunks.push(chunkString);
+        }
+        
+        base64Audio = btoa(chunks.join(''));
+        console.log('Large file converted to base64');
+      } else {
+        // For smaller files, use the standard approach
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let binaryString = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binaryString += String.fromCharCode(uint8Array[i]);
+        }
+        base64Audio = btoa(binaryString);
+        console.log('Small file converted to base64');
       }
-      const base64Audio = btoa(binaryString);
 
       // Call the transcription service
       const { data: transcriptionData, error: transcriptionError } = await supabase.functions
