@@ -33,6 +33,11 @@ Format:
 ## Next Steps
 • [Next step with timeframe]
 
+## Next Meeting (Only include if next meeting details are discussed)
+• **Date:** [Next meeting date if mentioned]
+• **Time:** [Next meeting time if mentioned] 
+• **Purpose:** [Key focus areas for next meeting]
+
 Keep it concise but well-formatted with clear sections and proper bullet points.`,
     maxTokens: 500
   },
@@ -266,7 +271,7 @@ Format:
 • **Compliance Requirements:** [Any regulatory or policy matters]
 
 ## Follow-up Requirements
-• **Next meeting:** [Date, time, agenda items]
+• **Next meeting (Only include if next meeting details are discussed):** [Date, time, agenda items if mentioned]
 • **Interim reporting:** [Status updates required]
 • **Review points:** [When decisions will be evaluated]
 
