@@ -953,90 +953,100 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full overflow-hidden flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>
-              {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 py-4">
-            {editingOutcomeLetter ? (
-              <div className="h-full flex flex-col">
-                <Textarea
-                  value={editedOutcomeLetter}
-                  onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                  className="flex-1 min-h-[70vh] font-mono text-sm resize-none border focus:ring-2 p-4 bg-white"
-                  placeholder="Edit outcome letter content..."
-                />
-              </div>
-            ) : (
-              <div className="bg-gray-50 p-4 rounded-lg border h-full overflow-y-auto">
-                <FormattedLetterContent content={outcomeLetter} />
-              </div>
-            )}
-          </div>
-          <div className="flex justify-between gap-2 mt-4 flex-shrink-0">
-            <div className="flex gap-2">
-              {!editingOutcomeLetter && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleEditOutcomeLetter}
-                  disabled={disabled}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={async () => {
-                  console.log('DOCX Download clicked - starting process');
-                  try {
-                    await handleDownloadOutcomeLetter();
-                    console.log('DOCX Download completed successfully');
-                  } catch (error) {
-                    console.error('DOCX Download failed:', error);
-                    toast.error(`Download failed: ${error.message}`);
-                  }
-                }}
-                disabled={!outcomeLetter}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export DOCX
-              </Button>
-            </div>
-            <div className="flex gap-2">
+        <DialogContent className="p-0 max-w-none max-h-none w-[80vw] h-[80vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '400px', minHeight: '300px' }}>
+          <div className="flex flex-col h-full">
+            <DialogHeader className="flex-shrink-0 p-6 border-b">
+              <DialogTitle>
+                {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 min-h-0 p-6">
               {editingOutcomeLetter ? (
-                <>
+                <div className="h-full flex flex-col">
+                  <Textarea
+                    value={editedOutcomeLetter}
+                    onChange={(e) => setEditedOutcomeLetter(e.target.value)}
+                    className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white"
+                    placeholder="Edit outcome letter content..."
+                    style={{ height: '100%' }}
+                  />
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg border h-full overflow-y-auto">
+                  <FormattedLetterContent content={outcomeLetter} />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between gap-2 p-6 border-t flex-shrink-0">
+              <div className="flex gap-2">
+                {!editingOutcomeLetter && (
                   <Button 
                     variant="outline" 
-                    onClick={handleCancelEditOutcomeLetter}
-                    disabled={savingOutcomeLetter}
+                    onClick={handleEditOutcomeLetter}
+                    disabled={disabled}
                   >
-                    Cancel
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
                   </Button>
-                  <Button 
-                    onClick={handleSaveOutcomeLetter}
-                    disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {savingOutcomeLetter ? 'Saving...' : 'Save'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
-                    Close
-                  </Button>
-                  <Button onClick={() => {
-                    navigator.clipboard.writeText(outcomeLetter);
-                    toast.success('Letter copied to clipboard');
-                  }}>
-                    Copy to Clipboard
-                  </Button>
-                </>
-              )}
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    console.log('DOCX Download clicked - starting process');
+                    try {
+                      await handleDownloadOutcomeLetter();
+                      console.log('DOCX Download completed successfully');
+                    } catch (error) {
+                      console.error('DOCX Download failed:', error);
+                      toast.error(`Download failed: ${error.message}`);
+                    }
+                  }}
+                  disabled={!outcomeLetter}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export DOCX
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                {editingOutcomeLetter ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCancelEditOutcomeLetter}
+                      disabled={savingOutcomeLetter}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSaveOutcomeLetter}
+                      disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {savingOutcomeLetter ? 'Saving...' : 'Save'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
+                      Close
+                    </Button>
+                    <Button onClick={() => {
+                      navigator.clipboard.writeText(outcomeLetter);
+                      toast.success('Letter copied to clipboard');
+                    }}>
+                      Copy to Clipboard
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
+          </div>
+          {/* Resize indicator in bottom-right corner */}
+          <div className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-50 hover:opacity-75">
+            <svg width="16" height="16" viewBox="0 0 16 16" className="text-gray-400">
+              <path d="M16 0v16H0z" fill="none"/>
+              <path d="M16 16l-6-6M16 12l-2-2M16 8l-2-2" stroke="currentColor" strokeWidth="1" fill="none"/>
+            </svg>
           </div>
         </DialogContent>
       </Dialog>
