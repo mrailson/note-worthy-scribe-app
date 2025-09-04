@@ -19,6 +19,8 @@ serve(async (req) => {
     }
 
     const { complaintId } = await req.json();
+    console.log('Received complaintId:', complaintId);
+    
     if (!complaintId) {
       throw new Error('Complaint ID is required');
     }
@@ -29,6 +31,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Attempting to fetch complaint with ID:', complaintId);
+    
     // Fetch comprehensive complaint data
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
@@ -42,6 +46,8 @@ serve(async (req) => {
       `)
       .eq('id', complaintId)
       .single();
+
+    console.log('Complaint query result:', { complaint, complaintError });
 
     if (complaintError) {
       console.error('Error fetching complaint:', complaintError);
@@ -167,8 +173,7 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 4000,
-        temperature: 0.3,
+        max_completion_tokens: 4000,
       }),
     });
 
