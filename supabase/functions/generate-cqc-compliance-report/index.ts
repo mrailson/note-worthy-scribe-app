@@ -42,16 +42,45 @@ serve(async (req) => {
       throw new Error('Complaint ID is required');
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
+    // Get authorization header to extract user context
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    // Initialize Supabase client with service role for admin operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    
+    // Initialize client with user token for auth context
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: authHeader ? { Authorization: authHeader } : {}
+        }
+      }
+    );
+    
+    // Get current user from auth token
+    let currentUserId = null;
+    if (token) {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        if (!userError && user) {
+          currentUserId = user.id;
+          console.log('Current user ID:', currentUserId);
+        }
+      } catch (err) {
+        console.log('Could not get user from token:', err);
+      }
+    }
 
     console.log('Attempting to fetch complaint with ID:', complaintId);
     
-    // Fetch complaint data first
-    const { data: complaint, error: complaintError } = await supabase
+    // Fetch complaint data first using admin client to bypass RLS
+    const { data: complaint, error: complaintError } = await supabaseAdmin
       .from('complaints')
       .select('*')
       .eq('id', complaintId)
@@ -78,12 +107,12 @@ serve(async (req) => {
       { data: investigationDecisions, error: decisionsError },
       { data: investigationFindings, error: findingsError }
     ] = await Promise.all([
-      supabase.from('complaint_outcomes').select('*').eq('complaint_id', complaintId),
-      supabase.from('complaint_acknowledgements').select('*').eq('complaint_id', complaintId),
-      supabase.from('complaint_audit_log').select('*').eq('complaint_id', complaintId),
-      supabase.from('complaint_involved_parties').select('*').eq('complaint_id', complaintId),
-      supabase.from('complaint_investigation_decisions').select('*').eq('complaint_id', complaintId),
-      supabase.from('complaint_investigation_findings').select('*').eq('complaint_id', complaintId)
+      supabaseAdmin.from('complaint_outcomes').select('*').eq('complaint_id', complaintId),
+      supabaseAdmin.from('complaint_acknowledgements').select('*').eq('complaint_id', complaintId),
+      supabaseAdmin.from('complaint_audit_log').select('*').eq('complaint_id', complaintId),
+      supabaseAdmin.from('complaint_involved_parties').select('*').eq('complaint_id', complaintId),
+      supabaseAdmin.from('complaint_investigation_decisions').select('*').eq('complaint_id', complaintId),
+      supabaseAdmin.from('complaint_investigation_findings').select('*').eq('complaint_id', complaintId)
     ]);
 
     // Log any errors from related data fetching (but don't fail)
@@ -117,7 +146,7 @@ serve(async (req) => {
     let practiceDetails = null;
     if (complaint.practice_id) {
       console.log('Fetching practice details for ID:', complaint.practice_id);
-      const { data: practice, error: practiceError } = await supabase
+      const { data: practice, error: practiceError } = await supabaseAdmin
         .from('practice_details')
         .select('*')
         .eq('id', complaint.practice_id)
@@ -251,7 +280,12 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
 
     // Store the report as CQC evidence
     const evidenceTitle = `Complaints Compliance Report - ${complaint.reference_number}`;
-    const { data: evidenceRecord, error: evidenceError } = await supabase
+    
+    // Determine the best user to assign as uploader
+    const uploadedBy = currentUserId || complaint.created_by || complaint.assigned_to;
+    console.log('Setting uploaded_by to:', uploadedBy);
+    
+    const { data: evidenceRecord, error: evidenceError } = await supabaseAdmin
       .from('cqc_evidence')
       .insert({
         practice_id: complaint.practice_id,
@@ -269,7 +303,7 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
           'patient_safety',
           complaint.category || 'general_complaint'
         ],
-        uploaded_by: complaint.assigned_to,
+        uploaded_by: uploadedBy,
         status: 'active'
       })
       .select()
