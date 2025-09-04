@@ -16,6 +16,8 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
     logoUrl
   });
   
+  console.log('Logo URL check:', { logoUrl, hasLogoUrl: !!logoUrl, type: typeof logoUrl });
+  
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
   
@@ -104,7 +106,13 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
             onLoad={() => console.log('Logo loaded successfully:', logoUrl)}
             onError={(e) => {
               console.error('Logo failed to load:', logoUrl, e);
-              e.currentTarget.style.display = 'none';
+              console.error('Image element:', e.currentTarget);
+              // Don't hide on error, let's see what happens
+            }}
+            style={{
+              border: '2px solid red',
+              minHeight: '100px',
+              display: 'block'
             }}
           />
         </div>
