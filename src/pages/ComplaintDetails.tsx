@@ -568,6 +568,54 @@ const ComplaintDetails = () => {
     }
   };
 
+  const handleRegenerateOutcomeLetter = async () => {
+    if (!existingOutcome || !complaint) {
+      toast.error("No existing outcome found to regenerate");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      console.log('Regenerating outcome letter for complaint:', complaint.id);
+
+      const { data, error } = await supabase.functions.invoke('generate-complaint-outcome-letter', {
+        body: {
+          complaintId: complaint.id,
+          outcomeType: existingOutcome.outcome_type,
+          outcomeSummary: existingOutcome.outcome_summary
+        }
+      });
+
+      if (error) {
+        console.error('Error generating outcome letter:', error);
+        throw error;
+      }
+
+      if (data?.outcomeLetter) {
+        // Update the outcome letter in the database
+        const { error: updateError } = await supabase
+          .from('complaint_outcomes')
+          .update({ outcome_letter: data.outcomeLetter })
+          .eq('complaint_id', complaint.id);
+
+        if (updateError) {
+          console.error('Error updating outcome letter:', updateError);
+          throw updateError;
+        }
+
+        setOutcomeLetter(data.outcomeLetter);
+        toast.success("Outcome letter regenerated successfully with practice logo included");
+      } else {
+        throw new Error('No outcome letter received from generator');
+      }
+    } catch (error) {
+      console.error('Error regenerating outcome letter:', error);
+      toast.error("Failed to regenerate outcome letter");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleDownloadAcknowledgementLetter = async () => {
     if (!acknowledgementLetter || !complaint) return;
     
