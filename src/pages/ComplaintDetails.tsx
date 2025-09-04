@@ -41,7 +41,8 @@ import {
   Save,
   AlertTriangle,
   ArrowLeft,
-  Search
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -1631,6 +1632,16 @@ I am committed to ensuring that all patients receive the care and service they d
                           >
                             <Download className="h-4 w-4 mr-1" />
                             Download
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRegenerateOutcomeLetter}
+                            disabled={submitting}
+                            className="border-green-600 text-green-700 hover:bg-green-100"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            {submitting ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
                         </div>
                       </div>
