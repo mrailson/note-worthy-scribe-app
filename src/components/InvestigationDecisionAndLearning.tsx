@@ -5,8 +5,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,11 +46,31 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
   const [editedOutcomeLetter, setEditedOutcomeLetter] = useState<string>('');
   const [savingOutcomeLetter, setSavingOutcomeLetter] = useState(false);
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
+  const [complaintReferenceNumber, setComplaintReferenceNumber] = useState<string>('');
 
   useEffect(() => {
     fetchInvestigationDecision();
     fetchExistingOutcome();
+    fetchComplaintDetails();
   }, [complaintId]);
+
+  const fetchComplaintDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('complaints')
+        .select('reference_number')
+        .eq('id', complaintId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setComplaintReferenceNumber(data.reference_number);
+      }
+    } catch (error) {
+      console.error('Error fetching complaint details:', error);
+    }
+  };
 
   const fetchExistingOutcome = async () => {
     try {
@@ -719,77 +740,87 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>
-              {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Outcome Letter - {complaintReferenceNumber}
             </DialogTitle>
+            <DialogDescription>
+              View, edit, download, or regenerate the outcome letter for this complaint
+            </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
-            {editingOutcomeLetter ? (
-              <Textarea
-                value={editedOutcomeLetter}
-                onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                className="min-h-[400px] font-mono text-sm"
-                placeholder="Edit outcome letter content..."
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded-lg border min-h-[400px]">
-                {outcomeLetter}
-              </pre>
-            )}
-          </div>
-          <div className="flex justify-between gap-2 mt-4">
-            <div className="flex gap-2">
-              {!editingOutcomeLetter && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleEditOutcomeLetter}
-                  disabled={disabled}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={handleDownloadOutcomeLetter}
-                disabled={!outcomeLetter}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export DOCX
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              {editingOutcomeLetter ? (
+          
+          <div className="flex flex-col gap-4 max-h-[60vh]">
+            {/* Action buttons */}
+            <div className="flex gap-2 justify-end border-b pb-4">
+              {!editingOutcomeLetter ? (
                 <>
+                  <Button
+                    variant="outline"
+                    onClick={handleEditOutcomeLetter}
+                    disabled={disabled}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Letter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadOutcomeLetter}
+                    disabled={!outcomeLetter}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download DOCX
+                  </Button>
                   <Button 
-                    variant="outline" 
+                    variant="outline"
+                    onClick={() => {
+                      setShowOutcomeLetter(false);
+                      generateOutcomeLetter();
+                    }}
+                    disabled={generatingOutcomeLetter}
+                  >
+                    {generatingOutcomeLetter ? 'Regenerating...' : 'Regenerate Letter'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
                     onClick={handleCancelEditOutcomeLetter}
                     disabled={savingOutcomeLetter}
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleSaveOutcomeLetter}
                     disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
+                    className="flex items-center gap-2"
                   >
-                    <Save className="h-4 w-4 mr-2" />
-                    {savingOutcomeLetter ? 'Saving...' : 'Save'}
+                    <Save className="h-4 w-4" />
+                    {savingOutcomeLetter ? 'Saving...' : 'Save Letter'}
                   </Button>
                 </>
+              )}
+            </div>
+            
+            {/* Letter content */}
+            <div className="flex-1 overflow-y-auto">
+              {!editingOutcomeLetter ? (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <FormattedLetterContent content={outcomeLetter} />
+                </div>
               ) : (
-                <>
-                  <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
-                    Close
-                  </Button>
-                  <Button onClick={() => {
-                    navigator.clipboard.writeText(outcomeLetter);
-                    toast.success('Letter copied to clipboard');
-                  }}>
-                    Copy to Clipboard
-                  </Button>
-                </>
+                <div className="p-4 bg-white rounded-lg border">
+                  <Textarea
+                    value={editedOutcomeLetter}
+                    onChange={(e) => setEditedOutcomeLetter(e.target.value)}
+                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
+                    placeholder="Edit the outcome letter content..."
+                  />
+                </div>
               )}
             </div>
           </div>
