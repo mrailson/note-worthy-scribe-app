@@ -1639,7 +1639,7 @@ I am committed to ensuring that all patients receive the care and service they d
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
                           <Badge variant="default">Letter Generated</Badge>
-                          {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) ? (
+                          {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) && (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
                               <br />
@@ -1654,12 +1654,6 @@ I am committed to ensuring that all patients receive the care and service they d
                                   : ' ⚠ Exceeded 3-day target'
                                 }
                               </span>
-                            </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">
-                              Debug: ackDate={acknowledgementDate ? 'exists' : 'missing'}, 
-                              submittedAt={complaint?.submitted_at ? 'exists' : 'missing'},
-                              createdAt={complaint?.created_at ? 'exists' : 'missing'}
                             </div>
                           )}
                         </div>
@@ -2525,7 +2519,7 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
               
               {/* Letter content */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex-1 min-h-0">
                 {!isEditingAcknowledgement ? (
                   <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto">
                     <FormattedLetterContent content={acknowledgementLetter} />
