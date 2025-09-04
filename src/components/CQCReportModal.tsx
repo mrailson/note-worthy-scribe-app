@@ -50,14 +50,20 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
 
       if (complaintError) throw complaintError;
 
-      // Then fetch CQC evidence for this practice that are compliance reports
-      // or contain this complaint reference in title/tags
-      const { data, error } = await supabase
-        .from('cqc_evidence')
-        .select('*')
-        .eq('practice_id', complaintData.practice_id)
-        .or(`evidence_type.eq.compliance_report,title.ilike.%${complaintReference}%,tags.cs.{"${complaintReference}"}`)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('cqc_evidence').select('*');
+
+      // Handle practice_id filter - only add if not null
+      if (complaintData.practice_id) {
+        query = query.eq('practice_id', complaintData.practice_id);
+      }
+
+      // Add the OR condition for compliance reports or complaint reference
+      query = query.or(`evidence_type.eq.compliance_report,title.ilike.%${complaintReference}%,tags.cs.{"${complaintReference}"}`);
+      
+      // Order by creation date
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setReports(data || []);
