@@ -2250,7 +2250,7 @@ I am committed to ensuring that all patients receive the care and service they d
             </div>
             
             {/* Letter content */}
-            <div className="flex-1 overflow-y-auto border rounded-lg bg-white">
+            <div className="flex-1 overflow-y-auto border rounded-lg bg-background">
               {!isEditingAcknowledgement ? (
                 <div className="p-6">
                   <div className="prose prose-sm max-w-none">
