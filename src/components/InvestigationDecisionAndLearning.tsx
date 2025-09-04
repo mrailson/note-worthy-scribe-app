@@ -447,44 +447,97 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
   };
 
   const handleDownloadOutcomeLetter = async () => {
-    if (!outcomeLetter) return;
+    if (!outcomeLetter) {
+      toast.error('No outcome letter available for download');
+      return;
+    }
     
     try {
-      // Get complaint details for filename
-      const { data: complaint } = await supabase
-        .from('complaints')
-        .select('reference_number')
-        .eq('id', complaintId)
-        .single();
+      console.log('=== OUTCOME LETTER DOWNLOAD DEBUG (InvestigationDecisionAndLearning) ===');
+      console.log('Starting outcome letter download...');
+      console.log('Letter content length:', outcomeLetter.length);
+      console.log('Letter content preview:', outcomeLetter.substring(0, 100) + '...');
+      
+      // Simple DOCX creation with comprehensive error handling
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: 'Outcome Letter',
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleDateString()}`,
+              spacing: { after: 200 },
+            }),
+            new Paragraph({
+              text: `Complaint Reference: ${complaintReferenceNumber}`,
+              spacing: { after: 200 },
+            }),
+            ...outcomeLetter.split('\n').filter(line => line !== null && line !== undefined).map(line => 
+              new Paragraph({
+                children: [new TextRun(line || ' ')],
+                spacing: { after: 120 },
+              })
+            ),
+          ],
+        }],
+      });
 
-      const filename = complaint?.reference_number 
-        ? `${complaint.reference_number}-outcome-letter.docx`
+      console.log('Document structure created successfully');
+      
+      const buffer = await Packer.toBlob(doc);
+      console.log('Document converted to blob, size:', buffer.size, 'bytes');
+      
+      if (buffer.size === 0) {
+        throw new Error('Generated document is empty');
+      }
+      
+      const filename = complaintReferenceNumber 
+        ? `${complaintReferenceNumber}-outcome-letter.docx`
         : `complaint-${complaintId}-outcome-letter.docx`;
       
-      // Import here to avoid bundling unless needed
-      const { createLetterDocument } = await import('@/utils/letterFormatter');
-      const { Packer } = await import('docx');
-      
-      const letterDoc = await createLetterDocument(outcomeLetter, 'Outcome Letter', filename);
-      const buffer = await Packer.toBuffer(letterDoc);
-      
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
-      const url = URL.createObjectURL(blob);
-      
+      console.log('Using filename:', filename);
+
+      // Create and trigger download
+      const url = URL.createObjectURL(buffer);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
+      
+      console.log('Triggering download for file:', link.download);
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
+      
+      console.log('Download completed successfully');
       toast.success('Outcome letter downloaded successfully');
+      
+      // Add audit log for download (non-blocking)
+      try {
+        await supabase.functions.invoke('log-complaint-activity', {
+          body: {
+            complaintId,
+            actionType: 'outcome_letter_downloaded',
+            actionDescription: 'Outcome letter downloaded as DOCX file'
+          }
+        });
+        console.log('Audit log added successfully');
+      } catch (auditError) {
+        console.error('Failed to log download activity:', auditError);
+        // Don't fail the download for audit log issues
+      }
     } catch (error) {
-      console.error('Error downloading outcome letter:', error);
-      toast.error('Failed to download outcome letter');
+      console.error('=== OUTCOME LETTER DOWNLOAD ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      toast.error(`Failed to download outcome letter: ${error.message}`);
     }
   };
 
@@ -785,88 +838,108 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Outcome Letter - {complaintReferenceNumber}
-            </DialogTitle>
-            <DialogDescription>
-              View, edit, download, or regenerate the outcome letter for this complaint
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col gap-4 max-h-[60vh]">
-            {/* Action buttons */}
-            <div className="flex gap-2 justify-end border-b pb-4">
-              {!editingOutcomeLetter ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleEditOutcomeLetter}
-                    disabled={disabled}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit Letter
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadOutcomeLetter}
-                    disabled={!outcomeLetter}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download DOCX
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setShowOutcomeLetter(false);
-                      generateOutcomeLetter();
-                    }}
-                    disabled={generatingOutcomeLetter}
-                  >
-                    {generatingOutcomeLetter ? 'Regenerating...' : 'Regenerate Letter'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancelEditOutcomeLetter}
-                    disabled={savingOutcomeLetter}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveOutcomeLetter}
-                    disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {savingOutcomeLetter ? 'Saving...' : 'Save Letter'}
-                  </Button>
-                </>
-              )}
-            </div>
+        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+          <div className="flex flex-col h-full">
+            <DialogHeader className="flex-shrink-0 p-6 border-b">
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Outcome Letter - {complaintReferenceNumber}
+              </DialogTitle>
+              <DialogDescription>
+                View, edit, download, or regenerate the outcome letter for this complaint
+              </DialogDescription>
+            </DialogHeader>
             
-            {/* Letter content */}
-            <div className="flex-1 overflow-y-auto">
-              {!editingOutcomeLetter ? (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <FormattedLetterContent content={outcomeLetter} />
-                </div>
-              ) : (
-                <div className="p-4 bg-white rounded-lg border">
-                  <Textarea
-                    value={editedOutcomeLetter}
-                    onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
-                    placeholder="Edit the outcome letter content..."
-                  />
-                </div>
-              )}
+            <div className="flex flex-col gap-4 flex-1 min-h-0 p-6">
+              {/* Action buttons */}
+              <div className="flex gap-2 justify-end border-b pb-4 flex-shrink-0">
+                {!editingOutcomeLetter ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleEditOutcomeLetter}
+                      disabled={disabled}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Letter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        console.log('=== DOCX DOWNLOAD DEBUG (InvestigationDecisionAndLearning) ===');
+                        console.log('outcomeLetter length:', outcomeLetter?.length);
+                        console.log('complaintId:', complaintId);
+                        try {
+                          await handleDownloadOutcomeLetter();
+                          console.log('Download completed successfully');
+                        } catch (error) {
+                          console.error('Download failed:', error);
+                          toast.error(`Download failed: ${error.message}`);
+                        }
+                      }}
+                      disabled={!outcomeLetter}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download DOCX
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setShowOutcomeLetter(false);
+                        generateOutcomeLetter();
+                      }}
+                      disabled={generatingOutcomeLetter}
+                    >
+                      {generatingOutcomeLetter ? 'Regenerating...' : 'Regenerate Letter'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEditOutcomeLetter}
+                      disabled={savingOutcomeLetter}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveOutcomeLetter}
+                      disabled={savingOutcomeLetter || !editedOutcomeLetter.trim()}
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      {savingOutcomeLetter ? 'Saving...' : 'Save Letter'}
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              {/* Letter content */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {!editingOutcomeLetter ? (
+                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto">
+                    <FormattedLetterContent content={outcomeLetter} />
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col">
+                    <Textarea
+                      value={editedOutcomeLetter}
+                      onChange={(e) => setEditedOutcomeLetter(e.target.value)}
+                      className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white text-black"
+                      placeholder="Edit the outcome letter content..."
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Resize indicator */}
+            <div className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-50 hover:opacity-75">
+              <svg width="16" height="16" viewBox="0 0 16 16" className="text-gray-400">
+                <path d="M16 0v16H0z" fill="none"/>
+                <path d="M16 16l-6-6M16 12l-2-2M16 8l-2-2" stroke="currentColor" strokeWidth="1" fill="none"/>
+              </svg>
             </div>
           </div>
         </DialogContent>
