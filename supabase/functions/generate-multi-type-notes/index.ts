@@ -199,6 +199,12 @@ Format:
 • **Partners:** [Information to share with external healthcare partners]
 • **Stakeholders:** [Updates for commissioners, CQC, or other oversight bodies]
 
+## NEXT MEETING (Only include if next meeting details are discussed)
+• **Date:** [Next meeting date if mentioned]
+• **Time:** [Next meeting time if mentioned] 
+• **Purpose:** [Key agenda items or focus areas for next meeting]
+• **Preparation Required:** [Any specific preparation needed by attendees]
+
 Focus on extracting specific operational agreements, resource commitments, and decisions that directly impact GP practice operations, patient care delivery, and PCN collaborative working. Prioritize actionable outcomes over meeting process details.`,
     maxTokens: 3000
   },
