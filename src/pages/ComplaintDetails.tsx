@@ -2495,7 +2495,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
-        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
           <div className="flex flex-col h-full">
             <DialogHeader className="flex-shrink-0 p-6 border-b">
               <DialogTitle className="flex items-center gap-2">
@@ -2574,17 +2574,19 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
               
               {/* Letter content */}
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-hidden">
                 {!isEditingAcknowledgement ? (
-                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto">
-                    <FormattedLetterContent content={acknowledgementLetter} />
+                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto max-h-full">
+                    <div className="max-w-none">
+                      <FormattedLetterContent content={acknowledgementLetter} />
+                    </div>
                   </div>
                 ) : (
                   <div className="h-full flex flex-col">
                     <Textarea
                       value={editedAcknowledgementContent}
                       onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
-                      className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white text-black"
+                      className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white text-black overflow-y-auto"
                       placeholder="Edit the acknowledgement letter content..."
                     />
                   </div>
