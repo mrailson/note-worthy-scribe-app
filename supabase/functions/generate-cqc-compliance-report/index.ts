@@ -69,13 +69,14 @@ serve(async (req) => {
     }
 
     // Fetch related data separately
+    console.log('Fetching related complaint data...');
     const [
-      { data: outcomes },
-      { data: acknowledgements },
-      { data: auditLogs },
-      { data: involvedParties },
-      { data: investigationDecisions },
-      { data: investigationFindings }
+      { data: outcomes, error: outcomesError },
+      { data: acknowledgements, error: ackError },
+      { data: auditLogs, error: auditError },
+      { data: involvedParties, error: partiesError },
+      { data: investigationDecisions, error: decisionsError },
+      { data: investigationFindings, error: findingsError }
     ] = await Promise.all([
       supabase.from('complaint_outcomes').select('*').eq('complaint_id', complaintId),
       supabase.from('complaint_acknowledgements').select('*').eq('complaint_id', complaintId),
@@ -84,6 +85,23 @@ serve(async (req) => {
       supabase.from('complaint_investigation_decisions').select('*').eq('complaint_id', complaintId),
       supabase.from('complaint_investigation_findings').select('*').eq('complaint_id', complaintId)
     ]);
+
+    // Log any errors from related data fetching (but don't fail)
+    if (outcomesError) console.log('Outcomes error:', outcomesError);
+    if (ackError) console.log('Acknowledgements error:', ackError);
+    if (auditError) console.log('Audit logs error:', auditError);
+    if (partiesError) console.log('Involved parties error:', partiesError);
+    if (decisionsError) console.log('Investigation decisions error:', decisionsError);
+    if (findingsError) console.log('Investigation findings error:', findingsError);
+
+    console.log('Related data loaded:', {
+      outcomes: outcomes?.length || 0,
+      acknowledgements: acknowledgements?.length || 0,
+      auditLogs: auditLogs?.length || 0,
+      involvedParties: involvedParties?.length || 0,
+      investigationDecisions: investigationDecisions?.length || 0,
+      investigationFindings: investigationFindings?.length || 0
+    });
 
     // Attach related data to complaint object
     complaint.complaint_outcomes = outcomes || [];
@@ -98,6 +116,7 @@ serve(async (req) => {
     // Get practice details
     let practiceDetails = null;
     if (complaint.practice_id) {
+      console.log('Fetching practice details for ID:', complaint.practice_id);
       const { data: practice, error: practiceError } = await supabase
         .from('practice_details')
         .select('*')
@@ -108,8 +127,11 @@ serve(async (req) => {
         console.error('Error fetching practice details:', practiceError);
       } else {
         practiceDetails = practice;
+        console.log('Practice details loaded:', practiceDetails?.practice_name);
       }
     }
+
+    console.log('Calculating timeline metrics...');
 
     // Calculate timeline and compliance metrics
     const submittedDate = new Date(complaint.created_at);
@@ -146,6 +168,7 @@ For each section, provide specific evidence and reference NHS complaint handling
 
 Use professional NHS/CQC language and cite specific regulatory requirements where applicable.`;
 
+    console.log('Preparing OpenAI prompt...');
     const userPrompt = `Generate a comprehensive CQC compliance evidence report for the following completed complaint:
 
 COMPLAINT DETAILS:
@@ -196,6 +219,7 @@ ${auditLogs?.map(log =>
 
 Generate a comprehensive report that demonstrates full compliance with NHS complaint handling procedures and provides evidence suitable for CQC inspection. Include specific regulatory references and compliance statements.`;
 
+    console.log('Calling OpenAI API with model: gpt-5-2025-08-07...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -203,7 +227,7 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-5-2025-08-07',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -212,13 +236,18 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
       }),
     });
 
+    console.log('OpenAI API response status:', response.status);
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'OpenAI API error');
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('OpenAI response received, generating report...');
     const complianceReport = data.choices[0].message.content;
+
+    console.log('Storing report as CQC evidence...');
 
     // Store the report as CQC evidence
     const evidenceTitle = `Complaints Compliance Report - ${complaint.reference_number}`;
@@ -249,8 +278,11 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
     if (evidenceError) {
       console.error('Error storing CQC evidence:', evidenceError);
       // Continue with response even if evidence storage fails
+    } else {
+      console.log('CQC evidence stored successfully:', evidenceRecord?.id);
     }
 
+    console.log('CQC compliance report generation completed successfully');
     return new Response(JSON.stringify({
       complianceReport,
       evidenceRecord,
