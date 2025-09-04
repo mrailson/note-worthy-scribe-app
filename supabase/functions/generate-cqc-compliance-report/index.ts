@@ -383,7 +383,7 @@ Generate a professional, comprehensive report that a CQC inspector would use to 
       .insert({
         practice_id: complaint.practice_id,
         title: evidenceTitle,
-        description: `Detailed CQC compliance evidence report for complaint ${complaint.reference_number}. This comprehensive report provides narrative analysis of complaint handling procedures, regulatory compliance evidence, timeline adherence, investigation methodology, outcomes, and learning actions in accordance with NHS England standards and CQC Regulation 16 requirements.`,
+        description: complianceReport, // Store the actual AI-generated report content
         evidence_type: 'complaint_compliance_report',
         cqc_domain: 'well_led',
         kloe_reference: 'W1',

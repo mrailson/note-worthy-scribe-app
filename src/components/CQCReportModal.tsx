@@ -58,7 +58,7 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
       }
 
       // Add the OR condition for compliance reports or complaint reference
-      query = query.or(`evidence_type.eq.compliance_report,title.ilike.%${complaintReference}%,tags.cs.{"${complaintReference}"}`);
+      query = query.or(`evidence_type.eq.complaint_compliance_report,evidence_type.eq.compliance_report,title.ilike.%${complaintReference}%,tags.cs.{"${complaintReference}"}`);
       
       // Order by creation date
       query = query.order('created_at', { ascending: false });
@@ -294,10 +294,16 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
 
                   {selectedReport.description && (
                     <div>
-                      <label className="text-sm font-medium">Description</label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedReport.description}
-                      </p>
+                      <label className="text-sm font-medium">Full Report Content</label>
+                      <div className="mt-2 p-4 bg-gray-50 rounded-lg border max-h-96 overflow-y-auto">
+                        <div className="prose prose-sm max-w-none">
+                          {selectedReport.description.split('\n').map((paragraph, index) => (
+                            <p key={index} className="mb-3 text-sm leading-relaxed">
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
