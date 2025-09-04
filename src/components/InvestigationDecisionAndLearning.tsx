@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail } from 'lucide-react';
+import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { SpeechToText } from '@/components/SpeechToText';
@@ -354,6 +354,26 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
         if (statusError) {
           console.error('Failed to update complaint status:', statusError);
           // Don't throw error here, outcome letter was still saved successfully
+        } else {
+          // Generate CQC compliance report when complaint is completed
+          try {
+            console.log('Generating CQC compliance report for completed complaint:', complaintId);
+            const { data: cqcReportData, error: cqcError } = await supabase.functions.invoke(
+              'generate-cqc-compliance-report',
+              { body: { complaintId } }
+            );
+            
+            if (cqcError) {
+              console.error('Failed to generate CQC compliance report:', cqcError);
+              // Don't fail the main process, just log the error
+            } else {
+              console.log('CQC compliance report generated successfully:', cqcReportData?.evidenceRecord?.id);
+              toast.success('CQC compliance report generated automatically');
+            }
+          } catch (cqcReportError) {
+            console.error('Error generating CQC compliance report:', cqcReportError);
+            // Continue without failing the main process
+          }
         }
       } else {
         // Create new outcome (this would require decision data)
@@ -510,6 +530,20 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* CQC Compliance Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-1">CQC Compliance Documentation</p>
+              <p className="text-blue-700">
+                When this complaint is completed, a comprehensive CQC compliance report will be automatically generated 
+                and stored in your evidence repository. This report demonstrates how your practice has met NHS complaint 
+                handling procedures and regulatory requirements.
+              </p>
+            </div>
+          </div>
+        </div>
         {!editing && decision ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">

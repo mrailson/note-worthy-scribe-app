@@ -416,6 +416,26 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         if (statusError) {
           console.error('Failed to update complaint status:', statusError);
           // Don't throw error here, outcome letter was still saved successfully
+        } else {
+          // Generate CQC compliance report when complaint is completed
+          try {
+            console.log('Generating CQC compliance report for completed complaint:', complaintId);
+            const { data: cqcReportData, error: cqcError } = await supabase.functions.invoke(
+              'generate-cqc-compliance-report',
+              { body: { complaintId } }
+            );
+            
+            if (cqcError) {
+              console.error('Failed to generate CQC compliance report:', cqcError);
+              // Don't fail the main process, just log the error
+            } else {
+              console.log('CQC compliance report generated successfully:', cqcReportData?.evidenceRecord?.id);
+              toast.success('CQC compliance report generated automatically');
+            }
+          } catch (cqcReportError) {
+            console.error('Error generating CQC compliance report:', cqcReportError);
+            // Continue without failing the main process
+          }
         }
       } else {
         // Create new outcome (this would require decision data)
