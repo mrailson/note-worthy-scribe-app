@@ -400,6 +400,7 @@ const Index = () => {
 
           {/* Consultation Tab */}
           <TabsContent value="consultation" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'}`}>
+            <div className={`${isMobile ? 'min-h-0 flex-1' : ''}`}>
             <RecordingControls
               isRecording={dualTranscription.state.isRecording || recording.isRecording}
               isPaused={recording.isPaused}
@@ -492,8 +493,9 @@ const Index = () => {
                 recording.clearTranscript();
                 recording.setHasUnsavedEdits(false); // Clear unsaved edits flag
               }}
-              onPrimarySourceChange={dualTranscription.setPrimarySource}
-            />
+               onPrimarySourceChange={dualTranscription.setPrimarySource}
+             />
+            </div>
           </TabsContent>
 
           {/* Summary Tab */}

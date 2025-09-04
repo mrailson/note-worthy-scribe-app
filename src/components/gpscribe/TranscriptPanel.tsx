@@ -359,18 +359,18 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {transcript ? (
-                    <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                      {transcript}
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] flex items-center justify-center text-gray-500">
-                      {isRecording 
-                        ? "Transcription will appear here as you speak..."
-                        : "No transcript available. Start recording to generate a transcript."
-                      }
-                    </div>
-                  )}
+              {transcript ? (
+                <div className="bg-muted/30 rounded-lg p-4 min-h-[200px] max-h-none whitespace-pre-wrap overflow-auto text-foreground">
+                  {transcript}
+                </div>
+              ) : (
+                <div className="bg-muted/30 rounded-lg p-4 min-h-[200px] flex items-center justify-center text-muted-foreground">
+                  {isRecording 
+                    ? "Transcription will appear here as you speak..."
+                    : "No transcript available. Start recording to generate a transcript."
+                  }
+                </div>
+              )}
                   {transcript && (
                     <div className="flex gap-2">
                       {onCleanTranscript && (
