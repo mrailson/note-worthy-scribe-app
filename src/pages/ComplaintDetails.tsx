@@ -49,6 +49,7 @@ import { Document, Packer } from "docx";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
+import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 
 interface Complaint {
   id: string;
@@ -2250,21 +2251,17 @@ I am committed to ensuring that all patients receive the care and service they d
             </div>
             
             {/* Letter content */}
-            <div className="flex-1 overflow-y-auto border rounded-lg bg-background">
+            <div className="flex-1 overflow-y-auto">
               {!isEditingAcknowledgement ? (
-                <div className="p-6">
-                  <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                      {acknowledgementLetter}
-                    </pre>
-                  </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <FormattedLetterContent content={acknowledgementLetter} />
                 </div>
               ) : (
-                <div className="p-4">
+                <div className="p-4 bg-white rounded-lg border">
                   <Textarea
                     value={editedAcknowledgementContent}
                     onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2"
+                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
                     placeholder="Edit the acknowledgement letter content..."
                   />
                 </div>
