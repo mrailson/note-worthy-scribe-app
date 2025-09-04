@@ -8,6 +8,7 @@ import { FileText, Download, Eye, Calendar, User, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 interface CQCReportModalProps {
   complaintId: string;
@@ -130,6 +131,59 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
     const words = text.split(' ');
     if (words.length <= maxWords) return text;
     return words.slice(0, maxWords).join(' ') + '...';
+  };
+
+  const downloadAsWord = async (report: CQCEvidenceRecord) => {
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: report.title,
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              text: `Evidence Type: ${report.evidence_type.replace('_', ' ').toUpperCase()}`,
+              spacing: { after: 100 },
+            }),
+            ...(report.cqc_domain ? [new Paragraph({
+              text: `CQC Domain: ${report.cqc_domain}`,
+              spacing: { after: 100 },
+            })] : []),
+            ...(report.kloe_reference ? [new Paragraph({
+              text: `KLOE Reference: ${report.kloe_reference}`,
+              spacing: { after: 100 },
+            })] : []),
+            new Paragraph({
+              text: `Generated: ${format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}`,
+              spacing: { after: 200 },
+            }),
+            ...(report.description ? report.description.split('\n').map(line => 
+              new Paragraph({
+                children: [new TextRun(line)],
+                spacing: { after: 120 },
+              })
+            ) : []),
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Word document downloaded successfully');
+    } catch (error) {
+      console.error('Failed to generate Word document:', error);
+      toast.error('Failed to generate Word document');
+    }
   };
 
   return (
@@ -341,15 +395,25 @@ export function CQCReportModal({ complaintId, complaintReference }: CQCReportMod
                         )}
                       </div>
                       
-                      {selectedReport.file_path && (
+                      <div className="flex gap-2">
                         <Button
-                          onClick={() => downloadReport(selectedReport)}
+                          variant="outline"
+                          onClick={() => downloadAsWord(selectedReport)}
                           className="flex items-center gap-2"
                         >
-                          <Download className="h-4 w-4" />
-                          Download Report
+                          <FileText className="h-4 w-4" />
+                          Download Word
                         </Button>
-                      )}
+                        {selectedReport.file_path && (
+                          <Button
+                            onClick={() => downloadReport(selectedReport)}
+                            className="flex items-center gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Download Report
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

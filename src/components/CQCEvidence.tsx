@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, Upload, Download, Trash2, Shield, AlertCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 interface CQCEvidenceProps {
   complaintId: string;
@@ -230,6 +231,59 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
     const words = text.split(' ');
     if (words.length <= maxWords) return text;
     return words.slice(0, maxWords).join(' ') + '...';
+  };
+
+  const downloadAsWord = async (record: CQCEvidenceRecord) => {
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: record.title,
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              text: `Evidence Type: ${record.evidence_type.replace('_', ' ').toUpperCase()}`,
+              spacing: { after: 100 },
+            }),
+            ...(record.cqc_domain ? [new Paragraph({
+              text: `CQC Domain: ${record.cqc_domain}`,
+              spacing: { after: 100 },
+            })] : []),
+            ...(record.kloe_reference ? [new Paragraph({
+              text: `KLOE Reference: ${record.kloe_reference}`,
+              spacing: { after: 100 },
+            })] : []),
+            new Paragraph({
+              text: `Generated: ${new Date(record.created_at).toLocaleDateString()}`,
+              spacing: { after: 200 },
+            }),
+            ...(record.description ? record.description.split('\n').map(line => 
+              new Paragraph({
+                children: [new TextRun(line)],
+                spacing: { after: 120 },
+              })
+            ) : []),
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${record.title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Word document downloaded successfully');
+    } catch (error) {
+      console.error('Failed to generate Word document:', error);
+      toast.error('Failed to generate Word document');
+    }
   };
 
   return (
@@ -508,29 +562,39 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
                 )}
 
                 <div className="border-t pt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">File Information</p>
-                      <p className="text-sm text-muted-foreground">
-                        Generated: {new Date(selectedReport.created_at).toLocaleDateString('en-GB')}
-                      </p>
-                      {selectedReport.file_name && (
-                        <p className="text-xs text-muted-foreground">
-                          {selectedReport.file_name}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">File Information</p>
+                        <p className="text-sm text-muted-foreground">
+                          Generated: {new Date(selectedReport.created_at).toLocaleDateString('en-GB')}
                         </p>
-                      )}
+                        {selectedReport.file_name && (
+                          <p className="text-xs text-muted-foreground">
+                            {selectedReport.file_name}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => downloadAsWord(selectedReport)}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Download Word
+                        </Button>
+                        {selectedReport.file_path && (
+                          <Button
+                            onClick={() => downloadFile(selectedReport)}
+                            className="flex items-center gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Download Report
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    
-                    {selectedReport.file_path && (
-                      <Button
-                        onClick={() => downloadFile(selectedReport)}
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download Report
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </div>
             </ScrollArea>
