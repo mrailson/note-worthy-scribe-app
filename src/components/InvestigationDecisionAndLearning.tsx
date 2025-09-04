@@ -458,34 +458,16 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
       console.log('Letter content length:', outcomeLetter.length);
       console.log('Letter content preview:', outcomeLetter.substring(0, 100) + '...');
       
-      // Simple DOCX creation with comprehensive error handling
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+      // Use the proper letter formatter that handles markdown
+      const { createLetterDocument } = await import('@/utils/letterFormatter');
+      const { Packer } = await import('docx');
       
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              text: 'Outcome Letter',
-              heading: HeadingLevel.HEADING_1,
-            }),
-            new Paragraph({
-              text: `Generated: ${new Date().toLocaleDateString()}`,
-              spacing: { after: 200 },
-            }),
-            new Paragraph({
-              text: `Complaint Reference: ${complaintReferenceNumber}`,
-              spacing: { after: 200 },
-            }),
-            ...outcomeLetter.split('\n').filter(line => line !== null && line !== undefined).map(line => 
-              new Paragraph({
-                children: [new TextRun(line || ' ')],
-                spacing: { after: 120 },
-              })
-            ),
-          ],
-        }],
-      });
+      console.log('Creating document with proper markdown formatting...');
+      const doc = await createLetterDocument(
+        outcomeLetter, 
+        'outcome', 
+        complaintReferenceNumber || `COMP${complaintId.substring(0, 8)}`
+      );
 
       console.log('Document structure created successfully');
       
