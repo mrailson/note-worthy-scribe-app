@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,7 +128,9 @@ const ComplaintDetails = () => {
   const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean; responseReceivedAt?: string; responseText?: string; isTestResponse?: boolean}>>([]);
   const [workflowSettings, setWorkflowSettings] = useState<any>(null);
   const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState<string>('');
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(true);
+  const emailUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -417,6 +419,15 @@ const ComplaintDetails = () => {
       supabase.removeChannel(channel);
     };
   }, [user, complaintId]);
+
+  // Cleanup email timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (emailUpdateTimeout.current) {
+        clearTimeout(emailUpdateTimeout.current);
+      }
+    };
+  }, []);
 
   // Conditional return AFTER all hooks are called
   if (!user) {
@@ -2066,15 +2077,33 @@ I am committed to ensuring that all patients receive the care and service they d
                                             <Input
                                               type="email"
                                               placeholder="Enter email address"
-                                              value={staff.email}
+                                              value={editingStaffIndex === index ? editingEmailValue : staff.email}
                                               onChange={(e) => {
-                                                const updatedStaff = [...selectedStaff];
-                                                updatedStaff[index].email = e.target.value;
-                                                setSelectedStaff(updatedStaff);
+                                                const newValue = e.target.value;
+                                                setEditingEmailValue(newValue);
+                                                
+                                                // Clear any existing timeout
+                                                if (emailUpdateTimeout.current) {
+                                                  clearTimeout(emailUpdateTimeout.current);
+                                                }
+                                                
+                                                // Set a new timeout to update the main state after user stops typing
+                                                emailUpdateTimeout.current = setTimeout(() => {
+                                                  const updatedStaff = [...selectedStaff];
+                                                  updatedStaff[index].email = newValue;
+                                                  setSelectedStaff(updatedStaff);
+                                                }, 500); // 500ms delay
                                               }}
                                               onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
                                                   e.preventDefault();
+                                                  // Clear timeout and immediately save
+                                                  if (emailUpdateTimeout.current) {
+                                                    clearTimeout(emailUpdateTimeout.current);
+                                                  }
+                                                  const updatedStaff = [...selectedStaff];
+                                                  updatedStaff[index].email = editingEmailValue;
+                                                  setSelectedStaff(updatedStaff);
                                                   setEditingStaffIndex(null);
                                                 }
                                               }}
@@ -2085,7 +2114,16 @@ I am committed to ensuring that all patients receive the care and service they d
                                             <Button
                                               variant="outline"
                                               size="sm"
-                                              onClick={() => setEditingStaffIndex(null)}
+                                              onClick={() => {
+                                                // Clear timeout and immediately save
+                                                if (emailUpdateTimeout.current) {
+                                                  clearTimeout(emailUpdateTimeout.current);
+                                                }
+                                                const updatedStaff = [...selectedStaff];
+                                                updatedStaff[index].email = editingEmailValue;
+                                                setSelectedStaff(updatedStaff);
+                                                setEditingStaffIndex(null);
+                                              }}
                                               className="text-xs h-6"
                                             >
                                               Save
@@ -2094,8 +2132,12 @@ I am committed to ensuring that all patients receive the care and service they d
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => {
+                                                // Clear timeout and cancel editing
+                                                if (emailUpdateTimeout.current) {
+                                                  clearTimeout(emailUpdateTimeout.current);
+                                                }
                                                 setEditingStaffIndex(null);
-                                                // Reset to original value if needed - could store original in state
+                                                setEditingEmailValue('');
                                               }}
                                               className="text-xs h-6"
                                             >
@@ -2109,7 +2151,10 @@ I am committed to ensuring that all patients receive the care and service they d
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              onClick={() => setEditingStaffIndex(index)}
+                                              onClick={() => {
+                                                setEditingEmailValue(staff.email);
+                                                setEditingStaffIndex(index);
+                                              }}
                                               className="text-xs h-5 px-2"
                                             >
                                               <Edit className="h-3 w-3" />
@@ -2124,9 +2169,19 @@ I am committed to ensuring that all patients receive the care and service they d
                                             placeholder="Enter email address"
                                             value={staff.email}
                                             onChange={(e) => {
-                                              const updatedStaff = [...selectedStaff];
-                                              updatedStaff[index].email = e.target.value;
-                                              setSelectedStaff(updatedStaff);
+                                              const newValue = e.target.value;
+                                              
+                                              // Clear any existing timeout
+                                              if (emailUpdateTimeout.current) {
+                                                clearTimeout(emailUpdateTimeout.current);
+                                              }
+                                              
+                                              // Set a new timeout to update the main state after user stops typing
+                                              emailUpdateTimeout.current = setTimeout(() => {
+                                                const updatedStaff = [...selectedStaff];
+                                                updatedStaff[index].email = newValue;
+                                                setSelectedStaff(updatedStaff);
+                                              }, 500); // 500ms delay
                                             }}
                                             onKeyDown={(e) => {
                                               if (e.key === 'Enter') {
