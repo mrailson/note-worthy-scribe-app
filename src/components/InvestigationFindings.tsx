@@ -8,6 +8,7 @@ import { Search, Save, Edit, CheckCircle, Sparkles, Loader2 } from 'lucide-react
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface InvestigationFindingsProps {
   complaintId: string;
@@ -214,16 +215,23 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
 
             <div>
               <Label className="text-sm font-medium">Investigation Summary</Label>
-              <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                {findings.investigation_summary}
+              <div className="mt-1 p-4 bg-background/50 border rounded-lg prose prose-sm max-w-none">
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderNHSMarkdown(findings.investigation_summary, { enableNHSStyling: true }) 
+                  }} 
+                />
               </div>
             </div>
 
-
             <div>
               <Label className="text-sm font-medium">Detailed Findings</Label>
-              <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                {findings.findings_text}
+              <div className="mt-1 p-4 bg-background/50 border rounded-lg prose prose-sm max-w-none">
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderNHSMarkdown(findings.findings_text, { enableNHSStyling: true }) 
+                  }} 
+                />
               </div>
             </div>
           </div>
