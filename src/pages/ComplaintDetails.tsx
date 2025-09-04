@@ -657,31 +657,76 @@ const ComplaintDetails = () => {
   };
 
   // Investigation workflow functions
-  const handleInvestigationMethodChange = (method: string) => {
+  const handleInvestigationMethodChange = async (method: string) => {
     setInvestigationMethod(method);
     
     // Auto-populate suggested staff based on complaint details
     if (method === "input-required") {
       const suggestions: Array<{name: string; email: string; role: string; suggested: boolean; type: string}> = [];
       
-      // Add mentioned staff
+      // Get practice ID for fetching defaults
+      let practiceId: string | null = null;
+      if (complaint?.practice_id) {
+        practiceId = complaint.practice_id;
+      } else {
+        // Try to get from user roles if not on complaint
+        const { data: practiceData } = await supabase
+          .from('user_roles')
+          .select('practice_id')
+          .eq('user_id', complaint?.created_by)
+          .limit(1)
+          .maybeSingle();
+        practiceId = practiceData?.practice_id || null;
+      }
+      
+      // Add mentioned staff with default email lookups
       if (complaint?.staff_mentioned) {
-        complaint.staff_mentioned.forEach(staff => {
+        for (const staff of complaint.staff_mentioned) {
+          let defaultEmail = '';
+          let defaultRole = 'Various';
+          
+          if (practiceId) {
+            const { data: defaultContact } = await supabase
+              .rpc('get_default_staff_contact', {
+                p_practice_id: practiceId,
+                p_staff_role: staff,
+                p_staff_name: staff
+              });
+            
+            if (defaultContact && defaultContact.length > 0) {
+              defaultEmail = defaultContact[0].default_email;
+              defaultRole = staff;
+            }
+          }
+          
           suggestions.push({
             name: staff,
-            email: '', // Would need to be filled in
-            role: 'Various',
+            email: defaultEmail,
+            role: defaultRole,
             suggested: true,
             type: 'mentioned'
           });
-        });
+        }
       }
       
-      // Add category-based suggestions
+      // Add category-based suggestions with default emails
       if (complaint?.category === 'Appointments & Access') {
+        let receptionEmail = '';
+        if (practiceId) {
+          const { data: defaultContact } = await supabase
+            .rpc('get_default_staff_contact', {
+              p_practice_id: practiceId,
+              p_staff_role: 'Receptionist'
+            });
+          
+          if (defaultContact && defaultContact.length > 0) {
+            receptionEmail = defaultContact[0].default_email;
+          }
+        }
+        
         suggestions.push({
           name: 'Reception Team',
-          email: '',
+          email: receptionEmail,
           role: 'Reception',
           suggested: true,
           type: 'category-based'
@@ -689,9 +734,22 @@ const ComplaintDetails = () => {
       }
       
       if (complaint?.category === 'Clinical Care & Treatment') {
+        let clinicianEmail = '';
+        if (practiceId) {
+          const { data: defaultContact } = await supabase
+            .rpc('get_default_staff_contact', {
+              p_practice_id: practiceId,
+              p_staff_role: 'Practice Nurse'
+            });
+          
+          if (defaultContact && defaultContact.length > 0) {
+            clinicianEmail = defaultContact[0].default_email;
+          }
+        }
+        
         suggestions.push({
           name: 'Treating Clinician',
-          email: '',
+          email: clinicianEmail,
           role: 'Clinician',
           suggested: true,
           type: 'category-based'
@@ -712,11 +770,42 @@ const ComplaintDetails = () => {
     );
   };
 
-  const handleAddAdditionalStaff = () => {
+  const handleAddAdditionalStaff = async () => {
     if (additionalStaff.name && additionalStaff.email) {
+      // Check if we should auto-populate email from defaults
+      let emailToUse = additionalStaff.email;
+      
+      if (!emailToUse && additionalStaff.role) {
+        // Try to get default email for this role
+        let practiceId: string | null = null;
+        if (complaint?.practice_id) {
+          practiceId = complaint.practice_id;
+        } else {
+          const { data: practiceData } = await supabase
+            .from('user_roles')
+            .select('practice_id')
+            .eq('user_id', complaint?.created_by)
+            .limit(1)
+            .maybeSingle();
+          practiceId = practiceData?.practice_id || null;
+        }
+        
+        if (practiceId) {
+          const { data: defaultContact } = await supabase
+            .rpc('get_default_staff_contact', {
+              p_practice_id: practiceId,
+              p_staff_role: additionalStaff.role
+            });
+          
+          if (defaultContact && defaultContact.length > 0) {
+            emailToUse = defaultContact[0].default_email;
+          }
+        }
+      }
+      
       setSelectedStaff(prev => [...prev, {
         name: additionalStaff.name,
-        email: additionalStaff.email,
+        email: emailToUse,
         role: additionalStaff.role || 'Staff Member',
         suggested: false,
         type: 'additional'

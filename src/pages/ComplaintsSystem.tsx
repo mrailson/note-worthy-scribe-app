@@ -1877,15 +1877,41 @@ const ComplaintsSystem = () => {
                           placeholder="e.g., Reception, GP Consultation Room 1" 
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="staff_mentioned">Staff Members Mentioned</Label>
-                        <Input 
-                          id="staff_mentioned" 
-                          value={formData.staff_mentioned}
-                          onChange={(e) => handleInputChange('staff_mentioned', e.target.value)}
-                          placeholder="Comma-separated list of staff names" 
-                        />
-                      </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="staff_mentioned">Staff Members Mentioned</Label>
+                          <div className="space-y-2">
+                            <Input 
+                              id="staff_mentioned" 
+                              value={formData.staff_mentioned}
+                              onChange={(e) => handleInputChange('staff_mentioned', e.target.value)}
+                              placeholder="e.g. Receptionist, Practice Nurse, Dr Smith" 
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              {['Receptionist', 'Practice Manager', 'Practice Nurse', 'Administrative Staff', 'Healthcare Assistant'].map(role => (
+                                <Button
+                                  key={role}
+                                  variant="outline"
+                                  size="sm"
+                                  type="button"
+                                  onClick={() => {
+                                    const current = formData.staff_mentioned;
+                                    const roles = current ? current.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                    if (!roles.includes(role)) {
+                                      const newValue = roles.length > 0 ? `${current}, ${role}` : role;
+                                      handleInputChange('staff_mentioned', newValue);
+                                    }
+                                  }}
+                                  className="text-xs"
+                                >
+                                  + {role}
+                                </Button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Click quick-add buttons above or type staff names separated by commas. Email addresses will be auto-populated to malcolm.railson@nhs.net for Oak Lane Medical Practice staff.
+                            </p>
+                          </div>
+                        </div>
                     </div>
                   </div>
 

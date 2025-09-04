@@ -3708,6 +3708,50 @@ export type Database = {
           },
         ]
       }
+      practice_staff_defaults: {
+        Row: {
+          created_at: string
+          default_email: string
+          default_phone: string | null
+          id: string
+          is_active: boolean
+          practice_id: string | null
+          staff_name: string
+          staff_role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_email: string
+          default_phone?: string | null
+          id?: string
+          is_active?: boolean
+          practice_id?: string | null
+          staff_name: string
+          staff_role: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_email?: string
+          default_phone?: string | null
+          id?: string
+          is_active?: boolean
+          practice_id?: string | null
+          staff_name?: string
+          staff_role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_staff_defaults_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       primary_care_networks: {
         Row: {
           created_at: string
@@ -5377,6 +5421,18 @@ export type Database = {
           size_bytes: number
           size_pretty: string
           table_name: string
+        }[]
+      }
+      get_default_staff_contact: {
+        Args: {
+          p_practice_id: string
+          p_staff_name?: string
+          p_staff_role: string
+        }
+        Returns: {
+          default_email: string
+          default_phone: string
+          staff_name: string
         }[]
       }
       get_large_files: {
