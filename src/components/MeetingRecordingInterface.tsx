@@ -299,8 +299,41 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
             throw updateError;
           }
           
-          console.log('✅ Meeting status updated successfully');
-          updateSuccess = true;
+      console.log('✅ Meeting status updated successfully');
+      
+      // Check if auto-generation was triggered
+      console.log('🤖 Checking if auto-generation was triggered...');
+      
+      // Give the trigger a moment to process
+      setTimeout(async () => {
+        try {
+          const { data: queueCheck, error: queueError } = await supabase
+            .from('meeting_notes_queue')
+            .select('note_type, status, batch_id')
+            .eq('meeting_id', currentMeetingId);
+          
+          if (queueError) {
+            console.error('❌ Error checking queue:', queueError);
+          } else if (queueCheck && queueCheck.length > 0) {
+            console.log('✅ Auto-generation triggered! Queued note types:', queueCheck);
+            toast({ 
+              title: "Auto-generation started", 
+              description: `${queueCheck.length} note types queued for generation` 
+            });
+          } else {
+            console.log('⚠️ No queue entries found - auto-generation may not have triggered');
+            toast({ 
+              title: "Manual generation may be required", 
+              description: "Check the Multi-Type Notes tab for status",
+              variant: "destructive"
+            });
+          }
+        } catch (checkError) {
+          console.error('❌ Error checking auto-generation status:', checkError);
+        }
+      }, 2000);
+      
+      updateSuccess = true;
           
         } catch (retryError) {
           retryCount++;

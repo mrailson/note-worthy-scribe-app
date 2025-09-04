@@ -3447,6 +3447,34 @@ export const MeetingRecorder = ({
       console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
+      
+      // Check if auto-generation was triggered
+      console.log('🤖 Checking if auto-generation was triggered for meeting:', meetingId);
+      
+      // Give the trigger a moment to process
+      setTimeout(async () => {
+        try {
+          const { data: queueCheck, error: queueError } = await supabase
+            .from('meeting_notes_queue')
+            .select('note_type, status, batch_id')
+            .eq('meeting_id', meetingId);
+          
+          if (queueError) {
+            console.error('❌ Error checking queue:', queueError);
+          } else if (queueCheck && queueCheck.length > 0) {
+            console.log('✅ Auto-generation triggered! Queued note types:', queueCheck);
+            toast.success(`Auto-generation started - ${queueCheck.length} note types queued`);
+          } else {
+            console.log('⚠️ No queue entries found - auto-generation may not have triggered');
+            console.log('🔍 Possible reasons: No transcript content, trigger disabled, or error in trigger function');
+            toast.info('Check Multi-Type Notes Panel for auto-generation status');
+          }
+        } catch (checkError) {
+          console.error('❌ Error checking auto-generation status:', checkError);
+        }
+      }, 2500);
+      
+      
 
       if (saveError) {
         console.error('🚨 DATABASE UPDATE FAILED:', saveError);
