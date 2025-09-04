@@ -151,6 +151,9 @@ const ComplaintDetails = () => {
         setOutcomeType(outcomeData.outcome_type);
         setOutcomeSummary(outcomeData.outcome_summary);
         setOutcomeLetter(outcomeData.outcome_letter || "");
+        
+        // If there's outcome data but no investigation method set yet, 
+        // we'll check later if it should be "direct-investigation"
       }
 
       // Fetch acknowledgement letter (get the most recent one)
@@ -240,7 +243,29 @@ const ComplaintDetails = () => {
           setSelectedStaff(staffList);
         }
         
+        // Automatically set investigation method to "input-required" if there are existing input requests
+        if (requests.length > 0 && !investigationMethod) {
+          setInvestigationMethod("input-required");
+          console.log('Auto-restored investigation method to "input-required" based on existing input requests');
+        }
+        
         console.log('Loaded staff responses:', requests);
+      } else {
+        // No input requests found - check if we should set direct investigation
+        // This happens after acknowledgement letter exists but no staff input was requested
+        if (!investigationMethod && acknowledgementLetter) {
+          // Check if there's any investigation evidence or outcome suggesting direct investigation
+          const { data: outcomeExists } = await supabase
+            .from('complaint_outcomes')
+            .select('id')
+            .eq('complaint_id', complaintId)
+            .maybeSingle();
+            
+          if (outcomeExists) {
+            setInvestigationMethod("direct-investigation");
+            console.log('Auto-restored investigation method to "direct-investigation" based on existing outcome data');
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching staff responses:', error);
