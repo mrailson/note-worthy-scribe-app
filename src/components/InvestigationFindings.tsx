@@ -215,10 +215,18 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
 
             <div>
               <Label className="text-sm font-medium">Investigation Summary</Label>
-              <div className="mt-1 p-4 bg-background/50 border rounded-lg prose prose-sm max-w-none">
+              <div className="mt-1 p-4 bg-background/50 border rounded-lg">
                 <div 
+                  className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderNHSMarkdown(findings.investigation_summary, { enableNHSStyling: true }) 
+                    __html: findings.investigation_summary
+                      ?.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-primary">$1</strong>')
+                      ?.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+                      ?.replace(/^- (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2">•</span><span>$1</span></div>')
+                      ?.replace(/^\d+\. (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 font-medium">$&</span></div>')
+                      ?.replace(/\n\n/g, '</p><p class="mb-3">')
+                      ?.replace(/^(.+)$/gm, '<p class="mb-3">$1</p>')
+                      ?.replace(/<p[^>]*><\/p>/g, '') || ""
                   }} 
                 />
               </div>
@@ -226,10 +234,18 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
 
             <div>
               <Label className="text-sm font-medium">Detailed Findings</Label>
-              <div className="mt-1 p-4 bg-background/50 border rounded-lg prose prose-sm max-w-none">
+              <div className="mt-1 p-4 bg-background/50 border rounded-lg">
                 <div 
+                  className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderNHSMarkdown(findings.findings_text, { enableNHSStyling: true }) 
+                    __html: findings.findings_text
+                      ?.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-primary">$1</strong>')
+                      ?.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+                      ?.replace(/^- (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2">•</span><span>$1</span></div>')
+                      ?.replace(/^\d+\. (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 font-medium">$&</span></div>')
+                      ?.replace(/\n\n/g, '</p><p class="mb-3">')
+                      ?.replace(/^(.+)$/gm, '<p class="mb-3">$1</p>')
+                      ?.replace(/<p[^>]*><\/p>/g, '') || ""
                   }} 
                 />
               </div>
