@@ -10,14 +10,6 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
-  console.log('FormattedLetterContent debug:', {
-    contentStart: content.substring(0, 200),
-    logoUrlMatch,
-    logoUrl
-  });
-  
-  console.log('Logo URL check:', { logoUrl, hasLogoUrl: !!logoUrl, type: typeof logoUrl });
-  
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
   
@@ -103,17 +95,6 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
             src={logoUrl}
             alt="Practice Logo" 
             className="h-48 w-auto mx-auto object-contain"
-            onLoad={() => console.log('Logo loaded successfully:', logoUrl)}
-            onError={(e) => {
-              console.error('Logo failed to load:', logoUrl, e);
-              console.error('Image element:', e.currentTarget);
-              // Don't hide on error, let's see what happens
-            }}
-            style={{
-              border: '2px solid red',
-              minHeight: '100px',
-              display: 'block'
-            }}
           />
         </div>
       )}
