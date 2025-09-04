@@ -1762,12 +1762,31 @@ I am committed to ensuring that all patients receive the care and service they d
                         </div>
                       </div>
                       
-                      {existingOutcome.outcome_summary && (
-                        <div className="p-3 bg-green-100 rounded border border-green-200">
-                          <Label className="font-medium text-green-800">Outcome Summary:</Label>
-                          <p className="text-sm text-green-700 mt-1">{existingOutcome.outcome_summary}</p>
-                        </div>
-                      )}
+                      {/* Green tick if sent within 20 working days */}
+                      {existingOutcome.decided_at && complaint.created_at && (() => {
+                        const workingDays = calculateWorkingDays(complaint.created_at, existingOutcome.decided_at);
+                        const isWithinTimeframe = workingDays <= 20;
+                        
+                        if (isWithinTimeframe) {
+                          return (
+                            <div className="flex items-center gap-2 p-3 bg-green-100 rounded border border-green-200">
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <span className="text-sm font-medium text-green-800">
+                                Outcome sent within 20 working days ({workingDays} days)
+                              </span>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div className="flex items-center gap-2 p-3 bg-amber-100 rounded border border-amber-200">
+                            <AlertCircle className="h-5 w-5 text-amber-600" />
+                            <span className="text-sm font-medium text-amber-800">
+                              Outcome sent after target timeframe ({workingDays} working days)
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
