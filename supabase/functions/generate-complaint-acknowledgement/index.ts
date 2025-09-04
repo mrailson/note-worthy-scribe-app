@@ -62,11 +62,11 @@ serve(async (req) => {
     } else {
       console.log('No practice_id found on complaint, fetching from user roles');
       
-      const { data: userPractice } = await supabase
+      const { data: userPractice, error: userPracticeError } = await supabase
         .from('user_roles')
         .select(`
           practice_id,
-          practice_details!inner (
+          practice_details (
             practice_name, 
             address, 
             phone, 
@@ -83,9 +83,24 @@ serve(async (req) => {
         .limit(1)
         .single();
       
+      console.log('User practice query result:', { userPractice, userPracticeError });
+      
       if (userPractice && userPractice.practice_details) {
         practiceDetails = userPractice.practice_details;
         console.log('Retrieved practice details from user roles:', practiceDetails);
+      } else {
+        console.log('Fallback: fetching practice details directly');
+        const { data: directPractice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
+          .eq('user_id', complaint.created_by)
+          .limit(1)
+          .single();
+        
+        if (directPractice) {
+          practiceDetails = directPractice;
+          console.log('Retrieved practice details directly:', practiceDetails);
+        }
       }
     }
 
@@ -191,9 +206,17 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     let acknowledgementLetter = data.choices[0].message.content;
     
     // Add practice logo URL to the letter content as HTML comment for Word export
+    console.log('Checking for logo URLs:', {
+      logo_url: practiceDetails?.logo_url,
+      practice_logo_url: practiceDetails?.practice_logo_url
+    });
+    
     if (practiceDetails?.logo_url || practiceDetails?.practice_logo_url) {
       const logoUrl = practiceDetails.practice_logo_url || practiceDetails.logo_url;
+      console.log('Adding logo URL to letter:', logoUrl);
       acknowledgementLetter = `<!-- logo_url: ${logoUrl} -->\n${acknowledgementLetter}`;
+    } else {
+      console.log('No logo URLs found in practice details');
     }
     
     // Store the acknowledgement in the database
