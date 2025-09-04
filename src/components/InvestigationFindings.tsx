@@ -226,24 +226,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                 <div 
                   className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ 
-                    __html: findings.investigation_summary
-                      ?.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-primary mb-2 mt-4">$1</h3>')
-                      ?.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-primary mb-3 mt-5">$1</h2>')
-                      ?.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-primary mb-4 mt-6">$1</h1>')
-                      ?.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-                      ?.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-                      ?.replace(/^- (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 text-base leading-relaxed">•</span><span class="flex-1 leading-relaxed">$1</span></div>')
-                      ?.replace(/^\d+\. (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 text-base leading-relaxed font-medium">$&</span></div>')
-                      ?.replace(/\n\n/g, '</p><p class="mb-3">')
-                      ?.replace(/^(.+)$/gm, (match) => {
-                        if (match.includes('<h') || match.includes('<div') || match.includes('<strong') || match.includes('<em')) {
-                          return match;
-                        }
-                        return `<p class="mb-3 leading-relaxed">${match}</p>`;
-                      })
-                      ?.replace(/<p[^>]*><\/p>/g, '')
-                      ?.replace(/<p[^>]*>(<h[1-6][^>]*>.*?<\/h[1-6]>)<\/p>/g, '$1')
-                      ?.replace(/<p[^>]*>(<div[^>]*>.*?<\/div>)<\/p>/g, '$1') || ""
+                    __html: renderNHSMarkdown(findings.investigation_summary || "")
                   }} 
                 />
               </div>
@@ -255,24 +238,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                 <div 
                   className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ 
-                    __html: findings.findings_text
-                      ?.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-primary mb-2 mt-4">$1</h3>')
-                      ?.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-primary mb-3 mt-5">$1</h2>')
-                      ?.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-primary mb-4 mt-6">$1</h1>')
-                      ?.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-                      ?.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-                      ?.replace(/^- (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 text-base leading-relaxed">•</span><span class="flex-1 leading-relaxed">$1</span></div>')
-                      ?.replace(/^\d+\. (.+)$/gm, '<div class="flex items-start mb-2"><span class="mr-2 text-base leading-relaxed font-medium">$&</span></div>')
-                      ?.replace(/\n\n/g, '</p><p class="mb-3">')
-                      ?.replace(/^(.+)$/gm, (match) => {
-                        if (match.includes('<h') || match.includes('<div') || match.includes('<strong') || match.includes('<em')) {
-                          return match;
-                        }
-                        return `<p class="mb-3 leading-relaxed">${match}</p>`;
-                      })
-                      ?.replace(/<p[^>]*><\/p>/g, '')
-                      ?.replace(/<p[^>]*>(<h[1-6][^>]*>.*?<\/h[1-6]>)<\/p>/g, '$1')
-                      ?.replace(/<p[^>]*>(<div[^>]*>.*?<\/div>)<\/p>/g, '$1') || ""
+                    __html: renderNHSMarkdown(findings.findings_text || "")
                   }} 
                 />
               </div>

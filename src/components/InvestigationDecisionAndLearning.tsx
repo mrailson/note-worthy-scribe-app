@@ -13,6 +13,7 @@ import { ManualCQCReportGenerator } from '@/components/ManualCQCReportGenerator'
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface InvestigationDecisionAndLearningProps {
   complaintId: string;
@@ -606,8 +607,13 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
 
                   <div>
                     <Label className="text-sm font-medium">Decision Reasoning (CQC Audit Ready)</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                      {decision.decision_reasoning}
+                    <div className="mt-1 p-4 bg-background/50 border rounded-lg">
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(decision.decision_reasoning || "")
+                        }} 
+                      />
                     </div>
                   </div>
 
@@ -617,8 +623,13 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                         <BookOpen className="h-4 w-4" />
                         Lessons Learned
                       </Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                        {decision.lessons_learned}
+                      <div className="mt-1 p-4 bg-background/50 border rounded-lg">
+                        <div 
+                          className="prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ 
+                            __html: renderNHSMarkdown(decision.lessons_learned || "")
+                          }} 
+                        />
                       </div>
                     </div>
                   )}
