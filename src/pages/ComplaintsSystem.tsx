@@ -396,7 +396,7 @@ const ComplaintsSystem = () => {
           .select('outcome_type')
           .eq('complaint_id', complaint.id)
           .limit(1)
-          .single();
+          .maybeSingle();
         
         outcomeType = outcomeData?.outcome_type;
       }

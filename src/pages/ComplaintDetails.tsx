@@ -142,7 +142,7 @@ const ComplaintDetails = () => {
         .from('complaint_outcomes')
         .select('*')
         .eq('complaint_id', complaintId)
-        .single();
+        .maybeSingle();
 
       if (outcomeData) {
         setExistingOutcome(outcomeData);
