@@ -509,19 +509,32 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
   };
 
   const handleDownloadOutcomeLetter = async () => {
-    if (!outcomeLetter) return;
+    if (!outcomeLetter) {
+      toast.error('No outcome letter available for download');
+      return;
+    }
     
     try {
+      console.log('Starting outcome letter download...');
+      
       // Get complaint details for filename
-      const { data: complaint } = await supabase
+      const { data: complaint, error: complaintError } = await supabase
         .from('complaints')
         .select('reference_number')
         .eq('id', complaintId)
         .single();
 
+      if (complaintError) {
+        console.error('Error fetching complaint details:', complaintError);
+      }
+
+      console.log('Creating Word document...');
       const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint?.reference_number || complaintId);
+      
+      console.log('Converting to blob...');
       const buffer = await Packer.toBlob(doc);
       
+      console.log('Creating download link...');
       // Create download link
       const url = window.URL.createObjectURL(buffer);
       const link = document.createElement('a');
@@ -532,19 +545,25 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      console.log('Download completed successfully');
       toast.success("Outcome letter downloaded successfully");
       
       // Add audit log for download
-      await supabase.functions.invoke('log-complaint-activity', {
-        body: {
-          complaintId,
-          actionType: 'outcome_letter_downloaded',
-          actionDescription: 'Outcome letter downloaded as DOCX file'
-        }
-      });
+      try {
+        await supabase.functions.invoke('log-complaint-activity', {
+          body: {
+            complaintId,
+            actionType: 'outcome_letter_downloaded',
+            actionDescription: 'Outcome letter downloaded as DOCX file'
+          }
+        });
+      } catch (auditError) {
+        console.error('Failed to log download activity:', auditError);
+        // Don't fail the download for audit log issues
+      }
     } catch (error) {
       console.error('Error downloading outcome letter:', error);
-      toast.error("Failed to download outcome letter");
+      toast.error(`Failed to download outcome letter: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -903,7 +922,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               <Textarea
                 value={editedOutcomeLetter}
                 onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                className="min-h-[400px] font-mono text-sm"
+                className="min-h-[600px] font-mono text-sm"
                 placeholder="Edit outcome letter content..."
               />
             ) : (
