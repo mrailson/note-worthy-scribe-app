@@ -173,80 +173,173 @@ serve(async (req) => {
     const totalResolutionDays = completedDate ? 
       Math.ceil((completedDate.getTime() - submittedDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-    const systemPrompt = `You are a NHS compliance officer generating a comprehensive CQC evidence report for a completed complaint. Generate a detailed report that demonstrates how the practice has met NHS complaint procedure requirements.
+    const systemPrompt = `You are a senior NHS compliance officer generating a comprehensive CQC evidence report for a completed complaint. This report will be used by CQC inspectors to assess complaint handling compliance and must be written in clear, professional language suitable for regulatory review.
 
-IMPORTANT: Structure the report with clear sections that CQC inspectors would expect to see:
+CRITICAL REQUIREMENTS:
+- Write in plain English while maintaining professional standards
+- Provide narrative explanations of what happened and why
+- Include specific regulatory citations and compliance evidence
+- Demonstrate systematic approach to complaint resolution
+- Show continuous improvement and learning outcomes
+
+REPORT STRUCTURE (Use exactly these headings):
 
 1. EXECUTIVE SUMMARY
-2. COMPLAINT OVERVIEW & CLASSIFICATION
-3. PROCEDURAL COMPLIANCE EVIDENCE
-4. TIMELINE COMPLIANCE
-5. INVESTIGATION PROCESS
-6. STAFF INVOLVEMENT & TRAINING
-7. OUTCOMES & RESOLUTIONS
-8. LEARNING & IMPROVEMENTS
-9. GOVERNANCE & OVERSIGHT
-10. COMPLIANCE DECLARATIONS
-11. SUPPORTING DOCUMENTATION
+   - Brief overview of the complaint and resolution in plain English
+   - Key compliance achievements
+   - Overall assessment of procedural adherence
 
-For each section, provide specific evidence and reference NHS complaint handling standards, including:
-- NHS Constitution requirements
-- Local Authority Social Services and NHS Complaints Regulations
-- Parliamentary and Health Service Ombudsman guidance
-- CQC fundamental standards (Regulation 16)
+2. COMPLAINT DETAILS AND CLASSIFICATION
+   - Clear narrative of what the complaint was about
+   - Patient concerns and desired outcomes
+   - Complaint categorization and risk assessment
+   - Regulatory context and applicable standards
 
-Use professional NHS/CQC language and cite specific regulatory requirements where applicable.`;
+3. PROCEDURAL COMPLIANCE ANALYSIS
+   - Step-by-step compliance with NHS complaints procedure
+   - Reference to specific regulations (NHS Constitution, LASCR 2009)
+   - Evidence of adherence to statutory timeframes
+   - Documentation and record-keeping compliance
+
+4. INVESTIGATION METHODOLOGY
+   - Detailed narrative of investigation approach
+   - Staff interviews and evidence gathering
+   - Clinical review processes (if applicable)
+   - Impartiality and thoroughness assessment
+
+5. TIMELINE AND STATUTORY COMPLIANCE
+   - Acknowledgement compliance (3 working days requirement)
+   - Investigation timeframe adherence (20 working days standard)
+   - Extension justifications (if applicable)
+   - Communication with complainant throughout
+
+6. FINDINGS AND OUTCOMES
+   - Clear summary of investigation conclusions
+   - Evidence-based determinations
+   - Outcome reasoning and regulatory alignment
+   - Patient satisfaction and resolution effectiveness
+
+7. LEARNING AND IMPROVEMENT ACTIONS
+   - Specific lessons identified from the complaint
+   - Systemic improvements implemented
+   - Staff training and development outcomes
+   - Quality improvement initiatives
+
+8. GOVERNANCE AND OVERSIGHT EVIDENCE
+   - Senior management involvement
+   - Board/partnership reporting
+   - External oversight compliance (if applicable)
+   - Risk management integration
+
+9. STAFF COMPETENCY AND TRAINING
+   - Staff involved in complaint handling
+   - Training records and competency assessments
+   - Professional development outcomes
+   - Duty of candour compliance
+
+10. REGULATORY COMPLIANCE STATEMENT
+    - Formal compliance declaration against each regulatory requirement
+    - CQC Regulation 16 compliance evidence
+    - NHS Constitution commitment fulfillment
+    - PHSO guidance adherence
+
+11. SUPPORTING EVIDENCE AND DOCUMENTATION
+    - List of supporting documents and evidence
+    - Quality assurance processes
+    - Audit trail completeness
+    - Data protection and confidentiality compliance
+
+For each section, provide specific examples, quotes from regulations, and clear explanations of how the practice met or exceeded requirements. Use professional NHS language but ensure accessibility for diverse audiences including patients, regulators, and practice staff.`;
 
     console.log('Preparing OpenAI prompt...');
-    const userPrompt = `Generate a comprehensive CQC compliance evidence report for the following completed complaint:
+    const userPrompt = `Generate a comprehensive CQC compliance evidence report for the following completed complaint. This report must be suitable for CQC inspection and demonstrate full regulatory compliance.
 
-COMPLAINT DETAILS:
-- Reference: ${complaint.reference_number}
-- Patient: ${complaint.patient_name}
-- Date Submitted: ${submittedDate.toLocaleDateString('en-GB')}
-- Date Acknowledged: ${acknowledgedDate?.toLocaleDateString('en-GB') || 'Not recorded'}
-- Date Completed: ${completedDate?.toLocaleDateString('en-GB') || 'Not recorded'}
-- Category: ${complaint.category || 'Not categorized'}
-- Subcategory: ${complaint.subcategory || 'Not specified'}
-- Priority Level: ${complaint.priority || 'Standard'}
-- Final Status: ${complaint.status}
+**COMPLAINT REFERENCE:** ${complaint.reference_number}
 
-TIMELINE COMPLIANCE:
-- Acknowledgement Time: ${acknowledgementTimeDays ? `${acknowledgementTimeDays} working days` : 'Not available'}
-- Total Resolution Time: ${totalResolutionDays ? `${totalResolutionDays} calendar days` : 'Not available'}
-- NHS Standard: 3 working days for acknowledgement, 20 working days for resolution
-
-COMPLAINT DESCRIPTION:
-${complaint.complaint_description}
-
-INVESTIGATION FINDINGS:
-${investigationDecisions?.[0]?.decision_reasoning || investigationFindings?.[0]?.findings_text || 'Investigation details not available'}
-
-OUTCOMES:
-${complaint.complaint_outcomes?.[0]?.outcome_summary || 'Outcome details not available'}
-Outcome Type: ${complaint.complaint_outcomes?.[0]?.outcome_type || 'Not specified'}
-
-LESSONS LEARNED:
-${investigationDecisions?.[0]?.lessons_learned || 'Learning outcomes not documented'}
-
-PRACTICE INFORMATION:
+**PRACTICE INFORMATION:**
 ${practiceDetails ? `
 Practice Name: ${practiceDetails.practice_name}
-Address: ${practiceDetails.address || 'Not available'}
-Contact: ${practiceDetails.phone || 'Not available'}
-` : 'Practice details not available'}
+Practice Address: ${practiceDetails.address || 'Not available'}
+Practice Contact: ${practiceDetails.phone || 'Not available'} | ${practiceDetails.email || 'Not available'}
+PCN Code: ${practiceDetails.pcn_code || 'Not specified'}
+` : 'Practice details not available in system'}
 
-STAFF INVOLVED:
-${involvedParties?.map(party => 
-  `- ${party.staff_name} (${party.staff_role || 'Role not specified'})`
-).join('\n') || 'No staff specifically identified'}
+**PATIENT AND COMPLAINT DETAILS:**
+Patient Name: ${complaint.patient_name}
+Patient DOB: ${complaint.patient_dob || 'Not provided'}
+Patient Contact: ${complaint.patient_contact_email || complaint.patient_contact_phone || 'Not provided'}
+Complaint on Behalf: ${complaint.complaint_on_behalf ? 'Yes' : 'No'}
+Consent Given: ${complaint.consent_given ? 'Yes' : 'No'}
+Consent Details: ${complaint.consent_details || 'Not applicable'}
 
-AUDIT TRAIL:
-${auditLogs?.map(log => 
-  `- ${new Date(log.performed_at).toLocaleDateString('en-GB')}: ${log.action}`
-).join('\n') || 'Limited audit trail available'}
+**COMPLAINT CLASSIFICATION:**
+Primary Category: ${complaint.category || 'Not categorized'}
+Subcategory: ${complaint.subcategory || 'Not specified'}
+Priority Level: ${complaint.priority || 'Standard'}
+Location/Service: ${complaint.location_service || 'Not specified'}
+Incident Date: ${complaint.incident_date ? new Date(complaint.incident_date).toLocaleDateString('en-GB') : 'Not specified'}
 
-Generate a comprehensive report that demonstrates full compliance with NHS complaint handling procedures and provides evidence suitable for CQC inspection. Include specific regulatory references and compliance statements.`;
+**DETAILED COMPLAINT DESCRIPTION:**
+"${complaint.complaint_description}"
+
+**TIMELINE AND COMPLIANCE METRICS:**
+Date Submitted: ${submittedDate.toLocaleDateString('en-GB')} at ${submittedDate.toLocaleTimeString('en-GB')}
+Date Acknowledged: ${acknowledgedDate?.toLocaleDateString('en-GB') || 'Not recorded'} ${acknowledgedDate ? `at ${acknowledgedDate.toLocaleTimeString('en-GB')}` : ''}
+Date Completed: ${completedDate?.toLocaleDateString('en-GB') || 'In progress'} ${completedDate ? `at ${completedDate.toLocaleTimeString('en-GB')}` : ''}
+Acknowledgement Time: ${acknowledgementTimeDays ? `${acknowledgementTimeDays} working days` : 'Not calculated'} (NHS Standard: ≤3 working days)
+Total Resolution Time: ${totalResolutionDays ? `${totalResolutionDays} calendar days` : 'Not calculated'} (NHS Standard: ≤20 working days)
+Final Status: ${complaint.status}
+
+**STAFF INVOLVED IN COMPLAINT:**
+${involvedParties && involvedParties.length > 0 ? 
+  involvedParties.map(party => 
+    `• ${party.staff_name} - ${party.staff_role || 'Role not specified'}
+     Email: ${party.staff_email || 'Not provided'}
+     Response Status: ${party.response_submitted_at ? `Submitted ${new Date(party.response_submitted_at).toLocaleDateString('en-GB')}` : 'Pending/Not required'}`
+  ).join('\n') : 'No specific staff members identified in system'}
+
+**INVESTIGATION PROCESS AND FINDINGS:**
+Investigation Decision: ${investigationDecisions?.[0]?.decision_type || 'Not recorded'}
+Investigation Reasoning: "${investigationDecisions?.[0]?.decision_reasoning || 'Investigation details not available in system'}"
+Findings Text: "${investigationFindings?.[0]?.findings_text || 'Investigation findings not documented'}"
+Clinical Review Required: ${investigationDecisions?.[0]?.clinical_review_required ? 'Yes' : 'No'}
+
+**OUTCOMES AND RESOLUTION:**
+Outcome Type: ${complaint.complaint_outcomes?.[0]?.outcome_type || 'Not specified'}
+Outcome Summary: "${complaint.complaint_outcomes?.[0]?.outcome_summary || 'Outcome details not available in system'}"
+Outcome Letter: "${complaint.complaint_outcomes?.[0]?.outcome_letter || 'Outcome communication not recorded'}"
+Decided By: ${complaint.complaint_outcomes?.[0]?.decided_by || 'Not specified'}
+Decision Date: ${complaint.complaint_outcomes?.[0]?.decided_at ? new Date(complaint.complaint_outcomes[0].decided_at).toLocaleDateString('en-GB') : 'Not recorded'}
+
+**LEARNING AND IMPROVEMENT ACTIONS:**
+Lessons Learned: "${investigationDecisions?.[0]?.lessons_learned || 'Learning outcomes not documented in system'}"
+Action Plan: "${investigationDecisions?.[0]?.action_plan || 'Improvement actions not recorded'}"
+
+**ACKNOWLEDGEMENT RECORDS:**
+${acknowledgements && acknowledgements.length > 0 ? 
+  acknowledgements.map(ack => 
+    `Acknowledgement sent on ${new Date(ack.sent_at).toLocaleDateString('en-GB')} by ${ack.sent_by || 'System'}
+     Content summary: ${ack.acknowledgement_letter ? 'Letter content recorded in system' : 'Content not preserved'}`
+  ).join('\n') : 'No acknowledgement records found in system'}
+
+**AUDIT TRAIL AND ACTIVITY LOG:**
+${auditLogs && auditLogs.length > 0 ? 
+  auditLogs.slice(0, 10).map(log => 
+    `${new Date(log.performed_at).toLocaleDateString('en-GB')} ${new Date(log.performed_at).toLocaleTimeString('en-GB')}: ${log.action}
+     ${log.details ? `Details: ${JSON.stringify(log.details)}` : ''}`
+  ).join('\n') : 'Limited audit trail available - system may not have captured all activities'}
+
+**REGULATORY COMPLIANCE REQUIREMENTS TO ADDRESS:**
+1. NHS Constitution (2021) - Right to have complaints dealt with efficiently and properly investigated
+2. Local Authority Social Services and NHS Complaints (England) Regulations 2009
+3. CQC Regulation 16 - Receiving and acting on complaints
+4. Parliamentary and Health Service Ombudsman guidance
+5. NHS England Complaints Standards Framework
+6. General Data Protection Regulation (GDPR) 2018 compliance
+7. Duty of Candour requirements (if applicable)
+
+**SPECIFIC INSTRUCTION:** 
+Generate a professional, comprehensive report that a CQC inspector would use to assess this practice's complaint handling compliance. Explain in plain English what happened, why each step meets regulatory requirements, and provide specific evidence of good practice. Include direct quotes from regulations where relevant and demonstrate how this complaint case study shows systematic, compliant complaint management.`;
 
     console.log('Calling OpenAI API with model: gpt-5-2025-08-07...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -261,7 +354,7 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 4000,
+        max_completion_tokens: 8000,
       }),
     });
 
@@ -290,7 +383,7 @@ Generate a comprehensive report that demonstrates full compliance with NHS compl
       .insert({
         practice_id: complaint.practice_id,
         title: evidenceTitle,
-        description: `Comprehensive CQC compliance evidence report for completed complaint ${complaint.reference_number}, demonstrating adherence to NHS complaint handling procedures and regulations.`,
+        description: `Detailed CQC compliance evidence report for complaint ${complaint.reference_number}. This comprehensive report provides narrative analysis of complaint handling procedures, regulatory compliance evidence, timeline adherence, investigation methodology, outcomes, and learning actions in accordance with NHS England standards and CQC Regulation 16 requirements.`,
         evidence_type: 'complaint_compliance_report',
         cqc_domain: 'well_led',
         kloe_reference: 'W1',
