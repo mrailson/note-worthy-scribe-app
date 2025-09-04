@@ -157,8 +157,8 @@ export async function createLetterDocument(letterContent: string, letterType: st
             new ImageRun({
               data: uint8Array,
               transformation: {
-                width: 200,
-                height: 100,
+                width: 180,
+                height: 80, // Maintains a reasonable aspect ratio for most logos
               },
               type: logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg'
             })
