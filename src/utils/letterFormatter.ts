@@ -46,7 +46,7 @@ export function parseLetterContent(content: string): FormattedContent[] {
   return formatted;
 }
 
-export function createLetterDocument(letterContent: string, letterType: string, referenceNumber: string): Document {
+export async function createLetterDocument(letterContent: string, letterType: string, referenceNumber: string): Promise<Document> {
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
@@ -142,41 +142,43 @@ export function createLetterDocument(letterContent: string, letterType: string, 
   // Build document sections
   const documentChildren: Paragraph[] = [];
 
-  // Add logo at the top center with proper image embedding
+  // Add logo at the top center with actual image embedding
   if (logoUrl) {
     try {
-      // For Word documents, we'll use ImageRun to embed the actual logo
-      // First add a note that the logo should be manually added
-      documentChildren.push(new Paragraph({
-        children: [
-          new TextRun({
-            text: `[INSERT PRACTICE LOGO: ${logoUrl}]`,
-            size: 14,
-            bold: true,
-            color: "0066CC",
-            font: "Calibri"
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 }
-      }));
-      
-      // Add a line break for spacing
-      documentChildren.push(new Paragraph({
-        children: [new TextRun({ text: "", size: 12 })],
-        spacing: { after: 200 }
-      }));
+      // Fetch the image and convert to buffer for embedding
+      const imageResponse = await fetch(logoUrl);
+      if (imageResponse.ok) {
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const uint8Array = new Uint8Array(imageBuffer);
+        
+        // Add the actual logo image to the document
+        documentChildren.push(new Paragraph({
+          children: [
+            new ImageRun({
+              data: uint8Array,
+              transformation: {
+                width: 200,
+                height: 100,
+              },
+              type: logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg'
+            })
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }));
+      } else {
+        throw new Error('Failed to fetch logo image');
+      }
     } catch (error) {
-      console.error('Error adding logo to document:', error);
-      // Fallback to placeholder
+      console.error('Error embedding logo in Word document:', error);
+      // Fallback to practice name only
       documentChildren.push(new Paragraph({
         children: [
           new TextRun({
-            text: "[PRACTICE LOGO - Oak Lane Medical Practice]",
-            size: 16,
-            italics: true,
+            text: "OAK LANE MEDICAL PRACTICE",
+            size: 20,
             bold: true,
-            color: "0066CC",
+            color: "1f4e79",
             font: "Calibri"
           })
         ],

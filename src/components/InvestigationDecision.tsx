@@ -498,7 +498,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         .eq('id', complaintId)
         .single();
 
-      const doc = createLetterDocument(outcomeLetter, 'outcome', complaint?.reference_number || complaintId);
+      const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint?.reference_number || complaintId);
       const buffer = await Packer.toBlob(doc);
       
       // Create download link

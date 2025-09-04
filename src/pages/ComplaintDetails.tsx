@@ -570,7 +570,7 @@ const ComplaintDetails = () => {
     if (!acknowledgementLetter || !complaint) return;
     
     try {
-      const doc = createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
+      const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
       const buffer = await Packer.toBlob(doc);
       
       // Create download link
@@ -1519,7 +1519,7 @@ I am committed to ensuring that all patients receive the care and service they d
                               if (!outcomeLetter || !complaint) return;
                               
                               try {
-                                const doc = createLetterDocument(outcomeLetter, 'outcome', complaint.reference_number);
+                                const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint.reference_number);
                                 const buffer = await Packer.toBlob(doc);
                                 
                                 const url = window.URL.createObjectURL(buffer);

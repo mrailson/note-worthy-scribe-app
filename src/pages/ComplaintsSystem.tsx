@@ -2828,7 +2828,7 @@ const ComplaintsSystem = () => {
                       onClick={async () => {
                         try {
                           const contentToDownload = isEditingLetter ? editedLetterContent : modalLetterContent;
-                          const doc = createLetterDocument(
+                          const doc = await createLetterDocument(
                             contentToDownload,
                             letterType,
                             viewingLetterComplaint.reference_number
