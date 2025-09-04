@@ -51,6 +51,7 @@ import { Document, Packer } from "docx";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
+import { CQCEvidence } from "@/components/CQCEvidence";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 
 interface Complaint {
@@ -1964,6 +1965,7 @@ I am committed to ensuring that all patients receive the care and service they d
                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
                           <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
+                          <CQCEvidence complaintId={complaint.id} practiceId={complaint.practice_id} disabled={submitting} />
                         </div>
                       </div>
                     )}
@@ -2166,11 +2168,12 @@ I am committed to ensuring that all patients receive the care and service they d
                           All staff responses have been received. You can now review the evidence, document your findings, and make a decision on the complaint.
                         </p>
 
-                        <div className="space-y-6">
-                          <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
-                        </div>
+                         <div className="space-y-6">
+                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
+                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
+                           <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
+                           <CQCEvidence complaintId={complaint.id} practiceId={complaint.practice_id} disabled={submitting} />
+                         </div>
                       </div>
                     )}
                   </CardContent>
