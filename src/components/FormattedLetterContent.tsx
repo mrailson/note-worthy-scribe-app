@@ -1,5 +1,6 @@
 import React from 'react';
 import { parseLetterContent, FormattedContent } from '@/utils/letterFormatter';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface FormattedLetterContentProps {
   content: string;
@@ -128,36 +129,57 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
 
         {/* Body Content */}
         <div className="space-y-4 text-gray-800 leading-relaxed">
-          {bodyLines.map((line, index) => {
-            const trimmedLine = line.trim();
+          {bodyLines.length > 0 && (() => {
+            // Separate special lines (Dear, Re:) from regular content
+            const specialLines: React.ReactNode[] = [];
+            const regularContent: string[] = [];
             
-            // Handle "Dear" line specially
-            if (trimmedLine.toLowerCase().startsWith('dear ')) {
-              return (
-                <p key={index} className="text-lg font-medium mb-6">
-                  {formatTextWithBold(trimmedLine)}
-                </p>
-              );
-            }
-            
-            // Handle "Re:" line specially
-            if (trimmedLine.toLowerCase().startsWith('re:')) {
-              return (
-                <div key={index} className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
-                  <p className="font-semibold text-gray-900">
+            bodyLines.forEach((line, index) => {
+              const trimmedLine = line.trim();
+              
+              // Handle "Dear" line specially
+              if (trimmedLine.toLowerCase().startsWith('dear ')) {
+                specialLines.push(
+                  <p key={`dear-${index}`} className="text-lg font-medium mb-6">
                     {formatTextWithBold(trimmedLine)}
                   </p>
-                </div>
-              );
-            }
+                );
+                return;
+              }
+              
+              // Handle "Re:" line specially
+              if (trimmedLine.toLowerCase().startsWith('re:')) {
+                specialLines.push(
+                  <div key={`re-${index}`} className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
+                    <p className="font-semibold text-gray-900">
+                      {formatTextWithBold(trimmedLine)}
+                    </p>
+                  </div>
+                );
+                return;
+              }
+              
+              // Add to regular content for markdown processing
+              regularContent.push(line);
+            });
             
-            // Regular paragraph
+            // Process regular content as one markdown block for proper table/list handling
+            const regularContentBlock = regularContent.join('\n');
+            
             return (
-              <p key={index} className="mb-4 text-justify">
-                {formatTextWithBold(trimmedLine)}
-              </p>
+              <>
+                {specialLines}
+                {regularContentBlock.trim() && (
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ 
+                      __html: renderNHSMarkdown(regularContentBlock, { enableNHSStyling: true })
+                    }}
+                  />
+                )}
+              </>
             );
-          })}
+          })()}
         </div>
 
         {/* Signature Section */}
