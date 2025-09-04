@@ -1660,13 +1660,11 @@ I am committed to ensuring that all patients receive the care and service they d
                   </DialogHeader>
                   
                   <div className="flex flex-col gap-4 max-h-[60vh]">
-                    <div className="flex-1 overflow-y-auto border rounded-lg bg-white">
-                      <div className="p-6">
-                        <div className="prose prose-sm max-w-none">
-                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                            {outcomeLetter}
-                          </pre>
-                        </div>
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <pre className="whitespace-pre-wrap text-sm">
+                          {outcomeLetter}
+                        </pre>
                       </div>
                     </div>
                     

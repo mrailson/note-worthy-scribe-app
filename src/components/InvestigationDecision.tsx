@@ -906,9 +906,11 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                 placeholder="Edit outcome letter content..."
               />
             ) : (
-              <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded-lg border min-h-[400px]">
-                {outcomeLetter}
-              </pre>
+              <div className="bg-gray-50 p-4 rounded-lg border min-h-[400px]">
+                <pre className="whitespace-pre-wrap text-sm">
+                  {outcomeLetter}
+                </pre>
+              </div>
             )}
           </div>
           <div className="flex justify-between gap-2 mt-4">
