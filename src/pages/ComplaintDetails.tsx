@@ -2362,88 +2362,108 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Acknowledgement Letter - {complaint?.reference_number}
-            </DialogTitle>
-            <DialogDescription>
-              View, edit, download, or regenerate the acknowledgement letter for this complaint
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col gap-4 max-h-[60vh]">
-            {/* Action buttons */}
-            <div className="flex gap-2 justify-end border-b pb-4">
-              {!isEditingAcknowledgement ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditingAcknowledgement(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit Letter
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadAcknowledgementLetter}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download DOCX
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setShowAcknowledgementModal(false);
-                      handleGenerateAcknowledgement(complaint.id);
-                    }}
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Regenerating...' : 'Regenerate Letter'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditingAcknowledgement(false);
-                      setEditedAcknowledgementContent(acknowledgementLetter);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveAcknowledgementLetter}
-                    disabled={submitting || !editedAcknowledgementContent.trim()}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {submitting ? 'Saving...' : 'Save Letter'}
-                  </Button>
-                </>
-              )}
-            </div>
+        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+          <div className="flex flex-col h-full">
+            <DialogHeader className="flex-shrink-0 p-6 border-b">
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Acknowledgement Letter - {complaint?.reference_number}
+              </DialogTitle>
+              <DialogDescription>
+                View, edit, download, or regenerate the acknowledgement letter for this complaint
+              </DialogDescription>
+            </DialogHeader>
             
-            {/* Letter content */}
-            <div className="flex-1 overflow-y-auto">
-              {!isEditingAcknowledgement ? (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <FormattedLetterContent content={acknowledgementLetter} />
-                </div>
-              ) : (
-                <div className="p-4 bg-white rounded-lg border">
-                  <Textarea
-                    value={editedAcknowledgementContent}
-                    onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
-                    className="min-h-[600px] font-mono text-sm resize-none border-0 focus:ring-0 p-2 bg-white text-black"
-                    placeholder="Edit the acknowledgement letter content..."
-                  />
-                </div>
-              )}
+            <div className="flex flex-col gap-4 flex-1 min-h-0 p-6">
+              {/* Action buttons */}
+              <div className="flex gap-2 justify-end border-b pb-4 flex-shrink-0">
+                {!isEditingAcknowledgement ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditingAcknowledgement(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Letter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        console.log('=== ACKNOWLEDGEMENT LETTER DOWNLOAD DEBUG ===');
+                        console.log('acknowledgementLetter length:', acknowledgementLetter?.length);
+                        console.log('complaint reference:', complaint?.reference_number);
+                        try {
+                          await handleDownloadAcknowledgementLetter();
+                          console.log('Acknowledgement download completed successfully');
+                        } catch (error) {
+                          console.error('Acknowledgement download failed:', error);
+                          toast.error(`Download failed: ${error.message}`);
+                        }
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download DOCX
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setShowAcknowledgementModal(false);
+                        handleGenerateAcknowledgement(complaint.id);
+                      }}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingAcknowledgement(false);
+                        setEditedAcknowledgementContent(acknowledgementLetter);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveAcknowledgementLetter}
+                      disabled={submitting || !editedAcknowledgementContent.trim()}
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      {submitting ? 'Saving...' : 'Save Letter'}
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              {/* Letter content */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {!isEditingAcknowledgement ? (
+                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto">
+                    <FormattedLetterContent content={acknowledgementLetter} />
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col">
+                    <Textarea
+                      value={editedAcknowledgementContent}
+                      onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
+                      className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white text-black"
+                      placeholder="Edit the acknowledgement letter content..."
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Resize indicator */}
+            <div className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-50 hover:opacity-75">
+              <svg width="16" height="16" viewBox="0 0 16 16" className="text-gray-400">
+                <path d="M16 0v16H0z" fill="none"/>
+                <path d="M16 16l-6-6M16 12l-2-2M16 8l-2-2" stroke="currentColor" strokeWidth="1" fill="none"/>
+              </svg>
             </div>
           </div>
         </DialogContent>
