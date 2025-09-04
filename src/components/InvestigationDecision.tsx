@@ -514,10 +514,12 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     }
     
     try {
+      console.log('=== OUTCOME LETTER DOWNLOAD DEBUG ===');
       console.log('Starting outcome letter download...');
       console.log('Letter content length:', outcomeLetter.length);
+      console.log('Letter content preview:', outcomeLetter.substring(0, 100) + '...');
       
-      // Try simple DOCX creation first
+      // Simple DOCX creation with better error handling
       const doc = new Document({
         sections: [{
           properties: {},
@@ -530,9 +532,13 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               text: `Generated: ${new Date().toLocaleDateString()}`,
               spacing: { after: 200 },
             }),
-            ...outcomeLetter.split('\n').map(line => 
+            new Paragraph({
+              text: `Complaint ID: ${complaintId}`,
+              spacing: { after: 200 },
+            }),
+            ...outcomeLetter.split('\n').filter(line => line !== null && line !== undefined).map(line => 
               new Paragraph({
-                children: [new TextRun(line || ' ')], // Handle empty lines
+                children: [new TextRun(line || ' ')],
                 spacing: { after: 120 },
               })
             ),
@@ -540,32 +546,47 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         }],
       });
 
-      console.log('Document created, converting to blob...');
-      const buffer = await Packer.toBlob(doc);
+      console.log('Document structure created successfully');
       
-      console.log('Blob created, size:', buffer.size);
+      const buffer = await Packer.toBlob(doc);
+      console.log('Document converted to blob, size:', buffer.size, 'bytes');
+      
+      if (buffer.size === 0) {
+        throw new Error('Generated document is empty');
+      }
       
       // Get complaint details for filename
-      const { data: complaint } = await supabase
+      console.log('Fetching complaint reference...');
+      const { data: complaint, error: complaintError } = await supabase
         .from('complaints')
         .select('reference_number')
         .eq('id', complaintId)
         .single();
 
-      // Create download link
-      const url = window.URL.createObjectURL(buffer);
+      if (complaintError) {
+        console.error('Complaint fetch error:', complaintError);
+      }
+
+      const referenceNumber = complaint?.reference_number || complaintId;
+      console.log('Using reference number:', referenceNumber);
+
+      // Create and trigger download
+      const url = URL.createObjectURL(buffer);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Outcome_Letter_${complaint?.reference_number || complaintId}.docx`;
+      link.download = `Outcome_Letter_${referenceNumber}.docx`;
+      
+      console.log('Triggering download for file:', link.download);
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
       
       console.log('Download completed successfully');
       toast.success("Outcome letter downloaded successfully");
       
-      // Add audit log for download
+      // Add audit log for download (non-blocking)
       try {
         await supabase.functions.invoke('log-complaint-activity', {
           body: {
@@ -574,14 +595,17 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
             actionDescription: 'Outcome letter downloaded as DOCX file'
           }
         });
+        console.log('Audit log added successfully');
       } catch (auditError) {
         console.error('Failed to log download activity:', auditError);
         // Don't fail the download for audit log issues
       }
     } catch (error) {
-      console.error('Error downloading outcome letter:', error);
+      console.error('=== OUTCOME LETTER DOWNLOAD ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
-      toast.error(`Failed to download outcome letter: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to download outcome letter: ${error.message}`);
     }
   };
 
@@ -935,16 +959,18 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 h-full">
             {editingOutcomeLetter ? (
-              <Textarea
-                value={editedOutcomeLetter}
-                onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                className="min-h-[70vh] font-mono text-sm resize-none"
-                placeholder="Edit outcome letter content..."
-              />
+              <div className="h-[75vh] flex flex-col">
+                <Textarea
+                  value={editedOutcomeLetter}
+                  onChange={(e) => setEditedOutcomeLetter(e.target.value)}
+                  className="flex-1 font-mono text-sm resize-none border-0 focus:ring-0 p-4 bg-white"
+                  placeholder="Edit outcome letter content..."
+                />
+              </div>
             ) : (
-              <div className="bg-gray-50 p-4 rounded-lg border min-h-[70vh] max-h-[70vh] overflow-y-auto">
+              <div className="bg-gray-50 p-4 rounded-lg border h-[75vh] overflow-y-auto">
                 <FormattedLetterContent content={outcomeLetter} />
               </div>
             )}
