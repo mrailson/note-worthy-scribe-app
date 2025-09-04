@@ -953,29 +953,29 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4 h-full">
+          <div className="flex-1 min-h-0 py-4">
             {editingOutcomeLetter ? (
-              <div className="h-[75vh] flex flex-col">
+              <div className="h-full flex flex-col">
                 <Textarea
                   value={editedOutcomeLetter}
                   onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                  className="flex-1 font-mono text-sm resize-none border-0 focus:ring-0 p-4 bg-white"
+                  className="flex-1 min-h-[70vh] font-mono text-sm resize-none border focus:ring-2 p-4 bg-white"
                   placeholder="Edit outcome letter content..."
                 />
               </div>
             ) : (
-              <div className="bg-gray-50 p-4 rounded-lg border h-[75vh] overflow-y-auto">
+              <div className="bg-gray-50 p-4 rounded-lg border h-full overflow-y-auto">
                 <FormattedLetterContent content={outcomeLetter} />
               </div>
             )}
           </div>
-          <div className="flex justify-between gap-2 mt-4">
+          <div className="flex justify-between gap-2 mt-4 flex-shrink-0">
             <div className="flex gap-2">
               {!editingOutcomeLetter && (
                 <Button 
@@ -989,7 +989,16 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               )}
               <Button 
                 variant="outline" 
-                onClick={handleDownloadOutcomeLetter}
+                onClick={async () => {
+                  console.log('DOCX Download clicked - starting process');
+                  try {
+                    await handleDownloadOutcomeLetter();
+                    console.log('DOCX Download completed successfully');
+                  } catch (error) {
+                    console.error('DOCX Download failed:', error);
+                    toast.error(`Download failed: ${error.message}`);
+                  }
+                }}
                 disabled={!outcomeLetter}
               >
                 <Download className="h-4 w-4 mr-2" />
