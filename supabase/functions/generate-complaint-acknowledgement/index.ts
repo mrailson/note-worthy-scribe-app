@@ -60,7 +60,33 @@ serve(async (req) => {
       practiceDetails = practice;
       console.log('Retrieved practice details:', practiceDetails);
     } else {
-      console.log('No practice_id found on complaint');
+      console.log('No practice_id found on complaint, fetching from user roles');
+      
+      const { data: userPractice } = await supabase
+        .from('user_roles')
+        .select(`
+          practice_id,
+          practice_details!inner (
+            practice_name, 
+            address, 
+            phone, 
+            email, 
+            logo_url, 
+            practice_logo_url, 
+            footer_text, 
+            website, 
+            show_page_numbers
+          )
+        `)
+        .eq('user_id', complaint.created_by)
+        .not('practice_id', 'is', null)
+        .limit(1)
+        .single();
+      
+      if (userPractice && userPractice.practice_details) {
+        practiceDetails = userPractice.practice_details;
+        console.log('Retrieved practice details from user roles:', practiceDetails);
+      }
     }
 
     // Get signature details for the user who created the complaint
