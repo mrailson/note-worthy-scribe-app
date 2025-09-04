@@ -8,17 +8,34 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Function invoked, method:', req.method);
+  
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Starting CQC report generation...');
+    
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log('OpenAI API key available:', !!openAIApiKey);
+    
     if (!openAIApiKey) {
+      console.error('OpenAI API key not configured');
       throw new Error('OpenAI API key not configured');
     }
 
-    const { complaintId } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body parsed:', requestBody);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      throw new Error('Invalid request body');
+    }
+
+    const { complaintId } = requestBody;
     console.log('Received complaintId:', complaintId);
     
     if (!complaintId) {
