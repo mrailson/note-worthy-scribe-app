@@ -29,6 +29,7 @@ export const ManualCQCReportGenerator: React.FC<ManualCQCReportGeneratorProps> =
       
       if (cqcError) {
         console.error('Failed to generate CQC compliance report:', cqcError);
+        toast.error(`Failed to generate CQC compliance report: ${cqcError.message || 'Unknown error'}`);
         throw new Error(cqcError.message || 'Failed to generate CQC compliance report');
       }
       
@@ -36,9 +37,14 @@ export const ManualCQCReportGenerator: React.FC<ManualCQCReportGeneratorProps> =
       setReportGenerated(true);
       toast.success(`CQC compliance report generated successfully for ${complaintReference}`);
       
+      // Show additional details if available
+      if (cqcReportData?.evidenceRecord?.id) {
+        toast.success(`Report saved to CQC Evidence repository (ID: ${cqcReportData.evidenceRecord.id})`);
+      }
+      
     } catch (error) {
       console.error('Error generating CQC compliance report:', error);
-      toast.error(`Failed to generate CQC compliance report: ${error.message}`);
+      toast.error(`Failed to generate CQC compliance report: ${error.message || 'Unknown error'}`);
     } finally {
       setGenerating(false);
     }

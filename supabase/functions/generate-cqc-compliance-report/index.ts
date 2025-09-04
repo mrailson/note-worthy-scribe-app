@@ -43,19 +43,31 @@ serve(async (req) => {
       .eq('id', complaintId)
       .single();
 
-    if (complaintError || !complaint) {
+    if (complaintError) {
+      console.error('Error fetching complaint:', complaintError);
+      throw new Error(`Complaint not found: ${complaintError.message}`);
+    }
+
+    if (!complaint) {
       throw new Error('Complaint not found');
     }
 
+    console.log('Generating CQC compliance report for complaint:', complaintId);
+    
     // Get practice details
     let practiceDetails = null;
     if (complaint.practice_id) {
-      const { data: practice } = await supabase
+      const { data: practice, error: practiceError } = await supabase
         .from('practice_details')
         .select('*')
         .eq('id', complaint.practice_id)
         .single();
-      practiceDetails = practice;
+      
+      if (practiceError) {
+        console.error('Error fetching practice details:', practiceError);
+      } else {
+        practiceDetails = practice;
+      }
     }
 
     // Calculate timeline and compliance metrics
