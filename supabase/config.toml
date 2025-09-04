@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.cleanup-empty-meetings]
 verify_jwt = true
+
+[functions.explain-unresolved-section]
+verify_jwt = false
