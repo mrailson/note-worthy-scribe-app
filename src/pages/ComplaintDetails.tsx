@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Header } from "@/components/Header";
+import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -1809,15 +1810,10 @@ I am committed to ensuring that all patients receive the care and service they d
                                                 }
                                               </div>
                                               {request.responseText.length > 200 && (
-                                                <button 
-                                                  className="text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                                  onClick={() => {
-                                                    // Simple alert for now - could implement a modal
-                                                    alert(request.responseText);
-                                                  }}
-                                                >
-                                                  View full response
-                                                </button>
+                                                <ViewFullResponseModal 
+                                                  responseText={request.responseText}
+                                                  staffName={request.staffName}
+                                                />
                                               )}
                                             </div>
                                           )}
