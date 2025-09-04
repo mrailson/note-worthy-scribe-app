@@ -12,8 +12,7 @@ import { AlertCircle, CheckCircle, XCircle, Scale, Save, Edit, ClipboardCheck, F
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { createLetterDocument } from '@/utils/letterFormatter';
-import { Document, Packer } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 
 interface InvestigationDecisionProps {
@@ -516,25 +515,43 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     
     try {
       console.log('Starting outcome letter download...');
+      console.log('Letter content length:', outcomeLetter.length);
+      
+      // Try simple DOCX creation first
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: 'Outcome Letter',
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              text: `Generated: ${new Date().toLocaleDateString()}`,
+              spacing: { after: 200 },
+            }),
+            ...outcomeLetter.split('\n').map(line => 
+              new Paragraph({
+                children: [new TextRun(line || ' ')], // Handle empty lines
+                spacing: { after: 120 },
+              })
+            ),
+          ],
+        }],
+      });
+
+      console.log('Document created, converting to blob...');
+      const buffer = await Packer.toBlob(doc);
+      
+      console.log('Blob created, size:', buffer.size);
       
       // Get complaint details for filename
-      const { data: complaint, error: complaintError } = await supabase
+      const { data: complaint } = await supabase
         .from('complaints')
         .select('reference_number')
         .eq('id', complaintId)
         .single();
 
-      if (complaintError) {
-        console.error('Error fetching complaint details:', complaintError);
-      }
-
-      console.log('Creating Word document...');
-      const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint?.reference_number || complaintId);
-      
-      console.log('Converting to blob...');
-      const buffer = await Packer.toBlob(doc);
-      
-      console.log('Creating download link...');
       // Create download link
       const url = window.URL.createObjectURL(buffer);
       const link = document.createElement('a');
@@ -563,6 +580,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       }
     } catch (error) {
       console.error('Error downloading outcome letter:', error);
+      console.error('Error stack:', error.stack);
       toast.error(`Failed to download outcome letter: ${error.message || 'Unknown error'}`);
     }
   };
@@ -911,7 +929,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
@@ -922,11 +940,11 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               <Textarea
                 value={editedOutcomeLetter}
                 onChange={(e) => setEditedOutcomeLetter(e.target.value)}
-                className="min-h-[600px] font-mono text-sm"
+                className="min-h-[70vh] font-mono text-sm resize-none"
                 placeholder="Edit outcome letter content..."
               />
             ) : (
-              <div className="bg-gray-50 p-4 rounded-lg border min-h-[400px]">
+              <div className="bg-gray-50 p-4 rounded-lg border min-h-[70vh] max-h-[70vh] overflow-y-auto">
                 <FormattedLetterContent content={outcomeLetter} />
               </div>
             )}
