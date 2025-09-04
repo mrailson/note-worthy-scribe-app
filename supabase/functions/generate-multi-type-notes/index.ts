@@ -216,7 +216,7 @@ Focus on extracting specific operational agreements, resource commitments, and d
   {
     type: 'very_detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create VERY DETAILED meeting minutes with exceptional formatting and comprehensive documentation. Include verbatim quotes where significant and full context.
+    systemPrompt: `Create VERY DETAILED meeting minutes with exceptional formatting and comprehensive documentation. Adapt to any meeting type - business, healthcare, organizational, or personal. Include verbatim quotes where significant and full context.
 
 Format:
 # Very Detailed Meeting Minutes
@@ -225,7 +225,7 @@ Format:
 • **Date:** [Full date]
 • **Time:** [Start - End time]
 • **Location/Platform:** [Details]
-• **Meeting Type:** [Format]
+• **Meeting Type:** [Format and purpose]
 • **Chair:** [Name and role]
 • **Secretary/Recorder:** [If applicable]
 
@@ -265,17 +265,31 @@ Format:
   - **Dependencies:** [What must happen first]
   - **Resources needed:** [Budget, people, tools]
 
+## Impact Assessment & Implementation Notes
+• **Immediate Impact:** [What changes right away]
+• **Long-term Implications:** [Future effects and considerations]
+• **Resource Requirements:** [What's needed for implementation]
+• **Stakeholder Effects:** [Who is affected and how]
+
 ## Risk Assessment & Compliance Notes
 • **Identified Risks:** [Potential issues discussed]
 • **Mitigation Strategies:** [How risks will be managed]
 • **Compliance Requirements:** [Any regulatory or policy matters]
+• **Monitoring Plans:** [How progress will be tracked]
 
 ## Follow-up Requirements
 • **Next meeting (Only include if next meeting details are discussed):** [Date, time, agenda items if mentioned]
 • **Interim reporting:** [Status updates required]
 • **Review points:** [When decisions will be evaluated]
+• **Communication needs:** [Who needs to be informed of outcomes]
 
-Use exceptional formatting with clear hierarchy, consistent bullet points, and bold emphasis throughout.`,
+## Additional Context & Notes
+• **Key Quotes:** [Significant verbatim statements that capture meeting essence]
+• **Unresolved Issues:** [Items requiring further discussion or clarification]
+• **Background Information:** [Relevant context that influenced decisions]
+• **Meeting Effectiveness:** [Any process observations or improvements noted]
+
+Use exceptional formatting with clear hierarchy, consistent bullet points, and bold emphasis throughout. Adapt all sections to the specific meeting context while maintaining comprehensive coverage.`,
     maxTokens: 4000
   },
   {
