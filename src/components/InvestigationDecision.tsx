@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { createLetterDocument } from '@/utils/letterFormatter';
 import { Document, Packer } from "docx";
+import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 
 interface InvestigationDecisionProps {
   complaintId: string;
@@ -907,9 +908,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
               />
             ) : (
               <div className="bg-gray-50 p-4 rounded-lg border min-h-[400px]">
-                <pre className="whitespace-pre-wrap text-sm">
-                  {outcomeLetter}
-                </pre>
+                <FormattedLetterContent content={outcomeLetter} />
               </div>
             )}
           </div>
