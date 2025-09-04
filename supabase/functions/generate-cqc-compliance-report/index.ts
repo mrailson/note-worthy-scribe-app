@@ -50,17 +50,10 @@ serve(async (req) => {
 
     console.log('Attempting to fetch complaint with ID:', complaintId);
     
-    // Fetch comprehensive complaint data
+    // Fetch complaint data first
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        complaint_outcomes (*),
-        complaint_acknowledgements (*),
-        complaint_audit_log (*),
-        complaint_involved_parties (*),
-        complaint_investigation_decisions (*)
-      `)
+      .select('*')
       .eq('id', complaintId)
       .single();
 
@@ -74,6 +67,31 @@ serve(async (req) => {
     if (!complaint) {
       throw new Error('Complaint not found');
     }
+
+    // Fetch related data separately
+    const [
+      { data: outcomes },
+      { data: acknowledgements },
+      { data: auditLogs },
+      { data: involvedParties },
+      { data: investigationDecisions },
+      { data: investigationFindings }
+    ] = await Promise.all([
+      supabase.from('complaint_outcomes').select('*').eq('complaint_id', complaintId),
+      supabase.from('complaint_acknowledgements').select('*').eq('complaint_id', complaintId),
+      supabase.from('complaint_audit_log').select('*').eq('complaint_id', complaintId),
+      supabase.from('complaint_involved_parties').select('*').eq('complaint_id', complaintId),
+      supabase.from('complaint_investigation_decisions').select('*').eq('complaint_id', complaintId),
+      supabase.from('complaint_investigation_findings').select('*').eq('complaint_id', complaintId)
+    ]);
+
+    // Attach related data to complaint object
+    complaint.complaint_outcomes = outcomes || [];
+    complaint.complaint_acknowledgements = acknowledgements || [];
+    complaint.complaint_audit_log = auditLogs || [];
+    complaint.complaint_involved_parties = involvedParties || [];
+    complaint.complaint_investigation_decisions = investigationDecisions || [];
+    complaint.complaint_investigation_findings = investigationFindings || [];
 
     console.log('Generating CQC compliance report for complaint:', complaintId);
     
@@ -150,14 +168,14 @@ COMPLAINT DESCRIPTION:
 ${complaint.complaint_description}
 
 INVESTIGATION FINDINGS:
-${complaint.complaint_investigation_decisions?.[0]?.decision_reasoning || 'Investigation details not available'}
+${investigationDecisions?.[0]?.decision_reasoning || investigationFindings?.[0]?.findings_text || 'Investigation details not available'}
 
 OUTCOMES:
 ${complaint.complaint_outcomes?.[0]?.outcome_summary || 'Outcome details not available'}
 Outcome Type: ${complaint.complaint_outcomes?.[0]?.outcome_type || 'Not specified'}
 
 LESSONS LEARNED:
-${complaint.complaint_investigation_decisions?.[0]?.lessons_learned || 'Learning outcomes not documented'}
+${investigationDecisions?.[0]?.lessons_learned || 'Learning outcomes not documented'}
 
 PRACTICE INFORMATION:
 ${practiceDetails ? `
@@ -167,12 +185,12 @@ Contact: ${practiceDetails.phone || 'Not available'}
 ` : 'Practice details not available'}
 
 STAFF INVOLVED:
-${complaint.complaint_involved_parties?.map(party => 
+${involvedParties?.map(party => 
   `- ${party.staff_name} (${party.staff_role || 'Role not specified'})`
 ).join('\n') || 'No staff specifically identified'}
 
 AUDIT TRAIL:
-${complaint.complaint_audit_log?.map(log => 
+${auditLogs?.map(log => 
   `- ${new Date(log.performed_at).toLocaleDateString('en-GB')}: ${log.action}`
 ).join('\n') || 'Limited audit trail available'}
 
