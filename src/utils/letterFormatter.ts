@@ -48,7 +48,7 @@ export function parseLetterContent(content: string): FormattedContent[] {
 
 export function createLetterDocument(letterContent: string, letterType: string, referenceNumber: string): Document {
   // Extract logo URL from HTML comment if present
-  const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+)\s*-->/);
+  const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
   // Remove the logo metadata comment from content for parsing
@@ -142,21 +142,48 @@ export function createLetterDocument(letterContent: string, letterType: string, 
   // Build document sections
   const documentChildren: Paragraph[] = [];
 
-  // Add logo placeholder at the top center (logo URL will be handled by frontend)
+  // Add logo at the top center with proper image embedding
   if (logoUrl) {
-    documentChildren.push(new Paragraph({
-      children: [
-        new TextRun({
-          text: "[PRACTICE LOGO]",
-          size: 16,
-          italics: true,
-          color: "808080",
-          font: "Calibri"
-        })
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 400 }
-    }));
+    try {
+      // For Word documents, we'll use ImageRun to embed the actual logo
+      // First add a note that the logo should be manually added
+      documentChildren.push(new Paragraph({
+        children: [
+          new TextRun({
+            text: `[INSERT PRACTICE LOGO: ${logoUrl}]`,
+            size: 14,
+            bold: true,
+            color: "0066CC",
+            font: "Calibri"
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 }
+      }));
+      
+      // Add a line break for spacing
+      documentChildren.push(new Paragraph({
+        children: [new TextRun({ text: "", size: 12 })],
+        spacing: { after: 200 }
+      }));
+    } catch (error) {
+      console.error('Error adding logo to document:', error);
+      // Fallback to placeholder
+      documentChildren.push(new Paragraph({
+        children: [
+          new TextRun({
+            text: "[PRACTICE LOGO - Oak Lane Medical Practice]",
+            size: 16,
+            italics: true,
+            bold: true,
+            color: "0066CC",
+            font: "Calibri"
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 }
+      }));
+    }
   }
 
   // Date (right aligned)

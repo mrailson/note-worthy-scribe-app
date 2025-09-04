@@ -100,7 +100,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
           <img 
             src={logoUrl}
             alt="Practice Logo" 
-            className="h-24 w-auto mx-auto object-contain"
+            className="h-48 w-auto mx-auto object-contain"
             onLoad={() => console.log('Logo loaded successfully:', logoUrl)}
             onError={(e) => {
               console.error('Logo failed to load:', logoUrl, e);
