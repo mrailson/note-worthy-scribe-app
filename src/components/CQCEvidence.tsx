@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Upload, Download, Trash2, Shield, AlertCircle, Eye } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, Shield, AlertCircle, Eye, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
@@ -48,6 +49,7 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
   const [tags, setTags] = useState('');
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('evidence');
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     fetchCQCEvidence();
@@ -287,211 +289,220 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          CQC Evidence Repository
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="evidence">Evidence Records</TabsTrigger>
-            <TabsTrigger value="upload">Add Evidence</TabsTrigger>
-          </TabsList>
+    <>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card>
+          <CardHeader>
+            <CollapsibleTrigger className="flex items-center justify-between w-full hover:no-underline">
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                CQC Evidence Repository
+              </CardTitle>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="evidence">Evidence Records</TabsTrigger>
+                  <TabsTrigger value="upload">Add Evidence</TabsTrigger>
+                </TabsList>
 
-          <TabsContent value="upload" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="evidence-title">Title *</Label>
-                <Input
-                  id="evidence-title"
-                  placeholder="Evidence title..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={disabled || uploading}
-                />
-              </div>
+                <TabsContent value="upload" className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="evidence-title">Title *</Label>
+                      <Input
+                        id="evidence-title"
+                        placeholder="Evidence title..."
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        disabled={disabled || uploading}
+                      />
+                    </div>
 
-              <div>
-                <Label htmlFor="evidence-description">Description</Label>
-                <Textarea
-                  id="evidence-description"
-                  placeholder="Describe this evidence..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={disabled || uploading}
-                />
-              </div>
+                    <div>
+                      <Label htmlFor="evidence-description">Description</Label>
+                      <Textarea
+                        id="evidence-description"
+                        placeholder="Describe this evidence..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        disabled={disabled || uploading}
+                      />
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="evidence-type">Evidence Type *</Label>
-                  <Select value={evidenceType} onValueChange={setEvidenceType} disabled={disabled}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="complaint_compliance_report">Complaint Compliance Report</SelectItem>
-                      <SelectItem value="policy_document">Policy Document</SelectItem>
-                      <SelectItem value="training_record">Training Record</SelectItem>
-                      <SelectItem value="audit_report">Audit Report</SelectItem>
-                      <SelectItem value="meeting_minutes">Meeting Minutes</SelectItem>
-                      <SelectItem value="certificate">Certificate</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="cqc-domain">CQC Domain</Label>
-                  <Select value={cqcDomain} onValueChange={setCqcDomain} disabled={disabled}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select domain" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="safe">Safe</SelectItem>
-                      <SelectItem value="effective">Effective</SelectItem>
-                      <SelectItem value="caring">Caring</SelectItem>
-                      <SelectItem value="responsive">Responsive</SelectItem>
-                      <SelectItem value="well_led">Well Led</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="kloe-reference">KLOE Reference</Label>
-                  <Input
-                    id="kloe-reference"
-                    placeholder="e.g., W1, S2, etc."
-                    value={kloeReference}
-                    onChange={(e) => setKloeReference(e.target.value)}
-                    disabled={disabled || uploading}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="tags">Tags (comma-separated)</Label>
-                  <Input
-                    id="tags"
-                    placeholder="tag1, tag2, tag3"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    disabled={disabled || uploading}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="evidence-file">File (Optional)</Label>
-                <Input
-                  id="evidence-file"
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  disabled={disabled || uploading}
-                  accept="*/*"
-                />
-              </div>
-
-              <Button
-                onClick={handleFileUpload}
-                disabled={disabled || uploading || !title || !evidenceType}
-                className="w-full"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Adding...' : 'Add CQC Evidence'}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="evidence" className="space-y-4">
-            {evidenceRecords.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No CQC evidence records found for this complaint</p>
-                <p className="text-sm">Generated reports and uploaded evidence will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {evidenceRecords.map((record) => (
-                  <div key={record.id} className="p-4 border rounded-lg">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium">{record.title}</h4>
-                          {record.cqc_domain && (
-                            <Badge className={getDomainColor(record.cqc_domain)}>
-                              {record.cqc_domain.replace('_', ' ').toUpperCase()}
-                            </Badge>
-                          )}
-                          {record.kloe_reference && (
-                            <Badge variant="outline">{record.kloe_reference}</Badge>
-                          )}
-                        </div>
-                        
-                        {record.description && (
-                          <p className="text-sm text-muted-foreground mb-2">{truncateDescription(record.description)}</p>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Type: {record.evidence_type.replace('_', ' ')}</span>
-                          <span>Added: {new Date(record.created_at).toLocaleDateString()}</span>
-                          {record.file_size && (
-                            <span>Size: {formatFileSize(record.file_size)}</span>
-                          )}
-                        </div>
-                        
-                        {record.tags && record.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {record.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="evidence-type">Evidence Type *</Label>
+                        <Select value={evidenceType} onValueChange={setEvidenceType} disabled={disabled}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="complaint_compliance_report">Complaint Compliance Report</SelectItem>
+                            <SelectItem value="policy_document">Policy Document</SelectItem>
+                            <SelectItem value="training_record">Training Record</SelectItem>
+                            <SelectItem value="audit_report">Audit Report</SelectItem>
+                            <SelectItem value="meeting_minutes">Meeting Minutes</SelectItem>
+                            <SelectItem value="certificate">Certificate</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedReport(record)}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                        {record.file_path && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => downloadFile(record)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {!disabled && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteEvidence(record)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+
+                      <div>
+                        <Label htmlFor="cqc-domain">CQC Domain</Label>
+                        <Select value={cqcDomain} onValueChange={setCqcDomain} disabled={disabled}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select domain" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="safe">Safe</SelectItem>
+                            <SelectItem value="effective">Effective</SelectItem>
+                            <SelectItem value="caring">Caring</SelectItem>
+                            <SelectItem value="responsive">Responsive</SelectItem>
+                            <SelectItem value="well_led">Well Led</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="kloe-reference">KLOE Reference</Label>
+                        <Input
+                          id="kloe-reference"
+                          placeholder="e.g., W1, S2, etc."
+                          value={kloeReference}
+                          onChange={(e) => setKloeReference(e.target.value)}
+                          disabled={disabled || uploading}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="tags">Tags (comma-separated)</Label>
+                        <Input
+                          id="tags"
+                          placeholder="tag1, tag2, tag3"
+                          value={tags}
+                          onChange={(e) => setTags(e.target.value)}
+                          disabled={disabled || uploading}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="evidence-file">File (Optional)</Label>
+                      <Input
+                        id="evidence-file"
+                        type="file"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        disabled={disabled || uploading}
+                        accept="*/*"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handleFileUpload}
+                      disabled={disabled || uploading || !title || !evidenceType}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? 'Adding...' : 'Add CQC Evidence'}
+                    </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+                </TabsContent>
+
+                <TabsContent value="evidence" className="space-y-4">
+                  {evidenceRecords.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No CQC evidence records found for this complaint</p>
+                      <p className="text-sm">Generated reports and uploaded evidence will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {evidenceRecords.map((record) => (
+                        <div key={record.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-medium">{record.title}</h4>
+                                {record.cqc_domain && (
+                                  <Badge className={getDomainColor(record.cqc_domain)}>
+                                    {record.cqc_domain.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                )}
+                                {record.kloe_reference && (
+                                  <Badge variant="outline">{record.kloe_reference}</Badge>
+                                )}
+                              </div>
+                              
+                              {record.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{truncateDescription(record.description)}</p>
+                              )}
+                              
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <span>Type: {record.evidence_type.replace('_', ' ')}</span>
+                                <span>Added: {new Date(record.created_at).toLocaleDateString()}</span>
+                                {record.file_size && (
+                                  <span>Size: {formatFileSize(record.file_size)}</span>
+                                )}
+                              </div>
+                              
+                              {record.tags && record.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {record.tags.map((tag, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedReport(record)}
+                                className="flex items-center gap-2"
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </Button>
+                              {record.file_path && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => downloadFile(record)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {!disabled && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => deleteEvidence(record)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Report Details Modal */}
       {selectedReport && (
@@ -562,45 +573,45 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
                 )}
 
                 <div className="border-t pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">File Information</p>
-                        <p className="text-sm text-muted-foreground">
-                          Generated: {new Date(selectedReport.created_at).toLocaleDateString('en-GB')}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">File Information</p>
+                      <p className="text-sm text-muted-foreground">
+                        Generated: {new Date(selectedReport.created_at).toLocaleDateString('en-GB')}
+                      </p>
+                      {selectedReport.file_name && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedReport.file_name}
                         </p>
-                        {selectedReport.file_name && (
-                          <p className="text-xs text-muted-foreground">
-                            {selectedReport.file_name}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex gap-2">
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => downloadAsWord(selectedReport)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Download Word
+                      </Button>
+                      {selectedReport.file_path && (
                         <Button
-                          variant="outline"
-                          onClick={() => downloadAsWord(selectedReport)}
+                          onClick={() => downloadFile(selectedReport)}
                           className="flex items-center gap-2"
                         >
-                          <FileText className="h-4 w-4" />
-                          Download Word
+                          <Download className="h-4 w-4" />
+                          Download Report
                         </Button>
-                        {selectedReport.file_path && (
-                          <Button
-                            onClick={() => downloadFile(selectedReport)}
-                            className="flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Download Report
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </div>
+                  </div>
                 </div>
               </div>
             </ScrollArea>
           </DialogContent>
         </Dialog>
       )}
-    </Card>
+    </>
   );
 }

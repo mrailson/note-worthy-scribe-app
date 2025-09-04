@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   Search,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -126,6 +128,7 @@ const ComplaintDetails = () => {
   const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean; responseReceivedAt?: string; responseText?: string; isTestResponse?: boolean}>>([]);
   const [workflowSettings, setWorkflowSettings] = useState<any>(null);
   const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
+  const [isWorkflowOpen, setIsWorkflowOpen] = useState(true);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -1827,17 +1830,24 @@ I am committed to ensuring that all patients receive the care and service they d
                 </DialogContent>
               </Dialog>
               {acknowledgementLetter && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5" />
-                      Investigation Workflow
-                    </CardTitle>
-                    <CardDescription>
-                      Determine how the complaint will be investigated and who needs to provide input
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <Collapsible open={isWorkflowOpen} onOpenChange={setIsWorkflowOpen}>
+                  <Card>
+                    <CardHeader>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-5 w-5" />
+                          <div>
+                            <CardTitle className="text-left">Investigation Workflow</CardTitle>
+                            <CardDescription className="text-left">
+                              Determine how the complaint will be investigated and who needs to provide input
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-4">
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Investigation Method</Label>
                       <div className="space-y-2">
@@ -2248,9 +2258,11 @@ I am committed to ensuring that all patients receive the care and service they d
                            <CQCEvidence complaintId={complaint.id} practiceId={complaint.practice_id} disabled={submitting} />
                          </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                     )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
 
 
