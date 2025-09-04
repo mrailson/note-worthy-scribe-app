@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { SpeechToText } from '@/components/SpeechToText';
+import { AssemblyAISpeechToText } from '@/components/AssemblyAISpeechToText';
 
 interface ComplaintDetails {
   complaint_id: string;
@@ -213,7 +213,7 @@ export default function ComplaintResponse() {
                   />
                   {!complaint.response_submitted && (
                     <div className="flex justify-start">
-                      <SpeechToText
+                      <AssemblyAISpeechToText
                         onTranscription={(text) => {
                           setResponse(prev => prev + (prev ? '\n\n' : '') + text);
                         }}
