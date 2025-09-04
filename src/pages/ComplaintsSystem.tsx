@@ -455,9 +455,12 @@ const ComplaintsSystem = () => {
         consent_given: formData.consent_given,
         consent_details: formData.consent_details || null,
         complaint_on_behalf: formData.complaint_on_behalf,
+        practice_id: null, // System admins don't need a specific practice_id
         created_by: user.id,
         status: 'submitted' as any,
       };
+
+      console.log('Submitting complaint data:', complaintData); // Debug log
 
       const { data, error } = await supabase
         .from('complaints')
@@ -468,7 +471,15 @@ const ComplaintsSystem = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
 
       // Show success modal and store reference
       setNewComplaintRef(data.reference_number);
