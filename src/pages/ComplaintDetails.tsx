@@ -53,6 +53,7 @@ import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
 import { CQCEvidence } from "@/components/CQCEvidence";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
+import { CQCReportModal } from "@/components/CQCReportModal";
 
 interface Complaint {
   id: string;
@@ -2192,17 +2193,23 @@ I am committed to ensuring that all patients receive the care and service they d
                       <CardTitle>NHS Compliance Overview</CardTitle>
                       <CardDescription>Track compliance with NHS England complaints procedures and CQC requirements</CardDescription>
                     </div>
-                    {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={markAllCompliant}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Mark All Compliant
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <CQCReportModal 
+                        complaintId={complaintId || ''} 
+                        complaintReference={complaint?.reference_number || ''} 
+                      />
+                      {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={markAllCompliant}
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Mark All Compliant
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
