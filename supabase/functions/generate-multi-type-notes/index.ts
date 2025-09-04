@@ -39,73 +39,181 @@ Keep it concise but well-formatted with clear sections and proper bullet points.
   {
     type: 'executive',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting for senior leadership. Focus on strategic decisions, impact, and outcomes.
+    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
 
 Format:
-# Executive Summary
+# GP/PCN Executive Summary
 
 ## Meeting Overview
-Brief context and purpose of the meeting.
+Brief context and purpose - [Practice partnership/PCN strategic/Clinical governance/Operational planning meeting]
 
-## Strategic Decisions
-• **[Decision]** - [Rationale and expected impact]
-• **[Decision]** - [Rationale and expected impact]
+## Strategic Healthcare Decisions
+• **[Clinical Service Decision]** - Impact on patient care delivery and practice capacity
+• **[Operational Decision]** - Effect on practice efficiency, workflow, and staff resources  
+• **[Financial Decision]** - Practice revenue, cost implications, and sustainability impact
+• **[Partnership Decision]** - PCN collaboration, shared services, or external partnerships
 
-## Business Impact & Outcomes
-• **Financial:** [Impact details]
-• **Operational:** [Impact details]
-• **Strategic:** [Impact details]
+## Practice & PCN Impact Analysis
+• **Patient Care Impact:** [How decisions improve/change patient experience and clinical outcomes]
+• **Operational Impact:** [Effects on daily practice operations, appointment availability, staff workload]
+• **Financial Impact:** [Revenue changes, cost savings/increases, investment requirements]
+• **Strategic Impact:** [Long-term practice positioning, competitive advantage, service expansion]
 
-## Key Risks & Mitigation
-• **Risk:** [Description] | **Mitigation:** [Action plan]
+## Key Business Risks & Healthcare Governance
+• **Clinical Risk:** [Patient safety considerations, clinical governance implications] | **Mitigation:** [Risk management approach]
+• **Operational Risk:** [Service delivery, staffing, capacity risks] | **Mitigation:** [Contingency planning]
+• **Financial Risk:** [Budget, funding, contract risks] | **Mitigation:** [Financial safeguarding measures]
+• **Regulatory Risk:** [CQC, compliance, information governance] | **Mitigation:** [Compliance strategies]
 
-## Executive Actions Required
-• **[Action]** - [Owner] | [Timeline] | [Priority]
+## Leadership Actions Required
+• **Practice Management:** [Critical operational tasks] - [Timeline] - [Resource requirements]
+• **Clinical Leadership:** [Clinical pathway/quality actions] - [Timeline] - [Professional development needs]  
+• **PCN Leadership:** [Collaborative initiatives] - [Timeline] - [Inter-practice coordination requirements]
+• **Partnership Board:** [Strategic decisions requiring partner approval] - [Timeline] - [Business case needs]
 
-Use professional language with clear formatting and bullet points throughout.`,
-    maxTokens: 800
+## Resource Requirements & Investment Decisions
+• **Staffing:** [New hires, role changes, training investments, workforce planning]
+• **Technology:** [IT systems, clinical equipment, infrastructure upgrades]
+• **Premises:** [Practice space, facilities, accessibility improvements]
+• **Financial:** [Budget allocations, cash flow implications, partnership distributions]
+
+## Patient & Population Health Outcomes
+• **Service Enhancements:** [Improved patient access, new services, care quality improvements]
+• **Population Health Impact:** [Screening programs, prevention services, health inequalities work]
+• **Care Integration:** [Better coordination with secondary care, community services, social care]
+
+## Next Executive Review Points
+• **Immediate Review (2 weeks):** [Critical operational decisions requiring quick executive oversight]
+• **Monthly Review (1 month):** [Progress monitoring on major initiatives and financial performance]
+• **Quarterly Review (3 months):** [Strategic outcomes assessment and partnership performance review]
+
+Focus on strategic implications for practice sustainability, patient care quality, and partnership success. Emphasize actionable leadership decisions and measurable outcomes.`,
+    maxTokens: 1000
   },
   {
     type: 'detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create DETAILED meeting minutes with excellent formatting and comprehensive coverage. Use clear headings, bullet points, and structured layout.
+    systemPrompt: `Create DETAILED GP/PCN meeting minutes focused specifically on operational agreements and decisions affecting GP practices and Primary Care Networks. Extract and highlight what matters most to healthcare professionals.
 
 Format:
-# Detailed Meeting Minutes
+# GP/PCN Detailed Meeting Minutes
 
 ## Meeting Information
 • **Date:** [Date]
 • **Time:** [Time]
-• **Attendees:** [List with roles if available]
-• **Chair:** [Name if identified]
+• **Meeting Type:** [Practice Meeting/PCN Meeting/Partnership Meeting/Clinical Meeting]
+• **Attendees:** [List with GP/clinical roles where identified]
+• **Chair:** [Name and role if identified]
 
-## Discussion Points
-### [Topic 1]
-• [Key point discussed]
-• [Decision or outcome]
-• [Any concerns raised]
+## PRACTICE IMPACT SUMMARY
+### Immediate Operational Changes
+• **[Change 1]** - Impact on daily practice operations, patient care, or service delivery
+• **[Change 2]** - How this affects practice workflow, staffing, or clinical protocols
+• **[Change 3]** - Patient-facing service modifications or improvements
 
-### [Topic 2]
-• [Key point discussed]
-• [Decision or outcome]
+### Resource & Staffing Decisions
+• **Staff Changes:** [Any hiring, role changes, training requirements, or workforce planning]
+• **Equipment/Systems:** [New equipment, IT systems, clinical tools, or upgrades agreed]
+• **Premises:** [Any practice premises changes, room allocations, or facility improvements]
 
-## Decisions Made
-• **[Decision 1]** - [Full context and rationale]
-• **[Decision 2]** - [Full context and rationale]
+## PCN SERVICE DELIVERY AGREEMENTS
+### Clinical Services
+• **[Service 1]:** [What was agreed about service provision, delivery model, or clinical pathways]
+• **[Service 2]:** [Changes to existing services, new service launches, or service modifications]
+• **Quality Standards:** [Any quality metrics, KPIs, or clinical standards discussed]
 
-## Action Items
-• **[Item]** - Assigned to: [Owner] | Due: [Date] | Priority: [Level]
-• **[Item]** - Assigned to: [Owner] | Due: [Date] | Priority: [Level]
+### Collaborative Working
+• **Shared Services:** [Agreements on shared clinical services, back-office functions, or joint initiatives]
+• **Care Coordination:** [Patient pathway agreements, referral processes, or care navigation changes]
+• **Data Sharing:** [Clinical data sharing agreements, reporting requirements, or information governance]
 
-## Next Steps & Follow-up
-• [Detailed next step with timeline]
-• [Follow-up meeting or check-in details]
+## FINANCIAL IMPLICATIONS & AGREEMENTS
+### Practice Finances
+• **Funding Changes:** [Contract variations, new income streams, or funding allocations]
+• **Cost Implications:** [New costs, shared costs, or cost-saving initiatives agreed]
+• **Investment Decisions:** [Capital expenditure, equipment purchases, or practice investments]
 
-## Additional Notes
-• [Any other relevant information]
+### PCN Financial Arrangements
+• **Shared Budgets:** [PCN funding allocations, shared service costs, or collaborative budgets]
+• **Contract Delivery:** [DES requirements, contract milestones, or performance targets]
+• **Financial Risk:** [Shared financial risks, mitigation strategies, or contingency planning]
 
-Use clear formatting with consistent bullet points and bold text for emphasis.`,
-    maxTokens: 2000
+## PATIENT CARE & SERVICE IMPACT
+### Direct Patient Impact
+• **Service Changes:** [How decisions directly affect patient experience, access, or care quality]
+• **Appointment Systems:** [Changes to booking systems, availability, or access methods]
+• **Clinical Protocols:** [New or updated clinical guidelines, treatment pathways, or care standards]
+
+### Population Health
+• **Prevention Services:** [Screening programs, vaccination campaigns, or health promotion initiatives]
+• **Vulnerable Populations:** [Specific arrangements for elderly, complex needs, or high-risk patients]
+• **Health Inequalities:** [Targeted interventions or equity-focused service changes]
+
+## OPERATIONAL ACTION ITEMS
+### Practice-Level Actions
+• **[Practice/Individual]** - [Specific operational task] | **Due:** [Date] | **Impact:** [Patient/staff/service impact]
+• **[Practice/Individual]** - [Implementation requirement] | **Due:** [Date] | **Resources needed:** [What's required]
+
+### PCN-Level Actions  
+• **[PCN Role/Team]** - [Collaborative action] | **Due:** [Date] | **Practices affected:** [Which practices]
+• **[PCN Role/Team]** - [Service delivery task] | **Due:** [Date] | **Patient impact:** [Service implications]
+
+## COMPLIANCE & GOVERNANCE MATTERS
+### Regulatory Requirements
+• **CQC Implications:** [Any CQC-related decisions, compliance requirements, or quality improvements]
+• **Clinical Governance:** [Safety reporting, incident management, or governance process changes]
+• **Information Governance:** [Data protection, confidentiality, or information sharing agreements]
+
+### Professional Standards
+• **Clinical Standards:** [Professional development, clinical audit requirements, or peer review processes]
+• **Training Requirements:** [Mandatory training, CPD requirements, or skill development needs]
+
+## STRATEGIC PLANNING & FUTURE DEVELOPMENTS
+### Service Development
+• **New Services:** [Plans for new clinical services, enhanced provision, or service expansion]
+• **Service Integration:** [Plans for better integration between practices, with secondary care, or community services]
+• **Innovation:** [Technology adoption, new care models, or pilot programs]
+
+### Partnership Working
+• **External Partnerships:** [Agreements with hospitals, community services, or other healthcare providers]
+• **Stakeholder Engagement:** [Patient group involvement, community partnerships, or public health collaboration]
+
+## RISKS & MITIGATION STRATEGIES
+### Identified Risks
+• **Operational Risk:** [Service delivery risks and mitigation plans]
+• **Financial Risk:** [Budget risks, funding uncertainties, and contingency plans]
+• **Clinical Risk:** [Patient safety considerations and risk management approaches]
+
+### Contingency Planning
+• **Backup Plans:** [Alternative arrangements for service delivery or operational continuity]
+• **Risk Monitoring:** [How risks will be tracked and managed ongoing]
+
+## NEXT STEPS & FOLLOW-UP
+### Immediate Actions (Next 2 weeks)
+• [Critical operational tasks that must be completed quickly]
+• [Urgent patient service implications to address]
+
+### Short-term Implementation (1-3 months)
+• [Service changes to be implemented in the coming months]
+• [Staff training, system changes, or process improvements]
+
+### Long-term Strategy (3+ months)
+• [Strategic developments and major service changes]
+• [Partnership developments and collaborative initiatives]
+
+## COMMUNICATION REQUIREMENTS
+### Internal Communication
+• **Practice Staff:** [What needs to be communicated to practice teams]
+• **Clinical Teams:** [Information for GPs, nurses, and other clinical staff]
+• **Administrative Staff:** [Process changes affecting admin and support teams]
+
+### External Communication  
+• **Patients:** [What patients need to know about service changes]
+• **Partners:** [Information to share with external healthcare partners]
+• **Stakeholders:** [Updates for commissioners, CQC, or other oversight bodies]
+
+Focus on extracting specific operational agreements, resource commitments, and decisions that directly impact GP practice operations, patient care delivery, and PCN collaborative working. Prioritize actionable outcomes over meeting process details.`,
+    maxTokens: 3000
   },
   {
     type: 'very_detailed',
