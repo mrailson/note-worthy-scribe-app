@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, Save, Edit, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Save, Edit, CheckCircle, Sparkles, Loader2, ChevronDown } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +35,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
   const [editing, setEditing] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingFindings, setGeneratingFindings] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     fetchInvestigationFindings();
@@ -185,22 +187,27 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Investigation Findings
-          </CardTitle>
-          {findings && !editing && !disabled && (
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger className="flex items-center gap-2 hover:no-underline">
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Investigation Findings
+              </CardTitle>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            {findings && !editing && !disabled && (
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
         {!editing && findings ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
@@ -379,7 +386,9 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail, Info } from 'lucide-react';
+import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail, Info, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { ManualCQCReportGenerator } from '@/components/ManualCQCReportGenerator';
@@ -48,6 +49,7 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
   const [savingOutcomeLetter, setSavingOutcomeLetter] = useState(false);
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
   const [complaintReferenceNumber, setComplaintReferenceNumber] = useState<string>('');
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     fetchInvestigationDecision();
@@ -550,273 +552,283 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Gavel className="h-5 w-5" />
-            Investigation Decision & Learning
-          </CardTitle>
-          {decision && !editing && !disabled && (
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* CQC Compliance Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">CQC Compliance Documentation</p>
-              <p className="text-blue-700">
-                When this complaint is completed, a comprehensive CQC compliance report will be automatically generated 
-                and stored in your evidence repository. This report demonstrates how your practice has met NHS complaint 
-                handling procedures and regulatory requirements.
-              </p>
+    <>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger className="flex items-center gap-2 hover:no-underline">
+                <CardTitle className="flex items-center gap-2">
+                  <Gavel className="h-5 w-5" />
+                  Investigation Decision & Learning
+                </CardTitle>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              {decision && !editing && !disabled && (
+                <Button variant="outline" size="sm" onClick={handleEdit}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </div>
-          </div>
-        </div>
-        {!editing && decision ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Decision Made
-              </Badge>
-              <Badge variant={getDecisionBadgeVariant(decision.decision_type)}>
-                {getDecisionLabel(decision.decision_type)}
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                {new Date(decision.decided_at).toLocaleDateString()}
-              </span>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Decision Reasoning (CQC Audit Ready)</Label>
-              <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                {decision.decision_reasoning}
-              </div>
-            </div>
-
-            {decision.lessons_learned && (
-              <div>
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Lessons Learned
-                </Label>
-                <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                  {decision.lessons_learned}
-                </div>
-              </div>
-            )}
-
-            {/* Outcome Letter Section */}
-            <div className="pt-4 border-t space-y-4">
-              {outcomeLetter ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Outcome Letter</h4>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowOutcomeLetter(true)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleDownloadOutcomeLetter}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        Export DOCX
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-md text-sm">
-                    <p className="text-muted-foreground">
-                      Outcome letter has been generated and saved. 
-                      {outcomeLetter.length} characters.
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              {/* CQC Compliance Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">CQC Compliance Documentation</p>
+                    <p className="text-blue-700">
+                      When this complaint is completed, a comprehensive CQC compliance report will be automatically generated 
+                      and stored in your evidence repository. This report demonstrates how your practice has met NHS complaint 
+                      handling procedures and regulatory requirements.
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {!editing && decision ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Decision Made
+                    </Badge>
+                    <Badge variant={getDecisionBadgeVariant(decision.decision_type)}>
+                      {getDecisionLabel(decision.decision_type)}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(decision.decided_at).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Decision Reasoning (CQC Audit Ready)</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                      {decision.decision_reasoning}
+                    </div>
+                  </div>
+
+                  {decision.lessons_learned && (
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        Lessons Learned
+                      </Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                        {decision.lessons_learned}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Outcome Letter Section */}
+                  <div className="pt-4 border-t space-y-4">
+                    {outcomeLetter ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium">Outcome Letter</h4>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setShowOutcomeLetter(true)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleDownloadOutcomeLetter}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Export DOCX
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded-md text-sm">
+                          <p className="text-muted-foreground">
+                            Outcome letter has been generated and saved. 
+                            {outcomeLetter.length} characters.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        onClick={generateOutcomeLetter}
+                        disabled={disabled || generatingOutcomeLetter}
+                        className="w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* CQC Compliance Report Section */}
+                  {decision && (
+                    <div className="pt-4 border-t">
+                      <ManualCQCReportGenerator 
+                        complaintId={complaintId}
+                        complaintReference={complaintReferenceNumber}
+                      />
+                    </div>
+                  )}
+                </div>
               ) : (
-                <Button 
-                  onClick={generateOutcomeLetter}
-                  disabled={disabled || generatingOutcomeLetter}
-                  className="w-full"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
-                </Button>
-              )}
-            </div>
-
-            {/* CQC Compliance Report Section */}
-            {decision && (
-              <div className="pt-4 border-t">
-                <ManualCQCReportGenerator 
-                  complaintId={complaintId}
-                  complaintReference={complaintReferenceNumber}
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="decision-type">Decision *</Label>
-                {!disabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateDecisionRecommendation}
-                    disabled={generatingDecision || saving}
-                    className="text-xs"
-                  >
-                    {generatingDecision ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3 mr-1" />
-                    )}
-                    {generatingDecision ? 'Generating...' : 'AI Recommend'}
-                  </Button>
-                )}
-              </div>
-              <Select
-                value={decisionType}
-                onValueChange={setDecisionType}
-                disabled={disabled || saving}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select investigation decision" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="uphold">Uphold - Complaint is justified</SelectItem>
-                  <SelectItem value="reject">Reject - Complaint is not justified</SelectItem>
-                  <SelectItem value="partially_uphold">Partially Uphold - Some aspects justified</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="decision-reasoning">Decision Reasoning (CQC Audit Ready) *</Label>
-                {!disabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateDecisionReasoning}
-                    disabled={generatingReasoning || saving}
-                    className="text-xs"
-                  >
-                    {generatingReasoning ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3 mr-1" />
-                    )}
-                    {generatingReasoning ? 'Generating...' : 'AI Generate'}
-                  </Button>
-                )}
-              </div>
-              <div className="relative">
-                <Textarea
-                  id="decision-reasoning"
-                  placeholder="Provide comprehensive reasoning that would satisfy a CQC audit, referencing NHS standards, evidence, and duty of candour..."
-                  value={decisionReasoning}
-                  onChange={(e) => setDecisionReasoning(e.target.value)}
-                  disabled={disabled || saving}
-                  rows={6}
-                  className="pl-12"
-                />
-                {!disabled && (
-                  <div className="absolute top-2 left-2">
-                    <SpeechToText
-                      onTranscription={(text) => {
-                        setDecisionReasoning(prev => prev + (prev ? '\n\n' : '') + text);
-                      }}
-                      size="sm"
-                      className="text-sm"
-                    />
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="decision-type">Decision *</Label>
+                      {!disabled && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateDecisionRecommendation}
+                          disabled={generatingDecision || saving}
+                          className="text-xs"
+                        >
+                          {generatingDecision ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3 mr-1" />
+                          )}
+                          {generatingDecision ? 'Generating...' : 'AI Recommend'}
+                        </Button>
+                      )}
+                    </div>
+                    <Select
+                      value={decisionType}
+                      onValueChange={setDecisionType}
+                      disabled={disabled || saving}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select investigation decision" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="uphold">Uphold - Complaint is justified</SelectItem>
+                        <SelectItem value="reject">Reject - Complaint is not justified</SelectItem>
+                        <SelectItem value="partially_uphold">Partially Uphold - Some aspects justified</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="lessons-learned" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Lessons Learned
-                </Label>
-                {!disabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateLessonsLearned}
-                    disabled={generatingLessons || saving}
-                    className="text-xs"
-                  >
-                    {generatingLessons ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3 mr-1" />
-                    )}
-                    {generatingLessons ? 'Generating...' : 'AI Generate'}
-                  </Button>
-                )}
-              </div>
-              <div className="relative">
-                <Textarea
-                  id="lessons-learned"
-                  placeholder="Identify key lessons learned and improvement opportunities to prevent future occurrences..."
-                  value={lessonsLearned}
-                  onChange={(e) => setLessonsLearned(e.target.value)}
-                  disabled={disabled || saving}
-                  rows={4}
-                  className="pl-12"
-                />
-                {!disabled && (
-                  <div className="absolute top-2 left-2">
-                    <SpeechToText
-                      onTranscription={(text) => {
-                        setLessonsLearned(prev => prev + (prev ? '\n\n' : '') + text);
-                      }}
-                      size="sm"
-                      className="text-sm"
-                    />
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="decision-reasoning">Decision Reasoning (CQC Audit Ready) *</Label>
+                      {!disabled && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateDecisionReasoning}
+                          disabled={generatingReasoning || saving}
+                          className="text-xs"
+                        >
+                          {generatingReasoning ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3 mr-1" />
+                          )}
+                          {generatingReasoning ? 'Generating...' : 'AI Generate'}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Textarea
+                        id="decision-reasoning"
+                        placeholder="Provide comprehensive reasoning that would satisfy a CQC audit, referencing NHS standards, evidence, and duty of candour..."
+                        value={decisionReasoning}
+                        onChange={(e) => setDecisionReasoning(e.target.value)}
+                        disabled={disabled || saving}
+                        rows={6}
+                        className="pl-12"
+                      />
+                      {!disabled && (
+                        <div className="absolute top-2 left-2">
+                          <SpeechToText
+                            onTranscription={(text) => {
+                              setDecisionReasoning(prev => prev + (prev ? '\n\n' : '') + text);
+                            }}
+                            size="sm"
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={saveInvestigationDecision}
-                disabled={disabled || saving || !decisionType || !decisionReasoning.trim()}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Decision'}
-              </Button>
-              {decision && (
-                <Button variant="outline" onClick={handleCancel} disabled={saving}>
-                  Cancel
-                </Button>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="lessons-learned" className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        Lessons Learned
+                      </Label>
+                      {!disabled && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateLessonsLearned}
+                          disabled={generatingLessons || saving}
+                          className="text-xs"
+                        >
+                          {generatingLessons ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3 mr-1" />
+                          )}
+                          {generatingLessons ? 'Generating...' : 'AI Generate'}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Textarea
+                        id="lessons-learned"
+                        placeholder="Identify key lessons learned and improvement opportunities to prevent future occurrences..."
+                        value={lessonsLearned}
+                        onChange={(e) => setLessonsLearned(e.target.value)}
+                        disabled={disabled || saving}
+                        rows={4}
+                        className="pl-12"
+                      />
+                      {!disabled && (
+                        <div className="absolute top-2 left-2">
+                          <SpeechToText
+                            onTranscription={(text) => {
+                              setLessonsLearned(prev => prev + (prev ? '\n\n' : '') + text);
+                            }}
+                            size="sm"
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={saveInvestigationDecision}
+                      disabled={disabled || saving || !decisionType || !decisionReasoning.trim()}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? 'Saving...' : 'Save Decision'}
+                    </Button>
+                    {decision && (
+                      <Button variant="outline" onClick={handleCancel} disabled={saving}>
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
-        )}
-      </CardContent>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
@@ -848,18 +860,7 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={async () => {
-                        console.log('=== DOCX DOWNLOAD DEBUG (InvestigationDecisionAndLearning) ===');
-                        console.log('outcomeLetter length:', outcomeLetter?.length);
-                        console.log('complaintId:', complaintId);
-                        try {
-                          await handleDownloadOutcomeLetter();
-                          console.log('Download completed successfully');
-                        } catch (error) {
-                          console.error('Download failed:', error);
-                          toast.error(`Download failed: ${error.message}`);
-                        }
-                      }}
+                      onClick={handleDownloadOutcomeLetter}
                       disabled={!outcomeLetter}
                       className="flex items-center gap-2"
                     >
@@ -926,6 +927,6 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
