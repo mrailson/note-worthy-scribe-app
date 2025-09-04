@@ -54,7 +54,7 @@ serve(async (req) => {
       console.log('Fetching practice details for practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
         .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, footer_text, website, show_page_numbers')
+        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
@@ -163,6 +163,12 @@ CRITICAL: Never include personal email addresses or direct contact details in th
 
     const data = await response.json();
     let acknowledgementLetter = data.choices[0].message.content;
+    
+    // Add practice logo URL to the letter content as HTML comment for Word export
+    if (practiceDetails?.logo_url || practiceDetails?.practice_logo_url) {
+      const logoUrl = practiceDetails.practice_logo_url || practiceDetails.logo_url;
+      acknowledgementLetter = `<!-- logo_url: ${logoUrl} -->\n${acknowledgementLetter}`;
+    }
     
     // Store the acknowledgement in the database
     const { error: insertError } = await supabase
