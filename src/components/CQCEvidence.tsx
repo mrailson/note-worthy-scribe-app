@@ -225,6 +225,13 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
     return colors[domain as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const truncateDescription = (text: string | null, maxWords: number = 120) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    return words.slice(0, maxWords).join(' ') + '...';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -372,7 +379,7 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
                         </div>
                         
                         {record.description && (
-                          <p className="text-sm text-muted-foreground mb-2">{record.description}</p>
+                          <p className="text-sm text-muted-foreground mb-2">{truncateDescription(record.description)}</p>
                         )}
                         
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
