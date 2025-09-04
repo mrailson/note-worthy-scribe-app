@@ -633,6 +633,16 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                     </Button>
                   )}
                 </div>
+
+                {/* Edit Button */}
+                <div className="flex justify-end pt-4 border-t">
+                  {!disabled && (
+                    <Button variant="outline" onClick={handleEdit} disabled={saving}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Decision
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
