@@ -150,7 +150,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
       // Convert to base64 for the transcription service
       const arrayBuffer = await fileData.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binaryString = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binaryString += String.fromCharCode(uint8Array[i]);
+      }
+      const base64Audio = btoa(binaryString);
 
       // Call the transcription service
       const { data: transcriptionData, error: transcriptionError } = await supabase.functions
