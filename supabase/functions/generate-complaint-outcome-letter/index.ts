@@ -47,7 +47,7 @@ serve(async (req) => {
     if (complaint.practice_id) {
       const { data: practice } = await supabase
         .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, footer_text, website, show_page_numbers')
+        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
@@ -170,8 +170,9 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     let outcomeLetter = data.choices[0].message.content;
     
     // Add logo URL as HTML comment if available
-    if (practiceDetails?.logo_url) {
-      outcomeLetter = `<!-- logo_url: ${practiceDetails.logo_url} -->\n${outcomeLetter}`;
+    if (practiceDetails?.logo_url || practiceDetails?.practice_logo_url) {
+      const logoUrl = practiceDetails.practice_logo_url || practiceDetails.logo_url;
+      outcomeLetter = `<!-- logo_url: ${logoUrl} -->\n${outcomeLetter}`;
     }
     
     return new Response(JSON.stringify({
