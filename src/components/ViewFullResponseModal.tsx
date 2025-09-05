@@ -72,7 +72,7 @@ export const ViewFullResponseModal: React.FC<ViewFullResponseModalProps> = ({
           View full response
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl w-full h-full max-h-[95vh] sm:max-h-[85vh] flex flex-col m-2 sm:m-6">
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] sm:max-h-[75vh] flex flex-col m-4 sm:m-6">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-primary" />
