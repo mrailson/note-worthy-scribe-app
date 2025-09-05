@@ -72,25 +72,25 @@ export const ViewFullResponseModal: React.FC<ViewFullResponseModalProps> = ({
           View full response
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl w-full h-full max-h-[95vh] sm:max-h-[85vh] flex flex-col m-2 sm:m-6">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-primary" />
             Full Response from {staffName}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 min-h-0 overflow-auto max-h-[60vh] p-4 border rounded-md">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 border rounded-md">
           <div className="whitespace-pre-wrap text-sm leading-relaxed">
             {responseText}
           </div>
         </div>
         
-        <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             {responseText.split(' ').length} words • {responseText.length} characters
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
