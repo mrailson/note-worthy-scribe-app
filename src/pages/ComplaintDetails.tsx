@@ -2495,8 +2495,8 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
-        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
-          <div className="flex flex-col h-full">
+        <DialogContent className="p-0 max-w-6xl w-[90vw] max-h-[80vh] resize border-2 border-gray-300 flex flex-col m-4 my-8" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+          <div className="flex flex-col h-full min-h-0">
             <DialogHeader className="flex-shrink-0 p-6 border-b">
               <DialogTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5" />
@@ -2574,15 +2574,15 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
               
               {/* Letter content */}
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 {!isEditingAcknowledgement ? (
-                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto max-h-full">
+                  <div className="bg-gray-50 p-4 rounded-lg min-h-full">
                     <div className="max-w-none">
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full flex flex-col">
+                  <div className="h-full flex flex-col min-h-0">
                     <Textarea
                       value={editedAcknowledgementContent}
                       onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
