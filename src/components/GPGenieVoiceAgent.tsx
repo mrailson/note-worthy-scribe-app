@@ -599,14 +599,14 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                                         qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
                   </div>
                   
-                  {/* Original and Translated Phrases */}
+                   {/* Original and Translated Phrases */}
                   <div className="space-y-2 mb-3">
                     <div className="text-xs">
-                      <span className="font-medium text-muted-foreground">Original Phrase ({qualityScore.sourceLanguage}):</span>
+                      <span className="font-medium text-muted-foreground">Original Phrase:</span>
                       <p className="mt-1 p-2 bg-muted/50 rounded text-foreground">{qualityScore.originalPhrase}</p>
                     </div>
                     <div className="text-xs">
-                      <span className="font-medium text-muted-foreground">AI Response ({qualityScore.targetLanguage}):</span>
+                      <span className="font-medium text-muted-foreground">AI Response:</span>
                       <p className="mt-1 p-2 bg-muted/50 rounded text-foreground">{qualityScore.translatedPhrase}</p>
                     </div>
                   </div>
