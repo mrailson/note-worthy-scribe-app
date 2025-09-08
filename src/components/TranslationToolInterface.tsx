@@ -88,6 +88,7 @@ export const TranslationToolInterface = () => {
   const [sessionStart, setSessionStart] = useState<Date>(new Date());
   const [currentTranslation, setCurrentTranslation] = useState<CurrentTranslation | null>(null);
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
 
   // Helper function to extract language and clean text from language tags
@@ -160,6 +161,53 @@ export const TranslationToolInterface = () => {
     setTranslationScores([]);
     setSessionStart(new Date());
     toast.success('Translation history cleared');
+  };
+
+  // Text-to-speech function for repeating phrases
+  const repeatTranslatedPhrase = async (text: string, language: string) => {
+    if (isSpeaking) {
+      toast.info('Already speaking, please wait...');
+      return;
+    }
+
+    try {
+      setIsSpeaking(true);
+      toast.info('Playing translated phrase...');
+
+      // Use ElevenLabs TTS API
+      const { data, error } = await supabase.functions.invoke('elevenlabs-text-to-speech', {
+        body: { 
+          text, 
+          language: language.toLowerCase(),
+          voice: 'Sarah' // Default voice
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Play the audio
+      if (data.audioContent) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audio.play();
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          toast.success('Phrase completed');
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          toast.error('Failed to play audio');
+        };
+      }
+
+    } catch (err) {
+      console.error('Text-to-speech error:', err);
+      setIsSpeaking(false);
+      toast.error('Failed to repeat phrase. Please check your ElevenLabs configuration.');
+    }
   };
 
   const handleExportDOCX = async () => {
@@ -973,11 +1021,15 @@ export const TranslationToolInterface = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setIsTranslationModalOpen(true)}
+                  onClick={() => {
+                    if (currentTranslation) {
+                      repeatTranslatedPhrase(currentTranslation.translatedText, currentTranslation.targetLanguage);
+                    }
+                  }}
                   className="px-8 py-3 text-lg"
                 >
-                  <Eye className="w-5 h-5 mr-2" />
-                  Keep Open
+                  <Languages className="w-5 h-5 mr-2" />
+                  Repeat Phrase
                 </Button>
               </div>
             </div>
