@@ -827,11 +827,11 @@ export const TranslationToolInterface = () => {
 
       {/* Translation Display Modal - Large Text for Patients */}
       <Dialog open={isTranslationModalOpen} onOpenChange={setIsTranslationModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="border-b pb-4">
-            <DialogTitle className="flex items-center justify-between text-xl">
-              <span className="flex items-center gap-2">
-                <Languages className="w-6 h-6 text-primary" />
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-6">
+            <DialogTitle className="flex items-center justify-between text-2xl">
+              <span className="flex items-center gap-3">
+                <Languages className="w-8 h-8 text-primary" />
                 Live Translation Display
               </span>
               <div className="flex items-center gap-2">
@@ -839,20 +839,20 @@ export const TranslationToolInterface = () => {
                 {currentTranslation?.qualityScore && (
                   <div className="flex items-center gap-2">
                     {currentTranslation.qualityScore.overallSafety === 'OK' && (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                      <Badge className="bg-green-100 text-green-800 border-green-200 text-lg px-4 py-2">
+                        <CheckCircle2 className="w-6 h-6 mr-2" />
                         Safe Translation
                       </Badge>
                     )}
                     {currentTranslation.qualityScore.overallSafety === 'REVIEW' && (
-                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-lg px-4 py-2">
+                        <AlertTriangle className="w-6 h-6 mr-2" />
                         Review Needed
                       </Badge>
                     )}
                     {currentTranslation.qualityScore.overallSafety === 'NOT_OK' && (
-                      <Badge className="bg-red-100 text-red-800 border-red-200">
-                        <XCircle className="w-4 h-4 mr-1" />
+                      <Badge className="bg-red-100 text-red-800 border-red-200 text-lg px-4 py-2">
+                        <XCircle className="w-6 h-6 mr-2" />
                         Translation Issue
                       </Badge>
                     )}
@@ -860,9 +860,9 @@ export const TranslationToolInterface = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsTranslationModalOpen(false)}
-                      className="h-8 w-8 p-0"
+                      className="h-10 w-10 p-0"
                     >
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-6 h-6" />
                     </Button>
                   </div>
                 )}
@@ -871,48 +871,48 @@ export const TranslationToolInterface = () => {
           </DialogHeader>
           
           {currentTranslation && (
-            <div className="space-y-8 pt-6">
+            <div className="space-y-12 pt-8">
               {/* English Text - For Staff Reference */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Globe className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-blue-800 text-lg">English (Staff)</span>
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <Globe className="w-8 h-8 text-blue-600" />
+                  <span className="font-semibold text-blue-800 text-2xl">English (Staff)</span>
                 </div>
-                <p className="text-2xl text-blue-900 font-medium leading-relaxed">
+                <p className="text-4xl text-blue-900 font-medium leading-relaxed">
                   {currentTranslation.englishText}
                 </p>
               </div>
 
               {/* Translated Text - Large for Patient */}
-              <div className="bg-green-50 border-4 border-green-300 rounded-lg p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Languages className="w-8 h-8 text-green-600" />
-                  <span className="font-bold text-green-800 text-2xl">
+              <div className="bg-green-50 border-4 border-green-300 rounded-lg p-12">
+                <div className="flex items-center gap-4 mb-8">
+                  <Languages className="w-12 h-12 text-green-600" />
+                  <span className="font-bold text-green-800 text-3xl">
                     {currentTranslation.targetLanguage}
                   </span>
                   {/* Visual Quality Indicator */}
                   <div className="ml-auto">
                     {currentTranslation.qualityScore?.overallSafety === 'OK' && (
-                      <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
-                        <CheckCircle2 className="w-8 h-8 text-green-600" />
-                        <span className="text-green-800 font-semibold text-lg">Good Translation</span>
+                      <div className="flex items-center gap-3 bg-green-100 px-6 py-3 rounded-full">
+                        <CheckCircle2 className="w-12 h-12 text-green-600" />
+                        <span className="text-green-800 font-semibold text-2xl">Good Translation</span>
                       </div>
                     )}
                     {currentTranslation.qualityScore?.overallSafety === 'REVIEW' && (
-                      <div className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-full">
-                        <AlertTriangle className="w-8 h-8 text-yellow-600" />
-                        <span className="text-yellow-800 font-semibold text-lg">Check Translation</span>
+                      <div className="flex items-center gap-3 bg-yellow-100 px-6 py-3 rounded-full">
+                        <AlertTriangle className="w-12 h-12 text-yellow-600" />
+                        <span className="text-yellow-800 font-semibold text-2xl">Check Translation</span>
                       </div>
                     )}
                     {currentTranslation.qualityScore?.overallSafety === 'NOT_OK' && (
-                      <div className="flex items-center gap-2 bg-red-100 px-4 py-2 rounded-full">
-                        <XCircle className="w-8 h-8 text-red-600" />
-                        <span className="text-red-800 font-semibold text-lg">Translation Issue</span>
+                      <div className="flex items-center gap-3 bg-red-100 px-6 py-3 rounded-full">
+                        <XCircle className="w-12 h-12 text-red-600" />
+                        <span className="text-red-800 font-semibold text-2xl">Translation Issue</span>
                       </div>
                     )}
                   </div>
                 </div>
-                <p className="text-5xl text-green-900 font-semibold leading-relaxed tracking-wide">
+                <p className="text-7xl text-green-900 font-semibold leading-relaxed tracking-wide">
                   {currentTranslation.translatedText}
                 </p>
               </div>
