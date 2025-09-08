@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.explain-unresolved-section]
 verify_jwt = false
+
+[functions.elevenlabs-text-to-speech]
+verify_jwt = true
