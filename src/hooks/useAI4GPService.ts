@@ -1104,6 +1104,64 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
+      // For GPT-5 queries, use the fast clinical function with real streaming
+      if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5') {
+        console.log('🚀 Using GPT-5 Fast Clinical for quick response with real streaming');
+        
+        try {
+          let accumulatedContent = '';
+          let timeToFirstWords: number | undefined;
+          
+          const streamHandler = (chunk: string) => {
+            accumulatedContent += chunk;
+            
+            if (!timeToFirstWords) {
+              timeToFirstWords = Date.now() - startTime;
+            }
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
+                : msg
+            ));
+          };
+          
+          const response = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
+          
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+          
+          const finalAssistantMessage = {
+            ...assistantMessage,
+            content: response,
+            isStreaming: false,
+            responseTime,
+            timeToFirstWords,
+            apiResponseTime: responseTime
+          };
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? finalAssistantMessage
+              : msg
+          ));
+
+          // Auto-save the search
+          setTimeout(async () => {
+            const finalMessages = [...newMessages, finalAssistantMessage];
+            await saveSearchAutomatically(finalMessages);
+          }, 100);
+          
+          setIsLoading(false);
+          return;
+          
+        } catch (error) {
+          console.error('GPT-5 Fast Clinical failed for quick response:', error);
+          // Fall through to regular edge function approach
+        }
+      }
+
+      // For non-GPT-5 models or GPT-5 fallback, use the ai-4-pm-chat function
       const requestBody = {
         messages: messagesForAPI,
         model: selectedModel,
@@ -1130,9 +1188,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw new Error('No valid response received from AI service');
       }
       
-      // Fast response for quick actions - no files expected
+      // Ultra-fast simulated streaming for quick actions - start immediately
       const chunks = responseContent.split(' ');
-      const chunkSize = Math.max(5, Math.floor(chunks.length / 5)); // ~5 fast updates
+      const chunkSize = Math.max(3, Math.floor(chunks.length / 8)); // ~8 very fast updates
       let currentIndex = 0;
       let accumulatedContent = '';
       let timeToFirstWords: number | undefined;
@@ -1156,8 +1214,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
 
           if (currentIndex < chunks.length) {
-            // Very fast streaming for quick actions
-            setTimeout(streamChunks, 15 + Math.random() * 10);
+            // Ultra-fast streaming for quick actions - minimal delay
+            setTimeout(streamChunks, 8 + Math.random() * 5);
           } else {
             // Streaming complete
             const endTime = Date.now();
@@ -1185,7 +1243,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         }
       };
 
-      // Start fast streaming for quick actions
+      // Start ultra-fast streaming immediately
       streamChunks();
 
     } catch (error: any) {
@@ -1207,7 +1265,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
     
     setInput(originalInput);
-  }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel]);
+  }, [messages, uploadedFiles, buildSystemPrompt, verificationLevel, input, handleGPT5FastClinical, saveSearchAutomatically]);
 
   return {
     messages,
