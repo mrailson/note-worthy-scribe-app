@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Languages, 
   Phone, 
@@ -27,7 +28,9 @@ import {
   Globe,
   History,
   Download,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -64,6 +67,14 @@ interface TranslationEntry {
   translationLatency?: number;
 }
 
+interface CurrentTranslation {
+  englishText: string;
+  translatedText: string;
+  targetLanguage: string;
+  qualityScore?: QualityScore;
+  timestamp: Date;
+}
+
 export const TranslationToolInterface = () => {
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +86,8 @@ export const TranslationToolInterface = () => {
   const [translations, setTranslations] = useState<TranslationEntry[]>([]);
   const [translationScores, setTranslationScores] = useState<TranslationScore[]>([]);
   const [sessionStart, setSessionStart] = useState<Date>(new Date());
+  const [currentTranslation, setCurrentTranslation] = useState<CurrentTranslation | null>(null);
+  const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
 
   // Helper function to extract language and clean text from language tags
@@ -229,6 +242,24 @@ export const TranslationToolInterface = () => {
       };
       setQualityScore(enrichedData);
       
+      // Update current translation for modal display
+      setCurrentTranslation({
+        englishText: userInput,
+        translatedText: cleanedResponse,
+        targetLanguage: targetLanguage,
+        qualityScore: enrichedData,
+        timestamp: new Date()
+      });
+      
+      // Show the translation modal if connected
+      if (conversation.status === 'connected') {
+        setIsTranslationModalOpen(true);
+        // Auto-close modal after 10 seconds
+        setTimeout(() => {
+          setIsTranslationModalOpen(false);
+        }, 10000);
+      }
+      
       // Show prominent toast notification
       const qualityMessage = data.overallSafety === 'OK' 
         ? `✅ Translation Quality: SAFE (${data.confidence}% confidence)`
@@ -264,6 +295,9 @@ export const TranslationToolInterface = () => {
       console.log('Disconnected from NHS Translation Service');
       toast.info('Disconnected from Translation Service');
       conversationIdRef.current = null;
+      // Close translation modal when disconnected
+      setIsTranslationModalOpen(false);
+      setCurrentTranslation(null);
     },
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
@@ -783,6 +817,166 @@ export const TranslationToolInterface = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Translation Display Modal - Large Text for Patients */}
+      <Dialog open={isTranslationModalOpen} onOpenChange={setIsTranslationModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="flex items-center justify-between text-xl">
+              <span className="flex items-center gap-2">
+                <Languages className="w-6 h-6 text-primary" />
+                Live Translation Display
+              </span>
+              <div className="flex items-center gap-2">
+                {/* Quality Indicator for Staff */}
+                {currentTranslation?.qualityScore && (
+                  <div className="flex items-center gap-2">
+                    {currentTranslation.qualityScore.overallSafety === 'OK' && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                        Safe Translation
+                      </Badge>
+                    )}
+                    {currentTranslation.qualityScore.overallSafety === 'REVIEW' && (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                        <AlertTriangle className="w-4 h-4 mr-1" />
+                        Review Needed
+                      </Badge>
+                    )}
+                    {currentTranslation.qualityScore.overallSafety === 'NOT_OK' && (
+                      <Badge className="bg-red-100 text-red-800 border-red-200">
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Translation Issue
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsTranslationModalOpen(false)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {currentTranslation && (
+            <div className="space-y-8 pt-6">
+              {/* English Text - For Staff Reference */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-blue-800 text-lg">English (Staff)</span>
+                </div>
+                <p className="text-2xl text-blue-900 font-medium leading-relaxed">
+                  {currentTranslation.englishText}
+                </p>
+              </div>
+
+              {/* Translated Text - Large for Patient */}
+              <div className="bg-green-50 border-4 border-green-300 rounded-lg p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Languages className="w-8 h-8 text-green-600" />
+                  <span className="font-bold text-green-800 text-2xl">
+                    {currentTranslation.targetLanguage}
+                  </span>
+                  {/* Visual Quality Indicator */}
+                  <div className="ml-auto">
+                    {currentTranslation.qualityScore?.overallSafety === 'OK' && (
+                      <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
+                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+                        <span className="text-green-800 font-semibold text-lg">Good Translation</span>
+                      </div>
+                    )}
+                    {currentTranslation.qualityScore?.overallSafety === 'REVIEW' && (
+                      <div className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-full">
+                        <AlertTriangle className="w-8 h-8 text-yellow-600" />
+                        <span className="text-yellow-800 font-semibold text-lg">Check Translation</span>
+                      </div>
+                    )}
+                    {currentTranslation.qualityScore?.overallSafety === 'NOT_OK' && (
+                      <div className="flex items-center gap-2 bg-red-100 px-4 py-2 rounded-full">
+                        <XCircle className="w-8 h-8 text-red-600" />
+                        <span className="text-red-800 font-semibold text-lg">Translation Issue</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-5xl text-green-900 font-semibold leading-relaxed tracking-wide">
+                  {currentTranslation.translatedText}
+                </p>
+              </div>
+
+              {/* Quality Metrics for Staff */}
+              {currentTranslation.qualityScore && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      currentTranslation.qualityScore.accuracy >= 70 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {currentTranslation.qualityScore.accuracy}%
+                    </div>
+                    <div className="text-sm text-gray-600">Accuracy</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      currentTranslation.qualityScore.medicalSafety >= 70 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {currentTranslation.qualityScore.medicalSafety}%
+                    </div>
+                    <div className="text-sm text-gray-600">Safety</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      currentTranslation.qualityScore.clarity >= 70 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {currentTranslation.qualityScore.clarity}%
+                    </div>
+                    <div className="text-sm text-gray-600">Clarity</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      currentTranslation.qualityScore.confidence >= 70 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {currentTranslation.qualityScore.confidence}%
+                    </div>
+                    <div className="text-sm text-gray-600">Confidence</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-4 pt-6">
+                <Button 
+                  onClick={() => setIsTranslationModalOpen(false)}
+                  className="px-8 py-3 text-lg"
+                >
+                  Close Display
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsTranslationModalOpen(true)}
+                  className="px-8 py-3 text-lg"
+                >
+                  <Eye className="w-5 h-5 mr-2" />
+                  Keep Open
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
