@@ -510,15 +510,15 @@ export const TranslationToolInterface = () => {
               </div>
 
               {/* Languages Available */}
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-3">Languages Available</h3>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-8">
+                <h3 className="text-2xl font-bold mb-6 text-center">Languages Available</h3>
+                <div className="flex flex-wrap gap-3 justify-center">
                   {["Polish", "Urdu", "Bengali", "Arabic", "Spanish", "French", "Hindi", "Chinese", "German", "Italian", "Portuguese", "Ukrainian", "Hungarian", "Russian"].map((lang) => (
-                    <Badge key={lang} variant="outline" className="text-sm">
+                    <Badge key={lang} variant="outline" className="text-base px-4 py-2 font-semibold hover:bg-primary/10 transition-colors">
                       {lang}
                     </Badge>
                   ))}
-                  <Badge variant="secondary" className="text-sm font-medium">
+                  <Badge variant="secondary" className="text-base px-4 py-2 font-bold">
                     + 50 more
                   </Badge>
                 </div>
