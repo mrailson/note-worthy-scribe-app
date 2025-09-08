@@ -200,8 +200,8 @@ export const TranslationToolInterface = () => {
       setIsLoading(true);
       setError(null);
 
-      // Translation service agent ID
-      const agentId = 'agent_01jwrz44tyefdvhtvt7c622rj7';  // Translation Service Agent
+      // Language Support Agent for translation services
+      const agentId = 'agent_01jws2qhv2essav25m8cfq2h0v';  // Language Support Agent
 
       console.log('Generating signed URL for Translation Agent:', agentId);
 
@@ -243,7 +243,7 @@ export const TranslationToolInterface = () => {
 
       console.log('Starting translation service with signed URL:', signedUrl);
       const conversationId = await conversation.startSession({ 
-        agentId: 'agent_01jwrz44tyefdvhtvt7c622rj7',  // Translation Service Agent
+        agentId: 'agent_01jws2qhv2essav25m8cfq2h0v',  // Language Support Agent
         signedUrl
       });
       
