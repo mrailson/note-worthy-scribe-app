@@ -523,8 +523,39 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           </Alert>
         )}
 
-        {/* Main Interface */}
+         {/* Main Interface */}
         <div className="flex flex-col items-center space-y-6 py-8">
+          {/* Translation Quality Status - Only for Oak Lane Patient Line */}
+          {activeTab === 'patient-line' && qualityScore && (
+            <div className="w-full max-w-md">
+              <Alert variant={qualityScore.overallSafety === 'OK' ? 'default' : 
+                             qualityScore.overallSafety === 'REVIEW' ? 'default' : 'destructive'} 
+                     className={qualityScore.overallSafety === 'OK' ? 'border-green-200 bg-green-50' : 
+                               qualityScore.overallSafety === 'REVIEW' ? 'border-yellow-200 bg-yellow-50' : ''}>
+                {qualityScore.overallSafety === 'OK' ? (
+                  <CircleCheck className="h-4 w-4 text-green-600" />
+                ) : qualityScore.overallSafety === 'REVIEW' ? (
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                <AlertDescription>
+                  <div className="font-medium mb-1">
+                    Translation Quality: {qualityScore.overallSafety === 'OK' ? 'Verified Safe' : 
+                                        qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div>Accuracy: {qualityScore.accuracy}% | Medical Safety: {qualityScore.medicalSafety}%</div>
+                    <div>Cultural Sensitivity: {qualityScore.culturalSensitivity}% | Clarity: {qualityScore.clarity}%</div>
+                    {qualityScore.explanation && (
+                      <div className="text-muted-foreground mt-2">{qualityScore.explanation}</div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {/* Status Indicator */}
           <div className="text-center space-y-2">
             
