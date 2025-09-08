@@ -1,5 +1,7 @@
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { assessSessionSafety, TranslationScore } from './translationScoring';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 // DOCX export functionality for translation history
 export interface SessionMetadata {
@@ -374,7 +376,7 @@ export function generateDOCXContent(
 }
 
 /**
- * Triggers DOCX download using html-docx-js library
+ * Downloads the translation session data as a DOCX file using the docx library
  */
 export async function downloadDOCX(
   translations: TranslationEntry[],
@@ -382,27 +384,240 @@ export async function downloadDOCX(
   translationScores: TranslationScore[]
 ): Promise<void> {
   try {
-    // We'll use the html-docx-js library that's already installed
-    const htmlDocx = await import('html-docx-js');
+    const formatDuration = (seconds: number) => {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+      } else {
+        return `${secs}s`;
+      }
+    };
+
+    const sessionAssessment = assessSessionSafety(translationScores);
     
-    const htmlContent = generateDOCXContent(translations, metadata, translationScores);
-    
-    // Convert HTML to DOCX
-    const docxBlob = htmlDocx.asBlob(htmlContent);
-    
-    // Create download link
-    const url = URL.createObjectURL(docxBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `NHS_Translation_Report_${metadata.sessionDate.toISOString().split('T')[0]}_${metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-')}.docx`;
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up
-    URL.revokeObjectURL(url);
+    const children = [
+      // Header
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "NHS Translation Service Report",
+            bold: true,
+            size: 32,
+            color: "005EB8"
+          })
+        ],
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER
+      }),
+      
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "Automated Translation Session Documentation",
+            size: 24,
+            color: "666666"
+          })
+        ],
+        alignment: AlignmentType.CENTER
+      }),
+      
+      new Paragraph({ text: "" }), // Empty line
+      
+      // Session Information
+      new Paragraph({
+        children: [new TextRun({ text: "Session Information", bold: true, size: 28, color: "005EB8" })],
+        heading: HeadingLevel.HEADING_2
+      }),
+      
+      new Paragraph({ children: [new TextRun(`Report Generated: ${new Date().toLocaleString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`Session Date: ${metadata.sessionDate.toLocaleDateString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`Session Start: ${metadata.sessionStart.toLocaleTimeString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`Session End: ${metadata.sessionEnd.toLocaleTimeString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`Duration: ${formatDuration(metadata.sessionDuration)}`)] }),
+      new Paragraph({ children: [new TextRun(`Patient Language: ${metadata.patientLanguage}`)] }),
+      new Paragraph({ children: [new TextRun(`Total Translations: ${metadata.totalTranslations}`)] }),
+      new Paragraph({ children: [new TextRun(`Average Accuracy: ${metadata.averageAccuracy}%`)] }),
+      
+      new Paragraph({ text: "" }), // Empty line
+      
+      // Safety Assessment
+      new Paragraph({
+        children: [new TextRun({ text: "Safety Assessment", bold: true, size: 28, color: "005EB8" })],
+        heading: HeadingLevel.HEADING_2
+      }),
+      
+      new Paragraph({
+        children: [
+          new TextRun("Overall Safety Rating: "),
+          new TextRun({ 
+            text: sessionAssessment.overallRating.toUpperCase(), 
+            bold: true,
+            color: sessionAssessment.overallRating === 'safe' ? '28a745' : sessionAssessment.overallRating === 'warning' ? 'ffc107' : 'dc3545'
+          })
+        ]
+      }),
+      
+      new Paragraph({
+        children: [new TextRun(`Based on translation accuracy, confidence scores, and medical terminology detection, this session has been rated as ${sessionAssessment.overallRating} for clinical communication purposes.`)]
+      }),
+    ];
+
+    // Add risk factors if any
+    if (sessionAssessment.riskFactors.length > 0) {
+      children.push(
+        new Paragraph({ text: "" }),
+        new Paragraph({
+          children: [new TextRun({ text: "Risk Factors Identified:", bold: true, color: "dc3545" })]
+        }),
+        ...sessionAssessment.riskFactors.map(factor => 
+          new Paragraph({
+            children: [new TextRun(`• ${factor}`)],
+            indent: { left: 720 }
+          })
+        )
+      );
+    }
+
+    // Add recommendations
+    children.push(
+      new Paragraph({ text: "" }),
+      new Paragraph({
+        children: [new TextRun({ text: "Recommendations:", bold: true, color: "005EB8" })]
+      }),
+      ...sessionAssessment.recommendations.map(rec => 
+        new Paragraph({
+          children: [new TextRun(`• ${rec}`)],
+          indent: { left: 720 }
+        })
+      )
+    );
+
+    // Translation Log Header
+    children.push(
+      new Paragraph({ text: "" }),
+      new Paragraph({
+        children: [new TextRun({ text: "Detailed Translation Log", bold: true, size: 28, color: "005EB8" })],
+        heading: HeadingLevel.HEADING_2
+      })
+    );
+
+    // Create translation log table
+    const tableRows = [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true })] })],
+            width: { size: 5, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Time", bold: true })] })],
+            width: { size: 10, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Speaker", bold: true })] })],
+            width: { size: 10, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Original Text", bold: true })] })],
+            width: { size: 30, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Translation", bold: true })] })],
+            width: { size: 30, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Accuracy", bold: true })] })],
+            width: { size: 8, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Safety", bold: true })] })],
+            width: { size: 7, type: WidthType.PERCENTAGE }
+          })
+        ]
+      }),
+      // Data rows
+      ...translations.map((translation, index) => {
+        const score = translationScores[index];
+        return new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(`${index + 1}`)] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.timestamp.toLocaleTimeString('en-GB'))] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.speaker === 'gp' ? 'GP' : 'Patient')] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.originalText)] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.translatedText)] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ 
+                children: [new TextRun({
+                  text: score ? `${score.accuracy}%` : 'N/A',
+                  color: !score ? '000000' : score.accuracy >= 90 ? '28a745' : score.accuracy >= 75 ? 'ffc107' : 'dc3545'
+                })] 
+              })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ 
+                children: [new TextRun({
+                  text: score ? score.safetyFlag.toUpperCase() : 'N/A',
+                  color: !score ? '000000' : score.safetyFlag === 'safe' ? '28a745' : score.safetyFlag === 'warning' ? 'ffc107' : 'dc3545'
+                })] 
+              })]
+            })
+          ]
+        });
+      })
+    ];
+
+    const translationTable = new Table({
+      rows: tableRows,
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    });
+
+    // Create document with sections that can contain tables
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          ...children,
+          translationTable,
+          new Paragraph({ text: "" }),
+          new Paragraph({
+            children: [new TextRun({
+              text: "IMPORTANT DISCLAIMER: This is an automated translation service for communication assistance only. All medical decisions should be based on professional clinical judgement.",
+              bold: true,
+              size: 20
+            })],
+            alignment: AlignmentType.CENTER
+          }),
+          new Paragraph({
+            children: [new TextRun({
+              text: `Report generated by NHS Translation Tool - ${new Date().toLocaleString('en-GB')}`,
+              size: 18,
+              italics: true
+            })],
+            alignment: AlignmentType.CENTER
+          })
+        ]
+      }]
+    });
+
+    // Generate and save
+    const blob = await Packer.toBlob(doc);
+    const filename = `NHS_Translation_Report_${metadata.sessionDate.toISOString().split('T')[0]}_${metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-')}.docx`;
+    saveAs(blob, filename);
     
   } catch (error) {
     console.error('Error generating DOCX:', error);
