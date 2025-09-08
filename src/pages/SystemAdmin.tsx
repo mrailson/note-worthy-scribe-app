@@ -332,7 +332,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             cqc_compliance_access: roleData?.cqc_compliance_access ?? false,
             shared_drive_access: roleData?.shared_drive_access ?? false,
             mic_test_service_access: roleData?.mic_test_service_access ?? false,
-            api_testing_service_access: roleData?.api_testing_service_access ?? false
+            api_testing_service_access: roleData?.api_testing_service_access ?? false,
+            translation_service_access: roleData?.translation_service_access ?? false
           };
           
           console.log(`Final user data for ${user.user_id}:`, userWithModules);
@@ -1026,7 +1027,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             cqc_compliance_access: currentFormData.module_access.cqc_compliance_access,
             shared_drive_access: currentFormData.module_access.shared_drive_access,
             mic_test_service_access: currentFormData.module_access.mic_test_service_access,
-            api_testing_service_access: currentFormData.module_access.api_testing_service_access
+            api_testing_service_access: currentFormData.module_access.api_testing_service_access,
+            translation_service_access: currentFormData.module_access.translation_service_access
           };
           
           console.log('Inserting new role with data:', insertData);
@@ -1065,6 +1067,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               shared_drive_access: currentFormData.module_access.shared_drive_access,
               mic_test_service_access: currentFormData.module_access.mic_test_service_access,
               api_testing_service_access: currentFormData.module_access.api_testing_service_access,
+              translation_service_access: currentFormData.module_access.translation_service_access,
               role: currentFormData.role || 'user'
             };
             
@@ -1095,7 +1098,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               cqc_compliance_access: currentFormData.module_access.cqc_compliance_access,
               shared_drive_access: currentFormData.module_access.shared_drive_access,
               mic_test_service_access: currentFormData.module_access.mic_test_service_access,
-              api_testing_service_access: currentFormData.module_access.api_testing_service_access
+              api_testing_service_access: currentFormData.module_access.api_testing_service_access,
+              translation_service_access: currentFormData.module_access.translation_service_access
             };
             
             console.log('Inserting new role with data:', insertData);

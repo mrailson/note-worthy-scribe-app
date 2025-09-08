@@ -4985,6 +4985,7 @@ export type Database = {
           replywell_access: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean | null
+          translation_service_access: boolean | null
           user_id: string
         }
         Insert: {
@@ -5005,6 +5006,7 @@ export type Database = {
           replywell_access?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
+          translation_service_access?: boolean | null
           user_id: string
         }
         Update: {
@@ -5025,6 +5027,7 @@ export type Database = {
           replywell_access?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
+          translation_service_access?: boolean | null
           user_id?: string
         }
         Relationships: [
