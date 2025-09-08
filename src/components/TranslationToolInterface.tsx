@@ -94,7 +94,23 @@ export const TranslationToolInterface = () => {
 
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
+    // Skip language setup requests - these are not actual translations
+    const isLanguageSetup = userMessage.toLowerCase().includes('please') && 
+                           userMessage.toLowerCase().match(/\b(polish|arabic|spanish|french|urdu|bengali|chinese|german|italian|portuguese|ukrainian|hungarian|russian|hindi)\b/i) &&
+                           agentResponse.toLowerCase().includes('ready');
+    
+    if (isLanguageSetup) {
+      console.log('🔧 Skipping language setup request from translation history');
+      return;
+    }
+
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
+    
+    // Only track if we have meaningful content (not just setup messages)
+    if (userMessage.trim().length < 5 || cleanedResponse.trim().length < 5) {
+      console.log('🔧 Skipping short/setup message from translation history');
+      return;
+    }
     
     const translationLatency = 1000; // Approximate for AI conversations
     
