@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         shared_drive_access: acc.shared_drive_access || roleRecord.shared_drive_access,
         mic_test_service_access: acc.mic_test_service_access || roleRecord.mic_test_service_access,
         api_testing_service_access: acc.api_testing_service_access || roleRecord.api_testing_service_access,
+        translation_service_access: acc.translation_service_access || roleRecord.translation_service_access,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         shared_drive_access: false,
         mic_test_service_access: false,
         api_testing_service_access: false,
+        translation_service_access: false,
       });
       
       // Convert the aggregated access flags to module names array
@@ -91,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.shared_drive_access) modules.push('shared_drive_access');
       if (aggregatedAccess.mic_test_service_access) modules.push('mic_test_service_access');
       if (aggregatedAccess.api_testing_service_access) modules.push('api_testing_service');
+      if (aggregatedAccess.translation_service_access) modules.push('translation_service');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);
