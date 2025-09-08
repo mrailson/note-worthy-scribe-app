@@ -68,6 +68,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     // Only verify for Oak Lane Patient Line (patient-line tab)
     if (activeTab !== 'patient-line') return;
     
+    console.log('🔍 [Oak Lane Verification] Starting quality check...');
+    console.log('🔍 User input:', userInput.substring(0, 100) + '...');
+    console.log('🔍 Agent response:', agentResponse.substring(0, 100) + '...');
+    
     try {
       const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-verification', {
         body: {
@@ -80,15 +84,42 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       });
 
       if (error) {
-        console.error('Oak Lane verification error:', error);
+        console.error('❌ Oak Lane verification error:', error);
+        toast.error('Translation verification failed');
         return;
       }
 
+      console.log('✅ Oak Lane translation quality result:', data);
       setQualityScore(data);
-      console.log('Oak Lane translation quality:', data);
+      
+      // Show prominent toast notification
+      const qualityMessage = data.overallSafety === 'OK' 
+        ? `✅ Translation Quality: SAFE (${data.confidence}% confidence)`
+        : data.overallSafety === 'REVIEW'
+        ? `⚠️ Translation Quality: REVIEW NEEDED (${data.confidence}% confidence)`
+        : `❌ Translation Quality: NOT SAFE (${data.confidence}% confidence)`;
+      
+      if (data.overallSafety === 'OK') {
+        toast.success(qualityMessage);
+      } else if (data.overallSafety === 'REVIEW') {
+        toast.warning(qualityMessage);
+      } else {
+        toast.error(qualityMessage);
+      }
+      
     } catch (err) {
-      console.error('Failed to verify Oak Lane conversation quality:', err);
+      console.error('❌ Failed to verify Oak Lane conversation quality:', err);
+      toast.error('Translation verification system error');
     }
+  };
+
+  // Test function to manually trigger verification
+  const testVerification = async () => {
+    console.log('🧪 Testing verification system...');
+    await verifyConversationQuality(
+      "I have a headache and feel dizzy", 
+      "Based on your symptoms, I recommend resting and staying hydrated. If symptoms persist, please consult a doctor."
+    );
   };
 
   const conversation = useConversation({
@@ -114,10 +145,12 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       }
     },
     onMessage: (message) => {
-      console.log('Message:', message);
+      console.log('📨 Message received:', message);
       
       // Only capture and verify for Oak Lane Patient Line
       if (activeTab === 'patient-line' && message.message && message.source) {
+        console.log('🎯 Oak Lane message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
+        
         const newEntry = {
           user: message.source === 'user' ? message.message : '',
           agent: message.source === 'ai' ? message.message : ''
@@ -126,17 +159,22 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         setConversationBuffer(prev => {
           const updated = [...prev];
           if (message.source === 'user') {
+            console.log('👤 User message captured:', message.message.substring(0, 50) + '...');
             updated.push(newEntry);
           } else if (message.source === 'ai' && updated.length > 0) {
+            console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
             updated[updated.length - 1].agent = message.message;
             // Trigger verification for the complete exchange
             const lastExchange = updated[updated.length - 1];
             if (lastExchange.user && lastExchange.agent) {
+              console.log('🔄 Triggering verification for complete exchange');
               verifyConversationQuality(lastExchange.user, lastExchange.agent);
             }
           }
           return updated;
         });
+      } else if (activeTab === 'patient-line') {
+        console.log('⚠️ Oak Lane message missing data - message:', !!message.message, 'source:', message.source);
       }
     },
     onError: (error) => {
@@ -553,6 +591,20 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   </div>
                 </AlertDescription>
               </Alert>
+            </div>
+          )}
+
+          {/* Test Verification Button - Only for Oak Lane Patient Line */}
+          {activeTab === 'patient-line' && (
+            <div className="w-full max-w-md">
+              <Button 
+                onClick={testVerification}
+                variant="outline"
+                size="sm"
+                className="w-full mb-4"
+              >
+                🧪 Test Translation Verification System
+              </Button>
             </div>
           )}
 
