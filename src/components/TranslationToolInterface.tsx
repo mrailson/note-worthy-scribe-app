@@ -187,20 +187,36 @@ export const TranslationToolInterface = () => {
         throw error;
       }
 
-      // Play the audio
+      // Convert base64 to Blob URL to comply with CSP
       if (data.audioContent) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.play();
+        // Convert base64 to binary
+        const binaryString = atob(data.audioContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Create blob and URL
+        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        const audio = new Audio(audioUrl);
         
         audio.onended = () => {
           setIsSpeaking(false);
           toast.success('Phrase completed');
+          // Clean up the blob URL
+          URL.revokeObjectURL(audioUrl);
         };
         
         audio.onerror = () => {
           setIsSpeaking(false);
           toast.error('Failed to play audio');
+          // Clean up the blob URL
+          URL.revokeObjectURL(audioUrl);
         };
+        
+        await audio.play();
       }
 
     } catch (err) {
