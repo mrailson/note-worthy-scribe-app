@@ -251,14 +251,7 @@ export const TranslationToolInterface = () => {
         timestamp: new Date()
       });
       
-      // Show the translation modal if connected
-      if (conversation.status === 'connected') {
-        setIsTranslationModalOpen(true);
-        // Auto-close modal after 10 seconds
-        setTimeout(() => {
-          setIsTranslationModalOpen(false);
-        }, 10000);
-      }
+      // Modal is now manually triggered by user button
       
       // Show prominent toast notification
       const qualityMessage = data.overallSafety === 'OK' 
@@ -517,15 +510,30 @@ export const TranslationToolInterface = () => {
               {/* Central Service Control Button */}
               <div className="flex flex-col items-center space-y-4">
                 {conversation.status === 'connected' ? (
-                  <Button
-                    onClick={endTranslationService}
-                    variant="destructive"
-                    size="lg"
-                    className="flex items-center gap-3 px-8 py-4 text-lg font-semibold"
-                  >
-                    <PhoneOff className="h-6 w-6" />
-                    End Translation Service
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={endTranslationService}
+                      variant="destructive"
+                      size="lg"
+                      className="flex items-center gap-3 px-8 py-4 text-lg font-semibold"
+                    >
+                      <PhoneOff className="h-6 w-6" />
+                      End Translation Service
+                    </Button>
+                    
+                    {/* Show Translation Modal Button */}
+                    {currentTranslation && (
+                      <Button
+                        onClick={() => setIsTranslationModalOpen(true)}
+                        variant="outline"
+                        size="lg"
+                        className="flex items-center gap-3 px-8 py-4 text-lg font-semibold border-2"
+                      >
+                        <Eye className="h-6 w-6" />
+                        Show Translation
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <Button
                     onClick={startTranslationService}
