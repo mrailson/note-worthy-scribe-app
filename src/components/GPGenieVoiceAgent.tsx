@@ -72,6 +72,21 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     { code: 'ar', text: 'اختبار خدمة الدعم اللغوي' }
   ];
 
+  // Helper function to extract language and clean text from language tags
+  const extractLanguageAndCleanText = (text: string) => {
+    const languageMatch = text.match(/<(\w+)>(.*?)<\/\1>/);
+    if (languageMatch) {
+      return {
+        language: languageMatch[1],
+        cleanText: languageMatch[2]
+      };
+    }
+    return {
+      language: 'Unknown',
+      cleanText: text
+    };
+  };
+
   const verifyConversationQuality = async (userInput: string, agentResponse: string) => {
     // Only verify for Oak Lane Patient Line (patient-line tab)
     if (activeTab !== 'patient-line') return;
@@ -80,13 +95,16 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     console.log('🔍 User input:', userInput.substring(0, 100) + '...');
     console.log('🔍 Agent response:', agentResponse.substring(0, 100) + '...');
     
+    // Extract target language from agent response
+    const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
+    
     try {
       const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-verification', {
         body: {
           userInput,
           agentResponse,
-          sourceLanguage: 'Multi-language',
-          targetLanguage: 'English',
+          sourceLanguage: 'English',
+          targetLanguage: targetLanguage,
           conversationId: conversationIdRef.current
         }
       });
@@ -102,9 +120,9 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       const enrichedData = {
         ...data,
         originalPhrase: userInput,
-        translatedPhrase: agentResponse,
-        sourceLanguage: 'Multi-language',
-        targetLanguage: 'English'
+        translatedPhrase: cleanedResponse,
+        sourceLanguage: 'English',
+        targetLanguage: targetLanguage
       };
       setQualityScore(enrichedData);
       
@@ -597,6 +615,11 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   <div className="font-medium mb-2">
                     Translation Quality: {qualityScore.overallSafety === 'OK' ? 'Verified Safe' : 
                                         qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
+                    {qualityScore.targetLanguage && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (Translated to {qualityScore.targetLanguage})
+                      </span>
+                    )}
                   </div>
                   
                    {/* Original and Translated Phrases */}
