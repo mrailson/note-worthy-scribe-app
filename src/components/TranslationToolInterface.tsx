@@ -522,17 +522,16 @@ export const TranslationToolInterface = () => {
                     </Button>
                     
                     {/* Show Translation Modal Button */}
-                    {currentTranslation && (
-                      <Button
-                        onClick={() => setIsTranslationModalOpen(true)}
-                        variant="outline"
-                        size="lg"
-                        className="flex items-center gap-3 px-8 py-4 text-lg font-semibold border-2"
-                      >
-                        <Eye className="h-6 w-6" />
-                        Show Translation
-                      </Button>
-                    )}
+                    <Button
+                      onClick={() => setIsTranslationModalOpen(true)}
+                      variant="outline"
+                      size="lg"
+                      className="flex items-center gap-3 px-8 py-4 text-lg font-semibold border-2"
+                      disabled={!currentTranslation}
+                    >
+                      <Eye className="h-6 w-6" />
+                      {currentTranslation ? 'Show Translation' : 'No Translation Yet'}
+                    </Button>
                   </div>
                 ) : (
                   <Button
