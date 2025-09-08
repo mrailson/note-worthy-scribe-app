@@ -363,7 +363,7 @@ export const TranslationToolInterface = () => {
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-3">Languages Available</h3>
               <div className="flex flex-wrap gap-2">
-                {["French", "Spanish", "Hungarian", "Hindi", "Polish", "Ukrainian", "Chinese", "German", "Russian", "Arabic", "Bengali", "Urdu", "Italian", "Portuguese"].map((lang) => (
+                {["Polish", "Urdu", "Bengali", "Arabic", "Spanish", "French", "Hindi", "Chinese", "German", "Italian", "Portuguese", "Ukrainian", "Hungarian", "Russian"].map((lang) => (
                   <Badge key={lang} variant="outline" className="text-sm">
                     {lang}
                   </Badge>
