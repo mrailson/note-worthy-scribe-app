@@ -62,11 +62,19 @@ function cleanBNFOutput(output: string): string {
   // 1. Strip out incorrect traffic light tags (Green, Red, Double Red, Amber, emojis)
   let cleaned = output
     .replace(/\b(Green|Red|Double Red|Amber|Red)\b/gi, "")
-    .replace(/🟢|🔴|🟠|⚫|🟡/g, "")
-    .replace(/\s{2,}/g, " ")   // collapse multiple spaces
-    .trim();
+    .replace(/🟢|🔴|🟠|⚫|🟡/g, "");
 
-  // 2. Add Northamptonshire ICB formulary link if model advises to "check local formulary"
+  // 2. Check if content contains significant markdown formatting that should be preserved
+  const hasMarkdownFormatting = /#{1,6}\s+.+|^\s*[-*+]\s+.+|^\s*\d+\.\s+.+|```[\s\S]*```|\*\*[^*]+\*\*|\*[^*]+\*|^\s{2,}/m.test(output);
+  
+  if (!hasMarkdownFormatting) {
+    // Only collapse multiple spaces if no significant markdown formatting detected
+    cleaned = cleaned.replace(/\s{2,}/g, " ");
+  }
+  
+  cleaned = cleaned.trim();
+
+  // 3. Add Northamptonshire ICB formulary link if model advises to "check local formulary"
   return addNorthantsFormularyLink(cleaned);
 }
 
