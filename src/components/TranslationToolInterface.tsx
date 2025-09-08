@@ -556,20 +556,20 @@ export const TranslationToolInterface = () => {
                 <div className="space-y-3">
                   {/* Quick Quality Indicators */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div className="text-center p-2 rounded bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Accuracy</div>
+                    <div className={`text-center p-2 rounded ${qualityScore.accuracy < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
+                      <div className={`text-xs ${qualityScore.accuracy < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Accuracy</div>
                       <div className="font-bold text-sm">{qualityScore.accuracy}%</div>
                     </div>
-                    <div className="text-center p-2 rounded bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Safety</div>
+                    <div className={`text-center p-2 rounded ${qualityScore.medicalSafety < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
+                      <div className={`text-xs ${qualityScore.medicalSafety < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Safety</div>
                       <div className="font-bold text-sm">{qualityScore.medicalSafety}%</div>
                     </div>
-                    <div className="text-center p-2 rounded bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Clarity</div>
+                    <div className={`text-center p-2 rounded ${qualityScore.clarity < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
+                      <div className={`text-xs ${qualityScore.clarity < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Clarity</div>
                       <div className="font-bold text-sm">{qualityScore.clarity}%</div>
                     </div>
-                    <div className="text-center p-2 rounded bg-muted/50">
-                      <div className="text-xs text-muted-foreground">Confidence</div>
+                    <div className={`text-center p-2 rounded ${qualityScore.confidence < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
+                      <div className={`text-xs ${qualityScore.confidence < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Confidence</div>
                       <div className="font-bold text-sm">{qualityScore.confidence}%</div>
                     </div>
                   </div>
