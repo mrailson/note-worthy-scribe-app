@@ -827,7 +827,7 @@ export const TranslationToolInterface = () => {
 
       {/* Translation Display Modal - Large Text for Patients */}
       <Dialog open={isTranslationModalOpen} onOpenChange={setIsTranslationModalOpen}>
-        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto">
           <DialogHeader className="border-b pb-6">
             <DialogTitle className="flex items-center justify-between text-2xl">
               <span className="flex items-center gap-3">
