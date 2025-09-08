@@ -505,42 +505,88 @@ const EnhancedAccess = () => {
                                 {shifts.length === 0 ? (
                                   <p className="text-xs text-muted-foreground text-center sm:text-left">No shifts</p>
                                 ) : (
-                                  shifts.map((shift) => {
-                                    const shiftAssignments = weeklyAssignments.filter(a => 
-                                      a.shift_template_id === shift.id && 
-                                      a.assignment_date === format(day, 'yyyy-MM-dd')
-                                    );
-                                    
-                                    return (
-                                      <div key={shift.id} className="text-xs space-y-1">
-                                        <div className="font-medium text-center sm:text-left">{shift.start_time}-{shift.end_time}</div>
-                                        <div className="text-muted-foreground text-center sm:text-left truncate" title={getLocationDisplay(shift.location)}>
-                                          {getLocationDisplay(shift.location)}
-                                        </div>
-                                        {shiftAssignments.length > 0 ? (
-                                          <div className="space-y-1 mt-1">
-                                             {shiftAssignments.map((assignment, idx) => (
+                                 (() => {
+                                   // Group shifts by role to handle multiple shifts of same role intelligently
+                                   const roleGroups = shifts.reduce((groups, shift) => {
+                                     const role = shift.required_role;
+                                     if (!groups[role]) groups[role] = [];
+                                     groups[role].push(shift);
+                                     return groups;
+                                   }, {} as Record<string, any[]>);
+
+                                    return Object.entries(roleGroups).map(([role, roleShifts]: [string, any[]]) => {
+                                     // Get all assignments for this role across all its shifts on this day
+                                     const allRoleAssignments = roleShifts.flatMap(shift => 
+                                       weeklyAssignments.filter(a => 
+                                         a.shift_template_id === shift.id && 
+                                         a.assignment_date === format(day, 'yyyy-MM-dd')
+                                       )
+                                     );
+
+                                     const hasAnyAssignments = allRoleAssignments.length > 0;
+                                     
+                                     if (hasAnyAssignments) {
+                                       // Show consolidated view of all assignments for this role
+                                       const timeRanges = roleShifts.map(shift => `${shift.start_time}-${shift.end_time}`);
+                                       const uniqueLocations = [...new Set(roleShifts.map(shift => getLocationDisplay(shift.location)))];
+                                       
+                                       return (
+                                         <div key={role} className="text-xs space-y-1">
+                                           <div className="font-medium text-center sm:text-left">
+                                             {timeRanges.length > 1 ? 
+                                               `${Math.min(...roleShifts.map(s => parseInt(s.start_time.split(':')[0])))}:00-${Math.max(...roleShifts.map(s => parseInt(s.end_time.split(':')[0])))}:00` 
+                                               : timeRanges[0]
+                                             }
+                                           </div>
+                                           <div className="text-muted-foreground text-center sm:text-left truncate" title={uniqueLocations.join(', ')}>
+                                             {uniqueLocations.join(', ')}
+                                           </div>
+                                           <div className="space-y-1 mt-1">
+                                             {allRoleAssignments.map((assignment, idx) => (
                                                <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
-                                                 {getRoleIcon(assignment.staff_member?.role || shift.required_role)}
+                                                 {getRoleIcon(assignment.staff_member?.role || role)}
                                                  <span className="truncate max-w-[100px] sm:max-w-none">
                                                    {assignment.staff_member?.name ? formatStaffName(assignment.staff_member.name, assignment.staff_member.role) : 'Staff Assigned'}
                                                  </span>
                                                </Badge>
                                              ))}
-                                            {shiftAssignments.length > 1 && (
-                                              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
-                                                ({shiftAssignments.length} staff)
-                                              </div>
-                                            )}
-                                          </div>
-                                        ) : (
-                                          <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
-                                            No {shift.required_role}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    );
-                                  })
+                                             {allRoleAssignments.length > 1 && (
+                                               <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
+                                                 ({allRoleAssignments.length} {role} staff)
+                                               </div>
+                                             )}
+                                             {roleShifts.length > allRoleAssignments.length && (
+                                               <div className="text-[10px] sm:text-xs text-yellow-600 text-center sm:text-left">
+                                                 Partial {role} coverage
+                                               </div>
+                                             )}
+                                           </div>
+                                         </div>
+                                       );
+                                     } else {
+                                       // Only show "No [role]" if NO shifts of this role have assignments
+                                       const timeRanges = roleShifts.map(shift => `${shift.start_time}-${shift.end_time}`);
+                                       const uniqueLocations = [...new Set(roleShifts.map(shift => getLocationDisplay(shift.location)))];
+                                       
+                                       return (
+                                         <div key={role} className="text-xs space-y-1">
+                                           <div className="font-medium text-center sm:text-left">
+                                             {timeRanges.length > 1 ? 
+                                               `${Math.min(...roleShifts.map(s => parseInt(s.start_time.split(':')[0])))}:00-${Math.max(...roleShifts.map(s => parseInt(s.end_time.split(':')[0])))}:00` 
+                                               : timeRanges[0]
+                                             }
+                                           </div>
+                                           <div className="text-muted-foreground text-center sm:text-left truncate" title={uniqueLocations.join(', ')}>
+                                             {uniqueLocations.join(', ')}
+                                           </div>
+                                           <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
+                                             No {role}
+                                           </Badge>
+                                         </div>
+                                       );
+                                     }
+                                   });
+                                 })()
                                 )}
                               </div>
                               
@@ -700,42 +746,88 @@ const EnhancedAccess = () => {
                             {shifts.length === 0 ? (
                               <p className="text-xs text-muted-foreground text-center sm:text-left">No shifts</p>
                             ) : (
-                              shifts.map((shift) => {
-                                const shiftAssignments = weeklyAssignments.filter(a => 
-                                  a.shift_template_id === shift.id && 
-                                  a.assignment_date === format(day, 'yyyy-MM-dd')
-                                );
-                                
-                                return (
-                                  <div key={shift.id} className="text-xs space-y-1">
-                                    <div className="font-medium text-center sm:text-left">{shift.start_time}-{shift.end_time}</div>
-                                    <div className="text-muted-foreground text-center sm:text-left truncate" title={getLocationDisplay(shift.location)}>
-                                      {getLocationDisplay(shift.location)}
-                                    </div>
-                                    {shiftAssignments.length > 0 ? (
-                                      <div className="space-y-1 mt-1">
-                                             {shiftAssignments.map((assignment, idx) => (
-                                               <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
-                                                 {getRoleIcon(assignment.staff_member?.role || shift.required_role)}
-                                                 <span className="truncate max-w-[100px] sm:max-w-none">
-                                                   {assignment.staff_member?.name ? formatStaffName(assignment.staff_member.name, assignment.staff_member.role) : 'Staff Assigned'}
-                                                 </span>
-                                               </Badge>
-                                             ))}
-                                        {shiftAssignments.length > 1 && (
-                                          <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
-                                            ({shiftAssignments.length} staff)
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
-                                        No {shift.required_role}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                );
-                              })
+                             (() => {
+                               // Group shifts by role to handle multiple shifts of same role intelligently
+                               const roleGroups = shifts.reduce((groups, shift) => {
+                                 const role = shift.required_role;
+                                 if (!groups[role]) groups[role] = [];
+                                 groups[role].push(shift);
+                                 return groups;
+                               }, {} as Record<string, any[]>);
+
+                               return Object.entries(roleGroups).map(([role, roleShifts]: [string, any[]]) => {
+                                 // Get all assignments for this role across all its shifts on this day
+                                 const allRoleAssignments = roleShifts.flatMap(shift => 
+                                   weeklyAssignments.filter(a => 
+                                     a.shift_template_id === shift.id && 
+                                     a.assignment_date === format(day, 'yyyy-MM-dd')
+                                   )
+                                 );
+
+                                 const hasAnyAssignments = allRoleAssignments.length > 0;
+                                 
+                                 if (hasAnyAssignments) {
+                                   // Show consolidated view of all assignments for this role
+                                   const timeRanges = roleShifts.map(shift => `${shift.start_time}-${shift.end_time}`);
+                                   const uniqueLocations = [...new Set(roleShifts.map(shift => getLocationDisplay(shift.location)))];
+                                   
+                                   return (
+                                     <div key={role} className="text-xs space-y-1">
+                                       <div className="font-medium text-center sm:text-left">
+                                         {timeRanges.length > 1 ? 
+                                           `${Math.min(...roleShifts.map(s => parseInt(s.start_time.split(':')[0])))}:00-${Math.max(...roleShifts.map(s => parseInt(s.end_time.split(':')[0])))}:00` 
+                                           : timeRanges[0]
+                                         }
+                                       </div>
+                                       <div className="text-muted-foreground text-center sm:text-left truncate" title={uniqueLocations.join(', ')}>
+                                         {uniqueLocations.join(', ')}
+                                       </div>
+                                       <div className="space-y-1 mt-1">
+                                         {allRoleAssignments.map((assignment, idx) => (
+                                           <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
+                                             {getRoleIcon(assignment.staff_member?.role || role)}
+                                             <span className="truncate max-w-[100px] sm:max-w-none">
+                                               {assignment.staff_member?.name ? formatStaffName(assignment.staff_member.name, assignment.staff_member.role) : 'Staff Assigned'}
+                                             </span>
+                                           </Badge>
+                                         ))}
+                                         {allRoleAssignments.length > 1 && (
+                                           <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
+                                             ({allRoleAssignments.length} {role} staff)
+                                           </div>
+                                         )}
+                                         {roleShifts.length > allRoleAssignments.length && (
+                                           <div className="text-[10px] sm:text-xs text-yellow-600 text-center sm:text-left">
+                                             Partial {role} coverage
+                                           </div>
+                                         )}
+                                       </div>
+                                     </div>
+                                   );
+                                 } else {
+                                   // Only show "No [role]" if NO shifts of this role have assignments
+                                   const timeRanges = roleShifts.map(shift => `${shift.start_time}-${shift.end_time}`);
+                                   const uniqueLocations = [...new Set(roleShifts.map(shift => getLocationDisplay(shift.location)))];
+                                   
+                                   return (
+                                     <div key={role} className="text-xs space-y-1">
+                                       <div className="font-medium text-center sm:text-left">
+                                         {timeRanges.length > 1 ? 
+                                           `${Math.min(...roleShifts.map(s => parseInt(s.start_time.split(':')[0])))}:00-${Math.max(...roleShifts.map(s => parseInt(s.end_time.split(':')[0])))}:00` 
+                                           : timeRanges[0]
+                                         }
+                                       </div>
+                                       <div className="text-muted-foreground text-center sm:text-left truncate" title={uniqueLocations.join(', ')}>
+                                         {uniqueLocations.join(', ')}
+                                       </div>
+                                       <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
+                                         No {role}
+                                       </Badge>
+                                     </div>
+                                   );
+                                 }
+                               });
+                             })()
                             )}
                           </div>
                           
