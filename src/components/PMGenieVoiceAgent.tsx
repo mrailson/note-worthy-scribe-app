@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,30 +15,97 @@ import {
   TrendingUp,
   Calendar,
   Building2,
-  PhoneCall
+  PhoneCall,
+  CircleCheck,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+interface QualityScore {
+  accuracy: number;
+  medicalSafety: number;
+  culturalSensitivity: number;
+  clarity: number;
+  overallSafety: 'OK' | 'REVIEW' | 'NOT_OK';
+  confidence: number;
+  explanation?: string;
+}
 
 const PMGenieVoiceAgent = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
+  const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
+  const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
+  const conversationIdRef = useRef<string | null>(null);
+
+  const verifyConversationQuality = async (userInput: string, agentResponse: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-verification', {
+        body: {
+          userInput,
+          agentResponse,
+          sourceLanguage: 'English',
+          targetLanguage: 'Multi-language',
+          conversationId: conversationIdRef.current
+        }
+      });
+
+      if (error) {
+        console.error('Verification error:', error);
+        return;
+      }
+
+      setQualityScore(data);
+      console.log('Quality verification result:', data);
+    } catch (err) {
+      console.error('Failed to verify conversation quality:', err);
+    }
+  };
 
   const conversation = useConversation({
     onConnect: () => {
       console.log('Connected to PM Genie');
       toast.success('Connected to PM Genie');
       setError(null);
+      conversationIdRef.current = `conv_${Date.now()}`;
+      setQualityScore(null);
+      setConversationBuffer([]);
     },
     onDisconnect: () => {
       console.log('Disconnected from PM Genie');
       toast.info('Disconnected from PM Genie');
+      conversationIdRef.current = null;
     },
     onMessage: (message) => {
       console.log('PM Genie message:', message);
+      
+      // Capture conversation for verification
+      if (message.message && message.source) {
+        const newEntry = {
+          user: message.source === 'user' ? message.message : '',
+          agent: message.source === 'ai' ? message.message : ''
+        };
+        
+        setConversationBuffer(prev => {
+          const updated = [...prev];
+          if (message.source === 'user') {
+            updated.push(newEntry);
+          } else if (message.source === 'ai' && updated.length > 0) {
+            updated[updated.length - 1].agent = message.message;
+            // Trigger verification for the complete exchange
+            const lastExchange = updated[updated.length - 1];
+            if (lastExchange.user && lastExchange.agent) {
+              verifyConversationQuality(lastExchange.user, lastExchange.agent);
+            }
+          }
+          return updated;
+        });
+      }
     },
     onError: (error) => {
       console.error('PM Genie conversation error:', error);
@@ -155,6 +222,22 @@ const PMGenieVoiceAgent = () => {
               <Badge variant="default" className="text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Connected
+              </Badge>
+            )}
+            {qualityScore && (
+              <Badge 
+                variant={qualityScore.overallSafety === 'OK' ? 'default' : 
+                        qualityScore.overallSafety === 'REVIEW' ? 'secondary' : 'destructive'} 
+                className="text-xs"
+              >
+                {qualityScore.overallSafety === 'OK' ? (
+                  <CircleCheck className="h-3 w-3 mr-1" />
+                ) : qualityScore.overallSafety === 'REVIEW' ? (
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                ) : (
+                  <XCircle className="h-3 w-3 mr-1" />
+                )}
+                Quality: {qualityScore.overallSafety}
               </Badge>
             )}
           </div>
