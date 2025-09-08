@@ -465,6 +465,69 @@ export const NHSTranslationInterface = () => {
             </CardContent>
           </Card>
 
+          {/* Voice Recording Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-8 text-center">
+                <Button
+                  size="lg"
+                  className="w-full h-32 text-lg font-semibold bg-primary hover:bg-primary/90"
+                  onMouseDown={() => startRecording('gp')}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={() => startRecording('gp')}
+                  onTouchEnd={stopRecording}
+                  disabled={isRecording && currentSpeaker !== 'gp' || isProcessing}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    {isRecording && currentSpeaker === 'gp' ? (
+                      <Mic className="w-8 h-8 animate-pulse" />
+                    ) : (
+                      <MicOff className="w-8 h-8" />
+                    )}
+                    <span>🩺 GP/STAFF</span>
+                    <span className="text-sm opacity-90">
+                      {isRecording && currentSpeaker === 'gp' 
+                        ? 'Recording English...' 
+                        : 'English → Patient Language'
+                      }
+                    </span>
+                  </div>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-8 text-center">
+                <Button
+                  size="lg"
+                  className="w-full h-32 text-lg font-semibold bg-secondary hover:bg-secondary/90"
+                  onMouseDown={() => startRecording('patient')}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={() => startRecording('patient')}
+                  onTouchEnd={stopRecording}
+                  disabled={isRecording && currentSpeaker !== 'patient' || isProcessing}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    {isRecording && currentSpeaker === 'patient' ? (
+                      <Mic className="w-8 h-8 animate-pulse" />
+                    ) : (
+                      <MicOff className="w-8 h-8" />
+                    )}
+                    <span>👤 PATIENT</span>
+                    <span className="text-sm opacity-90">
+                      {isRecording && currentSpeaker === 'patient' 
+                        ? `Recording ${getLanguageName(patientLanguage)}...` 
+                        : 'Patient Language → English'
+                      }
+                    </span>
+                  </div>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Processing Status */}
           {isProcessing && (
             <Card className="border-yellow-200 bg-yellow-50">
@@ -476,6 +539,131 @@ export const NHSTranslationInterface = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Recent Quick View */}
+          {translations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  💬 Recent Translations
+                  <Badge variant="secondary">{translations.length}</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearHistory}
+                    className="ml-auto"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    Clear History
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-64" ref={scrollAreaRef}>
+                  <div className="space-y-3">
+                    {translations.slice(-3).map((translation, index) => (
+                      <div key={translation.id} className={`p-3 rounded-lg border ${
+                        translation.speaker === 'gp' 
+                          ? 'bg-blue-50 border-blue-200' 
+                          : 'bg-green-50 border-green-200'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs">
+                            {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {translation.timestamp.toLocaleTimeString()}
+                          </span>
+                          {translation.accuracy && (
+                            <Badge className={`text-xs ${
+                              translation.accuracy >= 90 ? 'bg-green-100 text-green-700' :
+                              translation.accuracy >= 75 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {translation.accuracy}%
+                            </Badge>
+                          )}
+                          {translation.safetyFlag && (
+                            <Badge className={`text-xs ${
+                              translation.safetyFlag === 'safe' ? 'bg-green-100 text-green-700' :
+                              translation.safetyFlag === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {translation.safetyFlag}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm"><strong>Original:</strong> {translation.originalText}</p>
+                          <p className="text-sm"><strong>Translation:</strong> {translation.translatedText}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {translations.length > 3 && (
+                    <div className="text-center mt-3">
+                      <p className="text-xs text-muted-foreground">
+                        Showing last 3 translations. View all in History tab.
+                      </p>
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Emergency Quick Phrases */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🚨 Emergency Quick Phrases
+                <Badge variant="destructive" className="ml-2">GP → Patient Language</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {EMERGENCY_PHRASES.map((phrase, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className={`p-3 h-auto text-left justify-start text-wrap ${
+                      phrase.category === 'emergency' ? 'border-red-200 hover:bg-red-50' :
+                      phrase.category === 'allergy' ? 'border-orange-200 hover:bg-orange-50' :
+                      phrase.category === 'pain' ? 'border-yellow-200 hover:bg-yellow-50' :
+                      phrase.category === 'timing' ? 'border-blue-200 hover:bg-blue-50' :
+                      'border-purple-200 hover:bg-purple-50'
+                    }`}
+                    onClick={() => handleEmergencyPhrase(phrase.en)}
+                    disabled={isProcessing}
+                  >
+                    <div className="flex items-center gap-2">
+                      {phrase.category === 'emergency' && <Heart className="w-4 h-4 text-red-500" />}
+                      {phrase.category === 'allergy' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                      {phrase.category === 'pain' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                      {phrase.category === 'timing' && <Pill className="w-4 h-4 text-blue-500" />}
+                      {phrase.category === 'medication' && <Pill className="w-4 h-4 text-purple-500" />}
+                      <span className="text-sm">{phrase.en}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="p-4">
+              <div className="text-center text-yellow-800">
+                <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
+                <p className="text-sm font-medium">⚠️ ENHANCED AI SAFETY DISCLAIMER</p>
+                <p className="text-xs mt-1">
+                  This tool now includes AI-powered accuracy scoring and safety assessment. However, it remains a 
+                  proof-of-concept for demonstration only. Critical medical information should always be verified 
+                  through qualified medical interpreters, especially for translations flagged as "warning" or "unsafe".
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
@@ -487,255 +675,6 @@ export const NHSTranslationInterface = () => {
           />
         </TabsContent>
       </Tabs>
-    </div>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">GP/Staff Language (Fixed)</label>
-              <div className="flex items-center p-3 border rounded-md bg-muted">
-                <span className="text-lg">🇬🇧 English (UK)</span>
-                <Badge variant="secondary" className="ml-2">GP Default</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                GP always speaks English - automatically translates to patient language
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Patient Language</label>
-              <Select value={patientLanguage} onValueChange={setPatientLanguage}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">🔄 Auto Detect</SelectItem>
-                  {LANGUAGES.filter(lang => lang.code !== 'en-GB').map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Patient speech automatically translates to English
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Voice Recording Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-8 text-center">
-            <Button
-              size="lg"
-              className="w-full h-32 text-lg font-semibold bg-primary hover:bg-primary/90"
-              onMouseDown={() => startRecording('gp')}
-              onMouseUp={stopRecording}
-              onMouseLeave={stopRecording}
-              onTouchStart={() => startRecording('gp')}
-              onTouchEnd={stopRecording}
-              disabled={isRecording && currentSpeaker !== 'gp' || isProcessing}
-            >
-              <div className="flex flex-col items-center gap-2">
-                {isRecording && currentSpeaker === 'gp' ? (
-                  <Mic className="w-8 h-8 animate-pulse" />
-                ) : (
-                  <MicOff className="w-8 h-8" />
-                )}
-                <span>🩺 GP/STAFF</span>
-                <span className="text-sm opacity-90">
-                  {isRecording && currentSpeaker === 'gp' 
-                    ? 'Recording English...' 
-                    : 'English → Patient Language'
-                  }
-                </span>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-8 text-center">
-            <Button
-              size="lg"
-              className="w-full h-32 text-lg font-semibold bg-secondary hover:bg-secondary/90"
-              onMouseDown={() => startRecording('patient')}
-              onMouseUp={stopRecording}
-              onMouseLeave={stopRecording}
-              onTouchStart={() => startRecording('patient')}
-              onTouchEnd={stopRecording}
-              disabled={isRecording && currentSpeaker !== 'patient' || isProcessing}
-            >
-              <div className="flex flex-col items-center gap-2">
-                {isRecording && currentSpeaker === 'patient' ? (
-                  <Mic className="w-8 h-8 animate-pulse" />
-                ) : (
-                  <MicOff className="w-8 h-8" />
-                )}
-                <span>👤 PATIENT</span>
-                <span className="text-sm opacity-90">
-                  {isRecording && currentSpeaker === 'patient' 
-                    ? `Recording ${getLanguageName(patientLanguage)}...` 
-                    : 'Patient Language → English'
-                  }
-                </span>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Processing Status */}
-      {isProcessing && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-yellow-700">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700"></div>
-              <span>Processing translation...</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Conversation History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            💬 Recent Translations
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearHistory}
-              className="ml-auto"
-            >
-              <RotateCcw className="w-4 h-4 mr-1" />
-              Clear History
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-96" ref={scrollAreaRef}>
-            {translations.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                <Volume2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No translations yet. Start speaking to begin...</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {translations.map((translation) => (
-                  <div key={translation.id} className="space-y-2">
-                    <div className={`p-4 rounded-lg ${
-                      translation.speaker === 'gp' 
-                        ? 'bg-blue-50 border-l-4 border-blue-400' 
-                        : 'bg-green-50 border-l-4 border-green-400'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">
-                          {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                        </Badge>
-                        <Badge variant="secondary">
-                          {getLanguageFlag(translation.originalLanguage)} {getLanguageName(translation.originalLanguage)}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {translation.timestamp.toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="font-medium">{translation.originalText}</p>
-                      {translation.originalText !== translation.translatedText && (
-                        <div className="mt-2 pt-2 border-t border-gray-200">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline" className="text-xs">
-                              🌍 {getLanguageFlag(translation.targetLanguage)} Translation
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const targetSpeechLang = LANGUAGES.find(lang => 
-                                  lang.code === translation.targetLanguage
-                                )?.speechLang || 'en-GB';
-                                speakText(translation.translatedText, targetSpeechLang);
-                              }}
-                            >
-                              <Volume2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <p className="text-sm italic">{translation.translatedText}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* Emergency Quick Phrases */}
-      <Card className="border-red-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700">
-            <AlertTriangle className="w-5 h-5" />
-            🚨 Emergency Quick Phrases
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {EMERGENCY_PHRASES.map((phrase, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                className="h-auto p-3 text-left justify-start border-red-200 hover:bg-red-50"
-                onClick={() => handleEmergencyPhrase(phrase.en)}
-                disabled={isProcessing}
-              >
-                <div className="flex items-center gap-2">
-                  {phrase.category === 'emergency' && <Heart className="w-4 h-4 text-red-500" />}
-                  {phrase.category === 'allergy' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                  {phrase.category === 'medication' && <Pill className="w-4 h-4 text-blue-500" />}
-                  <span className="text-sm">{phrase.en}</span>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Footer Actions */}
-      <div className="flex justify-center gap-4 pb-8">
-        <Button variant="outline" onClick={clearHistory}>
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Clear History
-        </Button>
-        <Button variant="outline" onClick={() => window.print()}>
-          <FileText className="w-4 h-4 mr-2" />
-          Export
-        </Button>
-        <Button variant="outline" onClick={() => toast.info('Settings panel coming soon...')}>
-          <Settings className="w-4 h-4 mr-2" />
-          Settings
-        </Button>
-      </div>
-
-      {/* Browser Compatibility Notice */}
-      {!recognitionSupported && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-yellow-700">
-              <AlertTriangle className="w-5 h-5" />
-              <div>
-                <p className="font-semibold">Speech Recognition Not Supported</p>
-                <p className="text-sm">
-                  Please use Chrome, Edge, or Safari for full voice functionality. 
-                  Text input/output is still available.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
