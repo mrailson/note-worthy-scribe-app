@@ -301,6 +301,186 @@ export const TranslationToolInterface = () => {
         </CardHeader>
       </Card>
 
+      {/* Translation Service Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5 text-primary" />
+            Translation Service
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-2">
+              {conversation.status === 'connected' ? (
+                <Button
+                  onClick={endTranslationService}
+                  variant="destructive"
+                  className="flex items-center gap-2"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  End Translation Service
+                </Button>
+              ) : (
+                <Button
+                  onClick={startTranslationService}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Phone className="h-4 w-4" />
+                  )}
+                  Start Translation Service
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {conversation.status === 'connected' && (
+                <Badge variant="default" className="text-xs">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Service Active
+                </Badge>
+              )}
+              {conversation.isSpeaking && (
+                <Badge variant="secondary" className="text-xs animate-pulse">
+                  <Languages className="h-3 w-3 mr-1" />
+                  Translating...
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Instructions */}
+          {conversation.status === 'connected' && (
+            <Alert>
+              <Languages className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Service Active:</strong> Speak clearly in English, and the AI will automatically translate to the patient's language. 
+                The patient can respond in their native language, and it will be translated back to English for you.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Microphone Permission Status */}
+          {hasPermission && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              Microphone access granted
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Translation Quality Card */}
+      {qualityScore && (
+        <Card className="border-2 border-dashed">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                Translation Quality - {qualityScore.targetLanguage}
+                <Badge 
+                  variant={getBadgeVariant(qualityScore)} 
+                  className="text-xs flex items-center"
+                >
+                  {getQualityIcon(qualityScore)}
+                  {qualityScore.overallSafety}
+                </Badge>
+              </CardTitle>
+              <Collapsible open={isQualityDetailsOpen} onOpenChange={setIsQualityDetailsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-1 h-6 w-6">
+                    {isQualityDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {/* Quick Quality Indicators */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="text-center p-2 rounded bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Accuracy</div>
+                  <div className="font-bold text-sm">{qualityScore.accuracy}%</div>
+                </div>
+                <div className="text-center p-2 rounded bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Safety</div>
+                  <div className="font-bold text-sm">{qualityScore.medicalSafety}%</div>
+                </div>
+                <div className="text-center p-2 rounded bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Clarity</div>
+                  <div className="font-bold text-sm">{qualityScore.clarity}%</div>
+                </div>
+                <div className="text-center p-2 rounded bg-muted/50">
+                  <div className="text-xs text-muted-foreground">Confidence</div>
+                  <div className="font-bold text-sm">{qualityScore.confidence}%</div>
+                </div>
+              </div>
+
+              <Collapsible open={isQualityDetailsOpen} onOpenChange={setIsQualityDetailsOpen}>
+                <CollapsibleContent className="space-y-3">
+                  {/* Translation Details */}
+                  <div className="space-y-2 p-3 rounded border bg-muted/20">
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Original ({qualityScore.sourceLanguage}):</span>
+                      <div className="text-sm mt-1 p-2 rounded bg-background border">
+                        {qualityScore.originalPhrase}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Translation ({qualityScore.targetLanguage}):</span>
+                      <div className="text-sm mt-1 p-2 rounded bg-background border">
+                        {qualityScore.translatedPhrase}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detailed Scores */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium">Medical Safety:</span>
+                        <span className="text-xs">{qualityScore.medicalSafety}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium">Cultural Sensitivity:</span>
+                        <span className="text-xs">{qualityScore.culturalSensitivity}%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium">Overall Assessment:</span>
+                        <Badge variant={getBadgeVariant(qualityScore)} className="text-xs">
+                          {qualityScore.overallSafety}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Explanation */}
+                  {qualityScore.explanation && (
+                    <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30">
+                      <strong>Analysis:</strong> {qualityScore.explanation}
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* User Guide Card */}
       <Card>
         <CardHeader>
@@ -320,7 +500,7 @@ export const TranslationToolInterface = () => {
               <ul className="text-sm space-y-2 text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">1.</span>
-                  Press "Start Translation Service" button below
+                  Press "Start Translation Service" button above
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">2.</span>
@@ -399,164 +579,6 @@ export const TranslationToolInterface = () => {
         </Card>
       </div>
 
-      {/* Translation Service Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
-            Translation Service
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-2">
-              {conversation.status === 'connected' ? (
-                <Button
-                  onClick={endTranslationService}
-                  variant="destructive"
-                  className="flex items-center gap-2"
-                >
-                  <PhoneOff className="h-4 w-4" />
-                  End Translation Service
-                </Button>
-              ) : (
-                <Button
-                  onClick={startTranslationService}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Phone className="h-4 w-4" />
-                  )}
-                  Start Translation Service
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {conversation.status === 'connected' && (
-                <Badge variant="default" className="text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Service Active
-                </Badge>
-              )}
-              {conversation.isSpeaking && (
-                <Badge variant="secondary" className="text-xs animate-pulse">
-                  <Languages className="h-3 w-3 mr-1" />
-                  Translating...
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Instructions */}
-          {conversation.status === 'connected' && (
-            <Alert>
-              <Languages className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Service Active:</strong> Speak clearly in English, and the AI will automatically translate to the patient's language. 
-                Patient responses will be translated back to English. All conversations are quality-verified for medical accuracy.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Translation Quality Status */}
-      {qualityScore && (
-        <Card className="border-2" style={{
-          borderColor: qualityScore.overallSafety === 'OK' ? 'rgb(34 197 94)' : 
-                     qualityScore.overallSafety === 'REVIEW' ? 'rgb(234 179 8)' : 'rgb(239 68 68)'
-        }}>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="font-medium mb-2">
-                  Translation Quality: {qualityScore.overallSafety === 'OK' ? 'Verified Safe' : 
-                                      qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
-                  {qualityScore.targetLanguage && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (Translated to {qualityScore.targetLanguage})
-                    </span>
-                  )}
-                </div>
-                
-                <Badge 
-                  variant={getBadgeVariant(qualityScore)}
-                  className="text-xs"
-                >
-                  {getQualityIcon(qualityScore)}
-                  {qualityScore.confidence}% Confidence
-                </Badge>
-              </div>
-              
-              {/* Original and Translated Phrases */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Original Phrase:</p>
-                  <p className="text-sm">{qualityScore.originalPhrase}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">AI Response:</p>
-                  <p className="text-sm">{qualityScore.translatedPhrase}</p>
-                </div>
-              </div>
-
-              {/* Quality Details - Collapsible */}
-              <Collapsible 
-                open={isQualityDetailsOpen} 
-                onOpenChange={setIsQualityDetailsOpen}
-              >
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                    <span className="text-sm font-medium">View Quality Details</span>
-                    {isQualityDetailsOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-2 mt-2">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Accuracy:</span>
-                      <span className="font-medium">{qualityScore.accuracy}%</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Medical Safety:</span>
-                      <span className="font-medium">{qualityScore.medicalSafety}%</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Cultural Sensitivity:</span>
-                      <span className="font-medium">{qualityScore.culturalSensitivity}%</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Clarity:</span>
-                      <span className="font-medium">{qualityScore.clarity}%</span>
-                    </div>
-                  </div>
-                  {qualityScore.explanation && (
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="text-xs font-medium mb-1">Quality Assessment:</p>
-                      <p className="text-xs text-muted-foreground">{qualityScore.explanation}</p>
-                    </div>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
