@@ -464,47 +464,49 @@ export const TranslationToolInterface = () => {
                 </Alert>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {conversation.status === 'connected' ? (
-                    <Button
-                      onClick={endTranslationService}
-                      variant="destructive"
-                      className="flex items-center gap-2"
-                    >
-                      <PhoneOff className="h-4 w-4" />
-                      End Translation Service
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={startTranslationService}
-                      disabled={isLoading}
-                      className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Phone className="h-4 w-4" />
-                      )}
-                      Start Translation Service
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {conversation.status === 'connected' && (
-                    <Badge variant="default" className="text-xs">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Service Active
-                    </Badge>
-                  )}
+              {/* Service Status Badges - shown at top if connected */}
+              {conversation.status === 'connected' && (
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  <Badge variant="default" className="text-sm px-3 py-1">
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Service Active
+                  </Badge>
                   {conversation.isSpeaking && (
-                    <Badge variant="secondary" className="text-xs animate-pulse">
-                      <Languages className="h-3 w-3 mr-1" />
+                    <Badge variant="secondary" className="text-sm px-3 py-1 animate-pulse">
+                      <Languages className="h-4 w-4 mr-2" />
                       Translating...
                     </Badge>
                   )}
                 </div>
+              )}
+
+              {/* Central Service Control Button */}
+              <div className="flex flex-col items-center space-y-4">
+                {conversation.status === 'connected' ? (
+                  <Button
+                    onClick={endTranslationService}
+                    variant="destructive"
+                    size="lg"
+                    className="flex items-center gap-3 px-8 py-4 text-lg font-semibold"
+                  >
+                    <PhoneOff className="h-6 w-6" />
+                    End Translation Service
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={startTranslationService}
+                    disabled={isLoading}
+                    size="lg"
+                    className="flex items-center gap-3 px-12 py-6 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-7 w-7 animate-spin" />
+                    ) : (
+                      <Phone className="h-7 w-7" />
+                    )}
+                    Start Translation Service
+                  </Button>
+                )}
               </div>
 
               {/* Languages Available */}
