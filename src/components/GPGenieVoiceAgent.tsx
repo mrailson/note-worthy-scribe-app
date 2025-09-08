@@ -24,10 +24,23 @@ import {
   Building2,
   Users,
   FileText,
-  PhoneCall
+  PhoneCall,
+  CircleCheck,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface QualityScore {
+  accuracy: number;
+  medicalSafety: number;
+  culturalSensitivity: number;
+  clarity: number;
+  overallSafety: 'OK' | 'REVIEW' | 'NOT_OK';
+  confidence: number;
+  explanation?: string;
+}
 
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -40,6 +53,9 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
+  const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
+  const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
+  const conversationIdRef = useRef<string | null>(null);
 
   const languageRotation = [
     { code: 'en', text: 'Test Language Support Service' },
@@ -48,21 +64,80 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     { code: 'ar', text: 'اختبار خدمة الدعم اللغوي' }
   ];
 
+  const verifyConversationQuality = async (userInput: string, agentResponse: string) => {
+    // Only verify for Oak Lane Patient Line (patient-line tab)
+    if (activeTab !== 'patient-line') return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-verification', {
+        body: {
+          userInput,
+          agentResponse,
+          sourceLanguage: 'Multi-language',
+          targetLanguage: 'English',
+          conversationId: conversationIdRef.current
+        }
+      });
+
+      if (error) {
+        console.error('Oak Lane verification error:', error);
+        return;
+      }
+
+      setQualityScore(data);
+      console.log('Oak Lane translation quality:', data);
+    } catch (err) {
+      console.error('Failed to verify Oak Lane conversation quality:', err);
+    }
+  };
+
   const conversation = useConversation({
     onConnect: () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Connected to ${serviceName}`);
       toast.success(`Connected to ${serviceName}`);
       setError(null);
+      
+      if (activeTab === 'patient-line') {
+        conversationIdRef.current = `oaklane_${Date.now()}`;
+        setQualityScore(null);
+        setConversationBuffer([]);
+      }
     },
     onDisconnect: () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Disconnected from ${serviceName}`);
       toast.info(`Disconnected from ${serviceName}`);
+      
+      if (activeTab === 'patient-line') {
+        conversationIdRef.current = null;
+      }
     },
     onMessage: (message) => {
       console.log('Message:', message);
-      // Explicitly suppress transcript display
+      
+      // Only capture and verify for Oak Lane Patient Line
+      if (activeTab === 'patient-line' && message.message && message.source) {
+        const newEntry = {
+          user: message.source === 'user' ? message.message : '',
+          agent: message.source === 'ai' ? message.message : ''
+        };
+        
+        setConversationBuffer(prev => {
+          const updated = [...prev];
+          if (message.source === 'user') {
+            updated.push(newEntry);
+          } else if (message.source === 'ai' && updated.length > 0) {
+            updated[updated.length - 1].agent = message.message;
+            // Trigger verification for the complete exchange
+            const lastExchange = updated[updated.length - 1];
+            if (lastExchange.user && lastExchange.agent) {
+              verifyConversationQuality(lastExchange.user, lastExchange.agent);
+            }
+          }
+          return updated;
+        });
+      }
     },
     onError: (error) => {
       console.error('Conversation error:', error);
@@ -315,6 +390,22 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               <Badge variant="default" className="text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Connected
+              </Badge>
+            )}
+            {activeTab === 'patient-line' && qualityScore && (
+              <Badge 
+                variant={qualityScore.overallSafety === 'OK' ? 'default' : 
+                        qualityScore.overallSafety === 'REVIEW' ? 'secondary' : 'destructive'} 
+                className="text-xs"
+              >
+                {qualityScore.overallSafety === 'OK' ? (
+                  <CircleCheck className="h-3 w-3 mr-1" />
+                ) : qualityScore.overallSafety === 'REVIEW' ? (
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                ) : (
+                  <XCircle className="h-3 w-3 mr-1" />
+                )}
+                Translation Quality: {qualityScore.overallSafety}
               </Badge>
             )}
           </div>
