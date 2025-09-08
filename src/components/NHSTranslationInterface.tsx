@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Mic, 
   MicOff, 
@@ -14,10 +15,15 @@ import {
   Settings,
   Heart,
   AlertTriangle,
-  Pill
+  Pill,
+  History,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import TranslationHistory from './TranslationHistory';
+import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
+import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 
 interface TranslationEntry {
   id: string;
@@ -27,6 +33,11 @@ interface TranslationEntry {
   originalLanguage: string;
   targetLanguage: string;
   timestamp: Date;
+  accuracy?: number; // 0-100
+  confidence?: number; // 0-100  
+  safetyFlag?: 'safe' | 'warning' | 'unsafe';
+  medicalTermsDetected?: string[];
+  translationLatency?: number; // milliseconds
 }
 
 interface Language {
@@ -59,10 +70,12 @@ export const NHSTranslationInterface = () => {
   const [staffLanguage, setStaffLanguage] = useState('en-GB');
   const [patientLanguage, setPatientLanguage] = useState('auto');
   const [translations, setTranslations] = useState<TranslationEntry[]>([]);
+  const [translationScores, setTranslationScores] = useState<TranslationScore[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [currentSpeaker, setCurrentSpeaker] = useState<'gp' | 'patient' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognitionSupported, setRecognitionSupported] = useState(false);
+  const [sessionStart, setSessionStart] = useState<Date>(new Date());
   
   const recognitionRef = useRef<any | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -151,6 +164,8 @@ export const NHSTranslationInterface = () => {
       console.log(`🎤 Received transcript from ${speaker}: "${transcript}"`);
       setIsProcessing(true);
       
+      const translationStartTime = Date.now();
+      
       try {
         // Automatic translation logic:
         // GP always speaks English, translates to patient language  
@@ -173,6 +188,17 @@ export const NHSTranslationInterface = () => {
           console.log('📝 No translation needed - same language or auto-detect');
         }
         
+        const translationLatency = Date.now() - translationStartTime;
+        
+        // Score the translation
+        const translationScore = scoreTranslation(
+          transcript,
+          translatedText,
+          sourceLang,
+          targetLang,
+          translationLatency
+        );
+        
         const newTranslation: TranslationEntry = {
           id: Date.now().toString(),
           speaker,
@@ -180,10 +206,16 @@ export const NHSTranslationInterface = () => {
           translatedText,
           originalLanguage: sourceLang,
           targetLanguage: targetLang,
-          timestamp: new Date()
+          timestamp: new Date(),
+          accuracy: translationScore.accuracy,
+          confidence: translationScore.confidence,
+          safetyFlag: translationScore.safetyFlag,
+          medicalTermsDetected: translationScore.medicalTermsDetected,
+          translationLatency
         };
         
         setTranslations(prev => [...prev, newTranslation]);
+        setTranslationScores(prev => [...prev, translationScore]);
         
         // Automatically speak the translation (not the original)
         if (sourceLang !== targetLang && patientLanguage !== 'auto') {
@@ -192,7 +224,18 @@ export const NHSTranslationInterface = () => {
           setTimeout(() => speakText(translatedText, targetSpeechLang), 500);
         }
         
-        toast.success(`${speaker === 'gp' ? 'GP' : 'Patient'} speech translated`);
+        // Show safety warning if needed
+        if (translationScore.safetyFlag === 'unsafe') {
+          toast.error('Translation safety warning - please verify with qualified interpreter', {
+            duration: 6000
+          });
+        } else if (translationScore.safetyFlag === 'warning') {
+          toast.warning('Translation needs verification - medical terms detected', {
+            duration: 4000
+          });
+        } else {
+          toast.success(`${speaker === 'gp' ? 'GP' : 'Patient'} speech translated`);
+        }
       } catch (error) {
         console.error('Processing error:', error);
         toast.error('Failed to process speech');
@@ -232,6 +275,8 @@ export const NHSTranslationInterface = () => {
 
   const handleEmergencyPhrase = async (phrase: string) => {
     setIsProcessing(true);
+    const translationStartTime = Date.now();
+    
     try {
       // Emergency phrases are always from GP (English) to patient language
       const sourceLang = 'en-GB';
@@ -242,6 +287,17 @@ export const NHSTranslationInterface = () => {
         translatedText = await translateText(phrase, sourceLang.split('-')[0], targetLang.split('-')[0]);
       }
       
+      const translationLatency = Date.now() - translationStartTime;
+      
+      // Score the emergency phrase translation
+      const translationScore = scoreTranslation(
+        phrase,
+        translatedText,
+        sourceLang,
+        targetLang,
+        translationLatency
+      );
+      
       const newTranslation: TranslationEntry = {
         id: Date.now().toString(),
         speaker: 'gp',
@@ -249,10 +305,16 @@ export const NHSTranslationInterface = () => {
         translatedText,
         originalLanguage: sourceLang,
         targetLanguage: targetLang,
-        timestamp: new Date()
+        timestamp: new Date(),
+        accuracy: translationScore.accuracy,
+        confidence: translationScore.confidence,
+        safetyFlag: translationScore.safetyFlag,
+        medicalTermsDetected: translationScore.medicalTermsDetected,
+        translationLatency
       };
       
       setTranslations(prev => [...prev, newTranslation]);
+      setTranslationScores(prev => [...prev, translationScore]);
       
       // Speak the translation automatically
       if (sourceLang !== targetLang && patientLanguage !== 'auto') {
@@ -260,7 +322,11 @@ export const NHSTranslationInterface = () => {
         setTimeout(() => speakText(translatedText, targetSpeechLang), 500);
       }
       
-      toast.success('Emergency phrase translated to patient language');
+      if (translationScore.safetyFlag === 'unsafe') {
+        toast.error('Emergency phrase safety warning - verify immediately');
+      } else {
+        toast.success('Emergency phrase translated to patient language');
+      }
     } catch (error) {
       console.error('Emergency phrase error:', error);
       toast.error('Failed to translate emergency phrase');
@@ -271,7 +337,53 @@ export const NHSTranslationInterface = () => {
 
   const clearHistory = () => {
     setTranslations([]);
+    setTranslationScores([]);
+    setSessionStart(new Date());
     toast.success('Conversation history cleared');
+  };
+
+  const handleExportDOCX = async () => {
+    try {
+      const sessionEnd = new Date();
+      const sessionDuration = Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000);
+      
+      const averageAccuracy = translationScores.length > 0 
+        ? Math.round(translationScores.reduce((sum, s) => sum + s.accuracy, 0) / translationScores.length)
+        : 0;
+      
+      const averageConfidence = translationScores.length > 0
+        ? Math.round(translationScores.reduce((sum, s) => sum + s.confidence, 0) / translationScores.length)
+        : 0;
+
+      const safeCount = translationScores.filter(s => s.safetyFlag === 'safe').length;
+      const warningCount = translationScores.filter(s => s.safetyFlag === 'warning').length;
+      const unsafeCount = translationScores.filter(s => s.safetyFlag === 'unsafe').length;
+      
+      let overallSafetyRating: 'safe' | 'warning' | 'unsafe' = 'safe';
+      if (unsafeCount > 0) {
+        overallSafetyRating = 'unsafe';
+      } else if (warningCount > translationScores.length * 0.3) {
+        overallSafetyRating = 'warning';
+      }
+
+      const metadata: SessionMetadata = {
+        sessionDate: sessionStart,
+        sessionStart,
+        sessionEnd,
+        patientLanguage: getLanguageName(patientLanguage),
+        totalTranslations: translations.length,
+        sessionDuration,
+        overallSafetyRating,
+        averageAccuracy,
+        averageConfidence
+      };
+
+      await downloadDOCX(translations, metadata, translationScores);
+      toast.success('Translation history exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export translation history');
+    }
   };
 
   const getLanguageFlag = (langCode: string) => {
@@ -283,22 +395,99 @@ export const NHSTranslationInterface = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <Card className="bg-primary text-primary-foreground">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
             <Heart className="w-8 h-8" />
-            NHS Translation Tool - Proof of Concept
+            NHS Translation Tool - Enhanced with AI Safety Assessment
           </CardTitle>
           <p className="text-primary-foreground/80">
-            Real-time translation tool for UK NHS GP practices
+            Real-time translation tool with accuracy tracking and safety assessment for UK NHS GP practices
           </p>
         </CardHeader>
       </Card>
 
-      {/* Language Selection */}
-      <Card>
+      {/* Main Interface Tabs */}
+      <Tabs defaultValue="translate" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="translate" className="flex items-center gap-2">
+            <Mic className="w-4 h-4" />
+            Live Translation
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Translation History
+            {translations.length > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {translations.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="translate" className="space-y-6 mt-6">
+          {/* Language Selection */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">GP/Staff Language (Fixed)</label>
+                  <div className="flex items-center p-3 border rounded-md bg-muted">
+                    <span className="text-lg">🇬🇧 English (UK)</span>
+                    <Badge variant="secondary" className="ml-2">GP Default</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    GP always speaks English - automatically translates to patient language
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Patient Language</label>
+                  <Select value={patientLanguage} onValueChange={setPatientLanguage}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">🔄 Auto Detect</SelectItem>
+                      {LANGUAGES.filter(lang => lang.code !== 'en-GB').map((lang) => (
+                        <SelectItem key={lang.code} value={lang.code}>
+                          {lang.flag} {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Patient speech automatically translates to English
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Status */}
+          {isProcessing && (
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-yellow-700">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700"></div>
+                  <span>Processing translation with AI safety assessment...</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <TranslationHistory
+            translations={translations}
+            sessionStart={sessionStart}
+            patientLanguage={getLanguageName(patientLanguage)}
+            onExportDOCX={handleExportDOCX}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
