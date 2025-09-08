@@ -27,8 +27,11 @@ import {
   PhoneCall,
   CircleCheck,
   AlertTriangle,
-  XCircle
+  XCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -40,6 +43,10 @@ interface QualityScore {
   overallSafety: 'OK' | 'REVIEW' | 'NOT_OK';
   confidence: number;
   explanation?: string;
+  originalPhrase?: string;
+  translatedPhrase?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
 }
 
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
@@ -55,6 +62,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
   const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
+  const [isQualityDetailsOpen, setIsQualityDetailsOpen] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
 
   const languageRotation = [
@@ -90,7 +98,15 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       }
 
       console.log('✅ Oak Lane translation quality result:', data);
-      setQualityScore(data);
+      // Add the original phrases to the quality score
+      const enrichedData = {
+        ...data,
+        originalPhrase: userInput,
+        translatedPhrase: agentResponse,
+        sourceLanguage: 'Multi-language',
+        targetLanguage: 'English'
+      };
+      setQualityScore(enrichedData);
       
       // Show prominent toast notification
       const qualityMessage = data.overallSafety === 'OK' 
@@ -578,17 +594,43 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   <XCircle className="h-4 w-4" />
                 )}
                 <AlertDescription>
-                  <div className="font-medium mb-1">
+                  <div className="font-medium mb-2">
                     Translation Quality: {qualityScore.overallSafety === 'OK' ? 'Verified Safe' : 
                                         qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
                   </div>
-                  <div className="text-xs space-y-1">
-                    <div>Accuracy: {qualityScore.accuracy}% | Medical Safety: {qualityScore.medicalSafety}%</div>
-                    <div>Cultural Sensitivity: {qualityScore.culturalSensitivity}% | Clarity: {qualityScore.clarity}%</div>
-                    {qualityScore.explanation && (
-                      <div className="text-muted-foreground mt-2">{qualityScore.explanation}</div>
-                    )}
+                  
+                  {/* Original and Translated Phrases */}
+                  <div className="space-y-2 mb-3">
+                    <div className="text-xs">
+                      <span className="font-medium text-muted-foreground">Original Phrase ({qualityScore.sourceLanguage}):</span>
+                      <p className="mt-1 p-2 bg-muted/50 rounded text-foreground">{qualityScore.originalPhrase}</p>
+                    </div>
+                    <div className="text-xs">
+                      <span className="font-medium text-muted-foreground">AI Response ({qualityScore.targetLanguage}):</span>
+                      <p className="mt-1 p-2 bg-muted/50 rounded text-foreground">{qualityScore.translatedPhrase}</p>
+                    </div>
                   </div>
+
+                  {/* Collapsible Quality Details */}
+                  <Collapsible open={isQualityDetailsOpen} onOpenChange={setIsQualityDetailsOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-auto p-0 text-xs hover:bg-transparent">
+                        <span className="flex items-center gap-1">
+                          {isQualityDetailsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          {isQualityDetailsOpen ? 'Hide' : 'Show'} Quality Details
+                        </span>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-2 mt-2">
+                      <div className="text-xs space-y-1">
+                        <div>Accuracy: {qualityScore.accuracy}% | Medical Safety: {qualityScore.medicalSafety}%</div>
+                        <div>Cultural Sensitivity: {qualityScore.culturalSensitivity}% | Clarity: {qualityScore.clarity}%</div>
+                        {qualityScore.explanation && (
+                          <div className="text-muted-foreground mt-2 p-2 bg-muted/30 rounded">{qualityScore.explanation}</div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </AlertDescription>
               </Alert>
             </div>
