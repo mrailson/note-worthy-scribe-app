@@ -44,11 +44,16 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
-    const systemPrompt = `You are an expert at creating ultra-concise meeting overviews. Create a brief summary (35-50 words max) that captures:
-1. What type of meeting this was
-2. The main discussion points
+    const systemPrompt = `Create a concise, structured meeting overview in exactly this format:
 
-Be factual and objective. Do not mention attendees, location, or date.`;
+"[Meeting Type]: [Main Topic 1] • [Main Topic 2] • [Main Topic 3]"
+
+Requirements:
+- Maximum 40 words total
+- Use bullet points (•) to separate key topics
+- Be direct and specific
+- Focus on decisions made, actions planned, or key issues discussed
+- No fluff or filler words`;
 
     const userPrompt = `Create a concise overview from this meeting titled "${meetingTitle || 'Meeting'}":
 
