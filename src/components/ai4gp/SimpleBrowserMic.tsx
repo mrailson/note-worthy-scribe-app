@@ -146,11 +146,11 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
 
   const getButtonContent = () => {
     if (status === 'connecting...') {
-      return <Loader2 className="w-28 h-28 animate-spin" />;
+      return <Loader2 className="w-56 h-56 animate-spin" />;
     } else if (isRecording) {
-      return <MicOff className="w-28 h-28" />;
+      return <MicOff className="w-56 h-56" />;
     } else {
-      return <Mic className="w-28 h-28" />;
+      return <Mic className="w-56 h-56" />;
     }
   };
 
@@ -189,7 +189,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
         variant={isRecording ? "default" : "ghost"}
         size="sm"
         className={cn(
-          "h-32 w-32 p-0 transition-all duration-200",
+          "h-60 w-60 p-0 transition-all duration-200",
           isRecording 
             ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
             : status === 'connecting...' 

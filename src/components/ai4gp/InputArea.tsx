@@ -187,11 +187,11 @@ ${pastedText.trim()}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-24 w-24 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    className="h-44 w-44 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-20 h-20" />
+                    <Plus className="w-40 h-40" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
