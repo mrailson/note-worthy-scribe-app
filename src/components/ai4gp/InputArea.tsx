@@ -187,11 +187,11 @@ ${pastedText.trim()}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-10 w-10 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    className="h-12 w-12 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-6 h-6" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
@@ -220,7 +220,7 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
-                className="h-10 w-10 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
+                className="h-12 w-12 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
               />
             </div>
           </div>
