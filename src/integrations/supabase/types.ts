@@ -4897,6 +4897,60 @@ export type Database = {
           },
         ]
       }
+      translation_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_flagged: boolean
+          is_protected: boolean
+          patient_language: string
+          session_end: string | null
+          session_metadata: Json | null
+          session_start: string
+          session_title: string
+          total_translations: number
+          translation_scores: Json
+          translations: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_flagged?: boolean
+          is_protected?: boolean
+          patient_language?: string
+          session_end?: string | null
+          session_metadata?: Json | null
+          session_start?: string
+          session_title: string
+          total_translations?: number
+          translation_scores?: Json
+          translations?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_flagged?: boolean
+          is_protected?: boolean
+          patient_language?: string
+          session_end?: string | null
+          session_metadata?: Json | null
+          session_start?: string
+          session_title?: string
+          total_translations?: number
+          translation_scores?: Json
+          translations?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_generated_images: {
         Row: {
           alt_text: string | null

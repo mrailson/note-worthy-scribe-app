@@ -30,11 +30,15 @@ import {
   Download,
   RotateCcw,
   Eye,
-  EyeOff
+  EyeOff,
+  Database,
+  Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TranslationHistory from './TranslationHistory';
+import { TranslationHistorySidebar } from './TranslationHistorySidebar';
+import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, TranslationScore as HistoryTranslationScore } from '@/hooks/useTranslationHistory';
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 
@@ -89,7 +93,19 @@ export const TranslationToolInterface = () => {
   const [currentTranslation, setCurrentTranslation] = useState<CurrentTranslation | null>(null);
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
+
+  // Translation history hook
+  const {
+    sessions,
+    currentSessionId,
+    autoSaveEnabled,
+    saveSession,
+    startNewSession,
+    enableAutoSave,
+    disableAutoSave
+  } = useTranslationHistory();
 
   // Helper function to extract language and clean text from language tags
   const extractLanguageAndCleanText = (text: string) => {
@@ -160,8 +176,68 @@ export const TranslationToolInterface = () => {
     setTranslations([]);
     setTranslationScores([]);
     setSessionStart(new Date());
+    startNewSession();
     toast.success('Translation history cleared');
   };
+
+  // Load session from history
+  const handleSessionLoad = async (sessionId: string, sessionTranslations: any[], sessionScores: any[]) => {
+    try {
+      // For now, just show a message that the full session loading will be implemented
+      toast.info('Loading historical session...');
+      
+      // Close the history sidebar
+      setShowHistorySidebar(false);
+      
+      // Future: Load full session data including translations and scores
+      console.log('Loading session:', sessionId);
+      
+    } catch (error) {
+      console.error('Error loading session:', error);
+      toast.error('Failed to load session');
+    }
+  };
+
+  // Auto-save current translations
+  const handleAutoSave = async () => {
+    if (translations.length > 0) {
+      try {
+        await saveSession(
+          translations.map(t => ({
+            ...t,
+            timestamp: t.timestamp
+          })) as HistoryTranslationEntry[],
+          translationScores.map(s => ({
+            ...s,
+            detectedIssues: s.issues || []
+          })) as HistoryTranslationScore[],
+          sessionStart,
+          undefined,
+          true
+        );
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    }
+  };
+
+  // Enable auto-save when translations are active
+  useEffect(() => {
+    if (translations.length > 0 && !autoSaveEnabled) {
+      enableAutoSave(
+        () => translations.map(t => ({
+          ...t,
+          timestamp: t.timestamp
+        })) as HistoryTranslationEntry[],
+        () => translationScores.map(s => ({
+          ...s,
+          detectedIssues: s.issues || []
+        })) as HistoryTranslationScore[],
+        () => sessionStart,
+        30000 // 30 seconds
+      );
+    }
+  }, [translations, translationScores, sessionStart, autoSaveEnabled, enableAutoSave]);
 
   // Text-to-speech function for repeating phrases
   const repeatTranslatedPhrase = async (text: string, language: string) => {
