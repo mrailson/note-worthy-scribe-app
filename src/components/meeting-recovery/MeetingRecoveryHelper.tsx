@@ -5,6 +5,7 @@ import { AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react';
 import { manualTriggerAutoNotes } from '@/utils/manualTriggerNotes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ManualNoteGenerationButton } from './ManualNoteGenerationButton';
 
 interface StuckMeeting {
   id: string;
@@ -148,6 +149,10 @@ export const MeetingRecoveryHelper = () => {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <ManualNoteGenerationButton 
+                    meetingId={meeting.id}
+                    hasExistingNotes={false}
+                  />
                   <Button
                     size="sm"
                     onClick={() => recoverMeeting(meeting.id)}

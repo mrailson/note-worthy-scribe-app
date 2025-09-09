@@ -5393,6 +5393,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      delay_seconds: {
+        Args: { seconds: number }
+        Returns: undefined
+      }
       emergency_detect_transcript_data_loss: {
         Args: Record<PropertyKey, never>
         Returns: {
