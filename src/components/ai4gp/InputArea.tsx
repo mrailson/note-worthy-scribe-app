@@ -187,7 +187,7 @@ ${pastedText.trim()}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-16 w-16 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    className="h-24 w-24 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                     disabled={isLoading}
                     title="More options"
                   >

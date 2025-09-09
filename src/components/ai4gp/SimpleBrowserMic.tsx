@@ -189,7 +189,7 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
         variant={isRecording ? "default" : "ghost"}
         size="sm"
         className={cn(
-          "h-20 w-20 p-0 transition-all duration-200",
+          "h-32 w-32 p-0 transition-all duration-200",
           isRecording 
             ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
             : status === 'connecting...' 
