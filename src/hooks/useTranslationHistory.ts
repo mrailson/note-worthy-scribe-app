@@ -95,8 +95,13 @@ export const useTranslationHistory = () => {
 
     } catch (err: any) {
       console.error('Error loading translation sessions:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.status,
+        details: err.details
+      });
       setError(err.message || 'Failed to load translation history');
-      toast.error('Failed to load translation history');
+      toast.error(`Failed to load translation history: ${err.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

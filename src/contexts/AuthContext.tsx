@@ -215,7 +215,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Logout error:', error);
+        // Handle common logout errors gracefully
+        if (error.message?.includes('Auth session missing') || error.message?.includes('session_not_found')) {
+          console.log('Session already expired or missing - proceeding with logout');
+        } else {
+          console.error('Logout error:', error);
+        }
       } else {
         console.log('Logout successful');
       }
@@ -240,9 +245,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           window.location.href = '/';
         }, 100);
       }
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Force navigation even if there's an error
+    } catch (error: any) {
+      // Handle common logout errors gracefully
+      if (error.message?.includes('Auth session missing') || error.message?.includes('session_not_found')) {
+        console.log('Session already expired - logout completed');
+      } else {
+        console.error('Error during logout:', error);
+      }
+      
+      // Clear local state and navigate regardless of error
+      setUser(null);
+      setSession(null);
+      setUserModules([]);
+      setIsSystemAdmin(false);
       navigate('/', { replace: true });
     }
   };

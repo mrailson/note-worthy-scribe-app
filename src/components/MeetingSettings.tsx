@@ -148,6 +148,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
           .from('practice_details')
           .select('practice_name')
           .eq('user_id', user.id)
+          .limit(1)
           .maybeSingle();
 
         if (error) {
