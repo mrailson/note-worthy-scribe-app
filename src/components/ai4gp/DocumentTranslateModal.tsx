@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Camera, FileText, Languages, Copy, Check } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -49,6 +50,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [editableText, setEditableText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isTranslationExpanded, setIsTranslationExpanded] = useState(true);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -297,37 +299,63 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Translated Text */}
+              {/* Translated Text - Expandable */}
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">
-                      Translation ({getLanguageName(targetLanguage)})
-                    </h3>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleCopyText(result.translatedText)}
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={result.translatedText}
-                    readOnly
-                    className="min-h-32 text-sm"
-                    placeholder="Translation will appear here..."
-                  />
-                  <div className="flex gap-2 mt-3">
-                    <Button
-                      size="sm"
-                      onClick={handleInsertTranslation}
-                      className="flex-1"
-                    >
-                      Insert into Chat
-                    </Button>
-                  </div>
-                </CardContent>
+                <Collapsible open={isTranslationExpanded} onOpenChange={setIsTranslationExpanded}>
+                  <CollapsibleTrigger asChild>
+                    <div className="p-4 cursor-pointer hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold">
+                            Translation ({getLanguageName(targetLanguage)})
+                          </h3>
+                          <Maximize className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyText(result.translatedText);
+                            }}
+                          >
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                          {isTranslationExpanded ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                          }
+                        </div>
+                      </div>
+                      {!isTranslationExpanded && (
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          {result.translatedText.slice(0, 150)}...
+                        </p>
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 pb-4 px-4">
+                      <div className="bg-white border rounded-lg p-4 max-h-80 overflow-y-auto">
+                        <div className="prose prose-sm max-w-none">
+                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                            {result.translatedText}
+                          </pre>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={handleInsertTranslation}
+                          className="flex-1"
+                        >
+                          Insert into Chat
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
               </Card>
             </div>
           )}
