@@ -143,10 +143,16 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Button
-                        onClick={() => setIsClaudeEditing(!isClaudeEditing)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Edit button clicked, current state:', isClaudeEditing);
+                          setIsClaudeEditing(!isClaudeEditing);
+                        }}
                         variant="outline"
                         size="sm"
                         className="gap-2"
+                        type="button"
                       >
                         <Edit3 className="h-4 w-4" />
                         {isClaudeEditing ? 'Preview' : 'Edit'}
