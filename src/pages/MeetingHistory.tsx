@@ -58,6 +58,7 @@ interface Meeting {
   format?: string | null;
   transcript_count?: number;
   summary_exists?: boolean;
+  overview?: string | null;
   word_count?: number;
   document_count?: number;
   notes_generation_status?: string;
@@ -1751,14 +1752,76 @@ const MeetingHistory = () => {
             />
           </div>
           
-          {/* Manual Refresh Button - More prominent for mobile */}
+          {/* Manual Refresh Button - Enhanced with overview generation */}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
               console.log('🔄 Manual refresh requested');
               fetchMeetings(currentPage);
               toast.success('Refreshing meeting list...');
+              
+              // Generate missing overviews after refreshing
+              setTimeout(async () => {
+                try {
+                  const meetingsNeedingOverviews = meetings.filter(meeting => 
+                    meeting.status === 'completed' && 
+                    (!meeting.overview || meeting.overview.trim() === '')
+                  );
+                  
+                  if (meetingsNeedingOverviews.length > 0) {
+                    console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
+                    toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+                    
+                    let successCount = 0;
+                    for (const meeting of meetingsNeedingOverviews) {
+                      try {
+                        // Check if meeting has notes to generate overview from
+                        const { data: summaryData } = await supabase
+                          .from('meeting_summaries')
+                          .select('summary')
+                          .eq('meeting_id', meeting.id)
+                          .single();
+                          
+                        if (summaryData?.summary) {
+                          const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+                            body: {
+                              meetingTitle: meeting.title,
+                              meetingNotes: summaryData.summary
+                            }
+                          });
+                          
+                          if (!error && data?.overview) {
+                            // Save to both locations for consistency
+                            await supabase
+                              .from('meetings')
+                              .update({ overview: data.overview })
+                              .eq('id', meeting.id);
+                              
+                            await supabase
+                              .from('meeting_overviews')
+                              .upsert({
+                                meeting_id: meeting.id,
+                                overview: data.overview
+                              });
+                              
+                            successCount++;
+                          }
+                        }
+                      } catch (overviewError) {
+                        console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
+                      }
+                    }
+                    
+                    if (successCount > 0) {
+                      toast.success(`Generated ${successCount} new overviews`);
+                      fetchMeetings(currentPage); // Refresh to show new overviews
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error generating overviews:', error);
+                }
+              }, 1000); // Wait 1 second for the initial refresh to complete
             }}
             className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
           >

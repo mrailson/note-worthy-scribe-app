@@ -410,15 +410,52 @@ ${cleanedTranscript}`;
       throw summaryError;
     }
 
-    // Update meeting with completion status, word count, and overview
+    // Generate AI overview using the dedicated function
+    let aiOverview = overview; // fallback to extracted overview
+    try {
+      console.log('🎯 Generating AI overview...');
+      const overviewResponse = await fetch(`${supabaseUrl}/functions/v1/generate-meeting-overview`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meetingTitle: meeting.title,
+          meetingNotes: generatedNotes
+        }),
+      });
+
+      if (overviewResponse.ok) {
+        const overviewData = await overviewResponse.json();
+        if (overviewData.overview) {
+          aiOverview = overviewData.overview;
+          console.log('✅ AI overview generated:', aiOverview);
+        }
+      } else {
+        console.warn('⚠️ AI overview generation failed, using extracted overview');
+      }
+    } catch (overviewError) {
+      console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
+    }
+
+    // Update meeting with completion status, word count, and AI overview
     await supabase
       .from('meetings')
       .update({ 
         notes_generation_status: 'completed',
         word_count: wordCount,
-        overview: overview
+        overview: aiOverview
       })
       .eq('id', meetingId);
+
+    // Also save overview to meeting_overviews table for consistency
+    await supabase
+      .from('meeting_overviews')
+      .upsert({
+        meeting_id: meetingId,
+        overview: aiOverview
+      });
 
     // Update queue status if exists
     await supabase
