@@ -212,19 +212,24 @@ export const useTranslationHistory = () => {
     }
 
     setAutoSaveEnabled(true);
+    console.log('🔧 Auto-save enabled with interval:', intervalMs + 'ms');
 
     autoSaveIntervalRef.current = setInterval(async () => {
       const translations = getTranslations();
       const scores = getTranslationScores();
       const sessionStart = getSessionStart();
 
+      console.log('⏰ Auto-save triggered:', { translationCount: translations.length, sessionStart: sessionStart.toISOString() });
+
       if (translations.length > 0) {
         try {
           await saveSession(translations, scores, sessionStart, undefined, true);
-          console.log('Auto-saved translation session');
+          console.log('✅ Auto-saved translation session successfully');
         } catch (err) {
-          console.error('Auto-save failed:', err);
+          console.error('❌ Auto-save failed:', err);
         }
+      } else {
+        console.log('⚠️ No translations to auto-save');
       }
     }, intervalMs);
 

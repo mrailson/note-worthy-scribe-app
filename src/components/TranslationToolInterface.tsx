@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useConversation } from '@11labs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -168,8 +168,16 @@ export const TranslationToolInterface = () => {
       translationLatency
     };
     
-    setTranslations(prev => [...prev, newTranslation]);
-    setTranslationScores(prev => [...prev, translationScore]);
+    setTranslations(prev => {
+      const updated = [...prev, newTranslation];
+      console.log('📊 Translation added, total count:', updated.length);
+      return updated;
+    });
+    setTranslationScores(prev => {
+      const updated = [...prev, translationScore];
+      console.log('📊 Translation score added, total count:', updated.length);
+      return updated;
+    });
   };
 
   const clearHistory = () => {
@@ -198,25 +206,39 @@ export const TranslationToolInterface = () => {
     }
   };
 
+  // Memoized getter functions to prevent callback recreation
+  const getTranslations = React.useCallback(() => {
+    return translations.map(t => ({
+      ...t,
+      timestamp: t.timestamp
+    })) as HistoryTranslationEntry[];
+  }, [translations]);
+
+  const getTranslationScores = React.useCallback(() => {
+    return translationScores.map(s => ({
+      ...s,
+      detectedIssues: s.issues || []
+    })) as HistoryTranslationScore[];
+  }, [translationScores]);
+
+  const getSessionStart = React.useCallback(() => sessionStart, [sessionStart]);
+
   // Auto-save current translations
   const handleAutoSave = async () => {
     if (translations.length > 0) {
       try {
+        console.log('🔄 Auto-saving translations...', { count: translations.length });
         await saveSession(
-          translations.map(t => ({
-            ...t,
-            timestamp: t.timestamp
-          })) as HistoryTranslationEntry[],
-          translationScores.map(s => ({
-            ...s,
-            detectedIssues: s.issues || []
-          })) as HistoryTranslationScore[],
+          getTranslations(),
+          getTranslationScores(),
           sessionStart,
           undefined,
           true
         );
+        console.log('✅ Auto-save successful');
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        console.error('❌ Auto-save failed:', error);
+        toast.error('Auto-save failed');
       }
     }
   };
@@ -224,20 +246,19 @@ export const TranslationToolInterface = () => {
   // Enable auto-save when translations are active
   useEffect(() => {
     if (translations.length > 0 && !autoSaveEnabled) {
+      console.log('🔧 Enabling auto-save for', translations.length, 'translations');
       enableAutoSave(
-        () => translations.map(t => ({
-          ...t,
-          timestamp: t.timestamp
-        })) as HistoryTranslationEntry[],
-        () => translationScores.map(s => ({
-          ...s,
-          detectedIssues: s.issues || []
-        })) as HistoryTranslationScore[],
-        () => sessionStart,
+        getTranslations,
+        getTranslationScores,
+        getSessionStart,
         30000 // 30 seconds
       );
+      console.log('✅ Auto-save enabled');
+    } else if (translations.length === 0 && autoSaveEnabled) {
+      console.log('🔧 Disabling auto-save (no translations)');
+      disableAutoSave();
     }
-  }, [translations, translationScores, sessionStart, autoSaveEnabled, enableAutoSave]);
+  }, [translations.length, autoSaveEnabled, enableAutoSave, disableAutoSave, getTranslations, getTranslationScores, getSessionStart]);
 
   // Text-to-speech function for repeating phrases
   const repeatTranslatedPhrase = async (text: string, language: string) => {
@@ -927,7 +948,15 @@ export const TranslationToolInterface = () => {
 
         <TabsContent value="history" className="space-y-6 mt-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Translation History</h2>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-2xl font-bold">Translation History</h2>
+              {autoSaveEnabled && translations.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CircleCheck className="h-3 w-3 text-green-600" />
+                  Auto-save active (30s intervals)
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button
                 onClick={() => setShowHistorySidebar(true)}
@@ -940,6 +969,15 @@ export const TranslationToolInterface = () => {
               </Button>
               {translations.length > 0 && (
                 <>
+                  <Button 
+                    onClick={handleAutoSave} 
+                    variant="secondary" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Database className="w-4 h-4" />
+                    Save Now
+                  </Button>
                   <Button onClick={clearHistory} variant="outline" size="sm">
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Clear History
