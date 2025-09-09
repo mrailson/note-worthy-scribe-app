@@ -5,9 +5,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize, X, Printer, Mail, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 interface DocumentTranslateModalProps {
   isOpen: boolean;
@@ -52,6 +55,12 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isTranslationExpanded, setIsTranslationExpanded] = useState(true);
   const [showFullTranslation, setShowFullTranslation] = useState(false);
+  const [aiFormattedHtml, setAiFormattedHtml] = useState<string | null>(null);
+  const [isImprovingLayout, setIsImprovingLayout] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [isPatientEmail, setIsPatientEmail] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -143,6 +152,153 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   const getLanguageName = (code: string) => {
     const lang = COMMON_LANGUAGES.find(l => l.code === code);
     return lang ? `${lang.flag} ${lang.name}` : code.toUpperCase();
+  };
+
+  const improveLayoutWithAI = async () => {
+    if (!result?.translatedText) return;
+
+    setIsImprovingLayout(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('improve-translation-layout', {
+        body: { translatedText: result.translatedText },
+      });
+
+      if (error) {
+        console.error('AI layout improvement error:', error);
+        toast.error('Failed to improve layout with AI');
+        return;
+      }
+
+      setAiFormattedHtml(data.formattedHtml);
+      toast.success('Layout improved with AI!');
+    } catch (error) {
+      console.error('Layout improvement error:', error);
+      toast.error('Failed to improve layout');
+    } finally {
+      setIsImprovingLayout(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const content = aiFormattedHtml || result?.translatedText || '';
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Translation - ${getLanguageName(targetLanguage)}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+              h1, h2, h3 { color: #2563eb; }
+              .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; }
+              .content { max-width: 800px; margin: 0 auto; }
+              @media print { body { padding: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="content">
+              <div class="header">
+                <h1>Document Translation</h1>
+                <p><strong>Target Language:</strong> ${getLanguageName(targetLanguage)}</p>
+                <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+              </div>
+              <div class="translation">
+                ${aiFormattedHtml ? content : content.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    if (!result?.translatedText) return;
+
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: "Document Translation",
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Target Language: ${getLanguageName(targetLanguage)}`,
+                  bold: true,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated: ${new Date().toLocaleString()}`,
+                  bold: true,
+                }),
+              ],
+            }),
+            new Paragraph({ text: "" }), // Empty line
+            ...result.translatedText.split('\n').map(line => 
+              new Paragraph({
+                children: [new TextRun({ text: line || " " })],
+              })
+            ),
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `translation-${targetLanguage}-${new Date().toISOString().split('T')[0]}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Word document downloaded!');
+    } catch (error) {
+      console.error('Word download error:', error);
+      toast.error('Failed to download Word document');
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailAddress || !result?.translatedText) return;
+
+    setIsSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-translation-email', {
+        body: {
+          to: emailAddress,
+          subject: `Document Translation - ${getLanguageName(targetLanguage)}`,
+          translatedText: aiFormattedHtml || result.translatedText,
+          originalText: isPatientEmail ? undefined : result.originalText,
+          isPatientEmail,
+        },
+      });
+
+      if (error) {
+        console.error('Email sending error:', error);
+        toast.error('Failed to send email');
+        return;
+      }
+
+      toast.success(`Email sent successfully to ${emailAddress}`);
+      setShowEmailDialog(false);
+      setEmailAddress('');
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error('Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   return (
@@ -386,7 +542,44 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => result && handleCopyText(result.translatedText)}
+                onClick={improveLayoutWithAI}
+                disabled={isImprovingLayout}
+                title="Improve formatting with AI"
+              >
+                {isImprovingLayout ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handlePrint}
+                title="Print document"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowEmailDialog(true)}
+                title="Email document"
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDownloadWord}
+                title="Download as Word document"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => result && handleCopyText(aiFormattedHtml || result.translatedText)}
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
@@ -404,9 +597,16 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
         <div className="flex-1 p-6 overflow-hidden">
           <div className="h-full bg-white border rounded-lg p-6 overflow-y-auto">
             <div className="prose prose-lg max-w-none">
-              <div className="whitespace-pre-wrap text-base leading-relaxed text-gray-900">
-                {result?.translatedText || ''}
-              </div>
+              {aiFormattedHtml ? (
+                <div 
+                  dangerouslySetInnerHTML={{ __html: aiFormattedHtml }}
+                  className="leading-relaxed"
+                />
+              ) : (
+                <div className="whitespace-pre-wrap text-base leading-relaxed text-gray-900">
+                  {result?.translatedText || ''}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -426,6 +626,70 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
               }}
             >
               Insert into Chat
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Email Dialog */}
+    <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Translation
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              value={emailAddress}
+              onChange={(e) => setEmailAddress(e.target.value)}
+              placeholder="Enter email address"
+              className="mt-1"
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="patientEmail"
+              checked={isPatientEmail}
+              onChange={(e) => setIsPatientEmail(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="patientEmail" className="text-sm">
+              Patient-friendly email (hide original text)
+            </Label>
+          </div>
+          
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={!emailAddress || isSendingEmail}
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
             </Button>
           </div>
         </div>
