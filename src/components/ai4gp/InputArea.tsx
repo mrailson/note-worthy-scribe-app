@@ -166,7 +166,7 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-16 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-20 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '120px' }}
           />
@@ -187,11 +187,11 @@ ${pastedText.trim()}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-12 w-12 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    className="h-16 w-16 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-6 h-6" />
+                    <Plus className="w-8 h-8" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
@@ -220,7 +220,7 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
-                className="h-12 w-12 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
+                className="h-16 w-16 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
               />
             </div>
           </div>
