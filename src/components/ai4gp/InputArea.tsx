@@ -165,7 +165,7 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-44 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-16 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '120px' }}
           />
@@ -179,38 +179,35 @@ ${pastedText.trim()}
             className="hidden"
           />
           
-          <div className="absolute right-2 top-2 bottom-2 flex flex-col justify-between">
-            <div className="flex flex-col gap-1">
+          <div className="absolute right-3 top-3 bottom-3 flex flex-col justify-center items-center">
+            <div className="flex flex-col gap-2 items-center">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-20 p-0 hover:bg-accent rounded-md"
+                className="h-8 w-8 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
                 title="Attach files"
               >
-                <Paperclip className="w-5 h-5" />
+                <Paperclip className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-20 p-0 hover:bg-accent rounded-md"
+                className="h-8 w-8 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                 onClick={() => setShowDocumentTranslate(true)}
                 disabled={isLoading}
                 title="Translate document image"
               >
-                <Languages className="w-5 h-5" />
+                <Languages className="w-4 h-4" />
               </Button>
-            </div>
-            
-            <div className="flex flex-col gap-1">
               <SimpleBrowserMic
                 ref={micRef}
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
-                className="justify-center"
+                className="h-8 w-8 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
               />
             </div>
           </div>
