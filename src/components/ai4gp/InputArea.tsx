@@ -191,7 +191,7 @@ ${pastedText.trim()}
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-8 h-8" />
+                    <Plus className="w-12 h-12" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
