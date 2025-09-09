@@ -44,11 +44,12 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
-    const systemPrompt = `Create a concise, structured meeting overview in exactly this format:
+    const systemPrompt = `Create a concise, structured meeting overview in exactly this format using British English spellings and conventions:
 
 "[Meeting Type]: [Main Topic 1] • [Main Topic 2] • [Main Topic 3]"
 
 Requirements:
+- Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
 - Maximum 40 words total
 - Use bullet points (•) to separate key topics
 - Be direct and specific

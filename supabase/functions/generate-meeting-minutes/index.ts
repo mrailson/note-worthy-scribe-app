@@ -28,7 +28,7 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. Do NOT include any times, time ranges, or timestamps anywhere in the output. Do NOT use placeholder text - only include information that is actually present in the transcript.
+    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre'). Do NOT include any times, time ranges, or timestamps anywhere in the output. Do NOT use placeholder text - only include information that is actually present in the transcript.
 
 Format the output as follows:
 
@@ -79,12 +79,13 @@ Summarize what will happen next, including:
 - Any ongoing tasks or projects mentioned
 
 Important instructions:
+- Use British English spellings and conventions throughout (e.g., 'organised', 'realise', 'colour', 'centre')
 - Do not include any timestamps or time ranges anywhere
 - Only include information that is actually present in the transcript
 - Do not add placeholder text or make assumptions
 - If a section has no relevant information from the transcript, write "Not discussed in this meeting"
 - Use clear, professional language
-- Organize information logically
+- Organise information logically
 - Extract specific details, names, and numbers when mentioned
 
 Detail preference: ${detailInstructions}
@@ -105,7 +106,7 @@ ${transcript}`;
         messages: [
           { 
             role: 'system', 
-            content: 'You are a professional meeting secretary who creates detailed, well-structured meeting minutes. Always follow the exact format provided and extract as much relevant information as possible from the transcript.' 
+            content: 'You are a professional meeting secretary who creates detailed, well-structured meeting minutes using British English spellings and conventions. Always follow the exact format provided and extract as much relevant information as possible from the transcript.' 
           },
           { role: 'user', content: prompt }
         ],
