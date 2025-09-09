@@ -22,6 +22,7 @@ interface TranslationResult {
 }
 
 const COMMON_LANGUAGES = [
+  { code: 'auto', name: 'Auto-detect', flag: '🔍' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸' },
   { code: 'fr', name: 'French', flag: '🇫🇷' },
@@ -43,6 +44,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [sourceLanguage, setSourceLanguage] = useState('auto');
   const [targetLanguage, setTargetLanguage] = useState('en');
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [editableText, setEditableText] = useState('');
@@ -82,6 +84,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
       const { data, error } = await supabase.functions.invoke('image-ocr-translate', {
         body: {
           imageData: selectedImage,
+          sourceLanguage: sourceLanguage === 'auto' ? null : sourceLanguage,
           targetLanguage,
         },
       });
@@ -192,6 +195,24 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium mb-2 block">
+                        Source Language
+                      </label>
+                      <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COMMON_LANGUAGES.map((lang) => (
+                            <SelectItem key={lang.code} value={lang.code}>
+                              {lang.flag} {lang.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
                         Target Language
                       </label>
                       <Select value={targetLanguage} onValueChange={setTargetLanguage}>
@@ -199,7 +220,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {COMMON_LANGUAGES.map((lang) => (
+                          {COMMON_LANGUAGES.filter(lang => lang.code !== 'auto').map((lang) => (
                             <SelectItem key={lang.code} value={lang.code}>
                               {lang.flag} {lang.name}
                             </SelectItem>

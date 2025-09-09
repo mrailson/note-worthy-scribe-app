@@ -38,7 +38,7 @@ serve(async (req) => {
       );
     }
 
-    const { imageData, targetLanguage = 'en' } = await req.json();
+    const { imageData, sourceLanguage = null, targetLanguage = 'en' } = await req.json();
 
     if (!imageData) {
       return new Response(
@@ -112,6 +112,17 @@ serve(async (req) => {
     console.log('Extracted text:', extractedText);
 
     // Step 2: Detect language and translate using Google Translate API
+    const translateBody = {
+      q: extractedText,
+      target: targetLanguage,
+      format: 'text',
+    };
+    
+    // Add source language if specified (not auto-detect)
+    if (sourceLanguage) {
+      translateBody.source = sourceLanguage;
+    }
+    
     const translateResponse = await fetch(
       `https://translation.googleapis.com/language/translate/v2?key=${googleTranslateApiKey}`,
       {
@@ -119,11 +130,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          q: extractedText,
-          target: targetLanguage,
-          format: 'text',
-        }),
+        body: JSON.stringify(translateBody),
       }
     );
 
