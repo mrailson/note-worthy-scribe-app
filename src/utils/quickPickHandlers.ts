@@ -276,34 +276,137 @@ function printDocument(ctx: QuickPickContext): string {
 
 async function combineWithPracticeInfo(ctx: QuickPickContext): Promise<string> {
   try {
-    // Fetch user's practice information using a simpler query structure
-    const { data: practiceData, error } = await supabase
-      .from('user_roles')
-      .select(`
-        practice_id,
-        gp_practices (
-          name,
-          phone,
-          email
-        )
-      `)
+    // Fetch user profile information
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, email, title, nhs_trust, department, role')
       .eq('user_id', ctx.userId)
       .single();
 
-    if (error || !practiceData?.gp_practices) {
-      console.error('Error fetching practice info:', error);
-      return `Add my practice header/footer (practice information) to the above.`;
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
     }
 
-    const practice = practiceData.gp_practices;
-    const practiceName = practice.name || 'Your Practice';
-    const practicePhone = practice.phone || '[Practice Phone]';
-    const practiceEmail = practice.email || '[Practice Email]';
+    // First get the practice_id from user_roles
+    const { data: userRoleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('practice_id')
+      .eq('user_id', ctx.userId)
+      .maybeSingle();
 
-    return `Add my practice header/footer (${practiceName}, Phone: ${practicePhone}, Email: ${practiceEmail}) to the above.`;
+    let practiceDetails = null;
+    if (userRoleData?.practice_id) {
+      // Then fetch practice details using the practice_id
+      const { data: practiceData, error: practiceError } = await supabase
+        .from('practice_details')
+        .select(`
+          practice_name,
+          address,
+          phone,
+          email,
+          website,
+          pcn_code,
+          footer_text,
+          email_signature,
+          letter_signature
+        `)
+        .eq('id', userRoleData.practice_id)
+        .maybeSingle();
+
+      if (practiceError) {
+        console.error('Error fetching practice details:', practiceError);
+      } else {
+        practiceDetails = practiceData;
+      }
+    }
+
+    // Build comprehensive practice and user information
+    let practiceInfo = [];
+    let userInfo = [];
+
+    // Add user information if available
+    if (userProfile) {
+      if (userProfile.title && userProfile.full_name) {
+        userInfo.push(`${userProfile.title} ${userProfile.full_name}`);
+      } else if (userProfile.full_name) {
+        userInfo.push(userProfile.full_name);
+      }
+      
+      if (userProfile.role) {
+        userInfo.push(`Role: ${userProfile.role}`);
+      }
+      
+      if (userProfile.department) {
+        userInfo.push(`Department: ${userProfile.department}`);
+      }
+      
+      if (userProfile.email) {
+        userInfo.push(`Email: ${userProfile.email}`);
+      }
+      
+      if (userProfile.nhs_trust) {
+        userInfo.push(`Trust: ${userProfile.nhs_trust}`);
+      }
+    }
+
+    // Add practice information if available
+    if (practiceDetails) {
+      if (practiceDetails.practice_name) {
+        practiceInfo.push(`Practice: ${practiceDetails.practice_name}`);
+      }
+      
+      if (practiceDetails.address) {
+        practiceInfo.push(`Address: ${practiceDetails.address}`);
+      }
+      
+      if (practiceDetails.phone) {
+        practiceInfo.push(`Phone: ${practiceDetails.phone}`);
+      }
+      
+      if (practiceDetails.email) {
+        practiceInfo.push(`Practice Email: ${practiceDetails.email}`);
+      }
+      
+      if (practiceDetails.website) {
+        practiceInfo.push(`Website: ${practiceDetails.website}`);
+      }
+      
+      if (practiceDetails.pcn_code) {
+        practiceInfo.push(`PCN Code: ${practiceDetails.pcn_code}`);
+      }
+      
+      if (practiceDetails.footer_text) {
+        practiceInfo.push(`Footer: ${practiceDetails.footer_text}`);
+      }
+
+      if (practiceDetails.email_signature) {
+        practiceInfo.push(`Email Signature: ${practiceDetails.email_signature}`);
+      }
+
+      if (practiceDetails.letter_signature) {
+        practiceInfo.push(`Letter Signature: ${practiceDetails.letter_signature}`);
+      }
+    }
+
+    // Combine all information into a comprehensive prompt
+    let infoSections = [];
+    
+    if (userInfo.length > 0) {
+      infoSections.push(`User Information: ${userInfo.join(', ')}`);
+    }
+    
+    if (practiceInfo.length > 0) {
+      infoSections.push(`Practice Information: ${practiceInfo.join(', ')}`);
+    }
+
+    if (infoSections.length > 0) {
+      return `Incorporate my practice and user details into the above response. ${infoSections.join('. ')}. Use this information to personalize the content with relevant practice details, contact information, and my professional credentials where appropriate.`;
+    } else {
+      return `Add my practice header/footer and personalize with available practice and user information to the above.`;
+    }
   } catch (error) {
     console.error('Error in combineWithPracticeInfo:', error);
-    return `Add my practice header/footer (practice information) to the above.`;
+    return `Add my practice header/footer and user information to the above.`;
   }
 }
 
