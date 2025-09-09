@@ -75,6 +75,7 @@ export const useTranslationHistory = () => {
       setLoading(true);
       setError(null);
 
+      // Build query parameters
       const params = new URLSearchParams();
       if (options.limit) params.append('limit', options.limit.toString());
       if (options.offset) params.append('offset', options.offset.toString());
@@ -83,14 +84,23 @@ export const useTranslationHistory = () => {
       if (options.language) params.append('language', options.language);
       if (options.search) params.append('search', options.search);
 
-      const { data, error } = await supabase.functions.invoke('load-translation-sessions', {
+      // Call edge function with query parameters
+      const queryString = params.toString();
+      const url = queryString ? `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/load-translation-sessions?${queryString}` : `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/load-translation-sessions`;
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       setSessions(data.sessions || []);
       setTotalCount(data.totalCount || 0);
