@@ -414,26 +414,21 @@ ${cleanedTranscript}`;
     let aiOverview = overview; // fallback to extracted overview
     try {
       console.log('🎯 Generating AI overview...');
-      const overviewResponse = await fetch(`${supabaseUrl}/functions/v1/generate-meeting-overview`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          meetingTitle: meeting.title,
-          meetingNotes: generatedNotes
-        }),
-      });
-
-      if (overviewResponse.ok) {
-        const overviewData = await overviewResponse.json();
-        if (overviewData.overview) {
-          aiOverview = overviewData.overview;
-          console.log('✅ AI overview generated:', aiOverview);
+      const { data: overviewResult, error: overviewError } = await supabase.functions.invoke(
+        'generate-meeting-overview',
+        {
+          body: { 
+            meetingTitle: meeting.title,
+            meetingNotes: generatedNotes
+          }
         }
-      } else {
-        console.warn('⚠️ AI overview generation failed, using extracted overview');
+      );
+
+      if (overviewError) {
+        console.warn('⚠️ AI overview generation failed:', overviewError.message);
+      } else if (overviewResult?.overview) {
+        aiOverview = overviewResult.overview;
+        console.log('✅ AI overview generated:', aiOverview);
       }
     } catch (overviewError) {
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
