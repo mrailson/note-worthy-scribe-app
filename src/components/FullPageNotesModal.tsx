@@ -12,6 +12,8 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
+import { MeetingModalQuickPick } from "@/components/MeetingModalQuickPick";
+import { MeetingContextEnhancer } from "@/components/MeetingContextEnhancer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";

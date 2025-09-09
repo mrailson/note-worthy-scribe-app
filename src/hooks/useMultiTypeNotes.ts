@@ -143,6 +143,89 @@ export function useMultiTypeNotes(meetingId: string) {
     }
   };
 
+  // Sequential regeneration in specific order: Brief → Detailed → Limerick → Very Detailed → Executive
+  const regenerateAllSequential = async () => {
+    try {
+      setError(null);
+      
+      const sequence = ['brief', 'detailed', 'limerick', 'very_detailed', 'executive'] as const;
+      
+      // Reset all statuses
+      setStatus({
+        brief: 'pending',
+        detailed: null,
+        very_detailed: null,
+        executive: null,
+        limerick: null
+      });
+
+      for (let i = 0; i < sequence.length; i++) {
+        const noteType = sequence[i];
+        
+        // Update status to show current generation
+        setStatus(prev => ({
+          ...prev,
+          [noteType]: 'pending'
+        }));
+
+        // Generate this type
+        const { error } = await supabase.functions.invoke('generate-multi-type-notes', {
+          body: {
+            meetingId,
+            noteType,
+            forceRegenerate: true
+          }
+        });
+
+        if (error) {
+          console.error(`Error generating ${noteType}:`, error);
+          setStatus(prev => ({
+            ...prev,
+            [noteType]: 'failed'
+          }));
+          throw error;
+        }
+
+        // Update status to completed
+        setStatus(prev => ({
+          ...prev,
+          [noteType]: 'completed'
+        }));
+
+        // Set next item to pending if there is one
+        if (i < sequence.length - 1) {
+          const nextType = sequence[i + 1];
+          setStatus(prev => ({
+            ...prev,
+            [nextType]: 'pending'
+          }));
+        }
+
+        // Refresh notes after each generation
+        await fetchNotes();
+      }
+
+    } catch (err) {
+      console.error('Error in sequential regeneration:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate notes sequentially');
+    }
+  };
+
+  // Get current generation progress for sequential mode
+  const getSequentialProgress = () => {
+    const sequence = ['brief', 'detailed', 'limerick', 'very_detailed', 'executive'] as const;
+    const completedCount = sequence.filter(type => status[type] === 'completed').length;
+    const currentIndex = sequence.findIndex(type => status[type] === 'pending');
+    
+    return {
+      completed: completedCount,
+      total: sequence.length,
+      current: currentIndex >= 0 ? currentIndex + 1 : completedCount + 1,
+      currentType: currentIndex >= 0 ? sequence[currentIndex] : null,
+      percentage: (completedCount / sequence.length) * 100
+    };
+  };
+
   // Get note by type
   const getNoteByType = (type: keyof NoteGenerationStatus): MultiTypeNote | null => {
     return notes.find(note => note.note_type === type) || null;
@@ -171,6 +254,8 @@ export function useMultiTypeNotes(meetingId: string) {
     error,
     isGenerating,
     generateAllTypes,
+    regenerateAllSequential,
+    getSequentialProgress,
     getNoteByType,
     getCompletionPercentage,
     refetch: fetchNotes

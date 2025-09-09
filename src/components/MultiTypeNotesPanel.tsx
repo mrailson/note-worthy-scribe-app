@@ -87,6 +87,8 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
     error,
     isGenerating,
     generateAllTypes,
+    regenerateAllSequential,
+    getSequentialProgress,
     getNoteByType,
     getCompletionPercentage
   } = useMultiTypeNotes(meetingId);
@@ -216,29 +218,48 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
             </CardDescription>
           </div>
           
-          <div className="flex items-center gap-2">
-            {isGenerating && (
-              <div className="flex items-center gap-2">
-                <Progress value={completionPercentage} className="w-20" />
-                <span className="text-xs text-muted-foreground">
-                  {Math.round(completionPercentage)}%
-                </span>
-              </div>
-            )}
-            
-            <Button 
-              onClick={generateAllTypes}
-              disabled={isGenerating}
-              size="sm"
-            >
-              {isGenerating ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
+            <div className="flex items-center gap-2">
+              {isGenerating && (
+                <div className="flex items-center gap-2">
+                  <Progress value={completionPercentage} className="w-20" />
+                  <span className="text-xs text-muted-foreground">
+                    {(() => {
+                      const progress = getSequentialProgress();
+                      return progress.currentType 
+                        ? `${progress.currentType} (${progress.current}/${progress.total})`
+                        : `${Math.round(completionPercentage)}%`;
+                    })()}
+                  </span>
+                </div>
               )}
-              {hasAnyNotes ? 'Regenerate All' : 'Generate All Types'}
-            </Button>
-          </div>
+              
+              <Button 
+                onClick={generateAllTypes}
+                disabled={isGenerating}
+                size="sm"
+                variant="outline"
+              >
+                {isGenerating ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                {hasAnyNotes ? 'Regenerate All' : 'Generate All'}
+              </Button>
+
+              <Button 
+                onClick={regenerateAllSequential}
+                disabled={isGenerating}
+                size="sm"
+              >
+                {isGenerating ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Sequential
+              </Button>
+            </div>
         </div>
         
         {error && (
