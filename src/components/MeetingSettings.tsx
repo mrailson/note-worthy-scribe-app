@@ -148,8 +148,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
           .from('practice_details')
           .select('practice_name')
           .eq('user_id', user.id)
-          .eq('is_default', true)
-          .single();
+          .maybeSingle();
 
         if (error) {
           // No default practice found, which is fine

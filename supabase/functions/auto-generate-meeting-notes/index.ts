@@ -158,11 +158,16 @@ serve(async (req) => {
       .from('meetings')
       .select('*')
       .eq('id', meetingId)
-      .single();
+      .maybeSingle();
 
-    if (meetingError || !meeting) {
-      console.error('❌ Meeting not found:', meetingError);
-      throw new Error('Meeting not found');
+    if (meetingError) {
+      console.error('❌ Database error fetching meeting:', meetingError);
+      throw new Error(`Database error: ${meetingError.message}`);
+    }
+
+    if (!meeting) {
+      console.error('❌ Meeting not found with ID:', meetingId);
+      throw new Error(`Meeting not found with ID: ${meetingId}`);
     }
 
     // Get transcript using the database function that checks all possible sources
