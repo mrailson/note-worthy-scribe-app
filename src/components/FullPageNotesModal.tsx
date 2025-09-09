@@ -2402,16 +2402,12 @@ ${transcript}`;
               setActiveTab(value);
             }} className="h-full flex flex-col">
               <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
                   <TabsTrigger value="transcript">Transcript</TabsTrigger>
                   <TabsTrigger value="quick-actions" className="gap-2">
                     <Wand2 className="h-4 w-4" />
                     Quick Actions
-                  </TabsTrigger>
-                  <TabsTrigger value="templates" className="gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    Templates
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -2846,20 +2842,6 @@ ${transcript}`;
                         onContentChange={onNotesChange}
                         meetingId={meeting?.id}
                       />
-                    </div>
-                  </div>
-                </TabsContent>
-                 
-                <TabsContent value="templates" className="flex-1 overflow-hidden mt-0 bg-white">
-                  <div className="h-full flex flex-col">
-                    <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <FolderOpen className="h-5 w-5" />
-                        Templates & Instructions
-                      </h3>
-                    </div>
-                    <div className="flex-1 overflow-auto px-6 pb-6">
-                      <MeetingTemplatesTab />
                     </div>
                   </div>
                 </TabsContent>
