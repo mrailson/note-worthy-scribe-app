@@ -2,13 +2,14 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
+import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 
 interface InputAreaProps {
   input: string;
@@ -44,6 +45,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     getProcessingSummary 
   } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
+  const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -178,16 +180,28 @@ ${pastedText.trim()}
           />
           
           <div className="absolute right-2 top-2 bottom-2 flex flex-col justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-20 w-20 p-0 hover:bg-accent rounded-md"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              title="Attach files"
-            >
-              <Paperclip className="w-14 h-14" />
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-20 p-0 hover:bg-accent rounded-md"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                title="Attach files"
+              >
+                <Paperclip className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-20 p-0 hover:bg-accent rounded-md"
+                onClick={() => setShowDocumentTranslate(true)}
+                disabled={isLoading}
+                title="Translate document image"
+              >
+                <Languages className="w-5 h-5" />
+              </Button>
+            </div>
             
             <div className="flex flex-col gap-1">
               <SimpleBrowserMic
@@ -225,6 +239,12 @@ ${pastedText.trim()}
         to send • Supports: PDF, Word, Excel, images, audio • 
         <span className="text-blue-600 font-medium">🎙️ Voice recognition active</span>
       </div>
+      
+      <DocumentTranslateModal
+        isOpen={showDocumentTranslate}
+        onClose={() => setShowDocumentTranslate(false)}
+        onInsertToChat={(text) => setInput(prev => prev + (prev ? '\n\n' : '') + text)}
+      />
     </div>
     </>
   );
