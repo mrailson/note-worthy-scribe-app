@@ -35,10 +35,39 @@ export const MeetingOverviewEditor = ({
     try {
       console.log('🔄 Starting overview regeneration...', { meetingTitle, hasNotes: !!meetingNotes });
       
+      // If no meetingNotes provided, try to fetch from database
+      let notesToUse = meetingNotes;
+      if (!notesToUse) {
+        console.log('📄 Fetching meeting notes from database...');
+        const { data: summaryData } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        
+        notesToUse = summaryData?.summary;
+      }
+      
+      // If still no notes, try to get transcript
+      if (!notesToUse) {
+        console.log('📄 Fetching transcript from database...');
+        const { data: transcriptData } = await supabase
+          .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+        
+        if (transcriptData?.[0]?.transcript) {
+          notesToUse = transcriptData[0].transcript;
+        }
+      }
+      
+      if (!notesToUse) {
+        toast.error("No meeting content available to generate overview");
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
         body: {
-          meetingTitle: meetingTitle,
-          meetingNotes: meetingNotes
+          meetingTitle: meetingTitle || 'Meeting',
+          meetingNotes: notesToUse
         }
       });
       
