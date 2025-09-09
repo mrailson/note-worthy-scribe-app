@@ -166,9 +166,9 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[120px] max-h-80 resize-none bg-white border-border pr-20 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[140px] max-h-80 resize-none bg-white border-border pr-28 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
-            style={{ minHeight: '120px' }}
+            style={{ minHeight: '140px' }}
           />
           
           <input
@@ -220,7 +220,7 @@ ${pastedText.trim()}
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
-                className="h-16 w-16 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
+                className=""
               />
             </div>
           </div>
@@ -236,7 +236,7 @@ ${pastedText.trim()}
           }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading) || isFileProcessing}
           size="default"
-          className={`h-[120px] px-6 flex-shrink-0 rounded-lg ${
+          className={`h-[140px] px-6 flex-shrink-0 rounded-lg ${
             uploadedFiles.some(file => file.isLoading) ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
