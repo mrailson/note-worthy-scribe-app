@@ -7,6 +7,17 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   Filter,
   Flag,
@@ -28,6 +39,10 @@ import {
 import { useTranslationHistory, TranslationSession } from '@/hooks/useTranslationHistory';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
+import { TranslationEntry } from '@/components/TranslationHistory';
+import { TranslationScore } from '@/utils/translationScoring';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TranslationHistorySidebarProps {
   onSessionLoad: (sessionId: string, translations: any[], translationScores: any[]) => void;
@@ -56,6 +71,65 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   const [showProtectedOnly, setShowProtectedOnly] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('all');
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [isClearingAll, setIsClearingAll] = useState(false);
+
+  const handleDownloadSession = async (session: TranslationSession) => {
+    try {
+      // Parse the translations from the session
+      const translations: TranslationEntry[] = JSON.parse((session as any).translations || '[]');
+      
+      // Create session metadata
+      const metadata: SessionMetadata = {
+        sessionDate: new Date(session.created_at),
+        sessionStart: new Date(session.session_start),
+        sessionEnd: session.session_end ? new Date(session.session_end) : new Date(),
+        patientLanguage: session.patient_language,
+        totalTranslations: session.total_translations,
+        sessionDuration: session.session_metadata?.sessionDuration || 0,
+        overallSafetyRating: session.session_metadata?.overallSafetyRating || 'safe',
+        averageAccuracy: session.session_metadata?.averageAccuracy || 100,
+        averageConfidence: session.session_metadata?.averageConfidence || 100,
+      };
+
+      // Create translation scores from session metadata or defaults
+      const translationScores: TranslationScore[] = translations.map((t, index) => ({
+        accuracy: t.accuracy || 100,
+        confidence: t.confidence || 100,
+        safetyFlag: t.safetyFlag || 'safe' as const,
+        medicalTermsDetected: t.medicalTermsDetected || [],
+        issues: (t as any).detectedIssues || [],
+        detectedIssues: (t as any).detectedIssues || []
+      }));
+
+      await downloadDOCX(translations, metadata, translationScores);
+      toast.success('Session report downloaded successfully');
+      
+    } catch (error) {
+      console.error('Error downloading session:', error);
+      toast.error('Failed to download session report');
+    }
+  };
+
+  const handleClearAllSessions = async () => {
+    try {
+      setIsClearingAll(true);
+      
+      const { data, error } = await supabase.functions.invoke('clear-translation-sessions');
+      
+      if (error) throw error;
+
+      // Reload sessions to reflect changes
+      await loadSessions({ limit: 50, offset: 0 });
+      
+      toast.success(data.message || 'Successfully cleared translation sessions');
+      
+    } catch (error) {
+      console.error('Error clearing sessions:', error);
+      toast.error('Failed to clear all sessions');
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
 
   // Get unique languages from sessions
   const availableLanguages = useMemo(() => {
@@ -232,6 +306,61 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
             ))}
           </select>
         )}
+
+        {/* Clear All Button */}
+        <div className="mt-3 pt-3 border-t border-border">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full flex items-center gap-2"
+                disabled={sessions.length === 0}
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear All Sessions
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear All Translation Sessions?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all non-protected translation sessions. 
+                  Protected sessions (marked with <Shield className="h-4 w-4 inline text-blue-500" />) will be preserved.
+                  
+                  <div className="mt-4 p-3 bg-muted rounded-md">
+                    <div className="text-sm space-y-1">
+                      <div>Total sessions: <strong>{sessions.length}</strong></div>
+                      <div>Protected sessions: <strong>{sessions.filter(s => s.is_protected).length}</strong></div>
+                      <div className="text-destructive">Sessions to be deleted: <strong>{sessions.filter(s => !s.is_protected).length}</strong></div>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    This action cannot be undone.
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearAllSessions}
+                  disabled={isClearingAll}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isClearingAll ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Clearing...
+                    </>
+                  ) : (
+                    'Clear All'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Content */}
@@ -351,23 +480,22 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // TODO: Implement download functionality
-                                toast.info('Download functionality coming soon');
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Download session report</TooltipContent>
-                        </Tooltip>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleDownloadSession(session);
+                               }}
+                               className="h-6 w-6 p-0"
+                             >
+                               <Download className="h-3 w-3" />
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>Download session report</TooltipContent>
+                         </Tooltip>
 
                         {!session.is_protected && (
                           <Tooltip>
