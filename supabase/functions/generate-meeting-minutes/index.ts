@@ -58,25 +58,11 @@ Example format:
 **Budget Review**
 - Budget-related discussion points...
 
-## 4️⃣ Decisions Made
-List all decisions that were made during the meeting. For each decision, include:
-- What was decided
-
-- The reasoning behind the decision (if discussed)
-- Who was involved in making the decision
-
-## 5️⃣ Action Items
+## 4️⃣ Action Items
 List all action items and tasks assigned during the meeting:
 - **Task:** [Description of the action item]
 - **Assigned to:** [Person or role responsible]
-
 - **Deadline:** [If mentioned, otherwise "To be determined"]
-
-## 6️⃣ Next Steps
-Summarize what will happen next, including:
-- Follow-up meetings planned
-- Next review dates
-- Any ongoing tasks or projects mentioned
 
 Important instructions:
 - Use British English spellings and conventions throughout (e.g., 'organised', 'realise', 'colour', 'centre')
