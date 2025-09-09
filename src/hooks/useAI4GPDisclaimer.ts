@@ -25,7 +25,8 @@ export const useAI4GPDisclaimer = () => {
       if (error) throw error;
       
       setShowDisclaimer(data?.show_ai4gp_disclaimer ?? true);
-      setDisclaimerCollapsed(data?.ai4gp_disclaimer_collapsed ?? true);
+      // Always default to collapsed (true) for maximum screen space
+      setDisclaimerCollapsed(true);
     } catch (error) {
       console.error('Error fetching disclaimer preference:', error);
       // Default to showing disclaimer collapsed on error
