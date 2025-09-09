@@ -2,8 +2,9 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
 import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
@@ -180,34 +181,46 @@ ${pastedText.trim()}
           />
           
           <div className="absolute right-3 top-3 bottom-3 flex flex-col justify-center items-center">
-            <div className="flex flex-col gap-2 items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                title="Attach files"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
-                onClick={() => setShowDocumentTranslate(true)}
-                disabled={isLoading}
-                title="Translate document image"
-              >
-                <Languages className="w-4 h-4" />
-              </Button>
+            <div className="flex flex-col gap-3 items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 w-10 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    disabled={isLoading}
+                    title="More options"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
+                  <DropdownMenuItem 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                    className="cursor-pointer"
+                  >
+                    <Paperclip className="w-4 h-4 mr-2" />
+                    Attach Files
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setShowDocumentTranslate(true)}
+                    disabled={isLoading}
+                    className="cursor-pointer"
+                  >
+                    <Languages className="w-4 h-4 mr-2" />
+                    Translate Document
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <SimpleBrowserMic
                 ref={micRef}
                 key="browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
-                className="h-8 w-8 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
+                className="h-10 w-10 p-0 rounded-md hover:bg-accent/50 flex items-center justify-center"
               />
             </div>
           </div>
