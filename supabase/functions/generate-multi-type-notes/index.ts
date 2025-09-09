@@ -17,29 +17,45 @@ const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create a BRIEF meeting summary with excellent formatting. Focus on key decisions and action items only. Use clear headings and bullet points.
+    systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting. Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
-# Brief Meeting Summary
+# GP Executive Brief
 
-## Key Decisions Made
-• [Decision 1 with brief context]
-• [Decision 2 with brief context]
+## Meeting Type & Context
+• **Purpose:** [Practice partnership/PCN strategic/Clinical governance/Operational meeting]
+• **Healthcare Focus:** [Key clinical/operational areas discussed]
 
-## Action Items
-• **[Item]** - Assigned to: [Owner] | Due: [Date]
-• **[Item]** - Assigned to: [Owner] | Due: [Date]
+## Key Healthcare Decisions Made
+• **[Clinical Service Decision]** - Direct impact on patient care delivery and practice capacity
+• **[Operational Decision]** - Effect on practice workflow, staff resources, and service efficiency  
+• **[Financial Decision]** - Practice revenue implications and cost-benefit for patient services
+• **[Partnership Decision]** - PCN collaboration affecting service delivery or shared resources
 
-## Next Steps
-• [Next step with timeframe]
+## Practice Impact Summary
+• **Patient Care:** [How decisions improve patient experience, access, or clinical outcomes]
+• **Operations:** [Changes to daily practice workflow, appointment systems, or staff roles]
+• **Finance:** [Revenue changes, cost implications, or investment requirements affecting practice sustainability]
+• **Compliance:** [CQC, clinical governance, or regulatory implications]
+
+## Immediate Action Items
+• **[Practice Action]** - Assigned to: [Practice role] | Due: [Date] | **Patient Impact:** [Service effect]
+• **[Clinical Action]** - Assigned to: [Clinical role] | Due: [Date] | **Care Impact:** [Clinical outcome]
+• **[PCN Action]** - Assigned to: [PCN role] | Due: [Date] | **Service Impact:** [Collaborative effect]
+
+## Critical Next Steps
+• **Immediate (This Week):** [Urgent operational or clinical tasks affecting patient services]
+• **Short-term (2-4 weeks):** [Implementation steps for service changes or practice improvements]
+• **Follow-up Required:** [Key monitoring or review points for practice management]
 
 ## Next Meeting (Only include if next meeting details are discussed)
 • **Date:** [Next meeting date if mentioned]
 • **Time:** [Next meeting time if mentioned] 
 • **Purpose:** [Key focus areas for next meeting]
+• **Practice Preparation:** [Specific items practice needs to prepare]
 
-Keep it concise but well-formatted with clear sections and proper bullet points.`,
-    maxTokens: 500
+Focus on actionable healthcare outcomes and practice operational impact. Keep concise but comprehensive for busy healthcare professionals.`,
+    maxTokens: 800
   },
   {
     type: 'executive',
@@ -216,80 +232,203 @@ Focus on extracting specific operational agreements, resource commitments, and d
   {
     type: 'very_detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create VERY DETAILED meeting minutes with exceptional formatting and comprehensive documentation. Adapt to any meeting type - business, healthcare, organizational, or personal. Include verbatim quotes where significant and full context.
+    systemPrompt: `Create COMPREHENSIVE GP/PCN Clinical Documentation with exceptional formatting and complete healthcare governance coverage. Include verbatim quotes of significant clinical discussions, full context for all healthcare decisions, and detailed clinical risk assessment.
 
 Format:
-# Very Detailed Meeting Minutes
+# Comprehensive GP/PCN Clinical Record
 
-## Meeting Details
+## Meeting Information & Healthcare Context
 • **Date:** [Full date]
-• **Time:** [Start - End time]
-• **Location/Platform:** [Details]
-• **Meeting Type:** [Format and purpose]
-• **Chair:** [Name and role]
-• **Secretary/Recorder:** [If applicable]
+• **Time:** [Start - End time with duration]
+• **Meeting Type:** [Practice Partnership/PCN Board/Clinical Governance/MDT/Quality Review]
+• **Clinical Focus Areas:** [Primary healthcare domains discussed]
+• **Chair:** [Name, role, and clinical responsibilities]
+• **Clinical Governance Lead:** [If applicable]
+• **Practice Manager:** [If present]
+• **Secretary/Minutes:** [Documentation responsibility]
 
-## Attendees
-• **[Name]** - [Role/Title] - [Present/Apologies]
-• **[Name]** - [Role/Title] - [Present/Apologies]
+## Healthcare Professional Attendees
+• **[Name]** - [GP Partner/Salaried GP/Practice Nurse/Clinical roles] - [Present/Apologies/Virtual]
+• **[Name]** - [Practice Manager/Operations/Administrative roles] - [Present/Apologies/Virtual]  
+• **[Name]** - [PCN/External healthcare roles] - [Present/Apologies/Virtual]
 
-## Comprehensive Discussion Record
-### [Topic 1] - [Time if available]
-• **Background:** [Context provided]
-• **Discussion Points:**
-  - [Speaker if known]: "[Key point or quote]"
-  - [Response or counterpoint]
-  - [Resolution or agreement reached]
-• **Outcome:** [Decision or next step]
+## COMPREHENSIVE CLINICAL & OPERATIONAL DISCUSSIONS
 
-### [Topic 2] - [Time if available]
-• **Background:** [Context]
-• **Key Arguments:**
-  - [Position 1 with supporting rationale]
-  - [Position 2 with supporting rationale]
-• **Resolution:** [How it was resolved]
+### Healthcare Service Delivery Topics
+#### [Clinical Service Topic 1] - [Time segment if available]
+• **Clinical Background:** [Patient population impact, service history, clinical evidence base]
+• **Professional Discussion Points:**
+  - **[GP/Clinical Lead if known]:** "[Verbatim clinical opinion or key clinical statement]"
+  - **Clinical Evidence Presented:** [Research, guidelines, or audit data referenced]
+  - **Patient Safety Considerations:** [Safety implications discussed]
+  - **Quality Metrics Impact:** [QOF, CQC, or performance indicator implications]
+• **Clinical Decision Rationale:** [Evidence-based reasoning for clinical pathway changes]
+• **Patient Care Outcome:** [Direct impact on patient experience, access, and clinical outcomes]
 
-## Decision Documentation
-• **[Decision 1]**
-  - **Proposed by:** [Name if known]
-  - **Discussion:** [Summary of debate]
-  - **Alternatives considered:** [Other options discussed]
-  - **Rationale:** [Why this decision was made]
-  - **Vote/Consensus:** [How decision was reached]
+#### [Operational/Business Topic 2] - [Time segment if available]  
+• **Practice Impact Context:** [Operational background, current practice position, resource implications]
+• **Professional Perspectives:**
+  - **[Practice Manager/GP Partner if known]:** "[Key operational or business perspective]"
+  - **Resource Analysis:** [Staffing, financial, or capacity implications discussed]
+  - **Implementation Challenges:** [Practical barriers and solutions identified]
+• **Partnership/PCN Implications:** [Collaborative working effects and shared service impact]
+• **Financial Sustainability Assessment:** [Long-term practice viability considerations]
 
-## Complete Action Item Registry
-• **[Detailed Action Item]**
-  - **Assigned to:** [Full name and role]
-  - **Due date:** [Specific date]
-  - **Acceptance criteria:** [What constitutes completion]
-  - **Dependencies:** [What must happen first]
-  - **Resources needed:** [Budget, people, tools]
+### Clinical Risk & Patient Safety Discussions  
+#### Clinical Governance & Safety Management
+• **Patient Safety Incidents:** [Any safety events, near misses, or learning discussed]
+• **Clinical Risk Assessment:** [Identified clinical risks and safety implications]
+• **Mitigation Strategies:** [Clinical safety measures, protocols, and monitoring agreed]
+• **Professional Development Needs:** [Training, competency, or clinical supervision requirements]
+• **CQC Compliance Implications:** [Regulatory requirements and compliance strategies]
 
-## Impact Assessment & Implementation Notes
-• **Immediate Impact:** [What changes right away]
-• **Long-term Implications:** [Future effects and considerations]
-• **Resource Requirements:** [What's needed for implementation]
-• **Stakeholder Effects:** [Who is affected and how]
+#### Professional Standards & Quality Assurance
+• **Clinical Audit Outcomes:** [Quality measurement results and improvement actions]
+• **Peer Review Processes:** [Clinical supervision, case review, or professional development]
+• **Information Governance:** [Patient data protection, confidentiality, and sharing protocols]
+• **Prescribing Safety:** [Medication management, formulary decisions, or safety protocols]
 
-## Risk Assessment & Compliance Notes
-• **Identified Risks:** [Potential issues discussed]
-• **Mitigation Strategies:** [How risks will be managed]
-• **Compliance Requirements:** [Any regulatory or policy matters]
-• **Monitoring Plans:** [How progress will be tracked]
+## DETAILED DECISION DOCUMENTATION & CLINICAL GOVERNANCE
 
-## Follow-up Requirements
-• **Next meeting (Only include if next meeting details are discussed):** [Date, time, agenda items if mentioned]
-• **Interim reporting:** [Status updates required]
-• **Review points:** [When decisions will be evaluated]
-• **Communication needs:** [Who needs to be informed of outcomes]
+### Strategic Healthcare Decisions
+• **[Major Clinical Service Decision]**
+  - **Proposed by:** [Clinical lead, practice partner, or healthcare role]
+  - **Clinical Evidence Base:** [Guidelines, research, audit data supporting decision]
+  - **Professional Discussion:** [Detailed clinical debate and professional perspectives]
+  - **Alternative Care Models Considered:** [Other clinical approaches or service models evaluated]
+  - **Clinical Risk Assessment:** [Patient safety implications and risk mitigation]
+  - **Quality Impact Analysis:** [Effects on care quality, patient outcomes, and service standards]
+  - **Professional Consensus:** [How clinical agreement was reached]
+  - **Implementation Timeline:** [Phased clinical implementation and monitoring schedule]
 
-## Additional Context & Notes
-• **Key Quotes:** [Significant verbatim statements that capture meeting essence]
-• **Unresolved Issues:** [Items requiring further discussion or clarification]
-• **Background Information:** [Relevant context that influenced decisions]
-• **Meeting Effectiveness:** [Any process observations or improvements noted]
+### Practice Partnership & Operational Decisions  
+• **[Significant Business/Operational Decision]**
+  - **Business Case Presented by:** [Practice management or partnership role]
+  - **Financial Analysis:** [Detailed cost-benefit analysis and practice sustainability impact]
+  - **Operational Discussion:** [Workflow implications, staffing effects, and service delivery changes]
+  - **Partnership Agreement Process:** [How partnership consensus was achieved]
+  - **Risk Assessment:** [Business risks, financial implications, and mitigation strategies]
+  - **Patient Service Impact:** [Direct effects on patient access, experience, and care quality]
 
-Use exceptional formatting with clear hierarchy, consistent bullet points, and bold emphasis throughout. Adapt all sections to the specific meeting context while maintaining comprehensive coverage.`,
+## COMPREHENSIVE ACTION ITEM REGISTRY & CLINICAL IMPLEMENTATION
+
+### Clinical Implementation Actions
+• **[Detailed Clinical Action Item]**
+  - **Clinical Lead Assigned:** [GP partner, clinical director, or healthcare professional]
+  - **Implementation Date:** [Specific clinical implementation timeline]
+  - **Clinical Acceptance Criteria:** [Measurable clinical outcomes and quality standards]
+  - **Patient Safety Monitoring:** [How clinical safety will be monitored and measured]
+  - **Professional Development Required:** [Training, competency, or clinical supervision needs]
+  - **Clinical Dependencies:** [Other clinical services, professionals, or resources required]
+  - **Quality Assurance Process:** [Audit, review, or monitoring methodology]
+
+### Practice Management Implementation
+• **[Operational Action Item]**
+  - **Practice Management Lead:** [Practice manager, operations lead, or administrative role]
+  - **Resource Allocation:** [Staffing, budget, equipment, or facility requirements]  
+  - **Implementation Dependencies:** [IT systems, training, policy changes required]
+  - **Performance Monitoring:** [KPIs, metrics, and review processes]
+  - **Partnership Coordination:** [Multi-practice or PCN coordination requirements]
+
+### PCN Collaborative Implementation
+• **[PCN Service Delivery Action]**
+  - **PCN Lead Responsible:** [PCN clinical director, manager, or coordination role]
+  - **Inter-Practice Coordination:** [How multiple practices will collaborate]
+  - **Shared Resource Requirements:** [Joint staffing, systems, or service provision]
+  - **Quality Standardization:** [Ensuring consistent care standards across PCN practices]
+
+## COMPREHENSIVE IMPACT ASSESSMENT & CLINICAL OUTCOMES
+
+### Patient Care & Population Health Impact
+• **Immediate Patient Experience Changes:** [Direct effects on patient access, appointment systems, and service delivery]
+• **Clinical Outcome Expectations:** [Anticipated improvements in patient care quality and health outcomes]
+• **Population Health Strategy:** [How decisions support prevention, screening, and population health management]
+• **Health Equity Considerations:** [Impact on health inequalities and vulnerable patient populations]
+• **Care Integration Enhancement:** [Improved coordination with secondary care, community services, and social care]
+
+### Professional Practice & Service Development Impact  
+• **Clinical Practice Enhancement:** [How decisions improve clinical effectiveness and professional practice]
+• **Service Innovation:** [New care models, technology adoption, or service expansion initiatives]
+• **Professional Development Outcomes:** [Enhanced clinical competencies, training programs, and career development]
+• **Research & Quality Improvement:** [Clinical audit, research participation, or quality improvement initiatives]
+
+### Practice Sustainability & Business Impact
+• **Financial Sustainability Analysis:** [Long-term practice viability and partnership financial health]
+• **Operational Efficiency Gains:** [Improved practice workflow, capacity optimization, and resource utilization]
+• **Strategic Competitive Position:** [Practice positioning, service differentiation, and market advantages]
+• **Partnership Relationship Impact:** [Effects on GP partnership dynamics and collaborative working]
+
+## CLINICAL RISK MANAGEMENT & HEALTHCARE GOVERNANCE  
+
+### Clinical Safety & Risk Assessment
+• **Clinical Risks Identified:** [Patient safety risks, clinical governance concerns, and quality threats]
+• **Professional Liability Considerations:** [Indemnity, clinical responsibility, and professional standards implications]
+• **Clinical Risk Mitigation:** [Safety protocols, clinical supervision, and risk management strategies]
+• **Incident Management Processes:** [How clinical incidents will be managed, reported, and learned from]
+• **Clinical Audit Requirements:** [Quality monitoring, clinical effectiveness measurement, and improvement cycles]
+
+### Regulatory & Compliance Management
+• **CQC Compliance Strategy:** [How decisions align with CQC requirements and inspection preparation]
+• **Clinical Governance Framework:** [Professional standards, clinical supervision, and governance structures]
+• **Information Governance Compliance:** [Patient data protection, confidentiality protocols, and GDPR alignment]
+• **Professional Registration Compliance:** [GMC, NMC, and other professional body requirements]
+• **Safeguarding & Vulnerable Patient Protection:** [Child protection, adult safeguarding, and vulnerable population care]
+
+### Quality Assurance & Performance Monitoring
+• **Clinical Quality Metrics:** [QOF indicators, clinical effectiveness measures, and patient safety metrics]
+• **Patient Experience Monitoring:** [Patient feedback systems, complaints management, and experience improvement]
+• **Professional Performance Review:** [Clinical supervision, appraisal processes, and continuous professional development]
+• **Service Quality Standards:** [Care pathway effectiveness, waiting time management, and access optimization]
+
+## COMPREHENSIVE FOLLOW-UP & CLINICAL GOVERNANCE REQUIREMENTS
+
+### Clinical Review & Monitoring Schedule
+• **Immediate Clinical Review (1-2 weeks):** [Urgent clinical safety checks, patient impact monitoring, implementation verification]
+• **Short-term Clinical Assessment (1 month):** [Clinical effectiveness measurement, patient outcome review, quality indicator monitoring]  
+• **Quarterly Clinical Governance Review:** [Comprehensive clinical audit, professional development review, strategic healthcare planning]
+• **Annual Practice Review:** [Partnership performance assessment, clinical service evaluation, strategic planning cycle]
+
+### Professional Development & Training Requirements
+• **Immediate Training Needs:** [Essential clinical competencies, safety training, regulatory compliance training]
+• **Ongoing Professional Development:** [Clinical skills enhancement, leadership development, specialty training progression]
+• **Multi-disciplinary Learning:** [Cross-professional education, team-based learning, collaborative competency development]
+• **External Professional Networks:** [PCN clinical development, specialist society involvement, research participation]
+
+### Communication & Clinical Governance Cascade
+• **Internal Clinical Communication:** [How clinical decisions will be cascaded to all clinical and administrative staff]
+• **Patient Communication Strategy:** [How service changes will be communicated to patient population]
+• **Professional Network Communication:** [Updates to PCN partners, secondary care colleagues, and external healthcare providers]
+• **Regulatory Reporting Requirements:** [CQC updates, commissioner reporting, and professional body notifications]
+
+## VERBATIM CLINICAL DISCUSSIONS & PROFESSIONAL CONTEXT
+
+### Key Clinical Quotes & Professional Perspectives
+• **Significant Clinical Statements:** "[Verbatim quotes that capture essential clinical reasoning, patient safety considerations, or professional consensus]"
+• **Professional Disagreement Resolution:** "[How clinical differences of opinion were professionally resolved]"
+• **Patient Advocacy Statements:** "[Quotes demonstrating patient-centered decision making and advocacy]"
+• **Professional Development Insights:** "[Statements about clinical learning, professional growth, and competency development]"
+
+### Unresolved Clinical Issues & Future Professional Development
+• **Complex Clinical Decisions Requiring Further Investigation:** [Clinical issues needing additional evidence, specialist consultation, or research]
+• **Professional Development Gaps:** [Clinical competency needs, training requirements, or professional support needs]
+• **Healthcare System Integration Challenges:** [Issues requiring broader healthcare system collaboration or policy development]
+• **Innovation & Research Opportunities:** [Clinical research participation, service innovation potential, and professional development opportunities]
+
+### Clinical Governance Context & Professional Standards
+• **Professional Standards Compliance:** [How decisions align with GMC, NMC, and other professional body standards]
+• **Clinical Evidence Base:** [Research evidence, clinical guidelines, and professional consensus supporting decisions]
+• **Patient Safety Culture Development:** [How decisions contribute to enhanced patient safety culture and clinical governance]
+• **Professional Team Effectiveness:** [Observations about clinical team functioning, collaborative working, and professional relationships]
+
+## NEXT CLINICAL GOVERNANCE CYCLE (Only include if next meeting details are discussed)
+• **Date:** [Next clinical governance meeting date]
+• **Time:** [Next meeting time and expected duration]
+• **Clinical Focus Areas:** [Key clinical governance items for next meeting agenda]
+• **Professional Preparation Required:** [Clinical audits, case reviews, policy development, or professional development items needed]
+• **Patient Data Requirements:** [Clinical data, patient feedback, or outcome measures to be prepared]
+• **External Professional Input:** [Specialist consultation, external review, or professional development input required]
+
+Focus on comprehensive clinical documentation, professional governance, and detailed healthcare operational context. Prioritize patient safety, clinical effectiveness, and professional development throughout all documentation. Ensure complete traceability of clinical decision-making and professional accountability.`,
     maxTokens: 4000
   },
   {
