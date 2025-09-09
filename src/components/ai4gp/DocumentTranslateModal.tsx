@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize } from 'lucide-react';
+import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -51,6 +51,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   const [editableText, setEditableText] = useState('');
   const [copied, setCopied] = useState(false);
   const [isTranslationExpanded, setIsTranslationExpanded] = useState(true);
+  const [showFullTranslation, setShowFullTranslation] = useState(false);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -145,7 +146,8 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -309,7 +311,16 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                           <h3 className="text-sm font-semibold">
                             Translation ({getLanguageName(targetLanguage)})
                           </h3>
-                          <Maximize className="h-4 w-4 text-muted-foreground" />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowFullTranslation(true);
+                            }}
+                          >
+                            <Maximize className="h-4 w-4" />
+                          </Button>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -337,11 +348,11 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="pt-0 pb-4 px-4">
-                      <div className="bg-white border rounded-lg p-4 max-h-80 overflow-y-auto">
+                      <div className="bg-gray-50 border rounded-lg p-4 max-h-60 overflow-y-auto">
                         <div className="prose prose-sm max-w-none">
-                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800">
                             {result.translatedText}
-                          </pre>
+                          </p>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-3">
@@ -362,5 +373,66 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Full Translation Modal */}
+    <Dialog open={showFullTranslation} onOpenChange={setShowFullTranslation}>
+      <DialogContent className="max-w-4xl w-[90vw] h-[90vh] max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-2 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg font-semibold">
+              Translation ({result ? getLanguageName(targetLanguage) : ''})
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => result && handleCopyText(result.translatedText)}
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowFullTranslation(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogHeader>
+        
+        <div className="flex-1 p-6 overflow-hidden">
+          <div className="h-full bg-white border rounded-lg p-6 overflow-y-auto">
+            <div className="prose prose-lg max-w-none">
+              <div className="whitespace-pre-wrap text-base leading-relaxed text-gray-900">
+                {result?.translatedText || ''}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6 pt-2 border-t bg-gray-50">
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowFullTranslation(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                handleInsertTranslation();
+                setShowFullTranslation(false);
+              }}
+            >
+              Insert into Chat
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
+
+export default DocumentTranslateModal;
