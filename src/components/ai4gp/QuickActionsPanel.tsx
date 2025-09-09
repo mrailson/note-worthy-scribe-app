@@ -19,6 +19,7 @@ interface QuickActionsPanelProps {
   onOpenAITestModal?: () => void;
   onInsertIntoChat?: (message: string) => void;
   onQuickResponse?: (response: string) => void;
+  onOpenDocumentTranslate?: () => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
@@ -28,7 +29,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   selectedRole = 'gp',
   onOpenAITestModal,
   onInsertIntoChat,
-  onQuickResponse
+  onQuickResponse,
+  onOpenDocumentTranslate
 }) => {
   const navigate = useNavigate();
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -191,6 +193,11 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 window.dispatchEvent(new CustomEvent('openDrugModal'));
               } else if (action.action === 'open-powerpoint-generator') {
                 setIsPowerPointOpen(true);
+              } else if (action.action === 'translate-document') {
+                // Trigger the document translate modal
+                if (onOpenDocumentTranslate) {
+                  onOpenDocumentTranslate();
+                }
               } else if (action.action && action.action.startsWith('open-test-transcripts')) {
                 // Navigate to test transcripts page with appropriate tab
                 const tab = action.action.replace('open-test-transcripts-', '');
@@ -241,6 +248,11 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                              window.dispatchEvent(new CustomEvent('openDrugModal'));
                            } else if (subItem.action === 'open-powerpoint-generator') {
                              setIsPowerPointOpen(true);
+                           } else if (subItem.action === 'translate-document') {
+                             // Trigger the document translate modal
+                             if (onOpenDocumentTranslate) {
+                               onOpenDocumentTranslate();
+                             }
                            } else if (subItem.action && subItem.action.startsWith('open-test-transcripts')) {
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');

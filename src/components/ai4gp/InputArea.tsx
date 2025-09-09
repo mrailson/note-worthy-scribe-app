@@ -243,7 +243,7 @@ ${pastedText.trim()}
       <DocumentTranslateModal
         isOpen={showDocumentTranslate}
         onClose={() => setShowDocumentTranslate(false)}
-        onInsertToChat={(text) => setInput(prev => prev + (prev ? '\n\n' : '') + text)}
+        onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
       />
     </div>
     </>

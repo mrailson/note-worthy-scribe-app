@@ -30,6 +30,7 @@ import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
+import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -96,6 +97,7 @@ const AI4GPService = () => {
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
   const [showQRCodeGeneratorModal, setShowQRCodeGeneratorModal] = useState(false);
   const [showVerificationChart, setShowVerificationChart] = useState(false);
+  const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
@@ -517,6 +519,7 @@ const AI4GPService = () => {
                           selectedRole={selectedRole}
                           onInsertIntoChat={setInput}
                           onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+                          onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
                         />
                         
                         {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
@@ -804,6 +807,13 @@ const AI4GPService = () => {
       <QRCodeGeneratorModal
         open={showQRCodeGeneratorModal}
         onOpenChange={setShowQRCodeGeneratorModal}
+      />
+
+      {/* Document Translation Modal */}
+      <DocumentTranslateModal
+        isOpen={showDocumentTranslate}
+        onClose={() => setShowDocumentTranslate(false)}
+        onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
       />
 
       {/* AI Model Verification Chart Modal */}
