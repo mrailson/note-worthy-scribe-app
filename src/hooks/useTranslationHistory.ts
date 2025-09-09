@@ -75,32 +75,19 @@ export const useTranslationHistory = () => {
       setLoading(true);
       setError(null);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (options.limit) params.append('limit', options.limit.toString());
-      if (options.offset) params.append('offset', options.offset.toString());
-      if (options.flagged) params.append('flagged', 'true');
-      if (options.protected) params.append('protected', 'true');
-      if (options.language) params.append('language', options.language);
-      if (options.search) params.append('search', options.search);
-
       // Call edge function with query parameters
-      const queryString = params.toString();
-      const url = queryString ? `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/load-translation-sessions?${queryString}` : `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/load-translation-sessions`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
+      const { data, error } = await supabase.functions.invoke('load-translation-sessions', {
+        body: {
+          limit: options.limit,
+          offset: options.offset,
+          flagged: options.flagged,
+          protected: options.protected,
+          language: options.language,
+          search: options.search
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      if (error) throw error;
 
       setSessions(data.sessions || []);
       setTotalCount(data.totalCount || 0);

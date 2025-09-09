@@ -25,13 +25,16 @@ serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
+    // Parse request body or use URL params
+    const body = req.method === 'POST' ? await req.json() : {}
     const url = new URL(req.url)
-    const limit = parseInt(url.searchParams.get('limit') || '50')
-    const offset = parseInt(url.searchParams.get('offset') || '0')
-    const flaggedOnly = url.searchParams.get('flagged') === 'true'
-    const protectedOnly = url.searchParams.get('protected') === 'true'
-    const language = url.searchParams.get('language')
-    const search = url.searchParams.get('search')
+    
+    const limit = parseInt(body.limit || url.searchParams.get('limit') || '50')
+    const offset = parseInt(body.offset || url.searchParams.get('offset') || '0')
+    const flaggedOnly = body.flagged || url.searchParams.get('flagged') === 'true'
+    const protectedOnly = body.protected || url.searchParams.get('protected') === 'true'
+    const language = body.language || url.searchParams.get('language')
+    const search = body.search || url.searchParams.get('search')
 
     let query = supabase
       .from('translation_sessions')
