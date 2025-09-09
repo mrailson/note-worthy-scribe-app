@@ -130,6 +130,54 @@ serve(async (req) => {
       throw new Error('Meeting ID is required');
     }
 
+    // Add retry logic for race conditions - wait a moment for the meeting to be fully committed
+    let meeting;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      // Get meeting details with retry logic
+      const { data: meetingData, error: meetingError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (meetingError) {
+        console.error('❌ Database error fetching meeting:', meetingError);
+        throw new Error(`Database error: ${meetingError.message}`);
+      }
+
+      if (meetingData) {
+        meeting = meetingData;
+        break;
+      }
+
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`⏳ Meeting not found, retrying in 2s (${retryCount}/${maxRetries})`);
+        await new Timeout(2000);
+      } else {
+        console.error('❌ Meeting not found after all retries:', meetingId);
+        throw new Error(`Meeting not found with ID: ${meetingId}`);
+      }
+    }
+
+    // Validate meeting has transcript data before proceeding
+    const { data: transcriptResult } = await supabase
+      .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+    
+    const transcriptData = transcriptResult?.[0];
+    const hasTranscript = transcriptData?.transcript && transcriptData.transcript.trim().length > 0;
+    
+    if (!hasTranscript) {
+      console.log('⚠️ Meeting found but no transcript available yet, will retry later');
+      return new Response(
+        JSON.stringify({ message: 'Meeting has no transcript yet, will retry later', skipped: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if notes already exist and we're not forcing regeneration
     if (!forceRegenerate) {
       const { data: existingSummary } = await supabase
@@ -153,23 +201,6 @@ serve(async (req) => {
       .update({ notes_generation_status: 'generating' })
       .eq('id', meetingId);
 
-    // Get meeting details and transcript
-    const { data: meeting, error: meetingError } = await supabase
-      .from('meetings')
-      .select('*')
-      .eq('id', meetingId)
-      .maybeSingle();
-
-    if (meetingError) {
-      console.error('❌ Database error fetching meeting:', meetingError);
-      throw new Error(`Database error: ${meetingError.message}`);
-    }
-
-    if (!meeting) {
-      console.error('❌ Meeting not found with ID:', meetingId);
-      throw new Error(`Meeting not found with ID: ${meetingId}`);
-    }
-
     // Get transcript using the database function that checks all possible sources
     const { data: transcriptResult, error: transcriptError } = await supabase
       .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
@@ -180,7 +211,7 @@ serve(async (req) => {
         .from('meetings')
         .update({ notes_generation_status: 'failed' })
         .eq('id', meetingId);
-      throw new Error('Failed to fetch transcript');
+      throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
     }
 
     const transcriptData = transcriptResult?.[0];
@@ -411,10 +442,12 @@ ${cleanedTranscript}`;
 
   } catch (error: any) {
     console.error('❌ Error in auto-generate-meeting-notes:', error.message);
+    console.error('❌ Full error details:', error);
     
     // Try to update status to failed if we have meetingId
     try {
-      const { meetingId } = await req.json().catch(() => ({}));
+      const requestClone = req.clone();
+      const { meetingId } = await requestClone.json().catch(() => ({}));
       if (meetingId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -422,7 +455,10 @@ ${cleanedTranscript}`;
         
         await supabase
           .from('meetings')
-          .update({ notes_generation_status: 'failed' })
+          .update({ 
+            notes_generation_status: 'failed',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', meetingId);
 
         await supabase
@@ -433,13 +469,18 @@ ${cleanedTranscript}`;
             completed_at: new Date().toISOString()
           })
           .eq('meeting_id', meetingId);
+          
+        console.log('✅ Updated meeting status to failed for:', meetingId);
       }
     } catch (updateError) {
       console.error('❌ Failed to update error status:', updateError);
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack || 'No stack trace available'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
