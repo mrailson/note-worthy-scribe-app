@@ -22,6 +22,20 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/(\d+\)\s+[^0-9]+?)(\s+\d+\)\s+)/g, '$1\n$2')
     // Ensure proper spacing for numbered items at start of lines
     .replace(/^(\d+[\.)]\s*)/gm, '\n$1')
+    
+    // Enhanced preprocessing for medical/dosing content
+    // Handle common medical sub-headings that should be on separate lines
+    .replace(/([^:\n])\s+(Adults?|Elderly|Children?|Pediatric|Initial|Maintenance|Maximum|Minimum|Loading|Hypertension|Angina|Arrhythmia|Depression|Anxiety|Diabetes|Epilepsy|Asthma|COPD):\s*/g, '$1\n- $2: ')
+    
+    // Handle inline sub-items with colons that should be separated
+    .replace(/([^:\n])\s+([A-Z][a-z]+[^:\n]*?):\s*-\s*/g, '$1\n- $2:\n  - ')
+    
+    // Fix cases where multiple bullet points are inline
+    .replace(/(-\s+[^-\n]+?)\s+(-\s+)/g, '$1\n$2')
+    
+    // Handle nested dosing patterns specifically
+    .replace(/(-\s+[^:\n]+:)\s*(-\s+[^:\n]+:)/g, '$1\n  $2')
+    
     // Clean up extra line breaks
     .replace(/\n{3,}/g, '\n\n');
   
@@ -65,12 +79,8 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Preprocess: Move inline headers to new lines
     .replace(/([^#])(#{1,6}\s+)/g, '$1\n$2')
     
-    // Fix inline sub-headings in dosing/interaction sections (multi-pass approach)
-    .replace(/(-\s+)([A-Z][^:]*:)([^-]*?)(\s+-\s+[A-Z][^:]*:)/g, '$1$2$3\n$4')
-    // Second pass to catch any remaining inline patterns
-    .replace(/(-\s+)([A-Z][^:]*:)(.{20,}?)(\s+-\s+[A-Z][^:]*:)/g, '$1$2$3\n$4')
-    // Clean up any remaining multiple inline patterns
-    .replace(/^(-\s+[A-Z][^:]*:[^-]+?)(\s+-\s+)/gm, '$1\n$2')
+    // Fix inline sub-headings in dosing/interaction sections - enhanced preprocessing handles this now
+    // The new preprocessing approach separates these properly before reaching this point
     
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
@@ -151,7 +161,11 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Convert numbered list items
     .replace(/^(\d+)[\.)]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-medium">$1.</span><span class="flex-1 leading-relaxed">$2</span></div>`)
     
+    // Convert nested bullet list items (indented with spaces)
+    .replace(/^  [-•]\s+(.+)$/gm, `<div class="flex items-start mb-1 ml-6 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-sm leading-relaxed">•</span><span class="flex-1 leading-relaxed text-sm">$1</span></div>`)
+    
     // Convert bullet list items to dashes for consistent formatting
+    .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     
     // Line breaks for paragraphs
