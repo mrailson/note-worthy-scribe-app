@@ -146,6 +146,29 @@ export const useTranslationHistory = () => {
     }
   }, [currentSessionId, loadSessions]);
 
+  // Load session details with translations
+  const loadSessionDetails = useCallback(async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('translation_sessions')
+        .select('*, translations')
+        .eq('id', sessionId)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...data,
+        translations: data.translations ? JSON.parse(String(data.translations)) : []
+      };
+
+    } catch (err: any) {
+      console.error('Error loading session details:', err);
+      toast.error('Failed to load session details');
+      throw err;
+    }
+  }, []);
+
   // Delete translation session
   const deleteSession = useCallback(async (sessionId: string) => {
     try {
@@ -271,6 +294,7 @@ export const useTranslationHistory = () => {
     currentSessionId,
     autoSaveEnabled,
     loadSessions,
+    loadSessionDetails,
     saveSession,
     deleteSession,
     updateSession,

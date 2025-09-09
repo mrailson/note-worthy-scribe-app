@@ -63,7 +63,8 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
     hasMore,
     deleteSession,
     updateSession,
-    loadSessions
+    loadSessions,
+    loadSessionDetails
   } = useTranslationHistory();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,8 +76,9 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
 
   const handleDownloadSession = async (session: TranslationSession) => {
     try {
-      // Parse the translations from the session
-      const translations: TranslationEntry[] = JSON.parse((session as any).translations || '[]');
+      // Load the full session details with translations
+      const sessionDetails = await loadSessionDetails(session.id);
+      const translations: TranslationEntry[] = sessionDetails.translations || [];
       
       // Create session metadata
       const metadata: SessionMetadata = {
@@ -402,7 +404,23 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       p-3 border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer
                       ${isCurrentSession ? 'bg-primary/5 border-primary' : 'bg-card'}
                     `}
-                    onClick={() => onSessionLoad(session.id, [], [])} // Translations will be loaded in the handler
+                    onClick={() => {
+                      // Load session details with translations and pass to parent
+                      loadSessionDetails(session.id).then(sessionDetails => {
+                        const translations = sessionDetails.translations || [];
+                        const translationScores = translations.map((t: any) => ({
+                          accuracy: t.accuracy || 100,
+                          confidence: t.confidence || 100,
+                          safetyFlag: t.safetyFlag || 'safe' as const,
+                          medicalTermsDetected: t.medicalTermsDetected || [],
+                          detectedIssues: t.detectedIssues || []
+                        }));
+                        onSessionLoad(session.id, translations, translationScores);
+                      }).catch(error => {
+                        console.error('Failed to load session:', error);
+                        toast.error('Failed to load session details');
+                      });
+                    }}
                   >
                     {/* Session Header */}
                     <div className="flex items-start justify-between mb-2">
