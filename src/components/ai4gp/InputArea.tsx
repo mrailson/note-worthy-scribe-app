@@ -180,8 +180,8 @@ ${pastedText.trim()}
             className="hidden"
           />
           
-          <div className="absolute right-3 top-3 bottom-3 flex flex-col justify-center items-center">
-            <div className="flex flex-col gap-3 items-center">
+          <div className="absolute right-3 top-4 bottom-4 flex flex-col justify-center items-center">
+            <div className="flex flex-col gap-1 items-center justify-center h-full">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
