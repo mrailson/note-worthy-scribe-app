@@ -24,8 +24,10 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState('idle');
   const [fullTranscript, setFullTranscript] = useState('');
+  const [clearClicked, setClearClicked] = useState(false);
   
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Voice command detection removed - no auto-send functionality
 
@@ -122,6 +124,24 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
   const clearTranscript = () => {
     setFullTranscript('');
     onTranscriptUpdate('');
+    setClearClicked(false);
+    if (clearTimeoutRef.current) {
+      clearTimeout(clearTimeoutRef.current);
+      clearTimeoutRef.current = null;
+    }
+  };
+
+  const handleClearClick = () => {
+    if (!clearClicked) {
+      // First click
+      setClearClicked(true);
+      clearTimeoutRef.current = setTimeout(() => {
+        setClearClicked(false);
+      }, 2000); // Reset after 2 seconds
+    } else {
+      // Second click - actually clear
+      clearTranscript();
+    }
   };
 
   const getButtonContent = () => {
@@ -144,6 +164,9 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
     return () => {
       if (transcriberRef.current) {
         transcriberRef.current.stopTranscription();
+      }
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current);
       }
     };
   }, []);
@@ -194,11 +217,12 @@ export const SimpleBrowserMic = forwardRef<SimpleBrowserMicRef, SimpleBrowserMic
       {/* Clear button */}
       {fullTranscript && (
         <Button
-          onClick={clearTranscript}
-          variant="outline"
+          onClick={handleClearClick}
+          variant={clearClicked ? "destructive" : "outline"}
           size="sm"
+          className={clearClicked ? "animate-pulse" : ""}
         >
-          Clear
+          {clearClicked ? "Click again to clear" : "Clear"}
         </Button>
       )}
       
