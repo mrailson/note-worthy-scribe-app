@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,11 +11,71 @@ interface AIVoiceButtonProps {
   disabled?: boolean;
 }
 
+interface PracticeDetails {
+  practice_name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface UserProfile {
+  full_name?: string;
+  title?: string;
+  role?: string;
+}
+
 export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, disabled }: AIVoiceButtonProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, title, role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+      }
+
+      // Fetch user's practice details
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+
+      if (userRoles?.practice_id) {
+        const { data: practice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email')
+          .eq('id', userRoles.practice_id)
+          .single();
+
+        if (practice) {
+          setPracticeDetails(practice);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -97,17 +157,25 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
 
         if (replyError) throw replyError;
 
-        // Add professional signature
+        // Create professional signature using real practice details
+        const doctorName = userProfile?.full_name || '[Doctor Name]';
+        const doctorTitle = userProfile?.title || 'Dr.';
+        const doctorRole = userProfile?.role || 'GP';
+        const practiceName = practiceDetails?.practice_name || 'NHS GP Practice';
+        const practiceAddress = practiceDetails?.address || '[Practice Address]';
+        const practicePhone = practiceDetails?.phone || '[Practice Phone]';
+        const practiceEmail = practiceDetails?.email || '[Practice Email]';
+
         const signatureText = `
 
 Kind regards,
 
-Dr. [Practice Doctor Name]
-NHS GP Practice
-123 Medical Centre, Healthcare Way
-Medical City, MC1 2AB
-Tel: 01234 567890
-Email: reception@medicalpractice.nhs.uk
+${doctorTitle} ${doctorName}
+${doctorRole}
+${practiceName}
+${practiceAddress}
+Tel: ${practicePhone}
+Email: ${practiceEmail}
 
 This email is confidential and may contain privileged information. If you are not the intended recipient, please notify the sender immediately and delete this email.`;
 

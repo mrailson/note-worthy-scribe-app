@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,19 @@ interface EmailReplyComposerProps {
   onReplyGenerated: (reply: EmailReply) => void;
 }
 
+interface PracticeDetails {
+  practice_name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface UserProfile {
+  full_name?: string;
+  title?: string;
+  role?: string;
+}
+
 export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailReplyComposerProps) => {
   const [replyMode, setReplyMode] = useState<'manual' | 'ai'>('manual');
   const [englishReply, setEnglishReply] = useState('');
@@ -40,6 +53,53 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
   const [responseGuidance, setResponseGuidance] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, title, role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+      }
+
+      // Fetch user's practice details
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+
+      if (userRoles?.practice_id) {
+        const { data: practice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email')
+          .eq('id', userRoles.practice_id)
+          .single();
+
+        if (practice) {
+          setPracticeDetails(practice);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   const generateAIReply = async () => {
     setIsGenerating(true);
@@ -57,7 +117,29 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
 
       if (error) throw error;
 
-      setEnglishReply(data.generatedReply);
+      // Create professional signature using real practice details
+      const doctorName = userProfile?.full_name || '[Doctor Name]';
+      const doctorTitle = userProfile?.title || 'Dr.';
+      const doctorRole = userProfile?.role || 'GP';
+      const practiceName = practiceDetails?.practice_name || 'NHS GP Practice';
+      const practiceAddress = practiceDetails?.address || '[Practice Address]';
+      const practicePhone = practiceDetails?.phone || '[Practice Phone]';
+      const practiceEmail = practiceDetails?.email || '[Practice Email]';
+
+      const signatureText = `
+
+Kind regards,
+
+${doctorTitle} ${doctorName}
+${doctorRole}
+${practiceName}
+${practiceAddress}
+Tel: ${practicePhone}
+Email: ${practiceEmail}
+
+This email is confidential and may contain privileged information. If you are not the intended recipient, please notify the sender immediately and delete this email.`;
+
+      setEnglishReply(data.generatedReply + signatureText);
       toast.success('AI reply generated successfully');
     } catch (error) {
       console.error('AI generation error:', error);
