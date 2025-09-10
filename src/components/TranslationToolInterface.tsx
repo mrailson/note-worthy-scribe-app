@@ -32,13 +32,15 @@ import {
   Eye,
   EyeOff,
   Database,
-  Plus
+  Plus,
+  Mail
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TranslationHistory from './TranslationHistory';
 import { TranslationHistorySidebar } from './TranslationHistorySidebar';
 import { HistoricalTranslationView } from './HistoricalTranslationView';
+import { EmailHandler } from './EmailHandler';
 import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, TranslationScore as HistoryTranslationScore } from '@/hooks/useTranslationHistory';
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
@@ -712,10 +714,14 @@ export const TranslationToolInterface = () => {
 
       {/* Main Interface Tabs */}
       <Tabs defaultValue="translate" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="translate" className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
             Live Translation
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Email Handler
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="w-4 h-4" />
@@ -1037,6 +1043,10 @@ export const TranslationToolInterface = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-6 mt-6">
+          <EmailHandler />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6 mt-6">
