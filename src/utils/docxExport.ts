@@ -30,8 +30,33 @@ export function generateDOCXContent(
 ): string {
   // Deduplicate translations based on exact timestamp to prevent duplicates in export
   const deduplicatedTranslations = translations.filter((translation, index, array) => {
-    const timestamp = translation.timestamp.getTime();
-    return array.findIndex(t => t.timestamp.getTime() === timestamp) === index;
+    // Handle all possible timestamp formats
+    let timestamp: number;
+    
+    if (typeof translation.timestamp === 'number') {
+      timestamp = translation.timestamp;
+    } else if (translation.timestamp instanceof Date) {
+      timestamp = translation.timestamp.getTime();
+    } else if (typeof translation.timestamp === 'string') {
+      timestamp = new Date(translation.timestamp).getTime();
+    } else {
+      // Use index as fallback to prevent filtering out valid entries
+      timestamp = index;
+    }
+    
+    return array.findIndex(t => {
+      let tTimestamp: number;
+      if (typeof t.timestamp === 'number') {
+        tTimestamp = t.timestamp;
+      } else if (t.timestamp instanceof Date) {
+        tTimestamp = t.timestamp.getTime();
+      } else if (typeof t.timestamp === 'string') {
+        tTimestamp = new Date(t.timestamp).getTime();
+      } else {
+        tTimestamp = array.indexOf(t);
+      }
+      return tTimestamp === timestamp;
+    }) === index;
   });
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -329,7 +354,17 @@ export function generateDOCXContent(
             return `
               <tr class="${translation.speaker === 'gp' ? 'speaker-gp' : 'speaker-patient'}">
                 <td style="text-align: center; font-weight: bold;">${index + 1}</td>
-                <td style="text-align: center;">${translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                <td style="text-align: center;">${(() => {
+                  if (typeof translation.timestamp === 'number') {
+                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                  } else if (translation.timestamp instanceof Date) {
+                    return translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                  } else if (typeof translation.timestamp === 'string') {
+                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                  } else {
+                    return 'Unknown time';
+                  }
+                })()}</td>
                 <td style="text-align: center;">${translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}</td>
                 <td>${translation.originalText}</td>
                 <td>${translation.translatedText}</td>
@@ -391,8 +426,33 @@ export async function downloadDOCX(
   try {
     // Deduplicate translations based on exact timestamp to prevent duplicates in export
     const deduplicatedTranslations = translations.filter((translation, index, array) => {
-      const timestamp = translation.timestamp.getTime();
-      return array.findIndex(t => t.timestamp.getTime() === timestamp) === index;
+      // Handle all possible timestamp formats
+      let timestamp: number;
+      
+      if (typeof translation.timestamp === 'number') {
+        timestamp = translation.timestamp;
+      } else if (translation.timestamp instanceof Date) {
+        timestamp = translation.timestamp.getTime();
+      } else if (typeof translation.timestamp === 'string') {
+        timestamp = new Date(translation.timestamp).getTime();
+      } else {
+        // Use index as fallback to prevent filtering out valid entries
+        timestamp = index;
+      }
+      
+      return array.findIndex(t => {
+        let tTimestamp: number;
+        if (typeof t.timestamp === 'number') {
+          tTimestamp = t.timestamp;
+        } else if (t.timestamp instanceof Date) {
+          tTimestamp = t.timestamp.getTime();
+        } else if (typeof t.timestamp === 'string') {
+          tTimestamp = new Date(t.timestamp).getTime();
+        } else {
+          tTimestamp = array.indexOf(t);
+        }
+        return tTimestamp === timestamp;
+      }) === index;
     });
     const formatDuration = (seconds: number) => {
       const hours = Math.floor(seconds / 3600);
@@ -559,7 +619,17 @@ export async function downloadDOCX(
               children: [new Paragraph({ children: [new TextRun(`${index + 1}`)] })]
             }),
             new TableCell({
-              children: [new Paragraph({ children: [new TextRun(translation.timestamp.toLocaleTimeString('en-GB'))] })]
+              children: [new Paragraph({ children: [new TextRun((() => {
+                if (typeof translation.timestamp === 'number') {
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                } else if (translation.timestamp instanceof Date) {
+                  return translation.timestamp.toLocaleTimeString('en-GB');
+                } else if (typeof translation.timestamp === 'string') {
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                } else {
+                  return 'Unknown time';
+                }
+              })())] })]
             }),
             new TableCell({
               children: [new Paragraph({ children: [new TextRun(translation.speaker === 'gp' ? 'GP' : 'Patient')] })]
@@ -626,7 +696,13 @@ export async function downloadDOCX(
 
     // Generate and save
     const blob = await Packer.toBlob(doc);
-    const filename = `NHS_Translation_Report_${metadata.sessionDate.toISOString().split('T')[0]}_${metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-')}.docx`;
+    const filename = `NHS_Translation_Report_${metadata.sessionDate.toISOString().split('T')[0]}_${(() => {
+      if (metadata.sessionStart instanceof Date) {
+        return metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-');
+      } else {
+        return new Date().toLocaleTimeString('en-GB').replace(/:/g, '-');
+      }
+    })()}.docx`;
     saveAs(blob, filename);
     
   } catch (error) {
