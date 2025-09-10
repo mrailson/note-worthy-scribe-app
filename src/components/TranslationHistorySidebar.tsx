@@ -42,6 +42,7 @@ import { format } from 'date-fns';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { TranslationScore } from '@/utils/translationScoring';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TranslationHistorySidebarProps {
@@ -55,6 +56,7 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   onClose,
   currentSessionId
 }) => {
+  const navigate = useNavigate();
   const {
     sessions,
     loading,
@@ -574,32 +576,18 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                           {/* Debug load button with session ID */}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  console.log('🔍 DIRECT: Loading session:', session.id);
-                                  
-                                  loadSessionDetails(session.id).then(sessionDetails => {
-                                    const translations = sessionDetails.translations || [];
-                                    const translationScores = translations.map((t: any) => ({
-                                      accuracy: t.accuracy || 100,
-                                      confidence: t.confidence || 100,
-                                      safetyFlag: t.safetyFlag || 'safe' as const,
-                                      medicalTermsDetected: t.medicalTermsDetected || [],
-                                      detectedIssues: t.detectedIssues || []
-                                    }));
-                                    onSessionLoad(session.id, translations, translationScores);
-                                  }).catch(error => {
-                                    console.error('Failed to load session:', error);
-                                    toast.error('Failed to load session');
-                                  });
-                                }}
-                                className="h-6 px-2 text-xs"
-                              >
-                                #{session.id.substring(0, 8)}
-                              </Button>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   console.log('🔗 Navigating to session:', session.id);
+                                   navigate(`/translation-tool/${session.id}`);
+                                 }}
+                                 className="h-6 px-2 text-xs"
+                               >
+                                 #{session.id.substring(0, 8)}
+                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Direct load: {session.id}</TooltipContent>
                           </Tooltip>

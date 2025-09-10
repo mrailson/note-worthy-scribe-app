@@ -96,6 +96,7 @@ const App = () => (
             <Route path="/assemblyai-test-simple" element={<AssemblyAITestSimple />} />
             <Route path="/transcription-comparison" element={<TranscriptionComparison />} />
             <Route path="/translation-tool" element={<TranslationTool />} />
+            <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             

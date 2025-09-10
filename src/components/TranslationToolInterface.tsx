@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useConversation } from '@11labs/react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,7 @@ export const TranslationToolInterface = () => {
     sessionMetadata: any;
   } | null>(null);
   const conversationIdRef = useRef<string | null>(null);
+  const { sessionId } = useParams();
 
   // Translation history hook
   const {
@@ -702,6 +704,37 @@ export const TranslationToolInterface = () => {
       setHasPermission(result.state === 'granted');
     });
   }, []);
+
+  // Load specific session from URL parameter
+  useEffect(() => {
+    if (sessionId && loadSessionDetails) {
+      console.log('🔗 Loading session from URL:', sessionId);
+      
+      loadSessionDetails(sessionId).then(sessionDetails => {
+        const translations = sessionDetails.translations || [];
+        const translationScores = translations.map((t: any) => ({
+          accuracy: t.accuracy || 100,
+          confidence: t.confidence || 100,
+          safetyFlag: t.safetyFlag || 'safe' as const,
+          medicalTermsDetected: t.medicalTermsDetected || [],
+          detectedIssues: t.detectedIssues || []
+        }));
+
+        setSelectedHistoricalSession({
+          sessionId,
+          sessionTitle: sessionDetails.session_title || `Session ${sessionId.substring(0, 8)}`,
+          translations,
+          translationScores,
+          sessionMetadata: sessionDetails
+        });
+        setShowHistoricalView(true);
+        toast.success('Session loaded from URL');
+      }).catch(error => {
+        console.error('Failed to load session from URL:', error);
+        toast.error('Failed to load session');
+      });
+    }
+  }, [sessionId, loadSessionDetails]);
 
   const getBadgeVariant = (score: QualityScore) => {
     if (score.overallSafety === 'OK') return 'default';
