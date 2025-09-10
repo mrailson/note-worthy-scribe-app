@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Zap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface AIVoiceButtonProps {
   onAIReply: (generatedReply: string) => void;
@@ -16,42 +17,26 @@ interface PracticeDetails {
   address?: string;
   phone?: string;
   email?: string;
-}
-
-interface UserProfile {
-  full_name?: string;
-  title?: string;
-  role?: string;
+  letter_signature?: string;
 }
 
 export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, disabled }: AIVoiceButtonProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const { profile } = useUserProfile();
 
   useEffect(() => {
-    fetchUserData();
+    fetchPracticeDetails();
   }, []);
 
-  const fetchUserData = async () => {
+  const fetchPracticeDetails = async () => {
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Fetch user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, title, role')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profile) {
-        setUserProfile(profile);
-      }
 
       // Fetch user's practice details
       const { data: userRoles } = await supabase
@@ -64,7 +49,7 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
       if (userRoles?.practice_id) {
         const { data: practice } = await supabase
           .from('practice_details')
-          .select('practice_name, address, phone, email')
+          .select('practice_name, address, phone, email, letter_signature')
           .eq('id', userRoles.practice_id)
           .single();
 
@@ -73,7 +58,7 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
         }
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error fetching practice details:', error);
     }
   };
 
@@ -157,27 +142,32 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
 
         if (replyError) throw replyError;
 
-        // Create professional signature using real practice details
-        const doctorName = userProfile?.full_name || '[Doctor Name]';
-        const doctorTitle = userProfile?.title || 'Dr.';
-        const doctorRole = userProfile?.role || 'GP';
+        // Create professional signature using real user and practice details
+        const doctorName = profile?.full_name || 'Doctor';
+        const doctorTitle = profile?.title || 'Dr.';
         const practiceName = practiceDetails?.practice_name || 'NHS GP Practice';
         const practiceAddress = practiceDetails?.address || '[Practice Address]';
         const practicePhone = practiceDetails?.phone || '[Practice Phone]';
         const practiceEmail = practiceDetails?.email || '[Practice Email]';
 
-        const signatureText = `
+        // Use existing letter signature if available, otherwise create one
+        let signatureText;
+        if (practiceDetails?.letter_signature) {
+          // Remove HTML tags from the letter signature and format it
+          signatureText = `\n\n${practiceDetails.letter_signature.replace(/<[^>]*>/g, '')}\n${practiceName}\n${practiceAddress}\nTel: ${practicePhone}\nEmail: ${practiceEmail}\n\nThis email is confidential and may contain privileged information. If you are not the intended recipient, please notify the sender immediately and delete this email.`;
+        } else {
+          signatureText = `
 
 Kind regards,
 
 ${doctorTitle} ${doctorName}
-${doctorRole}
 ${practiceName}
 ${practiceAddress}
 Tel: ${practicePhone}
 Email: ${practiceEmail}
 
 This email is confidential and may contain privileged information. If you are not the intended recipient, please notify the sender immediately and delete this email.`;
+        }
 
         const fullReply = replyData.generatedReply + signatureText;
         onAIReply(fullReply);

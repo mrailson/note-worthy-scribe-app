@@ -17,6 +17,8 @@ export interface UserProfile {
   display_name?: string | null; // Optional for backwards compatibility
   show_ai_service?: boolean;
   northamptonshire_icb_active?: boolean;
+  title?: string | null;
+  role?: string | null;
 }
 
 export function useUserProfile() {
@@ -84,7 +86,7 @@ export function useUserProfile() {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active'>>) => {
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active' | 'title' | 'role'>>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
