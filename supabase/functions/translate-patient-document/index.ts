@@ -113,6 +113,7 @@ Translate ALL the values in the JSON structure to ${targetLanguage}. Keep the pr
 
     const data = await response.json();
     console.log('OpenAI response received');
+    console.log('Full OpenAI response:', JSON.stringify(data, null, 2));
 
     if (!data.choices || data.choices.length === 0) {
       throw new Error('No translation received from OpenAI');
@@ -140,6 +141,7 @@ Translate ALL the values in the JSON structure to ${targetLanguage}. Keep the pr
     }
 
     console.log('Successfully translated patient document');
+    console.log('Final parsed result:', JSON.stringify(parsedTranslation, null, 2));
 
     return new Response(JSON.stringify({ 
       success: true, 
