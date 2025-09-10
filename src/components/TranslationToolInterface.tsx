@@ -1020,6 +1020,19 @@ export const TranslationToolInterface = () => {
     return 'destructive';
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'bg-green-100 border-green-300 text-green-800';
+    if (score >= 80) return 'bg-green-50 border-green-200 text-green-700';
+    if (score >= 70) return 'bg-orange-50 border-orange-200 text-orange-700';
+    return 'bg-red-50 border-red-200 text-red-700';
+  };
+
+  const getBadgeColor = (score: QualityScore) => {
+    if (score.overallSafety === 'OK') return 'bg-green-500 hover:bg-green-600 text-white border-green-500';
+    if (score.overallSafety === 'REVIEW') return 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500';
+    return 'bg-red-500 hover:bg-red-600 text-white border-red-500';
+  };
+
   const getQualityIcon = (score: QualityScore) => {
     if (score.overallSafety === 'OK') return <CircleCheck className="h-3 w-3 mr-1" />;
     if (score.overallSafety === 'REVIEW') return <AlertTriangle className="h-3 w-3 mr-1" />;
@@ -1199,8 +1212,7 @@ export const TranslationToolInterface = () => {
                     <Building2 className="h-5 w-5 text-primary" />
                     Translation Quality - {qualityScore.targetLanguage}
                     <Badge 
-                      variant={getBadgeVariant(qualityScore)} 
-                      className="text-xs flex items-center"
+                      className={`text-xs flex items-center ${getBadgeColor(qualityScore)}`}
                     >
                       {getQualityIcon(qualityScore)}
                       {qualityScore.overallSafety}
@@ -1219,37 +1231,37 @@ export const TranslationToolInterface = () => {
                 <div className="space-y-3">
                   {/* Quick Quality Indicators */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div className={`text-center p-2 rounded ${qualityScore.accuracy < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
-                      <div className={`text-xs ${qualityScore.accuracy < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Accuracy</div>
-                      <div className="font-bold text-sm">{qualityScore.accuracy}%</div>
+                    <div className={`text-center p-3 rounded border ${getScoreColor(qualityScore.accuracy)}`}>
+                      <div className="text-xs font-medium">Accuracy</div>
+                      <div className="font-bold text-lg">{qualityScore.accuracy}%</div>
                     </div>
-                    <div className={`text-center p-2 rounded ${qualityScore.medicalSafety < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
-                      <div className={`text-xs ${qualityScore.medicalSafety < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Safety</div>
-                      <div className="font-bold text-sm">{qualityScore.medicalSafety}%</div>
+                    <div className={`text-center p-3 rounded border ${getScoreColor(qualityScore.medicalSafety)}`}>
+                      <div className="text-xs font-medium">Safety</div>
+                      <div className="font-bold text-lg">{qualityScore.medicalSafety}%</div>
                     </div>
-                    <div className={`text-center p-2 rounded ${qualityScore.clarity < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
-                      <div className={`text-xs ${qualityScore.clarity < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Clarity</div>
-                      <div className="font-bold text-sm">{qualityScore.clarity}%</div>
+                    <div className={`text-center p-3 rounded border ${getScoreColor(qualityScore.clarity)}`}>
+                      <div className="text-xs font-medium">Clarity</div>
+                      <div className="font-bold text-lg">{qualityScore.clarity}%</div>
                     </div>
-                    <div className={`text-center p-2 rounded ${qualityScore.confidence < 70 ? 'bg-red-500 text-white' : 'bg-muted/50'}`}>
-                      <div className={`text-xs ${qualityScore.confidence < 70 ? 'text-red-100' : 'text-muted-foreground'}`}>Confidence</div>
-                      <div className="font-bold text-sm">{qualityScore.confidence}%</div>
+                    <div className={`text-center p-3 rounded border ${getScoreColor(qualityScore.confidence)}`}>
+                      <div className="text-xs font-medium">Confidence</div>
+                      <div className="font-bold text-lg">{qualityScore.confidence}%</div>
                     </div>
                   </div>
 
                   <Collapsible open={isQualityDetailsOpen} onOpenChange={setIsQualityDetailsOpen}>
                     <CollapsibleContent className="space-y-3">
                       {/* Translation Details */}
-                      <div className="space-y-2 p-3 rounded border bg-muted/20">
+                      <div className="space-y-3 p-4 rounded border bg-muted/20">
                         <div>
-                          <span className="text-xs font-medium text-muted-foreground">Original ({qualityScore.sourceLanguage}):</span>
-                          <div className="text-sm mt-1 p-2 rounded bg-background border">
+                          <span className="text-sm font-medium text-muted-foreground">Original ({qualityScore.sourceLanguage}):</span>
+                          <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.originalPhrase}
                           </div>
                         </div>
                         <div>
-                          <span className="text-xs font-medium text-muted-foreground">Translation ({qualityScore.targetLanguage}):</span>
-                          <div className="text-sm mt-1 p-2 rounded bg-background border">
+                          <span className="text-sm font-medium text-muted-foreground">Translation ({qualityScore.targetLanguage}):</span>
+                          <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.translatedPhrase}
                           </div>
                         </div>
@@ -1270,7 +1282,7 @@ export const TranslationToolInterface = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-medium">Overall Assessment:</span>
-                            <Badge variant={getBadgeVariant(qualityScore)} className="text-xs">
+                            <Badge className={`text-xs ${getBadgeColor(qualityScore)}`}>
                               {qualityScore.overallSafety}
                             </Badge>
                           </div>
