@@ -101,6 +101,7 @@ export const TranslationToolInterface = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showHistoricalView, setShowHistoricalView] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [selectedHistoricalSession, setSelectedHistoricalSession] = useState<{
     sessionId: string;
     sessionTitle: string;
@@ -1036,67 +1037,76 @@ export const TranslationToolInterface = () => {
 
           {/* User Guide Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                How to Use This Service
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Reception Staff Guide */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-600" />
-                    For Reception Staff
-                  </h3>
-                  <ul className="text-sm space-y-2 text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">1.</span>
-                      Press "Start Translation Service" button above
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">2.</span>
-                      Speak clearly in English to schedule appointments
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">3.</span>
-                      AI translates your words into patient's language
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">4.</span>
-                      Patient responds in their language, AI translates to English
-                    </li>
-                  </ul>
-                </div>
+            <Collapsible open={isGuideOpen} onOpenChange={setIsGuideOpen}>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      How to Use This Service
+                    </div>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isGuideOpen ? 'rotate-180' : ''}`} />
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Reception Staff Guide */}
+                    <div className="space-y-3">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        For Reception Staff
+                      </h3>
+                      <ul className="text-sm space-y-2 text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">1.</span>
+                          Press "Start Translation Service" button above
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">2.</span>
+                          Speak clearly in English to schedule appointments
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">3.</span>
+                          AI translates your words into patient's language
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">4.</span>
+                          Patient responds in their language, AI translates to English
+                        </li>
+                      </ul>
+                    </div>
 
-                {/* Clinical Staff Guide */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Stethoscope className="h-4 w-4 text-green-600" />
-                    For Clinical Staff
-                  </h3>
-                  <ul className="text-sm space-y-2 text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">1.</span>
-                      Use during consultations for real-time translation
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">2.</span>
-                      Medical terms are translated with clinical accuracy
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">3.</span>
-                      Quality verification ensures patient safety
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary font-bold">4.</span>
-                      All translations are logged for clinical governance
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
+                    {/* Clinical Staff Guide */}
+                    <div className="space-y-3">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4 text-green-600" />
+                        For Clinical Staff
+                      </h3>
+                      <ul className="text-sm space-y-2 text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">1.</span>
+                          Use during consultations for real-time translation
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">2.</span>
+                          Medical terms are translated with clinical accuracy
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">3.</span>
+                          Quality verification ensures patient safety
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary font-bold">4.</span>
+                          All translations are logged for clinical governance
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
 
           {/* Service Information */}
