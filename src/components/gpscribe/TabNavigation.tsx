@@ -7,7 +7,8 @@ import {
   Lightbulb, 
   Settings, 
   History,
-  BookOpen
+  BookOpen,
+  Mail
 } from "lucide-react";
 
 interface TabNavigationProps {
@@ -21,13 +22,14 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
     { id: "consultation" as ActiveTab, label: "Consultation", icon: Stethoscope },
     { id: "summary" as ActiveTab, label: "Summary", icon: FileText },
     { id: "examples" as ActiveTab, label: "Examples", icon: BookOpen },
+    { id: "ai4gp" as ActiveTab, label: "Document & Email Translation", icon: Mail },
     { id: "history" as ActiveTab, label: "History", icon: History },
     { id: "settings" as ActiveTab, label: "Settings", icon: Settings }
   ];
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

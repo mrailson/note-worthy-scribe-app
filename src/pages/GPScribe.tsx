@@ -42,6 +42,7 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
+import { UnifiedDocumentEmailInterface } from "@/components/UnifiedDocumentEmailInterface";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 import { DualRecordingControls } from '@/components/DualRecordingControls';
@@ -545,6 +546,13 @@ const Index = () => {
           <TabsContent value="history" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
             <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <ConsultationHistory />
+            </div>
+          </TabsContent>
+
+          {/* Document & Email Translation Tab */}
+          <TabsContent value="ai4gp" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
+              <UnifiedDocumentEmailInterface />
             </div>
           </TabsContent>
 
