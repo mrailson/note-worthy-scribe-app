@@ -715,6 +715,14 @@ export const TranslationToolInterface = () => {
     return <XCircle className="h-3 w-3 mr-1" />;
   };
 
+  // Debug the rendering condition
+  console.log('🔍 Render check:', {
+    showHistoricalView,
+    hasSelectedSession: !!selectedHistoricalSession,
+    sessionId: selectedHistoricalSession?.sessionId,
+    translationsCount: selectedHistoricalSession?.translations?.length
+  });
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Show Historical Translation View or Main Interface */}
