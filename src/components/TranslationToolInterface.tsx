@@ -819,7 +819,7 @@ export const TranslationToolInterface = () => {
       setError(null);
       
       conversationIdRef.current = `translation_${Date.now()}`;
-      setQualityScore(null);
+      // Don't clear quality score on connection - only on manual reset
       setConversationBuffer([]);
       
       // Enhanced audio setup to prevent cutouts
