@@ -76,10 +76,19 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
 
   const handleDownloadSession = async (session: TranslationSession) => {
     try {
-      // Load the full session details with translations
-      const sessionDetails = await loadSessionDetails(session.id);
-      const translations: TranslationEntry[] = sessionDetails.translations || [];
+      // Try to load session details, but fallback to session data if it fails
+      let translations: TranslationEntry[] = [];
+      let sessionDetails;
       
+      try {
+        sessionDetails = await loadSessionDetails(session.id);
+        translations = sessionDetails.translations || [];
+      } catch (loadError) {
+        console.warn('Could not load detailed session data, using basic session info:', loadError);
+        // Create a basic translation entry when detailed data isn't available
+        translations = [];
+      }
+
       // Create session metadata
       const metadata: SessionMetadata = {
         sessionDate: new Date(session.created_at),
@@ -102,6 +111,19 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
         issues: (t as any).detectedIssues || [],
         detectedIssues: (t as any).detectedIssues || []
       }));
+
+      // If no translations available, create a basic document with session info
+      if (translations.length === 0) {
+        translations = [{
+          id: '1',
+          speaker: 'gp' as const,
+          originalText: 'Session summary not available - detailed translations could not be loaded',
+          translatedText: 'Resumen de la sesión no disponible - no se pudieron cargar las traducciones detalladas',
+          originalLanguage: 'English',
+          targetLanguage: session.patient_language || 'Spanish',
+          timestamp: new Date(session.session_start)
+        }];
+      }
 
       await downloadDOCX(translations, metadata, translationScores);
       toast.success('Session report downloaded successfully');
