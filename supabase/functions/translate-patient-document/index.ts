@@ -63,6 +63,7 @@ serve(async (req) => {
     "address": "${practiceInfo.address}",
     "phone": "${practiceInfo.phone || ''}"
   },
+  "practiceInfoHeader": "Practice Information",
   "generalLabels": {
     "reportGenerated": "Report Generated",
     "sessionDate": "Session Date", 

@@ -512,7 +512,7 @@ export async function downloadDOCX(
       // Practice Information (if available)
       ...(metadata.practiceInfo ? [
         new Paragraph({
-          children: [new TextRun({ text: "Practice Information", bold: true, size: 28, color: "005EB8" })],
+          children: [new TextRun({ text: translatedContent?.practiceInfoHeader || "Practice Information", bold: true, size: 28, color: "005EB8" })],
           heading: HeadingLevel.HEADING_2
         }),
         new Paragraph({ children: [new TextRun(`Practice: ${metadata.practiceInfo.name}`)] }),

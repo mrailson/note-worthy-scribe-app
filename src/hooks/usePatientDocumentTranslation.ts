@@ -34,22 +34,23 @@ interface TranslatedContent {
     address: string;
     phone: string;
   };
-    generalLabels: {
-      reportGenerated: string;
-      sessionDate: string;
-      sessionStart: string;
-      sessionEnd: string;
-      duration: string;
-      patientLanguage: string;
-      totalTranslations: string;
-      time: string;
-      speaker: string;
-      originalText: string;
-      translation: string;
-    };
-    patientInfoText: string;
-    disclaimerText: string;
-    reportGeneratedBy: string;
+  practiceInfoHeader: string;
+  generalLabels: {
+    reportGenerated: string;
+    sessionDate: string;
+    sessionStart: string;
+    sessionEnd: string;
+    duration: string;
+    patientLanguage: string;
+    totalTranslations: string;
+    time: string;
+    speaker: string;
+    originalText: string;
+    translation: string;
+  };
+  patientInfoText: string;
+  disclaimerText: string;
+  reportGeneratedBy: string;
 }
 
 export const usePatientDocumentTranslation = () => {
@@ -80,6 +81,7 @@ export const usePatientDocumentTranslation = () => {
           address: practiceInfo.address,
           phone: practiceInfo.phone || ''
         },
+        practiceInfoHeader: "Practice Information",
         generalLabels: {
           reportGenerated: "Report Generated",
           sessionDate: "Session Date",
@@ -158,6 +160,7 @@ export const usePatientDocumentTranslation = () => {
           address: practiceInfo.address,
           phone: practiceInfo.phone || ''
         },
+        practiceInfoHeader: "Practice Information",
         generalLabels: {
           reportGenerated: "Report Generated",
           sessionDate: "Session Date",
