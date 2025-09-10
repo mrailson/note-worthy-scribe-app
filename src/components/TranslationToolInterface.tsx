@@ -1248,41 +1248,45 @@ export const TranslationToolInterface = () => {
                       <Eye className="h-6 w-6" />
                       {currentTranslation ? 'Show Translation' : 'No Translation Yet'}
                     </Button>
-                    
-                    {/* Reset Memory Button */}
-                    <Button
-                      onClick={handleResetClick}
-                      variant={resetClickCount === 1 ? "default" : "outline"}
-                      size="lg"
-                      className={`flex items-center gap-3 px-6 py-4 text-lg font-semibold border-2 transition-all duration-200 ${
-                        resetClickCount === 1 
-                          ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500 animate-pulse' 
-                          : 'hover:bg-orange-50 border-orange-200'
-                      }`}
-                      disabled={isResetting}
-                    >
-                      {isResetting ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-5 w-5" />
-                      )}
-                      {resetClickCount === 1 ? 'Click Again to Reset' : 'Reset Memory'}
-                    </Button>
                   </div>
                 ) : (
-                  <Button
-                    onClick={startTranslationService}
-                    disabled={isLoading}
-                    size="lg"
-                    className="flex items-center gap-3 px-12 py-6 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-7 w-7 animate-spin" />
-                    ) : (
-                      <Phone className="h-7 w-7" />
+                  <div className="flex flex-col items-center gap-4">
+                    <Button
+                      onClick={startTranslationService}
+                      disabled={isLoading}
+                      size="lg"
+                      className="flex items-center gap-3 px-12 py-6 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-7 w-7 animate-spin" />
+                      ) : (
+                        <Phone className="h-7 w-7" />
+                      )}
+                      Start Translation Service
+                    </Button>
+                    
+                    {/* Reset Button - Only show after a call has ended and there's memory to clear */}
+                    {(qualityScore || currentTranslation || conversationBuffer.length > 0) && (
+                      <Button
+                        onClick={handleResetClick}
+                        variant={resetClickCount === 1 ? "default" : "outline"}
+                        size="sm"
+                        className={`flex items-center gap-2 px-4 py-2 transition-all duration-200 ${
+                          resetClickCount === 1 
+                            ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500 animate-pulse' 
+                            : 'hover:bg-orange-50 border-orange-200 text-muted-foreground'
+                        }`}
+                        disabled={isResetting}
+                      >
+                        {isResetting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4" />
+                        )}
+                        {resetClickCount === 1 ? 'Click Again to Reset' : 'Reset'}
+                      </Button>
                     )}
-                    Start Translation Service
-                  </Button>
+                  </div>
                 )}
               </div>
 
