@@ -17,13 +17,25 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const authHeader = req.headers.get('Authorization')!
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header provided')
+    }
+
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user } } = await supabase.auth.getUser(token)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError) {
+      console.error('Auth error:', authError)
+      throw new Error(`Authentication failed: ${authError.message}`)
+    }
 
     if (!user) {
       throw new Error('User not authenticated')
     }
+
+    console.log('User authenticated:', user.id)
 
     // Parse request body or use URL params
     const body = req.method === 'POST' ? await req.json() : {}

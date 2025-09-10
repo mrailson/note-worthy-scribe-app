@@ -149,22 +149,41 @@ export const useTranslationHistory = () => {
   // Load session details with translations
   const loadSessionDetails = useCallback(async (sessionId: string) => {
     try {
+      console.log('Loading session details for:', sessionId);
+      
       const { data, error } = await supabase
         .from('translation_sessions')
         .select('*, translations')
         .eq('id', sessionId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error loading session:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Session not found');
+      }
+
+      console.log('Session loaded:', {
+        id: data.id,
+        title: data.session_title,
+        totalTranslations: data.total_translations,
+        translationsDataLength: data.translations ? JSON.stringify(data.translations).length : 0
+      });
+
+      const translations = data.translations ? JSON.parse(String(data.translations)) : [];
+      console.log('Parsed translations count:', translations.length);
 
       return {
         ...data,
-        translations: data.translations ? JSON.parse(String(data.translations)) : []
+        translations
       };
 
     } catch (err: any) {
-      console.error('Error loading session details:', err);
-      toast.error('Failed to load session details');
+      console.error('Error loading session details for session', sessionId, ':', err);
+      toast.error(`Failed to load session details: ${err.message}`);
       throw err;
     }
   }, []);

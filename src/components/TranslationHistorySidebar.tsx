@@ -427,9 +427,30 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       ${isCurrentSession ? 'bg-primary/5 border-primary' : 'bg-card'}
                     `}
                     onClick={() => {
+                      console.log('Session clicked:', {
+                        id: session.id,
+                        title: session.session_title,
+                        totalTranslations: session.total_translations
+                      });
+                      
                       // Load session details with translations and pass to parent
                       loadSessionDetails(session.id).then(sessionDetails => {
                         const translations = sessionDetails.translations || [];
+                        console.log('Loaded session details:', {
+                          sessionId: session.id,
+                          loadedTranslationsCount: translations.length,
+                          expectedCount: session.total_translations
+                        });
+                        
+                        if (translations.length !== session.total_translations) {
+                          console.warn('Translation count mismatch!', {
+                            expected: session.total_translations,
+                            actual: translations.length,
+                            sessionId: session.id
+                          });
+                          toast.warning(`Translation count mismatch: expected ${session.total_translations}, got ${translations.length}`);
+                        }
+                        
                         const translationScores = translations.map((t: any) => ({
                           accuracy: t.accuracy || 100,
                           confidence: t.confidence || 100,
@@ -440,7 +461,7 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                         onSessionLoad(session.id, translations, translationScores);
                       }).catch(error => {
                         console.error('Failed to load session:', error);
-                        toast.error('Failed to load session details');
+                        toast.error(`Failed to load session details: ${error.message || 'Unknown error'}`);
                       });
                     }}
                   >
