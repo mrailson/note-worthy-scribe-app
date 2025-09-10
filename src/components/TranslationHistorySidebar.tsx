@@ -75,6 +75,7 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   const [selectedLanguage, setSelectedLanguage] = useState('all');
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [isClearingAll, setIsClearingAll] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const handleDownloadSession = async (session: TranslationSession) => {
     try {
@@ -201,15 +202,20 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   }, [sessions, searchQuery, showFlaggedOnly, showProtectedOnly, selectedLanguage]);
 
   const handleDeleteSession = async (sessionId: string, sessionTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${sessionTitle}"?`)) {
-      setDeletingSessionId(sessionId);
-      try {
-        await deleteSession(sessionId);
-      } catch (error) {
-        // Error already handled in hook
-      } finally {
-        setDeletingSessionId(null);
-      }
+    setSessionToDelete({ id: sessionId, title: sessionTitle });
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    
+    setDeletingSessionId(sessionToDelete.id);
+    try {
+      await deleteSession(sessionToDelete.id);
+    } catch (error) {
+      // Error already handled in hook
+    } finally {
+      setDeletingSessionId(null);
+      setSessionToDelete(null);
     }
   };
 
@@ -388,6 +394,45 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
           </AlertDialog>
         </div>
       </div>
+
+      {/* Delete Session Confirmation Dialog */}
+      <AlertDialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Translation Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{sessionToDelete?.title}"?
+              
+              <div className="mt-4 p-3 bg-muted rounded-md">
+                <div className="text-sm text-muted-foreground">
+                  This will permanently delete all translations and data from this session.
+                </div>
+              </div>
+              
+              <p className="mt-4 text-sm text-muted-foreground">
+                This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSession}
+              disabled={!!deletingSessionId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingSessionId ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Session'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
