@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TranslationHistory from './TranslationHistory';
 import { TranslationHistorySidebar } from './TranslationHistorySidebar';
+import { HistoricalTranslationView } from './HistoricalTranslationView';
 import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, TranslationScore as HistoryTranslationScore } from '@/hooks/useTranslationHistory';
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
@@ -94,6 +95,14 @@ export const TranslationToolInterface = () => {
   const [isTranslationModalOpen, setIsTranslationModalOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+  const [showHistoricalView, setShowHistoricalView] = useState(false);
+  const [selectedHistoricalSession, setSelectedHistoricalSession] = useState<{
+    sessionId: string;
+    sessionTitle: string;
+    translations: TranslationEntry[];
+    translationScores: any[];
+    sessionMetadata: any;
+  } | null>(null);
   const conversationIdRef = useRef<string | null>(null);
 
   // Translation history hook
@@ -104,7 +113,8 @@ export const TranslationToolInterface = () => {
     saveSession,
     startNewSession,
     enableAutoSave,
-    disableAutoSave
+    disableAutoSave,
+    loadSessionDetails
   } = useTranslationHistory();
 
   // Helper function to extract language and clean text from language tags
@@ -191,18 +201,46 @@ export const TranslationToolInterface = () => {
   // Load session from history
   const handleSessionLoad = async (sessionId: string, sessionTranslations: any[], sessionScores: any[]) => {
     try {
-      // For now, just show a message that the full session loading will be implemented
       toast.info('Loading historical session...');
       
-      // Close the history sidebar
-      setShowHistorySidebar(false);
+      // Load full session details
+      const sessionDetails = await loadSessionDetails(sessionId);
       
-      // Future: Load full session data including translations and scores
-      console.log('Loading session:', sessionId);
+      if (sessionDetails) {
+        // Close the history sidebar
+        setShowHistorySidebar(false);
+        
+        // Prepare the session data for the historical view
+        const metadata = sessionDetails.session_metadata as any;
+        const sessionMetadata = {
+          sessionStart: new Date(sessionDetails.session_start),
+          sessionEnd: sessionDetails.session_end ? new Date(sessionDetails.session_end) : undefined,
+          patientLanguage: sessionDetails.patient_language || 'Unknown',
+          totalTranslations: sessionDetails.total_translations || sessionTranslations.length,
+          averageAccuracy: metadata?.averageAccuracy || 0,
+          averageConfidence: metadata?.averageConfidence || 0,
+          overallSafetyRating: metadata?.overallSafetyRating || 'safe',
+          safeCount: metadata?.safeCount || 0,
+          warningCount: metadata?.warningCount || 0,
+          unsafeCount: metadata?.unsafeCount || 0,
+          sessionDuration: metadata?.sessionDuration
+        };
+
+        setSelectedHistoricalSession({
+          sessionId,
+          sessionTitle: sessionDetails.session_title || `Session ${new Date(sessionDetails.session_start).toLocaleDateString()}`,
+          translations: sessionTranslations,
+          translationScores: sessionScores,
+          sessionMetadata
+        });
+        
+        setShowHistoricalView(true);
+        toast.success('Historical session loaded successfully');
+      }
       
     } catch (error) {
       console.error('Error loading session:', error);
-      toast.error('Failed to load session');
+      toast.error('Failed to load session details');
     }
   };
 
@@ -604,18 +642,33 @@ export const TranslationToolInterface = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header Card */}
-      <Card className="bg-primary text-primary-foreground">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
-            <Languages className="h-8 w-8" />
-            NHS Translation Service for GP Practices
-          </CardTitle>
-          <p className="text-xl text-primary-foreground/90 mt-2">
-            Real-time medical translation for Reception & Clinical Staff
-          </p>
-        </CardHeader>
-      </Card>
+      {/* Show Historical Translation View or Main Interface */}
+      {showHistoricalView && selectedHistoricalSession ? (
+        <HistoricalTranslationView
+          sessionId={selectedHistoricalSession.sessionId}
+          sessionTitle={selectedHistoricalSession.sessionTitle}
+          translations={selectedHistoricalSession.translations}
+          translationScores={selectedHistoricalSession.translationScores}
+          sessionMetadata={selectedHistoricalSession.sessionMetadata}
+          onBack={() => {
+            setShowHistoricalView(false);
+            setSelectedHistoricalSession(null);
+          }}
+        />
+      ) : (
+        <>
+          {/* Header Card */}
+          <Card className="bg-primary text-primary-foreground">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
+                <Languages className="h-8 w-8" />
+                NHS Translation Service for GP Practices
+              </CardTitle>
+              <p className="text-xl text-primary-foreground/90 mt-2">
+                Real-time medical translation for Reception & Clinical Staff
+              </p>
+            </CardHeader>
+          </Card>
 
       {/* Main Interface Tabs */}
       <Tabs defaultValue="translate" className="w-full">
@@ -1011,7 +1064,9 @@ export const TranslationToolInterface = () => {
           )}
         </TabsContent>
       </Tabs>
-
+      </>
+      )}
+      
       {/* Translation Display Modal - Large Text for Patients */}
       <Dialog open={isTranslationModalOpen} onOpenChange={setIsTranslationModalOpen}>
         <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto">
