@@ -11,6 +11,11 @@ interface PresentationRequest {
   presentationType: string;
   slideCount?: number;
   complexityLevel?: string;
+  supportingFiles?: {
+    name: string;
+    content: string;
+    type: string;
+  }[];
 }
 
 interface SlideContent {
@@ -37,9 +42,9 @@ serve(async (req) => {
       throw new Error('Claude API key not configured');
     }
 
-    const { topic, presentationType, slideCount = 10, complexityLevel = 'intermediate' }: PresentationRequest = await req.json();
+    const { topic, presentationType, slideCount = 10, complexityLevel = 'intermediate', supportingFiles = [] }: PresentationRequest = await req.json();
 
-    console.log(`Generating PowerPoint for topic: ${topic}, type: ${presentationType}`);
+    console.log(`Generating PowerPoint for topic: ${topic}, type: ${presentationType}, with ${supportingFiles.length} supporting files`);
 
     // Define presentation-specific prompts
     const typePrompts = {
@@ -54,6 +59,16 @@ serve(async (req) => {
     };
 
     const specificPrompt = typePrompts[presentationType as keyof typeof typePrompts] || typePrompts['Custom Topic'];
+
+    // Process supporting files content
+    let supportingContext = '';
+    if (supportingFiles.length > 0) {
+      supportingContext = '\n\nSUPPORTING DOCUMENTS CONTEXT:\n';
+      supportingFiles.forEach((file, index) => {
+        supportingContext += `\n=== Document ${index + 1}: ${file.name} ===\n${file.content}\n`;
+      });
+      supportingContext += '\nPlease incorporate relevant information from these supporting documents into the presentation content where appropriate.\n';
+    }
 
     // Generate presentation content using Claude
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -72,7 +87,7 @@ serve(async (req) => {
           
           Topic: "${topic}"
           Complexity Level: ${complexityLevel}
-          Target Slide Count: ${slideCount}
+          Target Slide Count: ${slideCount}${supportingContext}
           
           IMPORTANT: Use British English throughout all content, including:
           - British spelling (organisation, realise, colour, centre, etc.)

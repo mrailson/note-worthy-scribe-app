@@ -8,9 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle, Mic, FileUp, ChevronDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { SimpleFileUpload } from "@/components/SimpleFileUpload";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { UploadedFile } from "@/types/ai4gp";
 import PptxGenJS from "pptxgenjs";
 
 interface PowerPointGeneratorProps {
@@ -68,6 +73,9 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
   const [editingSlide, setEditingSlide] = useState<SlideContent | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const { processFiles, isProcessing } = useFileUpload();
 
   const resetState = () => {
     setCurrentStep('input');
@@ -81,6 +89,8 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setMetadata(null);
     setEditingSlideIndex(null);
     setEditingSlide(null);
+    setUploadedFiles([]);
+    setShowFileUpload(false);
   };
 
   const handleClose = (newOpen: boolean) => {
@@ -88,6 +98,26 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       resetState();
     }
     onOpenChange(newOpen);
+  };
+
+  const handleVoiceTranscription = (transcription: string) => {
+    setTopic(transcription);
+    toast.success("Voice transcription completed!");
+  };
+
+  const handleFileUpload = async (files: File[]) => {
+    try {
+      const fileList = new DataTransfer();
+      files.forEach(file => fileList.items.add(file));
+      const processedFiles = await processFiles(fileList.files);
+      setUploadedFiles(prev => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const generatePresentation = async () => {
@@ -111,7 +141,12 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           topic,
           presentationType,
           slideCount,
-          complexityLevel
+          complexityLevel,
+          supportingFiles: uploadedFiles.map(file => ({
+            name: file.name,
+            content: file.content,
+            type: file.type
+          }))
         }
       });
 
@@ -239,13 +274,71 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     <div className="space-y-6">
       <div className="space-y-2">
         <label className="text-sm font-medium">Presentation Topic</label>
-        <Textarea
-          placeholder="Enter your presentation topic (e.g., 'Diabetes Management in Primary Care', 'New NHS Quality Standards')"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          className="min-h-[100px]"
-        />
+        <div className="relative">
+          <Textarea
+            placeholder="Enter your presentation topic (e.g., 'Diabetes Management in Primary Care', 'New NHS Quality Standards')"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="min-h-[100px] pr-12"
+          />
+          <div className="absolute top-2 right-2">
+            <VoiceRecorder 
+              onTranscription={handleVoiceTranscription}
+              disabled={isProcessing}
+            />
+          </div>
+        </div>
       </div>
+
+      <Collapsible open={showFileUpload} onOpenChange={setShowFileUpload}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            <div className="flex items-center gap-2">
+              <FileUp className="w-4 h-4" />
+              Add Supporting Files ({uploadedFiles.length})
+            </div>
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 mt-4">
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Upload documents to provide additional context for your presentation (PDF, Word, Excel, Images, Text files)
+            </div>
+            
+            <SimpleFileUpload
+              onFileUpload={handleFileUpload}
+              accept=".pdf,.docx,.xlsx,.txt,.png,.jpg,.jpeg,.gif"
+              maxSize={10}
+              multiple
+            />
+            
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Uploaded Files:</div>
+                <div className="space-y-1">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{file.name}</span>
+                        <span className="text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
