@@ -34,7 +34,8 @@ import {
   EyeOff,
   Database,
   Plus,
-  Mail
+  Mail,
+  Shield
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -1205,6 +1206,10 @@ export const TranslationToolInterface = () => {
                 <Languages className="w-8 h-8 text-primary" />
                 Live Translation Display
               </span>
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
+                <Shield className="w-4 h-4" />
+                NHS Verified
+              </Badge>
             </DialogTitle>
           </DialogHeader>
 
