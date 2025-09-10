@@ -57,10 +57,20 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   const deduplicatedTranslations = React.useMemo(() => {
     const seen = new Set();
     return translations.filter(translation => {
-      // Handle both Date objects and number timestamps
-      const timestamp = typeof translation.timestamp === 'number' 
-        ? translation.timestamp 
-        : translation.timestamp.getTime();
+      // Handle all possible timestamp formats
+      let timestamp: number;
+      
+      if (typeof translation.timestamp === 'number') {
+        timestamp = translation.timestamp;
+      } else if (translation.timestamp instanceof Date) {
+        timestamp = translation.timestamp.getTime();
+      } else if (typeof translation.timestamp === 'string') {
+        timestamp = new Date(translation.timestamp).getTime();
+      } else {
+        // Fallback for any other type - use current time or index
+        timestamp = Date.now() + Math.random();
+      }
+      
       if (seen.has(timestamp)) {
         return false;
       }
@@ -289,9 +299,17 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                               #{index + 1} {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              {typeof translation.timestamp === 'number' 
-                                ? new Date(translation.timestamp).toLocaleTimeString() 
-                                : translation.timestamp.toLocaleTimeString()}
+                              {(() => {
+                                if (typeof translation.timestamp === 'number') {
+                                  return new Date(translation.timestamp).toLocaleTimeString();
+                                } else if (translation.timestamp instanceof Date) {
+                                  return translation.timestamp.toLocaleTimeString();
+                                } else if (typeof translation.timestamp === 'string') {
+                                  return new Date(translation.timestamp).toLocaleTimeString();
+                                } else {
+                                  return 'Unknown time';
+                                }
+                              })()}
                             </span>
                             {score && score.accuracy !== undefined && (
                               <Badge className={getAccuracyColor(score.accuracy)}>
