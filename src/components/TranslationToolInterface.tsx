@@ -560,6 +560,11 @@ export const TranslationToolInterface = () => {
       conversationIdRef.current = `translation_${Date.now()}`;
       setQualityScore(null);
       setConversationBuffer([]);
+      
+      // Set volume to ensure audio is audible after connection
+      setTimeout(() => {
+        conversation.setVolume({ volume: 0.8 });
+      }, 100);
     },
     onDisconnect: () => {
       console.log('Disconnected from NHS Translation Service');
@@ -674,10 +679,17 @@ export const TranslationToolInterface = () => {
       }
 
       console.log('Starting translation service with signed URL:', signedUrl);
+      
+      // Add a small delay to ensure microphone is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const conversationId = await conversation.startSession({ 
         agentId: 'agent_01jws2qhv2essav25m8cfq2h0v',  // Language Support Agent
         signedUrl
       });
+      
+      // Add a small delay after starting the session to ensure connection is stable
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log('Translation service started successfully:', conversationId);
       
