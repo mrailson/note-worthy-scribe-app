@@ -707,11 +707,17 @@ export const TranslationToolInterface = () => {
 
   // Load specific session from URL parameter
   useEffect(() => {
+    console.log('🔗 URL_EFFECT: sessionId from URL:', sessionId);
+    console.log('🔗 URL_EFFECT: loadSessionDetails available:', !!loadSessionDetails);
+    
     if (sessionId && loadSessionDetails) {
-      console.log('🔗 Loading session from URL:', sessionId);
+      console.log('🔗 URL_EFFECT: Loading session from URL:', sessionId);
       
       loadSessionDetails(sessionId).then(sessionDetails => {
+        console.log('🔗 URL_EFFECT: Session details loaded:', sessionDetails);
         const translations = sessionDetails.translations || [];
+        console.log('🔗 URL_EFFECT: Number of translations:', translations.length);
+        
         const translationScores = translations.map((t: any) => ({
           accuracy: t.accuracy || 100,
           confidence: t.confidence || 100,
@@ -728,11 +734,14 @@ export const TranslationToolInterface = () => {
           sessionMetadata: sessionDetails
         });
         setShowHistoricalView(true);
-        toast.success('Session loaded from URL');
+        console.log('🔗 URL_EFFECT: Historical view should now show');
+        toast.success(`Session ${sessionId.substring(0, 8)} loaded from URL`);
       }).catch(error => {
-        console.error('Failed to load session from URL:', error);
+        console.error('🔗 URL_EFFECT: Failed to load session from URL:', error);
         toast.error('Failed to load session');
       });
+    } else if (!sessionId) {
+      console.log('🔗 URL_EFFECT: No sessionId in URL, staying on main page');
     }
   }, [sessionId, loadSessionDetails]);
 
