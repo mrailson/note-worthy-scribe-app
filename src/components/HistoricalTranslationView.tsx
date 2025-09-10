@@ -145,6 +145,35 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
     }
   };
 
+  const handlePatientExport = async () => {
+    try {
+      const metadata: SessionMetadata = {
+        sessionDate: sessionMetadata.sessionStart,
+        sessionStart: sessionMetadata.sessionStart,
+        sessionEnd: sessionMetadata.sessionEnd || new Date(),
+        patientLanguage: sessionMetadata.patientLanguage,
+        totalTranslations: sessionMetadata.totalTranslations,
+        sessionDuration: sessionMetadata.sessionDuration || 0,
+        overallSafetyRating: sessionMetadata.overallSafetyRating,
+        averageAccuracy: sessionMetadata.averageAccuracy,
+        averageConfidence: sessionMetadata.averageConfidence
+      };
+
+      // Filter out technical scores and details for patient copy
+      const patientFriendlyScores = translationScores.map(score => ({
+        ...score,
+        issues: [], // Remove technical issues from patient copy
+        medicalTermsDetected: [] // Remove medical terms analysis from patient copy
+      }));
+
+      await downloadDOCX(deduplicatedTranslations, metadata, patientFriendlyScores, true);
+      toast.success('Patient copy exported successfully');
+    } catch (error) {
+      console.error('Patient export error:', error);
+      toast.error('Failed to export patient copy');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Back Button */}
@@ -169,14 +198,24 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                 <p className="text-sm text-muted-foreground mt-1">Historical Translation Session</p>
               </div>
             </div>
-            <Button
-              onClick={handleExportDOCX}
-              variant="default"
-              size="sm"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export to DOCX
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportDOCX}
+                variant="default"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                GP Export
+              </Button>
+              <Button
+                onClick={handlePatientExport}
+                variant="outline"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Patient Copy
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>

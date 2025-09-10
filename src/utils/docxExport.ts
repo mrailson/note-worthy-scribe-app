@@ -421,7 +421,8 @@ export function generateDOCXContent(
 export async function downloadDOCX(
   translations: TranslationEntry[],
   metadata: SessionMetadata,
-  translationScores: TranslationScore[]
+  translationScores: TranslationScore[],
+  isPatientCopy: boolean = false
 ): Promise<void> {
   try {
     // Deduplicate translations based on exact timestamp to prevent duplicates in export
@@ -475,7 +476,7 @@ export async function downloadDOCX(
       new Paragraph({
         children: [
           new TextRun({
-            text: "NHS Translation Service Report",
+            text: isPatientCopy ? "NHS Translation Service - Patient Copy" : "NHS Translation Service Report",
             bold: true,
             size: 32,
             color: "005EB8"
@@ -488,7 +489,9 @@ export async function downloadDOCX(
       new Paragraph({
         children: [
           new TextRun({
-            text: "Automated Translation Session Documentation",
+            text: isPatientCopy 
+              ? "Summary of Translation Session for Your Records" 
+              : "Automated Translation Session Documentation",
             size: 24,
             color: "666666"
           })
@@ -511,61 +514,82 @@ export async function downloadDOCX(
       new Paragraph({ children: [new TextRun(`Duration: ${formatDuration(metadata.sessionDuration)}`)] }),
       new Paragraph({ children: [new TextRun(`Patient Language: ${metadata.patientLanguage}`)] }),
       new Paragraph({ children: [new TextRun(`Total Translations: ${metadata.totalTranslations}`)] }),
-      new Paragraph({ children: [new TextRun(`Average Accuracy: ${metadata.averageAccuracy}%`)] }),
+      ...(isPatientCopy ? [] : [
+        new Paragraph({ children: [new TextRun(`Average Accuracy: ${metadata.averageAccuracy}%`)] })
+      ]),
       
       new Paragraph({ text: "" }), // Empty line
-      
-      // Safety Assessment
-      new Paragraph({
-        children: [new TextRun({ text: "Safety Assessment", bold: true, size: 28, color: "005EB8" })],
-        heading: HeadingLevel.HEADING_2
-      }),
-      
-      new Paragraph({
-        children: [
-          new TextRun("Overall Safety Rating: "),
-          new TextRun({ 
-            text: sessionAssessment.overallRating.toUpperCase(), 
-            bold: true,
-            color: sessionAssessment.overallRating === 'safe' ? '28a745' : sessionAssessment.overallRating === 'warning' ? 'ffc107' : 'dc3545'
-          })
-        ]
-      }),
-      
-      new Paragraph({
-        children: [new TextRun(`Based on translation accuracy, confidence scores, and medical terminology detection, this session has been rated as ${sessionAssessment.overallRating} for clinical communication purposes.`)]
-      }),
     ];
 
-    // Add risk factors if any
-    if (sessionAssessment.riskFactors.length > 0) {
+    // Add patient-friendly note for patient copies
+    if (isPatientCopy) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: "Patient Information", bold: true, size: 28, color: "005EB8" })],
+          heading: HeadingLevel.HEADING_2
+        }),
+        new Paragraph({
+          children: [new TextRun("This document contains a record of all translations made during your medical consultation. This is provided for your personal records and reference.")]
+        }),
+        new Paragraph({ text: "" })
+      );
+    }
+
+    // Add safety assessment, risk factors, and recommendations only for GP reports
+    if (!isPatientCopy) {
+      children.push(
+        // Safety Assessment
+        new Paragraph({
+          children: [new TextRun({ text: "Safety Assessment", bold: true, size: 28, color: "005EB8" })],
+          heading: HeadingLevel.HEADING_2
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun("Overall Safety Rating: "),
+            new TextRun({ 
+              text: sessionAssessment.overallRating.toUpperCase(), 
+              bold: true,
+              color: sessionAssessment.overallRating === 'safe' ? '28a745' : sessionAssessment.overallRating === 'warning' ? 'ffc107' : 'dc3545'
+            })
+          ]
+        }),
+        
+        new Paragraph({
+          children: [new TextRun(`Based on translation accuracy, confidence scores, and medical terminology detection, this session has been rated as ${sessionAssessment.overallRating} for clinical communication purposes.`)]
+        })
+      );
+
+      // Add risk factors if any
+      if (sessionAssessment.riskFactors.length > 0) {
+        children.push(
+          new Paragraph({ text: "" }),
+          new Paragraph({
+            children: [new TextRun({ text: "Risk Factors Identified:", bold: true, color: "dc3545" })]
+          }),
+          ...sessionAssessment.riskFactors.map(factor => 
+            new Paragraph({
+              children: [new TextRun(`• ${factor}`)],
+              indent: { left: 720 }
+            })
+          )
+        );
+      }
+
+      // Add recommendations
       children.push(
         new Paragraph({ text: "" }),
         new Paragraph({
-          children: [new TextRun({ text: "Risk Factors Identified:", bold: true, color: "dc3545" })]
+          children: [new TextRun({ text: "Recommendations:", bold: true, color: "005EB8" })]
         }),
-        ...sessionAssessment.riskFactors.map(factor => 
+        ...sessionAssessment.recommendations.map(rec => 
           new Paragraph({
-            children: [new TextRun(`• ${factor}`)],
+            children: [new TextRun(`• ${rec}`)],
             indent: { left: 720 }
           })
         )
       );
     }
-
-    // Add recommendations
-    children.push(
-      new Paragraph({ text: "" }),
-      new Paragraph({
-        children: [new TextRun({ text: "Recommendations:", bold: true, color: "005EB8" })]
-      }),
-      ...sessionAssessment.recommendations.map(rec => 
-        new Paragraph({
-          children: [new TextRun(`• ${rec}`)],
-          indent: { left: 720 }
-        })
-      )
-    );
 
     // Translation Log Header
     children.push(
@@ -576,10 +600,31 @@ export async function downloadDOCX(
       })
     );
 
-    // Create translation log table
+    // Create translation log table - different columns for patient vs GP reports
     const tableRows = [
       new TableRow({
-        children: [
+        children: isPatientCopy ? [
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true })] })],
+            width: { size: 8, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Time", bold: true })] })],
+            width: { size: 12, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Speaker", bold: true })] })],
+            width: { size: 15, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Original Text", bold: true })] })],
+            width: { size: 32, type: WidthType.PERCENTAGE }
+          }),
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: "Translation", bold: true })] })],
+            width: { size: 33, type: WidthType.PERCENTAGE }
+          })
+        ] : [
           new TableCell({
             children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true })] })],
             width: { size: 5, type: WidthType.PERCENTAGE }
@@ -614,7 +659,33 @@ export async function downloadDOCX(
       ...deduplicatedTranslations.map((translation, index) => {
         const score = translationScores[index];
         return new TableRow({
-          children: [
+          children: isPatientCopy ? [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(`${index + 1}`)] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun((() => {
+                if (typeof translation.timestamp === 'number') {
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                } else if (translation.timestamp instanceof Date) {
+                  return translation.timestamp.toLocaleTimeString('en-GB');
+                } else if (typeof translation.timestamp === 'string') {
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                } else {
+                  return 'Unknown time';
+                }
+              })())] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.speaker === 'gp' ? 'GP' : 'Patient')] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.originalText)] })]
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun(translation.translatedText)] })]
+            })
+          ] : [
             new TableCell({
               children: [new Paragraph({ children: [new TextRun(`${index + 1}`)] })]
             }),
@@ -696,7 +767,8 @@ export async function downloadDOCX(
 
     // Generate and save
     const blob = await Packer.toBlob(doc);
-    const filename = `NHS_Translation_Report_${metadata.sessionDate.toISOString().split('T')[0]}_${(() => {
+    const filePrefix = isPatientCopy ? "NHS_Translation_Patient_Copy" : "NHS_Translation_Report";
+    const filename = `${filePrefix}_${metadata.sessionDate.toISOString().split('T')[0]}_${(() => {
       if (metadata.sessionStart instanceof Date) {
         return metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-');
       } else {
