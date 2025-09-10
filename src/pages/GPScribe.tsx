@@ -56,6 +56,9 @@ const Index = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   
+  // Patient language state
+  const [patientLanguage, setPatientLanguage] = useState('english');
+  
   // Use extracted hooks
   const recording = useGPScribeRecording();
   const translation = useTranslationService();
@@ -156,7 +159,8 @@ const Index = () => {
       settings.showSnomedCodes,
       settings.formatForEmis,
       settings.formatForSystmOne,
-      settings.consultationType
+      settings.consultationType,
+      patientLanguage // Add patient language parameter
     );
   };
 
@@ -514,6 +518,7 @@ const Index = () => {
               editContent={documents.editContent}
               expandDialog={expandDialog}
               recordingDuration={recording.formatDuration(recording.duration)}
+              patientLanguage={patientLanguage}
               onGenerateSummary={handleGenerateSummary}
               onGenerateReferralLetter={handleGenerateReferralLetter}
               onStartEdit={documents.startEdit}
@@ -525,6 +530,7 @@ const Index = () => {
               onExpandContent={handleExpandContent}
               onCloseExpandDialog={handleCloseExpandDialog}
               onUpdateMainSummary={handleUpdateMainSummary}
+              onPatientLanguageChange={setPatientLanguage}
             />
           </TabsContent>
 

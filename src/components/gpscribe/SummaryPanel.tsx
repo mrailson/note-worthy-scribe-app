@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 import { supabase } from "@/integrations/supabase/client";
+import { PatientLanguageSelector } from "@/components/PatientLanguageSelector";
 
 interface SummaryPanelProps {
   transcript: string;
@@ -32,6 +33,7 @@ interface SummaryPanelProps {
   editContent: EditContent;
   expandDialog: ExpandDialog;
   recordingDuration?: string;
+  patientLanguage?: string;
   onGenerateSummary: () => void;
   onGenerateReferralLetter: () => void;
   onStartEdit: (field: keyof EditStates) => void;
@@ -44,6 +46,7 @@ interface SummaryPanelProps {
   onCloseExpandDialog: () => void;
   onUpdateMainSummary?: (content: string, isStandardDetail: boolean) => void;
   onGeneratePatientEmail?: () => void;
+  onPatientLanguageChange?: (language: string) => void;
 }
 
 export const SummaryPanel = ({
@@ -60,6 +63,7 @@ export const SummaryPanel = ({
   editContent,
   expandDialog,
   recordingDuration,
+  patientLanguage = 'english',
   onGenerateSummary,
   onGenerateReferralLetter,
   onStartEdit,
@@ -70,7 +74,8 @@ export const SummaryPanel = ({
   onExportWord,
   onExpandContent,
   onCloseExpandDialog,
-  onUpdateMainSummary
+  onUpdateMainSummary,
+  onPatientLanguageChange
 }: SummaryPanelProps) => {
   const [activeSubTab, setActiveSubTab] = useState("summary");
   const [showTranscript, setShowTranscript] = useState(false);
@@ -637,10 +642,17 @@ export const SummaryPanel = ({
 
             <TabsContent value="patient" className="space-y-4">
               <div className="space-y-4">
+                {/* Patient Language Selector */}
+                <PatientLanguageSelector
+                  selectedLanguage={patientLanguage}
+                  onLanguageChange={onPatientLanguageChange || (() => {})}
+                  className="mb-4"
+                />
+                
                 <div className="grid grid-cols-2 gap-4">
                   <Button variant="outline" className="justify-start">
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    SMS (50 words)
+                    {patientLanguage !== 'english' ? 'Bilingual SMS' : 'SMS (50 words)'}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -655,7 +667,12 @@ export const SummaryPanel = ({
                 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-primary">SMS Short Summary</h4>
+                    <h4 className="text-sm font-medium text-primary">
+                      {patientLanguage !== 'english' 
+                        ? `Bilingual Summary (${patientLanguage.charAt(0).toUpperCase() + patientLanguage.slice(1)} + English)`
+                        : 'SMS Short Summary'
+                      }
+                    </h4>
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -664,11 +681,26 @@ export const SummaryPanel = ({
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Maximum 50 words for text message</p>
-                  <div className="p-3 bg-muted/50 rounded border text-sm">
-                    {patientCopy || "Hi, thank you for your consultation. You have a common cold (viral upper respiratory tract infection). Contact us with any concerns."}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Word count: 21 words</p>
+                  {patientLanguage !== 'english' ? (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Two-page format: Page 1 in {patientLanguage.charAt(0).toUpperCase() + patientLanguage.slice(1)}, Page 2 in English
+                      </p>
+                      <div className="p-4 bg-muted/30 rounded-lg border max-h-96 overflow-y-auto">
+                        <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                          {patientCopy || `Patient copy will be generated in both ${patientLanguage.charAt(0).toUpperCase() + patientLanguage.slice(1)} and English when you generate consultation notes.`}
+                        </pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Maximum 50 words for text message</p>
+                      <div className="p-3 bg-muted/50 rounded border text-sm">
+                        {patientCopy || "Hi, thank you for your consultation. You have a common cold (viral upper respiratory tract infection). Contact us with any concerns."}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Word count: {patientCopy ? patientCopy.split(' ').length : 21} words</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Patient Email Format */}

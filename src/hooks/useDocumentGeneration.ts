@@ -37,7 +37,8 @@ export const useDocumentGeneration = () => {
     showSnomedCodes: boolean,
     formatForEmis: boolean,
     formatForSystmOne: boolean,
-    consultationType?: string
+    consultationType?: string,
+    patientLanguage?: string
   ) => {
     if (!transcript.trim()) {
       toast.error("No transcript available for summary generation");
@@ -47,19 +48,22 @@ export const useDocumentGeneration = () => {
     try {
       setIsGenerating(true);
       
-      const { data, error } = await supabase.functions.invoke('generate-dual-consultation-summary', {
+      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
         body: { 
           transcript: transcript.trim(),
-          consultationType 
+          outputLevel,
+          showSnomedCodes,
+          formatForEmis,
+          formatForSystmOne,
+          consultationType,
+          patientLanguage: patientLanguage || 'english'
         }
       });
 
       if (error) throw error;
 
-      setGpShorthand(data.gpShorthand || "");
-      setStandardDetail(data.standardDetail || "");
-      setGpSummary(data.fullContent || "");
-      setFullNote(data.fullContent || "");
+      setGpSummary(data.gpSummary || "");
+      setFullNote(data.fullNote || "");
       setPatientCopy(data.patientCopy || "");
       setTraineeFeedback(data.traineeFeedback || "");
 

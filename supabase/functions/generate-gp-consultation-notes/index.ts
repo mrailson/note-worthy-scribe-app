@@ -21,6 +21,7 @@ interface RequestBody {
   userId?: string;
   noteFormat?: 'heidi' | 'soap';
   useGPShorthand?: boolean;
+  patientLanguage?: string; // New field for patient's primary language
 }
 
 const getStyleInstructions = (level: number, showSnomed: boolean, formatEmis: boolean, formatSystm: boolean) => {
@@ -73,7 +74,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, consultationType, userId, noteFormat = 'heidi', useGPShorthand = false }: RequestBody = await req.json();
+    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, consultationType, userId, noteFormat = 'heidi', useGPShorthand = false, patientLanguage }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
@@ -276,7 +277,10 @@ ${formatForSystmOne ? 'Use SystmOne compatible abbreviations.' : ''}`
     const fullNoteData = await fullNoteResponse.json();
     const fullNote = fullNoteData.choices[0].message.content;
 
-    // Generate Patient Copy
+    // Generate Bilingual Patient Copy (Patient's Language + English)
+    let patientCopy = "";
+    
+    // First generate English patient copy
     const patientCopyResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -307,7 +311,67 @@ Use clear, non-medical language that patients can easily understand.`
     });
 
     const patientCopyData = await patientCopyResponse.json();
-    const patientCopy = patientCopyData.choices[0].message.content;
+    const englishPatientCopy = patientCopyData.choices[0].message.content;
+    
+    // If patient language is specified and not English, create bilingual version
+    if (patientLanguage && patientLanguage.toLowerCase() !== 'english' && patientLanguage.toLowerCase() !== 'en') {
+      console.log(`🌍 Generating bilingual patient copy for language: ${patientLanguage}`);
+      
+      // Translate the English version to patient's language
+      const translateResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional medical translator. Translate the following patient consultation summary into ${patientLanguage}. 
+              
+CRITICAL REQUIREMENTS:
+- Maintain medical accuracy while using patient-friendly language
+- Preserve all important medical information
+- Use culturally appropriate expressions
+- Keep the same structure and formatting
+- Ensure the translation is suitable for patients and families to understand`
+            },
+            {
+              role: 'user',
+              content: `Please translate this patient consultation summary into ${patientLanguage}:\n\n${englishPatientCopy}`
+            }
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      const translateData = await translateResponse.json();
+      const translatedPatientCopy = translateData.choices[0].message.content;
+      
+      // Create bilingual patient copy with clear page separation
+      patientCopy = `==================== PAGE 1 - ${patientLanguage.toUpperCase()} VERSION ====================
+
+${translatedPatientCopy}
+
+
+==================== PAGE 2 - ENGLISH VERSION ====================
+
+${englishPatientCopy}
+
+
+==================== BILINGUAL CONSULTATION SUMMARY ====================
+Generated: ${new Date().toLocaleDateString()}
+Patient Language: ${patientLanguage}
+Both versions contain the same medical information for your reference.`;
+      
+      console.log(`✅ Bilingual patient copy generated successfully`);
+    } else {
+      // English only version
+      patientCopy = englishPatientCopy;
+      console.log(`✅ English-only patient copy generated`);
+    }
 
     // Generate Trainee Feedback (if requested at level 4 or 5)
     let traineeFeedback = "";
