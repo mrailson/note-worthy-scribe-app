@@ -56,30 +56,8 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
 
   const { translatePatientDocument, isTranslating } = usePatientDocumentTranslation();
 
-  // Debug logging to see what translations are being received
-  React.useEffect(() => {
-    console.log('🔍 HistoricalTranslationView received data:', {
-      sessionId,
-      sessionTitle,
-      translationsCount: translations.length,
-      translationsPreview: translations.slice(0, 2).map(t => ({
-        id: t.id,
-        speaker: t.speaker,
-        originalText: t.originalText?.substring(0, 30) + '...',
-        translatedText: t.translatedText?.substring(0, 30) + '...',
-        timestamp: t.timestamp
-      })),
-      sessionMetadata: {
-        patientLanguage: sessionMetadata.patientLanguage,
-        totalTranslations: sessionMetadata.totalTranslations
-      }
-    });
-  }, [sessionId, sessionTitle, translations, sessionMetadata]);
-
   // Deduplicate translations based on exact timestamp to prevent duplicates
   const deduplicatedTranslations = React.useMemo(() => {
-    console.log('🔍 Before deduplication:', translations.length, 'translations');
-    
     const seen = new Set();
     const result = translations.filter(translation => {
       // Handle all possible timestamp formats
@@ -97,14 +75,12 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
       }
       
       if (seen.has(timestamp)) {
-        console.log('🔍 Duplicate timestamp detected, filtering out:', timestamp, translation.originalText?.substring(0, 30));
         return false;
       }
       seen.add(timestamp);
       return true;
     });
     
-    console.log('🔍 After deduplication:', result.length, 'translations');
     return result;
   }, [translations]);
 
