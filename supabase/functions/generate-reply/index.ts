@@ -64,7 +64,7 @@ Guidelines:
 - Use appropriate administrative terminology (avoid clinical terms unless explicitly mentioned)
 - Maintain patient confidentiality at all times
 - Be clear and actionable for administrative matters only
-- If uncertain about medical content, defer to clinical staff review
+- If uncertain about medical content, defer to clinical staff review`;
 
     let userPrompt;
     if (mode === 'improve' && draftText) {
