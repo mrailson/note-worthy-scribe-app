@@ -42,6 +42,7 @@ import { HistoricalTranslationView } from './HistoricalTranslationView';
 import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, TranslationScore as HistoryTranslationScore } from '@/hooks/useTranslationHistory';
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
+import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
 
 interface QualityScore {
   accuracy: number;
@@ -402,6 +403,45 @@ export const TranslationToolInterface = () => {
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export translation history');
+    }
+  };
+
+  const handlePatientExportDOCX = async () => {
+    try {
+      const sessionEnd = new Date();
+      const sessionDuration = Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000);
+      
+      // Detect the most common patient language
+      const patientLanguages = translations
+        .filter(t => t.speaker === 'patient')
+        .map(t => t.targetLanguage);
+      
+      const languageCount: { [key: string]: number } = {};
+      patientLanguages.forEach(lang => {
+        languageCount[lang] = (languageCount[lang] || 0) + 1;
+      });
+      
+      const primaryPatientLanguage = Object.entries(languageCount)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'English';
+
+      const metadata: PatientSessionMetadata = {
+        sessionDate: sessionStart,
+        sessionStart,
+        sessionEnd,
+        patientLanguage: primaryPatientLanguage,
+        totalTranslations: translations.length,
+        sessionDuration,
+        practiceName: "NHS GP Practice", // Could be made configurable
+        practiceAddress: "Contact your practice for address details",
+        practicePhone: "Contact your practice for phone details",
+        gpName: "Your GP" // Could be made configurable
+      };
+
+      await downloadPatientDOCX(translations, metadata, translationScores);
+      toast.success('Patient translation record exported successfully');
+    } catch (error) {
+      console.error('Patient export error:', error);
+      toast.error('Failed to export patient translation record');
     }
   };
 
@@ -1038,6 +1078,10 @@ export const TranslationToolInterface = () => {
                   <Button onClick={handleExportDOCX} variant="default" size="sm">
                     <Download className="w-4 h-4 mr-2" />
                     Export to DOCX
+                  </Button>
+                  <Button onClick={handlePatientExportDOCX} variant="secondary" size="sm">
+                    <Users className="w-4 h-4 mr-2" />
+                    Patient Copy
                   </Button>
                 </>
               )}
