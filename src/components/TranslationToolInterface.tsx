@@ -504,6 +504,22 @@ export const TranslationToolInterface = () => {
     console.log('🔍 User input:', userInput.substring(0, 100) + '...');
     console.log('🔍 Agent response:', agentResponse.substring(0, 100) + '...');
     
+    // Skip language setup requests - these are not actual translations to evaluate
+    const isLanguageSetup = userInput.toLowerCase().includes('please') && 
+                           userInput.toLowerCase().match(/\b(polish|arabic|spanish|french|urdu|bengali|chinese|german|italian|portuguese|ukrainian|hungarian|russian|hindi)\b/i) &&
+                           agentResponse.toLowerCase().includes('ready');
+    
+    if (isLanguageSetup) {
+      console.log('🔧 Skipping language setup request from quality verification');
+      return;
+    }
+    
+    // Only verify if we have meaningful content (not just setup messages)
+    if (userInput.trim().length < 5 || agentResponse.trim().length < 5) {
+      console.log('🔧 Skipping short/setup message from quality verification');
+      return;
+    }
+    
     // Extract target language from agent response
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
     
