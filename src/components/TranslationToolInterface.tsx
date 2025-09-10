@@ -204,12 +204,39 @@ export const TranslationToolInterface = () => {
   // Load session from history
   const handleSessionLoad = async (sessionId: string, sessionTranslations: any[], sessionScores: any[]) => {
     try {
+      console.log('🔄 handleSessionLoad called with:', {
+        sessionId,
+        translationsCount: sessionTranslations.length,
+        scoresCount: sessionScores.length,
+        firstTranslation: sessionTranslations[0] ? {
+          speaker: sessionTranslations[0].speaker,
+          originalText: sessionTranslations[0].originalText?.substring(0, 50) + '...',
+          translatedText: sessionTranslations[0].translatedText?.substring(0, 50) + '...'
+        } : null
+      });
+      
       toast.info('Loading historical session...');
       
-      // Load full session details
+      // Load full session details for metadata only
       const sessionDetails = await loadSessionDetails(sessionId);
       
       if (sessionDetails) {
+        console.log('🔄 Session details loaded from DB:', {
+          sessionId: sessionDetails.id,
+          title: sessionDetails.session_title,
+          dbTranslationsCount: sessionDetails.translations?.length || 0,
+          passedTranslationsCount: sessionTranslations.length
+        });
+        
+        // Compare translations to ensure we're using the right data
+        if (sessionDetails.translations?.length !== sessionTranslations.length) {
+          console.warn('⚠️ Translation count mismatch between DB and passed data!', {
+            dbCount: sessionDetails.translations?.length || 0,
+            passedCount: sessionTranslations.length,
+            sessionId
+          });
+        }
+        
         // Close the history sidebar
         setShowHistorySidebar(false);
         
@@ -229,10 +256,16 @@ export const TranslationToolInterface = () => {
           sessionDuration: metadata?.sessionDuration
         };
 
+        console.log('🔄 Setting historical session state with:', {
+          sessionId,
+          translationsCount: sessionTranslations.length,
+          sessionTitle: sessionDetails.session_title
+        });
+
         setSelectedHistoricalSession({
           sessionId,
           sessionTitle: sessionDetails.session_title || `Session ${new Date(sessionDetails.session_start).toLocaleDateString()}`,
-          translations: sessionTranslations,
+          translations: sessionTranslations, // Use the passed translations, not the DB ones
           translationScores: sessionScores,
           sessionMetadata
         });
@@ -242,7 +275,7 @@ export const TranslationToolInterface = () => {
       }
       
     } catch (error) {
-      console.error('Error loading session:', error);
+      console.error('❌ Error loading session:', error);
       toast.error('Failed to load session details');
     }
   };
