@@ -29,8 +29,8 @@ interface HistoricalTranslationViewProps {
   translations: TranslationEntry[];
   translationScores: TranslationScore[];
   sessionMetadata: {
-    sessionStart: Date;
-    sessionEnd?: Date;
+    sessionStart?: Date | string;
+    sessionEnd?: Date | string;
     patientLanguage: string;
     totalTranslations: number;
     averageAccuracy: number;
@@ -131,9 +131,9 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   const handleExportDOCX = async () => {
     try {
       const metadata: SessionMetadata = {
-        sessionDate: sessionMetadata.sessionStart,
-        sessionStart: sessionMetadata.sessionStart,
-        sessionEnd: sessionMetadata.sessionEnd || new Date(),
+        sessionDate: sessionMetadata.sessionStart ? new Date(sessionMetadata.sessionStart) : new Date(),
+        sessionStart: sessionMetadata.sessionStart ? new Date(sessionMetadata.sessionStart) : new Date(),
+        sessionEnd: sessionMetadata.sessionEnd ? new Date(sessionMetadata.sessionEnd) : new Date(),
         patientLanguage: sessionMetadata.patientLanguage,
         totalTranslations: sessionMetadata.totalTranslations,
         sessionDuration: sessionMetadata.sessionDuration || 0,
@@ -171,9 +171,9 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
       }
 
       const metadata: SessionMetadata = {
-        sessionDate: sessionMetadata.sessionStart,
-        sessionStart: sessionMetadata.sessionStart,
-        sessionEnd: sessionMetadata.sessionEnd || new Date(),
+        sessionDate: sessionMetadata.sessionStart ? new Date(sessionMetadata.sessionStart) : new Date(),
+        sessionStart: sessionMetadata.sessionStart ? new Date(sessionMetadata.sessionStart) : new Date(),
+        sessionEnd: sessionMetadata.sessionEnd ? new Date(sessionMetadata.sessionEnd) : new Date(),
         patientLanguage: sessionMetadata.patientLanguage,
         totalTranslations: sessionMetadata.totalTranslations,
         sessionDuration: sessionMetadata.sessionDuration || 0,
@@ -260,8 +260,18 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                 <Calendar className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-700">Session Date</span>
               </div>
-              <p className="text-lg font-bold text-blue-900">{sessionMetadata.sessionStart.toLocaleDateString()}</p>
-              <p className="text-sm text-muted-foreground">{sessionMetadata.sessionStart.toLocaleTimeString()}</p>
+              <p className="text-lg font-bold text-blue-900">
+                {sessionMetadata.sessionStart ? 
+                  new Date(sessionMetadata.sessionStart).toLocaleDateString() : 
+                  'Unknown Date'
+                }
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {sessionMetadata.sessionStart ? 
+                  new Date(sessionMetadata.sessionStart).toLocaleTimeString() : 
+                  'Unknown Time'
+                }
+              </p>
             </div>
             
             {sessionMetadata.sessionDuration && (
