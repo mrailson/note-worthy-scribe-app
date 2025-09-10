@@ -109,7 +109,9 @@ export const TranslationToolInterface = () => {
     translationScores: any[];
     sessionMetadata: any;
   } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const conversationIdRef = useRef<string | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Bulletproof Deduplication System
   const processedExchangeIds = useRef<Set<string>>(new Set());
@@ -289,6 +291,9 @@ export const TranslationToolInterface = () => {
       console.log('📊 Translation score added, total count:', updated.length);
       return updated;
     });
+
+    // Immediate save with debouncing
+    triggerImmediateSave();
   };
 
   const clearHistory = () => {
@@ -395,6 +400,46 @@ export const TranslationToolInterface = () => {
 
   const getSessionStart = React.useCallback(() => sessionStart, [sessionStart]);
 
+  // Debounced immediate save function
+  const triggerImmediateSave = React.useCallback(() => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new debounced save
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (translations.length > 0) {
+        try {
+          setSaveStatus('saving');
+          console.log('💾 Immediate save triggered...', { count: translations.length });
+          
+          await saveSession(
+            getTranslations(),
+            getTranslationScores(),
+            sessionStart,
+            undefined,
+            true
+          );
+          
+          setSaveStatus('saved');
+          console.log('✅ Immediate save successful');
+          toast.success('Translation saved automatically');
+          
+          // Reset status after 2 seconds
+          setTimeout(() => setSaveStatus('idle'), 2000);
+        } catch (error) {
+          console.error('❌ Immediate save failed:', error);
+          setSaveStatus('error');
+          toast.error('Failed to save translation');
+          
+          // Reset status after 3 seconds
+          setTimeout(() => setSaveStatus('idle'), 3000);
+        }
+      }
+    }, 1500); // 1.5 second debounce
+  }, [translations.length, getTranslations, getTranslationScores, sessionStart, saveSession]);
+
   // Auto-save current translations
   const handleAutoSave = async () => {
     if (translations.length > 0) {
@@ -423,7 +468,7 @@ export const TranslationToolInterface = () => {
         getTranslations,
         getTranslationScores,
         getSessionStart,
-        30000 // 30 seconds
+        5000 // 5 seconds (reduced from 30s for backup saves)
       );
       console.log('✅ Auto-save enabled');
     } else if (translations.length === 0 && autoSaveEnabled) {
@@ -431,6 +476,15 @@ export const TranslationToolInterface = () => {
       disableAutoSave();
     }
   }, [translations.length, autoSaveEnabled, enableAutoSave, disableAutoSave, getTranslations, getTranslationScores, getSessionStart]);
+
+  // Cleanup save timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Text-to-speech function for repeating phrases
   const repeatTranslatedPhrase = async (text: string, language: string) => {
@@ -1320,9 +1374,27 @@ export const TranslationToolInterface = () => {
             <div className="flex flex-col gap-1">
               <h2 className="text-2xl font-bold">Translation History</h2>
               {autoSaveEnabled && translations.length > 0 && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <CircleCheck className="h-3 w-3 text-green-600" />
-                  Auto-save active (30s intervals)
+                  Auto-save active (5s intervals)
+                  {saveStatus === 'saving' && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                      <span className="text-blue-600">Saving...</span>
+                    </div>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      <span className="text-green-600">Saved</span>
+                    </div>
+                  )}
+                  {saveStatus === 'error' && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <XCircle className="h-3 w-3 text-red-600" />
+                      <span className="text-red-600">Save failed</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
