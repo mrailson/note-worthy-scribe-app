@@ -460,22 +460,13 @@ export const TranslationToolInterface = () => {
     }
   };
 
-  // Enable auto-save when translations are active
+  // Disable interval-based auto-save since we have immediate save with debouncing
   useEffect(() => {
-    if (translations.length > 0 && !autoSaveEnabled) {
-      console.log('🔧 Enabling auto-save for', translations.length, 'translations');
-      enableAutoSave(
-        getTranslations,
-        getTranslationScores,
-        getSessionStart,
-        5000 // 5 seconds (reduced from 30s for backup saves)
-      );
-      console.log('✅ Auto-save enabled');
-    } else if (translations.length === 0 && autoSaveEnabled) {
-      console.log('🔧 Disabling auto-save (no translations)');
+    if (autoSaveEnabled) {
+      console.log('🔧 Disabling interval-based auto-save (using immediate save instead)');
       disableAutoSave();
     }
-  }, [translations.length, autoSaveEnabled, enableAutoSave, disableAutoSave, getTranslations, getTranslationScores, getSessionStart]);
+  }, [autoSaveEnabled, disableAutoSave]);
 
   // Cleanup save timeout on unmount
   useEffect(() => {
@@ -1373,10 +1364,10 @@ export const TranslationToolInterface = () => {
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <h2 className="text-2xl font-bold">Translation History</h2>
-              {autoSaveEnabled && translations.length > 0 && (
+              {translations.length > 0 && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <CircleCheck className="h-3 w-3 text-green-600" />
-                  Auto-save active (5s intervals)
+                  Auto-save active (immediate)
                   {saveStatus === 'saving' && (
                     <div className="flex items-center gap-1 ml-2">
                       <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
