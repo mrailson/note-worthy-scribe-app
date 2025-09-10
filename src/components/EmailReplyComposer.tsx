@@ -11,6 +11,7 @@ import {
   FileText
 } from 'lucide-react';
 import { VoiceRecorder } from './VoiceRecorder';
+import { AIVoiceButton } from './AIVoiceButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -72,6 +73,10 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
     } else {
       setEnglishReply(text);
     }
+  };
+
+  const handleAIVoiceReply = (generatedReply: string) => {
+    setEnglishReply(generatedReply);
   };
 
   const translateReply = async () => {
@@ -183,7 +188,14 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">English Reply</label>
-              <VoiceRecorder onTranscription={handleVoiceTranscription} />
+              <div className="flex gap-2">
+                <VoiceRecorder onTranscription={handleVoiceTranscription} />
+                <AIVoiceButton 
+                  onAIReply={handleAIVoiceReply}
+                  incomingEmailText={incomingEmail.translatedText}
+                  detectedLanguage={incomingEmail.detectedLanguage}
+                />
+              </div>
             </div>
             <Textarea
               placeholder="Type your reply in English or use voice input..."

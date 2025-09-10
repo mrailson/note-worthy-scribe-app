@@ -14,7 +14,8 @@ import {
   Languages,
   Loader2,
   FileText,
-  Mic
+  Mic,
+  RotateCcw
 } from 'lucide-react';
 import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
@@ -168,6 +169,15 @@ export const EmailHandler = () => {
     }
   };
 
+  const resetForm = () => {
+    setIncomingEmail('');
+    setEmailTranslation(null);
+    setEmailReply(null);
+    setQualityAssessment(null);
+    setActiveTab('receive');
+    toast.success('Form reset successfully');
+  };
+
   const getQualityBadge = (quality: QualityAssessment) => {
     const { overallSafety } = quality;
     
@@ -199,8 +209,20 @@ export const EmailHandler = () => {
             </TabsList>
 
             <TabsContent value="receive" className="space-y-4">
-              <div>
+              <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Foreign Language Email Content</label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetForm}
+                  className="flex items-center gap-2"
+                  title="Clear all and start again"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </Button>
+              </div>
+              <div>
                 <Textarea
                   placeholder="Paste the foreign language email content here..."
                   value={incomingEmail}
