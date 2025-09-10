@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Zap, Loader2 } from "lucide-react";
+import { Zap, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { validateVoiceInput, validateGeneratedContent, createSafeMedicalPrompt } from "@/utils/medicalSafety";
 
 interface AIVoiceButtonProps {
   onAIReply: (generatedReply: string) => void;
   incomingEmailText: string;
   detectedLanguage: string;
   disabled?: boolean;
+  onSafetyAlert?: (alert: string) => void;
 }
 
 interface PracticeDetails {
@@ -20,7 +22,7 @@ interface PracticeDetails {
   letter_signature?: string;
 }
 
-export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, disabled }: AIVoiceButtonProps) => {
+export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, disabled, onSafetyAlert }: AIVoiceButtonProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
@@ -126,13 +128,33 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
 
         const voiceInput = transcriptionData.text;
         
-        // Generate AI letter based on voice input
+        // 🚨 CRITICAL MEDICAL SAFETY CHECK - Validate voice input
+        const voiceValidation = validateVoiceInput(voiceInput);
+        
+        if (voiceValidation.riskLevel === 'high') {
+          const alertMessage = `🚨 MEDICAL SAFETY ALERT: ${voiceValidation.recommendation}`;
+          toast.error(alertMessage);
+          onSafetyAlert?.(alertMessage);
+          throw new Error('Medical safety validation failed - high risk content detected');
+        }
+        
+        if (voiceValidation.riskLevel === 'medium') {
+          toast.warning(`⚠️ Medical terms detected: ${voiceValidation.recommendation}`);
+        }
+        
+        // Create medical safety compliant prompt
+        const safePrompt = createSafeMedicalPrompt(
+          `Generate a professional NHS GP practice administrative response based on the voice input. Focus ONLY on administrative matters - no medical information should be created.`,
+          voiceInput
+        );
+        
+        // Generate AI letter based on voice input with safety guardrails
         const { data: replyData, error: replyError } = await supabase.functions.invoke('generate-reply', {
           body: {
             emailText: incomingEmailText,
             voiceInput: voiceInput,
-            contextNotes: `Patient inquiry translated from ${detectedLanguage}`,
-            responseGuidance: `Generate a professional NHS GP practice response letter based on the voice input: "${voiceInput}". Include appropriate medical practice signature with practice details.`,
+            contextNotes: `Administrative inquiry translated from ${detectedLanguage}. SAFETY: Only generate administrative responses.`,
+            responseGuidance: safePrompt,
             tone: 'professional',
             replyLength: 4,
             mode: 'generate',
@@ -141,6 +163,20 @@ export const AIVoiceButton = ({ onAIReply, incomingEmailText, detectedLanguage, 
         });
 
         if (replyError) throw replyError;
+
+        // 🚨 CRITICAL MEDICAL SAFETY CHECK - Validate generated content
+        const contentValidation = validateGeneratedContent(replyData.generatedReply, voiceInput);
+        
+        if (contentValidation.riskLevel === 'high') {
+          const alertMessage = `🚨 CRITICAL: AI fabricated medical information! ${contentValidation.recommendation}`;
+          toast.error(alertMessage);
+          onSafetyAlert?.(alertMessage);
+          throw new Error('Medical safety validation failed - AI generated unsafe medical content');
+        }
+        
+        if (contentValidation.riskLevel === 'medium') {
+          toast.warning(`⚠️ Medical content warning: ${contentValidation.recommendation}`);
+        }
 
         // Create professional signature using real user and practice details
         const doctorName = profile?.full_name || 'Doctor';
@@ -198,7 +234,7 @@ This email is confidential and may contain privileged information. If you are no
       onClick={handleClick}
       disabled={disabled || isProcessing}
       className="p-2"
-      title={isRecording ? "Stop recording and generate AI letter" : "AI Voice Letter Generator - Click to record voice instructions"}
+      title={isRecording ? "Stop recording and generate AI letter" : "AI Voice Letter Generator (Medical Safety Protected) - Click to record voice instructions"}
     >
       {isProcessing ? (
         <Loader2 className="w-4 h-4 animate-spin" />

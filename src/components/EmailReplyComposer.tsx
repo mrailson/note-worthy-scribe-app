@@ -8,13 +8,16 @@ import {
   Bot, 
   Languages, 
   Loader2,
-  FileText
+  FileText,
+  Shield
 } from 'lucide-react';
 import { VoiceRecorder } from './VoiceRecorder';
 import { AIVoiceButton } from './AIVoiceButton';
+import { MedicalSafetyAlert } from './MedicalSafetyAlert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { validateGeneratedContent, createSafeMedicalPrompt, MedicalSafetyCheck } from '@/utils/medicalSafety';
 
 interface EmailTranslation {
   originalText: string;
@@ -50,6 +53,8 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
   const [isGenerating, setIsGenerating] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
+  const [safetyCheck, setSafetyCheck] = useState<MedicalSafetyCheck | null>(null);
+  const [safetyAlert, setSafetyAlert] = useState<string>('');
   const { profile } = useUserProfile();
 
   useEffect(() => {
@@ -88,12 +93,20 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
 
   const generateAIReply = async () => {
     setIsGenerating(true);
+    setSafetyCheck(null);
+    setSafetyAlert('');
+    
     try {
+      // Create medical safety compliant prompt
+      const safePrompt = createSafeMedicalPrompt(
+        responseGuidance || 'Generate a professional NHS GP practice administrative response. Focus ONLY on administrative matters.'
+      );
+      
       const { data, error } = await supabase.functions.invoke('generate-reply', {
         body: {
           emailText: incomingEmail.translatedText,
-          contextNotes,
-          responseGuidance,
+          contextNotes: `${contextNotes}. SAFETY: Only generate administrative responses - no medical information.`,
+          responseGuidance: safePrompt,
           tone: 'professional',
           replyLength: 3,
           mode: 'generate'
@@ -101,6 +114,21 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailRep
       });
 
       if (error) throw error;
+
+      // 🚨 CRITICAL MEDICAL SAFETY CHECK - Validate generated content
+      const contentValidation = validateGeneratedContent(data.generatedReply, incomingEmail.translatedText);
+      setSafetyCheck(contentValidation);
+      
+      if (contentValidation.riskLevel === 'high') {
+        const alertMessage = `🚨 CRITICAL: AI generated unsafe medical content! ${contentValidation.recommendation}`;
+        toast.error(alertMessage);
+        setSafetyAlert(alertMessage);
+        throw new Error('Medical safety validation failed - unsafe content detected');
+      }
+      
+      if (contentValidation.riskLevel === 'medium') {
+        toast.warning(`⚠️ Medical content detected: ${contentValidation.recommendation}`);
+      }
 
       // Create professional signature using real user and practice details
       const doctorName = profile?.full_name || 'Doctor';
@@ -149,6 +177,13 @@ This email is confidential and may contain privileged information. If you are no
 
   const handleAIVoiceReply = (generatedReply: string) => {
     setEnglishReply(generatedReply);
+    // Validate the AI voice generated content
+    const validation = validateGeneratedContent(generatedReply);
+    setSafetyCheck(validation);
+  };
+
+  const handleSafetyAlert = (alert: string) => {
+    setSafetyAlert(alert);
   };
 
   const translateReply = async () => {
@@ -186,6 +221,21 @@ This email is confidential and may contain privileged information. If you are no
 
   return (
     <div className="space-y-4">
+      {/* Medical Safety Alerts */}
+      {safetyAlert && (
+        <Alert variant="destructive">
+          <Shield className="w-4 h-4" />
+          <AlertDescription>{safetyAlert}</AlertDescription>
+        </Alert>
+      )}
+      
+      {safetyCheck && (
+        <MedicalSafetyAlert 
+          safetyCheck={safetyCheck} 
+          context="AI Generated Content" 
+        />
+      )}
+
       <Alert>
         <FileText className="w-4 h-4" />
         <AlertDescription>
@@ -266,6 +316,7 @@ This email is confidential and may contain privileged information. If you are no
                   onAIReply={handleAIVoiceReply}
                   incomingEmailText={incomingEmail.translatedText}
                   detectedLanguage={incomingEmail.detectedLanguage}
+                  onSafetyAlert={handleSafetyAlert}
                 />
               </div>
             </div>
