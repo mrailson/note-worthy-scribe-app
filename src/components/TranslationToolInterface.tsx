@@ -1104,43 +1104,46 @@ export const TranslationToolInterface = () => {
                       </ul>
                     </div>
                   </div>
+
+                  {/* Service Information */}
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="p-4 text-center">
+                          <Globe className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                          <h3 className="font-semibold text-blue-900">Multi-Language Support</h3>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Supports 50+ languages commonly spoken by NHS patients
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-green-50 border-green-200">
+                        <CardContent className="p-4 text-center">
+                          <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                          <h3 className="font-semibold text-green-900">Medical Accuracy</h3>
+                          <p className="text-sm text-green-700 mt-1">
+                            Trained on NHS clinical terminology and protocols
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-purple-50 border-purple-200">
+                        <CardContent className="p-4 text-center">
+                          <UserCheck className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                          <h3 className="font-semibold text-purple-900">Quality Assured</h3>
+                          <p className="text-sm text-purple-700 mt-1">
+                            Real-time quality verification for patient safety
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </CardContent>
               </CollapsibleContent>
             </Collapsible>
           </Card>
 
-          {/* Service Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <Globe className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-blue-900">Multi-Language Support</h3>
-                <p className="text-sm text-blue-700 mt-1">
-                  Supports 50+ languages commonly spoken by NHS patients
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-4 text-center">
-                <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-green-900">Medical Accuracy</h3>
-                <p className="text-sm text-green-700 mt-1">
-                  Trained on NHS clinical terminology and protocols
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-purple-50 border-purple-200">
-              <CardContent className="p-4 text-center">
-                <UserCheck className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-purple-900">Quality Assured</h3>
-                <p className="text-sm text-purple-700 mt-1">
-                  Real-time quality verification for patient safety
-                </p>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
         <TabsContent value="email" className="space-y-6 mt-6">
