@@ -28,6 +28,11 @@ export function generateDOCXContent(
   metadata: SessionMetadata,
   translationScores: TranslationScore[]
 ): string {
+  // Deduplicate translations based on exact timestamp to prevent duplicates in export
+  const deduplicatedTranslations = translations.filter((translation, index, array) => {
+    const timestamp = translation.timestamp.getTime();
+    return array.findIndex(t => t.timestamp.getTime() === timestamp) === index;
+  });
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -316,7 +321,7 @@ export function generateDOCXContent(
           </tr>
         </thead>
         <tbody>
-          ${translations.map((translation, index) => {
+          ${deduplicatedTranslations.map((translation, index) => {
             const score = translationScores[index];
             const accuracyClass = !score ? '' : score.accuracy >= 90 ? 'accuracy-high' : score.accuracy >= 75 ? 'accuracy-medium' : 'accuracy-low';
             const confidenceClass = !score ? '' : score.confidence >= 90 ? 'accuracy-high' : score.confidence >= 75 ? 'accuracy-medium' : 'accuracy-low';
@@ -384,6 +389,11 @@ export async function downloadDOCX(
   translationScores: TranslationScore[]
 ): Promise<void> {
   try {
+    // Deduplicate translations based on exact timestamp to prevent duplicates in export
+    const deduplicatedTranslations = translations.filter((translation, index, array) => {
+      const timestamp = translation.timestamp.getTime();
+      return array.findIndex(t => t.timestamp.getTime() === timestamp) === index;
+    });
     const formatDuration = (seconds: number) => {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
@@ -541,7 +551,7 @@ export async function downloadDOCX(
         ]
       }),
       // Data rows
-      ...translations.map((translation, index) => {
+      ...deduplicatedTranslations.map((translation, index) => {
         const score = translationScores[index];
         return new TableRow({
           children: [

@@ -61,9 +61,23 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
 }) => {
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
 
+  // Deduplicate translations based on exact timestamp to prevent showing duplicates
+  const deduplicatedTranslations = useMemo(() => {
+    const seen = new Set();
+    return translations.filter(translation => {
+      const timestamp = translation.timestamp.getTime();
+      if (seen.has(timestamp)) {
+        console.warn('Duplicate translation detected and filtered:', { timestamp: translation.timestamp, text: translation.originalText });
+        return false;
+      }
+      seen.add(timestamp);
+      return true;
+    });
+  }, [translations]);
+
   // Calculate session metrics
   const sessionMetrics: SessionMetrics = useMemo(() => {
-    if (translations.length === 0) {
+    if (deduplicatedTranslations.length === 0) {
       return {
         totalTranslations: 0,
         averageAccuracy: 0,
@@ -81,27 +95,27 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
     const now = new Date();
     const sessionDuration = Math.floor((now.getTime() - sessionStart.getTime()) / 1000);
     
-    const accuracies = translations.filter(t => t.accuracy !== undefined).map(t => t.accuracy!);
-    const confidences = translations.filter(t => t.confidence !== undefined).map(t => t.confidence!);
-    const latencies = translations.filter(t => t.translationLatency !== undefined).map(t => t.translationLatency!);
+    const accuracies = deduplicatedTranslations.filter(t => t.accuracy !== undefined).map(t => t.accuracy!);
+    const confidences = deduplicatedTranslations.filter(t => t.confidence !== undefined).map(t => t.confidence!);
+    const latencies = deduplicatedTranslations.filter(t => t.translationLatency !== undefined).map(t => t.translationLatency!);
     
-    const safeTranslations = translations.filter(t => t.safetyFlag === 'safe').length;
-    const warningTranslations = translations.filter(t => t.safetyFlag === 'warning').length;
-    const unsafeTranslations = translations.filter(t => t.safetyFlag === 'unsafe').length;
+    const safeTranslations = deduplicatedTranslations.filter(t => t.safetyFlag === 'safe').length;
+    const warningTranslations = deduplicatedTranslations.filter(t => t.safetyFlag === 'warning').length;
+    const unsafeTranslations = deduplicatedTranslations.filter(t => t.safetyFlag === 'unsafe').length;
     
-    const allMedicalTerms = translations.flatMap(t => t.medicalTermsDetected || []);
+    const allMedicalTerms = deduplicatedTranslations.flatMap(t => t.medicalTermsDetected || []);
     const uniqueMedicalTerms = [...new Set(allMedicalTerms)];
     
     // Determine overall safety rating
     let overallSafetyRating: 'safe' | 'warning' | 'unsafe' = 'safe';
     if (unsafeTranslations > 0) {
       overallSafetyRating = 'unsafe';
-    } else if (warningTranslations > translations.length * 0.3) {
+    } else if (warningTranslations > deduplicatedTranslations.length * 0.3) {
       overallSafetyRating = 'warning';
     }
 
     return {
-      totalTranslations: translations.length,
+      totalTranslations: deduplicatedTranslations.length,
       averageAccuracy: accuracies.length > 0 ? Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length) : 0,
       averageConfidence: confidences.length > 0 ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length) : 0,
       sessionDuration,
@@ -112,7 +126,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
       medicalTermsCount: uniqueMedicalTerms.length,
       averageLatency: latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0
     };
-  }, [translations, sessionStart]);
+  }, [deduplicatedTranslations, sessionStart]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -266,14 +280,14 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-96">
-            {translations.length === 0 ? (
+            {deduplicatedTranslations.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No translations recorded yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {translations.map((translation, index) => (
+                {deduplicatedTranslations.map((translation, index) => (
                   <div
                     key={translation.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
