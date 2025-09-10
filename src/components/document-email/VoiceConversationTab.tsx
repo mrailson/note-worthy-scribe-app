@@ -3,11 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mic } from 'lucide-react';
 
 interface VoiceConversationTabProps {
-  // Main voice conversation content can be passed in here
-  // Or this can import the existing TranslationToolInterface content
+  resetTrigger: number;
 }
 
-export const VoiceConversationTab = ({}: VoiceConversationTabProps) => {
+export const VoiceConversationTab = ({ resetTrigger }: VoiceConversationTabProps) => {
   return (
     <div className="space-y-4">
       <Card>

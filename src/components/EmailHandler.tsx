@@ -45,7 +45,11 @@ interface QualityAssessment {
   recommendation: string;
 }
 
-export const EmailHandler = () => {
+interface EmailHandlerProps {
+  resetTrigger?: number;
+}
+
+export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
   const [activeTab, setActiveTab] = useState('receive');
   const [incomingEmail, setIncomingEmail] = useState('');
   const [emailTranslation, setEmailTranslation] = useState<EmailTranslation | null>(null);
@@ -175,8 +179,15 @@ export const EmailHandler = () => {
     setEmailReply(null);
     setQualityAssessment(null);
     setActiveTab('receive');
-    toast.success('Form reset successfully');
+    toast.success('Email translation cleared');
   };
+
+  // Handle external reset trigger
+  React.useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      resetForm();
+    }
+  }, [resetTrigger]);
 
   const getQualityBadge = (quality: QualityAssessment) => {
     const { overallSafety } = quality;

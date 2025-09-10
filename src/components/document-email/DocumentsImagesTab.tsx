@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,11 @@ interface DocumentTranslation {
   confidence: number;
 }
 
-export const DocumentsImagesTab = () => {
+interface DocumentsImagesTabProps {
+  resetTrigger: number;
+}
+
+export const DocumentsImagesTab = ({ resetTrigger }: DocumentsImagesTabProps) => {
   const [documentContent, setDocumentContent] = useState('');
   const [translation, setTranslation] = useState<DocumentTranslation | null>(null);
   const [targetLanguage, setTargetLanguage] = useState('en');
@@ -104,8 +108,17 @@ export const DocumentsImagesTab = () => {
   const resetForm = () => {
     setDocumentContent('');
     setTranslation(null);
-    toast.success('Form reset successfully');
+    setTargetLanguage('en');
+    setDragActive(false);
+    toast.success('Document translation cleared');
   };
+
+  // Handle external reset trigger
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      resetForm();
+    }
+  }, [resetTrigger]);
 
   return (
     <div className="space-y-6">

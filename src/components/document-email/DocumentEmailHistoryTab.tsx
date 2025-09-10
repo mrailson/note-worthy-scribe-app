@@ -2,7 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { History } from 'lucide-react';
 
-export const DocumentEmailHistoryTab = () => {
+interface DocumentEmailHistoryTabProps {
+  resetTrigger: number;
+}
+
+export const DocumentEmailHistoryTab = ({ resetTrigger }: DocumentEmailHistoryTabProps) => {
   return (
     <div className="space-y-4">
       <Card>
