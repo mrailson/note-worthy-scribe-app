@@ -110,6 +110,12 @@ export const TranslationToolInterface = () => {
     sessionMetadata: any;
   } | null>(null);
   const conversationIdRef = useRef<string | null>(null);
+  
+  // Bulletproof Deduplication System
+  const processedExchangeIds = useRef<Set<string>>(new Set());
+  const processedMessageIds = useRef<Set<string>>(new Set());
+  const conversationExchangeMap = useRef<Map<string, { timestamp: number, processed: boolean }>>(new Map());
+  const lastProcessedTimestamp = useRef<number>(0);
   const { sessionId } = useParams();
 
   // Translation history hook
@@ -139,37 +145,109 @@ export const TranslationToolInterface = () => {
     };
   };
 
+  // Bulletproof deduplication helper functions
+  const createExchangeId = (userMessage: string, agentResponse: string): string => {
+    const contentHash = btoa(userMessage.trim() + '|||' + agentResponse.trim())
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .substring(0, 16);
+    const timestamp = Math.floor(Date.now() / 1000); // Round to nearest second
+    return `${timestamp}_${contentHash}`;
+  };
+
+  const createContentHash = (text: string): string => {
+    return btoa(text.trim()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
+  };
+
+  const isWithinTimeWindow = (timestamp: number, windowMs: number = 2000): boolean => {
+    return Math.abs(Date.now() - timestamp) < windowMs;
+  };
+
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
-    // Skip language setup requests - these are not actual translations
+    console.log('🛡️ DEDUP: Starting bulletproof deduplication check...');
+    
+    // LAYER 1: Skip language setup requests
     const isLanguageSetup = userMessage.toLowerCase().includes('please') && 
                            userMessage.toLowerCase().match(/\b(polish|arabic|spanish|french|urdu|bengali|chinese|german|italian|portuguese|ukrainian|hungarian|russian|hindi)\b/i) &&
                            agentResponse.toLowerCase().includes('ready');
     
     if (isLanguageSetup) {
-      console.log('🔧 Skipping language setup request from translation history');
+      console.log('🛡️ DEDUP: Skipping language setup request');
       return;
     }
 
+    // LAYER 2: Skip short/setup messages
+    if (userMessage.trim().length < 5 || agentResponse.trim().length < 5) {
+      console.log('🛡️ DEDUP: Skipping short/setup message');
+      return;
+    }
+
+    // LAYER 3: Create unique exchange ID (timestamp + content hash)
+    const exchangeId = createExchangeId(userMessage, agentResponse);
+    console.log('🛡️ DEDUP: Exchange ID generated:', exchangeId);
+
+    // LAYER 4: Check if this exact exchange was already processed
+    if (processedExchangeIds.current.has(exchangeId)) {
+      console.log('🛡️ DEDUP: BLOCKED - Exchange already processed:', exchangeId);
+      return;
+    }
+
+    // LAYER 5: Check conversation exchange map for rapid duplicates (debouncing)
+    const exchangeKey = createContentHash(userMessage) + '_' + createContentHash(agentResponse);
+    const existingExchange = conversationExchangeMap.current.get(exchangeKey);
+    
+    if (existingExchange && isWithinTimeWindow(existingExchange.timestamp, 3000)) {
+      console.log('🛡️ DEDUP: BLOCKED - Rapid duplicate exchange within 3s window:', exchangeKey);
+      return;
+    }
+
+    // LAYER 6: State-level deduplication (final check against existing translations)
+    const currentTimestamp = Math.floor(Date.now() / 1000); // Round to seconds
+    const isDuplicateInState = translations.some(translation => {
+      const translationTimestamp = Math.floor(translation.timestamp.getTime() / 1000);
+      const textMatch = translation.originalText.trim() === userMessage.trim() && 
+                       translation.translatedText.trim().includes(agentResponse.trim().substring(0, 50));
+      const timeMatch = Math.abs(translationTimestamp - currentTimestamp) <= 2; // Within 2 seconds
+      return textMatch || (timeMatch && textMatch);
+    });
+    
+    if (isDuplicateInState) {
+      console.log('🛡️ DEDUP: BLOCKED - Duplicate found in existing state');
+      return;
+    }
+
+    // LAYER 7: Timestamp-based protection against rapid succession
+    if (currentTimestamp <= lastProcessedTimestamp.current) {
+      console.log('🛡️ DEDUP: BLOCKED - Timestamp collision protection');
+      return;
+    }
+
+    console.log('🛡️ DEDUP: ✅ PASSED all deduplication layers - Processing exchange');
+    
+    // Mark this exchange as processed
+    processedExchangeIds.current.add(exchangeId);
+    conversationExchangeMap.current.set(exchangeKey, { 
+      timestamp: Date.now(), 
+      processed: true 
+    });
+    lastProcessedTimestamp.current = currentTimestamp;
+
+    // Clean up old entries to prevent memory bloat (keep last 100)
+    if (processedExchangeIds.current.size > 100) {
+      const idsArray = Array.from(processedExchangeIds.current);
+      const toRemove = idsArray.slice(0, idsArray.length - 100);
+      toRemove.forEach(id => processedExchangeIds.current.delete(id));
+    }
+
+    if (conversationExchangeMap.current.size > 50) {
+      const entriesArray = Array.from(conversationExchangeMap.current.entries());
+      const oldEntries = entriesArray
+        .filter(([, data]) => !isWithinTimeWindow(data.timestamp, 30000))
+        .slice(0, 25);
+      oldEntries.forEach(([key]) => conversationExchangeMap.current.delete(key));
+    }
+
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
-    
-    // Only track if we have meaningful content (not just setup messages)
-    if (userMessage.trim().length < 5 || cleanedResponse.trim().length < 5) {
-      console.log('🔧 Skipping short/setup message from translation history');
-      return;
-    }
-    
-    // Check for duplicates - prevent same user message + agent response combination
-    const isDuplicate = translations.some(translation => 
-      translation.originalText.trim() === userMessage.trim() && 
-      translation.translatedText.trim() === cleanedResponse.trim()
-    );
-    
-    if (isDuplicate) {
-      console.log('🔧 Skipping duplicate translation entry');
-      return;
-    }
-    
     const translationLatency = 1000; // Approximate for AI conversations
     
     // Score the translation
@@ -181,9 +259,8 @@ export const TranslationToolInterface = () => {
       translationLatency
     );
     
-    // Create a more unique ID using content hash
-    const contentHash = btoa(userMessage + cleanedResponse).replace(/[^a-zA-Z0-9]/g, '').substring(0, 8);
-    const uniqueId = `${Date.now()}_${contentHash}`;
+    // Create bulletproof unique ID
+    const uniqueId = `${currentTimestamp}_${createContentHash(userMessage + cleanedResponse)}_${Math.random().toString(36).substring(2, 6)}`;
     
     const newTranslation: TranslationEntry = {
       id: uniqueId,
@@ -199,6 +276,8 @@ export const TranslationToolInterface = () => {
       medicalTermsDetected: translationScore.medicalTermsDetected,
       translationLatency
     };
+    
+    console.log('🛡️ DEDUP: Adding translation with ID:', uniqueId);
     
     setTranslations(prev => {
       const updated = [...prev, newTranslation];
@@ -609,6 +688,41 @@ export const TranslationToolInterface = () => {
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
       
+      // BULLETPROOF DEDUPLICATION - Message Level
+      const messageContent = message.message || '';
+      const messageSource = message.source || '';
+      const messageId = createContentHash(messageContent + messageSource + Date.now().toString());
+      
+      // Check if we've already processed this exact message recently
+      if (processedMessageIds.current.has(messageId)) {
+        console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId);
+        return;
+      }
+
+      // Add debouncing for identical message content (prevent rapid duplicates)
+      const contentOnlyHash = createContentHash(messageContent);
+      const recentMessages = Array.from(processedMessageIds.current)
+        .filter(id => id.includes(contentOnlyHash))
+        .filter(id => {
+          const timestamp = parseInt(id.split('_')[0]) || 0;
+          return isWithinTimeWindow(timestamp, 1000); // 1 second window
+        });
+
+      if (recentMessages.length > 0) {
+        console.log('🛡️ MSG_DEDUP: BLOCKED - Duplicate content within 1s window');
+        return;
+      }
+
+      // Mark this message as processed
+      processedMessageIds.current.add(messageId);
+
+      // Clean up old message IDs (keep last 50)
+      if (processedMessageIds.current.size > 50) {
+        const idsArray = Array.from(processedMessageIds.current);
+        const toRemove = idsArray.slice(0, idsArray.length - 30);
+        toRemove.forEach(id => processedMessageIds.current.delete(id));
+      }
+      
       // Capture and verify conversations for quality assurance
       if (message.message && message.source) {
         console.log('🎯 Translation message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
@@ -626,13 +740,33 @@ export const TranslationToolInterface = () => {
           } else if (message.source === 'ai' && updated.length > 0) {
             console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
             updated[updated.length - 1].agent = message.message;
-            // Trigger verification for the complete exchange
+            
+            // Trigger verification for the complete exchange with additional deduplication
             const lastExchange = updated[updated.length - 1];
             if (lastExchange.user && lastExchange.agent) {
               console.log('🔄 Triggering verification for complete exchange');
-              verifyConversationQuality(lastExchange.user, lastExchange.agent);
-              // Add to translation history
-              addToTranslationHistory(lastExchange.user, lastExchange.agent);
+              
+              // Create exchange key for this specific conversation pair
+              const exchangeVerificationKey = createContentHash(lastExchange.user + lastExchange.agent);
+              
+              // Check if we've already processed this exact exchange for verification
+              const existingVerification = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
+              if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 5000)) {
+                console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange');
+                return updated;
+              }
+
+              // Mark this exchange as being verified
+              conversationExchangeMap.current.set(exchangeVerificationKey + '_verification', {
+                timestamp: Date.now(),
+                processed: true
+              });
+
+              // Use setTimeout to debounce rapid successive calls
+              setTimeout(() => {
+                verifyConversationQuality(lastExchange.user, lastExchange.agent);
+                addToTranslationHistory(lastExchange.user, lastExchange.agent);
+              }, 100);
             }
           }
           return updated;
