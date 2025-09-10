@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   ArrowLeft,
   Download, 
@@ -21,7 +20,6 @@ import {
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
-import { PracticeInfoForm } from '@/components/PracticeInfoForm';
 import { usePatientDocumentTranslation } from '@/hooks/usePatientDocumentTranslation';
 import { toast } from 'sonner';
 
@@ -55,13 +53,6 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   onBack
 }) => {
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
-  const [showPracticeForm, setShowPracticeForm] = useState(false);
-  const [isPatientExport, setIsPatientExport] = useState(false);
-  const [practiceInfo, setPracticeInfo] = useState({
-    name: '',
-    address: '',
-    phone: ''
-  });
 
   const { translatePatientDocument, isTranslating } = usePatientDocumentTranslation();
 
@@ -158,24 +149,24 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   };
 
   const handlePatientExport = async () => {
-    setIsPatientExport(true);
-    setShowPracticeForm(true);
-  };
-
-  const handlePracticeFormSave = async () => {
-    if (!practiceInfo.name || !practiceInfo.address) {
-      toast.error('Please fill in practice name and address');
-      return;
-    }
-
     try {
-      setShowPracticeForm(false);
-      
-      // Translate document content if needed
+      // Use default practice information (you can make this configurable later)
+      const defaultPracticeInfo = {
+        name: 'Oak Lane Medical Practice',
+        address: '123 High Street, Oak Lane, Manchester, M12 3AB',
+        phone: '0161 234 5678'
+      };
+
+      // Translate document content to patient's language
       const translatedContent = await translatePatientDocument(
         sessionMetadata.patientLanguage,
-        practiceInfo
+        defaultPracticeInfo
       );
+
+      if (!translatedContent) {
+        toast.error('Failed to prepare patient document');
+        return;
+      }
 
       const metadata: SessionMetadata = {
         sessionDate: sessionMetadata.sessionStart,
@@ -187,7 +178,7 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
         overallSafetyRating: sessionMetadata.overallSafetyRating,
         averageAccuracy: sessionMetadata.averageAccuracy,
         averageConfidence: sessionMetadata.averageConfidence,
-        practiceInfo
+        practiceInfo: defaultPracticeInfo
       };
 
       // Filter out technical scores and details for patient copy
@@ -198,19 +189,11 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
       }));
 
       await downloadDOCX(deduplicatedTranslations, metadata, patientFriendlyScores, true, translatedContent);
-      toast.success('Patient copy exported successfully');
+      toast.success(`Patient copy exported in ${sessionMetadata.patientLanguage}`);
     } catch (error) {
       console.error('Patient export error:', error);
       toast.error('Failed to export patient copy');
-    } finally {
-      setIsPatientExport(false);
     }
-  };
-
-  const handlePracticeFormCancel = () => {
-    setShowPracticeForm(false);
-    setIsPatientExport(false);
-    setPracticeInfo({ name: '', address: '', phone: '' });
   };
 
   return (
@@ -459,21 +442,6 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
           </ScrollArea>
         </CardContent>
       </Card>
-
-      {/* Practice Information Dialog */}
-      <Dialog open={showPracticeForm} onOpenChange={setShowPracticeForm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Practice Information Required</DialogTitle>
-          </DialogHeader>
-          <PracticeInfoForm
-            practiceInfo={practiceInfo}
-            onPracticeInfoChange={setPracticeInfo}
-            onSave={handlePracticeFormSave}
-            onCancel={handlePracticeFormCancel}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
