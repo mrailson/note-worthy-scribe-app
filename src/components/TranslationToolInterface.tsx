@@ -118,6 +118,33 @@ export const TranslationToolInterface = () => {
   const processedMessageIds = useRef<Set<string>>(new Set());
   const conversationExchangeMap = useRef<Map<string, { timestamp: number, processed: boolean }>>(new Map());
   const lastProcessedTimestamp = useRef<number>(0);
+  
+  // Add cleanup interval to prevent memory leaks
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const CLEANUP_AGE = 300000; // 5 minutes
+      
+      // Clean up old exchange map entries
+      for (const [key, entry] of conversationExchangeMap.current.entries()) {
+        if (now - entry.timestamp > CLEANUP_AGE) {
+          conversationExchangeMap.current.delete(key);
+        }
+      }
+      
+      // Clean up old message IDs more aggressively
+      if (processedMessageIds.current.size > 30) {
+        const idsArray = Array.from(processedMessageIds.current);
+        processedMessageIds.current.clear();
+        // Keep only the most recent 10 entries
+        idsArray.slice(-10).forEach(id => processedMessageIds.current.add(id));
+      }
+      
+      console.log('🧹 Memory cleanup completed - Exchange map size:', conversationExchangeMap.current.size, 'Message IDs:', processedMessageIds.current.size);
+    }, 60000); // Run every minute
+    
+    return () => clearInterval(cleanupInterval);
+  }, []);
   const { sessionId } = useParams();
 
   // Translation history hook
@@ -648,6 +675,7 @@ export const TranslationToolInterface = () => {
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
     
     try {
+      console.log('🌐 Calling verification function...');
       const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-verification', {
         body: {
           userInput,
@@ -660,8 +688,8 @@ export const TranslationToolInterface = () => {
 
       if (error) {
         console.error('❌ Translation verification error:', error);
-        toast.error('Translation verification failed');
-        return;
+        toast.error('Translation verification failed: ' + (error.message || 'Unknown error'));
+        throw error;
       }
 
       console.log('✅ Translation quality result:', data);
@@ -749,37 +777,17 @@ export const TranslationToolInterface = () => {
       // BULLETPROOF DEDUPLICATION - Message Level
       const messageContent = message.message || '';
       const messageSource = message.source || '';
-      const messageId = createContentHash(messageContent + messageSource + Date.now().toString());
+      // Fixed: Remove timestamp from messageId to allow proper deduplication
+      const messageId = createContentHash(messageContent + messageSource);
       
       // Check if we've already processed this exact message recently
       if (processedMessageIds.current.has(messageId)) {
-        console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId);
-        return;
-      }
-
-      // Add debouncing for identical message content (prevent rapid duplicates)
-      const contentOnlyHash = createContentHash(messageContent);
-      const recentMessages = Array.from(processedMessageIds.current)
-        .filter(id => id.includes(contentOnlyHash))
-        .filter(id => {
-          const timestamp = parseInt(id.split('_')[0]) || 0;
-          return isWithinTimeWindow(timestamp, 1000); // 1 second window
-        });
-
-      if (recentMessages.length > 0) {
-        console.log('🛡️ MSG_DEDUP: BLOCKED - Duplicate content within 1s window');
+        console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId.substring(0, 8));
         return;
       }
 
       // Mark this message as processed
       processedMessageIds.current.add(messageId);
-
-      // Clean up old message IDs (keep last 50)
-      if (processedMessageIds.current.size > 50) {
-        const idsArray = Array.from(processedMessageIds.current);
-        const toRemove = idsArray.slice(0, idsArray.length - 30);
-        toRemove.forEach(id => processedMessageIds.current.delete(id));
-      }
       
       // Capture and verify conversations for quality assurance
       if (message.message && message.source) {
@@ -799,7 +807,7 @@ export const TranslationToolInterface = () => {
             console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
             updated[updated.length - 1].agent = message.message;
             
-            // Trigger verification for the complete exchange with additional deduplication
+            // Trigger verification for the complete exchange with improved error handling
             const lastExchange = updated[updated.length - 1];
             if (lastExchange.user && lastExchange.agent) {
               console.log('🔄 Triggering verification for complete exchange');
@@ -809,22 +817,36 @@ export const TranslationToolInterface = () => {
               
               // Check if we've already processed this exact exchange for verification
               const existingVerification = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
-              if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 5000)) {
-                console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange');
+              if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 10000)) {
+                console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange in last 10s');
                 return updated;
               }
 
-              // Mark this exchange as being verified
+              // Mark this exchange as being verified with improved tracking
               conversationExchangeMap.current.set(exchangeVerificationKey + '_verification', {
                 timestamp: Date.now(),
-                processed: true
+                processed: false // Will be set to true when verification completes
               });
 
-              // Use setTimeout to debounce rapid successive calls
-              setTimeout(() => {
-                verifyConversationQuality(lastExchange.user, lastExchange.agent);
-                addToTranslationHistory(lastExchange.user, lastExchange.agent);
-              }, 100);
+              // Use setTimeout with better error handling
+              setTimeout(async () => {
+                try {
+                  console.log('🔍 Starting quality verification for exchange');
+                  await verifyConversationQuality(lastExchange.user, lastExchange.agent);
+                  addToTranslationHistory(lastExchange.user, lastExchange.agent);
+                  
+                  // Mark as successfully processed
+                  const entry = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
+                  if (entry) {
+                    entry.processed = true;
+                  }
+                } catch (error) {
+                  console.error('🔥 Verification failed for exchange:', error);
+                  // Remove failed entry to allow retry
+                  conversationExchangeMap.current.delete(exchangeVerificationKey + '_verification');
+                  toast.error('Translation quality check failed - will retry on next message');
+                }
+              }, 200);
             }
           }
           return updated;
