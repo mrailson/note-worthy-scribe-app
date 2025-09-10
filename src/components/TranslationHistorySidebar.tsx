@@ -513,109 +513,20 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       </span>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                      <div className="flex items-center gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleFlag(session.id, session.is_flagged);
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Flag className={`h-3 w-3 ${session.is_flagged ? 'text-yellow-500' : 'text-muted-foreground'}`} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {session.is_flagged ? 'Remove flag' : 'Flag important'}
-                          </TooltipContent>
-                        </Tooltip>
-
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleProtection(session.id, session.is_protected);
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Shield className={`h-3 w-3 ${session.is_protected ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {session.is_protected ? 'Remove protection' : 'Protect from deletion'}
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 handleDownloadSession(session);
-                               }}
-                               className="h-6 w-6 p-0"
-                             >
-                               <Download className="h-3 w-3" />
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>Download session report</TooltipContent>
-                          </Tooltip>
-
-                          {/* Debug load button with session ID */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   console.log('🔗 Navigating to session:', session.id);
-                                   navigate(`/translation-tool/${session.id}`);
-                                 }}
-                                 className="h-6 px-2 text-xs"
-                               >
-                                 #{session.id.substring(0, 8)}
-                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Direct load: {session.id}</TooltipContent>
-                          </Tooltip>
-
-                        {!session.is_protected && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteSession(session.id, session.session_title);
-                                }}
-                                disabled={deletingSessionId === session.id}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                              >
-                                {deletingSessionId === session.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete session</TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                    {/* Single navigation link */}
+                    <div className="flex justify-center pt-2 border-t border-border/50">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔗 Navigating to session:', session.id);
+                          navigate(`/translation-tool/${session.id}`);
+                        }}
+                        className="h-6 px-2 text-xs"
+                      >
+                        View #{session.id.substring(0, 8)}
+                      </Button>
                     </div>
 
                     {/* Detailed Preview Tooltip */}
