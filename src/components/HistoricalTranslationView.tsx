@@ -161,9 +161,29 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
         phone: '0161 234 5678'
       };
 
+      // Determine patient language - use session metadata first, then fallback to translation data
+      let patientLanguage = sessionMetadata.patientLanguage;
+      
+      console.log('Session metadata patient language:', patientLanguage);
+      
+      // If no language in session metadata, try to detect from translations
+      if (!patientLanguage && deduplicatedTranslations.length > 0) {
+        const firstTranslation = deduplicatedTranslations[0];
+        patientLanguage = firstTranslation.targetLanguage || firstTranslation.originalLanguage;
+        console.log('Detected patient language from translations:', patientLanguage);
+      }
+      
+      // Final fallback to 'german' if still no language found
+      if (!patientLanguage) {
+        patientLanguage = 'german';
+        console.log('Using fallback language: german');
+      }
+
+      console.log('Final patient language for translation:', patientLanguage);
+
       // Translate document content to patient's language
       const translatedContent = await translatePatientDocument(
-        sessionMetadata.patientLanguage,
+        patientLanguage,
         defaultPracticeInfo
       );
 
