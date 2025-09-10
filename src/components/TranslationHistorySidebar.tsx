@@ -569,7 +569,40 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                              </Button>
                            </TooltipTrigger>
                            <TooltipContent>Download session report</TooltipContent>
-                         </Tooltip>
+                          </Tooltip>
+
+                          {/* Debug load button with session ID */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log('🔍 DIRECT: Loading session:', session.id);
+                                  
+                                  loadSessionDetails(session.id).then(sessionDetails => {
+                                    const translations = sessionDetails.translations || [];
+                                    const translationScores = translations.map((t: any) => ({
+                                      accuracy: t.accuracy || 100,
+                                      confidence: t.confidence || 100,
+                                      safetyFlag: t.safetyFlag || 'safe' as const,
+                                      medicalTermsDetected: t.medicalTermsDetected || [],
+                                      detectedIssues: t.detectedIssues || []
+                                    }));
+                                    onSessionLoad(session.id, translations, translationScores);
+                                  }).catch(error => {
+                                    console.error('Failed to load session:', error);
+                                    toast.error('Failed to load session');
+                                  });
+                                }}
+                                className="h-6 px-2 text-xs"
+                              >
+                                #{session.id.substring(0, 8)}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Direct load: {session.id}</TooltipContent>
+                          </Tooltip>
 
                         {!session.is_protected && (
                           <Tooltip>
