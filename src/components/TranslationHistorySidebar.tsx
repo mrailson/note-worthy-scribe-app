@@ -419,6 +419,14 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
               const preview = generateSessionPreview(session);
               const isCurrentSession = currentSessionId === session.id;
 
+              console.log('🔍 SIDEBAR: Rendering session in list:', {
+                id: session.id,
+                title: session.session_title,
+                totalTranslations: session.total_translations,
+                sessionStart: session.session_start,
+                preview: preview.overview
+              });
+
               return (
                 <TooltipProvider key={session.id}>
                   <div
@@ -427,10 +435,15 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       ${isCurrentSession ? 'bg-primary/5 border-primary' : 'bg-card'}
                     `}
                     onClick={() => {
-                      console.log('Session clicked:', {
+                      console.log('🔍 SIDEBAR: Session clicked:', {
                         id: session.id,
                         title: session.session_title,
-                        totalTranslations: session.total_translations
+                        totalTranslations: session.total_translations,
+                        sessionStart: session.session_start,
+                        displayedInUI: {
+                          title: preview.overview,
+                          formattedDate: formatDate(session.session_start)
+                        }
                       });
                       
                       // Load session details with translations and pass to parent
