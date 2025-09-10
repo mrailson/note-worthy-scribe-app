@@ -74,9 +74,15 @@ serve(async (req) => {
           Complexity Level: ${complexityLevel}
           Target Slide Count: ${slideCount}
           
+          IMPORTANT: Use British English throughout all content, including:
+          - British spelling (organisation, realise, colour, centre, etc.)
+          - British terminology (GP, surgery, A&E, NHS terminology)
+          - British healthcare context and references
+          - Professional tone suitable for UK healthcare settings
+          
           For meeting-type presentations, include appropriate governance structure, decision-making frameworks, and action item tracking.
           
-          Create a comprehensive presentation outline with detailed content for each slide.
+          Create a comprehensive presentation outline with detailed content for each slide using British English.
           
           Return ONLY valid JSON with this exact structure:
           {
