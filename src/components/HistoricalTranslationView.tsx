@@ -57,7 +57,10 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   const deduplicatedTranslations = React.useMemo(() => {
     const seen = new Set();
     return translations.filter(translation => {
-      const timestamp = translation.timestamp.getTime();
+      // Handle both Date objects and number timestamps
+      const timestamp = typeof translation.timestamp === 'number' 
+        ? translation.timestamp 
+        : translation.timestamp.getTime();
       if (seen.has(timestamp)) {
         return false;
       }
@@ -286,7 +289,9 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                               #{index + 1} {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
-                              {translation.timestamp.toLocaleTimeString()}
+                              {typeof translation.timestamp === 'number' 
+                                ? new Date(translation.timestamp).toLocaleTimeString() 
+                                : translation.timestamp.toLocaleTimeString()}
                             </span>
                             {score && score.accuracy !== undefined && (
                               <Badge className={getAccuracyColor(score.accuracy)}>
