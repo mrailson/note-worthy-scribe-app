@@ -159,6 +159,17 @@ export const TranslationToolInterface = () => {
       return;
     }
     
+    // Check for duplicates - prevent same user message + agent response combination
+    const isDuplicate = translations.some(translation => 
+      translation.originalText.trim() === userMessage.trim() && 
+      translation.translatedText.trim() === cleanedResponse.trim()
+    );
+    
+    if (isDuplicate) {
+      console.log('🔧 Skipping duplicate translation entry');
+      return;
+    }
+    
     const translationLatency = 1000; // Approximate for AI conversations
     
     // Score the translation
@@ -170,8 +181,12 @@ export const TranslationToolInterface = () => {
       translationLatency
     );
     
+    // Create a more unique ID using content hash
+    const contentHash = btoa(userMessage + cleanedResponse).replace(/[^a-zA-Z0-9]/g, '').substring(0, 8);
+    const uniqueId = `${Date.now()}_${contentHash}`;
+    
     const newTranslation: TranslationEntry = {
-      id: Date.now().toString(),
+      id: uniqueId,
       speaker: 'gp',
       originalText: userMessage,
       translatedText: cleanedResponse,
