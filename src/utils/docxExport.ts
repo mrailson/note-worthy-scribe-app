@@ -515,10 +515,10 @@ export async function downloadDOCX(
           children: [new TextRun({ text: translatedContent?.practiceInfoHeader || "Practice Information", bold: true, size: 28, color: "005EB8" })],
           heading: HeadingLevel.HEADING_2
         }),
-        new Paragraph({ children: [new TextRun(`Practice: ${metadata.practiceInfo.name}`)] }),
-        new Paragraph({ children: [new TextRun(`Address: ${metadata.practiceInfo.address}`)] }),
+        new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.practice || 'Practice'}: ${metadata.practiceInfo.name}`)] }),
+        new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.address || 'Address'}: ${metadata.practiceInfo.address}`)] }),
         ...(metadata.practiceInfo.phone ? [
-          new Paragraph({ children: [new TextRun(`Phone: ${metadata.practiceInfo.phone}`)] })
+          new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.phone || 'Phone'}: ${metadata.practiceInfo.phone}`)] })
         ] : []),
         new Paragraph({ text: "" }), // Empty line
       ] : []),

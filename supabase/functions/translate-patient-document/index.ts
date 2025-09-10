@@ -75,7 +75,10 @@ serve(async (req) => {
     "time": "Time",
     "speaker": "Speaker",
     "originalText": "Original Text",
-    "translation": "Translation"
+    "translation": "Translation",
+    "practice": "Practice",
+    "address": "Address",
+    "phone": "Phone"
   },
   "patientInfoText": "This document contains a record of all translations made during your medical consultation. This is provided for your personal records and reference.",
   "disclaimerText": "IMPORTANT DISCLAIMER: This is an automated translation service for communication assistance only. All medical decisions should be based on professional clinical judgement.",

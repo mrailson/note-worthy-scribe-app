@@ -47,6 +47,9 @@ interface TranslatedContent {
     speaker: string;
     originalText: string;
     translation: string;
+    practice: string;
+    address: string;
+    phone: string;
   };
   patientInfoText: string;
   disclaimerText: string;
@@ -93,7 +96,10 @@ export const usePatientDocumentTranslation = () => {
           time: "Time",
           speaker: "Speaker",
           originalText: "Original Text",
-          translation: "Translation"
+          translation: "Translation",
+          practice: "Practice",
+          address: "Address",
+          phone: "Phone"
         },
         patientInfoText: "This document contains a record of all translations made during your medical consultation. This is provided for your personal records and reference.",
         disclaimerText: "IMPORTANT DISCLAIMER: This is an automated translation service for communication assistance only. All medical decisions should be based on professional clinical judgement.",
@@ -172,7 +178,10 @@ export const usePatientDocumentTranslation = () => {
           time: "Time",
           speaker: "Speaker",
           originalText: "Original Text",
-          translation: "Translation"
+          translation: "Translation",
+          practice: "Practice",
+          address: "Address",
+          phone: "Phone"
         },
         patientInfoText: "This document contains a record of all translations made during your medical consultation. This is provided for your personal records and reference.",
         disclaimerText: "IMPORTANT DISCLAIMER: This is an automated translation service for communication assistance only. All medical decisions should be based on professional clinical judgement.",
