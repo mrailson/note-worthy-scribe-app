@@ -433,52 +433,9 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                 <TooltipProvider key={session.id}>
                   <div
                     className={`
-                      p-3 border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer
+                      p-3 border border-border rounded-lg hover:border-primary/50 transition-colors
                       ${isCurrentSession ? 'bg-primary/5 border-primary' : 'bg-card'}
                     `}
-                    onClick={() => {
-                      console.log('🔍 SIDEBAR: Session clicked:', {
-                        id: session.id,
-                        title: session.session_title,
-                        totalTranslations: session.total_translations,
-                        sessionStart: session.session_start,
-                        displayedInUI: {
-                          title: preview.overview,
-                          formattedDate: formatDate(session.session_start)
-                        }
-                      });
-                      
-                      // Load session details with translations and pass to parent
-                      loadSessionDetails(session.id).then(sessionDetails => {
-                        const translations = sessionDetails.translations || [];
-                        console.log('Loaded session details:', {
-                          sessionId: session.id,
-                          loadedTranslationsCount: translations.length,
-                          expectedCount: session.total_translations
-                        });
-                        
-                        if (translations.length !== session.total_translations) {
-                          console.warn('Translation count mismatch!', {
-                            expected: session.total_translations,
-                            actual: translations.length,
-                            sessionId: session.id
-                          });
-                          toast.warning(`Translation count mismatch: expected ${session.total_translations}, got ${translations.length}`);
-                        }
-                        
-                        const translationScores = translations.map((t: any) => ({
-                          accuracy: t.accuracy || 100,
-                          confidence: t.confidence || 100,
-                          safetyFlag: t.safetyFlag || 'safe' as const,
-                          medicalTermsDetected: t.medicalTermsDetected || [],
-                          detectedIssues: t.detectedIssues || []
-                        }));
-                        onSessionLoad(session.id, translations, translationScores);
-                      }).catch(error => {
-                        console.error('Failed to load session:', error);
-                        toast.error(`Failed to load session details: ${error.message || 'Unknown error'}`);
-                      });
-                    }}
                   >
                     {/* Session Header */}
                     <div className="flex items-start justify-between mb-2">
