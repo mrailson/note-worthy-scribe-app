@@ -66,6 +66,12 @@ export const usePatientDocumentTranslation = () => {
   ): Promise<TranslatedContent | null> => {
     console.log(`Target language for translation: "${targetLanguage}"`);
     
+    // Handle undefined or null language - fallback to English
+    if (!targetLanguage) {
+      console.log('No target language provided - using English fallback');
+      targetLanguage = 'english';
+    }
+    
     // Only skip translation for explicit English values
     if (targetLanguage === 'en' || targetLanguage.toLowerCase() === 'english') {
       console.log('Skipping translation - English language detected');
