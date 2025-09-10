@@ -1146,16 +1146,17 @@ export const TranslationToolInterface = () => {
                 <Database className="h-4 w-4" />
                 Saved Sessions
               </Button>
-              {translations.length > 0 && (
+              {(translations.length > 0 || currentSessionId) && (
                 <>
                   <Button 
                     onClick={handleAutoSave} 
                     variant="secondary" 
                     size="sm"
                     className="flex items-center gap-2"
+                    disabled={translations.length === 0}
                   >
                     <Database className="w-4 h-4" />
-                    Save Now
+                    {translations.length > 0 ? 'Save Now' : 'Session Saved'}
                   </Button>
                   <Button onClick={clearHistory} variant="outline" size="sm">
                     <RotateCcw className="w-4 h-4 mr-2" />
