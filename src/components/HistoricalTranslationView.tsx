@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   ArrowLeft,
   Download, 
@@ -20,6 +21,8 @@ import {
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
+import { PracticeInfoForm } from '@/components/PracticeInfoForm';
+import { usePatientDocumentTranslation } from '@/hooks/usePatientDocumentTranslation';
 import { toast } from 'sonner';
 
 interface HistoricalTranslationViewProps {
@@ -52,6 +55,15 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   onBack
 }) => {
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
+  const [showPracticeForm, setShowPracticeForm] = useState(false);
+  const [isPatientExport, setIsPatientExport] = useState(false);
+  const [practiceInfo, setPracticeInfo] = useState({
+    name: '',
+    address: '',
+    phone: ''
+  });
+
+  const { translatePatientDocument, isTranslating } = usePatientDocumentTranslation();
 
   // Deduplicate translations based on exact timestamp to prevent duplicates
   const deduplicatedTranslations = React.useMemo(() => {
@@ -146,7 +158,25 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
   };
 
   const handlePatientExport = async () => {
+    setIsPatientExport(true);
+    setShowPracticeForm(true);
+  };
+
+  const handlePracticeFormSave = async () => {
+    if (!practiceInfo.name || !practiceInfo.address) {
+      toast.error('Please fill in practice name and address');
+      return;
+    }
+
     try {
+      setShowPracticeForm(false);
+      
+      // Translate document content if needed
+      const translatedContent = await translatePatientDocument(
+        sessionMetadata.patientLanguage,
+        practiceInfo
+      );
+
       const metadata: SessionMetadata = {
         sessionDate: sessionMetadata.sessionStart,
         sessionStart: sessionMetadata.sessionStart,
@@ -156,7 +186,8 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
         sessionDuration: sessionMetadata.sessionDuration || 0,
         overallSafetyRating: sessionMetadata.overallSafetyRating,
         averageAccuracy: sessionMetadata.averageAccuracy,
-        averageConfidence: sessionMetadata.averageConfidence
+        averageConfidence: sessionMetadata.averageConfidence,
+        practiceInfo
       };
 
       // Filter out technical scores and details for patient copy
@@ -166,12 +197,20 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
         medicalTermsDetected: [] // Remove medical terms analysis from patient copy
       }));
 
-      await downloadDOCX(deduplicatedTranslations, metadata, patientFriendlyScores, true);
+      await downloadDOCX(deduplicatedTranslations, metadata, patientFriendlyScores, true, translatedContent);
       toast.success('Patient copy exported successfully');
     } catch (error) {
       console.error('Patient export error:', error);
       toast.error('Failed to export patient copy');
+    } finally {
+      setIsPatientExport(false);
     }
+  };
+
+  const handlePracticeFormCancel = () => {
+    setShowPracticeForm(false);
+    setIsPatientExport(false);
+    setPracticeInfo({ name: '', address: '', phone: '' });
   };
 
   return (
@@ -211,9 +250,10 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                 onClick={handlePatientExport}
                 variant="outline"
                 size="sm"
+                disabled={isTranslating}
               >
                 <Download className="w-4 h-4 mr-2" />
-                Patient Copy
+                {isTranslating ? 'Preparing...' : 'Patient Copy'}
               </Button>
             </div>
           </div>
@@ -419,6 +459,21 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Practice Information Dialog */}
+      <Dialog open={showPracticeForm} onOpenChange={setShowPracticeForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Practice Information Required</DialogTitle>
+          </DialogHeader>
+          <PracticeInfoForm
+            practiceInfo={practiceInfo}
+            onPracticeInfoChange={setPracticeInfo}
+            onSave={handlePracticeFormSave}
+            onCancel={handlePracticeFormCancel}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

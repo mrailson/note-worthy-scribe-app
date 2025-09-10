@@ -18,6 +18,11 @@ export interface SessionMetadata {
   patientId?: string;
   nhsNumber?: string;
   practiceCode?: string;
+  practiceInfo?: {
+    name: string;
+    address: string;
+    phone?: string;
+  };
 }
 
 /**
@@ -422,7 +427,8 @@ export async function downloadDOCX(
   translations: TranslationEntry[],
   metadata: SessionMetadata,
   translationScores: TranslationScore[],
-  isPatientCopy: boolean = false
+  isPatientCopy: boolean = false,
+  translatedContent?: any
 ): Promise<void> {
   try {
     // Deduplicate translations based on exact timestamp to prevent duplicates in export
@@ -476,7 +482,9 @@ export async function downloadDOCX(
       new Paragraph({
         children: [
           new TextRun({
-            text: isPatientCopy ? "NHS Translation Service - Patient Copy" : "NHS Translation Service Report",
+            text: isPatientCopy 
+              ? (translatedContent?.title || "NHS Translation Service - Patient Copy")
+              : "NHS Translation Service Report",
             bold: true,
             size: 32,
             color: "005EB8"
@@ -490,7 +498,7 @@ export async function downloadDOCX(
         children: [
           new TextRun({
             text: isPatientCopy 
-              ? "Summary of Translation Session for Your Records" 
+              ? (translatedContent?.subtitle || "Summary of Translation Session for Your Records") 
               : "Automated Translation Session Documentation",
             size: 24,
             color: "666666"
@@ -501,19 +509,40 @@ export async function downloadDOCX(
       
       new Paragraph({ text: "" }), // Empty line
       
+      // Practice Information (if available)
+      ...(metadata.practiceInfo ? [
+        new Paragraph({
+          children: [new TextRun({ text: "Practice Information", bold: true, size: 28, color: "005EB8" })],
+          heading: HeadingLevel.HEADING_2
+        }),
+        new Paragraph({ children: [new TextRun(`Practice: ${metadata.practiceInfo.name}`)] }),
+        new Paragraph({ children: [new TextRun(`Address: ${metadata.practiceInfo.address}`)] }),
+        ...(metadata.practiceInfo.phone ? [
+          new Paragraph({ children: [new TextRun(`Phone: ${metadata.practiceInfo.phone}`)] })
+        ] : []),
+        new Paragraph({ text: "" }), // Empty line
+      ] : []),
+      
       // Session Information
       new Paragraph({
-        children: [new TextRun({ text: "Session Information", bold: true, size: 28, color: "005EB8" })],
+        children: [new TextRun({ 
+          text: isPatientCopy 
+            ? (translatedContent?.sessionInfo || "Session Information")
+            : "Session Information", 
+          bold: true, 
+          size: 28, 
+          color: "005EB8" 
+        })],
         heading: HeadingLevel.HEADING_2
       }),
       
-      new Paragraph({ children: [new TextRun(`Report Generated: ${new Date().toLocaleString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`Session Date: ${metadata.sessionDate.toLocaleDateString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`Session Start: ${metadata.sessionStart.toLocaleTimeString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`Session End: ${metadata.sessionEnd.toLocaleTimeString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`Duration: ${formatDuration(metadata.sessionDuration)}`)] }),
-      new Paragraph({ children: [new TextRun(`Patient Language: ${metadata.patientLanguage}`)] }),
-      new Paragraph({ children: [new TextRun(`Total Translations: ${metadata.totalTranslations}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.reportGenerated || 'Report Generated'}: ${new Date().toLocaleString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionDate || 'Session Date'}: ${metadata.sessionDate.toLocaleDateString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionStart || 'Session Start'}: ${metadata.sessionStart.toLocaleTimeString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionEnd || 'Session End'}: ${metadata.sessionEnd.toLocaleTimeString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.duration || 'Duration'}: ${formatDuration(metadata.sessionDuration)}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.patientLanguage || 'Patient Language'}: ${metadata.patientLanguage}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.totalTranslations || 'Total Translations'}: ${metadata.totalTranslations}`)] }),
       ...(isPatientCopy ? [] : [
         new Paragraph({ children: [new TextRun(`Average Accuracy: ${metadata.averageAccuracy}%`)] })
       ]),
@@ -595,7 +624,14 @@ export async function downloadDOCX(
     children.push(
       new Paragraph({ text: "" }),
       new Paragraph({
-        children: [new TextRun({ text: "Detailed Translation Log", bold: true, size: 28, color: "005EB8" })],
+        children: [new TextRun({ 
+          text: isPatientCopy 
+            ? (translatedContent?.translationLogHeader || "Detailed Translation Log")
+            : "Detailed Translation Log", 
+          bold: true, 
+          size: 28, 
+          color: "005EB8" 
+        })],
         heading: HeadingLevel.HEADING_2
       })
     );
@@ -609,19 +645,19 @@ export async function downloadDOCX(
             width: { size: 8, type: WidthType.PERCENTAGE }
           }),
           new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: "Time", bold: true })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: translatedContent?.generalLabels?.time || "Time", bold: true })] })],
             width: { size: 12, type: WidthType.PERCENTAGE }
           }),
           new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: "Speaker", bold: true })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: translatedContent?.generalLabels?.speaker || "Speaker", bold: true })] })],
             width: { size: 15, type: WidthType.PERCENTAGE }
           }),
           new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: "Original Text", bold: true })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: translatedContent?.generalLabels?.originalText || "Original Text", bold: true })] })],
             width: { size: 32, type: WidthType.PERCENTAGE }
           }),
           new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: "Translation", bold: true })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: translatedContent?.generalLabels?.translation || "Translation", bold: true })] })],
             width: { size: 33, type: WidthType.PERCENTAGE }
           })
         ] : [
@@ -677,7 +713,11 @@ export async function downloadDOCX(
               })())] })]
             }),
             new TableCell({
-              children: [new Paragraph({ children: [new TextRun(translation.speaker === 'gp' ? 'GP' : 'Patient')] })]
+              children: [new Paragraph({ children: [new TextRun(
+                translation.speaker === 'gp' 
+                  ? (translatedContent?.speakerLabels?.gp || 'GP')
+                  : (translatedContent?.speakerLabels?.patient || 'Patient')
+              )] })]
             }),
             new TableCell({
               children: [new Paragraph({ children: [new TextRun(translation.originalText)] })]
