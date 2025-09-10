@@ -470,8 +470,8 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                       </span>
                     </div>
 
-                    {/* Single navigation link */}
-                    <div className="flex justify-center pt-2 border-t border-border/50">
+                    {/* Single navigation link and delete button */}
+                    <div className="flex justify-between items-center gap-2 pt-2 border-t border-border/50">
                       <Button
                         variant="outline"
                         size="sm"
@@ -483,9 +483,25 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                           console.log('🔗 CLICK: Navigating to:', `/translation-tool/${session.id}`);
                           navigate(`/translation-tool/${session.id}`);
                         }}
-                        className="h-6 px-2 text-xs"
+                        className="h-6 px-2 text-xs flex-1"
                       >
                         View #{session.id.substring(0, 8)}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSession(session.id, session.session_title);
+                        }}
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        disabled={deletingSessionId === session.id}
+                      >
+                        {deletingSessionId === session.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </div>
