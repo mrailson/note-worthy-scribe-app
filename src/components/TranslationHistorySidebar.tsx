@@ -488,26 +488,6 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                         View #{session.id.substring(0, 8)}
                       </Button>
                     </div>
-
-                    {/* Detailed Preview Tooltip */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="absolute inset-0" />
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="max-w-xs">
-                        <div className="space-y-2">
-                          <p className="font-medium">{session.session_title}</p>
-                          <div className="space-y-1 text-xs">
-                            {Object.entries(preview.details).map(([key, value]) => (
-                              <div key={key} className="flex justify-between">
-                                <span className="text-muted-foreground">{key}:</span>
-                                <span>{value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
                   </div>
                 </TooltipProvider>
               );
