@@ -45,47 +45,40 @@ serve(async (req) => {
     
     console.log(`Translating patient document to: ${targetLanguage}`);
 
-    // Prepare the translation prompt
-    const translationPrompt = `You are translating a medical translation service document for a patient. Translate the following content accurately to ${targetLanguage}, maintaining medical terminology appropriateness for patients while keeping it understandable.
+    // Prepare the translation prompt  
+    const translationPrompt = `Translate the following medical document content to ${targetLanguage}. Return ONLY valid JSON in the exact format shown below:
 
-IMPORTANT: Return ONLY a JSON object with the translated content. Do not include any other text, explanations, or markdown formatting.
-
-Content to translate:
-${JSON.stringify(content)}
-
-Practice Information to translate:
-${JSON.stringify(practiceInfo)}
-
-Return format:
 {
-  "title": "translated title",
-  "subtitle": "translated subtitle", 
-  "sessionInfo": "translated session info header",
-  "patientInfo": "translated patient info header",
-  "translationLogHeader": "translated translation log header",
+  "title": "NHS Translation Service - Patient Copy",
+  "subtitle": "Summary of Translation Session for Your Records",
+  "sessionInfo": "Session Information",
+  "patientInfo": "Patient Information",
+  "translationLogHeader": "Translation Record",
   "speakerLabels": {
-    "gp": "translated GP label",
-    "patient": "translated Patient label"
+    "gp": "GP",
+    "patient": "Patient"
   },
   "practiceInfo": {
-    "name": "practice name (keep original)",
-    "address": "translated address labels but keep actual address",
-    "phone": "translated phone label but keep actual number"
+    "name": "${practiceInfo.name}",
+    "address": "${practiceInfo.address}",
+    "phone": "${practiceInfo.phone || ''}"
   },
   "generalLabels": {
-    "reportGenerated": "translated 'Report Generated' label",
-    "sessionDate": "translated 'Session Date' label",
-    "sessionStart": "translated 'Session Start' label", 
-    "sessionEnd": "translated 'Session End' label",
-    "duration": "translated 'Duration' label",
-    "patientLanguage": "translated 'Patient Language' label",
-    "totalTranslations": "translated 'Total Translations' label",
-    "time": "translated 'Time' column header",
-    "speaker": "translated 'Speaker' column header",
-    "originalText": "translated 'Original Text' column header",
-    "translation": "translated 'Translation' column header"
+    "reportGenerated": "Report Generated",
+    "sessionDate": "Session Date", 
+    "sessionStart": "Session Start",
+    "sessionEnd": "Session End",
+    "duration": "Duration",
+    "patientLanguage": "Patient Language",
+    "totalTranslations": "Total Translations",
+    "time": "Time",
+    "speaker": "Speaker",
+    "originalText": "Original Text",
+    "translation": "Translation"
   }
-}`;
+}
+
+Translate ALL the values in the JSON structure to ${targetLanguage}. Keep the practice name, address, and phone number as provided, but translate the labels. Return ONLY the JSON, no other text.`;
 
     console.log('Sending translation request to OpenAI...');
 
@@ -125,14 +118,22 @@ Return format:
     const translatedContent = data.choices[0].message.content;
     console.log('Raw translation content:', translatedContent);
 
+    // Check if content is empty
+    if (!translatedContent || translatedContent.trim() === '') {
+      console.error('Empty response from OpenAI');
+      throw new Error('Empty response from translation service');
+    }
+
     // Parse the JSON response
     let parsedTranslation;
     try {
-      parsedTranslation = JSON.parse(translatedContent);
+      // Clean the content in case there's extra whitespace or markdown
+      const cleanContent = translatedContent.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      parsedTranslation = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('Failed to parse translation JSON:', parseError);
       console.error('Raw content:', translatedContent);
-      throw new Error('Invalid JSON response from translation service');
+      throw new Error(`Invalid JSON response from translation service: ${parseError.message}`);
     }
 
     console.log('Successfully translated patient document');
