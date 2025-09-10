@@ -1206,10 +1206,6 @@ export const TranslationToolInterface = () => {
                 <Languages className="w-8 h-8 text-primary" />
                 Live Translation Display
               </span>
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
-                <Shield className="w-4 h-4" />
-                NHS Verified
-              </Badge>
             </DialogTitle>
           </DialogHeader>
 
@@ -1221,9 +1217,15 @@ export const TranslationToolInterface = () => {
                   <Globe className="w-6 h-6 text-blue-600" />
                   <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
                 </div>
-                <p className="text-3xl text-blue-900 leading-relaxed">
+                <p className="text-3xl text-blue-900 leading-relaxed mb-4">
                   {currentTranslation.englishText}
                 </p>
+                <div className="flex justify-end">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-2 px-4 py-2 text-lg">
+                    <Shield className="w-5 h-5" />
+                    Verified Safe & Accurate
+                  </Badge>
+                </div>
               </div>
 
               {/* Translated Text */}
