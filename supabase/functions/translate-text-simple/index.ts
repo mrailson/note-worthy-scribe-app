@@ -13,29 +13,42 @@ serve(async (req) => {
   }
 
   try {
-    const { text, fromLang, toLang } = await req.json();
+    const requestBody = await req.json();
+    const { text, fromLang, toLang, targetLanguage, detectLanguage } = requestBody;
     
-    if (!text || !fromLang || !toLang) {
-      throw new Error('Missing required parameters: text, fromLang, toLang');
+    // Support both parameter formats for backward compatibility
+    const sourceLanguage = fromLang || (detectLanguage ? 'auto' : null);
+    const targetLang = toLang || targetLanguage;
+    
+    if (!text || !targetLang) {
+      throw new Error('Missing required parameters: text and target language');
     }
 
-    console.log(`Translating "${text}" from ${fromLang} to ${toLang}`);
+    console.log(`Translating "${text}" from ${sourceLanguage} to ${targetLang}`);
 
     const GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
     
     if (!GOOGLE_TRANSLATE_API_KEY) {
       console.log('No Google Translate API key found, using MyMemory as fallback');
       
-      // Fallback to MyMemory API
+      // Fallback to MyMemory API - only works with explicit language pairs
+      if (!sourceLanguage || sourceLanguage === 'auto') {
+        throw new Error('Language detection not supported with MyMemory fallback. Please specify source language.');
+      }
+      
       const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLanguage}|${targetLang}`
       );
       
       const data = await response.json();
       
       if (data.responseStatus === 200) {
         return new Response(
-          JSON.stringify({ translatedText: data.responseData.translatedText }),
+          JSON.stringify({ 
+            translatedText: data.responseData.translatedText,
+            detectedLanguage: sourceLanguage,
+            confidence: 85 
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
@@ -44,6 +57,16 @@ serve(async (req) => {
     }
 
     // Use Google Translate API if key is available
+    const translateRequestBody = {
+      q: text,
+      target: targetLang,
+      format: 'text'
+    };
+    
+    // Only include source if not auto-detecting
+    if (sourceLanguage && sourceLanguage !== 'auto') {
+      translateRequestBody.source = sourceLanguage;
+    }
     const response = await fetch(
       `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`,
       {
@@ -51,12 +74,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          q: text,
-          source: fromLang,
-          target: toLang,
-          format: 'text'
-        }),
+        body: JSON.stringify(translateRequestBody),
       }
     );
 
@@ -68,11 +86,16 @@ serve(async (req) => {
 
     const data = await response.json();
     const translatedText = data.data.translations[0].translatedText;
+    const detectedLanguage = data.data.translations[0].detectedSourceLanguage || sourceLanguage;
 
     console.log(`Translation successful: "${translatedText}"`);
 
     return new Response(
-      JSON.stringify({ translatedText }),
+      JSON.stringify({ 
+        translatedText,
+        detectedLanguage,
+        confidence: 95 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
