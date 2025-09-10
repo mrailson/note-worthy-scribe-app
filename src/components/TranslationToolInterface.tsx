@@ -113,6 +113,11 @@ export const TranslationToolInterface = () => {
   const conversationIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Reset functionality state
+  const [resetClickCount, setResetClickCount] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Bulletproof Deduplication System
   const processedExchangeIds = useRef<Set<string>>(new Set());
   const processedMessageIds = useRef<Set<string>>(new Set());
@@ -143,8 +148,80 @@ export const TranslationToolInterface = () => {
       console.log('🧹 Memory cleanup completed - Exchange map size:', conversationExchangeMap.current.size, 'Message IDs:', processedMessageIds.current.size);
     }, 60000); // Run every minute
     
-    return () => clearInterval(cleanupInterval);
+    return () => {
+      clearInterval(cleanupInterval);
+      // Clean up reset timeout on unmount
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
   }, []);
+
+  // Reset memory function
+  const resetTranslationMemory = async () => {
+    console.log('🗑️ Resetting translation memory...');
+    setIsResetting(true);
+    
+    try {
+      // End current conversation if active
+      if (conversation.status === 'connected') {
+        await conversation.endSession();
+      }
+      
+      // Clear all memory and state
+      processedExchangeIds.current.clear();
+      processedMessageIds.current.clear();
+      conversationExchangeMap.current.clear();
+      lastProcessedTimestamp.current = 0;
+      
+      // Reset UI state
+      setQualityScore(null);
+      setCurrentTranslation(null);
+      setConversationBuffer([]);
+      setIsTranslationModalOpen(false);
+      setError(null);
+      conversationIdRef.current = null;
+      
+      // Clear translation history for current session
+      if (currentSessionId) {
+        // Keep sessions but clear current session data
+        setTranslations([]);
+      }
+      
+      toast.success('Translation memory cleared - ready for new session');
+      console.log('✅ Translation memory reset completed');
+      
+    } catch (error) {
+      console.error('❌ Error during memory reset:', error);
+      toast.error('Error resetting translation memory');
+    } finally {
+      setIsResetting(false);
+      setResetClickCount(0);
+    }
+  };
+
+  // Handle reset button clicks (requires double click)
+  const handleResetClick = () => {
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
+    const newCount = resetClickCount + 1;
+    setResetClickCount(newCount);
+
+    if (newCount === 1) {
+      // First click - start timeout
+      resetTimeoutRef.current = setTimeout(() => {
+        setResetClickCount(0);
+      }, 3000); // 3 second window for double click
+      
+      toast.info('Click again within 3 seconds to reset translation memory');
+    } else if (newCount === 2) {
+      // Second click - execute reset
+      clearTimeout(resetTimeoutRef.current);
+      resetTranslationMemory();
+    }
+  };
   const { sessionId } = useParams();
 
   // Translation history hook
@@ -1170,6 +1247,26 @@ export const TranslationToolInterface = () => {
                     >
                       <Eye className="h-6 w-6" />
                       {currentTranslation ? 'Show Translation' : 'No Translation Yet'}
+                    </Button>
+                    
+                    {/* Reset Memory Button */}
+                    <Button
+                      onClick={handleResetClick}
+                      variant={resetClickCount === 1 ? "default" : "outline"}
+                      size="lg"
+                      className={`flex items-center gap-3 px-6 py-4 text-lg font-semibold border-2 transition-all duration-200 ${
+                        resetClickCount === 1 
+                          ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500 animate-pulse' 
+                          : 'hover:bg-orange-50 border-orange-200'
+                      }`}
+                      disabled={isResetting}
+                    >
+                      {isResetting ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-5 w-5" />
+                      )}
+                      {resetClickCount === 1 ? 'Click Again to Reset' : 'Reset Memory'}
                     </Button>
                   </div>
                 ) : (
