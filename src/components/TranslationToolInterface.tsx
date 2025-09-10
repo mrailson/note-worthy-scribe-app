@@ -709,7 +709,7 @@ export const TranslationToolInterface = () => {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to NHS Translation Service');
+      console.log('✅ Connected to NHS Translation Service');
       toast.success('Connected to Translation Service');
       setError(null);
       
@@ -717,10 +717,23 @@ export const TranslationToolInterface = () => {
       setQualityScore(null);
       setConversationBuffer([]);
       
-      // Set volume to ensure audio is audible after connection
+      // Enhanced audio setup to prevent cutouts
       setTimeout(() => {
+        console.log('🔊 Setting optimal volume and audio configuration...');
         conversation.setVolume({ volume: 0.8 });
-      }, 100);
+        
+        // Additional audio context resume (for safety)
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              console.log('🔊 Audio context re-resumed after connection');
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not re-resume audio context:', error);
+        }
+      }, 500);
     },
     onDisconnect: () => {
       console.log('Disconnected from NHS Translation Service');
@@ -873,6 +886,33 @@ export const TranslationToolInterface = () => {
     }
   };
 
+  // Initialize audio context to prevent cutouts
+  const initializeAudioContext = async () => {
+    try {
+      console.log('🔊 Initializing audio context to prevent cutouts...');
+      
+      // Create and resume audio context if needed
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+        console.log('🔊 Audio context resumed successfully');
+      }
+      
+      // Create a brief silent audio buffer to prime the audio pipeline
+      const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+      
+      console.log('🔊 Audio context initialized and primed');
+      return audioContext;
+    } catch (error) {
+      console.warn('⚠️ Could not initialize audio context:', error);
+      return null;
+    }
+  };
+
   // Start conversation
   const startTranslationService = async () => {
     const permitted = hasPermission ? true : await requestMicrophonePermission();
@@ -882,6 +922,9 @@ export const TranslationToolInterface = () => {
       setIsLoading(true);
       setError(null);
       
+      // Initialize audio context first to prevent cutouts
+      await initializeAudioContext();
+      
       // Generate signed URL first (required for authorized agents)
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
@@ -889,20 +932,22 @@ export const TranslationToolInterface = () => {
         return;
       }
 
-      console.log('Starting translation service with signed URL:', signedUrl);
+      console.log('🎙️ Starting translation service with signed URL:', signedUrl);
       
-      // Add a small delay to ensure microphone is fully initialized
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Extended delay to ensure microphone and audio context are fully ready
+      console.log('⏳ Waiting for audio system initialization...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       const conversationId = await conversation.startSession({ 
         agentId: 'agent_01jws2qhv2essav25m8cfq2h0v',  // Language Support Agent
         signedUrl
       });
       
-      // Add a small delay after starting the session to ensure connection is stable
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Extended delay after starting session to allow audio pipeline to establish
+      console.log('⏳ Allowing audio pipeline to establish...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Translation service started successfully:', conversationId);
+      console.log('✅ Translation service started successfully:', conversationId);
       
     } catch (err: any) {
       console.error('Failed to start translation service:', err);
