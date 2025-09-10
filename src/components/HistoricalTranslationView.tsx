@@ -56,11 +56,11 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
 
   const { translatePatientDocument, isTranslating } = usePatientDocumentTranslation();
 
-  // Deduplicate translations based on exact timestamp to prevent duplicates
+  // Deduplicate translations based on timestamp and content to prevent duplicates
   const deduplicatedTranslations = React.useMemo(() => {
     const seen = new Set();
     const result = translations.filter(translation => {
-      // Handle all possible timestamp formats
+      // Create a unique key based on timestamp, original text, and translated text
       let timestamp: number;
       
       if (typeof translation.timestamp === 'number') {
@@ -70,14 +70,16 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
       } else if (typeof translation.timestamp === 'string') {
         timestamp = new Date(translation.timestamp).getTime();
       } else {
-        // Fallback for any other type - use current time or index
         timestamp = Date.now() + Math.random();
       }
       
-      if (seen.has(timestamp)) {
+      // Create unique key combining timestamp and content
+      const uniqueKey = `${timestamp}-${translation.originalText}-${translation.translatedText}-${translation.speaker}`;
+      
+      if (seen.has(uniqueKey)) {
         return false;
       }
-      seen.add(timestamp);
+      seen.add(uniqueKey);
       return true;
     });
     
