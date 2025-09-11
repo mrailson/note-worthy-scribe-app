@@ -15,7 +15,7 @@ export interface EnhancedGenerationOptions {
 }
 
 class LayoutEngine {
-  static calculateOptimalLayout(content: string[], slideWidth: number = 10, slideHeight: number = 7.5) {
+  static calculateOptimalLayout(content: string[], slideWidth: number = 13.33, slideHeight: number = 7.5) {
     const availableHeight = slideHeight - 2.8; // Reserve space for title and footer
     const lineHeight = 0.35; // Reduced line height for better spacing
     const maxLinesPerSlide = Math.floor(availableHeight / lineHeight);
@@ -88,8 +88,9 @@ class TemplateRenderer {
     // Set presentation properties
     this.pptx.author = "Notewell AI";
     this.pptx.company = "NHS Healthcare";
-    this.pptx.defineLayout({ name: 'CUSTOM_LAYOUT', width: 10, height: 7.5 });
-    this.pptx.layout = 'CUSTOM_LAYOUT';
+    // Set widescreen 16:9 aspect ratio for modern displays
+    this.pptx.defineLayout({ name: 'WIDESCREEN_LAYOUT', width: 13.33, height: 7.5 });
+    this.pptx.layout = 'WIDESCREEN_LAYOUT';
   }
   
   private addTemplateBackground(slide: any) {
@@ -108,9 +109,9 @@ class TemplateRenderer {
     
     // Add template-specific design elements
     if (this.template.style === 'modern' || this.template.style === 'bright') {
-      // Add decorative corner element
+      // Add decorative corner element (adjusted for widescreen)
       slide.addShape(this.pptx.ShapeType.triangle, {
-        x: 8.5,
+        x: 11.83,
         y: 0,
         w: 1.5,
         h: 1.5,
@@ -135,23 +136,23 @@ class TemplateRenderer {
   private addTemplateFooter(slide: any, slideNumber?: number, totalSlides?: number) {
     const timestamp = `AI Generated – ${new Date().toLocaleDateString()}`;
     
-    // Footer background bar for dark theme
+    // Footer background bar for dark theme (adjusted for widescreen)
     if (this.template.style === 'dark') {
       slide.addShape(this.pptx.ShapeType.rect, {
         x: 0,
         y: 6.8,
-        w: 10,
+        w: 13.33,
         h: 0.7,
         fill: { color: this.template.secondaryColor, transparency: 70 },
         line: { width: 0 }
       });
     }
     
-    // Footer text
+    // Footer text (adjusted for widescreen)
     slide.addText(timestamp, {
       x: 0.5,
       y: 6.9,
-      w: 6,
+      w: 8,
       h: 0.4,
       fontSize: 12,
       color: this.template.footerColor,
@@ -159,12 +160,12 @@ class TemplateRenderer {
       align: 'left'
     });
     
-    // Slide number
+    // Slide number (adjusted for widescreen)
     if (slideNumber && totalSlides) {
       slide.addText(`${slideNumber} / ${totalSlides}`, {
-        x: 8.5,
+        x: 11.83,
         y: 6.9,
-        w: 1,
+        w: 1.5,
         h: 0.4,
         fontSize: 12,
         color: this.template.footerColor,
@@ -178,11 +179,11 @@ class TemplateRenderer {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
     
-    // Main title with template-specific styling
+    // Main title with template-specific styling (adjusted for widescreen)
     const titleConfig: any = {
-      x: 1,
+      x: 1.5,
       y: 2.5,
-      w: 8,
+      w: 10.33,
       h: 1.5,
       fontSize: this.template.style === 'bright' ? 42 : 38,
       bold: true,
@@ -198,12 +199,12 @@ class TemplateRenderer {
     
     slide.addText(title, titleConfig);
     
-    // Subtitle
+    // Subtitle (adjusted for widescreen)
     if (subtitle) {
       slide.addText(subtitle, {
-        x: 1,
+        x: 1.5,
         y: 4.2,
-        w: 8,
+        w: 10.33,
         h: 0.8,
         fontSize: this.template.style === 'bright' ? 26 : 24,
         color: this.template.textColor,
@@ -241,11 +242,11 @@ class TemplateRenderer {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
     
-    // Title with template styling
+    // Title with template styling (adjusted for widescreen)
     const titleConfig: any = {
-      x: 0.8,
+      x: 1,
       y: 0.8,
-      w: 8.4,
+      w: 11.33,
       h: 0.8,
       fontSize: this.template.style === 'bright' ? 32 : 28,
       bold: true,
@@ -267,9 +268,9 @@ class TemplateRenderer {
         const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, 85);
         
         const textConfig: any = {
-          x: 0.8,
+          x: 1,
           y: 1.8 + (index * 0.35),
-          w: 8.4,
+          w: 11.33,
           h: 0.3,
           fontSize: this.template.style === 'bright' ? 16 : 14,
           fontFace: this.template.fonts.body,
@@ -288,12 +289,12 @@ class TemplateRenderer {
         slide.addText(optimizedText, textConfig);
       });
       
-      // Add continuation note if content was truncated
+      // Add continuation note if content was truncated (adjusted for widescreen)
       if (layout.slides.length > 1) {
         slide.addText('(Content continues...)', {
-          x: 1.2,
+          x: 1.5,
           y: 6.0,
-          w: 7.6,
+          w: 10.33,
           h: 0.3,
           fontSize: 14,
           fontFace: this.template.fonts.body,
@@ -303,12 +304,12 @@ class TemplateRenderer {
       }
     }
     
-    // Add slide type indicator for modern and clean themes
+    // Add slide type indicator for modern and clean themes (adjusted for widescreen)
     if (this.template.style === 'modern' || this.template.style === 'clean') {
       slide.addText(slideData.type.toUpperCase(), {
-        x: 8.5,
+        x: 11.33,
         y: 0.3,
-        w: 1.2,
+        w: 1.5,
         h: 0.3,
         fontSize: 10,
         fontFace: this.template.fonts.body,
