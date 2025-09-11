@@ -48,6 +48,7 @@ import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
+import { TranslationValidationGuide } from './TranslationValidationGuide';
 
 interface QualityScore {
   accuracy: number;
@@ -1642,6 +1643,7 @@ export const TranslationToolInterface = () => {
                 Live Translation Display
               </span>
               <div className="flex items-center gap-2">
+                <TranslationValidationGuide />
                 <MedicalTranslationAuditViewer />
               </div>
             </DialogTitle>
