@@ -429,14 +429,6 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                   <Copy className="w-4 h-4" />
                   Copy All
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFullScreenOriginal(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
             </DialogTitle>
           </DialogHeader>
@@ -462,7 +454,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 <Languages className="w-5 h-5" />
                 Translated Text - Full Screen View ({languages.find(l => l.code === targetLanguage)?.name})
               </div>
-              <div className="flex items-center gap-2">
+               <div className="flex items-center gap-2">
                 {result && (
                   <TranslationVerificationDetails
                     originalText={result.originalText}
@@ -479,14 +471,6 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 >
                   <Copy className="w-4 h-4" />
                   Copy All
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFullScreenText(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="w-4 h-4" />
                 </Button>
               </div>
             </DialogTitle>
