@@ -422,6 +422,14 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 Original Text - Full Screen View ({result?.detectedLanguage || ''})
               </div>
               <div className="flex items-center gap-2">
+                {result && (
+                  <TranslationVerificationDetails
+                    originalText={result.originalText}
+                    translatedText={result.translatedText}
+                    sourceLanguage={result.detectedLanguage}
+                    targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                  />
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -465,6 +473,14 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 Translated Text - Full Screen View ({languages.find(l => l.code === targetLanguage)?.name})
               </div>
               <div className="flex items-center gap-2">
+                {result && (
+                  <TranslationVerificationDetails
+                    originalText={result.originalText}
+                    translatedText={result.translatedText}
+                    sourceLanguage={result.detectedLanguage}
+                    targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                  />
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
