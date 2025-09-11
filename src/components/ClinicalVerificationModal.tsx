@@ -122,10 +122,22 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                     </div>
                     
                     {llm.concerns && llm.concerns.length > 0 && (
-                      <div className="mt-3 p-3 rounded-md bg-muted/50 border-l-4 border-l-orange-500">
+                      <div className={`mt-3 p-3 rounded-md bg-muted/50 border-l-4 ${
+                        llm.agreementLevel >= 85 && !llm.concerns.some(c => c.includes('⚠️')) 
+                          ? 'border-l-green-500' 
+                          : 'border-l-orange-500'
+                      }`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <AlertTriangle className="w-4 h-4 text-orange-600" />
-                          <p className="text-sm font-semibold text-orange-700">
+                          {llm.agreementLevel >= 85 && !llm.concerns.some(c => c.includes('⚠️')) ? (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-orange-600" />
+                          )}
+                          <p className={`text-sm font-semibold ${
+                            llm.agreementLevel >= 85 && !llm.concerns.some(c => c.includes('⚠️'))
+                              ? 'text-green-700'
+                              : 'text-orange-700'
+                          }`}>
                             Key Clinical Considerations for Review:
                           </p>
                         </div>
@@ -133,18 +145,20 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                           {llm.concerns.map((concern, idx) => {
                             const isWarning = concern.includes('⚠️');
                             const isPositive = concern.includes('✓');
+                            const hasGoodAgreement = llm.agreementLevel >= 85 && !llm.concerns.some(c => c.includes('⚠️'));
+                            
                             return (
                               <div key={idx} className={`flex items-start gap-2 text-sm p-2 rounded ${
                                 isWarning ? 'bg-orange-50 text-orange-800 border border-orange-200' :
-                                isPositive ? 'bg-green-50 text-green-800 border border-green-200' :
+                                isPositive || hasGoodAgreement ? 'bg-green-50 text-green-800 border border-green-200' :
                                 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                               }`}>
                                 <span className={`mt-0.5 ${
                                   isWarning ? 'text-orange-600' :
-                                  isPositive ? 'text-green-600' :
+                                  isPositive || hasGoodAgreement ? 'text-green-600' :
                                   'text-yellow-600'
                                 }`}>
-                                  {isWarning ? '⚠️' : isPositive ? '✓' : '•'}
+                                  {isWarning ? '⚠️' : isPositive || hasGoodAgreement ? '✓' : '•'}
                                 </span>
                                 <span className="flex-1 font-medium">
                                   {concern.replace(/^[⚠️✓•]\s*/, '')}
