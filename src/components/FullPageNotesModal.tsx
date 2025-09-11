@@ -876,17 +876,55 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id]);
 
-  // Get current content based on active tab
+  // Get current content based on active tab and sub-tab
   const getCurrentContent = () => {
-    return activeTab === "notes" ? notes : transcript;
+    if (activeTab === "notes") {
+      // Return content based on the active sub-tab
+      switch (activeNotesStyleTab) {
+        case 'style1': return notesStyle3 || "";
+        case 'style2': return notes || "";
+        case 'style3': return notesStyle2 || "";
+        case 'style4': return notesStyle4 || "";
+        case 'style5': return notesStyle5 || "";
+        default: return notes || "";
+      }
+    } else {
+      return transcript || "";
+    }
   };
 
-  // Get current content setter based on active tab  
+  // Set current content based on active tab and sub-tab
   const setCurrentContent = (content: string) => {
     if (activeTab === "notes") {
-      onNotesChange(content);
+      // Save to the correct sub-tab content
+      switch (activeNotesStyleTab) {
+        case 'style1':
+          setNotesStyle3(content);
+          saveNoteStyleToDatabase(3, content);
+          break;
+        case 'style2':
+          onNotesChange(content);
+          saveSummaryToDatabase(content);
+          break;
+        case 'style3':
+          setNotesStyle2(content);
+          saveNoteStyleToDatabase(2, content);
+          break;
+        case 'style4':
+          setNotesStyle4(content);
+          saveNoteStyleToDatabase(4, content);
+          break;
+        case 'style5':
+          setNotesStyle5(content);
+          saveNoteStyleToDatabase(5, content);
+          break;
+        default:
+          onNotesChange(content);
+          saveSummaryToDatabase(content);
+      }
     } else {
       setTranscript(content);
+      saveTranscriptToDatabase(content);
     }
   };
 
@@ -1030,28 +1068,87 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     return cleanText;
   };
 
-  // Handle edit mode toggle
+  // Handle edit mode toggle with sub-tab support
   const handleEditToggle = () => {
     if (!isEditing) {
       // Save current version before editing
       saveCurrentVersion('manual-edit', activeTab as 'notes' | 'transcript');
       
-      // Entering edit mode - clean the content for the current tab
-      const currentContent = activeTab === "notes" ? notes : transcript;
+      // Entering edit mode - get content for the current active sub-tab
+      let currentContent = "";
+      let currentTabIdentifier = "";
+      
+      if (activeTab === "notes") {
+        // Handle sub-tabs within notes
+        switch (activeNotesStyleTab) {
+          case 'style1': 
+            currentContent = notesStyle3;
+            currentTabIdentifier = "notes-style1";
+            break;
+          case 'style2': 
+            currentContent = notes;
+            currentTabIdentifier = "notes-style2";
+            break;
+          case 'style3': 
+            currentContent = notesStyle2;
+            currentTabIdentifier = "notes-style3";
+            break;
+          case 'style4': 
+            currentContent = notesStyle4;
+            currentTabIdentifier = "notes-style4";
+            break;
+          case 'style5': 
+            currentContent = notesStyle5;
+            currentTabIdentifier = "notes-style5";
+            break;
+          default:
+            currentContent = notes;
+            currentTabIdentifier = "notes";
+        }
+      } else {
+        currentContent = transcript;
+        currentTabIdentifier = "transcript";
+      }
+      
       const cleanContent = cleanHtmlForEditing(currentContent);
       setEditingContent(cleanContent);
-      setEditingTab(activeTab); // Track which tab we're editing
+      setEditingTab(currentTabIdentifier); // Track which specific tab/sub-tab we're editing
     } else {
-      // Exiting edit mode - save the content to the correct tab
-      if (editingTab === "notes") {
-        onNotesChange(editingContent);
-        saveSummaryToDatabase(editingContent);
+      // Exiting edit mode - save the content to the correct location
+      if (editingTab.startsWith("notes-")) {
+        const subTab = editingTab.replace("notes-", "");
+        switch (subTab) {
+          case 'style1':
+            setNotesStyle3(editingContent);
+            saveNoteStyleToDatabase(3, editingContent);
+            break;
+          case 'style2':
+            onNotesChange(editingContent);
+            saveSummaryToDatabase(editingContent);
+            break;
+          case 'style3':
+            setNotesStyle2(editingContent);
+            saveNoteStyleToDatabase(2, editingContent);
+            break;
+          case 'style4':
+            setNotesStyle4(editingContent);
+            saveNoteStyleToDatabase(4, editingContent);
+            break;
+          case 'style5':
+            setNotesStyle5(editingContent);
+            saveNoteStyleToDatabase(5, editingContent);
+            break;
+          default:
+            onNotesChange(editingContent);
+            saveSummaryToDatabase(editingContent);
+        }
       } else if (editingTab === "transcript") {
         setTranscript(editingContent);
         saveTranscriptToDatabase(editingContent);
       }
       setEditingContent(""); // Clear editing content
       setEditingTab(""); // Clear editing tab
+      toast.success("Changes saved successfully!");
     }
     setIsEditing(!isEditing);
   };
@@ -2385,19 +2482,44 @@ ${transcript}`;
           <div className="flex-1 overflow-hidden">
             <Tabs defaultValue="notes" value={activeTab} onValueChange={(value) => {
               // If we're editing, save current changes before switching tabs
-              if (isEditing && editingTab !== value) {
+              if (isEditing && editingTab !== value && !editingTab.startsWith(`${value}-`)) {
                 // Save current version before switching tabs
-                saveCurrentVersion('tab-switch', editingTab as 'notes' | 'transcript');
+                const baseTab = editingTab.startsWith('notes-') ? 'notes' : 'transcript';
+                saveCurrentVersion('tab-switch', baseTab as 'notes' | 'transcript');
                 
-                if (editingTab === "notes") {
-                  onNotesChange(editingContent);
-                  saveSummaryToDatabase(editingContent);
+                // Save based on the current editing tab
+                if (editingTab.startsWith("notes-")) {
+                  const subTab = editingTab.replace("notes-", "");
+                  switch (subTab) {
+                    case 'style1':
+                      setNotesStyle3(editingContent);
+                      saveNoteStyleToDatabase(3, editingContent);
+                      break;
+                    case 'style2':
+                      onNotesChange(editingContent);
+                      saveSummaryToDatabase(editingContent);
+                      break;
+                    case 'style3':
+                      setNotesStyle2(editingContent);
+                      saveNoteStyleToDatabase(2, editingContent);
+                      break;
+                    case 'style4':
+                      setNotesStyle4(editingContent);
+                      saveNoteStyleToDatabase(4, editingContent);
+                      break;
+                    case 'style5':
+                      setNotesStyle5(editingContent);
+                      saveNoteStyleToDatabase(5, editingContent);
+                      break;
+                  }
                 } else if (editingTab === "transcript") {
                   setTranscript(editingContent);
+                  saveTranscriptToDatabase(editingContent);
                 }
                 setIsEditing(false);
                 setEditingContent("");
                 setEditingTab("");
+                toast.success("Changes saved automatically!");
               }
               setActiveTab(value);
             }} className="h-full flex flex-col">
@@ -2563,180 +2685,216 @@ ${transcript}`;
                         </div>
                       </div>
                       
-                      <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
-                        <div className="space-y-4">
-                          {!notesStyle3 ? (
-                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                               <p className="text-muted-foreground text-center">
-                                 Generate comprehensive meeting notes with structured format (auto-generated as default)
-                               </p>
-                               <Button
-                                 onClick={generateNotesStyle3}
-                                 disabled={isGeneratingStyle3 || !transcript}
-                                 className="gap-2"
-                               >
-                                 {isGeneratingStyle3 ? (
-                                   <>
-                                     <RefreshCw className="h-4 w-4 animate-spin" />
-                                     Generating Standard Minutes...
-                                   </>
-                                 ) : (
-                                   <>
-                                     <Sparkles className="h-4 w-4" />
-                                     Generate Minutes - Standard
-                                   </>
-                                 )}
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
-                        {isEditing ? (
-                          <Textarea
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="h-full w-full font-mono text-sm resize-none"
-                            placeholder="Meeting notes will appear here..."
-                          />
-                        ) : (
-                          <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                            <div 
-                              dangerouslySetInnerHTML={{ 
-                                __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
-                              }}
-                            />
-                          </div>
-                        )}
-                      </TabsContent>
-                      
-                      <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
-                        <div className="space-y-4">
-                          {!notesStyle2 ? (
-                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                              <p className="text-muted-foreground text-center">
-                                Generate professional meeting minutes with itemized summary and clear decisions
-                              </p>
-                              <Button
-                                onClick={generateNotesStyle2}
-                                disabled={isGeneratingStyle2 || !transcript}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle2 ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                    Generating Style 2...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Minutes - Very Detailed
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ) : (
-                             <div className="space-y-4">
-                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                 <div 
-                                   dangerouslySetInnerHTML={{ 
-                                     __html: renderNHSMarkdown(notesStyle2, { enableNHSStyling: true })
-                                   }}
-                                 />
+                       <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
+                         {isEditing && editingTab === "notes-style1" ? (
+                           <Textarea
+                             value={editingContent}
+                             onChange={(e) => setEditingContent(e.target.value)}
+                             className="h-full w-full font-mono text-sm resize-none"
+                             placeholder="Meeting notes will appear here..."
+                           />
+                         ) : (
+                           <div className="space-y-4">
+                             {!notesStyle3 ? (
+                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                  <p className="text-muted-foreground text-center">
+                                    Generate comprehensive meeting notes with structured format (auto-generated as default)
+                                  </p>
+                                  <Button
+                                    onClick={generateNotesStyle3}
+                                    disabled={isGeneratingStyle3 || !transcript}
+                                    className="gap-2"
+                                  >
+                                    {isGeneratingStyle3 ? (
+                                      <>
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
+                                        Generating Standard Minutes...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="h-4 w-4" />
+                                        Generate Minutes - Standard
+                                      </>
+                                    )}
+                                 </Button>
                                </div>
-                             </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
-                        <div className="space-y-4">
-                          {!notesStyle4 ? (
-                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                              <p className="text-muted-foreground text-center">
-                                Generate a concise GP Partner update with key decisions and finance highlights
-                              </p>
-                              <Button
-                                onClick={generateNotesStyle4}
-                                disabled={isGeneratingStyle4 || !transcript}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle4 ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                    Generating Style 4...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Minutes - Executive
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ) : (
-                             <div className="space-y-4">
-                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                 <div 
-                                   dangerouslySetInnerHTML={{ 
-                                     __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
-                                   }}
-                                 />
+                             ) : (
+                               <div className="space-y-4">
+                                 <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                   <div 
+                                     dangerouslySetInnerHTML={{ 
+                                       __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
+                                     }}
+                                   />
+                                 </div>
                                </div>
-                             </div>
-                          )}
-                        </div>
-                      </TabsContent>
+                             )}
+                           </div>
+                         )}
+                       </TabsContent>
                       
-                      <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
-                        <div className="space-y-4">
-                          {!notesStyle5 ? (
-                            <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                              <p className="text-muted-foreground text-center">
-                                Generate a light-hearted poetic summary with rhyming verses and professional humor
-                              </p>
-                              <Button
-                                onClick={generateNotesStyle5}
-                                disabled={isGeneratingStyle5 || !transcript}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle5 ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                    Generating Style 5...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Minutes - Limerick
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          ) : (
-                             <div className="space-y-4">
-                               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                 <div 
-                                   dangerouslySetInnerHTML={{ 
-                                     __html: renderPoeticContent(notesStyle5)
-                                   }}
-                                 />
+                       <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
+                         {isEditing && editingTab === "notes-style2" ? (
+                           <Textarea
+                             value={editingContent}
+                             onChange={(e) => setEditingContent(e.target.value)}
+                             className="h-full w-full font-mono text-sm resize-none"
+                             placeholder="Meeting notes will appear here..."
+                           />
+                         ) : (
+                           <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                             <div 
+                               dangerouslySetInnerHTML={{ 
+                                 __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
+                               }}
+                             />
+                           </div>
+                         )}
+                       </TabsContent>
+                      
+                       <TabsContent value="style3" className="flex-1 overflow-auto pb-6">
+                         {isEditing && editingTab === "notes-style3" ? (
+                           <Textarea
+                             value={editingContent}
+                             onChange={(e) => setEditingContent(e.target.value)}
+                             className="h-full w-full font-mono text-sm resize-none"
+                             placeholder="Meeting notes will appear here..."
+                           />
+                         ) : (
+                           <div className="space-y-4">
+                             {!notesStyle2 ? (
+                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                 <p className="text-muted-foreground text-center">
+                                   Generate professional meeting minutes with itemized summary and clear decisions
+                                 </p>
+                                 <Button
+                                   onClick={generateNotesStyle2}
+                                   disabled={isGeneratingStyle2 || !transcript}
+                                   className="gap-2"
+                                 >
+                                   {isGeneratingStyle2 ? (
+                                     <>
+                                       <RefreshCw className="h-4 w-4 animate-spin" />
+                                       Generating Style 2...
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Sparkles className="h-4 w-4" />
+                                       Generate Minutes - Very Detailed
+                                     </>
+                                   )}
+                                 </Button>
                                </div>
-                             </div>
-                          )}
-                        </div>
-                      </TabsContent>
+                             ) : (
+                                <div className="space-y-4">
+                                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                    <div 
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: renderNHSMarkdown(notesStyle2, { enableNHSStyling: true })
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                             )}
+                           </div>
+                         )}
+                       </TabsContent>
+                      
+                       <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
+                         {isEditing && editingTab === "notes-style4" ? (
+                           <Textarea
+                             value={editingContent}
+                             onChange={(e) => setEditingContent(e.target.value)}
+                             className="h-full w-full font-mono text-sm resize-none"
+                             placeholder="Meeting notes will appear here..."
+                           />
+                         ) : (
+                           <div className="space-y-4">
+                             {!notesStyle4 ? (
+                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                 <p className="text-muted-foreground text-center">
+                                   Generate a concise GP Partner update with key decisions and finance highlights
+                                 </p>
+                                 <Button
+                                   onClick={generateNotesStyle4}
+                                   disabled={isGeneratingStyle4 || !transcript}
+                                   className="gap-2"
+                                 >
+                                   {isGeneratingStyle4 ? (
+                                     <>
+                                       <RefreshCw className="h-4 w-4 animate-spin" />
+                                       Generating Style 4...
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Sparkles className="h-4 w-4" />
+                                       Generate Minutes - Executive
+                                     </>
+                                   )}
+                                 </Button>
+                               </div>
+                             ) : (
+                                <div className="space-y-4">
+                                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                    <div 
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                             )}
+                           </div>
+                         )}
+                       </TabsContent>
+                      
+                       <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
+                         {isEditing && editingTab === "notes-style5" ? (
+                           <Textarea
+                             value={editingContent}
+                             onChange={(e) => setEditingContent(e.target.value)}
+                             className="h-full w-full font-mono text-sm resize-none"
+                             placeholder="Meeting notes will appear here..."
+                           />
+                         ) : (
+                           <div className="space-y-4">
+                             {!notesStyle5 ? (
+                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                 <p className="text-muted-foreground text-center">
+                                   Generate a light-hearted poetic summary with rhyming verses and professional humor
+                                 </p>
+                                 <Button
+                                   onClick={generateNotesStyle5}
+                                   disabled={isGeneratingStyle5 || !transcript}
+                                   className="gap-2"
+                                 >
+                                   {isGeneratingStyle5 ? (
+                                     <>
+                                       <RefreshCw className="h-4 w-4 animate-spin" />
+                                       Generating Style 5...
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Sparkles className="h-4 w-4" />
+                                       Generate Minutes - Limerick
+                                     </>
+                                   )}
+                                 </Button>
+                               </div>
+                             ) : (
+                                <div className="space-y-4">
+                                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                    <div 
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: renderPoeticContent(notesStyle5)
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                             )}
+                           </div>
+                         )}
+                       </TabsContent>
                     </Tabs>
                   </div>
                 </div>
@@ -2789,14 +2947,14 @@ ${transcript}`;
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         <span className="ml-2">Loading transcript...</span>
                       </div>
-                    ) : isEditing ? (
-                      <Textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="h-full w-full font-mono text-sm resize-none"
-                        placeholder="Meeting transcript will appear here..."
-                      />
-                    ) : !transcript ? (
+                     ) : isEditing && editingTab === "transcript" ? (
+                       <Textarea
+                         value={editingContent}
+                         onChange={(e) => setEditingContent(e.target.value)}
+                         className="h-full w-full font-mono text-sm resize-none"
+                         placeholder="Meeting transcript will appear here..."
+                       />
+                     ) : !transcript ? (
                       <div className="flex items-center justify-center h-32 text-muted-foreground">
                         No transcript available for this meeting.
                       </div>
