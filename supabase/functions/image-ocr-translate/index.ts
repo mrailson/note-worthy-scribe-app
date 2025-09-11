@@ -5,11 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Medical value patterns with improved decimal detection
-const MEDICAL_PATTERNS = [
+interface MedicalValue {
+  value: number;
+  unit: string;
+  type: string;
+  position: { start: number; end: number };
+  raw: string;
+}
+
+interface ValidationIssue {
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: string;
+  message: string;
+  originalValue: string;
+  suggestedCorrection?: string;
+  normalRange?: string;
+  position?: { start: number; end: number };
+}
+
+interface ClinicalVerificationResult {
+  hasIssues: boolean;
+  issues: ValidationIssue[];
+  detectedValues: MedicalValue[];
+  overallSafety: 'safe' | 'warning' | 'unsafe';
+  confidence: number;
+}
+
+interface TranslationResult {
+  originalText: string;
+  translatedText: string;
+  detectedLanguage: string;
+  confidence: number;
+  clinicalVerification?: ClinicalVerificationResult;
+}
+
+// Medical value patterns with improved decimal detection - FIXED patterns
 const MEDICAL_PATTERNS = [
   {
-    pattern: /(?:cholesterol|colesterolutotal)[:\s=]*(\d+\.?\d*)\s*mmol\/L/gi,
+    pattern: /(?:cholesterol|colesterolutotal|total\s+cholesterol)[:\s=]+(\d+\.?\d*)\s*mmol\/L/gi,
     type: 'cholesterol',
     unit: 'mmol/L',
     normalRange: '3.0-7.0',
@@ -44,12 +77,18 @@ const MEDICAL_PATTERNS = [
 ];
 
 function extractMedicalValues(text: string): MedicalValue[] {
+  console.log('=== EXTRACTING MEDICAL VALUES ===');
+  console.log('Text to analyze:', text?.substring(0, 200) + '...');
   const values: MedicalValue[] = [];
   
   for (const pattern of MEDICAL_PATTERNS) {
+    console.log(`Testing pattern: ${pattern.pattern} for type: ${pattern.type}`);
     const matches = [...text.matchAll(pattern.pattern)];
+    console.log(`Found ${matches.length} matches for ${pattern.type}:`, matches.map(m => m[0]));
     
     for (const match of matches) {
+      console.log(`Processing match: "${match[0]}" at position ${match.index}`);
+      
       if (pattern.type === 'blood_pressure') {
         const systolic = parseInt(match[1]);
         const diastolic = parseInt(match[2]);
@@ -65,12 +104,13 @@ function extractMedicalValues(text: string): MedicalValue[] {
         values.push({
           value: diastolic,
           unit: pattern.unit,
-          type: 'blood_pressure_diastolic',
+          type: 'blood_pressure_diastolic', 
           position: { start: match.index!, end: match.index! + match[0].length },
           raw: match[0]
         });
       } else {
         const value = parseFloat(match[1]);
+        console.log(`Extracted ${pattern.type} value: ${value} ${pattern.unit}`);
         values.push({
           value,
           unit: pattern.unit,
@@ -82,13 +122,16 @@ function extractMedicalValues(text: string): MedicalValue[] {
     }
   }
   
+  console.log('=== TOTAL MEDICAL VALUES EXTRACTED ===', values);
   return values;
 }
 
 function validateMedicalValues(values: MedicalValue[]): ValidationIssue[] {
+  console.log('=== VALIDATING MEDICAL VALUES ===');
   const issues: ValidationIssue[] = [];
   
   for (const medValue of values) {
+    console.log(`Validating: ${medValue.type} = ${medValue.value} ${medValue.unit}`);
     const pattern = MEDICAL_PATTERNS.find(p => p.type === medValue.type || 
       (medValue.type.startsWith('blood_pressure') && p.type === 'blood_pressure'));
     
@@ -98,6 +141,7 @@ function validateMedicalValues(values: MedicalValue[]): ValidationIssue[] {
     if (medValue.type === 'cholesterol' && medValue.value > 15) {
       const suggestedValue = medValue.value / 10;
       if (suggestedValue >= 3 && suggestedValue <= 12) {
+        console.log(`🚨 CRITICAL: Cholesterol ${medValue.value} flagged as decimal error!`);
         issues.push({
           severity: 'critical',
           type: 'decimal_point_error',
@@ -125,6 +169,7 @@ function validateMedicalValues(values: MedicalValue[]): ValidationIssue[] {
     
     if (pattern.normalMax && medValue.value > pattern.normalMax) {
       const severity = pattern.criticalMax && medValue.value > pattern.criticalMax ? 'critical' : 'high';
+      console.log(`🚨 ${severity.toUpperCase()}: ${medValue.type} ${medValue.value} is above normal range!`);
       issues.push({
         severity,
         type: 'above_normal_range',
@@ -136,23 +181,27 @@ function validateMedicalValues(values: MedicalValue[]): ValidationIssue[] {
     }
   }
   
+  console.log(`=== VALIDATION COMPLETE: ${issues.length} issues found ===`);
   return issues;
 }
 
 function checkForCommonOCRErrors(text: string): ValidationIssue[] {
+  console.log('=== CHECKING FOR OCR ERRORS ===');
   const issues: ValidationIssue[] = [];
   
-  // Check for missing decimal points in cholesterol values - more flexible pattern
-  const cholesterolMatches = [...text.matchAll(/(?:cholesterol|colesterolutotal)[:\s=]*(\d{2,3})\s*mmol\/L/gi)];
+  // Check for missing decimal points in cholesterol values - FIXED pattern
+  const cholesterolMatches = [...text.matchAll(/(?:cholesterol|colesterolutotal|total\s+cholesterol)[:\s=]+(\d{2,3})\s*mmol\/L/gi)];
+  console.log(`Found ${cholesterolMatches.length} cholesterol matches for OCR error check:`, cholesterolMatches.map(m => m[0]));
+  
   for (const match of cholesterolMatches) {
     const value = parseInt(match[1]);
-    console.log(`Found cholesterol value: ${value} from text: "${match[0]}"`);
+    console.log(`Checking cholesterol OCR error for value: ${value} from text: "${match[0]}"`);
     
     if (value > 15) {
       const decimal1 = value / 10;
       
       if (decimal1 >= 3 && decimal1 <= 12) {
-        console.log(`Flagging cholesterol ${value} as decimal error, suggesting ${decimal1}`);
+        console.log(`🚨 CRITICAL OCR ERROR: Cholesterol ${value} flagged as decimal error, suggesting ${decimal1}!`);
         issues.push({
           severity: 'critical',
           type: 'ocr_decimal_error',
@@ -166,25 +215,53 @@ function checkForCommonOCRErrors(text: string): ValidationIssue[] {
     }
   }
   
+  console.log(`=== OCR ERROR CHECK COMPLETE: ${issues.length} issues found ===`);
   return issues;
 }
 
 function performClinicalVerification(originalText: string, translatedText: string): ClinicalVerificationResult {
-  console.log('Performing clinical verification on texts...');
+  console.log('=== CLINICAL VERIFICATION DEBUG START ===');
+  console.log('Original text length:', originalText?.length || 0);
+  console.log('Translated text length:', translatedText?.length || 0);
+  console.log('Original text sample:', originalText?.substring(0, 300));
+  console.log('Translated text sample:', translatedText?.substring(0, 300));
   
   // Extract medical values from both texts
+  console.log('--- EXTRACTING FROM ORIGINAL TEXT ---');
   const originalValues = extractMedicalValues(originalText);
+  console.log('--- EXTRACTING FROM TRANSLATED TEXT ---');
   const translatedValues = extractMedicalValues(translatedText);
   
-  console.log('Found medical values:', { original: originalValues.length, translated: translatedValues.length });
+  console.log('Medical values summary:', { 
+    original: originalValues.length, 
+    translated: translatedValues.length,
+    originalValues: originalValues,
+    translatedValues: translatedValues
+  });
   
   // Validate medical values
+  console.log('--- VALIDATING ORIGINAL VALUES ---');
   const originalIssues = validateMedicalValues(originalValues);
+  console.log('--- VALIDATING TRANSLATED VALUES ---');
   const translatedIssues = validateMedicalValues(translatedValues);
   
+  console.log('Validation issues:', {
+    originalIssues: originalIssues.length,
+    translatedIssues: translatedIssues.length
+  });
+  
   // Check for OCR errors
+  console.log('--- CHECKING OCR ERRORS IN ORIGINAL ---');
   const ocrIssues = checkForCommonOCRErrors(originalText);
+  console.log('--- CHECKING OCR ERRORS IN TRANSLATED ---');
   const translationOcrIssues = checkForCommonOCRErrors(translatedText);
+  
+  console.log('OCR error issues:', {
+    original: ocrIssues.length,
+    translated: translationOcrIssues.length,
+    ocrIssues: ocrIssues,
+    translationOcrIssues: translationOcrIssues
+  });
   
   // Combine all issues
   const allIssues = [
@@ -194,7 +271,9 @@ function performClinicalVerification(originalText: string, translatedText: strin
     ...translationOcrIssues.map(issue => ({ ...issue, source: 'translated_ocr' }))
   ];
   
-  console.log(`Clinical verification found ${allIssues.length} issues`);
+  console.log('=== FINAL CLINICAL VERIFICATION RESULT ===');
+  console.log(`Total issues found: ${allIssues.length}`);
+  console.log('All issues:', allIssues);
   
   // Determine overall safety
   let overallSafety: 'safe' | 'warning' | 'unsafe' = 'safe';
@@ -203,6 +282,8 @@ function performClinicalVerification(originalText: string, translatedText: strin
   } else if (allIssues.some(issue => issue.severity === 'high' || issue.severity === 'medium')) {
     overallSafety = 'warning';
   }
+  
+  console.log('Overall safety determination:', overallSafety);
   
   // Calculate confidence
   const criticalIssues = allIssues.filter(issue => issue.severity === 'critical').length;
@@ -215,47 +296,17 @@ function performClinicalVerification(originalText: string, translatedText: strin
   confidence -= mediumIssues * 0.05;
   confidence = Math.max(0.1, Math.min(1.0, confidence));
   
-  return {
+  const result = {
     hasIssues: allIssues.length > 0,
     issues: allIssues,
     detectedValues: [...originalValues, ...translatedValues],
     overallSafety,
     confidence
   };
-}
-
-interface MedicalValue {
-  value: number;
-  unit: string;
-  type: string;
-  position: { start: number; end: number };
-  raw: string;
-}
-
-interface ValidationIssue {
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  type: string;
-  message: string;
-  originalValue: string;
-  suggestedCorrection?: string;
-  normalRange?: string;
-  position?: { start: number; end: number };
-}
-
-interface ClinicalVerificationResult {
-  hasIssues: boolean;
-  issues: ValidationIssue[];
-  detectedValues: MedicalValue[];
-  overallSafety: 'safe' | 'warning' | 'unsafe';
-  confidence: number;
-}
-
-interface TranslationResult {
-  originalText: string;
-  translatedText: string;
-  detectedLanguage: string;
-  confidence: number;
-  clinicalVerification?: ClinicalVerificationResult;
+  
+  console.log('=== CLINICAL VERIFICATION DEBUG END ===');
+  console.log('Final result:', result);
+  return result;
 }
 
 serve(async (req) => {
@@ -331,7 +382,7 @@ serve(async (req) => {
     }
 
     const visionResult = await visionResponse.json();
-    console.log('Vision API response:', JSON.stringify(visionResult, null, 2));
+    console.log('Vision API response received');
 
     if (!visionResult.responses || !visionResult.responses[0]) {
       return new Response(
@@ -355,7 +406,7 @@ serve(async (req) => {
     }
 
     const extractedText = textAnnotations[0].description;
-    console.log('Extracted text:', extractedText);
+    console.log('Extracted text:', extractedText.substring(0, 200) + '...');
 
     // Step 2: Detect language and translate using Google Translate API
     const translateBody = {
@@ -397,7 +448,7 @@ serve(async (req) => {
     }
 
     const translateResult = await translateResponse.json();
-    console.log('Translation result:', JSON.stringify(translateResult, null, 2));
+    console.log('Translation completed');
 
     if (!translateResult.data || !translateResult.data.translations || translateResult.data.translations.length === 0) {
       return new Response(
