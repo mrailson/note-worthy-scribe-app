@@ -1175,7 +1175,7 @@ export const TranslationToolInterface = () => {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="translate" className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            Live Translation
+            Live Speech Translation
           </TabsTrigger>
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
