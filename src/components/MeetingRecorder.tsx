@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -4346,15 +4346,6 @@ export const MeetingRecorder = ({
               
   return (
     <div className="space-y-6">
-      {/* Service Offline Banner */}
-      <div className="bg-destructive text-destructive-foreground px-4 py-3 rounded-lg border border-destructive/20 shadow-sm">
-        <div className="flex items-center justify-center gap-2">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="font-medium text-center">
-            Meeting Service OFFLINE for Upgrade
-          </span>
-        </div>
-      </div>
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
