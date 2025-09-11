@@ -24,6 +24,7 @@ export interface DualTranscriptionState {
 
 export const useDualTranscription = (meetingId?: string, sessionId?: string) => {
   const { toast } = useToast();
+  const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(meetingId || null);
   const [state, setState] = useState<DualTranscriptionState>({
     isRecording: false,
     assemblyStatus: 'idle',
@@ -51,31 +52,40 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const saveAssemblyTranscript = useCallback(async (
+  const saveTranscriptChunk = useCallback(async (
     transcript: string, 
     confidence: number, 
-    isFinal: boolean = false
+    isFinal: boolean = false,
+    source: 'assembly' | 'whisper' = 'assembly'
   ) => {
-    if (!meetingId || !sessionId) return;
+    if (!currentMeetingId) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase.from('assembly_transcripts').insert({
-        meeting_id: meetingId,
+      // Save to meeting_transcription_chunks for word count tracking
+      await supabase.from('meeting_transcription_chunks').insert({
+        meeting_id: currentMeetingId,
         user_id: user.id,
-        session_id: sessionId,
-        chunk_index: chunkIndexRef.current++,
-        transcript_text: transcript,
-        confidence,
+        session_id: sessionId || `session_${Date.now()}`,
+        chunk_number: chunkIndexRef.current++,
+        transcription_text: transcript,
+        confidence_score: confidence,
         is_final: isFinal,
-        timestamp_ms: Date.now()
+        source: source
       });
+
+      // Update meeting word count
+      const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
+      await supabase.from('meetings').update({
+        word_count: wordCount
+      }).eq('id', currentMeetingId);
+
     } catch (error) {
-      console.error('Error saving Assembly transcript:', error);
+      console.error('Error saving transcript chunk:', error);
     }
-  }, [meetingId, sessionId]);
+  }, [currentMeetingId, sessionId]);
 
   const resetState = useCallback(() => {
     setState({
@@ -99,6 +109,31 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
   const startDualTranscription = useCallback(async () => {
     try {
       updateState({ isRecording: true });
+
+      // Create meeting if not provided
+      if (!currentMeetingId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .insert({
+            title: `Dual Transcription Session - ${new Date().toLocaleString()}`,
+            user_id: user.id,
+            status: 'recording',
+            start_time: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+
+        if (meetingError || !meeting) {
+          throw new Error('Failed to create meeting');
+        }
+
+        setCurrentMeetingId(meeting.id);
+      }
 
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -145,7 +180,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
             
             // Save to database
             if (data.is_final) {
-              saveAssemblyTranscript(data.text, data.confidence, true);
+              saveTranscriptChunk(data.text, data.confidence, true, 'assembly');
             }
           },
           (error: string) => {
@@ -248,7 +283,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         variant: "destructive"
       });
     }
-  }, [state.assemblyEnabled, state.whisperEnabled, saveAssemblyTranscript, updateState, toast]);
+  }, [state.assemblyEnabled, state.whisperEnabled, saveTranscriptChunk, updateState, toast]);
 
   const stopDualTranscription = useCallback(async () => {
     try {
@@ -279,15 +314,16 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         streamRef.current = null;
       }
 
-      // Save final transcripts to meeting
-      if (meetingId) {
+      // Save final transcripts and complete meeting
+      if (currentMeetingId) {
+        const totalWords = Math.max(state.assemblyWordCount, state.whisperWordCount);
         await supabase.from('meetings').update({
-          assembly_transcript_text: state.assemblyTranscript,
-          whisper_transcript_text: state.whisperTranscript,
-          assembly_confidence: state.assemblyConfidence,
-          whisper_confidence: state.whisperConfidence,
-          primary_transcript_source: state.primarySource
-        }).eq('id', meetingId);
+          status: 'completed',
+          end_time: new Date().toISOString(),
+          word_count: totalWords,
+          primary_transcript_source: state.primarySource,
+          notes_generation_status: 'queued'
+        }).eq('id', currentMeetingId);
       }
 
       toast({
@@ -303,7 +339,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         variant: "destructive"
       });
     }
-  }, [meetingId, state.assemblyTranscript, state.whisperTranscript, state.assemblyConfidence, state.whisperConfidence, state.primarySource, updateState, toast]);
+  }, [currentMeetingId, state.assemblyTranscript, state.whisperTranscript, state.assemblyConfidence, state.whisperConfidence, state.primarySource, state.assemblyWordCount, state.whisperWordCount, updateState, toast]);
 
   const toggleService = useCallback((service: 'assembly' | 'whisper') => {
     if (state.isRecording) {
