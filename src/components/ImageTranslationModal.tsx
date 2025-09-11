@@ -55,6 +55,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [showFullScreenText, setShowFullScreenText] = useState(false);
+  const [showFullScreenOriginal, setShowFullScreenOriginal] = useState(false);
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,8 +248,21 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
             {/* Right - Image Preview */}
             {imagePreview && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Selected Image Preview</label>
-                <div className="border rounded-lg p-4 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Selected Image Preview</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFullScreenImage(true)}
+                    className="flex items-center gap-1 h-6"
+                    title="View full screen image"
+                  >
+                    <Expand className="w-3 h-3" />
+                    Enlarge
+                  </Button>
+                </div>
+                <div className="border rounded-lg p-4 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
+                     onClick={() => setShowFullScreenImage(true)}>
                   <img
                     src={imagePreview}
                     alt="Selected document"
@@ -274,18 +289,30 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                       <div className="space-y-2 flex-1 flex flex-col">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Original Text:</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyText(result.originalText)}
-                            className="flex items-center gap-1 h-6"
-                          >
-                            <Copy className="w-3 h-3" />
-                            {copied ? 'Copied!' : 'Copy'}
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowFullScreenOriginal(true)}
+                              className="flex items-center gap-1 h-6"
+                              title="Enlarge text for easier viewing"
+                            >
+                              <Expand className="w-3 h-3" />
+                              Enlarge
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyText(result.originalText)}
+                              className="flex items-center gap-1 h-6"
+                            >
+                              <Copy className="w-3 h-3" />
+                              {copied ? 'Copied!' : 'Copy'}
+                            </Button>
+                          </div>
                         </div>
                         <div className="p-4 bg-muted rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
-                          <pre className="whitespace-pre-wrap font-mono text-xs">
+                          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                             {result.originalText}
                           </pre>
                         </div>
@@ -325,7 +352,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                         </div>
                       </div>
                       <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
-                        <pre className="whitespace-pre-wrap font-mono text-xs">
+                        <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                           {result.translatedText}
                         </pre>
                       </div>
@@ -337,6 +364,81 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Full Screen Image Modal */}
+      <Dialog open={showFullScreenImage} onOpenChange={setShowFullScreenImage}>
+        <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Document Image - Full Screen View
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFullScreenImage(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+            <div className="h-full flex items-center justify-center">
+              <img
+                src={imagePreview}
+                alt="Selected document - full view"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Screen Original Text Modal */}
+      <Dialog open={showFullScreenOriginal} onOpenChange={setShowFullScreenOriginal}>
+        <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Languages className="w-5 h-5" />
+                Original Text - Full Screen View ({result?.detectedLanguage || ''})
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => result && handleCopyText(result.originalText)}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy All
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFullScreenOriginal(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-background border rounded-lg p-8 shadow-sm">
+                <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
+                  {result?.originalText || ''}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Full Screen Translated Text Modal */}
       <Dialog open={showFullScreenText} onOpenChange={setShowFullScreenText}>
