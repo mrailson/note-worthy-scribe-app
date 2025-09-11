@@ -13,7 +13,7 @@ export interface CalculationResult {
 
 export const useCalculationValidator = () => {
   const detectCalculations = useCallback((text: string): CalculationResult => {
-    // Patterns to detect numerical calculations
+    // Patterns to detect numerical calculations (enhanced for medical context)
     const calculationPatterns = [
       /£[\d,]+\.?\d*/g, // Currency amounts
       /\d+\.?\d*\s*[×x*]\s*\d+\.?\d*/g, // Multiplication
@@ -23,6 +23,13 @@ export const useCalculationValidator = () => {
       /total[:\s]*£?[\d,]+\.?\d*/gi, // Totals
       /sum[:\s]*£?[\d,]+\.?\d*/gi, // Sums
       /\d+\s*%/g, // Percentages
+      // Medical-specific patterns
+      /\d+\.?\d*\s*mg/gi, // Medication dosages
+      /\d+\.?\d*\s*mmol\/L/gi, // Lab values
+      /\d+\.?\d*\s*mg\/dL/gi, // Alternative lab values
+      /\d+\/\d+\s*mmHg/gi, // Blood pressure
+      /\d+\s*cp\/zi/gi, // Tablets per day (Romanian)
+      /\d+\s*tablet[s]?\s*per\s*day/gi, // Tablets per day (English)
     ];
 
     const calculations: Array<{ expression: string; result: string; confidence: number }> = [];
@@ -73,6 +80,11 @@ export const useCalculationValidator = () => {
         suggestions.push('Multiple calculations detected - consider verifying each calculation step by step');
       }
 
+      // Medical-specific validations
+      const medicalValidation = validateMedicalValues(aiResponse);
+      issues.push(...medicalValidation.issues);
+      suggestions.push(...medicalValidation.suggestions);
+
       // Check for currency formatting consistency
       const currencyMatches = aiResponse.match(/£[\d,]+\.?\d*/g);
       if (currencyMatches && currencyMatches.length > 1) {
@@ -102,6 +114,11 @@ export const useCalculationValidator = () => {
       if (largeAmounts && largeAmounts.length > 0) {
         suggestions.push('Large amounts detected - please verify these values are correct');
       }
+      
+      // Check for decimal point errors in medical values
+      const suspiciousValues = checkForDecimalErrors(aiResponse);
+      issues.push(...suspiciousValues.issues);
+      suggestions.push(...suspiciousValues.suggestions);
     }
 
     return {
@@ -135,3 +152,67 @@ export const useCalculationValidator = () => {
     requestVerification
   };
 };
+
+// Medical value validation helper
+function validateMedicalValues(text: string): { issues: string[], suggestions: string[] } {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+
+  // Cholesterol validation
+  const cholesterolMatch = text.match(/cholesterol.*?(\d+\.?\d*)\s*mmol\/L/i);
+  if (cholesterolMatch) {
+    const value = parseFloat(cholesterolMatch[1]);
+    if (value > 20) {
+      issues.push(`Extremely high cholesterol value: ${value} mmol/L (normal range: 3-7 mmol/L)`);
+      suggestions.push('This may be an OCR error - verify if this should be a decimal value (e.g., 6.9 instead of 69)');
+    }
+  }
+
+  // Blood pressure validation
+  const bpMatch = text.match(/(\d+)\/(\d+)\s*mmHg/i);
+  if (bpMatch) {
+    const systolic = parseInt(bpMatch[1]);
+    const diastolic = parseInt(bpMatch[2]);
+    if (systolic > 300 || diastolic > 200) {
+      issues.push(`Extremely high blood pressure: ${systolic}/${diastolic} mmHg`);
+      suggestions.push('Verify blood pressure reading accuracy');
+    }
+  }
+
+  // Medication dosage validation
+  const dosageMatches = text.matchAll(/(\d+\.?\d*)\s*mg/gi);
+  for (const match of dosageMatches) {
+    const value = parseFloat(match[1]);
+    if (value > 2000) {
+      issues.push(`Unusually high medication dosage: ${value} mg`);
+      suggestions.push('Verify medication dosage is correct');
+    }
+  }
+
+  return { issues, suggestions };
+}
+
+// Check for common decimal point errors
+function checkForDecimalErrors(text: string): { issues: string[], suggestions: string[] } {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+
+  // Common pattern: missing decimal point in cholesterol values
+  const suspiciousPatterns = [
+    { pattern: /cholesterol.*?69\s*mmol\/L/i, correction: '6.9 mmol/L' },
+    { pattern: /(\d{2,3})\s*mmol\/L/gi, message: 'Check if decimal point is missing' }
+  ];
+
+  suspiciousPatterns.forEach(({ pattern, correction, message }) => {
+    if (pattern.test(text)) {
+      if (correction) {
+        issues.push(`Likely decimal point error - should this be ${correction}?`);
+        suggestions.push(`Replace with ${correction}`);
+      } else if (message) {
+        suggestions.push(message + ' in mmol/L values');
+      }
+    }
+  });
+
+  return { issues, suggestions };
+}
