@@ -25,6 +25,30 @@ export interface PresentationTemplate {
 
 export const PRESENTATION_TEMPLATES: PresentationTemplate[] = [
   {
+    id: 'nhs-branded',
+    name: 'NHS Branded Background',
+    description: 'Official NHS slide background with logo and wave design',
+    primaryColor: '#005EB8',
+    secondaryColor: '#E8F4FD',
+    accentColor: '#0072CE',
+    backgroundColor: '#F5F5F5',
+    textColor: '#333333',
+    headingColor: '#005EB8',
+    footerColor: '#666666',
+    gradients: {
+      primary: 'linear-gradient(135deg, #005EB8, #0072CE)',
+      secondary: 'linear-gradient(180deg, #E8F4FD, #F0F8FF)',
+      accent: 'linear-gradient(45deg, #005EB8, #003D7A)'
+    },
+    fonts: {
+      heading: 'Calibri',
+      body: 'Calibri'
+    },
+    preview: 'Official NHS branded background with logo and wave design',
+    style: 'custom',
+    backgroundImage: '/lovable-uploads/f63315a2-1dcf-423e-b777-b7b031b3a3e6.png'
+  },
+  {
     id: 'nhs-professional',
     name: 'NHS Professional',
     description: 'Classic NHS branding with professional blue theme',
