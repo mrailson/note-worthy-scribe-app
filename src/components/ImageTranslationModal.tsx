@@ -164,9 +164,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
           </DialogTitle>
           
           {/* Medical Translation Features Info */}
-          <div className="flex justify-center gap-2 pt-2">
+          <div className="flex justify-center pt-2">
             <MedicalTranslationInfo />
-            <MedicalTranslationAuditViewer />
           </div>
         </DialogHeader>
 
