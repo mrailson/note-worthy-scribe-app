@@ -289,8 +289,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-4 pb-3 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-5 h-9">
-                <TabsTrigger value="brief" className="text-xs px-1">Brief</TabsTrigger>
+              <TabsList className="grid w-full max-w-lg grid-cols-4 h-9">
                 <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
                 <TabsTrigger value="comprehensive" className="text-xs px-1">Full</TabsTrigger>
                 <TabsTrigger value="executive" className="text-xs px-1">Exec</TabsTrigger>

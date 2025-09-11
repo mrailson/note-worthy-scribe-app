@@ -1495,7 +1495,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
   const generateNotesStyle2 = async () => {
-    console.log('📄 Starting Minutes - Very Detailed regeneration...');
+    console.log('📄 Starting Minutes - Brief regeneration...');
     
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Very Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
@@ -1603,22 +1603,22 @@ ${transcript}`;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
-        console.log('✅ Very Detailed notes generated, length:', generatedContent.length);
+        console.log('✅ Brief notes generated, length:', generatedContent.length);
         setNotesStyle2(generatedContent);
         
         // Save to database
         await saveNoteStyleToDatabase(2, generatedContent);
         
-        toast.success("Minutes - Very Detailed generated and saved successfully!");
+        toast.success("Minutes - Brief generated and saved successfully!");
       } else {
-        console.error('❌ No content in Very Detailed response:', data);
+        console.error('❌ No content in Brief response:', data);
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('❌ Error generating Very Detailed notes:', error);
-      toast.error("Failed to generate Minutes - Very Detailed");
+      console.error('❌ Error generating Brief notes:', error);
+      toast.error("Failed to generate Minutes - Brief");
     } finally {
-      console.log('🏁 Very Detailed generation finished');
+      console.log('🏁 Brief generation finished');
       setIsGeneratingStyle2(false);
     }
   };
@@ -2546,9 +2546,9 @@ ${transcript}`;
                           <TabsTrigger value="style1" className="text-xs sm:text-sm">
                             Minutes - Standard
                           </TabsTrigger>
-                         <TabsTrigger value="style3" className="text-xs sm:text-sm">
-                           Minutes - Very Detailed
-                         </TabsTrigger>
+                          <TabsTrigger value="style3" className="text-xs sm:text-sm">
+                            Minutes - Brief
+                          </TabsTrigger>
                          <TabsTrigger value="style4" className="text-xs sm:text-sm">
                            Minutes - Executive
                          </TabsTrigger>
@@ -2598,7 +2598,7 @@ ${transcript}`;
                                switch (activeNotesStyleTab) {
                                  case 'style1': return 'Minutes - Standard';
                                  case 'style2': return 'Minutes - Brief';
-                                 case 'style3': return 'Minutes - Very Detailed';
+                                 case 'style3': return 'Minutes - Brief';
                                 case 'style4': return 'Minutes - Executive';
                                 case 'style5': return 'Minutes - Limerick';
                                 default: return 'Meeting Notes';
@@ -2780,7 +2780,7 @@ ${transcript}`;
                                    ) : (
                                      <>
                                        <Sparkles className="h-4 w-4" />
-                                       Generate Minutes - Very Detailed
+                                       Generate Minutes - Brief
                                      </>
                                    )}
                                  </Button>
