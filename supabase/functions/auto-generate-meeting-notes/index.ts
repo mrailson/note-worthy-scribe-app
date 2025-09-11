@@ -202,7 +202,7 @@ serve(async (req) => {
       .eq('id', meetingId);
 
     // Get transcript using the database function that checks all possible sources
-    const { data: transcriptResult, error: transcriptError } = await supabase
+    const { data: finalTranscriptResult, error: transcriptError } = await supabase
       .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
     if (transcriptError) {
@@ -214,7 +214,7 @@ serve(async (req) => {
       throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
     }
 
-    const transcriptData = transcriptResult?.[0];
+    const transcriptData = finalTranscriptResult?.[0];
     const fullTranscript = transcriptData?.transcript || '';
     const transcriptSource = transcriptData?.source || 'unknown';
     const itemCount = transcriptData?.item_count || 0;
