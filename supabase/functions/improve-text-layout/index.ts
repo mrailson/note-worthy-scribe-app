@@ -16,16 +16,22 @@ serve(async (req) => {
 
   try {
     if (!openAIApiKey) {
+      console.error('OpenAI API key not found');
       throw new Error('OpenAI API key not found');
     }
 
     const { text, sourceLanguage, targetLanguage } = await req.json();
 
     if (!text) {
+      console.error('Text parameter is required');
       throw new Error('Text is required');
     }
 
-    console.log('Improving text layout for:', { sourceLanguage, targetLanguage, textLength: text.length });
+    console.log('Improving text layout for:', { 
+      sourceLanguage: sourceLanguage || 'unknown', 
+      targetLanguage: targetLanguage || 'unknown', 
+      textLength: text.length 
+    });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -67,7 +73,7 @@ CRITICAL RULES:
           },
           {
             role: 'user',
-            content: `Please improve the formatting and layout of this translated medical text (originally in ${sourceLanguage}, now in ${targetLanguage}):
+            content: `Please improve the formatting and layout of this translated medical text (originally in ${sourceLanguage || 'unknown'}, now in ${targetLanguage || 'unknown'}):
 
 ${text}`
           }
@@ -78,12 +84,22 @@ ${text}`
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`OpenAI API error: ${response.status} - ${response.statusText}`);
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid OpenAI response structure:', data);
+      throw new Error('Invalid response from OpenAI API');
+    }
+
     const improvedText = data.choices[0].message.content;
 
     console.log('Text improvement completed successfully');
