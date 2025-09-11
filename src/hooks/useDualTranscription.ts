@@ -206,7 +206,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
       // Initialize Whisper transcriber if enabled
       if (state.whisperEnabled) {
         whisperTranscriberRef.current = new WhisperTranscriber(
-          "https://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-transcription",
+          "https://dphcnbricafkbtizkoal.supabase.co/functions/v1/speech-to-text",
           (payload: any) => {
             if (payload.text) {
               // Create LiveChunk from Whisper payload
@@ -261,6 +261,8 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         });
         mediaRecorderRef.current = mediaRecorder;
 
+        let isFirstChunk = true;
+
         mediaRecorder.ondataavailable = (event) => {
           console.log('📊 MediaRecorder data available:', event.data.size, 'bytes');
           if (event.data.size > 0 && whisperTranscriberRef.current) {
@@ -269,7 +271,17 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
           }
         };
 
-        mediaRecorder.start(5000); // Collect data every 5 seconds for testing
+        // Start with 5 seconds for first chunk, then 2 seconds
+        mediaRecorder.start(5000);
+        
+        mediaRecorder.onstop = () => {
+          if (!isFirstChunk) return;
+          isFirstChunk = false;
+          // Restart with 2-second intervals after first chunk
+          if (mediaRecorder.state === 'inactive') {
+            mediaRecorder.start(2000);
+          }
+        };
       }
 
       toast({
