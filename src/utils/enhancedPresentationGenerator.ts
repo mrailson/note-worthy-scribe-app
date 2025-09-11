@@ -16,14 +16,14 @@ export interface EnhancedGenerationOptions {
 
 class LayoutEngine {
   static calculateOptimalLayout(content: string[], slideWidth: number = 10, slideHeight: number = 7.5) {
-    const availableHeight = slideHeight - 2.5; // Reserve space for title and footer
-    const lineHeight = 0.4;
+    const availableHeight = slideHeight - 2.8; // Reserve space for title and footer
+    const lineHeight = 0.35; // Reduced line height for better spacing
     const maxLinesPerSlide = Math.floor(availableHeight / lineHeight);
     
     // If content fits in one slide, return single layout
     if (content.length <= maxLinesPerSlide) {
       return {
-        slides: [{ content, startY: 2.0 }],
+        slides: [{ content, startY: 1.8 }],
         layout: 'single'
       };
     }
@@ -34,7 +34,7 @@ class LayoutEngine {
     
     while (currentIndex < content.length) {
       const slideContent = content.slice(currentIndex, currentIndex + maxLinesPerSlide);
-      slides.push({ content: slideContent, startY: 2.0 });
+      slides.push({ content: slideContent, startY: 1.8 });
       currentIndex += maxLinesPerSlide;
     }
     
@@ -44,11 +44,10 @@ class LayoutEngine {
     };
   }
   
-  static optimizeTextForSlide(text: string, maxLength: number = 100): string {
+  static optimizeTextForSlide(text: string, maxLength: number = 85): string {
     if (text.length <= maxLength) return text;
     
     // Find the best break point near the max length
-    let breakPoint = maxLength;
     const words = text.split(' ');
     let currentLength = 0;
     let wordIndex = 0;
@@ -61,6 +60,17 @@ class LayoutEngine {
     
     const truncated = words.slice(0, wordIndex).join(' ');
     return truncated + (wordIndex < words.length ? '...' : '');
+  }
+  
+  static formatTextForPowerPoint(text: string): string {
+    // Clean up text formatting for PowerPoint
+    return text
+      .replace(/[\u2018\u2019]/g, "'") // Replace smart quotes
+      .replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes
+      .replace(/\u2013/g, '-') // Replace en dash
+      .replace(/\u2014/g, '--') // Replace em dash
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
   }
 }
 
@@ -253,18 +263,20 @@ class TemplateRenderer {
       const contentToShow = layout.slides[0].content;
       
       contentToShow.forEach((point, index) => {
-        const optimizedText = LayoutEngine.optimizeTextForSlide(point, 120);
+        const cleanText = LayoutEngine.formatTextForPowerPoint(point);
+        const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, 85);
         
         const textConfig: any = {
-          x: 1.2,
-          y: 2.0 + (index * 0.45),
-          w: 7.6,
-          h: 0.4,
-          fontSize: this.template.style === 'bright' ? 20 : 18,
+          x: 0.8,
+          y: 1.8 + (index * 0.35),
+          w: 8.4,
+          h: 0.3,
+          fontSize: this.template.style === 'bright' ? 16 : 14,
           fontFace: this.template.fonts.body,
           bullet: { type: 'bullet' },
-          lineSpacing: this.template.style === 'clean' ? 24 : 22,
+          lineSpacing: 20,
           wrap: true,
+          breakLine: true,
           color: this.template.textColor
         };
         

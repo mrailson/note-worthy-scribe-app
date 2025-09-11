@@ -371,12 +371,28 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
         </div>
       </TabsContent>
 
-      <TabsContent value="template">
-        <TemplateSelector
-          selectedTemplate={selectedTemplate}
-          onTemplateSelect={setSelectedTemplate}
-          showPreview={true}
-        />
+      <TabsContent value="template" className="space-y-6">
+        <div className="space-y-4">
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">Choose Your Presentation Style</h3>
+            <p className="text-sm text-muted-foreground">
+              Select a template that matches your presentation needs and audience
+            </p>
+          </div>
+          
+          <TemplateSelector
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={setSelectedTemplate}
+            showPreview={true}
+          />
+          
+          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+            <div className="text-sm text-muted-foreground">
+              <strong>Selected:</strong> {PRESENTATION_TEMPLATES.find(t => t.id === selectedTemplate)?.name} - 
+              {PRESENTATION_TEMPLATES.find(t => t.id === selectedTemplate)?.description}
+            </div>
+          </div>
+        </div>
       </TabsContent>
 
       <TabsContent value="files">
