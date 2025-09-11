@@ -1179,7 +1179,7 @@ export const TranslationToolInterface = () => {
           </TabsTrigger>
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Email Handler
+            Email and Documents Translation
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="w-4 h-4" />
