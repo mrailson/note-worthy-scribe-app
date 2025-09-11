@@ -94,8 +94,15 @@ class TemplateRenderer {
   }
   
   private addTemplateBackground(slide: any) {
-    // Always apply background color from template
-    slide.background = { fill: this.template.backgroundColor };
+    // Apply background image if available, otherwise use background color
+    if (this.template.backgroundImage) {
+      slide.background = { 
+        data: this.template.backgroundImage.split(',')[1], // Remove data:image/... prefix
+        sizing: { type: 'cover', x: 0, y: 0, w: 13.33, h: 7.5 }
+      };
+    } else {
+      slide.background = { fill: this.template.backgroundColor };
+    }
     
     // Add template-specific design elements based on style
     switch (this.template.style) {

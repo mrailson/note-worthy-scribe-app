@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { TemplateSelector } from "@/components/TemplateSelector";
+import { BackgroundImageUploader } from "@/components/BackgroundImageUploader";
 import { DocumentContextPanel } from "@/components/DocumentContextPanel";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
@@ -55,6 +56,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [complexityLevel, setComplexityLevel] = useState("intermediate");
   const [slideCount, setSlideCount] = useState(10);
   const [selectedTemplate, setSelectedTemplate] = useState(PRESENTATION_TEMPLATES[0].id);
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
@@ -73,6 +75,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setComplexityLevel("intermediate");
     setSlideCount(10);
     setSelectedTemplate(PRESENTATION_TEMPLATES[0].id);
+    setBackgroundImage('');
     setIsGenerating(false);
     setGenerationProgress(0);
     setPresentationContent(null);
@@ -145,6 +148,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           slideCount,
           complexityLevel,
           templateId: selectedTemplate,
+          backgroundImage: backgroundImage || undefined,
           supportingFiles: uploadedFiles
             .filter((_, index) => selectedFiles[index] !== false)
             .map(file => ({
@@ -227,7 +231,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       }
 
       await generateEnhancedPowerPoint({
-        template,
+        template: backgroundImage ? { ...template, backgroundImage } : template,
         content: presentationContent,
         metadata
       });
@@ -296,7 +300,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
 
   const renderInputStep = () => (
     <Tabs defaultValue="content" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="content" className="flex items-center gap-2">
           <FileText className="w-4 h-4" />
           Content
@@ -304,6 +308,10 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
         <TabsTrigger value="template" className="flex items-center gap-2">
           <Palette className="w-4 h-4" />
           Design
+        </TabsTrigger>
+        <TabsTrigger value="background" className="flex items-center gap-2">
+          <Presentation className="w-4 h-4" />
+          Background
         </TabsTrigger>
         <TabsTrigger value="files" className="flex items-center gap-2">
           <FileUp className="w-4 h-4" />
@@ -393,6 +401,14 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
             </div>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="background" className="space-y-6">
+        <BackgroundImageUploader
+          onImageUpload={setBackgroundImage}
+          onImageRemove={() => setBackgroundImage('')}
+          currentImage={backgroundImage}
+        />
       </TabsContent>
 
       <TabsContent value="files">

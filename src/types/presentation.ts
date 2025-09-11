@@ -25,6 +25,7 @@ export interface PresentationGenerationOptions {
   slideCount?: number;
   complexityLevel?: string;
   templateId?: string;
+  backgroundImage?: string; // Base64 encoded background image
   supportingFiles?: {
     name: string;
     content: string;

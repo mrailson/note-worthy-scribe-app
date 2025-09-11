@@ -19,7 +19,8 @@ export interface PresentationTemplate {
     body: string;
   };
   preview: string;
-  style: 'professional' | 'modern' | 'clean' | 'bright' | 'dark';
+  style: 'professional' | 'modern' | 'clean' | 'bright' | 'dark' | 'custom';
+  backgroundImage?: string; // Base64 encoded background image
 }
 
 export const PRESENTATION_TEMPLATES: PresentationTemplate[] = [
