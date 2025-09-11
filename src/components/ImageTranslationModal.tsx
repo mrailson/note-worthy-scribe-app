@@ -373,19 +373,9 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
       <Dialog open={showFullScreenImage} onOpenChange={setShowFullScreenImage}>
         <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Document Image - Full Screen View
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFullScreenImage(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Document Image - Full Screen View
             </DialogTitle>
           </DialogHeader>
           
