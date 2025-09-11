@@ -94,33 +94,65 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
               <h3 className="font-semibold mb-3">AI Model Consensus ({verificationData.llmConsensus?.length || 0})</h3>
               <div className="space-y-3">
                 {verificationData.llmConsensus?.map((llm, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{llm.service || 'OpenAI'}</Badge>
-                        <span className="text-xs text-muted-foreground">{llm.model}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          llm.agreementLevel >= 80 ? 'bg-green-100 text-green-800' :
-                          llm.agreementLevel >= 60 ? 'bg-amber-100 text-amber-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {llm.agreementLevel}% agreement
-                        </span>
+                  <div key={index} className="p-4 border rounded-lg bg-gradient-to-r from-background to-muted/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="text-xs font-medium">
+                          {llm.model}
+                        </Badge>
+                        {llm.service && (
+                          <Badge variant="secondary" className="text-xs">
+                            {llm.service}
+                          </Badge>
+                        )}
+                        <div className="flex items-center gap-1">
+                          {getConfidenceIcon(llm.agreementLevel)}
+                          <span className={`text-xs font-bold ${getConfidenceColor(llm.agreementLevel)}`}>
+                            {llm.agreementLevel}% Agreement
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-base text-muted-foreground mb-2 font-medium">
-                      {llm.assessment}
-                    </p>
+                    
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-foreground mb-2">Clinical Assessment:</p>
+                      <p className="text-sm text-muted-foreground">
+                        {llm.assessment}
+                      </p>
+                    </div>
+                    
                     {llm.concerns && llm.concerns.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-amber-700 mb-1">Concerns:</p>
-                        <ul className="text-sm text-amber-600 list-disc list-inside font-medium">
-                          {llm.concerns.map((concern, i) => (
-                            <li key={i}>{concern}</li>
-                          ))}
-                        </ul>
+                      <div className="mt-3 p-3 rounded-md bg-muted/50 border-l-4 border-l-orange-500">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-orange-600" />
+                          <p className="text-sm font-semibold text-orange-700">
+                            Key Clinical Considerations for Review:
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          {llm.concerns.map((concern, idx) => {
+                            const isWarning = concern.includes('⚠️');
+                            const isPositive = concern.includes('✓');
+                            return (
+                              <div key={idx} className={`flex items-start gap-2 text-sm p-2 rounded ${
+                                isWarning ? 'bg-orange-50 text-orange-800 border border-orange-200' :
+                                isPositive ? 'bg-green-50 text-green-800 border border-green-200' :
+                                'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                              }`}>
+                                <span className={`mt-0.5 ${
+                                  isWarning ? 'text-orange-600' :
+                                  isPositive ? 'text-green-600' :
+                                  'text-yellow-600'
+                                }`}>
+                                  {isWarning ? '⚠️' : isPositive ? '✓' : '•'}
+                                </span>
+                                <span className="flex-1 font-medium">
+                                  {concern.replace(/^[⚠️✓•]\s*/, '')}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
