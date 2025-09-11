@@ -11,8 +11,10 @@ import {
   Loader2, 
   FileText,
   Copy,
-  RotateCcw
+  RotateCcw,
+  Maximize2
 } from 'lucide-react';
+import { ImageTranslationModal } from '@/components/ImageTranslationModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -47,6 +49,7 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,19 +145,31 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Upload Document Image</label>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={resetForm}
-            className="flex items-center gap-2"
-            title="Clear and start again"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset
-          </Button>
-        </div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Upload Document Image</label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2"
+                title="Open full view modal"
+              >
+                <Maximize2 className="w-4 h-4" />
+                Full View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+                className="flex items-center gap-2"
+                title="Clear and start again"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </Button>
+            </div>
+          </div>
 
         <div className="space-y-4">
           <div className="flex items-center gap-4">
@@ -264,6 +279,11 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
           )}
         </div>
       </CardContent>
+      
+      <ImageTranslationModal
+        isOpen={showModal}
+        onOpenChange={setShowModal}
+      />
     </Card>
   );
 };
