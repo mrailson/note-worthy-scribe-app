@@ -46,7 +46,7 @@ export const PRESENTATION_TEMPLATES: PresentationTemplate[] = [
     },
     preview: 'Official NHS branded background with logo and wave design',
     style: 'custom',
-    backgroundImage: '/lovable-uploads/f63315a2-1dcf-423e-b777-b7b031b3a3e6.png'
+    backgroundImage: '/nhs-background.png'
   },
   {
     id: 'nhs-professional',

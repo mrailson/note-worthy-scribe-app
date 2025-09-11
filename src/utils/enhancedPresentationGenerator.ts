@@ -96,10 +96,20 @@ class TemplateRenderer {
   private addTemplateBackground(slide: any) {
     // Apply background image if available, otherwise use background color
     if (this.template.backgroundImage) {
-      slide.background = { 
-        data: this.template.backgroundImage.split(',')[1], // Remove data:image/... prefix
-        sizing: { type: 'cover', x: 0, y: 0, w: 13.33, h: 7.5 }
-      };
+      // Check if it's a base64 image or a URL path
+      if (this.template.backgroundImage.startsWith('data:image/')) {
+        // Base64 image - extract the data part
+        slide.background = { 
+          data: this.template.backgroundImage.split(',')[1],
+          sizing: { type: 'cover', x: 0, y: 0, w: 13.33, h: 7.5 }
+        };
+      } else {
+        // URL path - use as image path
+        slide.background = { 
+          path: this.template.backgroundImage,
+          sizing: { type: 'cover', x: 0, y: 0, w: 13.33, h: 7.5 }
+        };
+      }
     } else {
       slide.background = { fill: this.template.backgroundColor };
     }
