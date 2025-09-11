@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Image as ImageIcon, 
   Upload, 
@@ -14,10 +15,14 @@ import {
   X,
   Maximize2,
   Expand,
-  Sparkles
+  Sparkles,
+  Download,
+  Mail,
+  Printer
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useDocumentGeneration } from '@/hooks/useDocumentGeneration';
 import { MedicalTranslationInfo } from './MedicalTranslationInfo';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
 import { TranslationVerificationDetails } from './TranslationVerificationDetails';
@@ -93,6 +98,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [isImprovingText, setIsImprovingText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { exportToPDF, exportToWord } = useDocumentGeneration();
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -225,6 +232,89 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
     resetForm();
     onOpenChange(false);
   };
+
+  const handlePrint = () => {
+    const printContent = improvedText || result?.translatedText || '';
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Translated Document</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              pre { white-space: pre-wrap; font-family: inherit; }
+            </style>
+          </head>
+          <body>
+            <h1>Translated Document</h1>
+            <pre>${printContent}</pre>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleEmailRequest = () => {
+    toast.info('Email functionality coming soon!');
+  };
+
+  const DownloadDropdown = ({ text, title = "Translated Document" }: { text: string, title?: string }) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <Download className="w-3 h-3" />
+          Download
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2" align="end">
+        <div className="space-y-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => exportToWord(text, title)}
+            className="w-full justify-start flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Download as Word
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => exportToPDF(text, title)}
+            className="w-full justify-start flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Download as PDF
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEmailRequest}
+            className="w-full justify-start flex items-center gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            Email to me
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePrint}
+            className="w-full justify-start flex items-center gap-2"
+          >
+            <Printer className="w-4 h-4" />
+            Print
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -446,6 +536,10 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                         <Copy className="w-3 h-3" />
                         Copy
                       </Button>
+                      <DownloadDropdown 
+                        text={improvedText || result.translatedText}
+                        title="Translated Document"
+                      />
                     </div>
                   </div>
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 min-h-[300px] max-h-[500px] overflow-y-auto">
@@ -575,6 +669,12 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                   <Copy className="w-4 h-4" />
                   Copy All
                 </Button>
+                {result && (
+                  <DownloadDropdown 
+                    text={improvedText || result.translatedText}
+                    title="Translated Document - Full View"
+                  />
+                )}
               </div>
             </DialogTitle>
           </DialogHeader>
