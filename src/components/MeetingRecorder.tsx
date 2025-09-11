@@ -4346,6 +4346,15 @@ export const MeetingRecorder = ({
               
   return (
     <div className="space-y-6">
+      {/* Service Offline Banner */}
+      <div className="bg-destructive text-destructive-foreground px-4 py-3 rounded-lg border border-destructive/20 shadow-sm">
+        <div className="flex items-center justify-center gap-2">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <span className="font-medium text-center">
+            Meeting Service OFFLINE for Upgrade
+          </span>
+        </div>
+      </div>
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
