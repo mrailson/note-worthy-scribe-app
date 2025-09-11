@@ -45,6 +45,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
+import { useQueryClient } from '@tanstack/react-query';
 import { MeetingData } from '@/types/meetingTypes';
 
 
@@ -55,6 +56,7 @@ const AI4GPService = () => {
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Disclaimer management
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
@@ -64,11 +66,14 @@ const AI4GPService = () => {
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   // Fetch recent meetings for dropdown
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
-    queryKey: ['recent-meetings'],
+    queryKey: ['recent-meetings', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from('meetings')
         .select('id, title, start_time, created_at, duration_minutes, word_count, status')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -84,6 +89,7 @@ const AI4GPService = () => {
       // Return meeting data with existing word_count from database
       return data;
     },
+    enabled: !!user?.id
   });
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
@@ -156,6 +162,32 @@ const AI4GPService = () => {
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
+  
+  // Invalidate meetings query when meetings are updated
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('ai4gp-meetings-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Meeting updated, invalidating AI4GP meetings query...', payload);
+          queryClient.invalidateQueries({ queryKey: ['recent-meetings', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
   
   const {
     searchHistory,
