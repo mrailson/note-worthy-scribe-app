@@ -11,6 +11,7 @@ interface QueueItem {
   meeting_id: string;
   status: string;
   detail_level: string;
+  note_type: string;
   retry_count: number;
   created_at: string;
   updated_at: string;
@@ -115,16 +116,49 @@ const handler = async (req: Request): Promise<Response> => {
             }
           );
         } else {
-          // Single note generation (legacy support)
-          const { data: functionResult, error: functionError } = await supabase.functions.invoke(
-            'auto-generate-meeting-notes',
-            {
-              body: { 
-                meetingId: item.meeting_id,
-                forceRegenerate: false
+          // Single note generation - check note type for appropriate function
+          let functionResult, functionError;
+          
+          if (item.note_type === 'detailed') {
+            // Call detailed minutes generation function for detailed notes
+            const { data, error } = await supabase.functions.invoke(
+              'generate-meeting-minutes-detailed',
+              {
+                body: { 
+                  meetingId: item.meeting_id
+                }
               }
+            );
+            functionResult = data;
+            functionError = error;
+            
+            // Save the detailed notes to meeting_notes_multi table
+            if (!error && data?.meetingMinutes) {
+              await supabase
+                .from('meeting_notes_multi')
+                .upsert({
+                  meeting_id: item.meeting_id,
+                  note_type: 'detailed',
+                  content: data.meetingMinutes,
+                  model_used: 'gpt-4.1-2025-04-14',
+                  token_count: data.meetingMinutes.length,
+                  generated_at: new Date().toISOString()
+                });
             }
-          );
+          } else {
+            // Standard/legacy note generation
+            const { data, error } = await supabase.functions.invoke(
+              'auto-generate-meeting-notes',
+              {
+                body: { 
+                  meetingId: item.meeting_id,
+                  forceRegenerate: false
+                }
+              }
+            );
+            functionResult = data;
+            functionError = error;
+          }
         }
 
         if (functionError) {

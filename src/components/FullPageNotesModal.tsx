@@ -1527,10 +1527,10 @@ ${transcript}`;
   };
 
   const generateNotesStyle3 = async () => {
-    console.log('📋 Starting Minutes - Detailed regeneration...');
+    console.log('📋 Starting Minutes - Standard regeneration...');
     
     if (!meeting?.id || !transcript) {
-      console.error('❌ Missing required data for Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+      console.error('❌ Missing required data for Standard:', { meetingId: meeting?.id, hasTranscript: !!transcript });
       toast.error("No transcript available to generate notes");
       return;
     }
@@ -1717,10 +1717,10 @@ ${transcript}`;
         toast.error("No content generated - please try again");
       }
     } catch (error) {
-      console.error('❌ Error generating Detailed notes:', error);
-      toast.error("Failed to generate Meeting Notes Style 3");
+      console.error('❌ Error generating Standard notes:', error);
+      toast.error("Failed to generate Minutes - Standard");
     } finally {
-      console.log('🏁 Detailed generation finished');
+      console.log('🏁 Standard generation finished');
       setIsGeneratingStyle3(false);
     }
   };
@@ -2421,9 +2421,9 @@ ${transcript}`;
                          <TabsTrigger value="style2" className="text-xs sm:text-sm">
                            Minutes - Brief
                          </TabsTrigger>
-                         <TabsTrigger value="style1" className="text-xs sm:text-sm">
-                           Minutes - Detailed
-                         </TabsTrigger>
+                          <TabsTrigger value="style1" className="text-xs sm:text-sm">
+                            Minutes - Standard
+                          </TabsTrigger>
                          <TabsTrigger value="style3" className="text-xs sm:text-sm">
                            Minutes - Very Detailed
                          </TabsTrigger>
@@ -2472,11 +2472,11 @@ ${transcript}`;
                               }
                             };
                             
-                            const getTabName = () => {
-                              switch (activeNotesStyleTab) {
-                                case 'style1': return 'Minutes - Detailed';
-                                case 'style2': return 'Minutes - Brief';
-                                case 'style3': return 'Minutes - Very Detailed';
+                             const getTabName = () => {
+                               switch (activeNotesStyleTab) {
+                                 case 'style1': return 'Minutes - Standard';
+                                 case 'style2': return 'Minutes - Brief';
+                                 case 'style3': return 'Minutes - Very Detailed';
                                 case 'style4': return 'Minutes - Executive';
                                 case 'style5': return 'Minutes - Limerick';
                                 default: return 'Meeting Notes';
@@ -2567,25 +2567,25 @@ ${transcript}`;
                         <div className="space-y-4">
                           {!notesStyle3 ? (
                             <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                              <p className="text-muted-foreground text-center">
-                                Generate formal NHS-style meeting minutes with structured agenda and detailed sections
-                              </p>
-                              <Button
-                                onClick={generateNotesStyle3}
-                                disabled={isGeneratingStyle3 || !transcript}
-                                className="gap-2"
-                              >
-                                {isGeneratingStyle3 ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                    Generating Style 1...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Meeting Notes Style 1
-                                  </>
-                                )}
+                               <p className="text-muted-foreground text-center">
+                                 Generate comprehensive meeting notes with structured format (auto-generated as default)
+                               </p>
+                               <Button
+                                 onClick={generateNotesStyle3}
+                                 disabled={isGeneratingStyle3 || !transcript}
+                                 className="gap-2"
+                               >
+                                 {isGeneratingStyle3 ? (
+                                   <>
+                                     <RefreshCw className="h-4 w-4 animate-spin" />
+                                     Generating Standard Minutes...
+                                   </>
+                                 ) : (
+                                   <>
+                                     <Sparkles className="h-4 w-4" />
+                                     Generate Minutes - Standard
+                                   </>
+                                 )}
                               </Button>
                             </div>
                           ) : (
