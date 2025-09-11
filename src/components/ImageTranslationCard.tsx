@@ -145,138 +145,25 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Upload Document Image</label>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-2"
-                title="Open full view modal"
-              >
-                <Maximize2 className="w-4 h-4" />
-                Full View
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetForm}
-                className="flex items-center gap-2"
-                title="Clear and start again"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset
-              </Button>
+        <div className="text-center py-8">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <ImageIcon className="w-8 h-8 text-primary" />
             </div>
-          </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
+            <div className="space-y-2">
+              <p className="text-muted-foreground">
+                Advanced OCR and translation for document images with clinical verification
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowModal(true)}
+              size="lg"
               className="flex items-center gap-2"
             >
-              <Upload className="w-4 h-4" />
-              Select Image
+              <Maximize2 className="w-5 h-5" />
+              Click Here to start the Document Image Translation service
             </Button>
-            
-            {selectedImage && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <FileText className="w-3 h-3" />
-                {selectedImage.name}
-              </Badge>
-            )}
           </div>
-
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium min-w-fit">Target Language:</label>
-            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {languages.map((lang) => (
-                  <SelectItem key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button 
-            onClick={processDocument} 
-            disabled={!selectedImage || isProcessing}
-            className="w-full"
-          >
-            {isProcessing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Languages className="w-4 h-4 mr-2" />
-            )}
-            Extract & Translate Text
-          </Button>
-
-          {result && (
-            <div className="space-y-4">
-              <Alert>
-                <Languages className="w-4 h-4" />
-                <AlertDescription>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span><strong>Detected Language:</strong> {result.detectedLanguage}</span>
-                      <Badge variant="outline">Confidence: {result.confidence}%</Badge>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Original Text:</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyText(result.originalText)}
-                          className="flex items-center gap-1 h-6"
-                        >
-                          <Copy className="w-3 h-3" />
-                          {copied ? 'Copied!' : 'Copy'}
-                        </Button>
-                      </div>
-                      <div className="p-3 bg-muted rounded text-sm">
-                        {result.originalText}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Translated Text:</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyText(result.translatedText)}
-                          className="flex items-center gap-1 h-6"
-                        >
-                          <Copy className="w-3 h-3" />
-                          {copied ? 'Copied!' : 'Copy'}
-                        </Button>
-                      </div>
-                      <div className="p-3 bg-primary/5 border border-primary/20 rounded text-sm">
-                        {result.translatedText}
-                      </div>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
         </div>
       </CardContent>
       
