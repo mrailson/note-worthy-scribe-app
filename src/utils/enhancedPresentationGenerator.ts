@@ -94,42 +94,111 @@ class TemplateRenderer {
   }
   
   private addTemplateBackground(slide: any) {
-    // Add background based on template
-    if (this.template.style === 'dark') {
-      slide.background = { fill: this.template.backgroundColor };
-    } else if (this.template.style === 'modern') {
-      // Add gradient background for modern template
-      slide.background = { 
-        fill: this.template.backgroundColor,
-        // Note: PptxGenJS has limited gradient support, using solid color as fallback
-      };
-    } else {
-      slide.background = { fill: this.template.backgroundColor };
-    }
+    // Always apply background color from template
+    slide.background = { fill: this.template.backgroundColor };
     
-    // Add template-specific design elements
-    if (this.template.style === 'modern' || this.template.style === 'bright') {
-      // Add decorative corner element (adjusted for widescreen)
-      slide.addShape(this.pptx.ShapeType.triangle, {
-        x: 11.83,
-        y: 0,
-        w: 1.5,
-        h: 1.5,
-        fill: { color: this.template.accentColor, transparency: 80 },
-        line: { width: 0 }
-      });
-    }
-    
-    if (this.template.style === 'professional') {
-      // Add NHS logo placeholder area
-      slide.addShape(this.pptx.ShapeType.rect, {
-        x: 0.2,
-        y: 0.2,
-        w: 1.5,
-        h: 0.6,
-        fill: { color: this.template.primaryColor, transparency: 90 },
-        line: { width: 1, color: this.template.primaryColor, transparency: 50 }
-      });
+    // Add template-specific design elements based on style
+    switch (this.template.style) {
+      case 'dark':
+        // Add gradient overlay for dark theme
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0,
+          y: 0,
+          w: 13.33,
+          h: 7.5,
+          fill: { 
+            type: 'gradient',
+            color1: this.template.backgroundColor,
+            color2: this.template.secondaryColor,
+            dir: 'toBottom'
+          },
+          line: { width: 0 }
+        });
+        break;
+        
+      case 'modern':
+        // Add modern header bar
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0,
+          y: 0,
+          w: 13.33,
+          h: 0.5,
+          fill: { color: this.template.primaryColor },
+          line: { width: 0 }
+        });
+        // Add subtle corner accent
+        slide.addShape(this.pptx.ShapeType.triangle, {
+          x: 12.33,
+          y: 0.5,
+          w: 1,
+          h: 1,
+          fill: { color: this.template.accentColor, transparency: 70 },
+          line: { width: 0 }
+        });
+        break;
+        
+      case 'bright':
+        // Add colorful header gradient
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0,
+          y: 0,
+          w: 13.33,
+          h: 1.2,
+          fill: { 
+            type: 'gradient',
+            color1: this.template.primaryColor,
+            color2: this.template.accentColor,
+            dir: 'toRight'
+          },
+          line: { width: 0 }
+        });
+        // Add decorative circles
+        slide.addShape(this.pptx.ShapeType.ellipse, {
+          x: 0.5,
+          y: 6.0,
+          w: 0.8,
+          h: 0.8,
+          fill: { color: this.template.accentColor, transparency: 80 },
+          line: { width: 0 }
+        });
+        break;
+        
+      case 'professional':
+        // Add NHS-style header
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0,
+          y: 0,
+          w: 13.33,
+          h: 0.8,
+          fill: { color: this.template.primaryColor },
+          line: { width: 0 }
+        });
+        // Add logo placeholder
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0.3,
+          y: 0.1,
+          w: 1.2,
+          h: 0.6,
+          fill: { color: this.template.backgroundColor },
+          line: { width: 2, color: this.template.secondaryColor }
+        });
+        break;
+        
+      case 'clean':
+        // Add minimal side accent
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 0,
+          y: 0,
+          w: 0.2,
+          h: 7.5,
+          fill: { color: this.template.primaryColor },
+          line: { width: 0 }
+        });
+        break;
+        
+      default:
+        // Default minimal styling
+        break;
     }
   }
   
