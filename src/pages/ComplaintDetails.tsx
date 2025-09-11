@@ -2041,7 +2041,7 @@ I am committed to ensuring that all patients receive the care and service they d
                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
                           <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
-                          <CQCEvidence complaintId={complaint.id} practiceId={complaint.practice_id} disabled={submitting} />
+                           <CQCEvidence complaintId={complaint.id} complaintReference={complaint.reference_number} practiceId={complaint.practice_id} disabled={submitting} />
                         </div>
                       </div>
                     )}
@@ -2304,7 +2304,7 @@ I am committed to ensuring that all patients receive the care and service they d
                            <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
                            <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
                            <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
-                           <CQCEvidence complaintId={complaint.id} practiceId={complaint.practice_id} disabled={submitting} />
+                           <CQCEvidence complaintId={complaint.id} complaintReference={complaint.reference_number} practiceId={complaint.practice_id} disabled={submitting} />
                          </div>
                       </div>
                      )}

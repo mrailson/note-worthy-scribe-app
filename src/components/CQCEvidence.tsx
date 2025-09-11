@@ -17,6 +17,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 interface CQCEvidenceProps {
   complaintId: string;
+  complaintReference?: string;
   practiceId?: string;
   disabled?: boolean;
 }
@@ -37,7 +38,7 @@ interface CQCEvidenceRecord {
   uploaded_by: string | null;
 }
 
-export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEvidenceProps) {
+export function CQCEvidence({ complaintId, complaintReference, practiceId, disabled = false }: CQCEvidenceProps) {
   const [evidenceRecords, setEvidenceRecords] = useState<CQCEvidenceRecord[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedReport, setSelectedReport] = useState<CQCEvidenceRecord | null>(null);
@@ -53,7 +54,7 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
 
   useEffect(() => {
     fetchCQCEvidence();
-  }, [complaintId, practiceId]);
+  }, [complaintId, complaintReference, practiceId]);
 
   const fetchCQCEvidence = async () => {
     try {
@@ -71,12 +72,19 @@ export function CQCEvidence({ complaintId, practiceId, disabled = false }: CQCEv
 
       if (error) throw error;
       
-      // Filter to show complaint-related evidence
-      const complaintRelatedEvidence = data?.filter(record => 
-        record.title?.includes(complaintId) || 
-        record.description?.includes(complaintId) ||
-        record.evidence_type === 'complaint_compliance_report'
-      ) || [];
+      // Filter to show complaint-related evidence - only evidence specifically linked to this complaint
+      const complaintRelatedEvidence = data?.filter(record => {
+        if (!complaintReference) return false;
+        
+        // Check if the evidence title contains the exact complaint reference number
+        const titleMatches = record.title?.includes(complaintReference);
+        
+        // Check if the description contains the complaint reference
+        const descriptionMatches = record.description?.includes(complaintReference);
+        
+        // Only show records that are specifically linked to this complaint
+        return titleMatches || descriptionMatches;
+      }) || [];
       
       setEvidenceRecords(complaintRelatedEvidence);
     } catch (error) {
