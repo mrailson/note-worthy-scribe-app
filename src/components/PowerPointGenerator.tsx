@@ -9,13 +9,19 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle, Mic, FileUp, ChevronDown, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle, Mic, FileUp, ChevronDown, X, Palette, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
+import { TemplateSelector } from "@/components/TemplateSelector";
+import { DocumentContextPanel } from "@/components/DocumentContextPanel";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
+import { SlideContent, PresentationContent, GenerationMetadata } from "@/types/presentation";
+import { generateEnhancedPowerPoint } from "@/utils/enhancedPresentationGenerator";
+import { getTemplateById, PRESENTATION_TEMPLATES } from "@/utils/presentationTemplates";
 import PptxGenJS from "pptxgenjs";
 
 interface PowerPointGeneratorProps {
@@ -23,26 +29,7 @@ interface PowerPointGeneratorProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface SlideContent {
-  title: string;
-  type: string;
-  content: string[];
-  notes?: string;
-  meetingSection?: string;
-}
-
-interface PresentationContent {
-  title: string;
-  slides: SlideContent[];
-}
-
-interface GenerationMetadata {
-  topic: string;
-  presentationType: string;
-  slideCount: number;
-  complexityLevel: string;
-  generatedAt: string;
-}
+// Types are now imported from types/presentation.ts
 
 const presentationTypes = [
   { value: "Clinical Guidelines", label: "Clinical Guidelines", description: "Evidence-based medical guidelines and protocols" },
@@ -67,6 +54,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [presentationType, setPresentationType] = useState("");
   const [complexityLevel, setComplexityLevel] = useState("intermediate");
   const [slideCount, setSlideCount] = useState(10);
+  const [selectedTemplate, setSelectedTemplate] = useState(PRESENTATION_TEMPLATES[0].id);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
@@ -75,6 +63,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [editingSlide, setEditingSlide] = useState<SlideContent | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showFileUpload, setShowFileUpload] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<boolean[]>([]);
   const { processFiles, isProcessing } = useFileUpload();
 
   const resetState = () => {
@@ -83,6 +72,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setPresentationType("");
     setComplexityLevel("intermediate");
     setSlideCount(10);
+    setSelectedTemplate(PRESENTATION_TEMPLATES[0].id);
     setIsGenerating(false);
     setGenerationProgress(0);
     setPresentationContent(null);
@@ -91,6 +81,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setEditingSlide(null);
     setUploadedFiles([]);
     setShowFileUpload(false);
+    setSelectedFiles([]);
   };
 
   const handleClose = (newOpen: boolean) => {
@@ -111,6 +102,8 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       files.forEach(file => fileList.items.add(file));
       const processedFiles = await processFiles(fileList.files);
       setUploadedFiles(prev => [...prev, ...processedFiles]);
+      // Initialize selected files array
+      setSelectedFiles(prev => [...prev, ...Array(processedFiles.length).fill(true)]);
     } catch (error) {
       console.error('Error uploading files:', error);
     }
@@ -118,6 +111,15 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
 
   const removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleFileSelection = (index: number) => {
+    setSelectedFiles(prev => {
+      const updated = [...prev];
+      updated[index] = !updated[index];
+      return updated;
+    });
   };
 
   const generatePresentation = async () => {
@@ -142,11 +144,14 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           presentationType,
           slideCount,
           complexityLevel,
-          supportingFiles: uploadedFiles.map(file => ({
-            name: file.name,
-            content: file.content,
-            type: file.type
-          }))
+          templateId: selectedTemplate,
+          supportingFiles: uploadedFiles
+            .filter((_, index) => selectedFiles[index] !== false)
+            .map(file => ({
+              name: file.name,
+              content: file.content,
+              type: file.type
+            }))
         }
       });
 
@@ -209,98 +214,173 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   };
 
   const downloadPowerPoint = async () => {
-    
+    if (!presentationContent || !metadata) {
+      toast.error("No presentation content available");
+      return;
+    }
+
     try {
-      const pptx = new PptxGenJS();
-      
-      // Set presentation properties
-      pptx.author = "Notewell AI";
-      pptx.company = "NHS Healthcare";
-      pptx.title = presentationContent.title;
-      pptx.subject = metadata?.topic || "";
+      const template = getTemplateById(selectedTemplate);
+      if (!template) {
+        toast.error("Selected template not found");
+        return;
+      }
 
-      // Create slides
-      presentationContent.slides.forEach((slideData) => {
-        const slide = pptx.addSlide();
-
-        // Add title
-        slide.addText(slideData.title, {
-          x: 0.5,
-          y: 0.5,
-          w: 9,
-          h: 1,
-          fontSize: 28,
-          fontFace: "Calibri",
-          color: "1f4e79",
-          bold: true
-        });
-
-        // Add content bullets
-        if (slideData.content && slideData.content.length > 0) {
-          const bulletText = slideData.content.map(point => `• ${point}`).join('\n');
-          slide.addText(bulletText, {
-            x: 0.5,
-            y: 1.8,
-            w: 9,
-            h: 5,
-            fontSize: 18,
-            fontFace: "Calibri",
-            color: "333333"
-          });
-        }
-
-        // Add notes if available
-        if (slideData.notes) {
-          slide.addNotes(slideData.notes);
-        }
+      await generateEnhancedPowerPoint({
+        template,
+        content: presentationContent,
+        metadata
       });
-
-      // Generate and download the file
-      const fileName = `${presentationContent.title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pptx`;
       
-      await pptx.writeFile({ fileName });
-      
-      toast.success("PowerPoint presentation downloaded successfully!");
+      toast.success("Enhanced PowerPoint presentation downloaded successfully!");
       setCurrentStep('preview');
       
     } catch (error) {
-      console.error("Error generating PowerPoint file:", error);
+      console.error("Error generating enhanced PowerPoint file:", error);
       toast.error("Failed to generate PowerPoint file");
-      setCurrentStep('preview');
+      
+      // Fallback to basic generation
+      try {
+        const pptx = new PptxGenJS();
+        
+        pptx.author = "Notewell AI";
+        pptx.company = "NHS Healthcare";
+        pptx.title = presentationContent.title;
+        pptx.subject = metadata?.topic || "";
+
+        presentationContent.slides.forEach((slideData) => {
+          const slide = pptx.addSlide();
+
+          slide.addText(slideData.title, {
+            x: 0.5,
+            y: 0.5,
+            w: 9,
+            h: 1,
+            fontSize: 28,
+            fontFace: "Calibri",
+            color: "1f4e79",
+            bold: true
+          });
+
+          if (slideData.content && slideData.content.length > 0) {
+            const bulletText = slideData.content.map(point => `• ${point}`).join('\n');
+            slide.addText(bulletText, {
+              x: 0.5,
+              y: 1.8,
+              w: 9,
+              h: 5,
+              fontSize: 18,
+              fontFace: "Calibri",
+              color: "333333"
+            });
+          }
+
+          if (slideData.notes) {
+            slide.addNotes(slideData.notes);
+          }
+        });
+
+        const fileName = `${presentationContent.title.replace(/[^a-zA-Z0-9]/g, '_')}_fallback_${new Date().toISOString().split('T')[0]}.pptx`;
+        await pptx.writeFile({ fileName });
+        
+        toast.success("PowerPoint presentation downloaded (basic format)");
+        setCurrentStep('preview');
+        
+      } catch (fallbackError) {
+        console.error("Fallback generation also failed:", fallbackError);
+        toast.error("Failed to generate PowerPoint file");
+        setCurrentStep('preview');
+      }
     }
   };
 
   const renderInputStep = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Presentation Topic</label>
-        <div className="relative">
-          <Textarea
-            placeholder="Enter your presentation topic (e.g., 'Diabetes Management in Primary Care', 'New NHS Quality Standards')"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="min-h-[100px] pr-12"
-          />
-          <div className="absolute top-2 right-2">
-            <VoiceRecorder 
-              onTranscription={handleVoiceTranscription}
-              disabled={isProcessing}
+    <Tabs defaultValue="content" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="content" className="flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          Content
+        </TabsTrigger>
+        <TabsTrigger value="template" className="flex items-center gap-2">
+          <Palette className="w-4 h-4" />
+          Design
+        </TabsTrigger>
+        <TabsTrigger value="files" className="flex items-center gap-2">
+          <FileUp className="w-4 h-4" />
+          Context ({uploadedFiles.length})
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="content" className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Presentation Topic</label>
+          <div className="relative">
+            <Textarea
+              placeholder="Enter your presentation topic (e.g., 'Diabetes Management in Primary Care', 'New NHS Quality Standards')"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              className="min-h-[100px] pr-12"
             />
+            <div className="absolute top-2 right-2">
+              <VoiceRecorder 
+                onTranscription={handleVoiceTranscription}
+                disabled={isProcessing}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <Collapsible open={showFileUpload} onOpenChange={setShowFileUpload}>
-        <CollapsibleTrigger asChild>
-          <Button variant="outline" className="w-full justify-between">
-            <div className="flex items-center gap-2">
-              <FileUp className="w-4 h-4" />
-              Add Supporting Files ({uploadedFiles.length})
-            </div>
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Presentation Type</label>
+            <Select value={presentationType} onValueChange={setPresentationType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select presentation type" />
+              </SelectTrigger>
+              <SelectContent>
+                {presentationTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    <div>
+                      <div className="font-medium">{type.label}</div>
+                      <div className="text-xs text-muted-foreground">{type.description}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Complexity Level</label>
+            <Select value={complexityLevel} onValueChange={setComplexityLevel}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {complexityLevels.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    <div>
+                      <div className="font-medium">{level.label}</div>
+                      <div className="text-xs text-muted-foreground">{level.description}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="template">
+        <TemplateSelector
+          selectedTemplate={selectedTemplate}
+          onTemplateSelect={setSelectedTemplate}
+          showPreview={true}
+        />
+      </TabsContent>
+
+      <TabsContent value="files">
+        <div className="space-y-4">
           <div className="border rounded-lg p-4 space-y-4">
             <div className="text-sm text-muted-foreground">
               Upload documents to provide additional context for your presentation (PDF, Word, Excel, Images, Text files)
@@ -312,75 +392,17 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
               maxSize={10}
               multiple
             />
-            
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Uploaded Files:</div>
-                <div className="space-y-1">
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{file.name}</span>
-                        <span className="text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-        </CollapsibleContent>
-      </Collapsible>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Presentation Type</label>
-          <Select value={presentationType} onValueChange={setPresentationType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select presentation type" />
-            </SelectTrigger>
-            <SelectContent>
-              {presentationTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  <div>
-                    <div className="font-medium">{type.label}</div>
-                    <div className="text-xs text-muted-foreground">{type.description}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DocumentContextPanel
+            uploadedFiles={uploadedFiles}
+            onToggleFileSelection={toggleFileSelection}
+            selectedFiles={selectedFiles}
+          />
         </div>
+      </TabsContent>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Complexity Level</label>
-          <Select value={complexityLevel} onValueChange={setComplexityLevel}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {complexityLevels.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  <div>
-                    <div className="font-medium">{level.label}</div>
-                    <div className="text-xs text-muted-foreground">{level.description}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-4 border-t">
         <div className="text-sm text-muted-foreground">
           Generate a professional PowerPoint presentation with AI assistance
         </div>
@@ -393,7 +415,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           Generate Presentation
         </Button>
       </div>
-    </div>
+    </Tabs>
   );
 
   const renderGeneratingStep = () => (
@@ -423,9 +445,17 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">{presentationContent?.title}</h3>
-          <p className="text-sm text-muted-foreground">
-            {presentationContent?.slides.length} slides • {metadata?.presentationType} • {metadata?.complexityLevel} level
-          </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{presentationContent?.slides.length} slides</span>
+            <span>•</span>
+            <span>{metadata?.presentationType}</span>
+            <span>•</span>
+            <span>{metadata?.complexityLevel} level</span>
+            <span>•</span>
+            <Badge variant="outline" className="text-xs">
+              {PRESENTATION_TEMPLATES.find(t => t.id === selectedTemplate)?.name}
+            </Badge>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setCurrentStep('input')}>
