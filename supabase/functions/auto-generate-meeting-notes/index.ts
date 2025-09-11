@@ -164,11 +164,11 @@ serve(async (req) => {
     }
 
     // Validate meeting has transcript data before proceeding
-    const { data: transcriptResult } = await supabase
+    const { data: initialTranscriptCheck } = await supabase
       .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
     
-    const transcriptData = transcriptResult?.[0];
-    const hasTranscript = transcriptData?.transcript && transcriptData.transcript.trim().length > 0;
+    const initialTranscriptData = initialTranscriptCheck?.[0];
+    const hasTranscript = initialTranscriptData?.transcript && initialTranscriptData.transcript.trim().length > 0;
     
     if (!hasTranscript) {
       console.log('⚠️ Meeting found but no transcript available yet, will retry later');
