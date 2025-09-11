@@ -78,6 +78,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
 
       // Update meeting word count
       const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
+      console.log('📝 Updating meeting word count:', wordCount, 'for meeting:', currentMeetingId);
       await supabase.from('meetings').update({
         word_count: wordCount
       }).eq('id', currentMeetingId);
@@ -261,12 +262,14 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         mediaRecorderRef.current = mediaRecorder;
 
         mediaRecorder.ondataavailable = (event) => {
+          console.log('📊 MediaRecorder data available:', event.data.size, 'bytes');
           if (event.data.size > 0 && whisperTranscriberRef.current) {
+            console.log('🎤 Sending audio chunk to Whisper transcriber');
             whisperTranscriberRef.current.enqueueChunk(event.data);
           }
         };
 
-        mediaRecorder.start(2000); // Collect data every 2 seconds
+        mediaRecorder.start(5000); // Collect data every 5 seconds for testing
       }
 
       toast({
