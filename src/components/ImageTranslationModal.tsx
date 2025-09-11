@@ -151,8 +151,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-y-auto flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
@@ -169,9 +169,10 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Image Upload Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6 flex-1 flex flex-col min-h-0">
+          {/* Top Section - Upload Controls and Image Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-b pb-6">
+            {/* Left - Upload Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Upload Document Image</label>
@@ -242,7 +243,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
               </div>
             </div>
 
-            {/* Image Preview */}
+            {/* Right - Image Preview */}
             {imagePreview && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Selected Image Preview</label>
@@ -257,20 +258,20 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
             )}
           </div>
 
-          {/* Results Section */}
+          {/* Results Section - Much Larger */}
           {result && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
               <div className="space-y-4">
-                <Alert>
+                <Alert className="h-full flex flex-col">
                   <Languages className="w-4 h-4" />
-                  <AlertDescription>
-                    <div className="space-y-3">
+                  <AlertDescription className="flex-1 flex flex-col">
+                    <div className="space-y-3 flex-1 flex flex-col">
                       <div className="flex items-center justify-between">
                         <span><strong>Detected Language:</strong> {result.detectedLanguage}</span>
                         <Badge variant="outline">Confidence: {Math.round(result.confidence * 100)}%</Badge>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1 flex flex-col">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Original Text:</span>
                           <Button
@@ -283,7 +284,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                             {copied ? 'Copied!' : 'Copy'}
                           </Button>
                         </div>
-                        <div className="p-4 bg-muted rounded-lg text-sm max-h-48 overflow-y-auto">
+                        <div className="p-4 bg-muted rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
                           <pre className="whitespace-pre-wrap font-mono text-xs">
                             {result.originalText}
                           </pre>
@@ -295,35 +296,35 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
               </div>
 
               <div className="space-y-4">
-                <Alert className="border-primary/20 bg-primary/5">
+                <Alert className="border-primary/20 bg-primary/5 h-full flex flex-col">
                   <Languages className="w-4 h-4 text-primary" />
-                  <AlertDescription>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Translated Text ({languages.find(l => l.code === targetLanguage)?.name}):</span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowFullScreenText(true)}
-                              className="flex items-center gap-1 h-6"
-                              title="Enlarge text for easier viewing"
-                            >
-                              <Expand className="w-3 h-3" />
-                              Enlarge
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyText(result.translatedText)}
-                              className="flex items-center gap-1 h-6"
-                            >
-                              <Copy className="w-3 h-3" />
-                              {copied ? 'Copied!' : 'Copy'}
-                            </Button>
-                          </div>
+                  <AlertDescription className="flex-1 flex flex-col">
+                    <div className="space-y-3 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Translated Text ({languages.find(l => l.code === targetLanguage)?.name}):</span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowFullScreenText(true)}
+                            className="flex items-center gap-1 h-6"
+                            title="Enlarge text for easier viewing"
+                          >
+                            <Expand className="w-3 h-3" />
+                            Enlarge
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyText(result.translatedText)}
+                            className="flex items-center gap-1 h-6"
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copied ? 'Copied!' : 'Copy'}
+                          </Button>
                         </div>
-                      <div className="p-4 bg-background border rounded-lg text-sm max-h-48 overflow-y-auto">
+                      </div>
+                      <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
                         <pre className="whitespace-pre-wrap font-mono text-xs">
                           {result.translatedText}
                         </pre>
