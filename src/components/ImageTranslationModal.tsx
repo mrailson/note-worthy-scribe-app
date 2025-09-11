@@ -13,7 +13,8 @@ import {
   Copy,
   X,
   Maximize2,
-  Expand
+  Expand,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -60,6 +61,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   const [showFullScreenText, setShowFullScreenText] = useState(false);
   const [showFullScreenOriginal, setShowFullScreenOriginal] = useState(false);
   const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [improvedText, setImprovedText] = useState<string | null>(null);
+  const [isImprovingText, setIsImprovingText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,9 +146,39 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
     setSelectedImage(null);
     setImagePreview(null);
     setResult(null);
+    setImprovedText(null);
     setTargetLanguage('en');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const improveTextLayout = async () => {
+    if (!result?.translatedText) return;
+
+    setIsImprovingText(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('improve-text-layout', {
+        body: {
+          text: result.translatedText,
+          sourceLanguage: result.detectedLanguage,
+          targetLanguage: targetLanguage,
+        },
+      });
+
+      if (error) {
+        console.error('Text improvement error:', error);
+        toast.error('Failed to improve text layout');
+        return;
+      }
+
+      setImprovedText(data.improvedText);
+      toast.success('Text layout improved with AI');
+    } catch (error) {
+      console.error('Error improving text:', error);
+      toast.error('Failed to improve text layout');
+    } finally {
+      setIsImprovingText(false);
     }
   };
 
@@ -327,39 +360,62 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                     <div className="space-y-3 flex-1 flex flex-col">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Translated Text ({languages.find(l => l.code === targetLanguage)?.name}):</span>
-                         <div className="flex items-center gap-1">
-                           <TranslationVerificationDetails
-                             originalText={result.originalText}
-                             translatedText={result.translatedText}
-                             sourceLanguage={result.detectedLanguage}
-                             targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
-                           />
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => setShowFullScreenText(true)}
-                             className="flex items-center gap-1 h-6"
-                             title="Enlarge text for easier viewing"
-                           >
-                             <Expand className="w-3 h-3" />
-                             Enlarge
-                           </Button>
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => handleCopyText(result.translatedText)}
-                             className="flex items-center gap-1 h-6"
-                           >
-                             <Copy className="w-3 h-3" />
-                             {copied ? 'Copied!' : 'Copy'}
-                           </Button>
-                         </div>
+                          <div className="flex items-center gap-1">
+                            <TranslationVerificationDetails
+                              originalText={result.originalText}
+                              translatedText={result.translatedText}
+                              sourceLanguage={result.detectedLanguage}
+                              targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={improveTextLayout}
+                              disabled={isImprovingText}
+                              className="flex items-center gap-1 h-6"
+                              title="Improve text layout with AI"
+                            >
+                              {isImprovingText ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3 h-3" />
+                              )}
+                              {isImprovingText ? 'Improving...' : 'AI Format'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowFullScreenText(true)}
+                              className="flex items-center gap-1 h-6"
+                              title="Enlarge text for easier viewing"
+                            >
+                              <Expand className="w-3 h-3" />
+                              Enlarge
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyText(improvedText || result.translatedText)}
+                              className="flex items-center gap-1 h-6"
+                            >
+                              <Copy className="w-3 h-3" />
+                              {copied ? 'Copied!' : 'Copy'}
+                            </Button>
+                          </div>
                       </div>
-                      <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
-                        <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                          {result.translatedText}
-                        </pre>
-                      </div>
+                       <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
+                         <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                           {improvedText || result.translatedText}
+                         </pre>
+                         {improvedText && (
+                           <div className="mt-2 pt-2 border-t border-muted">
+                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                               <Sparkles className="w-3 h-3" />
+                               AI-improved formatting
+                             </div>
+                           </div>
+                         )}
+                       </div>
                     </div>
                   </AlertDescription>
                 </Alert>
@@ -455,7 +511,22 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => result && handleCopyText(result.translatedText)}
+                  onClick={improveTextLayout}
+                  disabled={isImprovingText}
+                  className="flex items-center gap-2"
+                  title="Improve text layout with AI"
+                >
+                  {isImprovingText ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {isImprovingText ? 'Improving...' : 'AI Format'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => result && handleCopyText(improvedText || result.translatedText)}
                   className="flex items-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
@@ -469,8 +540,16 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
             <div className="max-w-4xl mx-auto">
               <div className="bg-background border rounded-lg p-8 shadow-sm">
                 <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
-                  {result?.translatedText || ''}
+                  {improvedText || result?.translatedText || ''}
                 </pre>
+                {improvedText && (
+                  <div className="mt-4 pt-4 border-t border-muted">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="w-4 h-4" />
+                      AI-improved formatting applied
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
