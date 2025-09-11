@@ -251,7 +251,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
         
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Upload Section */}
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border rounded-lg p-6 bg-muted/20">
               {/* Left - Upload Controls */}
               <div className="space-y-4">
@@ -352,7 +352,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
           {/* Clinical Verification Section */}
           {result?.clinicalVerification && (
-            <div className="max-w-4xl mx-auto space-y-4">
+            <div className="w-full space-y-4">
               <h3 className="text-lg font-semibold">Clinical Verification</h3>
               <ClinicalWarningsDisplay
                 verificationResult={result.clinicalVerification}
@@ -364,7 +364,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
           {/* Translation Results */}
           {result && (  
-            <div className="max-w-4xl mx-auto">
+            <div className="w-full">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Original Text */}
                 <div className="space-y-4">
