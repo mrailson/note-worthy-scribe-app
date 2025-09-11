@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MedicalTranslationInfo } from './MedicalTranslationInfo';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
+import { TranslationVerificationDetails } from './TranslationVerificationDetails';
 
 interface TranslationResult {
   originalText: string;
@@ -337,27 +338,33 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                     <div className="space-y-3 flex-1 flex flex-col">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Translated Text ({languages.find(l => l.code === targetLanguage)?.name}):</span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowFullScreenText(true)}
-                            className="flex items-center gap-1 h-6"
-                            title="Enlarge text for easier viewing"
-                          >
-                            <Expand className="w-3 h-3" />
-                            Enlarge
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopyText(result.translatedText)}
-                            className="flex items-center gap-1 h-6"
-                          >
-                            <Copy className="w-3 h-3" />
-                            {copied ? 'Copied!' : 'Copy'}
-                          </Button>
-                        </div>
+                         <div className="flex items-center gap-1">
+                           <TranslationVerificationDetails
+                             originalText={result.originalText}
+                             translatedText={result.translatedText}
+                             sourceLanguage={result.detectedLanguage}
+                             targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                           />
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => setShowFullScreenText(true)}
+                             className="flex items-center gap-1 h-6"
+                             title="Enlarge text for easier viewing"
+                           >
+                             <Expand className="w-3 h-3" />
+                             Enlarge
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => handleCopyText(result.translatedText)}
+                             className="flex items-center gap-1 h-6"
+                           >
+                             <Copy className="w-3 h-3" />
+                             {copied ? 'Copied!' : 'Copy'}
+                           </Button>
+                         </div>
                       </div>
                       <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
                         <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
