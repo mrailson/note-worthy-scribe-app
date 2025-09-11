@@ -288,8 +288,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       // Import supabase client
       const { supabase } = await import('@/integrations/supabase/client');
       
-      console.log('Calling clinical-verification function...');
-      const { data, error } = await supabase.functions.invoke('clinical-verification', {
+      console.log('Calling ai-response-clinical-verification function...');
+      const { data, error } = await supabase.functions.invoke('ai-response-clinical-verification', {
         body: {
           originalPrompt: 'Manual verification request',
           aiResponse: message.content,
