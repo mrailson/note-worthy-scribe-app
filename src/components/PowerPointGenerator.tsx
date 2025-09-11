@@ -17,10 +17,11 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import { BackgroundImageUploader } from "@/components/BackgroundImageUploader";
+import { AnimationPicker } from "@/components/AnimationPicker";
 import { DocumentContextPanel } from "@/components/DocumentContextPanel";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
-import { SlideContent, PresentationContent, GenerationMetadata } from "@/types/presentation";
+import { SlideContent, PresentationContent, GenerationMetadata, SlideAnimation } from "@/types/presentation";
 import { generateEnhancedPowerPoint } from "@/utils/enhancedPresentationGenerator";
 import { getTemplateById, PRESENTATION_TEMPLATES } from "@/utils/presentationTemplates";
 import PptxGenJS from "pptxgenjs";
@@ -66,6 +67,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<boolean[]>([]);
+  const [slideAnimations, setSlideAnimations] = useState<SlideAnimation[]>([]);
   const { processFiles, isProcessing } = useFileUpload();
 
   const resetState = () => {
@@ -85,6 +87,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setUploadedFiles([]);
     setShowFileUpload(false);
     setSelectedFiles([]);
+    setSlideAnimations([]);
   };
 
   const handleClose = (newOpen: boolean) => {
@@ -149,6 +152,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           complexityLevel,
           templateId: selectedTemplate,
           backgroundImage: backgroundImage || undefined,
+          animations: slideAnimations.length > 0 ? slideAnimations : undefined,
           supportingFiles: uploadedFiles
             .filter((_, index) => selectedFiles[index] !== false)
             .map(file => ({
@@ -167,6 +171,15 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       if (data?.success && data?.presentation) {
         setPresentationContent(data.presentation);
         setMetadata(data.metadata);
+        // Initialize animations for each slide if not already set
+        if (slideAnimations.length === 0) {
+          setSlideAnimations(Array(data.presentation.slides.length).fill({
+            type: 'none',
+            duration: 500,
+            delay: 200,
+            elementOrder: true
+          }));
+        }
         setCurrentStep('preview');
         toast.success("Presentation generated successfully!");
       } else {
@@ -215,6 +228,23 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
         [field]: value
       });
     }
+  };
+
+  const handleAnimationChange = (slideIndex: number, animation: SlideAnimation) => {
+    setSlideAnimations(prev => {
+      const updated = [...prev];
+      // Ensure the array is long enough
+      while (updated.length <= slideIndex) {
+        updated.push({
+          type: 'none',
+          duration: 500,
+          delay: 200,
+          elementOrder: true
+        });
+      }
+      updated[slideIndex] = animation;
+      return updated;
+    });
   };
 
   const downloadPowerPoint = async () => {
@@ -514,6 +544,11 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{slide.type}</Badge>
+                    <AnimationPicker
+                      slideIndex={index}
+                      currentAnimation={slideAnimations[index]}
+                      onAnimationChange={handleAnimationChange}
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

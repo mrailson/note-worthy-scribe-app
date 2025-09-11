@@ -1,9 +1,17 @@
+export interface SlideAnimation {
+  type: 'none' | 'fade' | 'slide' | 'zoom' | 'appear';
+  duration: number;
+  delay: number;
+  elementOrder: boolean; // true for sequential, false for simultaneous
+}
+
 export interface SlideContent {
   title: string;
   type: string;
   content: string[];
   notes?: string;
   meetingSection?: string;
+  animation?: SlideAnimation;
 }
 
 export interface PresentationContent {
@@ -26,6 +34,7 @@ export interface PresentationGenerationOptions {
   complexityLevel?: string;
   templateId?: string;
   backgroundImage?: string; // Base64 encoded background image
+  animations?: SlideAnimation[];
   supportingFiles?: {
     name: string;
     content: string;
