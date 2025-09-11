@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MedicalTranslationInfo } from './MedicalTranslationInfo';
 
 interface TranslationResult {
   originalText: string;
@@ -169,6 +170,11 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
               <X className="w-4 h-4" />
             </Button>
           </DialogTitle>
+          
+          {/* Medical Translation Features Info */}
+          <div className="flex justify-center pt-2">
+            <MedicalTranslationInfo />
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 flex-1 flex flex-col min-h-0">
