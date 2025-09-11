@@ -226,8 +226,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-none max-h-none w-full h-full fixed inset-0 m-0 p-0 rounded-none flex flex-col">
+        <DialogHeader className="flex-shrink-0 p-6 border-b">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
