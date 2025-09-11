@@ -1,6 +1,6 @@
 import PptxGenJS from "pptxgenjs";
 import { PresentationTemplate, getTemplateById } from './presentationTemplates';
-import { SlideContent, PresentationContent } from '@/types/presentation';
+import { SlideContent, PresentationContent, SlideAnimation } from '@/types/presentation';
 
 export interface EnhancedGenerationOptions {
   template: PresentationTemplate;
@@ -12,6 +12,9 @@ export interface EnhancedGenerationOptions {
     complexityLevel: string;
     generatedAt: string;
   };
+  titleFontSize?: number;
+  contentFontSize?: number;
+  globalAnimation?: SlideAnimation;
 }
 
 class LayoutEngine {
@@ -261,17 +264,17 @@ class TemplateRenderer {
     }
   }
   
-  createTitleSlide(title: string, subtitle?: string) {
+  createTitleSlide(title: string, subtitle?: string, titleFontSize: number = 38) {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
     
-    // Main title with template-specific styling (adjusted for widescreen)
+    // Main title with template-specific styling and custom font size (adjusted for widescreen)
     const titleConfig: any = {
       x: 1.5,
       y: 2.5,
       w: 10.33,
       h: 1.5,
-      fontSize: this.template.style === 'bright' ? 42 : 38,
+      fontSize: this.template.style === 'bright' ? titleFontSize + 4 : titleFontSize,
       bold: true,
       color: this.template.headingColor,
       fontFace: this.template.fonts.heading,
@@ -324,17 +327,17 @@ class TemplateRenderer {
     this.addTemplateFooter(slide);
   }
   
-  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number) {
+  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16) {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
     
-    // Title with template styling (adjusted for widescreen)
+    // Title with template styling and custom font size (adjusted for widescreen)
     const titleConfig: any = {
       x: 1,
       y: 0.8,
       w: 11.33,
       h: 0.8,
-      fontSize: this.template.style === 'bright' ? 32 : 28,
+      fontSize: this.template.style === 'bright' ? titleFontSize + 4 : titleFontSize,
       bold: true,
       color: this.template.headingColor,
       fontFace: this.template.fonts.heading
@@ -358,7 +361,7 @@ class TemplateRenderer {
           y: 1.8 + (index * 0.35),
           w: 11.33,
           h: 0.3,
-          fontSize: this.template.style === 'bright' ? 16 : 14,
+          fontSize: contentFontSize,
           fontFace: this.template.fonts.body,
           bullet: { type: 'bullet' },
           lineSpacing: 20,
@@ -423,20 +426,36 @@ class TemplateRenderer {
 }
 
 export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOptions): Promise<void> => {
-  const { template, content, metadata } = options;
+  const { template, content, metadata, titleFontSize = 32, contentFontSize = 16, globalAnimation } = options;
   
   try {
     const renderer = new TemplateRenderer(template);
     
-    // Create title slide
+    // Apply global font sizes and animation settings
+    if (titleFontSize || contentFontSize || globalAnimation) {
+      // These will be applied in the createContentSlide method
+    }
+    
+    // Create title slide (no global animation applied)
     renderer.createTitleSlide(
       content.title,
-      `AI Generated ${metadata.presentationType} • ${metadata.complexityLevel} level`
+      `AI Generated ${metadata.presentationType} • ${metadata.complexityLevel} level`,
+      titleFontSize
     );
     
-    // Create content slides
+    // Create content slides with global animation if specified
     content.slides.forEach((slideData, index) => {
-      renderer.createContentSlide(slideData, index + 2, content.slides.length + 1);
+      const slideWithGlobalAnimation = globalAnimation 
+        ? { ...slideData, animation: slideData.animation || globalAnimation }
+        : slideData;
+      
+      renderer.createContentSlide(
+        slideWithGlobalAnimation, 
+        index + 2, 
+        content.slides.length + 1,
+        titleFontSize,
+        contentFontSize
+      );
     });
     
     // Generate file

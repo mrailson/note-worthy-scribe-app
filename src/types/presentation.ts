@@ -35,6 +35,9 @@ export interface PresentationGenerationOptions {
   templateId?: string;
   backgroundImage?: string; // Base64 encoded background image
   animations?: SlideAnimation[];
+  globalAnimation?: SlideAnimation; // Applied to all content slides
+  titleFontSize?: number;
+  contentFontSize?: number;
   supportingFiles?: {
     name: string;
     content: string;

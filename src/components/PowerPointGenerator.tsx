@@ -18,6 +18,7 @@ import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import { BackgroundImageUploader } from "@/components/BackgroundImageUploader";
 import { AnimationPicker } from "@/components/AnimationPicker";
+import { GlobalDesignControls } from "@/components/GlobalDesignControls";
 import { DocumentContextPanel } from "@/components/DocumentContextPanel";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
@@ -68,6 +69,14 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<boolean[]>([]);
   const [slideAnimations, setSlideAnimations] = useState<SlideAnimation[]>([]);
+  const [titleFontSize, setTitleFontSize] = useState(32);
+  const [contentFontSize, setContentFontSize] = useState(16);
+  const [globalAnimation, setGlobalAnimation] = useState<SlideAnimation>({
+    type: 'none',
+    duration: 500,
+    delay: 200,
+    elementOrder: true
+  });
   const { processFiles, isProcessing } = useFileUpload();
 
   const resetState = () => {
@@ -88,6 +97,14 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
     setShowFileUpload(false);
     setSelectedFiles([]);
     setSlideAnimations([]);
+    setTitleFontSize(32);
+    setContentFontSize(16);
+    setGlobalAnimation({
+      type: 'none',
+      duration: 500,
+      delay: 200,
+      elementOrder: true
+    });
   };
 
   const handleClose = (newOpen: boolean) => {
@@ -153,6 +170,9 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
           templateId: selectedTemplate,
           backgroundImage: backgroundImage || undefined,
           animations: slideAnimations.length > 0 ? slideAnimations : undefined,
+          globalAnimation: globalAnimation.type !== 'none' ? globalAnimation : undefined,
+          titleFontSize,
+          contentFontSize,
           supportingFiles: uploadedFiles
             .filter((_, index) => selectedFiles[index] !== false)
             .map(file => ({
@@ -263,7 +283,10 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
       await generateEnhancedPowerPoint({
         template: backgroundImage ? { ...template, backgroundImage } : template,
         content: presentationContent,
-        metadata
+        metadata,
+        titleFontSize,
+        contentFontSize,
+        globalAnimation: globalAnimation.type !== 'none' ? globalAnimation : undefined
       });
       
       toast.success("Enhanced PowerPoint presentation downloaded successfully!");
@@ -430,6 +453,18 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
               {PRESENTATION_TEMPLATES.find(t => t.id === selectedTemplate)?.description}
             </div>
           </div>
+
+          <Separator />
+
+          {/* Global Design Controls */}
+          <GlobalDesignControls
+            titleFontSize={titleFontSize}
+            contentFontSize={contentFontSize}
+            globalAnimation={globalAnimation}
+            onTitleFontSizeChange={setTitleFontSize}
+            onContentFontSizeChange={setContentFontSize}
+            onGlobalAnimationChange={setGlobalAnimation}
+          />
         </div>
       </TabsContent>
 
