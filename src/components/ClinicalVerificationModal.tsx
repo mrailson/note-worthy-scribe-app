@@ -73,7 +73,7 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                {new Date(verificationData.verificationTimestamp).toLocaleString()}
+                {new Date().toLocaleString()}
               </div>
             </div>
 
@@ -91,9 +91,9 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
 
             {/* LLM Consensus */}
             <div>
-              <h3 className="font-semibold mb-3">AI Model Consensus ({verificationData.llmConsensus.length})</h3>
+              <h3 className="font-semibold mb-3">AI Model Consensus ({verificationData.llmConsensus?.length || 0})</h3>
               <div className="space-y-3">
-                {verificationData.llmConsensus.map((llm, index) => (
+                {verificationData.llmConsensus?.map((llm, index) => (
                   <div key={index} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -134,22 +134,24 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
             <div>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4" />
-                Sources Verified ({verificationData.verificationSources.length})
+                Sources Verified ({verificationData.sourcesVerified?.length || 0})
               </h3>
               <div className="space-y-3">
-                {verificationData.verificationSources.map((source, index) => (
+                {verificationData.sourcesVerified?.map((source, index) => (
                   <div key={index} className="p-3 border rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h4 className="font-medium text-sm">{source.name}</h4>
-                        <a 
-                          href={source.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline break-all"
-                        >
-                          {source.url}
-                        </a>
+                        <h4 className="font-medium text-sm">{source.source}</h4>
+                        {source.url && (
+                          <a 
+                            href={source.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline break-all"
+                          >
+                            {source.url}
+                          </a>
+                        )}
                       </div>
                       <Badge 
                         variant={source.trustLevel === 'high' ? 'default' : 'secondary'}
@@ -158,14 +160,10 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                         {source.trustLevel} trust
                       </Badge>
                     </div>
-                    {source.lastUpdated && (
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Last updated: {source.lastUpdated}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {source.relevantContent.substring(0, 200)}...
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle className={`w-3 h-3 ${source.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                      {source.verified ? 'Verified' : 'Not verified'}
+                    </div>
                   </div>
                 ))}
               </div>

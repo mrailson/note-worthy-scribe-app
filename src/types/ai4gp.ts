@@ -16,20 +16,18 @@ export interface Message {
 
 export interface ClinicalVerificationData {
   confidenceScore: number; // 0-100
-  verificationSources: VerificationSource[];
+  sourcesVerified: VerificationSource[];
   llmConsensus: LLMConsensusData[];
-  verificationTimestamp: Date;
   verificationStatus: 'pending' | 'verified' | 'flagged';
   riskLevel: 'low' | 'medium' | 'high';
   evidenceSummary?: string;
 }
 
 export interface VerificationSource {
-  name: string;
-  url: string;
-  lastUpdated?: string;
-  relevantContent: string;
+  source: string;
+  url?: string;
   trustLevel: 'high' | 'medium' | 'low';
+  verified: boolean;
 }
 
 export interface LLMConsensusData {
