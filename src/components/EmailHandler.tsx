@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
+import { ImageTranslationCard } from './ImageTranslationCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -340,6 +341,8 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <ImageTranslationCard resetTrigger={resetTrigger} />
     </div>
   );
 };
