@@ -101,28 +101,38 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   
   const { exportToPDF, exportToWord } = useDocumentGeneration();
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
+    // Check if it's an image or supported document
+    const isImage = file.type.startsWith('image/');
+    const isDocument = file.name.toLowerCase().endsWith('.pdf') || 
+                      file.name.toLowerCase().endsWith('.docx') || 
+                      file.name.toLowerCase().endsWith('.txt');
+
+    if (!isImage && !isDocument) {
+      toast.error('Please select an image file (JPG, PNG, etc.) or document file (PDF, DOCX, TXT)');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Image size must be less than 10MB');
+      toast.error('File size must be less than 10MB');
       return;
     }
 
     setSelectedImage(file);
     
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Create preview only for images
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
     
     // Reset previous results
     setResult(null);
@@ -130,42 +140,90 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
   const processDocument = async () => {
     if (!selectedImage) {
-      toast.error('Please select an image first');
+      toast.error('Please select a file first');
       return;
     }
 
     setIsProcessing(true);
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        
-        const { data, error } = await supabase.functions.invoke('image-ocr-translate', {
-          body: {
-            imageData: base64,
-            targetLanguage: targetLanguage,
-          },
+      const isImage = selectedImage.type.startsWith('image/');
+      
+      if (isImage) {
+        // Process image with OCR
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result as string;
+            
+            const { data, error } = await supabase.functions.invoke('image-ocr-translate', {
+              body: {
+                imageData: base64,
+                targetLanguage: targetLanguage,
+              },
+            });
+
+            if (error) {
+              console.error('Document translation error:', error);
+              toast.error('Failed to process document');
+              return;
+            }
+
+            setResult(data as TranslationResult);
+            console.log('Translation result received:', data);
+            console.log('Clinical verification in result:', data.clinicalVerification);
+            toast.success('Document processed successfully');
+          } catch (error) {
+            console.error('Error processing image:', error);
+            toast.error('Failed to process image');
+          } finally {
+            setIsProcessing(false);
+          }
+        };
+        reader.readAsDataURL(selectedImage);
+      } else {
+        // Process document (PDF, DOCX, TXT)
+        const formData = new FormData();
+        formData.append('doc', selectedImage);
+
+        const { data, error } = await supabase.functions.invoke('upload-to-text', {
+          body: formData,
         });
 
         if (error) {
-          console.error('Document translation error:', error);
-          toast.error('Failed to process document');
+          console.error('Document extraction error:', error);
+          toast.error('Failed to extract text from document');
           return;
         }
 
-        setResult(data as TranslationResult);
-        console.log('Translation result received:', data);
-        console.log('Clinical verification in result:', data.clinicalVerification);
-        toast.success('Document processed successfully');
-      };
+        if (data?.text) {
+          // Now translate the extracted text
+          const { data: translationData, error: translationError } = await supabase.functions.invoke('image-ocr-translate', {
+            body: {
+              extractedText: data.text,
+              targetLanguage: targetLanguage,
+            },
+          });
 
-      reader.readAsDataURL(selectedImage);
+          if (translationError) {
+            console.error('Text translation error:', translationError);
+            toast.error('Failed to translate document text');
+            return;
+          }
+
+          setResult(translationData as TranslationResult);
+          console.log('Translation result received:', translationData);
+          toast.success('Document processed and translated successfully');
+        } else {
+          toast.error('No text could be extracted from the document');
+        }
+      }
     } catch (error) {
       console.error('Error processing document:', error);
       toast.error('Failed to process document');
     } finally {
-      setIsProcessing(false);
+      if (!selectedImage?.type.startsWith('image/')) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -323,7 +381,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
-              Document Image Translation - Full Interface
+              Document Translation - Full Interface
             </div>
             <div className="flex items-center gap-2">
               <MedicalTranslationInfo />
@@ -345,15 +403,15 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border rounded-lg p-6 bg-muted/20">
               {/* Left - Upload Controls */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Upload Document Image</h3>
+                <h3 className="text-lg font-semibold">Upload Document</h3>
                 
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
+                      accept="image/*,.pdf,.docx,.txt"
+                      onChange={handleFileSelect}
                       className="hidden"
                     />
                     <Button
@@ -362,7 +420,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                       className="flex items-center gap-2"
                     >
                       <Upload className="w-4 h-4" />
-                      Select Image
+                      Select File
                     </Button>
                     
                     {selectedImage && (
@@ -370,8 +428,12 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                         <FileText className="w-3 h-3" />
                         {selectedImage.name}
                       </Badge>
-                    )}
-                  </div>
+                     )}
+                   </div>
+                   
+                   <p className="text-sm text-muted-foreground">
+                     Supports: Images (JPG, PNG, etc.), PDF documents, Word documents (DOCX), and text files (TXT)
+                   </p>
 
                   <div className="flex items-center gap-4">
                     <label className="text-sm font-medium min-w-fit">Target Language:</label>
