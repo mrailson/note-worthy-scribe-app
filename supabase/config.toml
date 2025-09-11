@@ -116,3 +116,6 @@ verify_jwt = true
 
 [functions.ai-medical-translation-review]
 verify_jwt = true
+
+[functions.ai-response-clinical-verification]
+verify_jwt = true
