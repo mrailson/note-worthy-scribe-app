@@ -2768,50 +2768,9 @@ export const MeetingRecorder = ({
     return arrayBuffer;
   };
 
-  // ============== API Health Check ==============
-  const testOpenAIAPI = async (): Promise<boolean> => {
-    try {
-      console.log('🔍 Testing OpenAI API connection...');
-      
-      // Create a minimal valid WAV file (silence) for testing
-      const minimalWav = 'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-      
-      const testResponse = await supabase.functions.invoke('speech-to-text', {
-        body: {
-          audio: minimalWav
-        }
-      });
-
-      if (testResponse.error) {
-        console.error('❌ API test failed:', testResponse.error);
-        return false;
-      }
-
-      console.log('✅ OpenAI API test successful');
-      return true;
-    } catch (error) {
-      console.error('❌ API test failed with exception:', error);
-      return false;
-    }
-  };
-
   const startRecording = async () => {
     try {
       console.log('Starting recording...');
-
-      // API Health Check
-      toast.loading('Checking API connection...', { id: 'api-check' });
-      const apiWorking = await testOpenAIAPI();
-      
-      if (!apiWorking) {
-        toast.dismiss('api-check');
-        toast.error('❌ Transcription service is not responding. Please check your internet connection or try again later.');
-        console.error('❌ Cannot start recording - API test failed');
-        return;
-      }
-      
-      toast.dismiss('api-check');
-      toast.success('✅ API connection verified');
       
       // Clear transcript handler
       if (transcriptHandler.current) {
