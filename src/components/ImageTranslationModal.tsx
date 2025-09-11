@@ -88,6 +88,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [showFullScreenOriginal, setShowFullScreenOriginal] = useState(false);
+  const [showFullScreenText, setShowFullScreenText] = useState(false);
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [isImprovingText, setIsImprovingText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,8 +228,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] m-0 p-0 rounded-none flex flex-col">
+        <DialogHeader className="flex-shrink-0 p-6 border-b">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
@@ -375,6 +377,15 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setShowFullScreenOriginal(true)}
+                        className="flex items-center gap-1"
+                      >
+                        <Expand className="w-3 h-3" />
+                        Enlarge
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleCopyText(result.originalText)}
                         className="flex items-center gap-1"
                       >
@@ -420,6 +431,15 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setShowFullScreenText(true)}
+                        className="flex items-center gap-1"
+                      >
+                        <Expand className="w-3 h-3" />
+                        Enlarge
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleCopyText(improvedText || result.translatedText)}
                         className="flex items-center gap-1"
                       >
@@ -450,8 +470,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
       {/* Full Screen Image Modal */}
       <Dialog open={showFullScreenImage} onOpenChange={setShowFullScreenImage}>
-        <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] m-0 p-0 rounded-none flex flex-col">
+          <DialogHeader className="flex-shrink-0 p-6 border-b">
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
               Document Image - Full Screen View
@@ -465,6 +485,115 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                 alt="Selected document - full view"
                 className="max-w-full max-h-full object-contain"
               />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Screen Original Text Modal */}
+      <Dialog open={showFullScreenOriginal} onOpenChange={setShowFullScreenOriginal}>
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] m-0 p-0 rounded-none flex flex-col">
+          <DialogHeader className="flex-shrink-0 p-6 border-b">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Languages className="w-5 h-5" />
+                Original Text - Full Screen View ({result?.detectedLanguage || ''})
+              </div>
+              <div className="flex items-center gap-2">
+                {result && (
+                  <TranslationVerificationDetails
+                    originalText={result.originalText}
+                    translatedText={result.translatedText}
+                    sourceLanguage={result.detectedLanguage}
+                    targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                  />
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => result && handleCopyText(result.originalText)}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy All
+                </Button>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-background border rounded-lg p-8 shadow-sm">
+                <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
+                  {result?.originalText || ''}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Screen Translated Text Modal */}
+      <Dialog open={showFullScreenText} onOpenChange={setShowFullScreenText}>
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] m-0 p-0 rounded-none flex flex-col">
+          <DialogHeader className="flex-shrink-0 p-6 border-b">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Languages className="w-5 h-5" />
+                Translated Text - Full Screen View ({languages.find(l => l.code === targetLanguage)?.name})
+              </div>
+              <div className="flex items-center gap-2">
+                {result && (
+                  <TranslationVerificationDetails
+                    originalText={result.originalText}
+                    translatedText={result.translatedText}
+                    sourceLanguage={result.detectedLanguage}
+                    targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                  />
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={improveTextLayout}
+                  disabled={isImprovingText}
+                  className="flex items-center gap-2"
+                  title="Improve text layout with AI"
+                >
+                  {isImprovingText ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {isImprovingText ? 'Improving...' : 'AI Format'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => result && handleCopyText(improvedText || result.translatedText)}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy All
+                </Button>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-primary/5">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-background border rounded-lg p-8 shadow-sm">
+                <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
+                  {improvedText || result?.translatedText || ''}
+                </pre>
+                {improvedText && (
+                  <div className="mt-4 pt-4 border-t border-muted">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="w-4 h-4" />
+                      AI-improved formatting applied
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </DialogContent>
