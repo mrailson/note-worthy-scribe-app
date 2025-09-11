@@ -264,21 +264,24 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         let isFirstChunk = true;
 
         mediaRecorder.ondataavailable = (event) => {
-          console.log('📊 MediaRecorder data available:', event.data.size, 'bytes');
+          console.log('📊 MediaRecorder data available:', event.data.size, 'bytes', 'First chunk:', isFirstChunk);
           if (event.data.size > 0 && whisperTranscriberRef.current) {
             console.log('🎤 Sending audio chunk to Whisper transcriber');
             whisperTranscriberRef.current.enqueueChunk(event.data);
+          } else if (!whisperTranscriberRef.current) {
+            console.error('❌ WhisperTranscriber ref is null!');
           }
         };
 
+        console.log('🎙️ Setting up MediaRecorder for Whisper chunks, isFirstChunk:', isFirstChunk);
         // Start with 5 seconds for first chunk, then 2 seconds
         mediaRecorder.start(5000);
         
         mediaRecorder.onstop = () => {
-          if (!isFirstChunk) return;
-          isFirstChunk = false;
-          // Restart with 2-second intervals after first chunk
-          if (mediaRecorder.state === 'inactive') {
+          if (isFirstChunk && mediaRecorder && mediaRecorder.state === 'inactive' && state.isRecording) {
+            isFirstChunk = false;
+            console.log('🔄 First chunk completed, switching to 2-second intervals');
+            // Restart with 2-second intervals after first chunk
             mediaRecorder.start(2000);
           }
         };
