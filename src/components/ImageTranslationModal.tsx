@@ -369,122 +369,29 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
             </div>
           )}
 
-          {/* Results Section - Much Larger */}
+          {/* Translation Results Summary */}
           {result && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
-              <div className="space-y-4">
-                <Alert className="h-full flex flex-col">
-                  <Languages className="w-4 h-4" />
-                  <AlertDescription className="flex-1 flex flex-col">
-                    <div className="space-y-3 flex-1 flex flex-col">
-                      <div className="flex items-center justify-between">
-                        <span><strong>Detected Language:</strong> {result.detectedLanguage}</span>
-                        <Badge variant="outline">Confidence: {Math.round(result.confidence * 100)}%</Badge>
-                      </div>
-                      
-                      <div className="space-y-2 flex-1 flex flex-col">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Original Text:</span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowFullScreenOriginal(true)}
-                              className="flex items-center gap-1 h-6"
-                              title="Enlarge text for easier viewing"
-                            >
-                              <Expand className="w-3 h-3" />
-                              Enlarge
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyText(result.originalText)}
-                              className="flex items-center gap-1 h-6"
-                            >
-                              <Copy className="w-3 h-3" />
-                              {copied ? 'Copied!' : 'Copy'}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="p-4 bg-muted rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
-                          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                            {result.originalText}
-                          </pre>
-                        </div>
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
+            <div className="text-center space-y-4 py-8">
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <Languages className="w-5 h-5 text-primary" />
+                  <span className="text-lg font-medium">Translation Complete</span>
+                </div>
+                <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                  <span><strong>Detected:</strong> {result.detectedLanguage}</span>
+                  <Badge variant="outline">Confidence: {Math.round(result.confidence * 100)}%</Badge>
+                  <span><strong>Target:</strong> {languages.find(l => l.code === targetLanguage)?.name}</span>
+                </div>
               </div>
-
-              <div className="space-y-4">
-                <Alert className="border-primary/20 bg-primary/5 h-full flex flex-col">
-                  <Languages className="w-4 h-4 text-primary" />
-                  <AlertDescription className="flex-1 flex flex-col">
-                    <div className="space-y-3 flex-1 flex flex-col">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Translated Text ({languages.find(l => l.code === targetLanguage)?.name}):</span>
-                          <div className="flex items-center gap-1">
-                            <TranslationVerificationDetails
-                              originalText={result.originalText}
-                              translatedText={result.translatedText}
-                              sourceLanguage={result.detectedLanguage}
-                              targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={improveTextLayout}
-                              disabled={isImprovingText}
-                              className="flex items-center gap-1 h-6"
-                              title="Improve text layout with AI"
-                            >
-                              {isImprovingText ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-3 h-3" />
-                              )}
-                              {isImprovingText ? 'Improving...' : 'AI Format'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setShowFullScreenText(true)}
-                              className="flex items-center gap-1 h-6"
-                              title="Enlarge text for easier viewing"
-                            >
-                              <Expand className="w-3 h-3" />
-                              Enlarge
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyText(improvedText || result.translatedText)}
-                              className="flex items-center gap-1 h-6"
-                            >
-                              <Copy className="w-3 h-3" />
-                              {copied ? 'Copied!' : 'Copy'}
-                            </Button>
-                          </div>
-                      </div>
-                       <div className="p-4 bg-background border rounded-lg text-sm flex-1 overflow-y-auto min-h-[300px]">
-                         <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                           {improvedText || result.translatedText}
-                         </pre>
-                         {improvedText && (
-                           <div className="mt-2 pt-2 border-t border-muted">
-                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                               <Sparkles className="w-3 h-3" />
-                               AI-improved formatting
-                             </div>
-                           </div>
-                         )}
-                       </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              </div>
+              
+              <Button 
+                onClick={() => setShowFullScreenText(true)}
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                <Maximize2 className="w-5 h-5" />
+                View Full Translation
+              </Button>
             </div>
           )}
         </div>
