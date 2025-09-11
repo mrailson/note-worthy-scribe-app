@@ -21,12 +21,41 @@ import { toast } from 'sonner';
 import { MedicalTranslationInfo } from './MedicalTranslationInfo';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
 import { TranslationVerificationDetails } from './TranslationVerificationDetails';
+import { ClinicalWarningsDisplay } from './ClinicalWarningsDisplay';
+
+interface ValidationIssue {
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: string;
+  message: string;
+  originalValue: string;
+  suggestedCorrection?: string;
+  normalRange?: string;
+  position?: { start: number; end: number };
+  source?: string;
+}
+
+interface MedicalValue {
+  value: number;
+  unit: string;
+  type: string;
+  position: { start: number; end: number };
+  raw: string;
+}
+
+interface ClinicalVerificationResult {
+  hasIssues: boolean;
+  issues: ValidationIssue[];
+  detectedValues: MedicalValue[];
+  overallSafety: 'safe' | 'warning' | 'unsafe';
+  confidence: number;
+}
 
 interface TranslationResult {
   originalText: string;
   translatedText: string;
   detectedLanguage: string;
   confidence: number;
+  clinicalVerification?: ClinicalVerificationResult;
 }
 
 interface ImageTranslationModalProps {
@@ -311,6 +340,17 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Clinical Verification Section */}
+          {result?.clinicalVerification && (
+            <div className="space-y-4">
+              <ClinicalWarningsDisplay
+                verificationResult={result.clinicalVerification}
+                originalText={result.originalText}
+                translatedText={result.translatedText}
+              />
+            </div>
+          )}
 
           {/* Results Section - Much Larger */}
           {result && (

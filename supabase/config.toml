@@ -101,3 +101,18 @@ verify_jwt = false
 
 [functions.elevenlabs-text-to-speech]
 verify_jwt = true
+
+[functions.clinical-verification]
+verify_jwt = true
+
+[functions.image-ocr-translate]
+verify_jwt = true
+
+[functions.improve-text-layout]
+verify_jwt = true
+
+[functions.medical-ocr-verification]
+verify_jwt = true
+
+[functions.ai-medical-translation-review]
+verify_jwt = true

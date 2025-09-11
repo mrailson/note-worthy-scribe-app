@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -6,509 +5,331 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface VerificationRequest {
-  originalPrompt: string;
-  aiResponse: string;
-  messageId: string;
+interface MedicalValue {
+  value: number;
+  unit: string;
+  type: string;
+  position: { start: number; end: number };
+  raw: string;
 }
 
-interface VerificationSource {
-  name: string;
-  url: string;
-  lastUpdated?: string;
-  relevantContent: string;
-  trustLevel: 'high' | 'medium' | 'low';
+interface ValidationIssue {
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: string;
+  message: string;
+  originalValue: string;
+  suggestedCorrection?: string;
+  normalRange?: string;
+  position?: { start: number; end: number };
 }
 
-interface LLMConsensusData {
-  model: string;
-  service?: string;
-  assessment: string;
-  agreementLevel: number;
-  concerns?: string[];
+interface ClinicalVerificationResult {
+  hasIssues: boolean;
+  issues: ValidationIssue[];
+  detectedValues: MedicalValue[];
+  overallSafety: 'safe' | 'warning' | 'unsafe';
+  confidence: number;
 }
 
-// Extract medical terms and drug names from text
-function extractMedicalTerms(text: string): string[] {
-  const medicalPatterns = [
-    /\b[A-Z][a-z]+(?:ine|ol|ic|ide|ium|ate|ose)\b/g, // Drug suffixes
-    /\b(?:mg|mcg|ml|units?)\b/gi, // Dosage units
-    /\b(?:diabetes|hypertension|asthma|copd|heart|kidney|liver|cancer)\w*\b/gi, // Common conditions
-    /\b[A-Z][a-z]*(?:pril|sartan|statin|blockers?)\b/gi, // Drug classes
-    /\b(?:NHS|NICE|BNF|GMC|RCGP)\b/gi, // Medical authorities
-  ];
-  
-  const terms = new Set<string>();
-  medicalPatterns.forEach(pattern => {
-    const matches = text.match(pattern) || [];
-    matches.forEach(match => terms.add(match.toLowerCase()));
-  });
-  
-  // Also extract capitalized words that might be drug names
-  const capitalizedWords = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
-  capitalizedWords.forEach(word => {
-    if (word.length > 3) terms.add(word.toLowerCase());
-  });
-  
-  return Array.from(terms);
-}
-
-// Find relevant UK medical sources based on extracted terms
-function findRelevantSources(keyTerms: string[]): string[] {
-  const sources = [
-    'https://www.nice.org.uk/guidance',
-    'https://bnf.nice.org.uk/',
-    'https://www.england.nhs.uk/'
-  ];
-  
-  // Add specific sources based on terms
-  const hasCardiac = keyTerms.some(term => 
-    ['heart', 'cardiac', 'hypertension', 'blood pressure', 'ace inhibitor'].includes(term)
-  );
-  const hasDiabetes = keyTerms.some(term => 
-    ['diabetes', 'metformin', 'insulin', 'glucose'].includes(term)
-  );
-  const hasRespiratory = keyTerms.some(term => 
-    ['asthma', 'copd', 'inhaler', 'respiratory'].includes(term)
-  );
-  
-  if (hasCardiac) {
-    sources.push('https://www.bhf.org.uk/');
+// Medical value patterns with improved decimal detection
+const MEDICAL_PATTERNS = [
+  {
+    pattern: /cholesterol[:\s]*(\d+\.?\d*)\s*mmol\/L/gi,
+    type: 'cholesterol',
+    unit: 'mmol/L',
+    normalRange: '3.0-7.0',
+    normalMin: 3.0,
+    normalMax: 7.0,
+    criticalMax: 15.0
+  },
+  {
+    pattern: /(\d+)\/(\d+)\s*mmHg/gi,
+    type: 'blood_pressure',
+    unit: 'mmHg',
+    normalRange: '90-140/60-90',
+    systolicMax: 180,
+    diastolicMax: 110
+  },
+  {
+    pattern: /(?:glucose|sugar)[:\s]*(\d+\.?\d*)\s*mmol\/L/gi,
+    type: 'glucose',
+    unit: 'mmol/L',
+    normalRange: '4.0-7.0',
+    normalMin: 4.0,
+    normalMax: 7.0,
+    criticalMax: 20.0
+  },
+  {
+    pattern: /(\d+\.?\d*)\s*mg(?:\/day|\/zi|\/24h|(?:\s|$))/gi,
+    type: 'medication_dosage',
+    unit: 'mg',
+    normalRange: 'varies',
+    criticalMax: 2000
+  },
+  {
+    pattern: /heart rate[:\s]*(\d+)\s*(?:bpm|\/min)?/gi,
+    type: 'heart_rate',
+    unit: 'bpm',
+    normalRange: '60-100',
+    normalMin: 60,
+    normalMax: 100,
+    criticalMax: 200
+  },
+  {
+    pattern: /temperature[:\s]*(\d+\.?\d*)\s*°?C/gi,
+    type: 'temperature',
+    unit: '°C',
+    normalRange: '36.0-37.5',
+    normalMin: 36.0,
+    normalMax: 37.5,
+    criticalMax: 42.0
   }
-  if (hasDiabetes) {
-    sources.push('https://www.nhs.uk/medicines/metformin/', 'https://www.diabetes.org.uk/');
-  }
-  if (hasRespiratory) {
-    sources.push('https://www.asthma.org.uk/');
+];
+
+function extractMedicalValues(text: string): MedicalValue[] {
+  const values: MedicalValue[] = [];
+  
+  for (const pattern of MEDICAL_PATTERNS) {
+    const matches = [...text.matchAll(pattern.pattern)];
+    
+    for (const match of matches) {
+      if (pattern.type === 'blood_pressure') {
+        // Handle blood pressure separately (systolic/diastolic)
+        const systolic = parseInt(match[1]);
+        const diastolic = parseInt(match[2]);
+        
+        values.push({
+          value: systolic,
+          unit: pattern.unit,
+          type: 'blood_pressure_systolic',
+          position: { start: match.index!, end: match.index! + match[0].length },
+          raw: match[0]
+        });
+        
+        values.push({
+          value: diastolic,
+          unit: pattern.unit,
+          type: 'blood_pressure_diastolic',
+          position: { start: match.index!, end: match.index! + match[0].length },
+          raw: match[0]
+        });
+      } else {
+        const value = parseFloat(match[1]);
+        values.push({
+          value,
+          unit: pattern.unit,
+          type: pattern.type,
+          position: { start: match.index!, end: match.index! + match[0].length },
+          raw: match[0]
+        });
+      }
+    }
   }
   
-  return sources.slice(0, 6); // Limit to 6 sources max
+  return values;
 }
 
-// Extract relevant content from HTML
-function extractRelevantContent(html: string, keyTerms: string[]): string {
-  try {
-    // Remove script and style tags
-    const cleanHtml = html.replace(/<script[\s\S]*?<\/script>/gi, '')
-                         .replace(/<style[\s\S]*?<\/style>/gi, '');
+function validateMedicalValues(values: MedicalValue[], originalText: string): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  
+  for (const medValue of values) {
+    const pattern = MEDICAL_PATTERNS.find(p => p.type === medValue.type || 
+      (medValue.type.startsWith('blood_pressure') && p.type === 'blood_pressure'));
     
-    // Extract text content
-    const textContent = cleanHtml.replace(/<[^>]*>/g, ' ')
-                                .replace(/\s+/g, ' ')
-                                .trim();
+    if (!pattern) continue;
     
-    if (!textContent) return '';
+    // Check for decimal point errors (common OCR issue)
+    if (medValue.type === 'cholesterol' && medValue.value > 15) {
+      const suggestedValue = medValue.value / 10;
+      if (suggestedValue >= 3 && suggestedValue <= 12) {
+        issues.push({
+          severity: 'critical',
+          type: 'decimal_point_error',
+          message: `Cholesterol value ${medValue.value} ${medValue.unit} is extremely high. This may be a decimal point error.`,
+          originalValue: medValue.raw,
+          suggestedCorrection: `${suggestedValue} ${medValue.unit}`,
+          normalRange: pattern.normalRange,
+          position: medValue.position
+        });
+        continue;
+      }
+    }
     
-    // Split into paragraphs
-    const paragraphs = textContent.split(/\.\s+/).filter(p => p.length > 30);
+    // Check for out-of-range values
+    if (pattern.normalMin && medValue.value < pattern.normalMin) {
+      issues.push({
+        severity: 'medium',
+        type: 'below_normal_range',
+        message: `${medValue.type.replace('_', ' ')} value ${medValue.value} ${medValue.unit} is below normal range.`,
+        originalValue: medValue.raw,
+        normalRange: pattern.normalRange,
+        position: medValue.position
+      });
+    }
     
-    // Find paragraphs containing key terms
-    const relevantParagraphs = paragraphs.filter(paragraph => {
-      const lowerParagraph = paragraph.toLowerCase();
-      return keyTerms.some(term => lowerParagraph.includes(term.toLowerCase()));
-    });
+    if (pattern.normalMax && medValue.value > pattern.normalMax) {
+      const severity = pattern.criticalMax && medValue.value > pattern.criticalMax ? 'critical' : 'high';
+      issues.push({
+        severity,
+        type: 'above_normal_range',
+        message: `${medValue.type.replace('_', ' ')} value ${medValue.value} ${medValue.unit} is ${severity === 'critical' ? 'extremely' : ''} above normal range.`,
+        originalValue: medValue.raw,
+        normalRange: pattern.normalRange,
+        position: medValue.position
+      });
+    }
     
-    return relevantParagraphs.slice(0, 10).join('. ') || textContent.substring(0, 2000);
-  } catch (error) {
-    console.error('Error extracting content:', error);
-    return '';
+    // Special validation for blood pressure
+    if (medValue.type === 'blood_pressure_systolic' && medValue.value > 180) {
+      issues.push({
+        severity: 'critical',
+        type: 'hypertensive_crisis',
+        message: `Systolic blood pressure ${medValue.value} mmHg indicates potential hypertensive crisis.`,
+        originalValue: medValue.raw,
+        normalRange: '90-140 mmHg',
+        position: medValue.position
+      });
+    }
+    
+    if (medValue.type === 'blood_pressure_diastolic' && medValue.value > 110) {
+      issues.push({
+        severity: 'critical',
+        type: 'hypertensive_crisis',
+        message: `Diastolic blood pressure ${medValue.value} mmHg indicates potential hypertensive crisis.`,
+        originalValue: medValue.raw,
+        normalRange: '60-90 mmHg',
+        position: medValue.position
+      });
+    }
   }
+  
+  return issues;
+}
+
+function checkForCommonOCRErrors(text: string): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  
+  // Check for missing decimal points in cholesterol values
+  const cholesterolMatches = [...text.matchAll(/cholesterol[:\s]*(\d{2,3})\s*mmol\/L/gi)];
+  for (const match of cholesterolMatches) {
+    const value = parseInt(match[1]);
+    if (value > 15) {
+      const decimal1 = value / 10;
+      const decimal2 = value / 100;
+      
+      let suggestedCorrection = '';
+      if (decimal1 >= 3 && decimal1 <= 12) {
+        suggestedCorrection = `${decimal1} mmol/L`;
+      } else if (decimal2 >= 3 && decimal2 <= 12) {
+        suggestedCorrection = `${decimal2} mmol/L`;
+      }
+      
+      if (suggestedCorrection) {
+        issues.push({
+          severity: 'critical',
+          type: 'ocr_decimal_error',
+          message: `Cholesterol value ${value} mmol/L appears to be missing a decimal point.`,
+          originalValue: match[0],
+          suggestedCorrection,
+          normalRange: '3.0-7.0 mmol/L',
+          position: { start: match.index!, end: match.index! + match[0].length }
+        });
+      }
+    }
+  }
+  
+  return issues;
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const { originalPrompt, aiResponse, messageId }: VerificationRequest = await req.json();
-
-    console.log('Clinical verification for message:', messageId);
-    const startTime = Date.now();
+    const { originalText, translatedText, sourceLanguage, targetLanguage } = await req.json();
     
-    // Extract key medical terms from prompt and response
-    const keyTerms = extractMedicalTerms(originalPrompt + " " + aiResponse);
-    console.log('Extracted key terms:', keyTerms);
-
-    // Find relevant authoritative sources
-    const sourceUrls = findRelevantSources(keyTerms);
-    console.log('Fetching sources:', sourceUrls);
-
-    // Fetch content from sources with timeout
-    const sourceStartTime = Date.now();
-    const verificationSources: VerificationSource[] = [];
-    
-    const fetchPromises = sourceUrls.map(async (url) => {
-      console.log('Fetching source:', url);
-      try {
-        const response = await Promise.race([
-          fetch(url, {
-            headers: {
-              'User-Agent': 'NHS-AI-Verification-Service/1.0'
-            }
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Source timeout')), 8000))
-        ]);
-        
-        if (response && typeof response.text === 'function') {
-          const html = await response.text();
-          const relevantContent = extractRelevantContent(html, keyTerms);
-          return {
-            name: new URL(url).hostname.replace('www.', ''),
-            url,
-            relevantContent,
-            trustLevel: 'high' as const,
-            lastUpdated: new Date().toISOString()
-          };
-        }
-        return null;
-      } catch (error) {
-        console.error(`Failed to fetch ${url}:`, error);
-        return null;
-      }
-    });
-
-    // Wait for all sources with timeout
-    try {
-      const results = await Promise.allSettled(fetchPromises);
-      results.forEach(result => {
-        if (result.status === 'fulfilled' && result.value) {
-          verificationSources.push(result.value);
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching sources:', error);
+    if (!originalText && !translatedText) {
+      return new Response(
+        JSON.stringify({ error: 'No text provided for verification' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
-
-    const sourceEndTime = Date.now();
-    console.log(`Source fetching took: ${sourceEndTime - sourceStartTime}ms, got ${verificationSources.length} sources`);
-
-    // Use multiple AI services for comprehensive consensus
-    const llmConsensus: LLMConsensusData[] = [];
-
-    const verificationPrompt = `You are a clinical verification expert for NHS primary care. 
-
-Please verify this AI response against authoritative UK medical sources:
-
-ORIGINAL QUESTION: ${originalPrompt}
-
-AI RESPONSE TO VERIFY: ${aiResponse}
-
-AUTHORITATIVE SOURCES:
-${verificationSources.map(source => `
-Source: ${source.name}
-URL: ${source.url}
-Content: ${source.relevantContent.substring(0, 800)}...
-`).join('\n')}
-
-Please provide your assessment as a JSON response with:
-{
-  "assessment": "Brief clinical assessment of the AI response accuracy based on the sources",
-  "agreementLevel": 85,
-  "concerns": ["List any clinical concerns or inaccuracies you identify"]
-}
-
-Focus on clinical accuracy, safety, and alignment with UK primary care guidelines.`;
-
-    // Get API keys
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
-    const grokApiKey = Deno.env.get('GROK_API_KEY');
     
-    const availableKeys = {
-      openai: !!openaiApiKey,
-      claude: !!claudeApiKey,
-      google: !!googleApiKey,
-      grok: !!grokApiKey
+    console.log('Starting clinical verification...', {
+      originalLength: originalText?.length || 0,
+      translatedLength: translatedText?.length || 0,
+      sourceLanguage,
+      targetLanguage
+    });
+    
+    // Extract medical values from both texts
+    const originalValues = originalText ? extractMedicalValues(originalText) : [];
+    const translatedValues = translatedText ? extractMedicalValues(translatedText) : [];
+    
+    // Validate medical values
+    const originalIssues = originalText ? validateMedicalValues(originalValues, originalText) : [];
+    const translatedIssues = translatedText ? validateMedicalValues(translatedValues, translatedText) : [];
+    
+    // Check for OCR errors
+    const ocrIssues = originalText ? checkForCommonOCRErrors(originalText) : [];
+    const translationOcrIssues = translatedText ? checkForCommonOCRErrors(translatedText) : [];
+    
+    // Combine all issues
+    const allIssues = [
+      ...originalIssues.map(issue => ({ ...issue, source: 'original' })),
+      ...translatedIssues.map(issue => ({ ...issue, source: 'translated' })),
+      ...ocrIssues.map(issue => ({ ...issue, source: 'original_ocr' })),
+      ...translationOcrIssues.map(issue => ({ ...issue, source: 'translated_ocr' }))
+    ];
+    
+    // Determine overall safety
+    let overallSafety: 'safe' | 'warning' | 'unsafe' = 'safe';
+    if (allIssues.some(issue => issue.severity === 'critical')) {
+      overallSafety = 'unsafe';
+    } else if (allIssues.some(issue => issue.severity === 'high' || issue.severity === 'medium')) {
+      overallSafety = 'warning';
+    }
+    
+    // Calculate confidence based on issues found
+    const criticalIssues = allIssues.filter(issue => issue.severity === 'critical').length;
+    const highIssues = allIssues.filter(issue => issue.severity === 'high').length;
+    const mediumIssues = allIssues.filter(issue => issue.severity === 'medium').length;
+    
+    let confidence = 0.95;
+    confidence -= criticalIssues * 0.3;
+    confidence -= highIssues * 0.15;
+    confidence -= mediumIssues * 0.05;
+    confidence = Math.max(0.1, Math.min(1.0, confidence));
+    
+    const result: ClinicalVerificationResult = {
+      hasIssues: allIssues.length > 0,
+      issues: allIssues,
+      detectedValues: [...originalValues, ...translatedValues],
+      overallSafety,
+      confidence
     };
     
-    console.log('Available API keys:', availableKeys);
+    console.log(`Clinical verification completed. Found ${allIssues.length} issues, overall safety: ${overallSafety}`);
     
-    if (!openaiApiKey && !claudeApiKey && !googleApiKey && !grokApiKey) {
-      throw new Error('No AI service API keys available for verification');
-    }
-
-    // Parallel AI service verification
-    const verificationPromises: Promise<LLMConsensusData | null>[] = [];
-
-    // OpenAI GPT verification
-    if (openaiApiKey) {
-      console.log('Adding OpenAI verification to queue');
-      verificationPromises.push(
-        Promise.race([
-          fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
-                { role: 'user', content: verificationPrompt }
-              ],
-              max_tokens: 400,
-              temperature: 0.3,
-              response_format: { type: "json_object" }
-            })
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI timeout')), 15000))
-        ]).then(async (response: any) => {
-          if (response.ok) {
-            const data = await response.json();
-            const result = JSON.parse(data.choices[0].message.content);
-            console.log('OpenAI verification successful');
-            
-            return {
-              model: 'gpt-4o-mini',
-              service: 'OpenAI',
-              assessment: result.assessment,
-              agreementLevel: result.agreementLevel,
-              concerns: result.concerns || []
-            };
-          }
-          console.error('OpenAI verification failed with status:', response.status);
-          return null;
-        }).catch(error => {
-          console.error('OpenAI verification failed:', error.message);
-          return null;
-        })
-      );
-    } else {
-      console.log('OpenAI API key not available');
-    }
-
-    // Claude verification
-    if (claudeApiKey) {
-      console.log('Adding Claude verification to queue');
-      verificationPromises.push(
-        Promise.race([
-          fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': claudeApiKey,
-              'Content-Type': 'application/json',
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: 'claude-3-5-haiku-20241022',
-              max_tokens: 400,
-              messages: [{
-                role: 'user',
-                content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
-              }]
-            })
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Claude timeout')), 15000))
-        ]).then(async (response: any) => {
-          if (response.ok) {
-            const data = await response.json();
-            const result = JSON.parse(data.content[0].text);
-            console.log('Claude verification successful');
-            
-            return {
-              model: 'claude-3-5-haiku',
-              service: 'Anthropic',
-              assessment: result.assessment,
-              agreementLevel: result.agreementLevel,
-              concerns: result.concerns || []
-            };
-          }
-          console.error('Claude verification failed with status:', response.status);
-          return null;
-        }).catch(error => {
-          console.error('Claude verification failed:', error.message);
-          return null;
-        })
-      );
-    } else {
-      console.log('Claude API key not available');
-    }
-
-    // Google Gemini verification
-    if (googleApiKey) {
-      console.log('Adding Google Gemini verification to queue');
-      verificationPromises.push(
-        Promise.race([
-          fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${googleApiKey}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
-                }]
-              }],
-              generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 400,
-                responseMimeType: "application/json"
-              }
-            })
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Gemini timeout')), 15000))
-        ]).then(async (response: any) => {
-          if (response.ok) {
-            const data = await response.json();
-            const result = JSON.parse(data.candidates[0].content.parts[0].text);
-            console.log('Google Gemini verification successful');
-            
-            return {
-              model: 'gemini-1.5-flash',
-              service: 'Google',
-              assessment: result.assessment,
-              agreementLevel: result.agreementLevel,
-              concerns: result.concerns || []
-            };
-          }
-          console.error('Google Gemini verification failed with status:', response.status);
-          return null;
-        }).catch(error => {
-          console.error('Google Gemini verification failed:', error.message);
-          return null;
-        })
-      );
-    } else {
-      console.log('Google API key not available');
-    }
-
-    // Grok verification
-    if (grokApiKey) {
-      console.log('Adding Grok verification to queue');
-      verificationPromises.push(
-        Promise.race([
-          fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${grokApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'grok-beta',
-              messages: [
-                { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
-                { role: 'user', content: verificationPrompt }
-              ],
-              max_tokens: 400,
-              temperature: 0.3,
-              response_format: { type: "json_object" }
-            })
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout')), 15000))
-        ]).then(async (response: any) => {
-          if (response.ok) {
-            const data = await response.json();
-            const result = JSON.parse(data.choices[0].message.content);
-            console.log('Grok verification successful');
-            
-            return {
-              model: 'grok-beta',
-              service: 'Grok',
-              assessment: result.assessment,
-              agreementLevel: result.agreementLevel,
-              concerns: result.concerns || []
-            };
-          }
-          console.error('Grok verification failed with status:', response.status);
-          return null;
-        }).catch(error => {
-          console.error('Grok verification failed:', error.message);
-          return null;
-        })
-      );
-    } else {
-      console.log('Grok API key not available');
-    }
-
-    // Execute all verifications in parallel with overall timeout
-    let aiStartTime = Date.now();
-    let aiEndTime = Date.now();
-    
-    try {
-      console.log('Running parallel AI verifications...');
-      console.log(`Total verification promises created: ${verificationPromises.length}`);
-      
-      aiStartTime = Date.now();
-      const results = await Promise.allSettled(verificationPromises);
-      aiEndTime = Date.now();
-      
-      console.log(`AI verifications took: ${aiEndTime - aiStartTime}ms`);
-      
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value) {
-          console.log(`AI verification ${index} succeeded:`, result.value.model);
-          llmConsensus.push(result.value);
-        } else {
-          console.error(`AI verification ${index} failed:`, result.status === 'rejected' ? result.reason : 'No result');
-        }
-      });
-      
-      console.log(`Completed ${llmConsensus.length} AI verifications`);
-      console.log('LLM models used:', llmConsensus.map(llm => llm.model));
-    } catch (error) {
-      console.error('Error in parallel verifications:', error);
-      aiEndTime = Date.now();
-    }
-
-    // Calculate consensus
-    const avgAgreement = llmConsensus.length > 0 
-      ? llmConsensus.reduce((sum, llm) => sum + llm.agreementLevel, 0) / llmConsensus.length
-      : 0;
-
-    const confidenceScore = Math.min(95, avgAgreement * 0.9 + (verificationSources.length / 6) * 10);
-
-    // Check for high-risk concerns
-    const allConcerns = llmConsensus.flatMap(llm => llm.concerns || []);
-    const highRiskConcerns = allConcerns.some(concern =>
-      concern && (
-        concern.toLowerCase().includes('dangerous') ||
-        concern.toLowerCase().includes('harmful') ||
-        concern.toLowerCase().includes('incorrect dosage') ||
-        concern.toLowerCase().includes('contraindication') ||
-        concern.toLowerCase().includes('urgent')
-      )
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
-    const riskLevel = highRiskConcerns ? 'high' : confidenceScore < 60 ? 'medium' : 'low';
-    const verificationStatus = confidenceScore >= 85 ? 'verified' : confidenceScore < 60 ? 'flagged' : 'verified';
-
-    const totalTime = Date.now() - startTime;
-    console.log('Clinical verification completed: ' + Math.floor(confidenceScore) + '% confidence, ' + riskLevel + ' risk');
-    console.log(`Total verification time: ${totalTime}ms (Sources: ${sourceEndTime - sourceStartTime}ms, AI: ${aiEndTime - aiStartTime}ms)`);
-
-    return new Response(JSON.stringify({
-      confidenceScore,
-      verificationSources,
-      llmConsensus,
-      verificationTimestamp: new Date(),
-      verificationStatus,
-      riskLevel,
-      evidenceSummary: verificationSources.length > 0 
-        ? `Verified against ${verificationSources.length} authoritative UK medical sources with ${llmConsensus.length} AI assessments`
-        : 'Limited source verification available',
-      timingBreakdown: {
-        totalTime: totalTime,
-        sourceTime: sourceEndTime - sourceStartTime,
-        aiTime: aiEndTime - aiStartTime,
-        sourcesFound: verificationSources.length,
-        aiServicesUsed: llmConsensus.length
-      }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    
   } catch (error) {
     console.error('Error in clinical verification:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Clinical verification failed',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Clinical verification failed', 
+        details: error.message,
+        hasIssues: false,
+        issues: [],
+        detectedValues: [],
+        overallSafety: 'safe',
+        confidence: 0.5
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });

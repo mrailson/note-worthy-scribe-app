@@ -175,6 +175,42 @@ serve(async (req) => {
     };
 
     console.log('OCR and translation completed successfully');
+    
+    // Perform clinical verification
+    try {
+      console.log('Starting clinical verification...');
+      const clinicalResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/clinical-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        },
+        body: JSON.stringify({
+          originalText: extractedText,
+          translatedText: translation.translatedText,
+          sourceLanguage: translation.detectedSourceLanguage,
+          targetLanguage: targetLanguage
+        })
+      });
+      
+      if (clinicalResponse.ok) {
+        const clinicalResult = await clinicalResponse.json();
+        console.log('Clinical verification completed:', clinicalResult);
+        
+        return new Response(
+          JSON.stringify({
+            ...result,
+            clinicalVerification: clinicalResult
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.warn('Clinical verification failed, proceeding without it');
+      }
+    } catch (clinicalError) {
+      console.warn('Clinical verification error:', clinicalError);
+    }
+    
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
