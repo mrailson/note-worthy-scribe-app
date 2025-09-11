@@ -158,19 +158,9 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-y-auto flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5" />
-              Document Image Translation - Full View
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+          <DialogTitle className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" />
+            Document Image Translation - Full View
           </DialogTitle>
           
           {/* Medical Translation Features Info */}
