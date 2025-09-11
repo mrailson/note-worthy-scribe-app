@@ -100,12 +100,16 @@ export const ClinicalWarningsDisplay: React.FC<ClinicalWarningsDisplayProps> = (
   };
 
   const highlightTextWithIssues = (text: string, issues: ValidationIssue[]) => {
-    if (!issues.length) return text;
+    if (!issues.length || !text) return text;
 
+    console.log('Highlighting text with issues:', { textLength: text.length, issuesCount: issues.length });
+    
     let highlightedText = text;
     const sortedIssues = issues
       .filter(issue => issue.position)
       .sort((a, b) => b.position!.start - a.position!.start);
+
+    console.log('Issues with positions:', sortedIssues);
 
     for (const issue of sortedIssues) {
       if (!issue.position) continue;
@@ -115,11 +119,13 @@ export const ClinicalWarningsDisplay: React.FC<ClinicalWarningsDisplayProps> = (
       const highlightedSection = highlightedText.substring(start, end);
       const afterText = highlightedText.substring(end);
       
-      const severityClass = issue.severity === 'critical' ? 'bg-red-200 text-red-900' :
-                           issue.severity === 'high' ? 'bg-orange-200 text-orange-900' :
-                           'bg-yellow-200 text-yellow-900';
+      const severityClass = issue.severity === 'critical' ? 'bg-red-200 text-red-900 border border-red-400' :
+                           issue.severity === 'high' ? 'bg-orange-200 text-orange-900 border border-orange-400' :
+                           'bg-yellow-200 text-yellow-900 border border-yellow-400';
       
-      highlightedText = `${beforeText}<span class="${severityClass} px-1 rounded font-medium" title="${issue.message}">${highlightedSection}</span>${afterText}`;
+      console.log(`Highlighting: "${highlightedSection}" with class: ${severityClass}`);
+      
+      highlightedText = `${beforeText}<span class="${severityClass} px-1 rounded font-bold" title="${issue.message}">${highlightedSection}</span>${afterText}`;
     }
 
     return highlightedText;

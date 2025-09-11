@@ -148,6 +148,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
         }
 
         setResult(data as TranslationResult);
+        console.log('Translation result received:', data);
+        console.log('Clinical verification in result:', data.clinicalVerification);
         toast.success('Document processed successfully');
       };
 
@@ -344,11 +346,26 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
           {/* Clinical Verification Section */}
           {result?.clinicalVerification && (
             <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Clinical Verification</h3>
               <ClinicalWarningsDisplay
                 verificationResult={result.clinicalVerification}
                 originalText={result.originalText}
                 translatedText={result.translatedText}
               />
+            </div>
+          )}
+          
+          {/* Debug info for testing */}
+          {result && (
+            <div className="p-2 bg-gray-100 text-xs">
+              <details>
+                <summary>Debug Info</summary>
+                <pre>{JSON.stringify({
+                  hasClinicalData: !!result.clinicalVerification,
+                  clinicalIssues: result.clinicalVerification?.issues?.length || 0,
+                  overallSafety: result.clinicalVerification?.overallSafety
+                }, null, 2)}</pre>
+              </details>
             </div>
           )}
 
