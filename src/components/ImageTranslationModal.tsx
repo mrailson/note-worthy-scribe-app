@@ -158,6 +158,8 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
     setIsImprovingText(true);
     try {
+      console.log('Calling improve-text-layout function...');
+      
       const { data, error } = await supabase.functions.invoke('improve-text-layout', {
         body: {
           text: result.translatedText,
@@ -166,17 +168,23 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
         },
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
         console.error('Text improvement error:', error);
-        toast.error('Failed to improve text layout');
+        toast.error(`Failed to improve text layout: ${error.message}`);
         return;
       }
 
-      setImprovedText(data.improvedText);
-      toast.success('Text layout improved with AI');
+      if (data?.improvedText) {
+        setImprovedText(data.improvedText);
+        toast.success('Text layout improved with AI');
+      } else {
+        toast.error('No improved text received from AI');
+      }
     } catch (error) {
       console.error('Error improving text:', error);
-      toast.error('Failed to improve text layout');
+      toast.error(`Failed to improve text layout: ${error.message}`);
     } finally {
       setIsImprovingText(false);
     }
