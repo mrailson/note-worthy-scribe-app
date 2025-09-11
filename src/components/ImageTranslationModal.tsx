@@ -242,105 +242,27 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6 flex-1 flex flex-col min-h-0">
-          {/* Top Section - Upload Controls and Image Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-b pb-6">
-            {/* Left - Upload Section */}
+          {/* Full View Button */}
+          <div className="text-center py-12">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Upload Document Image</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetForm}
-                  className="flex items-center gap-2"
-                >
-                  Reset
-                </Button>
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <ImageIcon className="w-8 h-8 text-primary" />
               </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Select Image
-                  </Button>
-                  
-                  {selectedImage && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <FileText className="w-3 h-3" />
-                      {selectedImage.name}
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium min-w-fit">Target Language:</label>
-                  <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {languages.map((lang) => (
-                        <SelectItem key={lang.code} value={lang.code}>
-                          {lang.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  onClick={processDocument} 
-                  disabled={!selectedImage || isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Languages className="w-4 h-4 mr-2" />
-                  )}
-                  Extract & Translate Text
-                </Button>
-              </div>
-            </div>
-
-            {/* Right - Image Preview */}
-            {imagePreview && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Selected Image Preview</label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFullScreenImage(true)}
-                    className="flex items-center gap-1 h-6"
-                    title="View full screen image"
-                  >
-                    <Expand className="w-3 h-3" />
-                    Enlarge
-                  </Button>
-                </div>
-                <div className="border rounded-lg p-4 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
-                     onClick={() => setShowFullScreenImage(true)}>
-                  <img
-                    src={imagePreview}
-                    alt="Selected document"
-                    className="max-w-full h-64 object-contain mx-auto"
-                  />
-                </div>
+                <h3 className="text-xl font-semibold">Document Image Translation</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Upload and translate text from document images with advanced OCR and clinical verification
+                </p>
               </div>
-            )}
+              <Button 
+                onClick={() => setShowFullScreenText(true)}
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                <Maximize2 className="w-5 h-5" />
+                Open Full View
+              </Button>
+            </div>
           </div>
 
           {/* Clinical Verification Section */}
@@ -462,68 +384,227 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Full Screen Translated Text Modal */}
+      {/* Full Screen Translation Interface */}
       <Dialog open={showFullScreenText} onOpenChange={setShowFullScreenText}>
         <DialogContent className="max-w-full max-h-full w-screen h-screen m-0 rounded-none flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Languages className="w-5 h-5" />
-                Translated Text - Full Screen View ({languages.find(l => l.code === targetLanguage)?.name})
+                <ImageIcon className="w-5 h-5" />
+                Document Image Translation - Full Interface
               </div>
-               <div className="flex items-center gap-2">
-                {result && (
-                  <TranslationVerificationDetails
-                    originalText={result.originalText}
-                    translatedText={result.translatedText}
-                    sourceLanguage={result.detectedLanguage}
-                    targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
-                  />
-                )}
+              <div className="flex items-center gap-2">
+                <MedicalTranslationInfo />
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={improveTextLayout}
-                  disabled={isImprovingText}
-                  className="flex items-center gap-2"
-                  title="Improve text layout with AI"
-                >
-                  {isImprovingText ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  {isImprovingText ? 'Improving...' : 'AI Format'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => result && handleCopyText(improvedText || result.translatedText)}
+                  onClick={resetForm}
                   className="flex items-center gap-2"
                 >
-                  <Copy className="w-4 h-4" />
-                  Copy All
+                  Reset All
                 </Button>
               </div>
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-6 bg-primary/5">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Upload Section */}
             <div className="max-w-4xl mx-auto">
-              <div className="bg-background border rounded-lg p-8 shadow-sm">
-                <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
-                  {improvedText || result?.translatedText || ''}
-                </pre>
-                {improvedText && (
-                  <div className="mt-4 pt-4 border-t border-muted">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Sparkles className="w-4 h-4" />
-                      AI-improved formatting applied
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border rounded-lg p-6 bg-muted/20">
+                {/* Left - Upload Controls */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Upload Document Image</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        onClick={() => fileInputRef.current?.click()}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Select Image
+                      </Button>
+                      
+                      {selectedImage && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          {selectedImage.name}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium min-w-fit">Target Language:</label>
+                      <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {languages.map((lang) => (
+                            <SelectItem key={lang.code} value={lang.code}>
+                              {lang.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button 
+                      onClick={processDocument} 
+                      disabled={!selectedImage || isProcessing}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Languages className="w-4 h-4 mr-2" />
+                      )}
+                      Extract & Translate Text
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Right - Image Preview */}
+                {imagePreview ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Image Preview</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFullScreenImage(true)}
+                        className="flex items-center gap-1"
+                      >
+                        <Expand className="w-3 h-3" />
+                        Enlarge
+                      </Button>
+                    </div>
+                    <div className="border rounded-lg p-4 bg-background cursor-pointer hover:bg-muted/10 transition-colors"
+                         onClick={() => setShowFullScreenImage(true)}>
+                      <img
+                        src={imagePreview}
+                        alt="Selected document"
+                        className="max-w-full h-64 object-contain mx-auto"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                    <div className="text-center space-y-2">
+                      <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                      <p className="text-muted-foreground">No image selected</p>
                     </div>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Clinical Verification Section */}
+            {result?.clinicalVerification && (
+              <div className="max-w-4xl mx-auto space-y-4">
+                <h3 className="text-lg font-semibold">Clinical Verification</h3>
+                <ClinicalWarningsDisplay
+                  verificationResult={result.clinicalVerification}
+                  originalText={result.originalText}
+                  translatedText={result.translatedText}
+                />
+              </div>
+            )}
+
+            {/* Translation Results */}
+            {result && (  
+              <div className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Original Text */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Original Text</h3>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {result.detectedLanguage} - {Math.round(result.confidence * 100)}% confidence
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyText(result.originalText)}
+                          className="flex items-center gap-1"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-background border rounded-lg p-6 min-h-[300px] max-h-[500px] overflow-y-auto">
+                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                        {result.originalText}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Translated Text */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">
+                        Translated Text ({languages.find(l => l.code === targetLanguage)?.name})
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <TranslationVerificationDetails
+                          originalText={result.originalText}
+                          translatedText={result.translatedText}
+                          sourceLanguage={result.detectedLanguage}
+                          targetLanguage={languages.find(l => l.code === targetLanguage)?.name || targetLanguage}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={improveTextLayout}
+                          disabled={isImprovingText}
+                          className="flex items-center gap-1"
+                        >
+                          {isImprovingText ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3 h-3" />
+                          )}
+                          {isImprovingText ? 'Improving...' : 'AI Format'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyText(improvedText || result.translatedText)}
+                          className="flex items-center gap-1"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 min-h-[300px] max-h-[500px] overflow-y-auto">
+                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                        {improvedText || result.translatedText}
+                      </pre>
+                      {improvedText && (
+                        <div className="mt-4 pt-4 border-t border-primary/20">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Sparkles className="w-4 h-4" />
+                            AI-improved formatting applied
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
