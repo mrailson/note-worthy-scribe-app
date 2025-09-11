@@ -2772,9 +2772,13 @@ export const MeetingRecorder = ({
   const testOpenAIAPI = async (): Promise<boolean> => {
     try {
       console.log('🔍 Testing OpenAI API connection...');
+      
+      // Create a minimal valid WAV file (silence) for testing
+      const minimalWav = 'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      
       const testResponse = await supabase.functions.invoke('speech-to-text', {
         body: {
-          audio: 'UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmJ2O+9diMFl', // Very short base64 audio for testing
+          audio: minimalWav
         }
       });
 
