@@ -5777,6 +5777,10 @@ export type Database = {
             }
         Returns: undefined
       }
+      log_session_access_attempt: {
+        Args: { p_access_type: string; p_session_id: string }
+        Returns: undefined
+      }
       log_system_activity: {
         Args: {
           p_new_values?: Json
