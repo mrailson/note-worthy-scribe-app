@@ -50,9 +50,6 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-600" />
             Clinical Verification Report
-            <span className="text-xs text-muted-foreground ml-auto">
-              Drag corners to resize
-            </span>
           </DialogTitle>
         </DialogHeader>
         
@@ -81,7 +78,7 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
             {verificationData.evidenceSummary && (
               <div className="p-4 bg-muted/30 rounded-lg">
                 <h3 className="font-semibold mb-2">Evidence Summary</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   {verificationData.evidenceSummary}
                 </p>
               </div>
