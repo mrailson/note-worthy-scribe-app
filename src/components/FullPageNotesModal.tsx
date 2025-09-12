@@ -2258,7 +2258,7 @@ ${transcript}`;
                   className={`gap-2 ${isMobile ? "mr-1 px-2" : "mr-2"} touch-manipulation min-h-[44px] sm:min-h-[36px]`}
                 >
                   <Download className="h-4 w-4" />
-                  {!isMobile && "Quick Pick"}
+                  {!isMobile && "Quick Pick 1"}
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
