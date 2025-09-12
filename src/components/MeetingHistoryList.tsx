@@ -1230,15 +1230,13 @@ export const MeetingHistoryList = ({
                 meetingTitle={meeting.title}
               />
               
-              {/* Meeting Documents - Show if documents exist */}
-              {meeting.document_count > 0 && (
-                <MeetingDocumentsList
-                  meetingId={meeting.id}
-                  documents={meeting.documents}
-                  onDocumentRemoved={() => onRefresh?.()}
-                  className="mb-3"
-                />
-              )}
+              {/* Meeting Documents - Always show, allow uploads even when empty */}
+              <MeetingDocumentsList
+                meetingId={meeting.id}
+                documents={meeting.documents}
+                onDocumentRemoved={() => onRefresh?.()}
+                className="mb-3"
+              />
               
               {/* Audio Recording Playback - Show if any recording URLs exist and showRecordingPlayback is true */}
               {showRecordingPlayback && (meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
