@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
 import { 
   ChevronDown, 
   ChevronsUp, 
