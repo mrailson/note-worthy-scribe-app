@@ -29,6 +29,24 @@ import "./index.css";
   }
 })();
 
+// Prevent browser navigation when dropping files outside designated zones
+(() => {
+  try {
+    if (typeof window !== 'undefined') {
+      const guard = (e: any) => {
+        const target = e.target as HTMLElement | null;
+        const isAllowed = target && (target as any).closest?.('[data-allow-file-drop]');
+        if (!isAllowed) {
+          e.preventDefault?.();
+          e.stopPropagation?.();
+        }
+      };
+      window.addEventListener('dragover', guard);
+      window.addEventListener('drop', guard);
+    }
+  } catch (_) {}
+})();
+
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
