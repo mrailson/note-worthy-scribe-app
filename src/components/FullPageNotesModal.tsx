@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
-import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
@@ -92,6 +91,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
+  const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style3");
@@ -3197,21 +3197,23 @@ ${transcript}`;
          </div>
        </DialogContent>
 
-       {/* Custom AI Prompt Modal */}
-       <CustomAIPromptModal
-         open={showCustomAIModal}
-         onOpenChange={setShowCustomAIModal}
-         onSubmit={handleCustomAISubmit}
-         currentText={getCurrentContent()}
-       />
+        {/* Custom AI Prompt Modal */}
+        <CustomAIPromptModal
+          open={showCustomAIModal}
+          onOpenChange={setShowCustomAIModal}
+          onSubmit={handleCustomAISubmit}
+          currentText={getCurrentContent()}
+        />
 
-       {/* Find & Replace Modal */}
-       <CustomFindReplaceModal
-         open={showFindReplace}
-         onOpenChange={setShowFindReplace}
-         onSubmit={handleFindReplaceSubmit}
-         currentText={getCurrentContent()}
-       />
-     </Dialog>
-  );
-};
+        {/* Find & Replace Panel */}
+        <EnhancedFindReplacePanel
+          show={showFindReplace}
+          onClose={() => setShowFindReplace(false)}
+          content={getCurrentContent()}
+          onReplace={(newContent) => {
+            onNotesChange(newContent);
+          }}
+        />
+      </Dialog>
+    );
+  };
