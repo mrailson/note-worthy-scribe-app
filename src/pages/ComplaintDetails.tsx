@@ -44,7 +44,8 @@ import {
   ArrowLeft,
   Search,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  BookOpen
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -1187,18 +1188,29 @@ I am committed to ensuring that all patients receive the care and service they d
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header with back button */}
-          <div className="flex items-center gap-4 mb-6">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/complaints')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Complaints
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Complaint Details</h1>
-              <p className="text-muted-foreground">Manage complaint workflow and compliance</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/complaints')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Complaints
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold">Complaint Details</h1>
+                <p className="text-muted-foreground">Manage complaint workflow and compliance</p>
+              </div>
             </div>
+            
+            <Button 
+              onClick={() => navigate('/complaints-guide')}
+              variant="outline"
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 shrink-0"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              User Guide
+            </Button>
           </div>
 
           {/* Complaint Header */}

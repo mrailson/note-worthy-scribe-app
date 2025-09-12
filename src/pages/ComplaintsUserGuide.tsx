@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Header } from '@/components/Header';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -17,22 +19,38 @@ import {
   Mail,
   Search,
   BarChart3,
-  Lightbulb
+  Lightbulb,
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
 
 const ComplaintsUserGuide = () => {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header Section */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          NHS Complaints Management System
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-          Your comprehensive solution for managing increasingly complex patient complaints with AI assistance, 
-          NHS protocol compliance, and CQC-ready reporting
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-subtle">
+      <Header onNewMeeting={() => {}} />
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Navigation */}
+        <div className="mb-6">
+          <Button 
+            onClick={() => window.location.href = '/complaints'}
+            variant="outline"
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Complaints System
+          </Button>
+        </div>
+
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            NHS Complaints Management System
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Your comprehensive solution for managing increasingly complex patient complaints with AI assistance, 
+            NHS protocol compliance, and CQC-ready reporting
+          </p>
+        </div>
 
       {/* The Challenge Section */}
       <Card className="p-8 mb-8 border-red-200 bg-red-50/30">
@@ -275,7 +293,7 @@ const ComplaintsUserGuide = () => {
             Join NHS practices already using our system to handle complex, AI-generated complaints 
             with confidence and full regulatory compliance.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4 mb-6">
             <Badge className="bg-green-100 text-green-800 px-4 py-2">
               NHS Protocol Compliant
             </Badge>
@@ -286,8 +304,26 @@ const ComplaintsUserGuide = () => {
               AI-Powered Efficiency
             </Badge>
           </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={() => window.location.href = '/complaints'}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              Start Managing Complaints
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/complaints?tab=new'}
+              variant="outline"
+              className="px-8 py-3"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Complaint
+            </Button>
+          </div>
         </div>
       </Card>
+      </div>
     </div>
   );
 };

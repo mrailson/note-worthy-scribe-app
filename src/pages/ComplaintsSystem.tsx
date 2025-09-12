@@ -46,7 +46,8 @@ import {
   Copy,
   BarChart3,
   Settings,
-  Home
+  Home,
+  BookOpen
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -1149,14 +1150,40 @@ const ComplaintsSystem = () => {
       <Header onNewMeeting={() => {}} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mb-4 sm:mb-8">
-          <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2">
-            <span className="hidden sm:inline">🏥 GP Practice Complaint Management System</span>
-            <span className="sm:hidden">🏥 Complaints</span>
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full evidence management and audit trail</span>
-            <span className="sm:hidden">NHS-compliant complaint management</span>
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2">
+                <span className="hidden sm:inline">🏥 GP Practice Complaint Management System</span>
+                <span className="sm:hidden">🏥 Complaints</span>
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full evidence management and audit trail</span>
+                <span className="sm:hidden">NHS-compliant complaint management</span>
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Button 
+                onClick={() => navigate('/complaints-guide')}
+                variant="outline"
+                className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">User Guide & Help</span>
+                <span className="sm:hidden">Guide</span>
+              </Button>
+              
+              <Button 
+                onClick={() => setShowImport(true)}
+                variant="outline"
+                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300"
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">AI Import</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4 sm:space-y-6">
