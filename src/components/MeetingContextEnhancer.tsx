@@ -22,6 +22,10 @@ import {
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SimpleFileUpload } from "@/components/SimpleFileUpload";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { FileUploadArea } from "@/components/ai4gp/FileUploadArea";
+import type { UploadedFile } from "@/types/ai4gp";
 
 interface MeetingContextEnhancerProps {
   meetingId: string;
@@ -48,6 +52,10 @@ export function MeetingContextEnhancer({
   const [meetingFormat, setMeetingFormat] = useState(currentMeeting?.meeting_format || "");
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [agendaFiles, setAgendaFiles] = useState<UploadedFile[]>([]);
+  const [contextFiles, setContextFiles] = useState<UploadedFile[]>([]);
+  
+  const { processFiles, isProcessing } = useFileUpload();
 
   const contextOptions = [
     { 
@@ -106,6 +114,32 @@ export function MeetingContextEnhancer({
         break;
     }
     toast.success("Speech added successfully");
+  };
+
+  const handleAgendaUpload = async (files: File[]) => {
+    try {
+      const processedFiles = await processFiles(files as unknown as FileList);
+      setAgendaFiles(prev => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing agenda files:', error);
+    }
+  };
+
+  const handleContextUpload = async (files: File[]) => {
+    try {
+      const processedFiles = await processFiles(files as unknown as FileList);
+      setContextFiles(prev => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing context files:', error);
+    }
+  };
+
+  const removeAgendaFile = (index: number) => {
+    setAgendaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeContextFile = (index: number) => {
+    setContextFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const saveContextChanges = async () => {
@@ -227,7 +261,9 @@ export function MeetingContextEnhancer({
            meetingLocation !== (currentMeeting?.meeting_location || "") ||
            meetingFormat !== (currentMeeting?.meeting_format || "") ||
            additionalContext.trim() !== "" ||
-           additionalTranscript.trim() !== "";
+           additionalTranscript.trim() !== "" ||
+           agendaFiles.length > 0 ||
+           contextFiles.length > 0;
   };
 
   return (
@@ -266,6 +302,25 @@ export function MeetingContextEnhancer({
               placeholder="Enter meeting agenda items..."
               className="min-h-[80px]"
             />
+            
+            {/* Agenda Document Upload */}
+            <div className="mt-2">
+              <SimpleFileUpload 
+                onFileUpload={handleAgendaUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                maxSize={10}
+                multiple={true}
+                className="text-sm"
+              />
+              {agendaFiles.length > 0 && (
+                <div className="mt-2">
+                  <FileUploadArea 
+                    uploadedFiles={agendaFiles}
+                    onRemoveFile={removeAgendaFile}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Attendees */}
@@ -343,6 +398,25 @@ export function MeetingContextEnhancer({
               placeholder="Add background information, context, or notes..."
               className="min-h-[80px]"
             />
+            
+            {/* Context Document Upload */}
+            <div className="mt-2">
+              <SimpleFileUpload 
+                onFileUpload={handleContextUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                maxSize={10}
+                multiple={true}
+                className="text-sm"
+              />
+              {contextFiles.length > 0 && (
+                <div className="mt-2">
+                  <FileUploadArea 
+                    uploadedFiles={contextFiles}
+                    onRemoveFile={removeContextFile}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Additional Transcript */}
