@@ -198,7 +198,7 @@ const AI4GP = () => {
       <Separator />
       
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll overflow-x-hidden">
-        <div className="flex-1 mx-auto px-2 sm:px-4 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden space-y-6" style={{width: '96%', maxWidth: '96%'}}>
+        <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
           <AI4GPService />
         </div>
         
