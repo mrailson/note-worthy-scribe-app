@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   FileText, 
   Users, 
@@ -17,7 +18,9 @@ import {
   Upload,
   Mic,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +57,8 @@ export function MeetingContextEnhancer({
   const [showPreview, setShowPreview] = useState(false);
   const [agendaFiles, setAgendaFiles] = useState<UploadedFile[]>([]);
   const [contextFiles, setContextFiles] = useState<UploadedFile[]>([]);
+  const [meetingDetailsOpen, setMeetingDetailsOpen] = useState(false);
+  const [additionalContentOpen, setAdditionalContentOpen] = useState(false);
   
   const { processFiles, isProcessing } = useFileUpload();
 
@@ -268,177 +273,207 @@ export function MeetingContextEnhancer({
 
   return (
     <div className="space-y-4">
-      {/* Meeting Details */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5" />
-              Meeting Details
-            </CardTitle>
-            {hasChanges() && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Unsaved Changes
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Agenda */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="agenda">Meeting Agenda</Label>
-              <SpeechToText 
-                onTranscription={(text) => handleSpeechInput(text, 'agenda')}
-                size="sm"
-                className="h-8"
-              />
-            </div>
-            <Textarea
-              id="agenda"
-              value={agenda}
-              onChange={(e) => setAgenda(e.target.value)}
-              placeholder="Enter meeting agenda items..."
-              className="min-h-[80px]"
-            />
-            
-            {/* Agenda Document Upload */}
-            <div className="mt-2">
-              <SimpleFileUpload 
-                onFileUpload={handleAgendaUpload}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
-                maxSize={10}
-                multiple={true}
-                className="text-sm"
-              />
-              {agendaFiles.length > 0 && (
-                <div className="mt-2">
-                  <FileUploadArea 
-                    uploadedFiles={agendaFiles}
-                    onRemoveFile={removeAgendaFile}
+      {/* Meeting Details - Collapsible */}
+      <Collapsible open={meetingDetailsOpen} onOpenChange={setMeetingDetailsOpen}>
+        <Card>
+          <CardHeader className="pb-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5" />
+                    Meeting Details
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {hasChanges() && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Unsaved Changes
+                      </Badge>
+                    )}
+                    {meetingDetailsOpen ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </div>
+                </div>
+              </Button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              {/* Agenda */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="agenda">Meeting Agenda</Label>
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechInput(text, 'agenda')}
+                    size="sm"
+                    className="h-8"
                   />
                 </div>
-              )}
-            </div>
-          </div>
+                <Textarea
+                  id="agenda"
+                  value={agenda}
+                  onChange={(e) => setAgenda(e.target.value)}
+                  placeholder="Enter meeting agenda items..."
+                  className="min-h-[80px]"
+                />
+                
+                {/* Agenda Document Upload */}
+                <div className="mt-2">
+                  <SimpleFileUpload 
+                    onFileUpload={handleAgendaUpload}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                    maxSize={10}
+                    multiple={true}
+                    className="text-sm"
+                  />
+                  {agendaFiles.length > 0 && (
+                    <div className="mt-2">
+                      <FileUploadArea 
+                        uploadedFiles={agendaFiles}
+                        onRemoveFile={removeAgendaFile}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* Attendees */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="attendees">Attendees</Label>
-              <SpeechToText 
-                onTranscription={(text) => handleSpeechInput(text, 'attendees')}
-                size="sm"
-                className="h-8"
-              />
-            </div>
-            <Input
-              id="attendees"
-              value={attendees}
-              onChange={(e) => setAttendees(e.target.value)}
-              placeholder="Dr. Smith, Practice Manager, ..."
-            />
-          </div>
-
-          {/* Location & Format */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="location">Location</Label>
-                <SpeechToText 
-                  onTranscription={(text) => handleSpeechInput(text, 'location')}
-                  size="sm"
-                  className="h-8"
+              {/* Attendees */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="attendees">Attendees</Label>
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechInput(text, 'attendees')}
+                    size="sm"
+                    className="h-8"
+                  />
+                </div>
+                <Input
+                  id="attendees"
+                  value={attendees}
+                  onChange={(e) => setAttendees(e.target.value)}
+                  placeholder="Dr. Smith, Practice Manager, ..."
                 />
               </div>
-              <Input
-                id="location"
-                value={meetingLocation}
-                onChange={(e) => setMeetingLocation(e.target.value)}
-                placeholder="Meeting room, online, etc."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="format">Format</Label>
-              <Input
-                id="format"
-                value={meetingFormat}
-                onChange={(e) => setMeetingFormat(e.target.value)}
-                placeholder="Face-to-face, online, hybrid"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Additional Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5" />
-            Additional Content
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Additional Context */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="context">Additional Context Notes</Label>
-              <SpeechToText 
-                onTranscription={(text) => handleSpeechInput(text, 'context')}
-                size="sm"
-                className="h-8"
-              />
-            </div>
-            <Textarea
-              id="context"
-              value={additionalContext}
-              onChange={(e) => setAdditionalContext(e.target.value)}
-              placeholder="Add background information, context, or notes..."
-              className="min-h-[80px]"
-            />
-            
-            {/* Context Document Upload */}
-            <div className="mt-2">
-              <SimpleFileUpload 
-                onFileUpload={handleContextUpload}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
-                maxSize={10}
-                multiple={true}
-                className="text-sm"
-              />
-              {contextFiles.length > 0 && (
-                <div className="mt-2">
-                  <FileUploadArea 
-                    uploadedFiles={contextFiles}
-                    onRemoveFile={removeContextFile}
+              {/* Location & Format */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="location">Location</Label>
+                    <SpeechToText 
+                      onTranscription={(text) => handleSpeechInput(text, 'location')}
+                      size="sm"
+                      className="h-8"
+                    />
+                  </div>
+                  <Input
+                    id="location"
+                    value={meetingLocation}
+                    onChange={(e) => setMeetingLocation(e.target.value)}
+                    placeholder="Meeting room, online, etc."
                   />
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="format">Format</Label>
+                  <Input
+                    id="format"
+                    value={meetingFormat}
+                    onChange={(e) => setMeetingFormat(e.target.value)}
+                    placeholder="Face-to-face, online, hybrid"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-          {/* Additional Transcript */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="transcript">Additional Transcript</Label>
-              <SpeechToText 
-                onTranscription={(text) => handleSpeechInput(text, 'transcript')}
-                size="sm"
-                className="h-8"
-              />
-            </div>
-            <Textarea
-              id="transcript"
-              value={additionalTranscript}
-              onChange={(e) => setAdditionalTranscript(e.target.value)}
-              placeholder="Add additional transcript content to combine with existing..."
-              className="min-h-[80px]"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Additional Content - Collapsible */}
+      <Collapsible open={additionalContentOpen} onOpenChange={setAdditionalContentOpen}>
+        <Card>
+          <CardHeader className="pb-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Plus className="h-5 w-5" />
+                    Additional Content
+                  </CardTitle>
+                  {additionalContentOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </div>
+              </Button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              {/* Additional Context */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="context">Additional Context Notes</Label>
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechInput(text, 'context')}
+                    size="sm"
+                    className="h-8"
+                  />
+                </div>
+                <Textarea
+                  id="context"
+                  value={additionalContext}
+                  onChange={(e) => setAdditionalContext(e.target.value)}
+                  placeholder="Add background information, context, or notes..."
+                  className="min-h-[80px]"
+                />
+                
+                {/* Context Document Upload */}
+                <div className="mt-2">
+                  <SimpleFileUpload 
+                    onFileUpload={handleContextUpload}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                    maxSize={10}
+                    multiple={true}
+                    className="text-sm"
+                  />
+                  {contextFiles.length > 0 && (
+                    <div className="mt-2">
+                      <FileUploadArea 
+                        uploadedFiles={contextFiles}
+                        onRemoveFile={removeContextFile}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Transcript */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="transcript">Additional Transcript</Label>
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechInput(text, 'transcript')}
+                    size="sm"
+                    className="h-8"
+                  />
+                </div>
+                <Textarea
+                  id="transcript"
+                  value={additionalTranscript}
+                  onChange={(e) => setAdditionalTranscript(e.target.value)}
+                  placeholder="Add additional transcript content to combine with existing..."
+                  className="min-h-[80px]"
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-2">
