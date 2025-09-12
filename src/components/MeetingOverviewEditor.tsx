@@ -236,7 +236,6 @@ export const MeetingOverviewEditor = ({
         onChange={(e) => setOverview(e.target.value)}
         placeholder="Brief overview of meeting purpose and main topics discussed (max 50 words)"
         className="min-h-[80px] resize-none"
-        maxLength={300}
       />
       <div className="text-xs text-muted-foreground">
         {overview.split(' ').filter(word => word.length > 0).length}/50 words
