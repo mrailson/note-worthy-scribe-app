@@ -11,6 +11,7 @@ import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingData } from "@/types/meetingTypes";
+import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { 
   Bot, 
   ChevronDown, 

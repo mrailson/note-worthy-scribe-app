@@ -47,7 +47,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { quickPickConfig } from '@/constants/quickPickConfig';
 import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
-import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
+import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { Message, UploadedFile } from '@/types/ai4gp';
 // Calculation validation imports removed per user request
 

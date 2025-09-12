@@ -4,6 +4,7 @@ import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
 export const useMeetingExport = (meetingData: MeetingData | null, meetingSettings: MeetingSettingsState) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -98,12 +99,13 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
     }
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
+  const copyToClipboard = async (content: string) => {
+    const success = await copyPlainTextToClipboard(content);
+    if (success) {
       toast.success('Content copied to clipboard!');
-    }).catch(() => {
+    } else {
       toast.error('Failed to copy to clipboard');
-    });
+    }
   };
 
   const downloadTranscript = () => {

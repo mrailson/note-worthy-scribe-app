@@ -23,6 +23,7 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } fro
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import stringSimilarity from "string-similarity";
+import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { 
   Bot, 
   ChevronDown, 
@@ -1322,12 +1323,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
+  const copyToClipboard = async (content: string) => {
+    const success = await copyPlainTextToClipboard(content, 'Content copied to clipboard');
+    if (success) {
       toast.success('Content copied to clipboard!');
-    }).catch(() => {
+    } else {
       toast.error('Failed to copy to clipboard');
-    });
+    }
   };
 
   const handleDownloadText = () => {
@@ -2676,16 +2678,16 @@ ${transcript}`;
                                 <Button
                                   onClick={async () => {
                                     if (content) {
-                                      try {
-                                        await navigator.clipboard.writeText(content.replace(/<[^>]*>/g, ''));
+                                      const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
+                                      if (success) {
                                         toast.success(`${tabName} copied to clipboard`);
-                                      } catch (error) {
+                                      } else {
                                         toast.error('Failed to copy to clipboard');
                                       }
                                     }
                                   }}
                                   variant="outline"
-                                  size="sm"  
+                                  size="sm"
                                   className="gap-2"
                                 >
                                   <Copy className="h-4 w-4" />
