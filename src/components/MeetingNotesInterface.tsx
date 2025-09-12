@@ -11,6 +11,10 @@ import { toast } from 'sonner';
 import ExampleMeetingFlyout from './ExampleMeetingFlyout';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { SimpleFileUpload } from '@/components/SimpleFileUpload';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { FileUploadArea } from '@/components/ai4gp/FileUploadArea';
+import type { UploadedFile } from '@/types/ai4gp';
 
 interface MeetingSettings {
   title: string;
@@ -56,6 +60,10 @@ export default function MeetingNotesInterface() {
   const [styleNames, setStyleNames] = useState<StyleNames>({});
   const [activeTab, setActiveTab] = useState('formal_board');
   const [error, setError] = useState<string | null>(null);
+  const [agendaFiles, setAgendaFiles] = useState<UploadedFile[]>([]);
+  const [contextFiles, setContextFiles] = useState<UploadedFile[]>([]);
+  
+  const { processFiles, isProcessing } = useFileUpload();
 
   const handleGenerate = async () => {
     if (!transcript.trim()) {
@@ -70,7 +78,9 @@ export default function MeetingNotesInterface() {
       const { data, error: functionError } = await supabase.functions.invoke('generate-meeting-notes-ten-styles', {
         body: {
           transcript: transcript.trim(),
-          settings
+          settings,
+          agendaFiles: agendaFiles.length > 0 ? agendaFiles : undefined,
+          contextFiles: contextFiles.length > 0 ? contextFiles : undefined
         }
       });
 
@@ -140,6 +150,32 @@ export default function MeetingNotesInterface() {
     } else {
       toast.error('Please select a text file');
     }
+  };
+
+  const handleAgendaUpload = async (files: File[]) => {
+    try {
+      const processedFiles = await processFiles(files as unknown as FileList);
+      setAgendaFiles(prev => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing agenda files:', error);
+    }
+  };
+
+  const handleContextUpload = async (files: File[]) => {
+    try {
+      const processedFiles = await processFiles(files as unknown as FileList);
+      setContextFiles(prev => [...prev, ...processedFiles]);
+    } catch (error) {
+      console.error('Error processing context files:', error);
+    }
+  };
+
+  const removeAgendaFile = (index: number) => {
+    setAgendaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeContextFile = (index: number) => {
+    setContextFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -249,6 +285,40 @@ export default function MeetingNotesInterface() {
                   onChange={(e) => setSettings({...settings, attendees: e.target.value})}
                 />
               </div>
+            </div>
+
+            {/* Meeting Agenda Upload */}
+            <div className="space-y-2">
+              <Label>Meeting Agenda Documents</Label>
+              <SimpleFileUpload 
+                onFileUpload={handleAgendaUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                maxSize={10}
+                multiple={true}
+              />
+              {agendaFiles.length > 0 && (
+                <FileUploadArea 
+                  uploadedFiles={agendaFiles}
+                  onRemoveFile={removeAgendaFile}
+                />
+              )}
+            </div>
+
+            {/* Meeting Context Upload */}
+            <div className="space-y-2">
+              <Label>Meeting Context Documents</Label>
+              <SimpleFileUpload 
+                onFileUpload={handleContextUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
+                maxSize={10}
+                multiple={true}
+              />
+              {contextFiles.length > 0 && (
+                <FileUploadArea 
+                  uploadedFiles={contextFiles}
+                  onRemoveFile={removeContextFile}
+                />
+              )}
             </div>
 
             <Button 
