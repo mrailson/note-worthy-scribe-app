@@ -59,12 +59,13 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     multiple
   });
 
+  const rootProps = getRootProps({ onClick: (e) => e.stopPropagation() });
+
   return (
     <div className={className}>
       <div
-        {...getRootProps()}
+        {...rootProps}
         data-allow-file-drop
-        onClick={(e) => e.stopPropagation()}
         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
           isDragActive 
             ? 'border-primary bg-primary/5' 
