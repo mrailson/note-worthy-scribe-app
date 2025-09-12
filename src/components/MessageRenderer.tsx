@@ -48,6 +48,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { quickPickConfig } from '@/constants/quickPickConfig';
 import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
+import { CustomAIPromptModal } from '@/components/CustomAIPromptModal';
+import { CustomFindReplaceModal } from '@/components/CustomFindReplaceModal';
 import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { Message, UploadedFile } from '@/types/ai4gp';
 // Calculation validation imports removed per user request
@@ -86,6 +88,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showAutoEmailModal, setShowAutoEmailModal] = useState(false);
+  const [showClinicalVerificationModal, setShowClinicalVerificationModal] = useState(false);
+  const [showCustomAIModal, setShowCustomAIModal] = useState(false);
+  const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
   const [verificationData, setVerificationData] = useState(null);
   const [policyHits, setPolicyHits] = useState<any[]>([]);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
@@ -532,6 +538,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleQuickPickAction = async (actionId: string) => {
     if (onQuickResponse) {
+      // Handle special modal cases
+      if (actionId === 'ai-custom-prompt') {
+        setShowCustomAIModal(true);
+        return;
+      }
+      
+      if (actionId === 'custom-find-replace') {
+        setShowFindReplaceModal(true);
+        return;
+      }
+
       // Create context for handler
       const context: QuickPickContext = {
         replyId: message.id,
@@ -577,6 +594,27 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         toast.error('Action not implemented yet');
       }
     }
+  };
+
+  // Handle custom AI prompt submission
+  const handleCustomAISubmit = (customPrompt: string) => {
+    const enhancedPrompt = `${customPrompt}\n\nApply this enhancement to the following content:\n\n${message.content}`;
+    onQuickResponse?.(enhancedPrompt);
+  };
+
+  // Handle custom find & replace submission  
+  const handleFindReplaceSubmit = (findText: string, replaceText: string, options: { caseSensitive: boolean; wholeWords: boolean }) => {
+    let prompt = `Replace "${findText}" with "${replaceText}" in the above content.`;
+    
+    if (options.caseSensitive) {
+      prompt += ' Use case-sensitive matching.';
+    }
+    
+    if (options.wholeWords) {
+      prompt += ' Only replace whole word matches, not partial matches.';
+    }
+    
+    onQuickResponse?.(prompt);
   };
 
   const quickPickScrollRef = useQuickPickScrollUX<HTMLDivElement>("peek");
@@ -1058,6 +1096,22 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           verificationData={verificationData || message.clinicalVerification}
         />
       )}
+
+      {/* Custom AI Prompt Modal */}
+      <CustomAIPromptModal
+        open={showCustomAIModal}
+        onOpenChange={setShowCustomAIModal}
+        onSubmit={handleCustomAISubmit}
+        currentText={message.content}
+      />
+
+      {/* Custom Find & Replace Modal */}
+      <CustomFindReplaceModal
+        open={showFindReplaceModal}
+        onOpenChange={setShowFindReplaceModal}
+        onSubmit={handleFindReplaceSubmit}
+        currentText={message.content}
+      />
     </div>
   );
 };

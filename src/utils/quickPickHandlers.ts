@@ -470,6 +470,82 @@ async function formatBoldTitles(ctx: QuickPickContext): Promise<string> {
   return `Apply bold formatting (**bold text**) to all titles, headers, and important section names in the above content to improve visual hierarchy.`;
 }
 
+// New bullet point conversion handlers
+async function convertBulletsToDashes(ctx: QuickPickContext): Promise<string> {
+  return `Convert all bullet points (•, *, +) in the above content to dashes (-) while maintaining the same indentation and structure.`;
+}
+
+async function convertBulletsToNumbers(ctx: QuickPickContext): Promise<string> {
+  return `Convert all bullet points (•, *, +, -) in the above content to numbered lists (1. 2. 3.) while maintaining proper hierarchy and indentation.`;
+}
+
+async function convertDashesToBullets(ctx: QuickPickContext): Promise<string> {
+  return `Convert all dashes (-) used as list items in the above content to bullet points (•) while maintaining the same structure and indentation.`;
+}
+
+// Text case conversion handlers  
+async function convertToUppercase(ctx: QuickPickContext): Promise<string> {
+  return `Convert all text in the above content to UPPERCASE. Maintain formatting structure but change all letters to capital letters.`;
+}
+
+async function convertToLowercase(ctx: QuickPickContext): Promise<string> {
+  return `Convert all text in the above content to lowercase. Maintain formatting structure but change all letters to lowercase.`;
+}
+
+async function convertToTitleCase(ctx: QuickPickContext): Promise<string> {
+  return `Convert the above content to Title Case, where the first letter of each major word is capitalised. Maintain formatting structure.`;
+}
+
+// Smart replacement handlers
+async function expandMedicalTerms(ctx: QuickPickContext): Promise<string> {
+  return `Identify and expand all medical abbreviations in the above content to their full terms (e.g., 'GP' to 'General Practitioner', 'NHS' to 'National Health Service', 'COPD' to 'Chronic Obstructive Pulmonary Disease'). Maintain all formatting and structure.`;
+}
+
+async function standardiseDrugNames(ctx: QuickPickContext): Promise<string> {
+  return `Standardise all drug names in the above content to their proper pharmaceutical nomenclature and ensure consistent capitalisation and spelling according to BNF standards.`;
+}
+
+async function nhsTerminologyCheck(ctx: QuickPickContext): Promise<string> {
+  return `Review and convert the above content to use proper NHS terminology and standardised clinical language. Ensure all terms align with current NHS guidelines and NICE standards.`;
+}
+
+async function customFindReplace(ctx: QuickPickContext): Promise<string> {
+  return `Please specify what text you want to find and what to replace it with. Format: "Replace [old text] with [new text]" and I'll apply this replacement throughout the content above.`;
+}
+
+// Enhanced AI handlers
+async function aiMakeLonger(ctx: QuickPickContext): Promise<string> {
+  return `Expand the above content with additional relevant detail, examples, and context while maintaining accuracy and professional tone. Add more comprehensive information without changing the core message.`;
+}
+
+async function aiMakeShorter(ctx: QuickPickContext): Promise<string> {
+  return `Condense the above content to its essential points while retaining all critical information, decisions, and action items. Remove redundancy and create a more concise version.`;
+}
+
+async function aiSimplifyLanguage(ctx: QuickPickContext): Promise<string> {
+  return `Rewrite the above content using simpler, more accessible language while maintaining accuracy. Replace complex terms with easier alternatives and use shorter sentences.`;
+}
+
+async function aiMakeTechnical(ctx: QuickPickContext): Promise<string> {
+  return `Enhance the above content with more technical and professional language appropriate for medical professionals. Use precise clinical terminology and formal structure.`;
+}
+
+async function aiAddDetail(ctx: QuickPickContext): Promise<string> {
+  return `Add more comprehensive detail to the above content including specific examples, explanations, and additional context that would be helpful for complete understanding.`;
+}
+
+async function aiRemoveDetail(ctx: QuickPickContext): Promise<string> {
+  return `Streamline the above content by removing unnecessary details while keeping all essential information, key points, and important conclusions intact.`;
+}
+
+async function aiPlainEnglishMedical(ctx: QuickPickContext): Promise<string> {
+  return `Convert medical jargon and technical terms in the above content to plain English that patients can easily understand, while maintaining clinical accuracy.`;
+}
+
+async function aiAddSafetyWarnings(ctx: QuickPickContext): Promise<string> {
+  return `Review the above content and add appropriate patient safety warnings, red flag symptoms, and when-to-seek-help guidance following NHS safety-netting principles.`;
+}
+
 async function formatItalicEmphasis(ctx: QuickPickContext): Promise<string> {
   return `Apply italic formatting (*italic text*) to add emphasis to important notes, decisions, and key points in the above content.`;
 }
@@ -641,6 +717,32 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "format-table": formatTable,
   "format-clean-spacing": formatCleanSpacing,
   "format-remove-formatting": formatRemoveFormatting,
+  
+  // New bullet point conversion handlers
+  "convert-bullets-to-dashes": convertBulletsToDashes,
+  "convert-bullets-to-numbers": convertBulletsToNumbers,
+  "convert-dashes-to-bullets": convertDashesToBullets,
+  
+  // Text case conversion handlers
+  "convert-uppercase": convertToUppercase,
+  "convert-lowercase": convertToLowercase, 
+  "convert-title-case": convertToTitleCase,
+  
+  // Smart replacement handlers
+  "expand-medical-terms": expandMedicalTerms,
+  "standardize-drug-names": standardiseDrugNames,
+  "nhs-terminology-check": nhsTerminologyCheck,
+  "custom-find-replace": customFindReplace,
+  
+  // Enhanced AI handlers
+  "ai-make-longer": aiMakeLonger,
+  "ai-make-shorter": aiMakeShorter,
+  "ai-simplify-language": aiSimplifyLanguage,
+  "ai-make-technical": aiMakeTechnical,
+  "ai-add-detail": aiAddDetail,
+  "ai-remove-detail": aiRemoveDetail,
+  "ai-plain-english-medical": aiPlainEnglishMedical,
+  "ai-add-safety-warnings": aiAddSafetyWarnings,
   
   // Global Standardization handlers
   "standardize-dates": async (ctx: QuickPickContext) => applyTextFormatting(ctx.text, 'standardize-dates'),

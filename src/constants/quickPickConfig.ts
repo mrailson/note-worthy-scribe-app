@@ -12,6 +12,64 @@ export const quickPickConfig = {
       ]
     },
     {
+      "id": "format-style",
+      "label": "Format & Style",
+      "children": [
+        {"id": "convert-bullets-to-dashes", "label": "Convert bullets (•) to dashes (-)"},
+        {"id": "convert-bullets-to-numbers", "label": "Convert bullets to numbers (1, 2, 3)"},
+        {"id": "convert-dashes-to-bullets", "label": "Convert dashes (-) to bullets (•)"},
+        {"id": "format-bold-titles", "label": "Add/remove bold formatting"},
+        {"id": "format-italic-emphasis", "label": "Add/remove italic formatting"},
+        {"id": "format-headers", "label": "Add/remove headers (###)"},
+        {"id": "format-bullet-points", "label": "Convert text to bullet lists"},
+        {"id": "format-numbered-list", "label": "Convert text to numbered lists"},
+        {"id": "format-table", "label": "Convert to table format"},
+        {"id": "format-clean-spacing", "label": "Clean up spacing & structure"},
+        {"id": "format-remove-formatting", "label": "Remove all formatting (plain text)"}
+      ]
+    },
+    {
+      "id": "text-operations", 
+      "label": "Text Operations",
+      "children": [
+        {"id": "convert-uppercase", "label": "Convert to UPPERCASE"},
+        {"id": "convert-lowercase", "label": "Convert to lowercase"},
+        {"id": "convert-title-case", "label": "Convert to Title Case"},
+        {"id": "remove-filler-words", "label": "Remove filler words (um, uh, etc.)"},
+        {"id": "standardize-dates", "label": "Standardise dates (DD/MM/YYYY)"},
+        {"id": "format-timestamps", "label": "Standardise times (24-hour format)"},
+        {"id": "clean-punctuation", "label": "Clean up punctuation"},
+        {"id": "format-numbers", "label": "Format numbers with commas"},
+        {"id": "standardize-all", "label": "Apply all standardisation"}
+      ]
+    },
+    {
+      "id": "smart-replacements",
+      "label": "Smart Replacements", 
+      "children": [
+        {"id": "standardize-abbreviations", "label": "Standardise NHS abbreviations"},
+        {"id": "expand-medical-terms", "label": "Expand medical abbreviations"},
+        {"id": "standardize-drug-names", "label": "Standardise drug names"},
+        {"id": "nhs-terminology-check", "label": "Convert to NHS terminology"},
+        {"id": "custom-find-replace", "label": "Custom find & replace..."}
+      ]
+    },
+    {
+      "id": "ai-custom-enhance",
+      "label": "AI Custom Enhancement",
+      "children": [
+        {"id": "ai-make-longer", "label": "Make it longer"},
+        {"id": "ai-make-shorter", "label": "Make it shorter"},  
+        {"id": "ai-simplify-language", "label": "Simplify language"},
+        {"id": "ai-make-technical", "label": "Make more technical"},
+        {"id": "ai-add-detail", "label": "Add more detail"},
+        {"id": "ai-remove-detail", "label": "Remove unnecessary detail"},
+        {"id": "ai-plain-english-medical", "label": "Replace jargon with plain English"},
+        {"id": "ai-add-safety-warnings", "label": "Add patient safety warnings"},
+        {"id": "ai-custom-prompt", "label": "Custom AI request..."}
+      ]
+    },
+    {
       "id": "refine-content",
       "label": "Refine content",
       "children": [
