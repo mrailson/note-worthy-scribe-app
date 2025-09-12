@@ -34,8 +34,12 @@ import "./index.css";
   try {
     if (typeof window !== 'undefined') {
       const guard = (e: any) => {
-        const target = e.target as HTMLElement | null;
-        const isAllowed = target && (target as any).closest?.('[data-allow-file-drop]');
+        // Determine element under pointer for reliable detection
+        const doc = window.document;
+        const el = (e.clientX != null && e.clientY != null)
+          ? doc.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+          : (e.target as HTMLElement | null);
+        const isAllowed = el && el.closest?.('[data-allow-file-drop]');
         if (!isAllowed) {
           e.preventDefault?.();
           e.stopPropagation?.();
