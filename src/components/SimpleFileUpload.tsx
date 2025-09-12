@@ -37,7 +37,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
     }
   }, [onFileUpload, maxSize]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
@@ -56,10 +56,24 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       'image/tiff': ['.tiff', '.tif']
     },
     maxSize: maxSizeBytes,
-    multiple
+    multiple,
+    noClick: true,
   });
 
-  const rootProps = getRootProps({ onClick: (e) => e.stopPropagation() });
+  const rootProps = getRootProps({
+    role: 'button',
+    tabIndex: 0,
+    onClick: (e) => {
+      e.stopPropagation();
+      open();
+    },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        open();
+      }
+    }
+  });
 
   return (
     <div className={className}>
@@ -84,6 +98,14 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
           <p className="text-xs text-muted-foreground">
             PDF, DOC, DOCX, XLS, XLSX, CSV, TXT, JPG, PNG, GIF, WebP, BMP, SVG, TIFF (max {maxSize}MB)
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); open(); }}
+          >
+            Browse files
+          </Button>
         </div>
       </div>
     </div>
