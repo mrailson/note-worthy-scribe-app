@@ -135,13 +135,15 @@ serve(async (req) => {
 
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start directly with the date, do NOT include any practice headers or letterhead
-- Use the practice branding and footer information provided
+- Use the practice branding and footer information provided ONLY ONCE in the signature block
+- DO NOT duplicate practice details anywhere else in the letter
 - DO NOT include practice details in a footer format with dashes (---)
-- Include practice contact details naturally within the letter content or signature area only
+- Include practice contact details ONLY in the signature area, not in the body of the letter
 - Format as a clean, professional NHS letter
 - Include appropriate signature block with all provided signature details
 - NEVER include personal email addresses or phone numbers in contact details
 - Only use practice-wide email and phone numbers
+- CRITICAL: Do not repeat practice information multiple times - use it only once in the signature
 
 Format as a formal letter with NHS styling.`;
 
