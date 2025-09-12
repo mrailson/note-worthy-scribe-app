@@ -14,6 +14,8 @@ import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 import { MeetingModalQuickPick } from "@/components/MeetingModalQuickPick";
 import { MeetingContextEnhancer } from "@/components/MeetingContextEnhancer";
+import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
+import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
@@ -2220,6 +2222,165 @@ ${transcript}`;
     }
   };
 
+  const handleDownloadTextFile = (content: string, filename: string) => {
+    try {
+      const cleanContent = stripMarkdown(content);
+      const blob = new Blob([cleanContent], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, `${filename}.txt`);
+      toast.success("Text file downloaded");
+    } catch (error) {
+      console.error('Text export failed:', error);
+      toast.error("Failed to export text file");
+    }
+  };
+
+  // Quick Pick Actions
+  const handleQuickPickAction = (action: string) => {
+    const currentContent = getCurrentContent();
+    const actions: { [key: string]: () => string } = {
+      'uppercase': () => currentContent.toUpperCase(),
+      'lowercase': () => currentContent.toLowerCase(),
+      'title-case': () => currentContent.replace(/\w\S*/g, (txt) => 
+        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+      ),
+      'sentence-case': () => currentContent.charAt(0).toUpperCase() + currentContent.slice(1).toLowerCase(),
+      'remove-extra-spaces': () => currentContent.replace(/\s+/g, ' ').trim(),
+      'add-bullet-points': () => currentContent.split('\n')
+        .filter(line => line.trim())
+        .map(line => `• ${line.trim()}`)
+        .join('\n'),
+      'add-numbers': () => currentContent.split('\n')
+        .filter(line => line.trim())
+        .map((line, index) => `${index + 1}. ${line.trim()}`)
+        .join('\n'),
+      'remove-bullets': () => currentContent.replace(/^[\s]*[•\-*]\s*/gm, ''),
+      'remove-numbers': () => currentContent.replace(/^[\s]*\d+\.\s*/gm, ''),
+      'clinical-summary': () => currentContent + '\n\n## Clinical Summary\n[AI-generated summary would appear here]',
+      'action-items': () => currentContent + '\n\n## Action Items\n[Extracted action items would appear here]',
+      'patient-care-focus': () => currentContent + '\n\n## Patient Care Focus\n[Patient care highlights would appear here]'
+    };
+
+    const result = actions[action]?.();
+      if (activeTab === "notes") {
+        onNotesChange(result);
+      }
+      toast.success(`Applied ${action.replace('-', ' ')}`);
+    }
+  };
+
+  // AI Enhancement functionality
+  const handleAIEnhancement = async (enhanceType: string) => {
+    const currentContent = getCurrentContent();
+    if (!currentContent.trim()) {
+      toast.error("No content to enhance");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const prompts = {
+        'clinical-focus': 'Focus on and enhance all clinical discussions, medical decisions, and patient care elements. Emphasize diagnostic considerations, treatment plans, and clinical reasoning.',
+        'action-analysis': 'Extract and organize all action items, decisions, and follow-up tasks. Create a structured analysis of responsibilities, timelines, and outcomes.',
+        'professional-tone': 'Enhance the language to meet professional healthcare standards. Use appropriate medical terminology and formal business language.',
+        'risk-assessment': 'Identify and highlight all clinical and operational risks mentioned. Add risk assessment context and mitigation considerations.',
+        'follow-up-plans': 'Generate comprehensive follow-up recommendations based on the discussions. Include timelines, responsible parties, and success metrics.',
+        'patient-safety': 'Emphasize all patient safety elements, quality improvement discussions, and safeguarding considerations. Highlight safety protocols and outcomes.'
+      };
+
+      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+        body: {
+          originalContent: currentContent,
+          enhancementType: 'custom',
+          specificRequest: prompts[enhanceType as keyof typeof prompts] || enhanceType,
+          context: `Meeting ID: ${meeting?.id}`
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      onNotesChange(data.enhancedContent);
+      toast.success(`Applied ${enhanceType.replace('-', ' ')} enhancement`);
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      toast.error(error instanceof Error ? error.message : 'Enhancement failed');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Custom AI Enhancement
+  const handleCustomAISubmit = async (prompt: string) => {
+    const currentContent = getCurrentContent();
+    if (!currentContent.trim() || !prompt.trim()) {
+      toast.error("Please provide content and a custom prompt");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+        body: {
+          originalContent: currentContent,
+          enhancementType: 'custom',
+          specificRequest: prompt,
+          context: `Meeting ID: ${meeting?.id}`
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      onNotesChange(data.enhancedContent);
+      toast.success("Applied custom AI enhancement");
+      setShowCustomAIModal(false);
+    } catch (error) {
+      console.error('Custom enhancement error:', error);
+      toast.error(error instanceof Error ? error.message : 'Custom enhancement failed');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Find and Replace functionality
+  const handleFindReplaceSubmit = (findText: string, replaceText: string, options: { caseSensitive: boolean; wholeWords: boolean; }) => {
+    const currentContent = getCurrentContent();
+    if (!findText) {
+      toast.error("Please enter text to find");
+      return;
+    }
+
+    try {
+      let flags = 'g';
+      if (!options.caseSensitive) flags += 'i';
+      
+      let pattern = findText;
+      if (options.wholeWords) {
+        pattern = `\\b${findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`;
+      } else {
+        pattern = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      const regex = new RegExp(pattern, flags);
+      const newContent = currentContent.replace(regex, replaceText);
+      
+      const matchCount = (currentContent.match(regex) || []).length;
+      
+      if (matchCount > 0) {
+        onNotesChange(newContent);
+        toast.success(`Replaced ${matchCount} occurrence${matchCount > 1 ? 's' : ''}`);
+        setShowFindReplace(false);
+      } else {
+        toast.info("No matches found");
+      }
+    } catch (error) {
+      console.error('Find and replace failed:', error);
+      toast.error("Find and replace operation failed");
+    }
+  };
+
   if (!meeting) return null;
 
   return (
@@ -3028,13 +3189,29 @@ ${transcript}`;
                         onContentChange={onNotesChange}
                         meetingId={meeting?.id}
                       />
-                    </div>
-                  </div>
-                </TabsContent>
-             </Tabs>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+                     </div>
+                   </div>
+                 </TabsContent>
+              </Tabs>
+           </div>
+         </div>
+       </DialogContent>
+
+       {/* Custom AI Prompt Modal */}
+       <CustomAIPromptModal
+         open={showCustomAIModal}
+         onOpenChange={setShowCustomAIModal}
+         onSubmit={handleCustomAISubmit}
+         currentText={getCurrentContent()}
+       />
+
+       {/* Find & Replace Modal */}
+       <CustomFindReplaceModal
+         open={showFindReplace}
+         onOpenChange={setShowFindReplace}
+         onSubmit={handleFindReplaceSubmit}
+         currentText={getCurrentContent()}
+       />
+     </Dialog>
   );
 };
