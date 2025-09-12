@@ -175,6 +175,7 @@ export const MeetingHistoryList = ({
   
   // Add state for signed URLs
   const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
+  const [docListRefresh, setDocListRefresh] = useState<Record<string, number>>({});
   
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
@@ -498,7 +499,7 @@ export const MeetingHistoryList = ({
         console.log('📁 Uploading to path:', filePath);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('meeting-files')
+          .from('meeting-documents')
           .upload(filePath, file);
 
         if (uploadError) {
@@ -542,6 +543,9 @@ export const MeetingHistoryList = ({
         }));
         onDocumentsUploaded(selectedMeetingForUpload.id, newDocuments);
       }
+      
+      // Force document list to refresh in card view
+      setDocListRefresh(prev => ({ ...prev, [selectedMeetingForUpload.id]: (prev[selectedMeetingForUpload.id] || 0) + 1 }));
       
       setSelectedFiles([]);
       setUploadDialogOpen(false);
@@ -1232,9 +1236,12 @@ export const MeetingHistoryList = ({
               
               {/* Meeting Documents - Always show, allow uploads even when empty */}
               <MeetingDocumentsList
+                key={`docs-${meeting.id}-${docListRefresh[meeting.id] || 0}`}
                 meetingId={meeting.id}
-                documents={meeting.documents}
-                onDocumentRemoved={() => onRefresh?.()}
+                onDocumentRemoved={() => {
+                  setDocListRefresh(prev => ({ ...prev, [meeting.id]: (prev[meeting.id] || 0) + 1 }));
+                  onRefresh?.();
+                }}
                 className="mb-3"
               />
               

@@ -95,7 +95,7 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
 
         // Upload file to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('meeting-files')
+          .from('meeting-documents')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
