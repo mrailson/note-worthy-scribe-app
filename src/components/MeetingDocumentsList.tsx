@@ -208,9 +208,14 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   {getFileIcon(document.file_type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate" title={document.file_name}>
+                  <button 
+                    onClick={() => handleDownload(document)}
+                    className="font-medium text-sm truncate text-left hover:text-primary underline-offset-4 hover:underline cursor-pointer w-full"
+                    title="Click to download"
+                    disabled={!document.file_path}
+                  >
                     {document.file_name}
-                  </div>
+                  </button>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{formatFileSize(document.file_size)}</span>
                     <span>•</span>

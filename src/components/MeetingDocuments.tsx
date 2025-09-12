@@ -316,7 +316,13 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
                 <div className="flex items-center gap-3 flex-1">
                   <FileText className="h-8 w-8 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{doc.file_name}</div>
+                    <button 
+                      onClick={() => downloadDocument(doc)}
+                      className="font-medium truncate text-left hover:text-primary underline-offset-4 hover:underline cursor-pointer w-full"
+                      title="Click to download"
+                    >
+                      {doc.file_name}
+                    </button>
                     {doc.description && (
                       <div className="text-sm text-muted-foreground truncate">
                         {doc.description}
