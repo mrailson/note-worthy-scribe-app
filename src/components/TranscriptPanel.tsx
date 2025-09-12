@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { MeetingData } from "@/types/meetingTypes";
+import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
+import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { 
   FileText, 
   ChevronDown, 
@@ -14,7 +16,16 @@ import {
   Mic, 
   Sparkles,
   Type,
-  FileType
+  FileType,
+  Wand2,
+  ArrowUpDown,
+  List,
+  Hash,
+  Indent,
+  AlignLeft,
+  Languages,
+  Palette,
+  Zap
 } from "lucide-react";
 
 interface TranscriptPanelProps {
@@ -26,6 +37,7 @@ interface TranscriptPanelProps {
   onDownloadWord: (content: string) => void;
   onDownloadPDF: (content: string) => void;
   onDownloadText: (content: string) => void;
+  onUpdateTranscript?: (updatedContent: string) => void;
 }
 
 export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
@@ -36,9 +48,41 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   onDownloadTranscript,
   onDownloadWord,
   onDownloadPDF,
-  onDownloadText
+  onDownloadText,
+  onUpdateTranscript
 }) => {
+  const [showCustomAIModal, setShowCustomAIModal] = useState(false);
+  const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
+
   if (!meetingData?.transcript) return null;
+
+  const handleQuickPickAction = (action: string, payload?: any) => {
+    let updatedContent = meetingData.transcript;
+
+    switch (action) {
+      case 'bullet-to-dash':
+        updatedContent = updatedContent.replace(/^\s*•\s*/gm, '- ');
+        break;
+      case 'dash-to-bullet':
+        updatedContent = updatedContent.replace(/^\s*-\s*/gm, '• ');
+        break;
+      case 'uppercase':
+        updatedContent = updatedContent.toUpperCase();
+        break;
+      case 'lowercase':
+        updatedContent = updatedContent.toLowerCase();
+        break;
+      case 'title-case':
+        updatedContent = updatedContent.replace(/\w\S*/g, (txt) => 
+          txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+        );
+        break;
+    }
+
+    if (onUpdateTranscript && updatedContent !== meetingData.transcript) {
+      onUpdateTranscript(updatedContent);
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -96,23 +140,46 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                       
+                      <DropdownMenuSeparator />
+                      
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger className="cursor-pointer">
                           <Edit3 className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          <DropdownMenuItem disabled>
-                            <Edit3 className="h-4 w-4 mr-2" />
-                            Edit Meeting Notes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem disabled>
+                          <DropdownMenuItem onClick={() => setShowFindReplaceModal(true)}>
                             <Search className="h-4 w-4 mr-2" />
                             Find and Replace
                           </DropdownMenuItem>
-                          <DropdownMenuItem disabled>
-                            <Mic className="h-4 w-4 mr-2" />
-                            Update Names and Terms
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="cursor-pointer">
+                          <Palette className="h-4 w-4 mr-2" />
+                          Format & Style
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('bullet-to-dash')}>
+                            <List className="h-4 w-4 mr-2" />
+                            Bullet to Dash
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('dash-to-bullet')}>
+                            <List className="h-4 w-4 mr-2" />
+                            Dash to Bullet
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('uppercase')}>
+                            <ArrowUpDown className="h-4 w-4 mr-2" />
+                            UPPERCASE
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('lowercase')}>
+                            <ArrowUpDown className="h-4 w-4 mr-2" />
+                            lowercase
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('title-case')}>
+                            <ArrowUpDown className="h-4 w-4 mr-2" />
+                            Title Case
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
@@ -123,9 +190,26 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                           AI Enhance
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          <DropdownMenuItem disabled>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Make More Detailed
+                          <DropdownMenuItem onClick={() => setShowCustomAIModal(true)}>
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            Custom AI Enhancement
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('make-longer')}>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Make Longer
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('make-shorter')}>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Make Shorter
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('simplify')}>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Simplify Language
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction('professional')}>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Make Professional
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
@@ -148,6 +232,36 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Custom AI Enhancement Modal */}
+      <CustomAIPromptModal
+        open={showCustomAIModal}
+        onOpenChange={setShowCustomAIModal}
+        onSubmit={(prompt) => {
+          // Handle custom AI enhancement
+          console.log('Custom AI enhancement:', prompt);
+          // This would integrate with an AI service to enhance the transcript
+        }}
+        currentText={meetingData?.transcript || ''}
+      />
+
+      {/* Find and Replace Modal */}
+      <CustomFindReplaceModal
+        open={showFindReplaceModal}
+        onOpenChange={setShowFindReplaceModal}
+        onSubmit={(findText, replaceText, options) => {
+          if (meetingData?.transcript && onUpdateTranscript) {
+            let updatedContent = meetingData.transcript;
+            const flags = (options.caseSensitive ? '' : 'i') + 'g';
+            const regex = options.wholeWords 
+              ? new RegExp(`\\b${findText}\\b`, flags)
+              : new RegExp(findText, flags);
+            updatedContent = updatedContent.replace(regex, replaceText);
+            onUpdateTranscript(updatedContent);
+          }
+        }}
+        currentText={meetingData?.transcript || ''}
+      />
     </Card>
   );
 };

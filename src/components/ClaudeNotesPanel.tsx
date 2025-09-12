@@ -1,15 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
+import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
+import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { MeetingData } from "@/types/meetingTypes";
 import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { 
@@ -26,7 +28,14 @@ import {
   FileType,
   Mic,
   X,
-  Wand2
+  Wand2,
+  ArrowUpDown,
+  List,
+  Hash,
+  Palette,
+  Zap,
+  Languages,
+  AlignLeft
 } from "lucide-react";
 
 interface ClaudeNotesPanelProps {
@@ -84,6 +93,46 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
   onDownloadPDF,
   onDownloadText
 }) => {
+  const [showCustomAIModal, setShowCustomAIModal] = useState(false);
+  const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
+
+  const handleQuickPickAction = (action: string, payload?: any) => {
+    let updatedContent = claudeNotes;
+
+    switch (action) {
+      case 'bullet-to-dash':
+        updatedContent = updatedContent.replace(/^\s*•\s*/gm, '- ');
+        break;
+      case 'dash-to-bullet':
+        updatedContent = updatedContent.replace(/^\s*-\s*/gm, '• ');
+        break;
+      case 'uppercase':
+        updatedContent = updatedContent.toUpperCase();
+        break;
+      case 'lowercase':
+        updatedContent = updatedContent.toLowerCase();
+        break;
+      case 'title-case':
+        updatedContent = updatedContent.replace(/\w\S*/g, (txt) => 
+          txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+        );
+        break;
+      case 'add-numbers':
+        const lines = updatedContent.split('\n');
+        updatedContent = lines.map((line, index) => 
+          line.trim() ? `${index + 1}. ${line}` : line
+        ).join('\n');
+        break;
+      case 'remove-numbers':
+        updatedContent = updatedContent.replace(/^\s*\d+\.\s*/gm, '');
+        break;
+    }
+
+    if (updatedContent !== claudeNotes) {
+      setClaudeNotes(updatedContent);
+      saveSummaryToDatabase(updatedContent);
+    }
+  };
   return (
     <>
       <Card className="mb-6">
@@ -205,6 +254,8 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                           
+                          <DropdownMenuSeparator />
+                          
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="cursor-pointer">
                               <Edit3 className="h-4 w-4 mr-2" />
@@ -217,11 +268,53 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setShowFindReplace(!showFindReplace)}>
                                 <Search className="h-4 w-4 mr-2" />
-                                Find and Replace
+                                Find and Replace (Legacy)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setShowFindReplaceModal(true)}>
+                                <Search className="h-4 w-4 mr-2" />
+                                Find and Replace (Enhanced)
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setShowCustomInstruction(!showCustomInstruction)}>
                                 <Mic className="h-4 w-4 mr-2" />
                                 Update Names and Terms
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer">
+                              <Palette className="h-4 w-4 mr-2" />
+                              Format & Style
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('bullet-to-dash')}>
+                                <List className="h-4 w-4 mr-2" />
+                                Bullet to Dash
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('dash-to-bullet')}>
+                                <List className="h-4 w-4 mr-2" />
+                                Dash to Bullet
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('add-numbers')}>
+                                <Hash className="h-4 w-4 mr-2" />
+                                Add Numbers
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('remove-numbers')}>
+                                <Hash className="h-4 w-4 mr-2" />
+                                Remove Numbers
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('uppercase')}>
+                                <ArrowUpDown className="h-4 w-4 mr-2" />
+                                UPPERCASE
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('lowercase')}>
+                                <ArrowUpDown className="h-4 w-4 mr-2" />
+                                lowercase
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('title-case')}>
+                                <ArrowUpDown className="h-4 w-4 mr-2" />
+                                Title Case
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
@@ -232,6 +325,11 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                               AI Enhance
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => setShowCustomAIModal(true)}>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Custom AI Enhancement
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <ClaudeEnhancementModal
                                 originalContent={claudeNotes}
                                 onEnhancedContent={(enhancedContent) => {
@@ -241,9 +339,30 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                               >
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                   <FileText className="h-4 w-4 mr-2" />
-                                  Make More Detailed
+                                  Make More Detailed (Legacy)
                                 </DropdownMenuItem>
                               </ClaudeEnhancementModal>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('make-longer')}>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Make Longer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('make-shorter')}>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Make Shorter
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('simplify')}>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Simplify Language
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('professional')}>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Make Professional
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction('clinical-detail')}>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Add Clinical Detail
+                              </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                         </DropdownMenuGroup>
@@ -370,6 +489,35 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Custom AI Enhancement Modal */}
+      <CustomAIPromptModal
+        open={showCustomAIModal}
+        onOpenChange={setShowCustomAIModal}
+        onSubmit={(prompt) => {
+          // Handle custom AI enhancement for Claude notes
+          console.log('Custom AI enhancement for Claude notes:', prompt);
+          // This would integrate with an AI service to enhance the notes
+        }}
+        currentText={claudeNotes}
+      />
+
+      {/* Enhanced Find and Replace Modal */}
+      <CustomFindReplaceModal
+        open={showFindReplaceModal}
+        onOpenChange={setShowFindReplaceModal}
+        onSubmit={(findText, replaceText, options) => {
+          let updatedContent = claudeNotes;
+          const flags = (options.caseSensitive ? '' : 'i') + 'g';
+          const regex = options.wholeWords 
+            ? new RegExp(`\\b${findText}\\b`, flags)
+            : new RegExp(findText, flags);
+          updatedContent = updatedContent.replace(regex, replaceText);
+          setClaudeNotes(updatedContent);
+          saveSummaryToDatabase(updatedContent);
+        }}
+        currentText={claudeNotes}
+      />
     </>
   );
 };
