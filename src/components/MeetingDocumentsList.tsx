@@ -105,7 +105,11 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
         document.file_type.startsWith('image/') ||
         document.file_type === 'application/pdf' ||
         document.file_type.startsWith('text/') ||
-        document.file_type === 'application/json'
+        document.file_type === 'application/json' ||
+        document.file_type.includes('word') ||
+        document.file_type.includes('document') ||
+        document.file_type.includes('presentation') ||
+        document.file_type.includes('powerpoint')
       );
 
       if (canOpenInBrowser) {
@@ -128,6 +132,35 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
     } catch (error) {
       console.error('Error opening file:', error);
       toast.error('Failed to open file');
+    }
+  };
+
+  const forceDownloadDocument = async (document: MeetingDocument) => {
+    if (!document.file_path) {
+      toast.error('File path not available for download');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('meeting-documents')
+        .download(document.file_path);
+
+      if (error) throw error;
+
+      // Always force download
+      const url = URL.createObjectURL(data);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = document.file_name;
+      window.document.body.appendChild(a);
+      a.click();
+      window.document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('File downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Failed to download file');
     }
   };
 
@@ -226,7 +259,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   <button 
                     onClick={() => handleDownload(document)}
                     className="font-medium text-sm truncate text-left hover:text-primary underline-offset-4 hover:underline cursor-pointer w-full"
-                    title="Click to open/download"
+                    title="Click to open (including Word/PowerPoint docs)"
                     disabled={!document.file_path}
                   >
                     {document.file_name}
@@ -250,10 +283,10 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDownload(document)}
+                  onClick={() => forceDownloadDocument(document)}
                   disabled={!document.file_path}
                   className="h-8 w-8 p-0"
-                  title={document.file_path ? "Open/download file" : "Open not available"}
+                  title={document.file_path ? "Download file" : "Download not available"}
                 >
                   <Download className="h-3 w-3" />
                 </Button>

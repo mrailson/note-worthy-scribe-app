@@ -156,7 +156,11 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
         doc.file_type.startsWith('image/') ||
         doc.file_type === 'application/pdf' ||
         doc.file_type.startsWith('text/') ||
-        doc.file_type === 'application/json'
+        doc.file_type === 'application/json' ||
+        doc.file_type.includes('word') ||
+        doc.file_type.includes('document') ||
+        doc.file_type.includes('presentation') ||
+        doc.file_type.includes('powerpoint')
       );
 
       if (canOpenInBrowser) {
@@ -177,6 +181,30 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
     } catch (error: any) {
       console.error('Error opening document:', error.message);
       toast.error('Failed to open document');
+    }
+  };
+
+  const forceDownloadDocument = async (doc: MeetingDocument) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('meeting-documents')
+        .download(doc.file_path);
+
+      if (error) throw error;
+
+      // Always force download
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('File downloaded successfully');
+    } catch (error: any) {
+      console.error('Error downloading document:', error.message);
+      toast.error('Failed to download document');
     }
   };
 
@@ -335,7 +363,7 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
                     <button 
                       onClick={() => downloadDocument(doc)}
                       className="font-medium truncate text-left hover:text-primary underline-offset-4 hover:underline cursor-pointer w-full"
-                      title="Click to open/download"
+                      title="Click to open (including Word/PowerPoint docs)"
                     >
                       {doc.file_name}
                     </button>
@@ -353,11 +381,11 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => downloadDocument(doc)}
+                    onClick={() => forceDownloadDocument(doc)}
                     className="flex items-center gap-1"
                   >
                     <Download className="h-4 w-4" />
-                    Open
+                    Download
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
