@@ -1006,7 +1006,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // Clean HTML content for editing - match visual display exactly
   const cleanHtmlForEditing = (htmlContent: string) => {
-    if (!htmlContent) return '';
+    if (!htmlContent || typeof htmlContent !== 'string') {
+      console.log('🔍 CLEAN DEBUG - empty or invalid content:', htmlContent);
+      return '';
+    }
+    
+    console.log('🔍 CLEAN DEBUG - input content length:', htmlContent.length);
+    console.log('🔍 CLEAN DEBUG - input content preview:', htmlContent.substring(0, 200) + '...');
     
     let cleanText = htmlContent
       // First, convert div spacing patterns that create visual gaps
@@ -1065,6 +1071,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       .replace(/\n+$/, '') // Remove trailing newlines
       .trim();
     
+    console.log('🔍 CLEAN DEBUG - output content length:', cleanText.length);
+    console.log('🔍 CLEAN DEBUG - output content preview:', cleanText.substring(0, 200) + '...');
+    
     return cleanText;
   };
 
@@ -1078,43 +1087,63 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       let currentContent = "";
       let currentTabIdentifier = "";
       
+      console.log('🔍 EDIT DEBUG - activeTab:', activeTab, 'activeNotesStyleTab:', activeNotesStyleTab);
+      console.log('🔍 EDIT DEBUG - available content:', {
+        notes: notes?.length || 0,
+        notesStyle2: notesStyle2?.length || 0,
+        notesStyle3: notesStyle3?.length || 0,
+        notesStyle4: notesStyle4?.length || 0,
+        notesStyle5: notesStyle5?.length || 0,
+        transcript: transcript?.length || 0
+      });
+      
       if (activeTab === "notes") {
         // Handle sub-tabs within notes
         switch (activeNotesStyleTab) {
           case 'style1': 
-            currentContent = notesStyle3;
+            currentContent = notesStyle3 || "";
             currentTabIdentifier = "notes-style1";
             break;
           case 'style2': 
-            currentContent = notes;
+            currentContent = notes || "";
             currentTabIdentifier = "notes-style2";
             break;
           case 'style3': 
-            currentContent = notesStyle2;
+            currentContent = notesStyle2 || "";
             currentTabIdentifier = "notes-style3";
             break;
           case 'style4': 
-            currentContent = notesStyle4;
+            currentContent = notesStyle4 || "";
             currentTabIdentifier = "notes-style4";
             break;
           case 'style5': 
-            currentContent = notesStyle5;
+            currentContent = notesStyle5 || "";
             currentTabIdentifier = "notes-style5";
             break;
           default:
-            currentContent = notes;
+            currentContent = notes || "";
             currentTabIdentifier = "notes";
         }
       } else {
-        currentContent = transcript;
+        currentContent = transcript || "";
         currentTabIdentifier = "transcript";
       }
       
+      console.log('🔍 EDIT DEBUG - currentContent before cleaning:', currentContent?.substring(0, 100) + '...');
+      
       const cleanContent = cleanHtmlForEditing(currentContent);
+      
+      console.log('🔍 EDIT DEBUG - cleanContent after cleaning:', cleanContent?.substring(0, 100) + '...');
+      console.log('🔍 EDIT DEBUG - cleanContent length:', cleanContent?.length);
+      
       setEditingContent(cleanContent);
       setEditingTab(currentTabIdentifier); // Track which specific tab/sub-tab we're editing
+      
+      console.log('🔍 EDIT DEBUG - entering edit mode with tab:', currentTabIdentifier);
     } else {
       // Exiting edit mode - save the content to the correct location
+      console.log('🔍 EDIT DEBUG - saving content, editingTab:', editingTab, 'content length:', editingContent?.length);
+      
       if (editingTab.startsWith("notes-")) {
         const subTab = editingTab.replace("notes-", "");
         switch (subTab) {
