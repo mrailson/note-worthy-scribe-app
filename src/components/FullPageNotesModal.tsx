@@ -3185,12 +3185,6 @@ ${transcript}`;
                         }}
                       />
                       
-                      {/* AI Enhancement Quick Pick */}
-                      <MeetingModalQuickPick 
-                        content={notes} 
-                        onContentChange={onNotesChange}
-                        meetingId={meeting?.id}
-                      />
                      </div>
                    </div>
                  </TabsContent>
