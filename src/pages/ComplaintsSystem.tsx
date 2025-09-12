@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Header } from "@/components/Header";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -1149,6 +1150,7 @@ const ComplaintsSystem = () => {
     <div className="min-h-screen bg-gradient-subtle">
       <Header onNewMeeting={() => {}} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <MaintenanceBanner />
         <div className="mb-4 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>

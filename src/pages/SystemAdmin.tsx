@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { Header } from '@/components/Header';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -94,10 +95,32 @@ interface Neighbourhood {
 
 const SystemAdmin = () => {
   const { user, refreshUserModules } = useAuth();
+  const { maintenanceMode, updateMaintenanceMode } = useMaintenanceMode();
   const [activeTab, setActiveTab] = useState('overview');
   const [securityTab, setSecurityTab] = useState('monitoring');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [customMessage, setCustomMessage] = useState(maintenanceMode.message);
+  const [updating, setUpdating] = useState(false);
+
+  // Update custom message when maintenance mode changes
+  useEffect(() => {
+    setCustomMessage(maintenanceMode.message);
+  }, [maintenanceMode.message]);
+
+  // Handle maintenance mode updates with loading state
+  const handleMaintenanceModeUpdate = async (enabled: boolean, message?: string) => {
+    setUpdating(true);
+    try {
+      await updateMaintenanceMode(enabled, message);
+      toast.success(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error updating maintenance mode:', error);
+      toast.error('Failed to update maintenance mode');
+    } finally {
+      setUpdating(false);
+    }
+  };
   
   // File upload state for prior approval data
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string }>>([]);
@@ -1879,8 +1902,33 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
-                    <Switch id="maintenance-mode" />
+                    <Switch 
+                      id="maintenance-mode" 
+                      checked={maintenanceMode.enabled}
+                      onCheckedChange={(checked) => handleMaintenanceModeUpdate(checked)}
+                      disabled={updating}
+                    />
                   </div>
+                  {maintenanceMode.enabled && (
+                    <div className="space-y-2">
+                      <Label htmlFor="maintenance-message">Maintenance Message</Label>
+                      <Textarea
+                        id="maintenance-message"
+                        placeholder="Enter custom maintenance message..."
+                        value={customMessage}
+                        onChange={(e) => setCustomMessage(e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleMaintenanceModeUpdate(maintenanceMode.enabled, customMessage)}
+                        disabled={updating}
+                        className="w-full"
+                      >
+                        {updating ? 'Updating...' : 'Update Message'}
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <Label htmlFor="registration-enabled">User Registration</Label>
                     <Switch id="registration-enabled" defaultChecked />

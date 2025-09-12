@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { LoginForm } from "@/components/LoginForm";
 import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -201,6 +202,7 @@ const Index = () => {
       <div className="min-h-[100dvh] bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
+          <MaintenanceBanner />
           <LoginForm />
         </div>
       </div>
@@ -212,6 +214,7 @@ const Index = () => {
       <Header onNewMeeting={handleNewMeeting} />
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
+        <MaintenanceBanner />
         <>
 
           {/* Meeting Recorder with integrated tabs */}
