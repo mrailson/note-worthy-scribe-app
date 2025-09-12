@@ -18,83 +18,121 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript } = await req.json();
+    const payload = await req.json();
+    const transcript = payload?.transcript;
+    const chunkSize = Math.max(200, Math.min(2000, Number(payload?.chunkSize || payload?.options?.chunkSize || 1000)));
     if (!transcript) {
       throw new Error('Missing required field: transcript');
     }
 
     console.log('🧹 Strict GPT Deep Clean transcript, length:', transcript.length);
 
-    const instructions = `
-You are a strict transcript cleaner for NHS GP meetings.  
+    // Helper functions for chunking
+    const splitIntoSentences = (text: string): string[] => {
+      const normalized = text.replace(/\s+/g, ' ').trim();
+      if (!normalized) return [];
+      const parts = normalized.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/g);
+      return parts.filter((s) => s && s.trim().length > 0);
+    };
 
-Your ONLY job is to:
-- Remove duplicate or near-duplicate sentences caused by Whisper/Deepgram joins.
-- Remove stray fragments (e.g. "No?" or clipped starts like "...").
-- Format the transcript into well-structured paragraphs with proper line spacing for readability.
-- Preserve chronological order and meaning exactly as spoken.
-- Do NOT paraphrase, shorten, or reword. Only delete duplicates/fragments and format into paragraphs.
-- Correct NHS-specific terms consistently (case-sensitive):
-  * "ARRS", never AR or ARS
-  * "PCN DES" (not PCMDS/PCMDA/etc.)
-  * "SystmOne" (not System 1 or system one)
-  * "Docman" (not DocMan or document workflow)
-  * "CQC compliance" (not compliant/compliant.)
-  * "QOF" (not QOF performance/preferences)
+    const chunkByWords = (text: string, maxWords: number): string[] => {
+      const words = text.trim().split(/\s+/);
+      const chunks: string[] = [];
+      for (let i = 0; i < words.length; i += maxWords) {
+        chunks.push(words.slice(i, i + maxWords).join(' '));
+      }
+      return chunks;
+    };
 
-CRITICAL FORMATTING REQUIREMENTS:
-- Structure the output into readable paragraphs where each paragraph represents a complete thought or topic.
-- Start new paragraphs when speakers change topics or there are natural conversation breaks.
-- Add a blank line between each paragraph for better readability.
-- Ensure the output is NOT a wall of text - it should be easy to read with clear paragraph breaks.
-- Each paragraph should be 2-4 sentences typically, focusing on one main topic or speaker turn.
-
-- Do not add explanations, summaries, or stylistic rewrites.
-- Output clean meeting text only, formatted in well-spaced paragraphs.
-
-Input transcript:
-${transcript}
-
-Cleaned transcript:
-`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a transcript cleaner. Delete duplicates/fragments only, no paraphrasing.' },
-          { role: 'user', content: instructions }
-        ],
-        max_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    // Create chunks ~chunkSize words, preferring sentence boundaries
+    const sentences = splitIntoSentences(transcript);
+    let chunks: string[] = [];
+    if (sentences.length > 1) {
+      let current: string[] = [];
+      let count = 0;
+      for (const s of sentences) {
+        const w = s.trim().split(/\s+/).filter(Boolean).length;
+        if (count + w > chunkSize && current.length > 0) {
+          chunks.push(current.join(' ').trim());
+          current = [s];
+          count = w;
+        } else {
+          current.push(s);
+          count += w;
+        }
+      }
+      if (current.length) chunks.push(current.join(' ').trim());
+    } else {
+      chunks = chunkByWords(transcript, chunkSize);
     }
 
-    const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content || '';
+    console.log(`🧩 Chunking transcript into ${chunks.length} parts (chunkSize≈${chunkSize} words)`);
 
-    // Normalize paragraph spacing: convert CRLF to LF, collapse excessive newlines, and ensure clear paragraph breaks
-    const cleanedTranscript = rawContent
-      .replace(/\r\n/g, '\n')
-      .trim()
-      .replace(/\n{3,}/g, '\n\n');
+    const systemMessage = 'You are a transcript cleaner. Delete duplicates/fragments only, no paraphrasing. Format into paragraphs with blank lines between.';
+    const cleanedChunks: string[] = [];
 
-    console.log('✅ Strict GPT cleaning completed, output length:', cleanedTranscript.length);
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+
+      const instructions = `
+You will receive chunk ${i + 1} of ${chunks.length} from an NHS GP meeting transcript.
+
+Rules:
+- Remove duplicate/near-duplicate text and stray fragments (e.g., clipped starts).
+- Preserve meaning and order exactly as spoken.
+- Format into readable paragraphs with a BLANK LINE between paragraphs.
+- Do NOT paraphrase, summarize, add headings, or add transitions.
+- Keep NHS terms exactly: "ARRS", "PCN DES", "SystmOne", "Docman", "CQC compliance", "QOF".
+
+Chunk:
+${chunk}
+
+Cleaned chunk:
+`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: instructions }
+          ],
+          max_tokens: 4000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`OpenAI API error (chunk ${i + 1}/${chunks.length}):`, errorData);
+        throw new Error(`OpenAI API error on chunk ${i + 1}: ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || '';
+      const normalized = raw.replace(/\r\n/g, '\n').trim().replace(/\n{3,}/g, '\n\n');
+      cleanedChunks.push(normalized);
+    }
+
+    const merged = cleanedChunks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+
+    console.log('✅ Strict GPT cleaning completed', {
+      chunks: chunks.length,
+      chunkSize,
+      inputLength: transcript.length,
+      outputLength: merged.length
+    });
 
     return new Response(JSON.stringify({ 
-      cleanedTranscript,
+      cleanedTranscript: merged,
       originalLength: transcript.length,
-      cleanedLength: cleanedTranscript.length
+      cleanedLength: merged.length,
+      chunks: chunks.length,
+      chunkSize
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
