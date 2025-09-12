@@ -92,27 +92,42 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
     }
     
     try {
-      // For Supabase storage, we need to get the signed URL
       const { data, error } = await supabase.storage
         .from('meeting-documents')
         .download(document.file_path);
 
       if (error) throw error;
 
-      // Create download link
       const url = URL.createObjectURL(data);
-      const a = window.document.createElement('a');
-      a.href = url;
-      a.download = document.file_name;
-      window.document.body.appendChild(a);
-      a.click();
-      window.document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      
+      // Check if file should open in browser vs download
+      const canOpenInBrowser = document.file_type && (
+        document.file_type.startsWith('image/') ||
+        document.file_type === 'application/pdf' ||
+        document.file_type.startsWith('text/') ||
+        document.file_type === 'application/json'
+      );
 
-      toast.success('File downloaded successfully');
+      if (canOpenInBrowser) {
+        // Open in new tab/window
+        window.open(url, '_blank');
+        toast.success('File opened successfully');
+        // Clean up after a delay to ensure the file opens
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        // Force download for other file types
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = document.file_name;
+        window.document.body.appendChild(a);
+        a.click();
+        window.document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('File downloaded successfully');
+      }
     } catch (error) {
-      console.error('Error downloading file:', error);
-      toast.error('Failed to download file');
+      console.error('Error opening file:', error);
+      toast.error('Failed to open file');
     }
   };
 
@@ -211,7 +226,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   <button 
                     onClick={() => handleDownload(document)}
                     className="font-medium text-sm truncate text-left hover:text-primary underline-offset-4 hover:underline cursor-pointer w-full"
-                    title="Click to download"
+                    title="Click to open/download"
                     disabled={!document.file_path}
                   >
                     {document.file_name}
@@ -238,7 +253,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   onClick={() => handleDownload(document)}
                   disabled={!document.file_path}
                   className="h-8 w-8 p-0"
-                  title={document.file_path ? "Download file" : "Download not available"}
+                  title={document.file_path ? "Open/download file" : "Open not available"}
                 >
                   <Download className="h-3 w-3" />
                 </Button>
