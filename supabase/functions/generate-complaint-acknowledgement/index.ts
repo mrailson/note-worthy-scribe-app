@@ -46,69 +46,68 @@ serve(async (req) => {
       patient_name: complaint.patient_name
     });
 
-    // Get practice details if practice_id exists
+    // Get practice details - prioritize user profile first
     let practiceDetails = null;
     let signatureDetails = null;
     
-    if (complaint.practice_id) {
-      console.log('Fetching practice details for practice_id:', complaint.practice_id);
+    console.log('Fetching practice details from user profile first');
+    
+    // First, try to get practice details from user roles (user profile)
+    const { data: userPractice, error: userPracticeError } = await supabase
+      .from('user_roles')
+      .select(`
+        practice_id,
+        practice_details (
+          practice_name, 
+          address, 
+          phone, 
+          email, 
+          logo_url, 
+          practice_logo_url, 
+          footer_text, 
+          website, 
+          show_page_numbers
+        )
+      `)
+      .eq('user_id', complaint.created_by)
+      .not('practice_id', 'is', null)
+      .limit(1)
+      .single();
+    
+    console.log('User practice query result:', { userPractice, userPracticeError });
+    
+    if (userPractice && userPractice.practice_details) {
+      practiceDetails = userPractice.practice_details;
+      console.log('Retrieved practice details from user profile:', practiceDetails);
+    } else if (complaint.practice_id) {
+      console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
         .from('practice_details')
         .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
-      console.log('Retrieved practice details:', practiceDetails);
+      console.log('Retrieved practice details from complaint:', practiceDetails);
     } else {
-      console.log('No practice_id found on complaint, fetching from user roles');
-      
-      const { data: userPractice, error: userPracticeError } = await supabase
-        .from('user_roles')
-        .select(`
-          practice_id,
-          practice_details (
-            practice_name, 
-            address, 
-            phone, 
-            email, 
-            logo_url, 
-            practice_logo_url, 
-            footer_text, 
-            website, 
-            show_page_numbers
-          )
-        `)
-        .eq('user_id', complaint.created_by)
-        .not('practice_id', 'is', null)
+      console.log('Final fallback: fetching practice details directly by practice name');
+      const { data: directPractice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
+        .eq('practice_name', 'Oak Lane Medical Practice')
+        .order('updated_at', { ascending: false })
         .limit(1)
         .single();
       
-      console.log('User practice query result:', { userPractice, userPracticeError });
-      
-      if (userPractice && userPractice.practice_details) {
-        practiceDetails = userPractice.practice_details;
-        console.log('Retrieved practice details from user roles:', practiceDetails);
+      if (directPractice) {
+        practiceDetails = directPractice;
+        console.log('Retrieved practice details directly (latest):', {
+          practice_name: practiceDetails.practice_name,
+          logo_url: practiceDetails.logo_url,
+          practice_logo_url: practiceDetails.practice_logo_url,
+          updated_at: practiceDetails.updated_at
+        });
       } else {
-        console.log('Fallback: fetching practice details directly by practice name');
-        const { data: directPractice } = await supabase
-          .from('practice_details')
-          .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
-          .eq('practice_name', 'Oak Lane Medical Practice')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (directPractice) {
-          practiceDetails = directPractice;
-          console.log('Retrieved practice details directly (latest):', {
-            practice_name: practiceDetails.practice_name,
-            logo_url: practiceDetails.logo_url,
-            practice_logo_url: practiceDetails.practice_logo_url,
-            updated_at: practiceDetails.updated_at
-          });
-        } else {
-          console.log('No practice details found by name');
-        }
+        console.log('No practice details found by name');
       }
     }
 
