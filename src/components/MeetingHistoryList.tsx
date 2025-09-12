@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
+import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -1229,65 +1230,14 @@ export const MeetingHistoryList = ({
                 meetingTitle={meeting.title}
               />
               
-              {/* File Upload Summary - Show if documents exist */}
+              {/* Meeting Documents - Show if documents exist */}
               {meeting.document_count > 0 && (
-                <div className="bg-muted/30 rounded-lg p-3 border border-muted">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Paperclip className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Supporting Documents ({meeting.document_count})</span>
-                  </div>
-                   <div className="space-y-2">
-                     {meeting.documents?.slice(0, 3).map((doc, index) => (
-                       <div key={index} className="flex items-center justify-between text-xs">
-                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                           <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               openDocument(meeting.id, doc.file_name);
-                             }}
-                             className="truncate text-foreground hover:text-primary hover:underline text-left"
-                             title="Click to open document"
-                           >
-                             {doc.file_name}
-                           </button>
-                         </div>
-                          <div className="flex items-center gap-2 text-muted-foreground ml-2">
-                            <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
-                            <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
-                              day: '2-digit', 
-                              month: 'short' 
-                            })}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadDocument(meeting.id, doc.file_name);
-                              }}
-                              className="ml-1 p-1 hover:bg-muted rounded"
-                              title="Download document"
-                            >
-                              <Download className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteDocument(meeting.id, doc.file_name);
-                              }}
-                              className="p-1 hover:bg-destructive/10 rounded"
-                              title="Delete document"
-                            >
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </button>
-                          </div>
-                       </div>
-                     ))}
-                    {meeting.document_count > 3 && (
-                      <div className="text-xs text-muted-foreground italic">
-                        + {meeting.document_count - 3} more file{meeting.document_count - 3 !== 1 ? 's' : ''}...
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <MeetingDocumentsList
+                  meetingId={meeting.id}
+                  documents={meeting.documents}
+                  onDocumentRemoved={() => onRefresh?.()}
+                  className="mb-3"
+                />
               )}
               
               {/* Audio Recording Playback - Show if any recording URLs exist and showRecordingPlayback is true */}
