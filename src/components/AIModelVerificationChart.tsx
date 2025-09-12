@@ -120,15 +120,15 @@ export const AIModelVerificationChart: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-base">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-xl">
                 📊 AI Model Verification Performance Analysis
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Comparison of AI models using BNF Metformin verification task
               </CardDescription>
             </div>
@@ -157,22 +157,22 @@ export const AIModelVerificationChart: React.FC = () => {
             
             {/* Model Status Overview */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Model Status Overview</h3>
+              <h3 className="font-semibold text-xl">Model Status Overview</h3>
               <div className="space-y-3">
                 {modelData.map((model, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-3">
                       {getStatusIcon(model.status)}
                       <div>
-                        <span className="font-medium">{model.service}</span>
-                        <div className="text-sm text-muted-foreground">{model.model}</div>
+                        <span className="font-medium text-lg">{model.service}</span>
+                        <div className="text-base text-muted-foreground">{model.model}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={getRiskBadgeVariant(model.riskLevel)}>
+                      <Badge variant={getRiskBadgeVariant(model.riskLevel)} className="text-sm">
                         {model.riskLevel} risk
                       </Badge>
-                      <span className="text-sm font-medium">
+                      <span className="text-base font-medium">
                         {model.confidenceScore}%
                       </span>
                     </div>
@@ -183,12 +183,12 @@ export const AIModelVerificationChart: React.FC = () => {
 
             {/* Confidence Score Chart */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">Confidence Scores</h3>
-              <ResponsiveContainer width="100%" height={250}>
+              <h3 className="font-semibold text-xl mb-4">Confidence Scores</h3>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={confidenceData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="service" />
-                  <YAxis domain={[0, 100]} />
+                  <XAxis dataKey="service" style={{ fontSize: '14px' }} />
+                  <YAxis domain={[0, 100]} style={{ fontSize: '14px' }} />
                   <Tooltip />
                   <Bar 
                     dataKey="confidence" 
@@ -202,12 +202,12 @@ export const AIModelVerificationChart: React.FC = () => {
 
           {/* Performance Radar Chart */}
           <div className="mt-6">
-            <h3 className="font-semibold text-lg mb-4">Multi-Dimensional Performance</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <h3 className="font-semibold text-xl mb-4">Multi-Dimensional Performance</h3>
+            <ResponsiveContainer width="100%" height={450}>
               <RadarChart data={performanceData}>
                 <PolarGrid />
-                <PolarAngleAxis dataKey="name" />
-                <PolarRadiusAxis domain={[0, 100]} />
+                <PolarAngleAxis dataKey="name" style={{ fontSize: '14px' }} />
+                <PolarRadiusAxis domain={[0, 100]} style={{ fontSize: '14px' }} />
                 <Radar
                   name="Confidence"
                   dataKey="confidence"
@@ -243,20 +243,22 @@ export const AIModelVerificationChart: React.FC = () => {
 
           {/* Response Time vs Confidence Scatter */}
           <div className="mt-6">
-            <h3 className="font-semibold text-lg mb-4">Response Time vs Confidence</h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <h3 className="font-semibold text-xl mb-4">Response Time vs Confidence</h3>
+            <ResponsiveContainer width="100%" height={350}>
               <ScatterChart data={confidenceData.filter(d => d.responseTime > 0)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="responseTime" 
                   name="Response Time (seconds)"
-                  label={{ value: 'Response Time (seconds)', position: 'insideBottom', offset: -10 }}
+                  label={{ value: 'Response Time (seconds)', position: 'insideBottom', offset: -10, fontSize: 14 }}
+                  style={{ fontSize: '14px' }}
                 />
                 <YAxis 
                   dataKey="confidence" 
                   name="Confidence Score"
-                  label={{ value: 'Confidence Score (%)', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Confidence Score (%)', angle: -90, position: 'insideLeft', fontSize: 14 }}
                   domain={[0, 100]}
+                  style={{ fontSize: '14px' }}
                 />
                 <Tooltip 
                   formatter={(value, name) => [
@@ -277,11 +279,11 @@ export const AIModelVerificationChart: React.FC = () => {
           </div>
 
           {/* Key Insights */}
-          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Key Insights</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="mt-6 p-5 bg-muted/30 rounded-lg">
+            <h3 className="font-semibold text-xl mb-3">Key Insights</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base">
               <div>
-                <h4 className="font-medium text-green-700 mb-2">✅ Best Performers</h4>
+                <h4 className="font-medium text-green-700 mb-2 text-lg">✅ Best Performers</h4>
                 <ul className="space-y-1 text-muted-foreground">
                   <li>• <strong>Claude (88% agreement)</strong> - Highest consensus</li>
                   <li>• <strong>OpenAI (87% confidence)</strong> - Fastest response</li>
@@ -289,7 +291,7 @@ export const AIModelVerificationChart: React.FC = () => {
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium text-red-700 mb-2">❌ Failed Models</h4>
+                <h4 className="font-medium text-red-700 mb-2 text-lg">❌ Failed Models</h4>
                 <ul className="space-y-1 text-muted-foreground">
                   <li>• <strong>Google Gemini</strong> - 403 Forbidden error</li>
                   <li>• <strong>Grok</strong> - 404 Not Found error</li>
@@ -300,9 +302,9 @@ export const AIModelVerificationChart: React.FC = () => {
           </div>
 
           {/* Recommendations */}
-          <div className="mt-4 p-4 border-l-4 border-primary bg-primary/5 rounded-r-lg">
-            <h4 className="font-semibold text-primary mb-2">🎯 Recommendations</h4>
-            <ul className="text-sm space-y-1">
+          <div className="mt-4 p-5 border-l-4 border-primary bg-primary/5 rounded-r-lg">
+            <h4 className="font-semibold text-primary mb-2 text-lg">🎯 Recommendations</h4>
+            <ul className="text-base space-y-1">
               <li>• <strong>Primary:</strong> Use Claude 3.5 Haiku for highest agreement scores</li>
               <li>• <strong>Secondary:</strong> Use OpenAI GPT-4o-mini for faster responses</li>
               <li>• <strong>Fallback:</strong> Configure Google Gemini and Grok APIs for redundancy</li>

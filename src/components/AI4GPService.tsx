@@ -850,11 +850,11 @@ const AI4GPService = () => {
 
       {/* AI Model Verification Chart Modal */}
       <Dialog open={showVerificationChart} onOpenChange={setShowVerificationChart}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">AI Model Verification Performance</DialogTitle>
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] p-0">
+          <DialogHeader className="p-6 border-b">
+            <DialogTitle className="text-left text-xl">AI Model Verification Performance</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-6">
             <AIModelVerificationChart />
           </div>
         </DialogContent>
