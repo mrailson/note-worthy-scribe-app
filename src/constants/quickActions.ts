@@ -16,13 +16,6 @@ export interface QuickAction {
 }
 
 export const quickActions: QuickAction[] = [
-  {
-    label: 'Translate Document Image',
-    icon: Languages,
-    prompt: '',
-    requiresFile: false,
-    action: 'translate-document'
-  },
   { 
     label: 'NICE Guidance Finder',
     icon: BookOpen, 
