@@ -325,6 +325,11 @@ Write 2-3 substantial paragraphs that capture the essence of the content. Includ
 - Specific tasks, assignments, and next steps with responsible parties and deadlines
 - Follow-up activities or commitments identified
 
+**MATTERS TO REVISIT**
+- Items deferred or requiring future consideration with context and timelines
+- Outstanding issues or unresolved questions that need follow-up
+- Strategic considerations for future meetings or decisions
+
 **NEXT STEPS & FOLLOW-UP**
 - Any scheduled follow-up meetings, review dates, or important future milestones
 - Planned activities or continuation of programmes

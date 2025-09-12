@@ -43,6 +43,10 @@ Format:
 • **[Clinical Action]** - Assigned to: [Clinical role] | Due: [Date] | **Care Impact:** [Clinical outcome]
 • **[PCN Action]** - Assigned to: [PCN role] | Due: [Date] | **Service Impact:** [Collaborative effect]
 
+## Matters to Revisit
+• **[Item requiring follow-up]** - [Reason for deferral] | **Review needed:** [When/why]
+• **[Outstanding issue]** - [Context and next steps] | **Assigned to:** [Who will address]
+
 ## Critical Next Steps
 • **Immediate (This Week):** [Urgent operational or clinical tasks affecting patient services]
 • **Short-term (2-4 weeks):** [Implementation steps for service changes or practice improvements]
@@ -91,6 +95,11 @@ Brief context and purpose - [Practice partnership/PCN strategic/Clinical governa
 • **Clinical Leadership:** [Clinical pathway/quality actions] - [Timeline] - [Professional development needs]  
 • **PCN Leadership:** [Collaborative initiatives] - [Timeline] - [Inter-practice coordination requirements]
 • **Partnership Board:** [Strategic decisions requiring partner approval] - [Timeline] - [Business case needs]
+
+## Matters to Revisit
+• **[Deferred decision]** - [Reason for deferral] | **Next review:** [Timeline]
+• **[Outstanding issue]** - [Context and implications] | **Action needed:** [Who/what/when]
+• **[Future consideration]** - [Strategic importance] | **Follow-up required:** [Process/timeline]
 
 ## Resource Requirements & Investment Decisions
 • **Staffing:** [New hires, role changes, training investments, workforce planning]
@@ -178,6 +187,15 @@ Format:
 ### PCN-Level Actions  
 • **[PCN Role/Team]** - [Collaborative action] | **Due:** [Date] | **Practices affected:** [Which practices]
 • **[PCN Role/Team]** - [Service delivery task] | **Due:** [Date] | **Patient impact:** [Service implications]
+
+## MATTERS TO REVISIT
+### Deferred Items
+• **[Deferred topic]** - [Reason for deferral] | **Next review:** [When] | **Who responsible:** [Name/role]
+• **[Outstanding issue]** - [Context and current status] | **Action required:** [Next steps] | **Timeline:** [When]
+
+### Future Considerations
+• **[Strategic item]** - [Why important for future] | **Dependencies:** [What needs to happen first]
+• **[Policy/process review]** - [Current gaps or concerns] | **Review schedule:** [When to address]
 
 ## COMPLIANCE & GOVERNANCE MATTERS
 ### Regulatory Requirements

@@ -296,6 +296,11 @@ CONSOLIDATED DECISIONS FROM ENTIRE MEETING
 CONSOLIDATED ACTION ITEMS FROM ENTIRE MEETING
 [All actions assigned throughout the meeting with sources]
 
+MATTERS TO REVISIT
+[Topics postponed or requiring follow-up]
+• [Deferred item] - [Reason for deferral] | Next review: [Timeline]
+• [Outstanding issue] - [Context] | Action needed: [Next steps]
+
 DEFERRED ITEMS
 [Topics postponed or requiring follow-up]
 
@@ -359,6 +364,11 @@ CONSOLIDATED ACTIONS ARISING:
 Action 1: [Responsible person] - [Specific action] - [Deadline] - [Source agenda item]
 Action 2: [Next action with details]
 [Continue for all actions from entire meeting]
+
+MATTERS TO REVISIT:
+[Any items postponed with reasons and timelines for future consideration]
+• Item 1: [Deferred matter] - [Reason] - [Next review date] - [Responsible person]
+• Item 2: [Outstanding issue] - [Context] - [Action needed] - [Timeline]
 
 ITEMS DEFERRED:
 [Any items postponed with reasons]

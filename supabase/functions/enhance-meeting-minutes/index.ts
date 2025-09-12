@@ -66,18 +66,18 @@ serve(async (req) => {
         break;
 
       case 'add_action_items':
-        systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organizing them clearly.`;
-        userPrompt = `Please identify and clearly organize all action items, decisions, and follow-up tasks from these meeting minutes:\n\n${originalContent}`;
+        systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organizing them clearly. Use "Matters to Revisit" for any deferred or unresolved items (never use "Parking Lot").`;
+        userPrompt = `Please identify and clearly organize all action items, decisions, follow-up tasks, and matters to revisit from these meeting minutes:\n\n${originalContent}`;
         break;
 
       case 'nhs_format':
-        systemPrompt = `You are an expert in NHS meeting documentation standards. Format meeting minutes according to NHS governance and documentation standards with proper clinical and administrative structure.`;
-        userPrompt = `Please format the following meeting minutes according to NHS governance standards:\n\n${originalContent}`;
+        systemPrompt = `You are an expert in NHS meeting documentation standards. Format meeting minutes according to NHS governance and documentation standards with proper clinical and administrative structure. Use "Matters to Revisit" for deferred items, never "Parking Lot".`;
+        userPrompt = `Please format the following meeting minutes according to NHS governance standards, ensuring any deferred items are listed under "Matters to Revisit":\n\n${originalContent}`;
         break;
 
       case 'board_ready':
-        systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting content into board-ready format with executive summaries, key decisions highlighted, and professional presentation.`;
-        userPrompt = `Please transform the following meeting minutes into board-ready format:\n\n${originalContent}`;
+        systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting content into board-ready format with executive summaries, key decisions highlighted, and professional presentation. Use "Matters to Revisit" for any deferred or follow-up items (never use "Parking Lot").`;
+        userPrompt = `Please transform the following meeting minutes into board-ready format, ensuring deferred items are under "Matters to Revisit":\n\n${originalContent}`;
         break;
 
       case 'custom':
