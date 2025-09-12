@@ -70,7 +70,7 @@ Cleaned transcript:
           { role: 'system', content: 'You are a transcript cleaner. Delete duplicates/fragments only, no paraphrasing.' },
           { role: 'user', content: instructions }
         ],
-        max_completion_tokens: 4000,
+        max_tokens: 4000,
       }),
     });
 
@@ -81,7 +81,13 @@ Cleaned transcript:
     }
 
     const data = await response.json();
-    const cleanedTranscript = data.choices[0].message.content;
+    const rawContent = data.choices?.[0]?.message?.content || '';
+
+    // Normalize paragraph spacing: convert CRLF to LF, collapse excessive newlines, and ensure clear paragraph breaks
+    const cleanedTranscript = rawContent
+      .replace(/\r\n/g, '\n')
+      .trim()
+      .replace(/\n{3,}/g, '\n\n');
 
     console.log('✅ Strict GPT cleaning completed, output length:', cleanedTranscript.length);
 
