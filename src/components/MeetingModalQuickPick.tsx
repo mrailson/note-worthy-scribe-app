@@ -304,7 +304,7 @@ export function MeetingModalQuickPick({
             ) : (
               <>
                 <Wand2 className="h-4 w-4 mr-2" />
-                Quick Pick
+                Quick Pick 1
                 <ChevronDown className="h-4 w-4 ml-2" />
               </>
             )}
