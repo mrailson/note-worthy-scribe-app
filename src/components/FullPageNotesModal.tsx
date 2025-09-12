@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
+import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
@@ -2261,6 +2262,7 @@ ${transcript}`;
     };
 
     const result = actions[action]?.();
+    if (result) {
       if (activeTab === "notes") {
         onNotesChange(result);
       }
@@ -3205,15 +3207,6 @@ ${transcript}`;
           currentText={getCurrentContent()}
         />
 
-        {/* Find & Replace Panel */}
-        <EnhancedFindReplacePanel
-          show={showFindReplace}
-          onClose={() => setShowFindReplace(false)}
-          content={getCurrentContent()}
-          onReplace={(newContent) => {
-            onNotesChange(newContent);
-          }}
-        />
       </Dialog>
     );
   };
