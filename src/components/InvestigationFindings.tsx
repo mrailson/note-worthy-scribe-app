@@ -224,9 +224,9 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
               <Label className="text-sm font-medium">Investigation Summary</Label>
               <div className="mt-1 p-4 bg-background/50 border rounded-lg">
                 <div 
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none whitespace-pre-wrap"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderNHSMarkdown(findings.investigation_summary || "")
+                    __html: renderNHSMarkdown(findings.investigation_summary || "", { enableNHSStyling: true })
                   }} 
                 />
               </div>
@@ -236,9 +236,9 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
               <Label className="text-sm font-medium">Detailed Findings</Label>
               <div className="mt-1 p-4 bg-background/50 border rounded-lg">
                 <div 
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none whitespace-pre-wrap"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderNHSMarkdown(findings.findings_text || "")
+                    __html: renderNHSMarkdown(findings.findings_text || "", { enableNHSStyling: true })
                   }} 
                 />
               </div>
