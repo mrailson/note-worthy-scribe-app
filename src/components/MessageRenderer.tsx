@@ -32,7 +32,9 @@ import {
   Languages,
   Printer,
   WandSparkles,
-  Palette
+  Palette,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -67,6 +69,8 @@ interface MessageRendererProps {
   onQuickResponse?: (response: string) => void; // New prop for quick responses
   onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
   autoCollapseUserPrompts?: boolean; // New prop to auto-collapse user prompts
+  onSpeakMessage?: (content: string, messageId: string) => void; // New prop for speaking messages
+  speakingMessageId?: string; // New prop to track which message is speaking
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -81,7 +85,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   showAIService = false,
   onQuickResponse,
   onSetDrugName,
-  autoCollapseUserPrompts = false
+  autoCollapseUserPrompts = false,
+  onSpeakMessage,
+  speakingMessageId
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -699,7 +705,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               {message.role === 'user' ? (
                 <User className="h-3 w-3 sm:h-4 sm:w-4 text-primary-foreground" />
               ) : (
-                <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <button
+                  onClick={() => onSpeakMessage?.(message.content, message.id)}
+                  className="h-full w-full flex items-center justify-center hover:bg-muted-foreground/10 rounded-full transition-colors group"
+                  title={speakingMessageId === message.id ? "Stop speaking" : "Speak this message"}
+                  disabled={!onSpeakMessage}
+                >
+                  {speakingMessageId === message.id ? (
+                    <Volume2 className="h-3 w-3 sm:h-4 sm:w-4 text-primary animate-pulse" />
+                  ) : (
+                    <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  )}
+                </button>
               )}
             </div>
             

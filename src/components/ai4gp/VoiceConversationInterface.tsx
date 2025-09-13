@@ -35,6 +35,7 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
   // Available ElevenLabs voices
   const voices = [
@@ -72,11 +73,20 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
   }, []);
 
   // Text-to-speech function using ElevenLabs
-  const speakText = useCallback(async (text: string) => {
-    if (!text.trim() || !autoSpeak) return;
+  const speakText = useCallback(async (text: string, messageId?: string) => {
+    if (!text.trim()) return;
 
     try {
+      // If this message is already speaking, stop it
+      if (messageId && speakingMessageId === messageId) {
+        stopAudio();
+        return;
+      }
+
       setIsSpeaking(true);
+      if (messageId) {
+        setSpeakingMessageId(messageId);
+      }
       
       const { data, error } = await supabase.functions.invoke('elevenlabs-text-to-speech', {
         body: {
@@ -95,12 +105,14 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
         
         audio.onended = () => {
           setIsSpeaking(false);
+          setSpeakingMessageId(null);
           setCurrentAudio(null);
         };
         
         audio.onerror = (error) => {
           console.error('Audio playback error:', error);
           setIsSpeaking(false);
+          setSpeakingMessageId(null);
           setCurrentAudio(null);
           toast({
             title: "Audio Error",
@@ -127,25 +139,27 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
             ),
           });
           setIsSpeaking(false);
+          setSpeakingMessageId(null);
           setCurrentAudio(null);
         }
       }
     } catch (error) {
       console.error('❌ Text-to-speech error:', error);
       setIsSpeaking(false);
+      setSpeakingMessageId(null);
       toast({
         title: "Speech Error",
         description: "Failed to play AI response audio.",
         variant: "destructive",
       });
     }
-  }, [autoSpeak, selectedVoice, toast]);
+  }, [selectedVoice, toast, speakingMessageId]);
 
   // Auto-speak new AI messages
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && autoSpeak) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'assistant' && !isLoading && autoSpeak) {
+      if (lastMessage.role === 'assistant' && !isLoading) {
         // Small delay to ensure message is fully rendered
         setTimeout(() => {
           speakText(lastMessage.content);
@@ -161,8 +175,14 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
       setIsSpeaking(false);
+      setSpeakingMessageId(null);
     }
   }, [currentAudio]);
+
+  // Handle speaking messages from robot icon clicks
+  const handleSpeakMessage = useCallback((content: string, messageId: string) => {
+    speakText(content, messageId);
+  }, [speakText]);
 
   // Toggle auto-speak
   const toggleAutoSpeak = useCallback(() => {
@@ -279,6 +299,8 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
           isLoading={isLoading}
           expandedMessage={null}
           setExpandedMessage={() => {}}
+          onSpeakMessage={handleSpeakMessage}
+          speakingMessageId={speakingMessageId}
         />
       </div>
 
