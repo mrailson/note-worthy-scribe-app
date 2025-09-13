@@ -38,10 +38,10 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
 
   // Available ElevenLabs voices
   const voices = [
-    { id: 'alloy', name: 'Alloy' },
-    { id: 'echo', name: 'Echo' },
-    { id: 'shimmer', name: 'Shimmer' },
-    { id: 'sage', name: 'Sage' }
+    { id: 'alloy', name: 'Sarah (Alloy)' },
+    { id: 'echo', name: 'Aria (Echo)' },
+    { id: 'shimmer', name: 'Laura (Shimmer)' },
+    { id: 'sage', name: 'Roger (Sage)' }
   ];
 
   // Handle transcript updates from mic
@@ -98,12 +98,37 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
           setCurrentAudio(null);
         };
         
-        audio.onerror = () => {
+        audio.onerror = (error) => {
+          console.error('Audio playback error:', error);
           setIsSpeaking(false);
           setCurrentAudio(null);
+          toast({
+            title: "Audio Error",
+            description: "Failed to play audio. Try clicking to enable sound.",
+            variant: "destructive",
+          });
         };
         
-        await audio.play();
+        try {
+          await audio.play();
+        } catch (playError) {
+          console.error('Audio play error:', playError);
+          // Show user-friendly message for autoplay blocking
+          toast({
+            title: "Enable Sound",
+            description: "Click to enable audio playback for AI responses.",
+            action: (
+              <button 
+                onClick={() => audio.play().catch(console.error)}
+                className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm"
+              >
+                Enable
+              </button>
+            ),
+          });
+          setIsSpeaking(false);
+          setCurrentAudio(null);
+        }
       }
     } catch (error) {
       console.error('❌ Text-to-speech error:', error);

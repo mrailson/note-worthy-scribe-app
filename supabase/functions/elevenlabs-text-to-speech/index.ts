@@ -23,8 +23,12 @@ serve(async (req) => {
       throw new Error('ElevenLabs API key not configured')
     }
 
-    // Voice ID mapping for common voices
+    // Voice ID mapping for ElevenLabs voices
     const voiceIds: Record<string, string> = {
+      'alloy': 'EXAVITQu4vr4xnSDxMaL', // Sarah
+      'echo': '9BWtsMINqrJLrRacOk9x',  // Aria  
+      'shimmer': 'FGY2WhTYpPnrIDTdsKH5', // Laura
+      'sage': 'CwhRBWXzGAHq8TQ4Fs17',   // Roger
       'Sarah': 'EXAVITQu4vr4xnSDxMaL',
       'Aria': '9BWtsMINqrJLrRacOk9x',
       'Roger': 'CwhRBWXzGAHq8TQ4Fs17',
@@ -33,7 +37,7 @@ serve(async (req) => {
       'George': 'JBFqnCBsd6RMkjVDRZzb'
     }
 
-    const voiceId = voiceIds[voice] || voiceIds['Sarah']
+    const voiceId = voiceIds[voice] || voiceIds['alloy']
 
     // Generate speech using ElevenLabs
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -59,11 +63,18 @@ serve(async (req) => {
       throw new Error(`ElevenLabs API error: ${response.status}`)
     }
 
-    // Convert audio to base64
+    // Convert audio to base64 (handle large arrays to avoid stack overflow)
     const arrayBuffer = await response.arrayBuffer()
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    )
+    const uint8Array = new Uint8Array(arrayBuffer)
+    
+    // Process in chunks to avoid "Maximum call stack size exceeded"
+    let binaryString = ''
+    const chunkSize = 8192
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize)
+      binaryString += String.fromCharCode(...chunk)
+    }
+    const base64Audio = btoa(binaryString)
 
     return new Response(
       JSON.stringify({ 
