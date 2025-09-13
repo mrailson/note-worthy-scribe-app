@@ -1,91 +1,129 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { event_type, severity = 'medium', event_details = {} } = await req.json();
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Get user information from request headers
-    const authHeader = req.headers.get('Authorization');
-    const userAgent = req.headers.get('User-Agent');
-    const clientInfo = req.headers.get('x-client-info');
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization')
+    let userId: string | null = null
+    let userEmail: string | null = null
 
-    // Extract IP address from various possible headers
-    const getClientIP = (request: Request): string | null => {
-      const headers = [
-        'x-forwarded-for',
-        'x-real-ip',
-        'x-client-ip',
-        'cf-connecting-ip',
-      ];
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error } = await supabaseClient.auth.getUser(token)
       
-      for (const header of headers) {
-        const value = request.headers.get(header);
-        if (value) {
-          return value.split(',')[0].trim();
-        }
+      if (user && !error) {
+        userId = user.id
+        userEmail = user.email || null
       }
-      
-      return null;
-    };
-
-    const ipAddress = getClientIP(req);
-
-    // Log the security event with enhanced details
-    const enhancedEventDetails = {
-      ...event_details,
-      user_agent: userAgent,
-      client_info: clientInfo,
-      ip_address: ipAddress,
-      timestamp: new Date().toISOString(),
-      request_id: crypto.randomUUID(),
-    };
-
-    console.log(`Security Event [${severity.toUpperCase()}]: ${event_type}`, enhancedEventDetails);
-
-    // For high and critical severity events, we could trigger additional actions
-    if (severity === 'high' || severity === 'critical') {
-      console.warn(`CRITICAL SECURITY EVENT: ${event_type}`, enhancedEventDetails);
-      
-      // In a production environment, you might want to:
-      // - Send alerts to security team
-      // - Trigger automated responses
-      // - Update threat intelligence
     }
 
-    // Return success response
+    // Parse request body
+    const { 
+      eventType, 
+      severity = 'medium', 
+      eventDetails = {},
+      ipAddress = null,
+      userAgent = null
+    } = await req.json()
+
+    // Validate required fields
+    if (!eventType) {
+      return new Response(
+        JSON.stringify({ error: 'eventType is required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get IP address from request if not provided
+    const clientIP = ipAddress || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    
+    // Get user agent if not provided
+    const clientUserAgent = userAgent || req.headers.get('user-agent') || 'unknown'
+
+    // Log the security event using the database function
+    const { data: logResult, error: logError } = await supabaseClient.rpc('log_security_event', {
+      p_event_type: eventType,
+      p_severity: severity,
+      p_user_id: userId,
+      p_user_email: userEmail,
+      p_ip_address: clientIP,
+      p_user_agent: clientUserAgent,
+      p_event_details: eventDetails
+    })
+
+    if (logError) {
+      console.error('Database logging error:', logError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to log security event', details: logError.message }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Also log to console for immediate monitoring
+    console.log(`[SECURITY EVENT] ${eventType} - ${severity}`, {
+      userId,
+      userEmail,
+      eventDetails,
+      timestamp: new Date().toISOString(),
+      logId: logResult
+    })
+
+    // Check for high severity events and potentially send alerts
+    if (severity === 'high' || severity === 'critical') {
+      console.warn(`[HIGH SEVERITY SECURITY EVENT] ${eventType}`, {
+        userId,
+        userEmail,
+        eventDetails,
+        requiresAttention: true
+      })
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Security event logged successfully',
-        event_id: enhancedEventDetails.request_id
+      JSON.stringify({ 
+        success: true, 
+        logId: logResult,
+        message: 'Security event logged successfully'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
       }
-    );
+    )
 
   } catch (error) {
-    console.error('Error logging security event:', error);
+    console.error('Security logging error:', error)
     
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Failed to log security event',
-        message: error.message
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message 
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    );
+    )
   }
-});
+})

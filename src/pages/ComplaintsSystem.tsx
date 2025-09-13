@@ -25,6 +25,7 @@ import {
 } from "@/utils/patientDataMasking";
 import { PatientDataDisclosureWarning, PatientDataWarningBanner } from "@/components/PatientDataDisclosure";
 import { usePatientDataAccess } from "@/hooks/usePatientDataAccess";
+import { NHSComplianceBanner } from "@/components/NHSComplianceBanner";
 
 import { 
   AlertCircle, 
@@ -1232,6 +1233,9 @@ const ComplaintsSystem = () => {
             </div>
           </div>
         </div>
+
+        {/* NHS Compliance Banner */}
+        <NHSComplianceBanner activeSessionsCount={getActiveSessionCount()} />
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 h-auto p-1">
@@ -2802,7 +2806,19 @@ const ComplaintsSystem = () => {
            />
          )}
          
-         {/* Success Modal */}
+          {/* Patient Data Disclosure Dialog */}
+          {showDisclosureDialog && pendingAccess && (
+            <PatientDataDisclosureWarning
+              isOpen={showDisclosureDialog}
+              onClose={() => setShowDisclosureDialog(false)}
+              onApprove={() => approveAccess('Complaint investigation', 'NHS complaint handling')}
+              patientReference={pendingAccess.patientName.charAt(0) + '***'}
+              complaintReference={pendingAccess.complaintReference}
+              userRole={userRole || 'standard'}
+            />
+          )}
+
+          {/* Success Modal */}
          <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
            <DialogContent className="sm:max-w-md">
              <DialogHeader>
