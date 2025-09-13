@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
@@ -21,6 +21,7 @@ interface InputAreaProps {
   isLoading: boolean;
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
+  onNewChat?: () => void;
 }
 
 export interface InputAreaRef {
@@ -35,7 +36,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   onSend,
   isLoading,
   isClinical,
-  setIsClinical
+  setIsClinical,
+  onNewChat
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -195,6 +197,16 @@ ${pastedText.trim()}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
+                  {onNewChat && (
+                    <DropdownMenuItem 
+                      onClick={onNewChat}
+                      disabled={isLoading}
+                      className="cursor-pointer"
+                    >
+                      <MessageSquareMore className="w-4 h-4 mr-2" />
+                      Start New Chat
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}

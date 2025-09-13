@@ -721,6 +721,7 @@ const AI4GPService = () => {
                         isLoading={isLoading}
                         isClinical={isClinical}
                         setIsClinical={setIsClinical}
+                        onNewChat={handleNewSearch}
                       />
                     </div>
                   )}
