@@ -960,7 +960,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                 {editingOutcomeLetter ? 'Edit Outcome Letter' : 'Outcome Letter'}
               </DialogTitle>
             </DialogHeader>
-            <div className="flex-1 min-h-0 p-6">
+            <div className="flex-1 min-h-0 p-6 overflow-hidden">
               {editingOutcomeLetter ? (
                 <div className="h-full flex flex-col">
                   <Textarea
@@ -972,8 +972,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   />
                 </div>
               ) : (
-                <div className="bg-gray-50 p-4 rounded-lg border h-full overflow-y-auto">
-                  <FormattedLetterContent content={outcomeLetter} />
+                <div className="h-full overflow-y-auto bg-gray-50 rounded-lg border">
+                  <div className="p-4">
+                    <FormattedLetterContent content={outcomeLetter} />
+                  </div>
                 </div>
               )}
             </div>
