@@ -16,8 +16,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintImport } from "@/components/ComplaintImport";
-
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
+import { 
+  maskPatientData, 
+  getUserRoleLevel, 
+  canViewFullPatientData,
+  PatientDataMaskingOptions 
+} from "@/utils/patientDataMasking";
+import { PatientDataDisclosureWarning, PatientDataWarningBanner } from "@/components/PatientDataDisclosure";
+import { usePatientDataAccess } from "@/hooks/usePatientDataAccess";
 
 import { 
   AlertCircle, 
@@ -161,6 +168,20 @@ const ComplaintsSystem = () => {
   const [auditActionFilter, setAuditActionFilter] = useState("all");
   const [auditLoading, setAuditLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('workflow');
+  
+  // Patient data access management
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const {
+    showDisclosureDialog,
+    pendingAccess,
+    requestPatientDataAccess,
+    approveAccess,
+    revokeAccess,
+    setShowDisclosureDialog,
+    hasActiveAccess,
+    getTimeRemaining,
+    getActiveSessionCount
+  } = usePatientDataAccess({ userRole });
 
   // Fetch audit logs when audit tab is selected
   useEffect(() => {
@@ -372,8 +393,32 @@ const ComplaintsSystem = () => {
   useEffect(() => {
     if (user) {
       fetchComplaints();
+      fetchUserRole();
     }
   }, [user]);
+
+  const fetchUserRole = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: roleData, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return;
+      }
+      
+      setUserRole(roleData?.role || 'standard');
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+      setUserRole('standard');
+    }
+  };
 
   useEffect(() => {
     if (complaints.length > 0) {
@@ -1507,7 +1552,14 @@ const ComplaintsSystem = () => {
                             </div>
                             <CardDescription className="flex items-center gap-4">
                               <span><strong>Ref:</strong> {complaint.reference_number}</span>
-                              <span><strong>Patient:</strong> {complaint.patient_name}</span>
+                              <span><strong>Patient:</strong> {
+                                hasActiveAccess(complaint.id) 
+                                  ? complaint.patient_name
+                                  : maskPatientData(complaint, { 
+                                      showFullData: false, 
+                                      roleLevel: getUserRoleLevel(userRole) 
+                                    }).name
+                              }</span>
                               <span><strong>Date:</strong> {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</span>
                             </CardDescription>
                           </div>
