@@ -31,8 +31,8 @@ export const useAI4GPService = () => {
   const [autoCollapseUserPrompts, setAutoCollapseUserPrompts] = useState(false);
   
   // Voice Assistant Settings
-  const [gpGenieVoiceEnabled, setGpGenieVoiceEnabled] = useState(true);
-  const [pmGenieVoiceEnabled, setPmGenieVoiceEnabled] = useState(true);
+  const [gpGenieVoiceEnabled, setGpGenieVoiceEnabled] = useState(false);
+  const [pmGenieVoiceEnabled, setPmGenieVoiceEnabled] = useState(false);
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
