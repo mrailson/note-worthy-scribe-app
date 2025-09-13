@@ -209,9 +209,16 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
                   <p className="text-sm">{currentTranscript}</p>
                 </div>
               )}
-              <div className="flex gap-2">
-                <Button size="sm" disabled={!currentTranscript.trim() || isLoading} onClick={sendTranscript}>
-                  Send
+              
+              {/* Send/Clear controls - always visible for better user experience */}
+              <div className="flex gap-2 mt-2">
+                <Button 
+                  size="sm" 
+                  disabled={!currentTranscript.trim() || isLoading} 
+                  onClick={sendTranscript}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Send Message
                 </Button>
                 <Button size="sm" variant="outline" onClick={clearCurrent}>
                   Clear
