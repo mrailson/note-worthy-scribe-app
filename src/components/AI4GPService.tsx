@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -31,6 +31,7 @@ import { AIModelVerificationChart } from '@/components/AIModelVerificationChart'
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
+import { VoiceConversationInterface } from '@/components/ai4gp/VoiceConversationInterface';
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -107,6 +108,9 @@ const AI4GPService = () => {
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
+  
+  // Voice conversation state
+  const [voiceModeEnabled, setVoiceModeEnabled] = useState(false);
 
   // Local policy state - remove from component since it's now in the hook
   // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
@@ -442,16 +446,29 @@ const AI4GPService = () => {
                        </DropdownMenuContent>
                      </DropdownMenu>
                      
-                     {/* Settings Button */}
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setShowSettings(true)}
-                       className="px-2 sm:px-3"
-                     >
-                       <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                       <span className="hidden sm:inline text-xs">Settings</span>
-                     </Button>
+                      {/* Voice Mode Toggle */}
+                      <Button
+                        variant={voiceModeEnabled ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setVoiceModeEnabled(!voiceModeEnabled)}
+                        className="px-2 sm:px-3"
+                      >
+                        <Mic className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <span className="hidden sm:inline text-xs">
+                          {voiceModeEnabled ? 'Voice On' : 'Voice'}
+                        </span>
+                      </Button>
+                      
+                      {/* Settings Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSettings(true)}
+                        className="px-2 sm:px-3"
+                      >
+                        <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <span className="hidden sm:inline text-xs">Settings</span>
+                      </Button>
                    </div>
                 </div>
               </CardHeader>
@@ -684,32 +701,41 @@ const AI4GPService = () => {
                   ) : (
                     /* Messages Area */
                     <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                     <MessagesList
-                        messages={messages}
-                        isLoading={isLoading}
-                        expandedMessage={expandedMessage}
-                        setExpandedMessage={setExpandedMessage}
-                        onExportWord={generateWordDocument}
-                        onExportPowerPoint={generatePowerPoint}
-                        showResponseMetrics={showResponseMetrics}
-                        showRenderTimes={showRenderTimes}
-                        showAIService={showAIService}
-                         onSetDrugName={(drugName: string) => {
-                           if (setDrugNameFn) {
-                             setDrugNameFn(drugName);
-                           }
-                         }}
-                        autoCollapseUserPrompts={autoCollapseUserPrompts}
-                        onQuickResponse={(response) => {
-                          // Use the selected model from settings
-                          handleQuickResponse(response, practiceContext, selectedModel);
-                        }}
-                      />
+                      {voiceModeEnabled ? (
+                        <VoiceConversationInterface
+                          messages={messages}
+                          onSendMessage={(message) => handleSendWithContext(message)}
+                          isLoading={isLoading}
+                          className="h-full"
+                        />
+                      ) : (
+                        <MessagesList
+                          messages={messages}
+                          isLoading={isLoading}
+                          expandedMessage={expandedMessage}
+                          setExpandedMessage={setExpandedMessage}
+                          onExportWord={generateWordDocument}
+                          onExportPowerPoint={generatePowerPoint}
+                          showResponseMetrics={showResponseMetrics}
+                          showRenderTimes={showRenderTimes}
+                          showAIService={showAIService}
+                           onSetDrugName={(drugName: string) => {
+                             if (setDrugNameFn) {
+                               setDrugNameFn(drugName);
+                             }
+                           }}
+                          autoCollapseUserPrompts={autoCollapseUserPrompts}
+                          onQuickResponse={(response) => {
+                            // Use the selected model from settings
+                            handleQuickResponse(response, practiceContext, selectedModel);
+                          }}
+                        />
+                      )}
                     </div>
                   )}
                   
-                  {/* Input Area at Bottom - Desktop only */}
-                  {!showNews && !showSettings && !showImageService && !isMobile && (
+                  {/* Input Area at Bottom - Desktop only - Hide in voice mode */}
+                  {!showNews && !showSettings && !showImageService && !isMobile && !voiceModeEnabled && (
                     <div className="border-t">
                       <InputArea
                         ref={inputRef}
@@ -732,8 +758,8 @@ const AI4GPService = () => {
         </div>
       </div>
 
-      {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
-      {isMobile && !showNews && !showSettings && !showImageService && (
+      {/* Mobile Floating Input - Outside main container to avoid overflow clipping - Hide in voice mode */}
+      {isMobile && !showNews && !showSettings && !showImageService && !voiceModeEnabled && (
         <FloatingMobileInput
           ref={inputRef}
           input={input}
