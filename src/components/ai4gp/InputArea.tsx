@@ -196,7 +196,7 @@ ${pastedText.trim()}
                     <Plus className="w-16 h-16" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-lg">
+                <DropdownMenuContent align="start" side="top" className="w-48 bg-white border border-border shadow-lg z-50">
                   {onNewChat && (
                     <DropdownMenuItem 
                       onClick={onNewChat}
