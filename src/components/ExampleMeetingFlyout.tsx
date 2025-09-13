@@ -20,76 +20,126 @@ type FnResult = { meta?: any; styles?: SixStyles } | null;
 type Tab = "danda" | "resolution" | "transcript";
 
 const SETTINGS = {
-  title: "Practice Management / Partners' Meeting",
+  title: "Patient Consultation - Mrs Sarah Mitchell",
   practice: "Oak Lane Medical Practice",
   date: "2025-08-22",
-  time: "19:00",
-  venue: "Oak Lane Medical Practice - Meeting Room",
-  chair: "Dr John Smith",
-  attendees: ["GP Partners", "Practice Manager (Sarah Trisson)"],
+  time: "14:30",
+  venue: "Oak Lane Medical Practice - Room 3",
+  clinician: "Dr John Smith",
+  patient: "Mrs Sarah Mitchell (DOB: 15/03/1967, NHS: 456 789 0123)",
 };
 
-const SAMPLE_TRANSCRIPT = `Right, thanks everyone for staying on after surgery. We'll try to keep this to about half an hour if we can, though there are quite a few things to get through today. First, just to check, does anyone have any urgent items to add to the agenda before we start? No? Okay, great. Let's begin.
+const SAMPLE_TRANSCRIPT = `Good afternoon, Mrs Mitchell. Thank you for coming in today. I can see from your notes that you've been having some issues with persistent cough and feeling generally unwell. Can you tell me a bit more about what's been happening?
 
-So, the first thing is the patient list numbers. We've seen a small increase again this month, around 120 new registrations, mostly younger families and a few people moving in from nearby practices. This does mean our list size is now just over 12,600, which is putting additional pressure on our capacity, particularly in terms of appointments and repeat prescribing workload. We need to think about whether we're at a point where we can justify requesting an additional ARRS role or whether we need to reconfigure our current allocation. We'll come back to ARRS roles later on the agenda, but keep that in mind.
+Well, Doctor Smith, it started about three weeks ago. At first I thought it was just a cold, you know, because my granddaughter had been poorly the week before. But it's just not shifted. The cough is really bothering me, especially at night. I'm hardly getting any sleep, and my husband says I'm keeping him awake too.
 
-Next up, winter planning. We had the briefing from the ICB about anticipated seasonal pressures, and it looks like demand is expected to be high again, particularly with respiratory infections in children and frail elderly patients. They're encouraging practices to expand same-day access wherever possible and to work closely with the neighbourhood team for home visiting and frailty. Our current same-day capacity is stretched already, and last week we had days where we were well over the safe limits. We either need to look at extending duty doctor hours or using some of the PCN acute visiting service more actively. How do we feel about that? I know duty is already a sticking point for most of us, but if we can't create more same-day appointments, we'll just end up with an overwhelmed reception team and more complaints. Maybe we can pilot having an extra session on Mondays and Fridays for the next two months. That might help with peaks.
+I see. Can you describe the cough for me? Is it dry or are you bringing anything up?
 
-Speaking of complaints, I've looked at the last month's feedback and complaints log. We had three formal complaints and about ten bits of informal feedback, mostly related to waiting times and call queues. One patient said they were waiting 45 minutes on the phone, which is obviously not acceptable. We've been trialling the new cloud-based telephony, and while call quality is better, the queuing system seems to be confusing patients. They think they're being cut off when actually they're in the queue. We might need to add a clearer message or update the call-back option so patients understand what's happening. Also, one complaint was about an interaction with a receptionist—tone of voice described as rude and unhelpful. We know the team are under pressure, but we'll need to do another round of customer service training and maybe a short refresher on conflict management. I'll get a quote for that and bring it back next month.
+It's mostly dry, but sometimes in the morning there's a bit of clear phlegm. Nothing colored or blood or anything like that. It's just this persistent tickling feeling in my throat that makes me cough.
 
-Next item: finances. We're still waiting on the PCN DES payment for Q1, which is frustrating because it affects our cash flow. In the meantime, locum costs have gone up again. July's locum spend was about £7,800, largely due to annual leave cover and sickness. We can't sustain that long term, so we need to think about whether we can bring in a salaried doctor. The problem is recruitment—we've had the advert out for months with barely any interest. Do we consider another nurse practitioner instead? They can pick up minor illness and some chronic disease work, which might relieve the GPs a bit. But we need to weigh that against QOF performance and patient expectations. Patients still want to see a GP, and while NPs are great, there's a perception issue we can't ignore.
+Right. And you mentioned feeling generally unwell - can you expand on that?
 
-While we're on finances, the energy bills have gone up again. We're now paying nearly £1,500 a month for gas and electric. We could look at another energy supplier, but realistically, the savings will be minimal. Longer term, we might want to explore solar panels or some sort of efficiency grant. For now, though, we'll just need to factor this into our forecast. I'll share the updated cash flow spreadsheet on Teams after the meeting.
+Yes, I've been feeling quite tired, more than usual. I know I'm 57 now, but I'm normally quite active. I walk the dog twice a day and do my yoga classes. But for the last couple of weeks, I've just felt drained. Even climbing the stairs leaves me a bit breathless, which isn't like me at all.
 
-Moving on to clinical governance. We've had a couple of significant events to review. One was a delay in sending out blood results because of an issue with Docman workflow. The patient wasn't harmed, but it could have been serious if the medication change had been urgent. We need to remind all clinicians to check their workflow daily and set up a backup system if someone is off unexpectedly. The other event was a prescribing error—wrong formulation of a drug issued. Again, no harm done, but it's a learning point. We should probably do a quick safety huddle about that and make sure everyone's confident with the new prescribing alerts in SystmOne.
+Have you had a fever at all?
 
-Also, CQC compliance. We've still got some outstanding actions from the last mock inspection, particularly around staff training records and infection control audits. Most of the clinical staff are up to date, but we're missing certificates for some admin staff. Can we make it a priority to upload those by the end of the month?`;
+I did feel a bit hot and cold in the first few days, but I haven't actually taken my temperature. My daughter bought me one of those ear thermometers, but I can never work out how to use it properly.
+
+That's fine. Any chest pain or tightness?
+
+Not pain exactly, but sometimes it feels a bit tight, especially when I'm coughing a lot. And I've noticed I get a bit wheezy, particularly in the evenings.
+
+I see you're normally quite fit and well, Mrs Mitchell. Are you taking any regular medications?
+
+Just the blood pressure tablets - the amlodipine 5mg once a day. Oh, and I take vitamin D because you told me to last year when my levels were low. I've been taking some over-the-counter cough mixture too, but it doesn't seem to be helping much.
+
+Any allergies I should know about?
+
+No, nothing that I know of. Well, I do get a bit sneezy around cats, but that's about it.
+
+Right, let me just examine you now. I'm going to listen to your chest and check your throat and ears. Can you sit forward for me please?
+
+[Examination findings noted - chest clear, mild throat erythema, no lymphadenopathy]
+
+Well, Mrs Mitchell, from what you've told me and my examination, this sounds like it could be a post-viral cough. These can be quite persistent and frustrating, but they usually settle on their own. However, given that you've been feeling breathless and tired, I'd like to do a few simple tests just to make sure everything's okay.
+
+What sort of tests, Doctor?
+
+I'd like to do a chest X-ray to have a look at your lungs, and some blood tests to check for any signs of infection or other issues. We can arrange both of those for you today if you're happy to pop over to the phlebotomy clinic after we're done here.
+
+Yes, that sounds sensible. I'd rather know for certain. When will I get the results?
+
+The blood tests should be back in a day or two, and I'll give you a call once I have them. The X-ray will be reported within 48 hours usually. In the meantime, I'm going to prescribe you a short course of prednisolone - that's a steroid that can help reduce inflammation in your airways and should help with the cough.
+
+Is that safe with my blood pressure medication?
+
+Yes, it's fine to take with amlodipine. It's just a short course - five days at 30mg once daily with food. It might make you feel a bit more energetic initially, and some people find it affects their sleep slightly, but those effects wear off quickly.
+
+Alright. And if the cough doesn't improve?
+
+If you're not feeling better in a week, or if you develop a fever, increased breathlessness, or start coughing up colored phlegm, I want you to come back straight away. Don't wait for an appointment - just call and say you need to be seen urgently.
+
+Thank you, Doctor. You've put my mind at rest. I was starting to worry it might be something more serious.
+
+It's completely understandable to be concerned, especially when symptoms persist. The tests will give us a clearer picture, but I'm optimistic this will settle down soon. Make sure you rest, stay hydrated, and don't try to do too much while you're recovering.`;
 
 const FALLBACK_DANDA = `| Field | Details |
 |---|---|
-| **Meeting** | Practice Management / Partners' Meeting |
+| **Patient** | Mrs Sarah Mitchell |
+| **DOB** | 15/03/1967 (Age 58) |
+| **NHS Number** | 456 789 0123 |
 | **Practice** | Oak Lane Medical Practice |
-| **Date/Time** | 2025-08-22 / 19:00 |
-| **Venue** | Oak Lane Medical Practice - Meeting Room |
-| **Chair** | Dr John Smith |
-| **Attendees** | GP Partners; Practice Manager (Sarah Trisson) |
+| **Date/Time** | 2025-08-22 / 14:30 |
+| **Clinician** | Dr John Smith |
+| **Consultation Type** | Face-to-face |
 
-## Decisions / Consensus
-1. **Noted** list growth to ~12,600 (≈+120 this month) with pressure on appointments and repeat prescribing.
-2. **In principle** strengthen winter same-day access; **pilot extra sessions on Mondays & Fridays for 2 months** (final sign-off TBC).
-3. **Agreed** to revise cloud-telephony queue/callback messaging and test with live callers.
-4. **Agreed** to arrange **customer-service & conflict** refresher training; quote to next meeting.
-5. **Agreed** to implement **Docman daily-check SOP** and hold a **prescribing safety huddle**.
-6. **Agreed** to complete **CQC** actions by **month-end**.
+## Clinical Summary
+**Presenting Complaint:** 3-week history of persistent dry cough with general malaise and increasing breathlessness.
 
-## Actions Log
-| Ref | Action | Owner | Due | Status |
-|---|---|---|---|---|
-| A1 | ARRS options paper (new role vs reallocation) | PM + CDs | Next meeting | Open |
-| A2 | Winter plan + **Mon/Fri pilot** | Ops/Duty Lead | 1 week | Open |
-| A3 | Telephony prompts: queue/callback | IT/Telephony Lead | 2 weeks | Open |
-| A4 | Service/conflict training quote | PM/Training Lead | Next meeting | Open |
-| A5 | Docman SOP + spot audit | Clinical Gov Lead | 1 week | Open |
-| A6 | Prescribing safety huddle | Medicines Lead | 2 weeks | Open |
-| A7 | Upload admin certs; complete IPC items | HR / IPC Lead | Month-end | Open |`;
+**History:** Post-viral symptoms following family illness. Dry cough with occasional clear morning sputum, disrupting sleep. Associated fatigue and exertional dyspnoea. No fever currently, mild initial pyrexia. No chest pain, mild chest tightness with wheeze in evenings.
 
-const FALLBACK_RES = `1. **Resolved/Noted:** Practice list ~**12,600** (≈+120 this month), increasing pressure on appointments and repeat prescribing.
-2. **Resolved (in principle):** Pilot extra **Mon/Fri** same-day sessions for 2 months (subject to rota/rooms).
-3. **Resolved:** Update **queue/callback** telephony messaging; test with live callers.
-4. **Resolved:** Arrange **customer-service & conflict** refresher training.
-5. **Resolved:** Implement **Docman daily-check SOP** and hold a **prescribing safety huddle**.
-6. **Resolved:** Complete **CQC** gaps (admin certificates; infection control) by **month-end**.
+**Examination:** Chest clear on auscultation, mild throat erythema, no lymphadenopathy.
 
-**Annex A – Action Schedule**
+**Assessment:** Likely post-viral cough syndrome. Differential includes atypical pneumonia or early bronchitis.
 
-| Ref | Task | Lead | Contributors | Deadline |
-|---|---|---|---|---|
-| R1 | Finalise winter plan & pilot metrics | Ops/Duty Lead | Rota Admin | 1 week |
-| R2 | Telephony prompts + QA tests | IT/Telephony Lead | PM; Reception Leads | 2 weeks |
-| R3 | Service/conflict training: quote + dates | PM/Training Lead | HR | Next meeting |
-| R4 | Docman SOP: publish + audit | Clinical Gov Lead | All clinicians | 1 week |
-| R5 | Prescribing safety huddle (S1 alerts) | Medicines Lead | CDs | 2 weeks |
-| R6 | Upload admin certificates; complete IPC | HR / IPC Lead | — | Month-end |`;
+## Management Plan
+| Action | Details | Timeline |
+|---|---|---|
+| **Investigations** | Chest X-ray and blood tests (FBC, CRP, U&E) | Today |
+| **Treatment** | Prednisolone 30mg OD for 5 days with food | Started today |
+| **Follow-up** | Results review within 48-72 hours | By phone |
+| **Safety netting** | Return if fever, worsening breathlessness, or colored sputum | Immediate |
+
+## Medications
+- **Continuing:** Amlodipine 5mg OD (for hypertension)
+- **New:** Prednisolone 30mg OD x 5 days
+- **Advice:** Continue vitamin D as prescribed`;
+
+const FALLBACK_RES = `**CONSULTATION SUMMARY - Mrs Sarah Mitchell**
+*Oak Lane Medical Practice - 22/08/2025*
+
+**Primary Issue Resolved:** Persistent cough and malaise - likely post-viral syndrome with appropriate investigation and treatment plan established.
+
+**Immediate Actions Completed:**
+1. **Clinical Assessment:** Comprehensive history and examination completed - chest clear, mild throat inflammation noted.
+2. **Investigations Ordered:** Chest X-ray and blood tests (FBC, CRP, U&E) arranged for same day.
+3. **Treatment Initiated:** Prednisolone 30mg daily x 5 days prescribed - patient counselled on administration with food.
+4. **Safety Netting:** Clear instructions provided for urgent return if symptoms worsen.
+
+**Follow-up Plan:**
+- Results review within 48-72 hours via telephone
+- Patient advised to continue regular medications (amlodipine, vitamin D)
+- Return if fever, increased breathlessness, or productive cough develops
+
+**Patient Understanding:** 
+Mrs Mitchell demonstrated good understanding of the diagnosis, treatment plan, and warning signs. She was reassured about the likely benign nature of her symptoms while acknowledging the importance of investigation.
+
+**Clinical Codes:**
+- R05 - Cough
+- R53 - Malaise and fatigue  
+- R06.0 - Dyspnoea
+
+**Next Review:** Results dependent - 2-3 days`;
 
 function readBlock(b?: StylesUnion): string {
   if (!b) return "";
@@ -157,11 +207,11 @@ export default function ExampleMeetingFlyout({
   }
 
   async function downloadDocx() {
-    const name =
+  const name =
       tab === "danda"
-        ? "decisions-and-actions"
+        ? "clinical-summary"
         : tab === "resolution"
-        ? "secretariat-resolution"
+        ? "consultation-summary"
         : "transcript";
     try {
       const r = await fetch("/api/export/docx", {
@@ -196,7 +246,7 @@ export default function ExampleMeetingFlyout({
   return (
     <>
       <button className={buttonClassName} onClick={() => setOpen(true)}>
-        Show Example Meeting
+        Show Example Consultation
       </button>
 
       {open && (
@@ -205,7 +255,7 @@ export default function ExampleMeetingFlyout({
           <aside className="absolute right-0 top-0 h-full w-full max-w-4xl bg-white shadow-xl z-50 flex flex-col">
             {/* Header */}
             <div className="border-b p-3 flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Example Meeting — Oak Lane Medical Practice</h2>
+              <h2 className="text-lg font-semibold">Example Consultation — Oak Lane Medical Practice</h2>
 
               {/* clearly switchable tabs */}
               <div className="ml-4 flex gap-2">
@@ -214,18 +264,18 @@ export default function ExampleMeetingFlyout({
                   className={`px-3 py-1 rounded border ${
                     tab === "danda" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700"
                   }`}
-                  title="View Decisions & Actions (mapped from action_notes)"
+                  title="View Clinical Summary and Management Plan"
                 >
-                  Decisions & Actions
+                  Clinical Summary
                 </button>
                 <button
                   onClick={() => setTab("resolution")}
                   className={`px-3 py-1 rounded border ${
                     tab === "resolution" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700"
                   }`}
-                  title="View Resolution Minutes (mapped from decision_log)"
+                  title="View Consultation Summary and Outcome"
                 >
-                  Resolution Minutes
+                  Consultation Summary
                 </button>
                 <button
                   onClick={() => setTab("transcript")}
@@ -253,7 +303,7 @@ export default function ExampleMeetingFlyout({
 
             {/* Body */}
             <div className="p-4 overflow-y-auto">
-              {loading && <div className="text-sm text-gray-600">Loading example meeting notes…</div>}
+              {loading && <div className="text-sm text-gray-600">Loading example consultation notes…</div>}
               {!loading && err && (
                 <div className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded">
                   {err}
