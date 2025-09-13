@@ -55,14 +55,21 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
     setCurrentTranscript('');
   }, []);
 
-  // Send message when recording stops and we have text
-  useEffect(() => {
-    if (!isListening && currentTranscript.trim()) {
-      console.log('🎙️ Sending voice message:', currentTranscript);
-      onSendMessage(currentTranscript);
-      setCurrentTranscript('');
-    }
-  }, [isListening, currentTranscript, onSendMessage]);
+  // Manual send/clear controls for reliability
+  const sendTranscript = useCallback(() => {
+    if (!currentTranscript.trim()) return;
+    console.log('🎙️ Sending voice message:', currentTranscript);
+    onSendMessage(currentTranscript);
+    setCurrentTranscript('');
+    micRef.current?.clearTranscript?.();
+    setIsListening(false);
+  }, [currentTranscript, onSendMessage]);
+
+  const clearCurrent = useCallback(() => {
+    setCurrentTranscript('');
+    micRef.current?.clearTranscript?.();
+    setIsListening(false);
+  }, []);
 
   // Text-to-speech function using ElevenLabs
   const speakText = useCallback(async (text: string) => {
@@ -202,6 +209,14 @@ export const VoiceConversationInterface: React.FC<VoiceConversationInterfaceProp
                   <p className="text-sm">{currentTranscript}</p>
                 </div>
               )}
+              <div className="flex gap-2">
+                <Button size="sm" disabled={!currentTranscript.trim() || isLoading} onClick={sendTranscript}>
+                  Send
+                </Button>
+                <Button size="sm" variant="outline" onClick={clearCurrent}>
+                  Clear
+                </Button>
+              </div>
             </div>
 
             {/* Voice settings */}

@@ -7,6 +7,7 @@ import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechT
 interface SimpleBrowserMicProps {
   onTranscriptUpdate: (text: string) => void;
   onRecordingStart?: () => void;
+  onRecordingStop?: () => void;
   disabled?: boolean;
   className?: string;
 }
