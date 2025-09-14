@@ -167,6 +167,8 @@ const SystemAdmin = () => {
     total_large_files_size_pretty: string;
   } | null>(null);
 
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
+
   
   // User management state
   const [users, setUsers] = useState<User[]>([]);
@@ -491,6 +493,71 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
     } catch (error) {
       console.error('Error fetching large files:', error);
       toast.error("Failed to fetch large files");
+    }
+  };
+
+  const deleteFile = async (file: typeof largeFiles[0]) => {
+    if (!window.confirm(`Are you sure you want to delete "${file.file_name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    const fileKey = `${file.table_name}-${file.file_name}`;
+    setDeletingFile(fileKey);
+
+    try {
+      let deleteError: any = null;
+
+      // Handle different table types with type-safe queries
+      switch (file.table_name) {
+        case 'meeting_documents':
+          const { error: meetingDocError } = await supabase
+            .from('meeting_documents')
+            .delete()
+            .eq('file_name', file.file_name);
+          deleteError = meetingDocError;
+          break;
+          
+        case 'complaint_documents':
+          const { error: complaintDocError } = await supabase
+            .from('complaint_documents')
+            .delete()
+            .eq('file_name', file.file_name);
+          deleteError = complaintDocError;
+          break;
+          
+        case 'cqc_evidence':
+          const { error: cqcError } = await supabase
+            .from('cqc_evidence')
+            .delete()
+            .eq('file_name', file.file_name);
+          deleteError = cqcError;
+          break;
+          
+        case 'contractor_resumes':
+          const { error: resumeError } = await supabase
+            .from('contractor_resumes')
+            .delete()
+            .eq('file_name', file.file_name);
+          deleteError = resumeError;
+          break;
+          
+        default:
+          throw new Error(`Unknown table: ${file.table_name}`);
+      }
+      
+      if (deleteError) throw deleteError;
+
+      toast.success(`File "${file.file_name}" deleted successfully`);
+      
+      // Refresh the large files list
+      await fetchLargeFiles();
+      await fetchFileStats();
+      
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDeletingFile(null);
     }
   };
 
@@ -1468,22 +1535,40 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     <div className="text-muted-foreground mb-6">Loading file statistics...</div>
                   )}
                   <div className="space-y-3">
-                    {largeFiles.slice(0, 10).map((file, index) => (
-                      <div key={`${file.table_name}-${index}`} className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm truncate">{file.file_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {file.table_name} • {file.uploaded_by_email}
-                          </p>
+                    {largeFiles.slice(0, 10).map((file, index) => {
+                      const fileKey = `${file.table_name}-${file.file_name}`;
+                      const isDeleting = deletingFile === fileKey;
+                      
+                      return (
+                        <div key={`${file.table_name}-${index}`} className="flex items-center justify-between gap-3 p-3 border rounded-lg hover:bg-muted/50">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{file.file_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {file.table_name} • {file.uploaded_by_email}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">{file.file_size_pretty}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(file.uploaded_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteFile(file)}
+                            disabled={isDeleting}
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                          >
+                            {isDeleting ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">{file.file_size_pretty}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(file.uploaded_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {largeFiles.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-4">No large files found</p>
                     )}
