@@ -486,6 +486,13 @@ const ComplaintsSystem = () => {
     e.preventDefault();
     if (!user) return;
 
+    // Validation: require consent only when submitting on behalf of someone else
+    if (formData.complaint_on_behalf && !formData.consent_given) {
+      toast.error("Consent is required when submitting on behalf of someone else.");
+      document.getElementById('consent_given')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     try {
       setSubmitting(true);
       
@@ -2014,7 +2021,6 @@ const ComplaintsSystem = () => {
                           checked={formData.consent_given}
                           onChange={(e) => handleInputChange('consent_given', e.target.checked)}
                           className="mt-1"
-                          required
                         />
                         <Label htmlFor="consent_given" className="text-sm">
                           Consent obtained for processing this complaint
