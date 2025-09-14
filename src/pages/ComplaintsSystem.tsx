@@ -507,7 +507,11 @@ const ComplaintsSystem = () => {
         complaint_description: formData.complaint_description,
         category: formData.category as any,
         location_service: formData.location_service || null,
-        staff_mentioned: formData.staff_mentioned ? formData.staff_mentioned.split(',').map(s => s.trim()) : null,
+        staff_mentioned: Array.isArray((formData as any).staff_mentioned)
+          ? ((formData as any).staff_mentioned as string[])
+          : (formData.staff_mentioned
+              ? formData.staff_mentioned.split(',').map(s => s.trim()).filter(Boolean)
+              : null),
         priority: formData.priority as any,
         consent_given: formData.consent_given,
         consent_details: formData.consent_details || null,
@@ -593,7 +597,9 @@ const ComplaintsSystem = () => {
       complaint_description: importedData.complaint_description || prev.complaint_description,
       category: importedData.category || prev.category,
       location_service: importedData.location_service || prev.location_service,
-      staff_mentioned: importedData.staff_mentioned || prev.staff_mentioned,
+      staff_mentioned: Array.isArray(importedData.staff_mentioned)
+        ? importedData.staff_mentioned.join(', ')
+        : (importedData.staff_mentioned || prev.staff_mentioned),
       complaint_on_behalf: importedData.complaint_on_behalf ?? prev.complaint_on_behalf,
     }));
     setShowImportModal(false);
