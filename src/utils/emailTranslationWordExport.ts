@@ -31,6 +31,48 @@ const getLanguageName = (code: string): string => {
   return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
 };
 
+const getFontForLanguage = (languageCode: string) => {
+  const fonts = {
+    // Arabic script languages
+    ar: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
+    fa: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
+    ur: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
+    
+    // Chinese languages
+    zh: { name: 'SimSun', eastAsia: 'SimSun', cs: 'Arial Unicode MS' },
+    'zh-cn': { name: 'SimSun', eastAsia: 'SimSun', cs: 'Arial Unicode MS' },
+    'zh-tw': { name: 'MingLiU', eastAsia: 'MingLiU', cs: 'Arial Unicode MS' },
+    
+    // Japanese
+    ja: { name: 'MS Gothic', eastAsia: 'MS Gothic', cs: 'Arial Unicode MS' },
+    
+    // Korean
+    ko: { name: 'Malgun Gothic', eastAsia: 'Malgun Gothic', cs: 'Arial Unicode MS' },
+    
+    // Hindi and other Devanagari scripts
+    hi: { name: 'Mangal', eastAsia: 'Mangal', cs: 'Arial Unicode MS' },
+    
+    // Thai
+    th: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
+    
+    // Vietnamese
+    vi: { name: 'Times New Roman', eastAsia: 'Times New Roman', cs: 'Arial Unicode MS' },
+    
+    // English and European languages
+    en: { name: 'Times New Roman', eastAsia: 'Times New Roman', cs: 'Times New Roman' },
+    
+    // Default fallback with comprehensive Unicode support
+    default: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' }
+  };
+
+  return fonts[languageCode.toLowerCase()] || fonts.default;
+};
+
+const isRightToLeft = (languageCode: string): boolean => {
+  const rtlLanguages = ['ar', 'fa', 'ur', 'he', 'yi'];
+  return rtlLanguages.includes(languageCode.toLowerCase());
+};
+
 const getSafetyStatusText = (safety: string): string => {
   switch (safety) {
     case 'safe': return 'SAFE TO SEND';
@@ -184,17 +226,13 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: originalEmail.originalText,
                 italics: true,
-                font: {
-                  name: 'Arial Unicode MS',
-                  eastAsia: 'Arial Unicode MS',
-                  cs: 'Arial Unicode MS'
-                },
-                rightToLeft: true
+                font: getFontForLanguage(originalEmail.detectedLanguage),
+                rightToLeft: isRightToLeft(originalEmail.detectedLanguage)
               })
             ],
             spacing: { after: 300 },
             indent: { left: 720 },
-            bidirectional: true
+            bidirectional: isRightToLeft(originalEmail.detectedLanguage)
           }),
 
           // Section 2: English Translation
@@ -266,17 +304,13 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: emailReply.translatedText,
                 italics: true,
-                font: {
-                  name: 'Arial Unicode MS',
-                  eastAsia: 'Arial Unicode MS',
-                  cs: 'Arial Unicode MS'
-                },
-                rightToLeft: true
+                font: getFontForLanguage(emailReply.targetLanguage),
+                rightToLeft: isRightToLeft(emailReply.targetLanguage)
               })
             ],
             spacing: { after: 300 },
             indent: { left: 720 },
-            bidirectional: true
+            bidirectional: isRightToLeft(emailReply.targetLanguage)
           }),
 
           // Section 5: Quality Assessment
@@ -444,17 +478,13 @@ export const downloadEmailTranslationProof = async (
                 new TextRun({
                   text: qualityAssessment.reverseTranslation,
                   italics: true,
-                  font: {
-                    name: 'Arial Unicode MS',
-                    eastAsia: 'Arial Unicode MS',
-                    cs: 'Arial Unicode MS'
-                  },
-                  rightToLeft: true
+                  font: getFontForLanguage('en'), // Reverse translation is back to English
+                  rightToLeft: false
                 })
               ],
               spacing: { after: 400 },
               indent: { left: 720 },
-              bidirectional: true
+              bidirectional: false
             })
           ] : []),
 
