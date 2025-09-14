@@ -254,40 +254,44 @@ This email is confidential and may contain privileged information. If you are no
           <CardTitle className="text-lg">Compose Reply</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={replyMode === 'manual' ? 'default' : 'outline'}
-              onClick={() => setReplyMode('manual')}
-              size="sm"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Manual Entry
-            </Button>
-            <Button
-              variant={replyMode === 'ai' ? 'default' : 'outline'}
-              onClick={() => setReplyMode('ai')}
-              size="sm"
-            >
-              <Bot className="w-4 h-4 mr-2" />
-              AI Assistance
-            </Button>
-            {testReply && (
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant={replyMode === 'manual' ? 'default' : 'outline'}
+                onClick={() => setReplyMode('manual')}
                 size="sm"
-                onClick={() => setEnglishReply(testReply.replace(/\*\*(.*?)\*\*/g, '$1'))}
               >
-                <FileText className="w-4 h-4 mr-2" />
-                Load Test Reply
+                <Edit className="w-4 h-4 mr-2" />
+                Manual Entry
               </Button>
-            )}
-            <VoiceRecorder onTranscription={handleVoiceTranscription} />
-            <AIVoiceButton 
-              onAIReply={handleAIVoiceReply}
-              incomingEmailText={incomingEmail.translatedText}
-              detectedLanguage={incomingEmail.detectedLanguage}
-              onSafetyAlert={handleSafetyAlert}
-            />
+              <Button
+                variant={replyMode === 'ai' ? 'default' : 'outline'}
+                onClick={() => setReplyMode('ai')}
+                size="sm"
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                AI Assistance
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              {testReply && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEnglishReply(testReply.replace(/\*\*(.*?)\*\*/g, '$1'))}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Load Test Reply
+                </Button>
+              )}
+              <VoiceRecorder onTranscription={handleVoiceTranscription} />
+              <AIVoiceButton 
+                onAIReply={handleAIVoiceReply}
+                incomingEmailText={incomingEmail.translatedText}
+                detectedLanguage={incomingEmail.detectedLanguage}
+                onSafetyAlert={handleSafetyAlert}
+              />
+            </div>
           </div>
 
           {replyMode === 'ai' && (
