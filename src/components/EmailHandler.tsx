@@ -454,7 +454,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                       ) : (
                         <Download className="w-4 h-4 mr-2" />
                       )}
-                      Download Proof Document
+                      Download Word Proof (Certificate)
                     </Button>
                     
                     {qualityAssessment.overallSafety === 'warning' && (
