@@ -525,6 +525,14 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           deleteError = complaintDocError;
           break;
           
+        case 'complaint_investigation_evidence':
+          const { error: investigationError } = await supabase
+            .from('complaint_investigation_evidence')
+            .delete()
+            .eq('file_name', file.file_name);
+          deleteError = investigationError;
+          break;
+          
         case 'cqc_evidence':
           const { error: cqcError } = await supabase
             .from('cqc_evidence')
@@ -540,9 +548,19 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             .eq('file_name', file.file_name);
           deleteError = resumeError;
           break;
+
+        case 'meeting_audio_backups':
+          const { error: audioError } = await supabase
+            .from('meeting_audio_backups')
+            .delete()
+            .eq('file_path', file.file_name);
+          deleteError = audioError;
+          break;
           
         default:
-          throw new Error(`Unknown table: ${file.table_name}`);
+          // For unknown tables, try a generic approach
+          console.warn(`Unknown table: ${file.table_name}, attempting generic delete`);
+          throw new Error(`Table ${file.table_name} is not configured for deletion. Please contact support.`);
       }
       
       if (deleteError) throw deleteError;
