@@ -34,8 +34,8 @@ import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModa
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 
 
-// Hook imports
-import { useIsMobile } from '@/hooks/use-mobile';
+  // Hook imports
+import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
 import { useAI4GPDisclaimer } from '@/hooks/useAI4GPDisclaimer';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -49,6 +49,7 @@ import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenera
 import { Message } from '@/types/ai4gp';
 import { useQueryClient } from '@tanstack/react-query';
 import { MeetingData } from '@/types/meetingTypes';
+import { cn } from '@/lib/utils';
 
 
 const AI4GPService = () => {
@@ -57,6 +58,7 @@ const AI4GPService = () => {
   const navigate = useNavigate();
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
+  const deviceInfo = useDeviceInfo();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -314,13 +316,21 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className={`flex-1 flex flex-col bg-background relative h-full overflow-x-hidden ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled ${getTextScaleClass(textSize)}`}
+        className={cn(
+          "flex-1 flex flex-col bg-background relative h-full overflow-x-hidden",
+          "ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled",
+          getTextScaleClass(textSize),
+          deviceInfo.isIPhone ? "iphone-optimized" : "",
+          deviceInfo.hasNotch ? "iphone-notch-safe" : ""
+        )}
         data-component="ai4gp-service"
         style={{ 
           WebkitOverflowScrolling: 'touch',
-          maxWidth: '96%',
-          width: '96%',
-          margin: '0 auto'
+          overscrollBehavior: 'contain',
+          maxWidth: deviceInfo.isIPhone ? '100%' : '96%',
+          width: deviceInfo.isIPhone ? '100%' : '96%',
+          margin: '0 auto',
+          height: deviceInfo.supportsViewportUnits ? '100dvh' : '100vh'
         }}
       >
         <div className="flex flex-1 min-h-0">

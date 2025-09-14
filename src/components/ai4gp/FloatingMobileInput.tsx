@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -9,6 +9,8 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useDeviceInfo } from '@/hooks/use-mobile';
+import { detectDevice } from '@/utils/DeviceDetection';
 
 interface FloatingMobileInputProps {
   input: string;
@@ -36,12 +38,66 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   setIsClinical
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<SimpleBrowserMicRef>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { processFiles } = useFileUpload();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
+  const deviceInfo = useDeviceInfo();
+  const device = detectDevice();
+
+  // iPhone keyboard handling
+  useEffect(() => {
+    if (!device.needsKeyboardWorkaround) return;
+
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        const viewport = window.visualViewport;
+        if (viewport && isExpanded) {
+          const keyboardHeight = window.innerHeight - viewport.height;
+          setKeyboardHeight(Math.max(0, keyboardHeight));
+          
+          // Update CSS custom property for keyboard height
+          document.documentElement.style.setProperty(
+            '--iphone-keyboard-height', 
+            `${Math.max(0, keyboardHeight)}px`
+          );
+        }
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [device.needsKeyboardWorkaround, isExpanded]);
+
+  // Handle iPhone specific focus behavior
+  useEffect(() => {
+    if (!device.isIPhone || !isExpanded) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleFocus = () => {
+      // Scroll to input on iPhone when focused
+      setTimeout(() => {
+        textarea.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 300);
+    };
+
+    textarea.addEventListener('focus', handleFocus);
+    return () => textarea.removeEventListener('focus', handleFocus);
+  }, [device.isIPhone, isExpanded]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -102,7 +158,28 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
     if (!isExpanded) {
-      setTimeout(() => textareaRef.current?.focus(), 100);
+      // Add haptic feedback for iPhone
+      if (device.isIPhone && 'vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+      
+      setTimeout(() => {
+        textareaRef.current?.focus();
+        
+        // iPhone-specific smooth scroll to input
+        if (device.isIPhone) {
+          setTimeout(() => {
+            textareaRef.current?.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }, 200);
+        }
+      }, 100);
+    } else {
+      // Reset keyboard height when closing
+      setKeyboardHeight(0);
+      document.documentElement.style.setProperty('--iphone-keyboard-height', '0px');
     }
   };
 
@@ -110,16 +187,19 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   if (!isExpanded) {
     return (
       <div 
-        className="fixed z-[9999]" 
+        className={cn(
+          "fixed z-[9999]",
+          device.hasNotch ? "iphone-notch-safe" : ""
+        )}
         style={{
-          bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
-          right: '16px'
+          bottom: `calc(16px + var(--mobile-safe-area-bottom))`,
+          right: `calc(16px + var(--iphone-safe-area-right))`
         }}
       >
         <Button
           onClick={toggleExpanded}
           size="lg"
-          className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground mobile-touch-target"
+          className="h-14 w-14 rounded-full shadow-strong bg-primary hover:bg-primary-hover text-primary-foreground mobile-touch-target transition-all duration-200 hover:scale-105"
           disabled={isLoading}
         >
           <MessageSquare className="w-6 h-6" />
@@ -131,9 +211,19 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   // Expanded input interface
   return (
     <div 
-      className="fixed inset-x-0 bottom-0 z-[9999] bg-background border-t border-border shadow-2xl"
+      ref={containerRef}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-[9999] bg-background border-t border-border shadow-strong",
+        "iphone-optimized mobile-scroll-container",
+        device.hasNotch ? "iphone-notch-safe" : ""
+      )}
       style={{
-        paddingBottom: `calc(16px + env(safe-area-inset-bottom, 0px))`
+        paddingBottom: `calc(16px + var(--mobile-safe-area-bottom) + ${keyboardHeight}px)`,
+        paddingLeft: `var(--iphone-safe-area-left)`,
+        paddingRight: `var(--iphone-safe-area-right)`,
+        maxHeight: device.isIPhone ? '70dvh' : '70vh',
+        transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
+        transition: 'transform 0.3s ease-out, padding-bottom 0.3s ease-out'
       }}
     >
       <div className="max-w-full mx-auto">
@@ -160,7 +250,11 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
           </div>
         </div>
 
-        <div className="p-3 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div className={cn(
+          "p-3 space-y-3 overflow-y-auto",
+          "mobile-scroll-container no-scrollbar",
+          device.isIPhone ? "max-h-[60dvh]" : "max-h-[60vh]"
+        )}>
           <FileUploadArea 
             uploadedFiles={uploadedFiles}
             onRemoveFile={handleRemoveFile}
@@ -187,9 +281,19 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals..."
-                className="min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border text-base"
+                placeholder={device.isIPhone 
+                  ? "Ask me anything about NHS guidelines..." 
+                  : "Ask about NHS guidelines, clinical protocols, prescribing, referrals..."
+                }
+                className={cn(
+                  "min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border",
+                  device.isIPhone ? "text-base iphone-input" : "text-base",
+                  "mobile-touch-target"
+                )}
                 disabled={isLoading}
+                style={{
+                  fontSize: device.isIPhone ? '16px' : 'inherit' // Prevent zoom on iPhone
+                }}
               />
               
               <input
