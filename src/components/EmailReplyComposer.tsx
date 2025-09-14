@@ -254,7 +254,7 @@ This email is confidential and may contain privileged information. If you are no
           <CardTitle className="text-lg">Compose Reply</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={replyMode === 'manual' ? 'default' : 'outline'}
               onClick={() => setReplyMode('manual')}
@@ -271,6 +271,23 @@ This email is confidential and may contain privileged information. If you are no
               <Bot className="w-4 h-4 mr-2" />
               AI Assistance
             </Button>
+            {testReply && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEnglishReply(testReply.replace(/\*\*(.*?)\*\*/g, '$1'))}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Load Test Reply
+              </Button>
+            )}
+            <VoiceRecorder onTranscription={handleVoiceTranscription} />
+            <AIVoiceButton 
+              onAIReply={handleAIVoiceReply}
+              incomingEmailText={incomingEmail.translatedText}
+              detectedLanguage={incomingEmail.detectedLanguage}
+              onSafetyAlert={handleSafetyAlert}
+            />
           </div>
 
           {replyMode === 'ai' && (
@@ -309,28 +326,7 @@ This email is confidential and may contain privileged information. If you are no
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">English Reply</label>
-              <div className="flex gap-2">
-                {testReply && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEnglishReply(testReply.replace(/\*\*(.*?)\*\*/g, '$1'))}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Load Test Reply
-                  </Button>
-                )}
-                <VoiceRecorder onTranscription={handleVoiceTranscription} />
-                <AIVoiceButton 
-                  onAIReply={handleAIVoiceReply}
-                  incomingEmailText={incomingEmail.translatedText}
-                  detectedLanguage={incomingEmail.detectedLanguage}
-                  onSafetyAlert={handleSafetyAlert}
-                />
-              </div>
-            </div>
+            <label className="text-sm font-medium">English Reply</label>
             <Textarea
               placeholder="Type your reply in English or use voice input..."
               value={englishReply}
