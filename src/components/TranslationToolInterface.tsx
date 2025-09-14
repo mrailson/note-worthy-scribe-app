@@ -13,6 +13,7 @@ import {
   Phone, 
   PhoneOff,
   AlertCircle,
+  CheckCircle,
   CheckCircle2,
   Loader2,
   Heart,
@@ -1427,7 +1428,7 @@ export const TranslationToolInterface = () => {
             </Card>
           )}
 
-          {/* User Guide Card */}
+          {/* Comprehensive User Guide Card */}
           <Card>
             <Collapsible open={isGuideOpen} onOpenChange={setIsGuideOpen}>
               <CollapsibleTrigger asChild>
@@ -1435,77 +1436,424 @@ export const TranslationToolInterface = () => {
                   <CardTitle className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      How to Use This Service
+                      Complete Translation Service User Guide
                     </div>
                     <ChevronDown className={`h-4 w-4 transition-transform ${isGuideOpen ? 'rotate-180' : ''}`} />
                   </CardTitle>
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Reception Staff Guide */}
-                    <div className="space-y-3">
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <Users className="h-4 w-4 text-blue-600" />
-                        For Reception Staff
-                      </h3>
-                      <ul className="text-sm space-y-2 text-muted-foreground">
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">1.</span>
-                          Press "Start Translation Service" button above
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">2.</span>
-                          Speak clearly in English to schedule appointments
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">3.</span>
-                          AI translates your words into patient's language
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">4.</span>
-                          Patient responds in their language, AI translates to English
-                        </li>
-                      </ul>
+                <CardContent className="space-y-6">
+                  
+                  {/* Live Speech Translation Guide */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Phone className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-blue-800">Live Speech Translation</h3>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">Real-time AI Voice</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Reception Staff Guide */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Users className="h-4 w-4 text-blue-600" />
+                          For Reception Staff
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2 p-2 bg-blue-50 rounded">
+                            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                            <div>
+                              <strong>Start Session:</strong> Click "Start Translation Service" button and allow microphone access when prompted
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-blue-50 rounded">
+                            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                            <div>
+                              <strong>Language Setup:</strong> Say "Please translate to [language]" (e.g., "Please translate to Polish")
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-blue-50 rounded">
+                            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                            <div>
+                              <strong>Speak Clearly:</strong> Talk naturally in English - AI will translate immediately
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-blue-50 rounded">
+                            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                            <div>
+                              <strong>Patient Response:</strong> Patient speaks in their language - AI translates to English for you
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-blue-50 rounded">
+                            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                            <div>
+                              <strong>Large Display:</strong> Click "View Translation Display" for patient-facing large text
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded">
+                          <h5 className="font-semibold text-amber-800 mb-2">Reception Tips:</h5>
+                          <ul className="text-xs text-amber-700 space-y-1">
+                            <li>• Use for appointment booking, registration, and basic queries</li>
+                            <li>• Speak one sentence at a time for better accuracy</li>
+                            <li>• Pause briefly between sentences</li>
+                            <li>• Use simple, clear language initially</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Clinical Staff Guide */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Stethoscope className="h-4 w-4 text-green-600" />
+                          For Clinical Staff
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                            <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                            <div>
+                              <strong>Clinical Mode:</strong> System automatically recognizes medical terminology and drug names
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                            <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                            <div>
+                              <strong>Safe Translation:</strong> All medical terms verified for accuracy and safety
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                            <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                            <div>
+                              <strong>Quality Monitoring:</strong> Real-time quality scores and safety flags displayed
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                            <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                            <div>
+                              <strong>Clinical Documentation:</strong> Full conversation history logged for patient records
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                            <span className="bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                            <div>
+                              <strong>Export Options:</strong> Generate DOCX reports for patient notes and clinical records
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                          <h5 className="font-semibold text-red-800 mb-2">Clinical Safety:</h5>
+                          <ul className="text-xs text-red-700 space-y-1">
+                            <li>• All dosages automatically verified for safety</li>
+                            <li>• Medical terminology preserved and cross-checked</li>
+                            <li>• Red/amber flags alert to potential issues</li>
+                            <li>• NHS compliance built-in with audit trails</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Clinical Staff Guide */}
-                    <div className="space-y-3">
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4 text-green-600" />
-                        For Clinical Staff
-                      </h3>
-                      <ul className="text-sm space-y-2 text-muted-foreground">
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">1.</span>
-                          Use during consultations for real-time translation
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">2.</span>
-                          Medical terms are translated with clinical accuracy
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">3.</span>
-                          Quality verification ensures patient safety
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary font-bold">4.</span>
-                          All translations are logged for clinical governance
-                        </li>
+                    {/* Supported Languages */}
+                    <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded">
+                      <h5 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        Supported Languages (50+)
+                      </h5>
+                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+                        {[
+                          'Polish 🇵🇱', 'Arabic 🇸🇦', 'Bengali 🇧🇩', 'Chinese 🇨🇳', 'French 🇫🇷', 'German 🇩🇪',
+                          'Hindi 🇮🇳', 'Italian 🇮🇹', 'Portuguese 🇵🇹', 'Romanian 🇷🇴', 'Russian 🇷🇺', 'Spanish 🇪🇸',
+                          'Turkish 🇹🇷', 'Ukrainian 🇺🇦', 'Urdu 🇵🇰', 'Gujarati 🇮🇳', 'Punjabi 🇮🇳', 'Somali 🇸🇴'
+                        ].map((lang, i) => (
+                          <Badge key={i} variant="outline" className="justify-center bg-white">
+                            {lang}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email Translation Guide */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Mail className="h-5 w-5 text-indigo-600" />
+                      <h3 className="text-lg font-semibold text-indigo-800">Email Translation</h3>
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">Clinical Email Processing</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-indigo-700">How to Use Email Translation</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
+                            <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                            <div>
+                              <strong>Access:</strong> Click "Email Translation" tab at the top of the service
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
+                            <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                            <div>
+                              <strong>Upload:</strong> Drag & drop email files (.eml, .msg) or copy/paste email content
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
+                            <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                            <div>
+                              <strong>Language Selection:</strong> Choose target language from dropdown menu
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
+                            <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                            <div>
+                              <strong>Quality Check:</strong> System validates translation for medical accuracy
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-indigo-50 rounded">
+                            <span className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                            <div>
+                              <strong>Send & Save:</strong> Send translated email directly or save to patient records
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-indigo-700">Email Features</h4>
+                        <div className="space-y-2">
+                          <div className="p-3 bg-white border border-indigo-200 rounded">
+                            <h5 className="font-semibold text-sm text-indigo-800 mb-1">Smart Detection</h5>
+                            <p className="text-xs text-indigo-600">Automatically detects patient information, medical terms, and appointment details</p>
+                          </div>
+                          <div className="p-3 bg-white border border-indigo-200 rounded">
+                            <h5 className="font-semibold text-sm text-indigo-800 mb-1">Format Preservation</h5>
+                            <p className="text-xs text-indigo-600">Maintains email formatting, headers, and structure in translations</p>
+                          </div>
+                          <div className="p-3 bg-white border border-indigo-200 rounded">
+                            <h5 className="font-semibold text-sm text-indigo-800 mb-1">Clinical Integration</h5>
+                            <p className="text-xs text-indigo-600">Links with patient records and clinical systems for seamless workflow</p>
+                          </div>
+                          <div className="p-3 bg-white border border-indigo-200 rounded">
+                            <h5 className="font-semibold text-sm text-indigo-800 mb-1">Compliance Tracking</h5>
+                            <p className="text-xs text-indigo-600">Full audit trail and GDPR-compliant processing of patient communications</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <h5 className="font-semibold text-yellow-800 mb-2">Email Best Practices:</h5>
+                      <ul className="text-xs text-yellow-700 space-y-1">
+                        <li>• Always review translated emails before sending to patients</li>
+                        <li>• Use "Quality Verification" feature for clinical communications</li>
+                        <li>• Save important patient email translations to their medical record</li>
+                        <li>• Check recipient language preferences in patient demographics</li>
                       </ul>
                     </div>
                   </div>
 
-                  {/* Service Information */}
+                  {/* Document Translation Guide */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <FileText className="h-5 w-5 text-orange-600" />
+                      <h3 className="text-lg font-semibold text-orange-800">Document Translation</h3>
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-800">OCR + AI Translation</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-orange-700">Document Processing Steps</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                            <div>
+                              <strong>Upload Document:</strong> Support for images (JPG, PNG), PDFs, scanned documents
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                            <div>
+                              <strong>OCR Processing:</strong> Advanced text extraction using Google Cloud Vision API
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                            <div>
+                              <strong>Medical Recognition:</strong> AI identifies medical terms, drug names, and dosages
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                            <div>
+                              <strong>Multi-Service Translation:</strong> Cross-verified using Google, DeepL, and OpenAI
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                            <div>
+                              <strong>Safety Validation:</strong> 8-layer verification system ensures medical accuracy
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                            <span className="bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">6</span>
+                            <div>
+                              <strong>Export & Save:</strong> Generate patient-friendly documents or clinical notes
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-orange-700">Supported Document Types</h4>
+                        <div className="space-y-2">
+                          <div className="p-3 bg-white border border-orange-200 rounded">
+                            <h5 className="font-semibold text-sm text-orange-800 mb-1">Medical Prescriptions</h5>
+                            <p className="text-xs text-orange-600">Drug names, dosages, instructions translated with pharmaceutical accuracy</p>
+                          </div>
+                          <div className="p-3 bg-white border border-orange-200 rounded">
+                            <h5 className="font-semibold text-sm text-orange-800 mb-1">Test Results & Reports</h5>
+                            <p className="text-xs text-orange-600">Lab results, X-ray reports, specialist letters with medical terminology preserved</p>
+                          </div>
+                          <div className="p-3 bg-white border border-orange-200 rounded">
+                            <h5 className="font-semibold text-sm text-orange-800 mb-1">Foreign Medical Records</h5>
+                            <p className="text-xs text-orange-600">International patient documents, discharge summaries, treatment histories</p>
+                          </div>
+                          <div className="p-3 bg-white border border-orange-200 rounded">
+                            <h5 className="font-semibold text-sm text-orange-800 mb-1">Insurance Documents</h5>
+                            <p className="text-xs text-orange-600">Healthcare insurance forms, prior authorization requests, claims</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                          <h5 className="font-semibold text-green-800 mb-2">Quality Assurance:</h5>
+                          <ul className="text-xs text-green-700 space-y-1">
+                            <li>• 8-layer validation system (OCR → Translation → Medical → Safety)</li>
+                            <li>• Cross-service verification for maximum accuracy</li>
+                            <li>• Specialized Romanian medical term validation</li>
+                            <li>• Reverse translation checking for quality control</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Safety & Compliance Information */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Shield className="h-5 w-5 text-red-600" />
+                      <h3 className="text-lg font-semibold text-red-800">Safety & Compliance</h3>
+                      <Badge variant="secondary" className="bg-red-100 text-red-800">NHS Standards</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-green-50 border-green-200">
+                        <CardContent className="p-4">
+                          <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
+                          <h4 className="font-semibold text-green-900 mb-2">Medical Accuracy</h4>
+                          <ul className="text-xs text-green-700 space-y-1">
+                            <li>• NHS clinical terminology database</li>
+                            <li>• BNF drug name verification</li>
+                            <li>• Dosage safety checking</li>
+                            <li>• Medical context preservation</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="p-4">
+                          <Database className="h-8 w-8 text-blue-600 mb-2" />
+                          <h4 className="font-semibold text-blue-900 mb-2">Data Protection</h4>
+                          <ul className="text-xs text-blue-700 space-y-1">
+                            <li>• GDPR compliant processing</li>
+                            <li>• NHS Data Security Standards</li>
+                            <li>• Encrypted data transmission</li>
+                            <li>• Automatic data retention policies</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-purple-50 border-purple-200">
+                        <CardContent className="p-4">
+                          <FileText className="h-8 w-8 text-purple-600 mb-2" />
+                          <h4 className="font-semibold text-purple-900 mb-2">Audit & Governance</h4>
+                          <ul className="text-xs text-purple-700 space-y-1">
+                            <li>• Complete translation audit trails</li>
+                            <li>• Quality score documentation</li>
+                            <li>• User action logging</li>
+                            <li>• Compliance reporting tools</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Troubleshooting Guide */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      <h3 className="text-lg font-semibold text-yellow-800">Troubleshooting & Support</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-yellow-700">Common Issues</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="p-2 border border-yellow-200 rounded bg-yellow-50">
+                            <strong className="text-yellow-800">Microphone Not Working:</strong>
+                            <p className="text-xs text-yellow-700 mt-1">Check browser permissions, refresh page, ensure microphone is not used by other apps</p>
+                          </div>
+                          <div className="p-2 border border-yellow-200 rounded bg-yellow-50">
+                            <strong className="text-yellow-800">Poor Translation Quality:</strong>
+                            <p className="text-xs text-yellow-700 mt-1">Speak clearly, use shorter sentences, check for background noise, verify language setting</p>
+                          </div>
+                          <div className="p-2 border border-yellow-200 rounded bg-yellow-50">
+                            <strong className="text-yellow-800">Document OCR Errors:</strong>
+                            <p className="text-xs text-yellow-700 mt-1">Ensure good image quality, avoid blurry or tilted documents, use high contrast scans</p>
+                          </div>
+                          <div className="p-2 border border-yellow-200 rounded bg-yellow-50">
+                            <strong className="text-yellow-800">Connection Issues:</strong>
+                            <p className="text-xs text-yellow-700 mt-1">Check internet connection, refresh browser, clear cache, contact IT support</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-yellow-700">Best Practices</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="p-2 border border-green-200 rounded bg-green-50">
+                            <strong className="text-green-800">For Best Results:</strong>
+                            <ul className="text-xs text-green-700 mt-1 space-y-0.5">
+                              <li>• Speak at normal conversational pace</li>
+                              <li>• Use clear, simple language initially</li>
+                              <li>• Verify important medical information</li>
+                              <li>• Save critical translations to patient records</li>
+                            </ul>
+                          </div>
+                          <div className="p-2 border border-blue-200 rounded bg-blue-50">
+                            <strong className="text-blue-800">Quality Checks:</strong>
+                            <ul className="text-xs text-blue-700 mt-1 space-y-0.5">
+                              <li>• Always review safety flags and warnings</li>
+                              <li>• Use validation tools for critical documents</li>
+                              <li>• Double-check drug names and dosages</li>
+                              <li>• Verify patient-facing translations</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Features Overview */}
                   <div className="mt-6 pt-6 border-t border-border">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Card className="bg-blue-50 border-blue-200">
                         <CardContent className="p-4 text-center">
                           <Globe className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                          <h3 className="font-semibold text-blue-900">Multi-Language Support</h3>
+                          <h3 className="font-semibold text-blue-900">50+ Languages</h3>
                           <p className="text-sm text-blue-700 mt-1">
-                            Supports 50+ languages commonly spoken by NHS patients
+                            Real-time support for languages commonly spoken by NHS patients
                           </p>
                         </CardContent>
                       </Card>
@@ -1515,7 +1863,7 @@ export const TranslationToolInterface = () => {
                           <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
                           <h3 className="font-semibold text-green-900">Medical Accuracy</h3>
                           <p className="text-sm text-green-700 mt-1">
-                            Trained on NHS clinical terminology and protocols
+                            NHS clinical terminology and BNF pharmaceutical standards
                           </p>
                         </CardContent>
                       </Card>
@@ -1525,7 +1873,7 @@ export const TranslationToolInterface = () => {
                           <UserCheck className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                           <h3 className="font-semibold text-purple-900">Quality Assured</h3>
                           <p className="text-sm text-purple-700 mt-1">
-                            Real-time quality verification for patient safety
+                            8-layer validation system with real-time safety monitoring
                           </p>
                         </CardContent>
                       </Card>
