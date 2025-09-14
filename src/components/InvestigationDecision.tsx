@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, CheckCircle, XCircle, Scale, Save, Edit, ClipboardCheck, FileText, Download, Eye } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
@@ -60,6 +61,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
   const [editingOutcomeLetter, setEditingOutcomeLetter] = useState(false);
   const [editedOutcomeLetter, setEditedOutcomeLetter] = useState<string>('');
   const [savingOutcomeLetter, setSavingOutcomeLetter] = useState(false);
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
 
   useEffect(() => {
@@ -358,8 +360,17 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         
         // Save to database and create audit log
         await saveOutcomeLetterToDatabase(newOutcomeLetter, true);
-        
+
         setShowOutcomeLetter(true);
+        // Auto-scroll to bottom when modal opens with new content
+        setTimeout(() => {
+          if (scrollAreaRef.current) {
+            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (scrollContainer) {
+              scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            }
+          }
+        }, 100);
         toast.success('Outcome letter generated successfully');
       } else {
         throw new Error('No outcome letter generated');
@@ -988,11 +999,11 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   />
                 </div>
               ) : (
-                <div className="h-full overflow-y-auto bg-gray-50 rounded-lg border">
-                  <div className="p-4">
+                <ScrollArea ref={scrollAreaRef} className="h-full">
+                  <div className="p-4 bg-gray-50 rounded-lg border">
                     <FormattedLetterContent content={outcomeLetter} />
                   </div>
-                </div>
+                </ScrollArea>
               )}
             </div>
             <div className="flex justify-between gap-2 p-6 border-t flex-shrink-0">
