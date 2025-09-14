@@ -93,7 +93,7 @@ const StaffFeedback = () => {
     setSubmitting(true);
     try {
       // Store the staff response in the database
-      const { error } = await (supabase as any)
+      const { error: insertError } = await (supabase as any)
         .from('staff_responses')
         .insert({
           complaint_id: complaintId,
@@ -105,7 +105,23 @@ const StaffFeedback = () => {
           responded_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Update the complaint_involved_parties table to mark response as submitted
+      const { error: updateError } = await supabase
+        .from('complaint_involved_parties')
+        .update({
+          response_text: response.trim(),
+          response_submitted_at: new Date().toISOString()
+        })
+        .eq('complaint_id', complaintId)
+        .eq('staff_name', staffName)
+        .eq('staff_email', staffEmail);
+
+      if (updateError) {
+        console.warn('Warning: Could not update involved parties table:', updateError);
+        // Don't throw error here as the main response was saved successfully
+      }
 
       setResponseSubmitted(true);
       toast.success('Your response has been submitted successfully');
