@@ -107,6 +107,96 @@ async function roundTripCheck(ctx: QuickPickContext, options: any): Promise<stri
   return `Translate the text into the target language and back to English. Show both versions and highlight any meaning changes.`;
 }
 
+async function verifyTranslationQuality(ctx: QuickPickContext): Promise<string> {
+  try {
+    // Check if this appears to be a translation (contains non-English characters or translation patterns)
+    const hasNonEnglish = /[^\x00-\x7F]/.test(ctx.text);
+    const hasTranslationPatterns = /\b(English|Polish|Arabic|Bengali|Romanian|Spanish|Portuguese|Turkish|French|Chinese|Hindi|Gujarati|Punjabi|Italian|German|Russian|Lithuanian|Latvian|Bulgarian|Hungarian|Czech|Slovak|Ukrainian|Somali|Tigrinya|Amharic|Tamil|Telugu|Malayalam|Farsi|Persian|Urdu)\b/i.test(ctx.text);
+    
+    if (!hasNonEnglish && !hasTranslationPatterns) {
+      return `This text doesn't appear to be translated content. Translation quality verification works best with:
+      
+• Text that has been translated into another language
+• Content that mentions translation or language details
+• Medical text requiring accuracy verification
+
+If this is translated content, please proceed. Otherwise, consider using clinical verification instead.`;
+    }
+
+    // Call the medical translation review service
+    const { data, error } = await supabase.functions.invoke('ai-medical-translation-review', {
+      body: {
+        originalText: ctx.text.split('\n\n')[0] || ctx.text.substring(0, 500), // Assume first paragraph is original
+        translatedText: ctx.text,
+        sourceLanguage: 'auto-detect',
+        targetLanguage: 'auto-detect'
+      }
+    });
+
+    if (error) {
+      console.error('Translation verification error:', error);
+      return `Unable to perform automated translation verification at this time. Please manually review the translation for:
+
+• **Medical accuracy** - Verify all medical terms are correctly translated
+• **Cultural appropriateness** - Check language is suitable for the target audience  
+• **Safety critical terms** - Ensure dosages, contraindications are precise
+• **Professional tone** - Confirm the tone matches healthcare standards
+
+For detailed verification, please use a professional medical translator.`;
+    }
+
+    if (data) {
+      const result = data;
+      let report = `## 🔍 Translation Quality Verification Report\n\n`;
+      
+      report += `**Overall Accuracy:** ${result.overallAccuracy}%\n`;
+      report += `**Medical Safety:** ${result.medicalSafety}\n`;
+      report += `**Confidence Level:** ${result.confidence}%\n\n`;
+      
+      if (result.detectedIssues && result.detectedIssues.length > 0) {
+        report += `### ⚠️ Issues Identified:\n`;
+        result.detectedIssues.forEach((issue: any, index: number) => {
+          report += `${index + 1}. **${issue.severity}**: ${issue.description}\n`;
+          if (issue.suggestion) {
+            report += `   *Suggestion: ${issue.suggestion}*\n`;
+          }
+        });
+        report += `\n`;
+      }
+      
+      if (result.medicalTermsPreserved) {
+        report += `### ✅ Medical Terms Analysis:\n`;
+        report += `Medical terminology preservation: ${result.medicalTermsPreserved}%\n\n`;
+      }
+      
+      if (result.recommendations && result.recommendations.length > 0) {
+        report += `### 📋 Recommendations:\n`;
+        result.recommendations.forEach((rec: string, index: number) => {
+          report += `• ${rec}\n`;
+        });
+        report += `\n`;
+      }
+      
+      report += `### 🎯 Summary:\n`;
+      if (result.overallAccuracy >= 95) {
+        report += `This translation meets high quality standards for medical use.`;
+      } else if (result.overallAccuracy >= 85) {
+        report += `This translation is generally accurate but should be reviewed by a medical professional.`;
+      } else {
+        report += `This translation requires significant review before use in medical contexts.`;
+      }
+      
+      return report;
+    }
+    
+    return `Translation verification completed. Please review the analysis above and make any necessary corrections before using in clinical practice.`;
+    
+  } catch (error) {
+    console.error('Translation verification error:', error);
+    return `Unable to perform automated translation verification. Please manually review for medical accuracy, cultural appropriateness, and safety-critical terminology.`;
+  }
+}
+
 async function expandWithDetails(ctx: QuickPickContext): Promise<string> {
   return `Expand the above with additional NICE guideline detail and practical examples relevant to GP consultations.
 
@@ -773,4 +863,7 @@ export const handlers: Record<string, (ctx: QuickPickContext) => Promise<void> |
   "meeting-notes-gp-partnership": meetingNotesGPPartnership,
   "meeting-notes-supplier-negotiation": meetingNotesSupplierNegotiation,
   "meeting-notes-executive-session": meetingNotesExecutiveSession,
+  
+  // Translation verification
+  "verify-translation-quality": verifyTranslationQuality,
 };

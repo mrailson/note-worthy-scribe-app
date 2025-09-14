@@ -144,7 +144,8 @@ export const quickPickConfig = {
             {"id": "translate-farsi", "label": "Farsi/Persian 🇮🇷"}
           ]
         },
-        {"id": "roundtrip-quality-check", "label": "Round-trip translation check…"}
+        {"id": "roundtrip-quality-check", "label": "Round-trip translation check…"},
+        {"id": "verify-translation-quality", "label": "🔍 Verify translation accuracy & quality"}
       ]
     },
     {
