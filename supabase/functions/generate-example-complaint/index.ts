@@ -24,13 +24,13 @@ PATIENT DETAILS:
 Name: Mrs. Sarah Elizabeth Johnson
 Date of Birth: 15th March 1985
 NHS Number: 485 123 4567
-Address: 42 Oak Street, Manchester, M1 2AB
-Phone: 0161 123 4567
+Address: 42 Oak Street, Northampton, NN1 2AB
+Phone: 01604 123 4567
 Email: sarah.johnson@email.com
 
 COMPLAINT REFERENCE: Unprofessional Staff Behavior and Delayed Appointment
 
-I am writing to formally complain about the unacceptable treatment I received during my visit to Greenwood Medical Centre on 23rd October 2024 at approximately 2:30 PM.
+I am writing to formally complain about the unacceptable treatment I received during my visit to Oak Lane Medical Practice on 23rd October 2024 at approximately 2:30 PM.
 
 INCIDENT DETAILS:
 I arrived punctually for my scheduled appointment with Dr. Sarah Smith. Despite arriving on time, I was kept waiting for over 45 minutes in the reception area without any explanation or acknowledgment from the staff.
