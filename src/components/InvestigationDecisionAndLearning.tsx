@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, Download, Eye, Mail, Info, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { ManualCQCReportGenerator } from '@/components/ManualCQCReportGenerator';
 import { SpeechToText } from '@/components/SpeechToText';
@@ -935,11 +936,13 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
               </div>
               
               {/* Letter content */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex-1 min-h-0">
                 {!editingOutcomeLetter ? (
-                  <div className="bg-gray-50 p-4 rounded-lg h-full overflow-y-auto">
-                    <FormattedLetterContent content={outcomeLetter} />
-                  </div>
+                  <ScrollArea className="h-full">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <FormattedLetterContent content={outcomeLetter} />
+                    </div>
+                  </ScrollArea>
                 ) : (
                   <div className="h-full flex flex-col">
                     <Textarea
