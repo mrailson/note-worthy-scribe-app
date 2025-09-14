@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType, BorderStyle, TextDirection } from 'docx';
 import { saveAs } from 'file-saver';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 
@@ -60,6 +60,19 @@ export const downloadEmailTranslationProof = async (
     const formattedTime = currentDate.toLocaleTimeString('en-GB');
     
     const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: {
+                name: 'Arial Unicode MS',
+                eastAsia: 'Arial Unicode MS',
+                cs: 'Arial Unicode MS'
+              }
+            }
+          }
+        }
+      },
       sections: [{
         properties: {},
         children: [
@@ -170,11 +183,18 @@ export const downloadEmailTranslationProof = async (
             children: [
               new TextRun({
                 text: originalEmail.originalText,
-                italics: true
+                italics: true,
+                font: {
+                  name: 'Arial Unicode MS',
+                  eastAsia: 'Arial Unicode MS',
+                  cs: 'Arial Unicode MS'
+                },
+                rightToLeft: true
               })
             ],
             spacing: { after: 300 },
-            indent: { left: 720 }
+            indent: { left: 720 },
+            bidirectional: true
           }),
 
           // Section 2: English Translation
@@ -245,11 +265,18 @@ export const downloadEmailTranslationProof = async (
             children: [
               new TextRun({
                 text: emailReply.translatedText,
-                italics: true
+                italics: true,
+                font: {
+                  name: 'Arial Unicode MS',
+                  eastAsia: 'Arial Unicode MS',
+                  cs: 'Arial Unicode MS'
+                },
+                rightToLeft: true
               })
             ],
             spacing: { after: 300 },
-            indent: { left: 720 }
+            indent: { left: 720 },
+            bidirectional: true
           }),
 
           // Section 5: Quality Assessment
@@ -416,11 +443,18 @@ export const downloadEmailTranslationProof = async (
               children: [
                 new TextRun({
                   text: qualityAssessment.reverseTranslation,
-                  italics: true
+                  italics: true,
+                  font: {
+                    name: 'Arial Unicode MS',
+                    eastAsia: 'Arial Unicode MS',
+                    cs: 'Arial Unicode MS'
+                  },
+                  rightToLeft: true
                 })
               ],
               spacing: { after: 400 },
-              indent: { left: 720 }
+              indent: { left: 720 },
+              bidirectional: true
             })
           ] : []),
 
