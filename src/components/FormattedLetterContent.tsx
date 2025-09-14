@@ -1,15 +1,48 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { parseLetterContent, FormattedContent } from '@/utils/letterFormatter';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormattedLetterContentProps {
   content: string;
 }
 
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ content }) => {
+  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
-  const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
+  const embeddedLogoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
+  
+  // Fetch practice logo if not embedded in content
+  useEffect(() => {
+    const fetchPracticeLogo = async () => {
+      if (embeddedLogoUrl) {
+        setPracticeLogoUrl(embeddedLogoUrl);
+        return;
+      }
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('logo_url, practice_logo_url')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (practiceData) {
+          const logoUrl = practiceData.practice_logo_url || practiceData.logo_url;
+          setPracticeLogoUrl(logoUrl);
+        }
+      } catch (error) {
+        console.error('Error fetching practice logo:', error);
+      }
+    };
+    
+    fetchPracticeLogo();
+  }, [embeddedLogoUrl]);
   
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
@@ -90,10 +123,10 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
       {/* Practice Logo at Top Center */}
-      {logoUrl && (
+      {practiceLogoUrl && (
         <div className="p-8 text-center border-b border-gray-100">
           <img 
-            src={logoUrl}
+            src={practiceLogoUrl}
             alt="Practice Logo" 
             className="h-48 w-auto mx-auto object-contain"
           />
