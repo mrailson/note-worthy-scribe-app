@@ -21,7 +21,7 @@ import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
-import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
+
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
@@ -31,7 +31,7 @@ import { AIModelVerificationChart } from '@/components/AIModelVerificationChart'
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
-import { VoiceConversationInterface } from '@/components/ai4gp/VoiceConversationInterface';
+
 
 // Hook imports
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -109,8 +109,6 @@ const AI4GPService = () => {
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
   
-  // Voice conversation state
-  const [voiceModeEnabled, setVoiceModeEnabled] = useState(false);
 
   // Local policy state - remove from component since it's now in the hook
   // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
@@ -157,12 +155,7 @@ const AI4GPService = () => {
     readingFont,
     setReadingFont,
     autoCollapseUserPrompts,
-    setAutoCollapseUserPrompts,
-    // Voice Assistant Settings
-    gpGenieVoiceEnabled,
-    setGpGenieVoiceEnabled,
-    pmGenieVoiceEnabled,
-    setPmGenieVoiceEnabled
+    setAutoCollapseUserPrompts
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -445,21 +438,8 @@ const AI4GPService = () => {
                         </DropdownMenuSub>
                        </DropdownMenuContent>
                      </DropdownMenu>
-                     
-                      {/* Voice Mode Toggle */}
-                      <Button
-                        variant={voiceModeEnabled ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => setVoiceModeEnabled(!voiceModeEnabled)}
-                        className="px-2 sm:px-3"
-                      >
-                        <Mic className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                        <span className="hidden sm:inline text-xs">
-                          {voiceModeEnabled ? 'Voice On' : 'Voice'}
-                        </span>
-                      </Button>
                       
-                      {/* Settings Button */}
+                       {/* Settings Button */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -485,9 +465,6 @@ const AI4GPService = () => {
                     >
                       ✕
                     </button>
-                  </div>
-                  <div className="max-h-[70vh] overflow-y-auto">
-                    <GPGenieVoiceAgent initialTab={genieTab} />
                   </div>
                 </div>
               )}
@@ -581,144 +558,22 @@ const AI4GPService = () => {
                           </div>
                         )}
                         
-                        {/* GP Genie Service Box - Only show for GP role */}
-                        {selectedRole === 'gp' && gpGenieVoiceEnabled && (
-                          <div className="mt-4">
-                            <Card className="w-full bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:border-primary/30 transition-all duration-200">
-                              <CardContent className="p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <GenieIcon className="h-5 w-5 text-primary" />
-                                    <h4 className="font-semibold text-sm">GP Genie Voice Assistant</h4>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                                      Clinical Voice AI
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                                  Speak naturally for clinical guidance, patient reassurance advice, and evidence-based medicine support.
-                                </p>
-                                
-                                <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Patient Reassurance
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Clinical Guidance
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Safety Netting
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Prescribing Support
-                                  </div>
-                                </div>
-                                
-                                <Button 
-                                  onClick={() => {
-                                    if (!gpGenieVoiceEnabled) {
-                                      toast({
-                                        description: 'GP Genie Voice Assistant is disabled in settings',
-                                        variant: 'destructive'
-                                      });
-                                      return;
-                                    }
-                                    setGenieTab('gp-genie');
-                                    setShowAIChat(true);
-                                  }}
-                                  size="sm"
-                                  className="w-full flex items-center gap-2 text-xs py-2 bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  Start the Conversation
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        )}
-                        
-                        {/* PM Genie Service Box - Only show for Practice Manager role */}
-                        {selectedRole === 'practice-manager' && pmGenieVoiceEnabled && (
-                          <div className="mt-4">
-                            <Card className="w-full bg-gradient-to-br from-purple-500/5 to-purple-600/10 border-purple-500/20 hover:border-purple-600/30 transition-all duration-200">
-                              <CardContent className="p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-purple-600" />
-                                    <h4 className="font-semibold text-sm">PM Genie Voice Assistant</h4>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="inline-flex items-center rounded-full bg-purple-600/10 px-2 py-1 text-xs font-medium text-purple-600">
-                                      Practice Management AI
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                                  Speak with PM Genie for operational, HR, and practice management guidance in Northamptonshire.
-                                </p>
-                                
-                                <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Patient Complaints
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>Staff Management
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>ARRS & QOF
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    <span className="font-medium">• </span>CQC Inspections
-                                  </div>
-                                </div>
-                                
-                                <Button 
-                                  onClick={() => {
-                                    if (!pmGenieVoiceEnabled) {
-                                      toast({
-                                        description: 'PM Genie Voice Assistant is disabled in settings',
-                                        variant: 'destructive'
-                                      });
-                                      return;
-                                    }
-                                    setGenieTab('pm-genie');
-                                    setShowAIChat(true);
-                                  }}
-                                  size="sm"
-                                  className="w-full flex items-center gap-2 text-xs py-2 bg-purple-600 hover:bg-purple-700 text-white"
-                                >
-                                  Start the Conversation
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
+                        {/* Show User Prompts - Messages start here */}
+                       </div>
+                     </div>
+                   ) : (
                     /* Messages Area */
                     <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      {voiceModeEnabled ? (
-                        <VoiceConversationInterface
-                          messages={messages}
-                          onSendMessage={(message) => handleSendWithContext(message)}
-                          isLoading={isLoading}
-                          className="h-full"
-                        />
-                      ) : (
-                        <MessagesList
-                          messages={messages}
-                          isLoading={isLoading}
-                          expandedMessage={expandedMessage}
-                          setExpandedMessage={setExpandedMessage}
-                          onExportWord={generateWordDocument}
-                          onExportPowerPoint={generatePowerPoint}
-                          showResponseMetrics={showResponseMetrics}
-                          showRenderTimes={showRenderTimes}
-                          showAIService={showAIService}
+                      <MessagesList
+                        messages={messages}
+                        isLoading={isLoading}
+                        expandedMessage={expandedMessage}
+                        setExpandedMessage={setExpandedMessage}
+                        onExportWord={generateWordDocument}
+                        onExportPowerPoint={generatePowerPoint}
+                        showResponseMetrics={showResponseMetrics}
+                        showRenderTimes={showRenderTimes}
+                        showAIService={showAIService}
                            onSetDrugName={(drugName: string) => {
                              if (setDrugNameFn) {
                                setDrugNameFn(drugName);
@@ -729,13 +584,12 @@ const AI4GPService = () => {
                             // Use the selected model from settings
                             handleQuickResponse(response, practiceContext, selectedModel);
                           }}
-                        />
-                      )}
-                    </div>
+                         />
+                     </div>
                   )}
                   
-                  {/* Input Area at Bottom - Desktop only - Hide in voice mode */}
-                  {!showNews && !showSettings && !showImageService && !isMobile && !voiceModeEnabled && (
+                  {/* Input Area at Bottom - Desktop only */}
+                  {!showNews && !showSettings && !showImageService && !isMobile && (
                     <div className="border-t">
                       <InputArea
                         ref={inputRef}
@@ -758,8 +612,8 @@ const AI4GPService = () => {
         </div>
       </div>
 
-      {/* Mobile Floating Input - Outside main container to avoid overflow clipping - Hide in voice mode */}
-      {isMobile && !showNews && !showSettings && !showImageService && !voiceModeEnabled && (
+      {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
+      {isMobile && !showNews && !showSettings && !showImageService && (
         <FloatingMobileInput
           ref={inputRef}
           input={input}
@@ -850,10 +704,6 @@ const AI4GPService = () => {
           onReadingFontChange={setReadingFont}
           autoCollapseUserPrompts={autoCollapseUserPrompts}
           onAutoCollapseUserPromptsChange={setAutoCollapseUserPrompts}
-          gpGenieVoiceEnabled={gpGenieVoiceEnabled}
-          onGpGenieVoiceEnabledChange={setGpGenieVoiceEnabled}
-          pmGenieVoiceEnabled={pmGenieVoiceEnabled}
-          onPmGenieVoiceEnabledChange={setPmGenieVoiceEnabled}
         />
 
       {/* Quick Image Modal */}

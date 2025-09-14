@@ -29,10 +29,6 @@ export const useAI4GPService = () => {
   const [highContrast, setHighContrast] = useState(false);
   const [readingFont, setReadingFont] = useState(false);
   const [autoCollapseUserPrompts, setAutoCollapseUserPrompts] = useState(false);
-  
-  // Voice Assistant Settings
-  const [gpGenieVoiceEnabled, setGpGenieVoiceEnabled] = useState(false);
-  const [pmGenieVoiceEnabled, setPmGenieVoiceEnabled] = useState(false);
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
@@ -901,10 +897,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setReadingFont(preferences.readingFont ?? false);
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           
-          // Load voice assistant settings
-          setGpGenieVoiceEnabled(preferences.gpGenieVoiceEnabled ?? true);
-          setPmGenieVoiceEnabled(preferences.pmGenieVoiceEnabled ?? true);
-          
           console.log('AI4GP settings loaded successfully');
         } else {
           console.log('No saved AI4GP preferences found, using defaults');
@@ -942,10 +934,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         containerWidth,
         highContrast,
         readingFont,
-        autoCollapseUserPrompts,
-        // Voice assistant settings
-        gpGenieVoiceEnabled,
-        pmGenieVoiceEnabled
+        autoCollapseUserPrompts
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -968,7 +957,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, gpGenieVoiceEnabled, pmGenieVoiceEnabled]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, pmGenieVoiceEnabled]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -979,7 +968,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, gpGenieVoiceEnabled, pmGenieVoiceEnabled, saveUserSettings]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, pmGenieVoiceEnabled, saveUserSettings]);
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {
@@ -1325,11 +1314,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     readingFont,
     setReadingFont,
     autoCollapseUserPrompts,
-    setAutoCollapseUserPrompts,
-    // Voice Assistant Settings
-    gpGenieVoiceEnabled,
-    setGpGenieVoiceEnabled,
-    pmGenieVoiceEnabled,
-    setPmGenieVoiceEnabled
+    setAutoCollapseUserPrompts
   };
 };
