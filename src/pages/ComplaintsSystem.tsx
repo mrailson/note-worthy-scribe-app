@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
+import { ComplaintImport } from "@/components/ComplaintImport";
 import { 
   maskPatientData, 
   getUserRoleLevel, 
@@ -182,6 +183,9 @@ const ComplaintsSystem = () => {
     getTimeRemaining,
     getActiveSessionCount
   } = usePatientDataAccess({ userRole });
+  
+  // Import complaint states
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Fetch audit logs when audit tab is selected
   useEffect(() => {
@@ -567,6 +571,26 @@ const ComplaintsSystem = () => {
 
   const handleInputChange = (field: keyof ComplaintFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImportedData = (importedData: any) => {
+    setFormData(prev => ({
+      ...prev,
+      patient_name: importedData.patient_name || prev.patient_name,
+      patient_dob: importedData.patient_dob || prev.patient_dob,
+      patient_contact_phone: importedData.patient_contact_phone || prev.patient_contact_phone,
+      patient_contact_email: importedData.patient_contact_email || prev.patient_contact_email,
+      patient_address: importedData.patient_address || prev.patient_address,
+      incident_date: importedData.incident_date || prev.incident_date,
+      complaint_title: importedData.complaint_title || prev.complaint_title,
+      complaint_description: importedData.complaint_description || prev.complaint_description,
+      category: importedData.category || prev.category,
+      location_service: importedData.location_service || prev.location_service,
+      staff_mentioned: importedData.staff_mentioned || prev.staff_mentioned,
+      complaint_on_behalf: importedData.complaint_on_behalf ?? prev.complaint_on_behalf,
+    }));
+    setShowImportModal(false);
+    toast.success("Complaint data imported successfully!");
   };
 
   const handleGenerateAcknowledgement = async (complaintId: string) => {
@@ -1757,6 +1781,15 @@ const ComplaintsSystem = () => {
                       <span className="sm:hidden">Record new patient complaint</span>
                     </CardDescription>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowImportModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Import Complaint Data
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="px-3 sm:px-6">
@@ -2996,9 +3029,17 @@ const ComplaintsSystem = () => {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
-      </div>
-    );
-  };
+         </Dialog>
+         
+         {/* Import Complaint Modal */}
+         {showImportModal && (
+           <ComplaintImport
+             onDataExtracted={handleImportedData}
+             onClose={() => setShowImportModal(false)}
+           />
+         )}
+       </div>
+     );
+   };
 
 export default ComplaintsSystem;
