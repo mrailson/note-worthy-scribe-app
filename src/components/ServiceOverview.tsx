@@ -131,7 +131,7 @@ export const ServiceOverview = () => {
   return (
     <div className="w-full space-y-8">
       {/* Services Grid - Moved to top */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {displayedServices.map((service, index) => (
           <Card key={index} className="h-full hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-4">
