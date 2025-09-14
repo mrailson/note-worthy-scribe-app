@@ -48,6 +48,7 @@ interface EmailTranslationQualityProps {
   onAssessmentComplete: (assessment: QualityAssessment) => void;
   onStartAssessment: () => void;
   isAssessing: boolean;
+  onProceedToSend: () => void;
 }
 
 export const EmailTranslationQuality = ({
@@ -55,7 +56,8 @@ export const EmailTranslationQuality = ({
   originalEmail,
   qualityAssessment,
   onStartAssessment,
-  isAssessing
+  isAssessing,
+  onProceedToSend
 }: EmailTranslationQualityProps) => {
 
   const getQualityColor = (score: number) => {
@@ -220,10 +222,19 @@ export const EmailTranslationQuality = ({
                 </AlertDescription>
               </Alert>
 
-              <Button onClick={onStartAssessment} variant="outline" size="sm">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Re-assess Quality
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={onStartAssessment} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Re-assess Quality
+                </Button>
+                <Button 
+                  onClick={onProceedToSend}
+                  disabled={qualityAssessment?.overallSafety === 'unsafe'}
+                >
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Proceed to Send
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

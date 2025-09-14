@@ -330,6 +330,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                   onAssessmentComplete={setQualityAssessment}
                   onStartAssessment={assessTranslationQuality}
                   isAssessing={isAssessing}
+                  onProceedToSend={() => setActiveTab('send')}
                 />
               )}
             </TabsContent>
