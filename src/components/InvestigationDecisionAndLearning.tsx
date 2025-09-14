@@ -770,6 +770,18 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                         </div>
                       )}
                     </div>
+                    {/* Live formatted preview to avoid raw ** and ### showing */}
+                    {decisionReasoning?.trim() && (
+                      <div className="mt-3">
+                        <Label className="text-xs text-muted-foreground">Preview</Label>
+                        <div className="mt-1 p-4 bg-background/50 border rounded-lg">
+                          <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: renderNHSMarkdown(decisionReasoning) }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -818,6 +830,18 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                         </div>
                       )}
                     </div>
+                    {/* Live formatted preview to avoid raw ** and ### showing */}
+                    {lessonsLearned?.trim() && (
+                      <div className="mt-3">
+                        <Label className="text-xs text-muted-foreground">Preview</Label>
+                        <div className="mt-1 p-4 bg-background/50 border rounded-lg">
+                          <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: renderNHSMarkdown(lessonsLearned) }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
