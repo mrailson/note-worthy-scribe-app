@@ -155,9 +155,13 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
 
     setIsSending(true);
     try {
+      // Get current user's email
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email || 'patient@example.com';
+
       const { data, error } = await supabase.functions.invoke('send-translation-email', {
         body: {
-          to: 'patient@example.com', // This would come from form data
+          to: userEmail,
           subject: 'Response from NHS GP Practice',
           translatedText: emailReply.translatedText,
           originalText: emailReply.englishText,
@@ -168,7 +172,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
 
       if (error) throw error;
 
-      toast.success('Email sent successfully');
+      toast.success(`Email sent successfully to ${userEmail}`);
       
       // Reset form
       setIncomingEmail('');
