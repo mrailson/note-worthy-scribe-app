@@ -349,7 +349,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                   <div className="p-4 border rounded">
                     <h4 className="font-medium mb-2">Final Email Content ({emailReply.targetLanguage}):</h4>
                     <div className="text-sm bg-muted p-4 rounded space-y-2">
-                      {emailReply.translatedText.split('\n').map((paragraph, index) => (
+                      {emailReply.translatedText.replace(/\*\*(.*?)\*\*/g, '$1').split('\n').map((paragraph, index) => (
                         paragraph.trim() ? (
                           <p key={index} className="leading-relaxed">{paragraph}</p>
                         ) : (
