@@ -44,6 +44,7 @@ import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
 import TranslationTool from "./pages/TranslationTool";
+import GPGenie from "./pages/GPGenie";
 
 
 const App = () => (
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/assemblyai-test-simple" element={<AssemblyAITestSimple />} />
             <Route path="/transcription-comparison" element={<TranscriptionComparison />} />
             <Route path="/translation-tool" element={<TranslationTool />} />
+            <Route path="/gp-genie" element={<GPGenie />} />
             <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />

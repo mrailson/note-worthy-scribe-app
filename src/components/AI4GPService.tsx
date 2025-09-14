@@ -406,7 +406,7 @@ const AI4GPService = () => {
                           <Plus className="w-4 h-4 mr-2" />
                           New Search
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
+                        <DropdownMenuItem onClick={() => navigate('/gp-genie')}>
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
                         </DropdownMenuItem>
