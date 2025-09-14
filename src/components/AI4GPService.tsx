@@ -507,8 +507,26 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* News Panel - Inline Display */}
+              {showNews && (
+                <div className="flex-1 overflow-y-auto bg-background">
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h2 className="text-lg font-semibold">GP News & Local Health News</h2>
+                    <button
+                      onClick={() => setShowNews(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <NewsPanel />
+                  </div>
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && (
+              {!showImageCreate && !showImageService && !showNews && (
                 <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
                   {messages.length === 0 ? (
                     /* Welcome Screen - Compact, mobile-optimized */
@@ -595,7 +613,7 @@ const AI4GPService = () => {
                   )}
                   
                   {/* Input Area at Bottom - Desktop only */}
-                  {!showNews && !showSettings && !showImageService && !isMobile && (
+                  {!showSettings && !showImageService && !isMobile && (
                     <div className="border-t">
                       <InputArea
                         ref={inputRef}
@@ -619,7 +637,7 @@ const AI4GPService = () => {
       </div>
 
       {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
-      {isMobile && !showNews && !showSettings && !showImageService && (
+      {isMobile && !showSettings && !showImageService && (
         <FloatingMobileInput
           ref={inputRef}
           input={input}
@@ -662,20 +680,6 @@ const AI4GPService = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* News Modal */}
-      <Dialog open={showNews} onOpenChange={setShowNews}>
-        <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <NewsPanel />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-
 
       {/* Settings Modal */}
         <SettingsModal
