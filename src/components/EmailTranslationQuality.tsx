@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -60,6 +61,11 @@ export const EmailTranslationQuality = ({
   onProceedToSend
 }: EmailTranslationQualityProps) => {
 
+  const getLanguageName = (code: string) => {
+    const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
+    return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
+  };
+
   const getQualityColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
     if (score >= 80) return 'text-yellow-600';
@@ -101,7 +107,7 @@ export const EmailTranslationQuality = ({
             <AlertDescription>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">ORIGINAL ({originalEmail.detectedLanguage.toUpperCase()}):</span>
+                  <span className="text-xs font-medium">ORIGINAL ({getLanguageName(originalEmail.detectedLanguage)}):</span>
                 </div>
                 <p className="text-sm bg-muted p-2 rounded">{originalEmail.originalText}</p>
                 
@@ -113,7 +119,7 @@ export const EmailTranslationQuality = ({
                 
                 <div className="flex items-center gap-2 mt-2">
                   <ArrowRight className="w-4 h-4" />
-                  <span className="text-xs font-medium">TRANSLATED REPLY ({emailReply.targetLanguage.toUpperCase()}):</span>
+                  <span className="text-xs font-medium">TRANSLATED REPLY ({getLanguageName(emailReply.targetLanguage)}):</span>
                 </div>
                 <p className="text-sm bg-muted p-2 rounded">{emailReply.translatedText}</p>
                 

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { 
   Languages, 
   Phone, 
@@ -126,6 +127,12 @@ export const TranslationToolInterface = () => {
   const processedMessageIds = useRef<Set<string>>(new Set());
   const conversationExchangeMap = useRef<Map<string, { timestamp: number, processed: boolean }>>(new Map());
   const lastProcessedTimestamp = useRef<number>(0);
+  
+  // Helper function to get full language name
+  const getLanguageName = (code: string) => {
+    const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
+    return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
+  };
   
   // Add cleanup interval to prevent memory leaks
   useEffect(() => {
@@ -1380,13 +1387,13 @@ export const TranslationToolInterface = () => {
                       {/* Translation Details */}
                       <div className="space-y-3 p-4 rounded border bg-muted/20">
                         <div>
-                          <span className="text-sm font-medium text-muted-foreground">Original ({qualityScore.sourceLanguage}):</span>
+                          <span className="text-sm font-medium text-muted-foreground">Original ({getLanguageName(qualityScore.sourceLanguage)}):</span>
                           <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.originalPhrase}
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm font-medium text-muted-foreground">Translation ({qualityScore.targetLanguage}):</span>
+                          <span className="text-sm font-medium text-muted-foreground">Translation ({getLanguageName(qualityScore.targetLanguage)}):</span>
                           <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.translatedPhrase}
                           </div>
