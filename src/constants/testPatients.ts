@@ -14,19 +14,27 @@ export const TEST_PATIENT_REQUESTS: TestPatient[] = [
     language: 'Spanish',
     languageCode: 'es',
     email: 'maria.gonzalez@email.com',
-    request: `Estimados doctores de Oak Lane Medical Practice,
+    request: `Estimada recepción de Oak Lane Medical Practice,
 
-Mi nombre es María González y soy paciente registrada en su consulta. Escribo porque he estado experimentando dolor de cabeza severo durante los últimos tres días, junto con náuseas y sensibilidad a la luz. También tengo fiebre de aproximadamente 38.5°C.
+Mi nombre es María González y necesito solicitar una cita de rutina para mi chequeo anual. Soy paciente registrada desde hace tres años.
 
-Estos síntomas comenzaron de repente el lunes por la mañana y han empeorado gradualmente. El dolor de cabeza es muy intenso, especialmente en el lado derecho de mi cabeza, y los analgésicos que normalmente tomo no están ayudando.
+Me gustaría programar mi examen anual de salud general y también necesito renovar mis prescripciones habituales:
+- Lisinopril 10mg para la presión arterial
+- Simvastatina 20mg para el colesterol
+- Vitamina D3
 
-Estoy preocupada porque estos síntomas son muy diferentes a los dolores de cabeza normales que ocasionalmente tengo. ¿Podrían agendar una cita urgente para hoy o mañana? Mi número de teléfono es 07123 456789.
+Mi última cita fue hace 13 meses con el Dr. Smith. También me gustaría hacerme los análisis de sangre de rutina que me hace cada año para revisar mi colesterol y función renal.
 
-Gracias por su atención.
+Prefiero citas por la mañana entre las 9:00 y 11:00 AM si es posible. Puedo venir cualquier día de la semana que viene o la siguiente.
+
+Mi número de teléfono es 07123 456789.
+
+Muchas gracias por su ayuda.
 
 Atentamente,
 María González
-Fecha de nacimiento: 15/03/1985`
+Fecha de nacimiento: 15/03/1985
+Número de paciente: MG1985`
   },
   {
     id: '2',
@@ -34,19 +42,26 @@ Fecha de nacimiento: 15/03/1985`
     language: 'Arabic',
     languageCode: 'ar',
     email: 'ahmed.hassan@email.com',
-    request: `إلى عيادة Oak Lane Medical Practice المحترمة،
+    request: `إلى إدارة عيادة Oak Lane Medical Practice المحترمة،
 
-اسمي أحمد حسن وأنا مريض مسجل لديكم. أكتب إليكم لأنني أعاني من ألم شديد في الصدر منذ البارحة. الألم يأتي على شكل نوبات ويستمر لحوالي 10-15 دقيقة في كل مرة.
+اسمي أحمد حسن، مريض مسجل لديكم. أكتب لطلب نسخة من تقاريري الطبية لتقديمها لشركة التأمين الجديدة.
 
-الألم يشع إلى ذراعي اليسرى وأشعر أيضاً بضيق في التنفس وتعرق. لدي تاريخ عائلي من أمراض القلب - والدي أصيب بنوبة قلبية عندما كان في الخمسين من عمره.
+أحتاج إلى المستندات التالية:
+- تقرير طبي كامل عن حالتي الصحية العامة
+- نتائج فحوصات الدم من آخر ستة أشهر  
+- تقرير عن ضغط الدم وإدارة الكوليسترول
+- قائمة بجميع الأدوية الحالية
 
-عمري 45 سنة وأعمل في وظيفة مكتبية مع الكثير من الضغط. أدخن حوالي 20 سيجارة يومياً منذ 20 سنة. أعلم أنني يجب أن أقلع عن التدخين ولكن لم أستطع حتى الآن.
+بدأت العمل في شركة جديدة وشركة التأمين الصحي تطلب هذه المستندات لتقييم تغطيتي. لدي موعد مع مقدم التأمين الأسبوع المقبل.
 
-هل يمكنكم رؤيتي اليوم؟ أنا قلق جداً حول هذه الأعراض. رقم هاتفي هو 07234 567890.
+هل يمكن تحضير هذه المستندات خلال الأسبوع الحالي؟ يمكنني المرور لاستلامها شخصياً أو إرسالها بالبريد الإلكتروني إذا أمكن.
 
-شكراً لكم،
+رقم هاتفي هو 07234 567890.
+
+شكراً لتعاونكم،
 أحمد حسن
-تاريخ الميلاد: 22/07/1979`
+تاريخ الميلاد: 22/07/1979
+رقم المريض: AH1979`
   },
   {
     id: '3',
@@ -54,27 +69,29 @@ Fecha de nacimiento: 15/03/1985`
     language: 'Mandarin Chinese',
     languageCode: 'zh-CN',
     email: 'chen.wei@email.com',
-    request: `尊敬的Oak Lane Medical Practice医生们：
+    request: `尊敬的Oak Lane Medical Practice接待处：
 
-我叫陈伟，是您的注册患者。我写信是因为我的2岁女儿陈小雨出现了令人担忧的症状。
+我是陈伟，您的注册患者。我写信是想咨询关于预约专科医生转诊的事宜。
 
-从昨天开始，小雨发高烧39.2°C，并且出现了皮疹。皮疹开始出现在她的脸部，现在正在扩散到身体其他部位。皮疹看起来像小红点，有些地方聚集在一起。
+在上个月的检查中，Dr. Johnson建议我去看皮肤科专家，因为我背部有一颗痣最近发生了变化。他说需要进一步检查以确保没有问题。
 
-她还出现了以下症状：
-- 食欲不振，几乎不吃任何东西
-- 异常烦躁和哭闹
-- 睡眠不好
-- 轻微咳嗽
-- 眼睛红肿，有分泌物
+我想了解：
+- 转诊流程需要多长时间？
+- 我需要提供额外的文件吗？
+- 专科医生的预约通常需要等待多久？
+- 这个检查我的NHS会覆盖吗？
 
-我给她服用了儿童退烧药，但发烧仍然很高。我很担心这可能是麻疹或其他严重的传染病。她已经按时接种了所有疫苗，但我仍然担心。
+我比较担心，所以希望能尽快安排。我的工作时间比较灵活，可以配合任何时间安排。
 
-请问今天能安排紧急预约吗？我的手机号码是07345 678901。
+另外，我还想预约Dr. Johnson进行三个月后的随访检查，就像他建议的那样。
+
+我的联系电话是07345 678901。
 
 谢谢您的帮助。
 
 陈伟
-女儿：陈小雨（出生日期：2022年03月10日）`
+出生日期：1988年06月12日
+患者编号：CW1988`
   },
   {
     id: '4',
@@ -82,23 +99,26 @@ Fecha de nacimiento: 15/03/1985`
     language: 'French',
     languageCode: 'fr',
     email: 'jeanpierre.dubois@email.com',
-    request: `Chers médecins de Oak Lane Medical Practice,
+    request: `Cher service administratif de Oak Lane Medical Practice,
 
-Je suis Jean-Pierre Dubois, patient enregistré dans votre cabinet. Je vous écris concernant un problème urgent avec ma prescription habituelle.
+Je suis Jean-Pierre Dubois, patient enregistré dans votre cabinet. Je vous écris concernant ma demande de renouvellement d'ordonnance.
 
-Je prends de la metformine 500mg deux fois par jour pour mon diabète de type 2 depuis les cinq dernières années. Hier, quand je suis allé à la pharmacie pour récupérer ma prescription mensuelle, on m'a dit qu'il n'y avait plus de stock et qu'ils ne pourraient pas avoir ce médicament avant la semaine prochaine.
+Je prends régulièrement de la metformine 500mg deux fois par jour pour mon diabète de type 2. Mon ordonnance actuelle expire dans une semaine et j'aimerais la renouveler.
 
-Je n'ai plus que trois comprimés restants, ce qui me donnera jusqu'à demain soir. Je suis très inquiet car je sais qu'arrêter brutalement la metformine peut être dangereux pour mon contrôle glycémique.
+Mes derniers résultats d'HbA1c étaient excellents (6.8%) et mon médecin, Dr. Brown, était très satisfait de mon contrôle glycémique. Je continue de suivre le régime alimentaire recommandé et fais de l'exercice régulièrement.
 
-Mon dernier HbA1c était de 7.2% il y a trois mois, et j'ai réussi à bien contrôler mon diabète avec ce médicament. Je mange sainement et fais de l'exercice régulièrement comme vous me l'avez recommandé.
+Pourriez-vous préparer une nouvelle ordonnance pour trois mois? Je peux passer la récupérer à votre convenance ou si vous offrez un service de livraison, cela m'arrangerait beaucoup.
 
-Pourriez-vous prescrire un médicament alternatif ou m'aider à trouver une pharmacie qui a de la metformine en stock? Mon numéro de téléphone est 07456 789012.
+Je n'ai pas besoin de consultation pour le moment car je me sens très bien et tous mes paramètres sont stables.
 
-Je vous remercie de votre aide urgente.
+Mon numéro de téléphone est 07456 789012.
+
+Merci d'avance pour votre aide.
 
 Cordialement,
 Jean-Pierre Dubois
-Date de naissance: 08/11/1962`
+Date de naissance: 08/11/1962
+Numéro patient: JPD1962`
   },
   {
     id: '5',
@@ -106,28 +126,26 @@ Date de naissance: 08/11/1962`
     language: 'Hindi',
     languageCode: 'hi',
     email: 'priya.sharma@email.com',
-    request: `प्रिय Oak Lane Medical Practice के डॉक्टरों,
+    request: `प्रिय Oak Lane Medical Practice के रिसेप्शन टीम,
 
-मैं प्रिया शर्मा हूँ और आपके यहाँ रजिस्टर्ड मरीज़ हूँ। मैं अपनी माँ के बारे में लिख रही हूँ जो 68 साल की हैं और पिछले दो दिनों से बहुत बीमार हैं।
+मैं प्रिया शर्मा हूँ और मैं अपनी बिलिंग की जानकारी के बारे में पूछना चाहती हूँ।
 
-मेरी माँ को ये लक्षण हैं:
-- तेज़ बुखार (39.5°C)
-- सांस लेने में तकलीफ़
-- छाती में दर्द
-- सूखी खाँसी जो बदतर होती जा रही है
-- बहुत कमज़ोरी और थकान
+पिछले महीने मैंने अपने बेटे राहुल के लिए एक प्राइवेट अपॉइंटमेंट बुक किया था क्योंकि NHS की अपॉइंटमेंट में बहुत देर थी। Dr. Patel ने उसकी एक्जिमा के लिए दवा प्रेस्क्राइब की थी।
 
-उन्हें डायबिटीज़ और हाई ब्लड प्रेशर है, और वे नियमित दवाइयाँ लेती हैं। कल रात उनकी हालत और भी खराब हो गई और वे ठीक से सो नहीं पाईं।
+मुझे इन चीज़ों की जानकारी चाहिए:
+- उस विज़िट का टोटल बिल कितना है?  
+- क्या मेरी प्राइवेट हेल्थ इंश्योरेंस इसे कवर करेगी?
+- मुझे रिसीप्ट और मेडिकल रिपोर्ट चाहिए इंश्योरेंस क्लेम के लिए
+- क्या कोई अतिरिक्त चार्ज है जो मुझे पता नहीं?
 
-मैं बहुत चिंतित हूँ क्योंकि ये COVID-19 जैसे लक्षण लग रहे हैं, या फिर निमोनिया हो सकता है। उन्होंने अपनी सारी वैक्सीन लगवाई हैं लेकिन फिर भी मैं डरी हुई हूँ।
+कृपया मुझे सारी details ईमेल कर दें या मैं ऑफिस से कलेक्ट कर सकती हूँ। मेरी इंश्योरेंस कंपनी को ये documents next week तक चाहिए।
 
-क्या आज ही कोई अपॉइंटमेंट मिल सकता है? अगर ज़रूरत हो तो हम तुरंत आ सकते हैं। मेरा फ़ोन नंबर है 07567 890123।
-
-कृपया जल्दी जवाब दें।
+मेरा फ़ोन नंबर है 07567 890123।
 
 धन्यवाद,
-प्रिया शर्मा
-    माँ का नाम: सुशीला शर्मा (जन्म तारीख: 12/01/1956)`
+प्रिया शर्मा  
+जन्म तारीख: 10/09/1990
+Patient Number: PS1990`
   },
   {
     id: '6',
