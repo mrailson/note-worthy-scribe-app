@@ -20,5 +20,9 @@ export const HEALTHCARE_LANGUAGES: LanguageOption[] = [
   { code: 'ro', name: 'Romanian', flag: '🇷🇴', voice: 'ro-RO-Wavenet-A' },
   { code: 'ru', name: 'Russian', flag: '🇷🇺', voice: 'ru-RU-Wavenet-A' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸', voice: 'es-ES-Wavenet-A' },
-  { code: 'tr', name: 'Turkish', flag: '🇹🇷', voice: 'tr-TR-Wavenet-A' }
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷', voice: 'tr-TR-Wavenet-A' },
+  { code: 'fa', name: 'Persian (Farsi)', flag: '🇮🇷', voice: 'fa-IR-Standard-A' },
+  { code: 'ku', name: 'Kurdish', flag: '🏴', voice: 'ku-TR-Standard-A' },
+  { code: 'ps', name: 'Pashto', flag: '🇦🇫', voice: 'ps-AF-Standard-A' },
+  { code: 'ti', name: 'Tigrinya', flag: '🇪🇷', voice: 'ti-ER-Standard-A' }
 ];

@@ -523,5 +523,367 @@ Given your family history of osteoporosis but no breast cancer history, you may 
 
 Best regards,
 Oak Lane Medical Practice Women's Health Team`
+  },
+  {
+    id: '11',
+    name: 'Elena Popescu',
+    language: 'Romanian',
+    languageCode: 'ro',
+    email: 'elena.popescu@email.com',
+    request: `Stimate domnule doctor de la Oak Lane Medical Practice,
+
+Sunt Elena Popescu, pacientă înregistrată de aproximativ un an. Vă scriu pentru că am nevoie urgentă de ajutor medical pentru mama mea în vârstă de 78 de ani.
+
+Mama locuiește cu mine și în ultimele două săptămâni starea ei s-a înrăutățit considerabil. Ea suferă de Alzheimer în stadiu moderat și de obicei îi gestionez bine medicația, dar acum am întâmpinat probleme.
+
+Simptomele care mă îngrijorează:
+- Confuzie sporită și agitație în serile
+- Refuză să ia medicamentele (Donepezil și Memantine)
+- Nu doarme noaptea și petrece timpul umblând prin casă
+- A început să nu mă recunoască uneori
+- A căzut de două ori în ultima săptămână
+
+Eu lucrez ca asistentă medicală dar îngrijirea ei devine din ce în ce mai grea. Am nevoie de sfaturi despre cum să gestionez situația și poate ajustarea medicației.
+
+Nu știu dacă aceasta este o progresie normală a bolii sau dacă s-a întâmplat ceva specific. De asemenea, am nevoie de informații despre serviciile de îngrijire la domiciliu disponibile.
+
+Vă rog să-mi acordați o consultație în această săptămână dacă este posibil. Numărul meu de telefon este 07123 987654.
+
+Cu stimă,
+Elena Popescu
+Data nașterii mama: 12/02/1946
+Data nașterii mea: 30/08/1985`,
+    englishReply: `Dear Ms Popescu,
+
+Thank you for reaching out about your mother's deteriorating condition. As a healthcare worker yourself, we understand how challenging it must be to witness these changes in your mother while managing her care.
+
+**Urgent Assessment Arranged:**
+We have scheduled an urgent home visit with Dr. Patel and our community psychiatric nurse on Thursday [DATE] at 10:00 AM. Given your mother's increased confusion and falls risk, a home assessment will be more appropriate than bringing her to the surgery.
+
+**The Assessment Will Include:**
+- Review of current medications and possible adjustments
+- Cognitive assessment and behavioral evaluation  
+- Falls risk assessment and home safety review
+- Discussion of care options and support services
+
+**Immediate Safety Measures:**
+- Consider removing trip hazards and installing night lights
+- Lock away any potentially harmful items during nighttime wandering
+- If medication refusal continues, we can discuss alternative formulations (liquid, dispersible tablets)
+
+**Support Services Available:**
+- Admiral Nurses (dementia specialist nurses) for ongoing support
+- Adult Social Care assessment for care package options
+- Carers Direct helpline: 0300 123 1053
+- Local dementia day centers for respite care
+
+**Before the Visit:**
+- Prepare a list of all current medications and when she last took them
+- Note specific times when agitation is worst
+- Document the falls (time, location, any injuries)
+
+The behavioral changes you're describing can indicate progression but may also be caused by infections, medication interactions, or environmental factors - all of which are treatable.
+
+Your dedication to your mother's care is admirable, but please don't hesitate to accept support services when offered.
+
+Best regards,
+Oak Lane Medical Practice Elderly Care Team`
+  },
+  {
+    id: '12',
+    name: 'Hassan Al-Rashid',
+    language: 'Persian (Farsi)',
+    languageCode: 'fa',
+    email: 'hassan.alrashid@email.com',
+    request: `به دکترهای محترم مطب Oak Lane Medical Practice،
+
+من حسن الرشید هستم و حدود شش ماه است که در این منطقه زندگی می‌کنم و به تازگی در مطب شما ثبت نام کرده‌ام.
+
+من از افغانستان آمده‌ام و درحال حاضر در حال انتظار بررسی درخواست پناهندگی‌ام هستم. مشکلات جسمی و روانی متعددی دارم که نیاز به توجه پزشکی فوری دارند.
+
+مشکلات جسمی:
+- درد مزمن در کمر و زانو در اثر آسیب‌های قدیمی
+- سردرد شدید تقریباً روزانه
+- مشکل در خواب (تنها ۲-۳ ساعت در شب می‌خوابم)
+- کاهش اشتها و کاهش وزن
+
+مشکلات روانی:
+- کابوس‌های شدید و خاطرات دردناک
+- احساس اضطراب شدید، به‌خصوص در اماکن عمومی
+- احساس افسردگی و بی‌امیدی
+- ترس از صداهای بلند
+
+این مشکلات کار روزانه‌ام را تحت تأثیر قرار داده و نمی‌توانم به درستی فعالیت کنم. در کشورم پزشک بودم ولی اینجا نمی‌توانم کار کنم.
+
+لطفاً برای هفته آینده برایم وقت ملاقات بگیرید. همچنین اگر مترجم لازم است، لطفاً اطلاع دهید.
+
+شماره تماس من: 07234 876543
+
+با تشکر،
+حسن الرشید
+تاریخ تولد: ۱۵/۰۳/۱۳۵۸ (به تاریخ شمسی)`,
+    englishReply: `Dear Dr Al-Rashid,
+
+Thank you for registering with our practice and for sharing your health concerns with us. We understand the significant challenges you're facing both physically and mentally, and we want to provide comprehensive care to help you.
+
+**Urgent Appointment Arranged:**
+We have scheduled you for an extended consultation with Dr. Khan on Tuesday [DATE] at 9:00 AM. Dr. Khan speaks Farsi and has experience working with refugees and asylum seekers, so you won't need an interpreter.
+
+**Your Assessment Will Include:**
+- Full physical examination for your back, knee, and headache concerns
+- Mental health screening for PTSD, anxiety, and depression
+- Sleep disorder assessment
+- Review of your medical history from Afghanistan (if you have any documents)
+
+**Services We Can Offer:**
+- Pain management for chronic back and knee pain
+- Specialist referral to refugee mental health services
+- Sleep clinic referral if needed
+- Connection with local refugee support organizations
+- Help with medical documentation for your asylum case if required
+
+**Before Your Appointment:**
+- Bring any medical documents you have from Afghanistan
+- List all symptoms with dates when they started
+- Note your current living situation and any support you're receiving
+
+**Mental Health Support:**
+We work closely with specialized services for refugees experiencing trauma. These services are confidential and will not affect your asylum case.
+
+**Important:** Your medical information is completely confidential and separate from immigration services. Our priority is your health and wellbeing.
+
+We respect your medical background and understand the additional stress of not being able to practice your profession here. We'll discuss potential pathways for medical qualification recognition when you're ready.
+
+Best regards,
+Oak Lane Medical Practice Refugee Health Team`
+  },
+  {
+    id: '13',
+    name: 'Rojin Khalil',
+    language: 'Kurdish',
+    languageCode: 'ku',
+    email: 'rojin.khalil@email.com',
+    request: `Bijî doktorên hêja yên Oak Lane Medical Practice,
+
+Ez Rojin Khalil me, ji du mehan e ku li ser navenda we tomar bûme. Ji Kurdistana Îraqê hatim û niha li vir li dijwar xwendina azîlê me.
+
+Min pirsgirêkên ciddî yên tendurustiyê hene ku pêdivî bi çareseriyek zû heye:
+
+Pirsgirêkên jin:
+- Ji sê mehan e ku mehane nayê (pregnant nînim)
+- Birîna kevn li ser lingê min ku hê nebaş bûye
+- Birîna bi her ku li ser serê min heye ji şerê
+
+Pirsgirêkên rûhî:
+- Kêşanên xewê, xewnên nebaş
+- Tirs ji dengên bilind û camêriyên zû
+- Kul û mixabin
+- Naxwazim ji malê derkevim
+
+Min du zarok hene (5 û 8 salî) û ew jî têne bandor kirin ji rewşa min. Zarokên min jî pêdivî bi lêkolînê heye:
+- Kurê min pirî qise nake (5 salî)
+- Keça min di dibistanê de zehmet dikişîne (8 salî)
+
+Em ji 2019an e ku ji Îraqê hatine, lê dîsa jî çêtir nabîn. Gava berî vê jî me ji doktorekî alî girt, lê ew tenê dermanan da û kêm alîkarî kir.
+
+Heke meriv pêkan be, ez dixwazim doktoreke jin bibînim. Heke muterjim hewce be, ji kerema xwe zanî bidin.
+
+Jimara min: 07345 567890
+
+Bi rêzdarî,
+Rojin Khalil
+Dîroka jidayîkbûnê: 20/07/1990`,
+    englishReply: `Dear Ms Khalil,
+
+Thank you for trusting us with your and your children's health concerns. We understand the challenges your family has faced, and we are committed to providing culturally sensitive care.
+
+**Family Assessment Arranged:**
+We have scheduled appointments for your entire family:
+- **You**: Thursday [DATE] at 2:00 PM with Dr. Sarah Ahmed (female doctor who works extensively with Kurdish families)
+- **Your children**: Friday [DATE] at 10:00 AM with our pediatric specialist Dr. Williams
+
+**Interpreter Services:**
+We have arranged a certified Kurdish interpreter for both appointments to ensure clear communication about all your concerns.
+
+**Your Healthcare Assessment Will Cover:**
+- Gynecological examination regarding missed periods (hormone testing, health screening)
+- Assessment of your leg and head injuries with possible referral to specialists
+- Mental health evaluation for PTSD and trauma-related symptoms
+- Discussion of treatment options that respect your cultural preferences
+
+**Children's Assessment:**
+- Speech and language evaluation for your 5-year-old son
+- Educational and behavioral assessment for your 8-year-old daughter
+- Trauma-informed care approach for both children
+
+**Additional Support Services:**
+- Kurdish Women's Support Group (meets weekly)
+- Children's trauma counseling with Kurdish-speaking therapists
+- Family therapy services specializing in refugee families
+- Educational support liaison for school-related difficulties
+
+**Important:**
+- All services are confidential and will not affect your asylum case
+- We work with many Kurdish families and understand cultural sensitivities
+- Treatment plans will be developed in collaboration with you
+
+**Before Your Appointments:**
+- Bring any medical records or documents from Iraq if available
+- List all current symptoms with dates
+- Prepare questions about your concerns
+
+Your strength in seeking help for your family is commendable. We will work together to improve your family's health and wellbeing.
+
+Best regards,
+Oak Lane Medical Practice Multicultural Health Team`
+  },
+  {
+    id: '14',
+    name: 'Ahmad Shah Ahmadi',
+    language: 'Pashto',
+    languageCode: 'ps',
+    email: 'ahmad.ahmadi@email.com',
+    request: `د Oak Lane Medical Practice محترمو ډاکټرانو ته،
+
+زه احمد شاه احمدي یم او د دوو میاشتو راهیسې ستاسو د کلینیک د ناروغانو په لیست کې شامل یم. زه د افغانستان څخه راغلی یم او اوس د پناه غوښتونکي په توګه دلته اوسیږم.
+
+زه ډیری جدي روغتیایي ستونزې لرم چې د سمدستي پاملرنې ضرورت لري:
+
+د زړه ستونزې:
+- د زړه د خپګان د تیزۍ احساس په ځانګړي توګه د شپې
+- د ساه اخیستلو کښتۍ د کار پر مهال
+- د ګونډیو پړسوب په سهار کې
+- د سینې درد
+
+د رواني روغتیا ستونزې:
+- د خوب نشتوالی (یوازې ۱-۲ ساعته خوب)
+- د دردناکو پیښو بیا یادونه
+- د ډیر اضطراب احساس
+- د خپلوانو غم چې په افغانستان کې پاتې شوي
+
+په افغانستان کې زه د پوځ افسر وم مګر اوس نشم کولی کار وکړم. زما کورنۍ (میرمن او درې ماشومان) هم دلته دي مګر موږ ټول د دغو ستونزو سره مخ یو.
+
+که چیرې امکان ولري، غواړم له یو نارینه ډاکټر سره وګورم ځکه دا زموږ د کلتور برخه ده. که ژباړونکي ته اړتیا وي، مهرباني وکړئ راته ووایاست.
+
+زما د تماس شمیره: 07456 678901
+
+د درناوي سره،
+احمد شاه احمدي
+د زیږیدنې نیټه: ۱۰/۰۵/۱۳۵۵ (شمسي نیټه)`,
+    englishReply: `Dear Mr Ahmadi,
+
+Thank you for entrusting us with your health concerns. We understand the significant challenges you and your family are facing, and we honor your service as a military officer in Afghanistan.
+
+**Urgent Cardiac Assessment Arranged:**
+Given your heart-related symptoms, we have prioritized your case:
+- **Emergency ECG and Blood Tests**: Monday [DATE] at 8:00 AM
+- **Consultation with Dr. Mohammad Kazemi**: Monday [DATE] at 10:00 AM (male doctor, speaks Pashto)
+
+**Your Assessment Will Include:**
+- Comprehensive cardiac examination and ECG
+- Blood pressure monitoring and heart rhythm assessment
+- Blood tests for cardiac markers and general health
+- Chest X-ray to evaluate heart and lungs
+- Mental health screening for trauma and anxiety
+
+**Family Care Coordination:**
+We would also like to assess your family's health needs:
+- Health screening for your wife and three children
+- Educational support coordination for your children
+- Family counseling services with Afghan cultural understanding
+
+**Interpreter and Cultural Support:**
+- Dr. Kazemi speaks Pashto fluently, so no interpreter needed for your consultation
+- We work with Afghan Community Centre for additional cultural support
+- All care will respect Islamic principles and Afghan cultural values
+
+**Immediate Safety Instructions:**
+If you experience severe chest pain, difficulty breathing, or feel faint before your appointment, please:
+- Call 999 immediately or go to A&E
+- Call our practice on 0207 XXX XXXX
+
+**Additional Services:**
+- Veterans' mental health services (we recognize your military service)
+- Benefits and housing support through refugee organizations
+- Employment guidance programs for former military personnel
+
+Your courage in seeking help demonstrates strong leadership for your family. We are committed to providing comprehensive care that respects your background and honors your service.
+
+Best regards,
+Oak Lane Medical Practice Veterans & Refugee Health Team`
+  },
+  {
+    id: '15',
+    name: 'Meron Tesfaye',
+    language: 'Tigrinya',
+    languageCode: 'ti',
+    email: 'meron.tesfaye@email.com',
+    request: `ንኹሉ ዓቕሚ ዘለዎም ሓኪማት ናይ Oak Lane Medical Practice፣
+
+ሰላም፡ ዓደይ መሮን ተስፋየ እየ። ኻብ ኤርትራ ወጺየ ኣብዚ ሃገር እዚ ኣብ ዘለኹዎ ክልተ ዓመት ኸይተሓልፈ እዩ። ኣብ ክሊኒክኹም ዝተመዝገብኩ ሕሉፍ ሰዱስተ ኸውሒ እዩ።
+
+ካብ ዝሓለፈ ግዜ ጀሚሩ ብዙሓት ዘሰክፍ ጥዕናዊ ጸገማት ኣጋጢሞምኒ ኣለዉ፣
+
+ናይ ዓመታዊ ጥዕና ጸገማት፣
+- ኣብ እዋን ነርሲ ድማ ብዙሕ ደም ይወጽእ
+- ኣብ ትሕቲ ከብዲ ኣብ ኣጻብዕትይ የሕዝንን
+- ማህጸን ኣራኪብካ ብርቱዕ ደገም ይወዛወዝ
+- ብሃንደበት ክብደት ይጽንሖ
+
+ናይ ኣእምሮ ጥዕና ጸገማት፣
+- ብሻዱሻ ዘይምድቃስን
+- ሓዘንትን መከራን ዝመልእ ሓሳብ
+- ማዕረ ምቅራብ ናይ ሰባት ፍርሒ
+- ናይ ዝሓለፈ እዋን ዝኾነ ተሞኩሮ ብቀዚፍ ምዝካር
+
+ኣብ ኤርትራ ንሰላሳን ሓሙሽተን ዓመት ኣስተምህሮ ነይረ። ኣብዚ ድማ ክሰርሕ ኣይክእልን እየ ምኽንያቱ ናይ ዓለም ብርኪ የሌንን። እዚ ኸ ኣዝዩ ይጻወረኒ።
+
+ሞንጎ ናይ ብርኪ ኣድላዪ እንተኾይኑ፡ እንብርሃኒ። ኣንስተይቲ ዝኾነት ሓኪማት ምስ እፈትወላ እየ እቲ ምኽንያት ናይ ባህላዊ ነገር እዩ።
+
+ናይ ርክብ ቁጽረይ፣ 07567 789012
+
+ብኽብሪ፣
+መሮን ተስፋየ  
+ዕለተ ልደት፣ 25/11/1985`,
+    englishReply: `Dear Ms Tesfaye,
+
+Thank you for sharing your health concerns with us. We deeply respect your background as an educator and understand the challenges you're facing in adapting to life in the UK.
+
+**Comprehensive Women's Health Assessment Arranged:**
+We have scheduled you with Dr. Fatima Al-Zahra (female specialist) on Wednesday [DATE] at 11:00 AM, with follow-up appointments as needed.
+
+**Your Assessment Will Include:**
+- Gynecological examination for heavy menstrual bleeding and abdominal pain
+- Blood tests to check for anemia, hormones, and general health
+- Ultrasound scan to investigate pelvic pain and irregular periods
+- Mental health evaluation for trauma, depression, and anxiety symptoms
+
+**Interpreter Services:**
+We have arranged a certified Tigrinya interpreter for your appointments to ensure you can fully express all your concerns and understand your treatment options.
+
+**Specialist Referrals Available:**
+- Gynecology specialist for menstrual irregularities
+- Women's mental health services with trauma expertise
+- Eritrean community support groups for professional women
+- Career counseling for international educators seeking UK qualification recognition
+
+**Cultural Sensitivity:**
+- All female healthcare team for your intimate examinations
+- Prayer/cultural accommodation during appointments
+- Halal dietary considerations for any medications
+- Respect for traditional healing practices alongside medical treatment
+
+**Educational Qualification Support:**
+We can connect you with organizations that help international teachers gain UK teaching qualifications, as we understand how important your profession is to your identity.
+
+**Before Your Appointment:**
+- Bring any medical documents from Eritrea if available
+- Track your menstrual cycle and symptoms for one week
+- List all concerns, both physical and emotional
+
+Your courage in seeking help while maintaining your dignity and cultural values is commendable. We are here to support your complete wellbeing.
+
+Best regards,
+Oak Lane Medical Practice Women's Health & Cultural Services Team`
   }
 ];
