@@ -1436,7 +1436,7 @@ export const TranslationToolInterface = () => {
                   <CardTitle className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      Complete Translation Service User Guide
+                      Translation Service User Guide
                     </div>
                     <ChevronDown className={`h-4 w-4 transition-transform ${isGuideOpen ? 'rotate-180' : ''}`} />
                   </CardTitle>
