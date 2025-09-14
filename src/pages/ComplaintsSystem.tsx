@@ -2421,22 +2421,35 @@ const ComplaintsSystem = () => {
                       {involvedParties.length > 0 && (
                         <div>
                           <Label className="text-sm font-medium">Staff to be notified:</Label>
-                          <div className="space-y-2 mt-2">
-                            {involvedParties.map((party, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <div className="text-sm">
-                                  <strong>{party.staffName}</strong> ({party.staffEmail})
-                                  {party.staffRole && ` - ${party.staffRole}`}
-                                </div>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={() => removeInvolvedParty(index)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
+                           <div className="space-y-2 mt-2">
+                             {involvedParties.map((party, index) => (
+                               <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                 <div className="text-sm">
+                                   <strong>{party.staffName}</strong> ({party.staffEmail})
+                                   {party.staffRole && ` - ${party.staffRole}`}
+                                 </div>
+                                 <div className="flex gap-2">
+                                   <Button 
+                                     size="sm" 
+                                     variant="default"
+                                     onClick={() => {
+                                       const feedbackUrl = `/staff-feedback?complaintId=${selectedComplaint.id}&staffName=${encodeURIComponent(party.staffName)}&staffEmail=${encodeURIComponent(party.staffEmail)}&staffRole=${encodeURIComponent(party.staffRole || '')}`;
+                                       window.open(feedbackUrl, '_blank');
+                                     }}
+                                   >
+                                     <Eye className="h-4 w-4 mr-1" />
+                                     Respond
+                                   </Button>
+                                   <Button 
+                                     size="sm" 
+                                     variant="outline" 
+                                     onClick={() => removeInvolvedParty(index)}
+                                   >
+                                     <Trash2 className="h-4 w-4" />
+                                   </Button>
+                                 </div>
+                               </div>
+                             ))}
                           </div>
                           <Button 
                             onClick={() => handleSendStaffNotifications(selectedComplaint.id)}
