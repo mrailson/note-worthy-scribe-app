@@ -134,7 +134,9 @@ Format as JSON:
         break;
 
       case 'decision_reasoning':
-        systemPrompt = `You are an NHS complaint investigation specialist writing decision reasoning that would satisfy a CQC audit. The reasoning must be thorough, evidence-based, and demonstrate compliance with NHS standards.`;
+        systemPrompt = `You are an NHS complaint investigation specialist writing decision reasoning that would satisfy a CQC audit. The reasoning must be thorough, evidence-based, and demonstrate compliance with NHS standards.
+
+IMPORTANT: Return ONLY plain text, do NOT format as JSON or use any structured format.`;
         userPrompt = `Based on the following complaint details and recommended decision, write comprehensive decision reasoning suitable for CQC audit:
 
 ${complaintContext}
@@ -147,7 +149,9 @@ The reasoning should:
 - Reference specific evidence and staff responses
 - Demonstrate thorough consideration of patient rights
 - Be audit-ready and defensible
-- Show professional judgment and fairness`;
+- Show professional judgment and fairness
+
+CRITICAL: Provide the response as a single, well-formatted paragraph or multiple paragraphs of plain text only. Do NOT use JSON, bullet points, or any structured format.`;
         break;
 
       case 'lessons_learned':
