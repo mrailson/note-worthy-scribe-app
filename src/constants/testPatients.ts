@@ -127,6 +127,139 @@ Date de naissance: 08/11/1962`
 
 धन्यवाद,
 प्रिया शर्मा
-माँ का नाम: सुशीला शर्मा (जन्म तारीख: 12/01/1956)`
+    माँ का नाम: सुशीला शर्मा (जन्म तारीख: 12/01/1956)`
+  },
+  {
+    id: '6',
+    name: 'Fatima Ali',
+    language: 'Urdu',
+    languageCode: 'ur',
+    email: 'fatima.ali@email.com',
+    request: `محترم Oak Lane Medical Practice کے ڈاکٹرز،
+
+میں فاطمہ علی ہوں اور آپ کے یہاں رجسٹرڈ مریضہ ہوں۔ میں اپنے 6 ماہ کے بیٹے احمد کے لیے لکھ رہی ہوں۔
+
+احمد کو پچھلے ہفتے سے ہلکا بخار ہے (37.8°C) اور اسے کھانسی بھی ہے۔ وہ رات میں ٹھیک سے نہیں سوتا اور دن میں بھی بے چین رہتا ہے۔
+
+میں نے اسے پیراسٹامول کی بچوں والی دوا دی ہے جیسا کہ فارمیسی نے بتایا تھا، لیکن بخار آتا جاتا رہتا ہے۔ اس کی ناک بھی بند ہے اور وہ دودھ پینے میں مشکل کرتا ہے۔
+
+کیا آپ اس ہفتے کوئی اپائنٹمنٹ دے سکتے ہیں؟ یہ کوئی ایمرجنسی نہیں ہے لیکن میں چاہتی ہوں کہ ڈاکٹر اسے دیکھ لیں۔
+
+میرا فون نمبر 07678 901234 ہے۔
+
+شکریہ،
+فاطمہ علی
+بیٹے کا نام: احمد علی (پیدائش: 15/03/2024)`
+  },
+  {
+    id: '7',
+    name: 'Krzysztof Nowak',
+    language: 'Polish',
+    languageCode: 'pl',
+    email: 'krzysztof.nowak@email.com',
+    request: `Szanowni Państwo Lekarze z Oak Lane Medical Practice,
+
+Jestem Krzysztof Nowak, jestem Państwa pacjentem od trzech lat. Piszę w sprawie problemów z plecami, które mnie dręczą od kilku tygodni.
+
+Pracuję jako mechanik i często muszę dźwigać ciężkie części samochodowe. Około miesiąca temu poczułem silny ból w dolnej części pleców podczas pracy. Na początku myślałem, że to przejdzie samo, ale ból nadal się utrzymuje.
+
+Objawy:
+- Ból w dolnej części pleców, szczególnie rano
+- Sztywność po dłuższym siedzeniu
+- Ból promieniuje czasem do prawej nogi
+- Problemy z pochylaniem się
+
+Brałem ibuprofen przez dwa tygodnie, co trochę pomaga, ale ból wraca. Żona mówi, że powinienem się zbadać, bo może to być dysk.
+
+Czy mogliby Państwo umówić mnie na wizytę w przyszłym tygodniu? Nie jest to pilne, ale chciałbym się upewnić, czy nie jest to nic poważnego.
+
+Mój numer telefonu: 07789 012345
+
+Z poważaniem,
+Krzysztof Nowak
+Data urodzenia: 22/08/1975`
+  },
+  {
+    id: '8',
+    name: 'Rashida Begum',
+    language: 'Bengali',
+    languageCode: 'bn',
+    email: 'rashida.begum@email.com',
+    request: `সম্মানিত Oak Lane Medical Practice এর ডাক্তারবৃন্দ,
+
+আমি রাশিদা বেগম, আমি আপনাদের এখানে নিবন্ধিত একজন রোগী। আমি আমার ১২ বছরের মেয়ে সাবিনার জন্য লিখছি।
+
+সাবিনার কয়েক সপ্তাহ ধরে চর্মের সমস্যা হচ্ছে। তার মুখে এবং গলায় ছোট ছোট লাল দাগ দেখা দিয়েছে যা খুব চুলকায়। রাতে সে খুব চুলকানির কারণে ঠিকমতো ঘুমাতে পারে না।
+
+আমি প্রথমে ভেবেছিলাম এটা গরমের কারণে হয়েছে, কিন্তু এখন আবহাওয়া ঠান্ডা হয়েছে তবুও সমস্যা রয়ে গেছে। আমি ফার্মেসি থেকে ক্যালামাইন লোশন কিনে দিয়েছি কিন্তু খুব একটা উপকার হচ্ছে না।
+
+স্কুলের অন্যান্য বাচ্চাদেরও এরকম সমস্যা হয়েছে বলে শুনেছি। হয়তো এটা কোনো অ্যালার্জির কারণে হতে পারে।
+
+দয়া করে এই সপ্তাহে বা পরের সপ্তাহে একটি অ্যাপয়েন্টমেন্ট দিতে পারেন? এটা জরুরি কিছু নয় কিন্তু আমি চাই ডাক্তার একবার দেখে নিন।
+
+আমার ফোন নম্বর: 07890 123456
+
+ধন্যবাদ,
+রাশিদা বেগম
+মেয়ের নাম: সাবিনা খাতুন (জন্ম তারিখ: ১৮/০৯/২০১২)`
+  },
+  {
+    id: '9',
+    name: 'Carlos Silva',
+    language: 'Portuguese',
+    languageCode: 'pt',
+    email: 'carlos.silva@email.com',
+    request: `Prezados médicos da Oak Lane Medical Practice,
+
+Meu nome é Carlos Silva e sou paciente registrado há dois anos. Escrevo para solicitar uma consulta de rotina e também para discutir alguns sintomas menores que tenho sentido.
+
+Há algumas semanas venho sentindo cansaço excessivo, mesmo após uma boa noite de sono. Trabalho como motorista de entrega e geralmente tenho energia para o trabalho, mas ultimamente me sinto mais fatigado que o normal.
+
+Também tenho notado:
+- Sede excessiva durante o dia
+- Vontade de urinar mais frequente, especialmente à noite
+- Perda de peso leve (cerca de 3-4 kg no último mês)
+- Às vezes visão ligeiramente embaçada
+
+Meu pai teve diabetes tipo 2, então estou preocupado que possa ter desenvolvido a mesma condição. Tenho 42 anos e admito que minha alimentação não tem sido a melhor - como muita comida fast food por causa do trabalho.
+
+Gostaria de fazer uns exames de sangue e ter uma consulta geral. Não é uma emergência, mas prefiro verificar logo. Posso vir qualquer dia da semana após as 17h ou aos fins de semana.
+
+Meu telefone: 07901 234567
+
+Obrigado pela atenção,
+Carlos Silva
+Data de nascimento: 14/06/1982`
+  },
+  {
+    id: '10',
+    name: 'Ayşe Demir',
+    language: 'Turkish',
+    languageCode: 'tr',
+    email: 'ayse.demir@email.com',
+    request: `Sayın Oak Lane Medical Practice doktorları,
+
+Ben Ayşe Demir, üç yıldır sizin hastanızım. Menopoza girdiğim için yaşadığım semptomlar hakkında görüşmek üzere randevu talep ediyorum.
+
+Son altı ay içinde adet döngüm tamamen durdu (50 yaşındayım) ve çeşitli menopoz semptomları yaşıyorum:
+- Günde 5-6 kez sıcak basması
+- Gece terlemeleri nedeniyle uyku problemi  
+- Mood değişiklikleri ve irritabilite
+- Cilt kuruluğu
+- Libido azalması
+
+Bu semptomlar günlük yaşamımı etkilemeye başladı. Çalıştığım ofiste klima yanında bile sıcak basması oluyor ve utanıyorum. Geceleri ter nedeniyle uyanıyorum ve sabah yorgun hissediyorum.
+
+Hormon replasman tedavisi hakkında bilgi almak istiyorum. Arkadaşlarım çeşitli tedaviler kullanıyor ama hangi seçeneğin benim için uygun olduğunu bilmiyorum.
+
+Aile tarihimde meme kanseri yok ama annem osteoporoz geçirdi. Bu durumlar tedavi seçimimi etkiler mi merak ediyorum.
+
+Bu ay içinde randevu alabilir miyim? Acil değil ama semptomlar günden güne artıyor.
+
+Telefon numaram: 07012 345678
+
+Saygılarımla,
+Ayşe Demir  
+Doğum tarihi: 23/04/1974`
   }
 ];
