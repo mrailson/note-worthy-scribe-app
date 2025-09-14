@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
+import { SpeechToText } from "@/components/SpeechToText";
 import { toast } from "sonner";
 import { 
   MessageSquare, 
@@ -72,6 +73,14 @@ const StaffFeedback = () => {
       toast.error('Failed to load complaint details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVoiceTranscription = (text: string) => {
+    if (response.trim()) {
+      setResponse(response + " " + text);
+    } else {
+      setResponse(text);
     }
   };
 
@@ -303,7 +312,13 @@ const StaffFeedback = () => {
               )}
 
               <div>
-                <Label htmlFor="response">Response Details</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="response">Response Details</Label>
+                  <SpeechToText 
+                    onTranscription={handleVoiceTranscription}
+                    size="sm"
+                  />
+                </div>
                 <Textarea
                   id="response"
                   placeholder="Please provide your detailed response, including:&#10;• Your recollection of the events&#10;• Any relevant context or circumstances&#10;• Actions you took or would take differently&#10;• Any other information that might help resolve this complaint"
