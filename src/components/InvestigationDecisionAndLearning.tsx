@@ -868,7 +868,7 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+        <DialogContent className="p-0 max-w-none max-h-none w-[85vw] h-[85vh] resize overflow-auto border-2 border-gray-300" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
           <div className="flex flex-col h-full">
             <DialogHeader className="flex-shrink-0 p-6 border-b">
               <DialogTitle className="flex items-center gap-2">
@@ -880,7 +880,7 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
               </DialogDescription>
             </DialogHeader>
             
-            <div className="flex flex-col gap-4 flex-1 min-h-0 p-6">
+            <div className="flex flex-col gap-4 flex-1 min-h-0 p-6 overflow-hidden">
               {/* Action buttons */}
               <div className="flex gap-2 justify-end border-b pb-4 flex-shrink-0">
                 {!editingOutcomeLetter ? (

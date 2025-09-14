@@ -980,7 +980,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       {/* Outcome Letter Dialog */}
       <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-        <DialogContent className="p-0 max-w-none max-h-none w-[80vw] h-[80vh] resize overflow-hidden border-2 border-gray-300" style={{ resize: 'both', minWidth: '400px', minHeight: '300px' }}>
+        <DialogContent className="p-0 max-w-none max-h-none w-[80vw] h-[80vh] resize overflow-auto border-2 border-gray-300" style={{ resize: 'both', minWidth: '400px', minHeight: '300px' }}>
           <div className="flex flex-col h-full">
             <DialogHeader className="flex-shrink-0 p-6 border-b">
               <DialogTitle>
