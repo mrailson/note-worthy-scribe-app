@@ -30,6 +30,7 @@ import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
 import { ImageTranslationCard } from './ImageTranslationCard';
 import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { downloadEmailTranslationProof } from '@/utils/emailTranslationWordExport';
@@ -73,6 +74,11 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
   const [isAssessing, setIsAssessing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isDownloadingProof, setIsDownloadingProof] = useState(false);
+
+  const getLanguageName = (code: string): string => {
+    const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
+    return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
+  };
 
   const translateIncomingEmail = async () => {
     if (!incomingEmail.trim()) {
@@ -362,7 +368,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                   <Languages className="w-4 h-4" />
                   <AlertDescription>
                     <div className="space-y-2">
-                      <p><strong>Detected Language:</strong> {emailTranslation.detectedLanguage}</p>
+                      <p><strong>Detected Language:</strong> {getLanguageName(emailTranslation.detectedLanguage)}</p>
                       <p><strong>Confidence:</strong> {emailTranslation.confidence}%</p>
                       <div className="mt-3 p-3 bg-muted rounded">
                         <p className="text-sm font-medium">English Translation:</p>
@@ -415,7 +421,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                   </Alert>
 
                   <div className="p-4 border rounded">
-                    <h4 className="font-medium mb-2">Final Email Content ({emailReply.targetLanguage}):</h4>
+                    <h4 className="font-medium mb-2">Final Email Content ({getLanguageName(emailReply.targetLanguage)}):</h4>
                     <div className="text-sm bg-muted p-4 rounded space-y-2">
                       {emailReply.translatedText.replace(/\*\*(.*?)\*\*/g, '$1').split('\n').map((paragraph, index) => (
                         paragraph.trim() ? (
