@@ -2213,14 +2213,27 @@ I am committed to ensuring that all patients receive the care and service they d
                                      staff.type === 'category-based' ? 'Suggested' : 'Added'}
                                   </Badge>
                                 </div>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => handleRemoveStaff(index)}
-                                  className="text-xs text-red-600 hover:text-red-700"
-                                >
-                                  Remove
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      const feedbackUrl = `/staff-feedback?complaintId=${complaintId}&staffName=${encodeURIComponent(staff.name)}&staffEmail=${encodeURIComponent(staff.email)}&staffRole=${encodeURIComponent(staff.role || '')}`;
+                                      window.open(feedbackUrl, '_blank');
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Respond
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleRemoveStaff(index)}
+                                    className="text-xs text-red-600 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                           </div>
