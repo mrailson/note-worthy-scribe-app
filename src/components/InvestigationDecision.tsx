@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface InvestigationDecisionProps {
   complaintId: string;
@@ -649,16 +650,26 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
                 <div>
                   <Label className="text-sm font-medium">Decision Reasoning</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                    {decision.decision_reasoning}
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ 
+                        __html: renderNHSMarkdown(decision.decision_reasoning || "")
+                      }} 
+                    />
                   </div>
                 </div>
 
                 {decision.corrective_actions && (
                   <div>
                     <Label className="text-sm font-medium">Corrective Actions</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                      {decision.corrective_actions}
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(decision.corrective_actions || "")
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
@@ -666,8 +677,13 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                 {decision.lessons_learned && (
                   <div>
                     <Label className="text-sm font-medium">Lessons Learned</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                      {decision.lessons_learned}
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(decision.lessons_learned || "")
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
