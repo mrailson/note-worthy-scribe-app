@@ -62,8 +62,11 @@ export const EmailTranslationQuality = ({
 }: EmailTranslationQualityProps) => {
 
   const getLanguageName = (code: string) => {
-    const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
-    return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
   };
 
   const getQualityColor = (score: number) => {

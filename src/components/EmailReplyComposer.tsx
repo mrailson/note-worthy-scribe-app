@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { validateGeneratedContent, createSafeMedicalPrompt, MedicalSafetyCheck } from '@/utils/medicalSafety';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 
 interface EmailTranslation {
   originalText: string;
@@ -57,6 +58,14 @@ export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated, testReply 
   const [safetyCheck, setSafetyCheck] = useState<MedicalSafetyCheck | null>(null);
   const [safetyAlert, setSafetyAlert] = useState<string>('');
   const { profile } = useUserProfile();
+
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
 
   useEffect(() => {
     fetchPracticeDetails();
@@ -241,7 +250,7 @@ This email is confidential and may contain privileged information. If you are no
         <FileText className="w-4 h-4" />
         <AlertDescription>
           <div className="space-y-2">
-            <p><strong>Original Email ({incomingEmail.detectedLanguage}):</strong></p>
+            <p><strong>Original Email ({getLanguageName(incomingEmail.detectedLanguage)}):</strong></p>
             <p className="text-sm bg-muted p-2 rounded">{incomingEmail.originalText}</p>
             <p><strong>English Translation:</strong></p>
             <p className="text-sm bg-muted p-2 rounded">{incomingEmail.translatedText}</p>
@@ -345,7 +354,7 @@ This email is confidential and may contain privileged information. If you are no
             ) : (
               <Languages className="w-4 h-4 mr-2" />
             )}
-            Translate to {incomingEmail.detectedLanguage}
+            Translate to {getLanguageName(incomingEmail.detectedLanguage)}
           </Button>
         </CardContent>
       </Card>
