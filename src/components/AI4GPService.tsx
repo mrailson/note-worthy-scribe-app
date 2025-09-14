@@ -406,10 +406,6 @@ const AI4GPService = () => {
                           <Plus className="w-4 h-4 mr-2" />
                           New Search
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/meeting-history')}>
-                          <History className="w-4 h-4 mr-2" />
-                          My Meeting History
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
