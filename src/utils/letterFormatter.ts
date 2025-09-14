@@ -145,21 +145,43 @@ export async function createLetterDocument(letterContent: string, letterType: st
   // Add logo at the top center with actual image embedding
   if (logoUrl) {
     try {
-      // Fetch the image and convert to buffer for embedding
       const imageResponse = await fetch(logoUrl);
       if (imageResponse.ok) {
-        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBlob = await imageResponse.blob();
+        const imageBuffer = await imageBlob.arrayBuffer();
         const uint8Array = new Uint8Array(imageBuffer);
-        
-        // Add the actual logo image to the document
+
+        // Compute dimensions preserving aspect ratio within bounds
+        let targetWidth = 200;
+        let targetHeight = 80;
+        try {
+          const tempImg = document.createElement('img');
+          const objectUrl = URL.createObjectURL(imageBlob);
+          await new Promise<void>((resolve, reject) => {
+            tempImg.onload = () => resolve();
+            tempImg.onerror = () => reject(new Error('Image load failed'));
+            tempImg.src = objectUrl;
+          });
+          const naturalW = tempImg.naturalWidth || tempImg.width;
+          const naturalH = tempImg.naturalHeight || tempImg.height;
+          URL.revokeObjectURL(objectUrl);
+
+          if (naturalW && naturalH) {
+            const maxW = 240; // px
+            const maxH = 100; // px
+            const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
+            targetWidth = Math.max(60, Math.round(naturalW * scale));
+            targetHeight = Math.max(20, Math.round(naturalH * scale));
+          }
+        } catch (_) {
+          // keep defaults
+        }
+
         documentChildren.push(new Paragraph({
           children: [
             new ImageRun({
               data: uint8Array,
-              transformation: {
-                width: 180,
-                height: 80, // Maintains a reasonable aspect ratio for most logos
-              },
+              transformation: { width: targetWidth, height: targetHeight },
               type: logoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg'
             })
           ],
