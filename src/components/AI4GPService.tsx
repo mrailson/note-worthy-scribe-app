@@ -418,7 +418,7 @@ const AI4GPService = () => {
                           <BookOpen className="w-4 h-4 mr-2" />
                           User Guide & Help
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowDocumentTranslate(true)}>
+                        <DropdownMenuItem onClick={() => navigate('/translation-tool')}>
                           <Languages className="w-4 h-4 mr-2" />
                           Translation Service
                         </DropdownMenuItem>
