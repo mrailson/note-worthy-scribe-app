@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Image as ImageIcon, 
   Upload, 
@@ -12,7 +13,8 @@ import {
   FileText,
   Copy,
   RotateCcw,
-  Maximize2
+  Maximize2,
+  ChevronDown
 } from 'lucide-react';
 import { ImageTranslationModal } from '@/components/ImageTranslationModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +52,7 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,34 +141,44 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ImageIcon className="w-5 h-5" />
-          Document Image Translation
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-center py-8">
-          <div className="space-y-4">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <ImageIcon className="w-8 h-8 text-primary" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between w-full cursor-pointer">
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Document Image Translation
+              </CardTitle>
+              <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </div>
-            <div className="space-y-2">
-              <p className="text-muted-foreground">
-                Advanced OCR and translation for document images with clinical verification
-              </p>
+          </CollapsibleTrigger>
+        </CardHeader>
+        
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
+            <div className="text-center py-8">
+              <div className="space-y-4">
+                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <ImageIcon className="w-8 h-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-muted-foreground">
+                    Advanced OCR and translation for document images with clinical verification
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => setShowModal(true)}
+                  size="lg"
+                  className="flex items-center gap-2"
+                >
+                  <Maximize2 className="w-5 h-5" />
+                  Click Here to start the Document Image Translation service
+                </Button>
+              </div>
             </div>
-            <Button 
-              onClick={() => setShowModal(true)}
-              size="lg"
-              className="flex items-center gap-2"
-            >
-              <Maximize2 className="w-5 h-5" />
-              Click Here to start the Document Image Translation service
-            </Button>
-          </div>
-        </div>
-      </CardContent>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
       
       <ImageTranslationModal
         isOpen={showModal}
