@@ -316,7 +316,7 @@ This email is confidential and may contain privileged information. If you are no
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setEnglishReply(testReply)}
+                    onClick={() => setEnglishReply(testReply.replace(/\*\*(.*?)\*\*/g, '$1'))}
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Load Test Reply
