@@ -176,7 +176,7 @@ Return ONLY a valid JSON object with these fields (use null for missing informat
   "incident_date": "Date of incident in YYYY-MM-DD format",
   "complaint_title": "Brief title summarizing the complaint",
   "complaint_description": "Detailed description of the complaint",
-  "category": "One of: clinical_care, staff_attitude, appointment_system, communication, facilities, billing, waiting_times, medication, referrals, other",
+  "category": "One of: Clinical Care & Treatment, Prescriptions, Staff Attitude & Behaviour, Appointments & Access, Communication Issues, Test Results & Follow-Up, Confidentiality & Data, Digital Services, Facilities & Environment, Administration, other",
   "location_service": "Location or service where incident occurred",
   "staff_mentioned": ["Array", "of", "staff", "names", "mentioned"],
   "priority": "One of: low, medium, high, urgent",
@@ -185,16 +185,17 @@ Return ONLY a valid JSON object with these fields (use null for missing informat
 }
 
 CRITICAL: Category Selection Rules (prioritize by severity - highest to lowest):
-1. clinical_care - Any medical treatment issues, misdiagnosis, clinical errors, patient safety concerns
-2. medication - Prescription errors, wrong medication, adverse reactions due to medical errors
-3. communication - Breach of confidentiality, inadequate information sharing, critical communication failures
-4. referrals - Delayed or inappropriate referrals affecting patient care
-5. staff_attitude - Unprofessional behavior, discrimination, harassment
-6. appointment_system - Missed appointments causing health issues, booking system failures
-7. waiting_times - Excessive delays affecting patient health
-8. facilities - Unsafe or inadequate medical facilities
-9. billing - Financial disputes, incorrect charges
-10. other - Anything not covered above
+1. "Clinical Care & Treatment" - Any medical treatment issues, misdiagnosis, clinical errors, patient safety concerns, adverse medical outcomes
+2. "Prescriptions" - Prescription errors, wrong medication, adverse reactions due to medical errors, medication dispensing issues
+3. "Test Results & Follow-Up" - Delayed or missed test results, inappropriate follow-up care, test result communication failures
+4. "Communication Issues" - Breach of confidentiality, inadequate information sharing, critical communication failures, poor information provision
+5. "Staff Attitude & Behaviour" - Unprofessional behavior, discrimination, harassment, rudeness, inappropriate conduct
+6. "Appointments & Access" - Missed appointments causing health issues, booking system failures, access to care problems
+7. "Confidentiality & Data" - Data breaches, privacy violations, confidentiality concerns
+8. "Digital Services" - Online booking issues, digital system failures, technology-related problems
+9. "Facilities & Environment" - Unsafe or inadequate medical facilities, cleanliness issues, environment problems
+10. "Administration" - Administrative errors, billing issues, record keeping problems
+11. "other" - Anything not covered above
 
 If multiple complaint categories apply, ALWAYS select the most serious category from the hierarchy above.
 
