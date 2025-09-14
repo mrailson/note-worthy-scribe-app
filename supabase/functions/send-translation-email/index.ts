@@ -1,7 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,16 +71,48 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `;
 
-    const emailResponse = await resend.emails.send({
-      from: "AI4GP Translation <onboarding@resend.dev>",
-      to: [to],
-      subject: subject,
-      html: emailContent,
+    // Get EmailJS configuration from environment variables
+    const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
+    const templateId = Deno.env.get("EMAILJS_TEMPLATE_ID");
+    const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
+    const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
+
+    if (!serviceId || !templateId || !publicKey || !privateKey) {
+      throw new Error("EmailJS configuration is missing");
+    }
+
+    // Prepare EmailJS request
+    const emailJSData = {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: publicKey,
+      accessToken: privateKey,
+      template_params: {
+        to_email: to,
+        subject: subject,
+        message: emailContent,
+        from_name: "AI4GP Translation Service"
+      }
+    };
+
+    // Send email via EmailJS
+    const emailResponse = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      body: JSON.stringify(emailJSData)
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      throw new Error(`EmailJS API error: ${emailResponse.status} - ${errorText}`);
+    }
 
-    return new Response(JSON.stringify(emailResponse), {
+    console.log("Email sent successfully via EmailJS");
+
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
