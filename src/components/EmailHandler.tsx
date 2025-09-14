@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
   Mail, 
   Send, 
   CheckCircle2, 
@@ -15,13 +22,15 @@ import {
   Loader2,
   FileText,
   Mic,
-  RotateCcw
+  RotateCcw,
+  TestTube
 } from 'lucide-react';
 import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
 import { ImageTranslationCard } from './ImageTranslationCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
 
 interface EmailTranslation {
   originalText: string;
@@ -53,6 +62,7 @@ interface EmailHandlerProps {
 export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
   const [activeTab, setActiveTab] = useState('receive');
   const [incomingEmail, setIncomingEmail] = useState('');
+  const [selectedTestPatient, setSelectedTestPatient] = useState<string>('');
   const [emailTranslation, setEmailTranslation] = useState<EmailTranslation | null>(null);
   const [emailReply, setEmailReply] = useState<EmailReply | null>(null);
   const [qualityAssessment, setQualityAssessment] = useState<QualityAssessment | null>(null);
@@ -174,8 +184,18 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     }
   };
 
+  const loadTestPatient = (patientId: string) => {
+    const patient = TEST_PATIENT_REQUESTS.find(p => p.id === patientId);
+    if (patient) {
+      setIncomingEmail(patient.request);
+      setSelectedTestPatient(patientId);
+      toast.success(`Loaded test request from ${patient.name} (${patient.language})`);
+    }
+  };
+
   const resetForm = () => {
     setIncomingEmail('');
+    setSelectedTestPatient('');
     setEmailTranslation(null);
     setEmailReply(null);
     setQualityAssessment(null);
@@ -223,20 +243,37 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
             <TabsContent value="receive" className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Foreign Language Email Content</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetForm}
-                  className="flex items-center gap-2"
-                  title="Clear all and start again"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Reset
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Select value={selectedTestPatient} onValueChange={loadTestPatient}>
+                    <SelectTrigger className="w-[280px]">
+                      <SelectValue placeholder="Load test patient request..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TEST_PATIENT_REQUESTS.map((patient) => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          <div className="flex items-center gap-2">
+                            <TestTube className="w-4 h-4" />
+                            {patient.name} ({patient.language})
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetForm}
+                    className="flex items-center gap-2"
+                    title="Clear all and start again"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset
+                  </Button>
+                </div>
               </div>
               <div>
                 <Textarea
-                  placeholder="Paste the foreign language email content here..."
+                  placeholder="Paste the foreign language email content here or use the test patient dropdown above..."
                   value={incomingEmail}
                   onChange={(e) => setIncomingEmail(e.target.value)}
                   rows={8}
