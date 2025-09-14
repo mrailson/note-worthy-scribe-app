@@ -348,6 +348,7 @@ const AI4GPService = () => {
                                 setInput('');
                                 setUploadedFiles([]);
                                 setShowAIChat(false);
+                                setShowNews(false);
                               }}
                               className="flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative"
                             >
