@@ -84,7 +84,7 @@ const StaffFeedback = () => {
     setSubmitting(true);
     try {
       // Store the staff response in the database
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('staff_responses')
         .insert({
           complaint_id: complaintId,

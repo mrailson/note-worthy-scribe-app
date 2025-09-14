@@ -4523,6 +4523,53 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_responses: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          id: string
+          responded_at: string
+          responded_by: string | null
+          response_text: string
+          staff_email: string
+          staff_name: string
+          staff_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          id?: string
+          responded_at?: string
+          responded_by?: string | null
+          response_text: string
+          staff_email: string
+          staff_name: string
+          staff_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          id?: string
+          responded_at?: string
+          responded_by?: string | null
+          response_text?: string
+          staff_email?: string
+          staff_name?: string
+          staff_role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_responses_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_incidents: {
         Row: {
           actual_completion_date: string | null

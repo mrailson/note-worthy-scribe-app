@@ -16,6 +16,7 @@ import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
 import ComplaintsUserGuide from "./pages/ComplaintsUserGuide";
+import StaffFeedback from "./pages/StaffFeedback";
 import SharedDrive from "./pages/SharedDrive";
 import Auth from "./pages/Auth";
 
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
             <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />
             <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
+            <Route path="/staff-feedback" element={<StaffFeedback />} />
             <Route path="/shared-drive" element={
               <ProtectedRoute requiredModule="shared_drive_access">
                 <SharedDrive />
