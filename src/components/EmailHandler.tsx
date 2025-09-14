@@ -23,7 +23,8 @@ import {
   FileText,
   Mic,
   RotateCcw,
-  TestTube
+  TestTube,
+  Download
 } from 'lucide-react';
 import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
@@ -31,6 +32,7 @@ import { ImageTranslationCard } from './ImageTranslationCard';
 import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { downloadEmailTranslationProof } from '@/utils/emailTranslationWordExport';
 
 interface EmailTranslation {
   originalText: string;
@@ -70,6 +72,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
   const [isGeneratingReply, setIsGeneratingReply] = useState(false);
   const [isAssessing, setIsAssessing] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isDownloadingProof, setIsDownloadingProof] = useState(false);
 
   const translateIncomingEmail = async () => {
     if (!incomingEmail.trim()) {
@@ -229,6 +232,24 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
       toast.error('Failed to send email');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const downloadProofDocument = async () => {
+    if (!emailTranslation || !emailReply || !qualityAssessment) {
+      toast.error('Missing required data for proof document');
+      return;
+    }
+
+    setIsDownloadingProof(true);
+    try {
+      await downloadEmailTranslationProof(emailTranslation, emailReply, qualityAssessment);
+      toast.success('Translation proof document downloaded successfully');
+    } catch (error) {
+      console.error('Download proof document error:', error);
+      toast.error('Failed to download proof document');
+    } finally {
+      setIsDownloadingProof(false);
     }
   };
 
@@ -421,6 +442,19 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                         <Send className="w-4 h-4 mr-2" />
                       )}
                       Send Email
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={downloadProofDocument}
+                      disabled={isDownloadingProof}
+                    >
+                      {isDownloadingProof ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      Download Proof Document
                     </Button>
                     
                     {qualityAssessment.overallSafety === 'warning' && (
