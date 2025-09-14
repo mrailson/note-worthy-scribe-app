@@ -215,16 +215,34 @@ const ComplaintDetails = () => {
   const fetchStaffResponses = async () => {
     if (!user || !complaintId) return;
     try {
-      const { data, error } = await supabase
+      const { data: parties, error } = await supabase
         .from('complaint_involved_parties')
         .select('*')
         .eq('complaint_id', complaintId);
 
       if (error) throw error;
 
-      // Convert database records to inputRequests format
-      if (data && data.length > 0) {
-        const requests = data.map(party => {
+      // Also fetch staff_responses and merge
+      const { data: staffResp, error: staffRespError } = await supabase
+        .from('staff_responses')
+        .select('*')
+        .eq('complaint_id', complaintId);
+
+      if (staffRespError) {
+        console.warn('Could not load staff_responses:', staffRespError);
+      }
+
+      const byEmail = new Map<string, any>();
+      const byName = new Map<string, any>();
+      (staffResp || []).forEach(r => {
+        if (r.staff_email) byEmail.set(String(r.staff_email).toLowerCase(), r);
+        if (r.staff_name) byName.set(String(r.staff_name).toLowerCase(), r);
+      });
+
+      let requests: Array<any> = [];
+
+      if (parties && parties.length > 0) {
+        requests = parties.map(party => {
           // Debug: Log what we're getting from the database
           console.log('Staff response data from DB:', {
             staffName: party.staff_name,
@@ -232,60 +250,70 @@ const ComplaintDetails = () => {
             response_submitted_at: party.response_submitted_at,
             response_text: party.response_text
           });
-          
+
+          const resp =
+            (party.staff_email && byEmail.get(String(party.staff_email).toLowerCase())) ||
+            (party.staff_name && byName.get(String(party.staff_name).toLowerCase()));
+
+          const responseSubmittedAt = party.response_submitted_at || resp?.responded_at || null;
+          const responseText = party.response_text || resp?.response_text || undefined;
+
           return {
             id: party.id,
             staffName: party.staff_name,
             staffEmail: party.staff_email,
-            status: party.response_submitted_at ? 'completed' : 'pending',
+            status: responseSubmittedAt ? 'completed' : 'pending',
             sentAt: party.response_requested_at,
-            responseReceived: !!party.response_submitted_at,
-            responseReceivedAt: party.response_submitted_at,
-            responseText: party.response_text,
-            isTestResponse: !!party.response_text // If there's response text, it might be a test response
+            responseReceived: !!responseSubmittedAt,
+            responseReceivedAt: responseSubmittedAt,
+            responseText: responseText,
+            isTestResponse: !!responseText
           };
         });
-        
-        console.log('Processed input requests:', requests);
-        setInputRequests(requests);
-        
-        // Also update selectedStaff if needed
-        const staffList = data.map(party => ({
-          name: party.staff_name,
-          email: party.staff_email,
-          role: party.staff_role || '',
-          suggested: false,
-          type: 'added'
-        }));
-        
-        if (selectedStaff.length === 0) {
-          setSelectedStaff(staffList);
-        }
-        
-        // Automatically set investigation method to "input-required" if there are existing input requests
-        if (requests.length > 0 && !investigationMethod) {
-          setInvestigationMethod("input-required");
-          console.log('Auto-restored investigation method to "input-required" based on existing input requests');
-        }
-        
-        console.log('Loaded staff responses:', requests);
-      } else {
-        // No input requests found - check if we should set direct investigation
-        // This happens after acknowledgement letter exists but no staff input was requested
-        if (!investigationMethod && acknowledgementLetter) {
-          // Check if there's any investigation evidence or outcome suggesting direct investigation
-          const { data: outcomeExists } = await supabase
-            .from('complaint_outcomes')
-            .select('id')
-            .eq('complaint_id', complaintId)
-            .maybeSingle();
-            
-          if (outcomeExists) {
-            setInvestigationMethod("direct-investigation");
-            console.log('Auto-restored investigation method to "direct-investigation" based on existing outcome data');
-          }
-        }
       }
+
+      // Include any staff_responses not already present in involved parties
+      const existingKeys = new Set(requests.map(r => String(r.staffEmail || r.staffName || '').toLowerCase()));
+      (staffResp || []).forEach(r => {
+        const key = String(r.staff_email || r.staff_name || '').toLowerCase();
+        if (key && !existingKeys.has(key)) {
+          requests.push({
+            id: r.id,
+            staffName: r.staff_name,
+            staffEmail: r.staff_email,
+            status: 'completed',
+            sentAt: r.responded_at,
+            responseReceived: true,
+            responseReceivedAt: r.responded_at,
+            responseText: r.response_text,
+            isTestResponse: false
+          });
+        }
+      });
+
+      console.log('Processed input requests (merged):', requests);
+      setInputRequests(requests);
+
+      // Also update selectedStaff if needed
+      const staffList = (parties || []).map(party => ({
+        name: party.staff_name,
+        email: party.staff_email,
+        role: party.staff_role || '',
+        suggested: false,
+        type: 'added'
+      }));
+
+      if (selectedStaff.length === 0) {
+        setSelectedStaff(staffList);
+      }
+
+      // Automatically set investigation method to "input-required" if there are existing input requests
+      if (requests.length > 0 && !investigationMethod) {
+        setInvestigationMethod("input-required");
+        console.log('Auto-restored investigation method to "input-required" based on existing input requests');
+      }
+
+      console.log('Loaded staff responses:', requests);
     } catch (error) {
       console.error('Error fetching staff responses:', error);
     }
@@ -391,27 +419,25 @@ const ComplaintDetails = () => {
     };
   }, [user, complaintId]);
 
-  // Set up real-time listener for involved parties changes
+  // Set up real-time listener for staff responses changes
   useEffect(() => {
     if (!user || !complaintId) return;
 
     const channel = supabase
-      .channel('involved-parties-changes')
+      .channel('staff-responses-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'complaint_involved_parties',
+          table: 'staff_responses',
           filter: `complaint_id=eq.${complaintId}`
         },
         (payload) => {
-          console.log('Involved parties database change detected:', payload);
-          // Only refresh if the change is from external source (not local user action)
-          // Add small delay to ensure database consistency
+          console.log('Staff responses database change detected:', payload);
           setTimeout(() => {
             fetchStaffResponses();
-          }, 1000);
+          }, 800);
         }
       )
       .subscribe();
