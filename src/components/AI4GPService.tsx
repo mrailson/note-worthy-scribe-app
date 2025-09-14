@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -31,6 +31,7 @@ import { AIModelVerificationChart } from '@/components/AIModelVerificationChart'
 import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
+import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 
 
 // Hook imports
@@ -63,6 +64,7 @@ const AI4GPService = () => {
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
   
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   // Fetch recent meetings for dropdown
@@ -416,6 +418,10 @@ const AI4GPService = () => {
                           <Newspaper className="w-4 h-4 mr-2" />
                           GP News
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowUserGuide(true)}>
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          User Guide & Help
+                        </DropdownMenuItem>
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
                             <Palette className="w-4 h-4 mr-2" />
@@ -759,6 +765,12 @@ const AI4GPService = () => {
           }}
         />
       )}
+
+      {/* User Guide Modal */}
+      <AI4GPUserGuide
+        isOpen={showUserGuide}
+        onClose={() => setShowUserGuide(false)}
+      />
 
     </>
   );
