@@ -203,12 +203,18 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     }
 
     setIsSending(true);
+    setIsDownloadingProof(true);
+    
     try {
-      // Get current user's email
+      // First download the proof document
+      await downloadEmailTranslationProof(emailTranslation, emailReply, qualityAssessment);
+      toast.success('Translation proof document downloaded successfully');
+      setIsDownloadingProof(false);
+
+      // Then send the email
       const { data: { user } } = await supabase.auth.getUser();
       const userEmail = user?.email || 'patient@example.com';
 
-      // Prepare email data for EmailJS service (matching AI4GP format)
       const emailData = {
         to_email: userEmail,
         subject: 'Response from NHS GP Practice',
@@ -238,9 +244,15 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
       setActiveTab('receive');
     } catch (error) {
       console.error('Send email error:', error);
-      toast.error('Failed to send email');
+      if (error.message?.includes('download')) {
+        toast.error('Failed to download proof document');
+        setIsDownloadingProof(false);
+      } else {
+        toast.error('Failed to send email');
+      }
     } finally {
       setIsSending(false);
+      setIsDownloadingProof(false);
     }
   };
 
@@ -448,12 +460,12 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                       {isSending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Sending Email...
+                          {isDownloadingProof ? 'Downloading Proof...' : 'Sending Email...'}
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4 mr-2" />
-                          Send Email
+                          Send Email & Download Proof
                         </>
                       )}
                     </Button>
