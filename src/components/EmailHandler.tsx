@@ -230,10 +230,39 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5" />
-            Foreign Language Email Handler
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Foreign Language Email Handler
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Select value={selectedTestPatient} onValueChange={loadTestPatient}>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Load test patient request..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEST_PATIENT_REQUESTS.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      <div className="flex items-center gap-2">
+                        <TestTube className="w-4 h-4" />
+                        {patient.name} ({patient.language})
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+                className="flex items-center gap-2"
+                title="Clear all and start again"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -245,35 +274,8 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
             </TabsList>
 
             <TabsContent value="receive" className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div>
                 <label className="text-sm font-medium">Foreign Language Email Content</label>
-                <div className="flex items-center gap-2">
-                  <Select value={selectedTestPatient} onValueChange={loadTestPatient}>
-                    <SelectTrigger className="w-[280px]">
-                      <SelectValue placeholder="Load test patient request..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TEST_PATIENT_REQUESTS.map((patient) => (
-                        <SelectItem key={patient.id} value={patient.id}>
-                          <div className="flex items-center gap-2">
-                            <TestTube className="w-4 h-4" />
-                            {patient.name} ({patient.language})
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetForm}
-                    className="flex items-center gap-2"
-                    title="Clear all and start again"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset
-                  </Button>
-                </div>
               </div>
               <div>
                 <Textarea
