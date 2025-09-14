@@ -248,6 +248,11 @@ const AI4GPService = () => {
     }
   }, [disclaimerLoading, showDisclaimer]);
 
+  // Reset news panel on component mount (fixes Home button navigation)
+  React.useEffect(() => {
+    setShowNews(false);
+  }, []);
+
   const handleDisclaimerAccept = () => {
     setShowDisclaimerModal(false);
   };
