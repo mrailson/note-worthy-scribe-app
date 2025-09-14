@@ -107,7 +107,6 @@ export const quickPickConfig = {
       "id": "translate",
       "label": "Translate",
       "children": [
-        {"id": "translate-document", "label": "📷 Translate Document Image"},
         {"id": "translate-polish", "label": "Polish 🇵🇱"},
         {"id": "translate-urdu", "label": "Urdu 🇵🇰"},
         {"id": "translate-arabic", "label": "Arabic 🇸🇦"},
