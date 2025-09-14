@@ -35,6 +35,7 @@ interface EmailReply {
 interface EmailReplyComposerProps {
   incomingEmail: EmailTranslation;
   onReplyGenerated: (reply: EmailReply) => void;
+  testReply?: string;
 }
 
 interface PracticeDetails {
@@ -45,7 +46,7 @@ interface PracticeDetails {
   letter_signature?: string;
 }
 
-export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated }: EmailReplyComposerProps) => {
+export const EmailReplyComposer = ({ incomingEmail, onReplyGenerated, testReply }: EmailReplyComposerProps) => {
   const [replyMode, setReplyMode] = useState<'manual' | 'ai'>('manual');
   const [englishReply, setEnglishReply] = useState('');
   const [contextNotes, setContextNotes] = useState('');
@@ -311,6 +312,16 @@ This email is confidential and may contain privileged information. If you are no
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">English Reply</label>
               <div className="flex gap-2">
+                {testReply && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEnglishReply(testReply)}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Load Test Reply
+                  </Button>
+                )}
                 <VoiceRecorder onTranscription={handleVoiceTranscription} />
                 <AIVoiceButton 
                   onAIReply={handleAIVoiceReply}

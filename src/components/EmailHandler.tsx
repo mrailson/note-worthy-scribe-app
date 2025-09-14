@@ -28,9 +28,9 @@ import {
 import { EmailReplyComposer } from './EmailReplyComposer';
 import { EmailTranslationQuality } from './EmailTranslationQuality';
 import { ImageTranslationCard } from './ImageTranslationCard';
+import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
 
 interface EmailTranslation {
   originalText: string;
@@ -312,6 +312,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                 <EmailReplyComposer
                   incomingEmail={emailTranslation}
                   onReplyGenerated={handleReplyGenerated}
+                  testReply={selectedTestPatient ? TEST_PATIENT_REQUESTS.find(p => p.id === selectedTestPatient)?.englishReply : undefined}
                 />
               )}
             </TabsContent>
