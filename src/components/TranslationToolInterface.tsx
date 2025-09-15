@@ -1524,7 +1524,7 @@ export const TranslationToolInterface = () => {
           }}
         />
       ) : (
-        <React.Fragment>
+        <>
           {/* Header Card */}
           <Card className="bg-primary text-primary-foreground">
             <CardHeader className="text-center">
@@ -2658,8 +2658,8 @@ export const TranslationToolInterface = () => {
                 Saved Sessions
               </Button>
               {(translations.length > 0 || currentSessionId) && (
-                <React.Fragment>
-                  <Button 
+                <>
+                  <Button
                     onClick={handleAutoSave} 
                     variant="secondary" 
                     size="sm"
@@ -2681,7 +2681,7 @@ export const TranslationToolInterface = () => {
                     <Users className="w-4 h-4 mr-2" />
                     Patient Copy
                   </Button>
-                </React.Fragment>
+                </>
               )}
             </div>
           </div>
@@ -2779,7 +2779,7 @@ export const TranslationToolInterface = () => {
           )}
         </TabsContent>
       </Tabs>
-      </React.Fragment>
+      </>
       )}
       
       {/* Translation Display Modal - Large Text for Patients */}
@@ -2868,6 +2868,8 @@ export const TranslationToolInterface = () => {
           />
         </div>
       )}
-      </div>
-    );
-  };
+    </div>
+  );
+};
+
+export { TranslationToolInterface };
