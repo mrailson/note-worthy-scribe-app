@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 import App from "./App.tsx";
 import "./index.css";
 
-// DOM safety polyfill: some third-party scripts (e.g., analytics/helpers)
+// DOM safety polyfill: some third-party scripts (e.g., analytics/helpers/rrweb)
 // call hasAttribute on nodes that are not Elements (Text/Comment) in production.
 // Ensure non-Element Nodes have a no-op hasAttribute to prevent runtime errors.
 (() => {
@@ -22,6 +22,31 @@ import "./index.css";
           writable: true,
           configurable: true,
         });
+      }
+      
+      // Additional safety for rrweb and similar libraries that might call hasAttribute directly
+      const originalHasAttribute = Element.prototype.hasAttribute;
+      
+      // Wrap hasAttribute calls to ensure they're only called on Elements
+      if (originalHasAttribute) {
+        const safeHasAttribute = function(name: string) {
+          if (this && this.nodeType === 1 && typeof originalHasAttribute === 'function') {
+            return originalHasAttribute.call(this, name);
+          }
+          return false;
+        };
+        
+        // Patch Element prototype
+        Element.prototype.hasAttribute = safeHasAttribute;
+        
+        // Add global fallback for direct calls
+        if (!(window as any).hasAttributeSafe) {
+          (window as any).hasAttributeSafe = function(node: any, name: string) {
+            if (!node) return false;
+            if (node.nodeType !== 1) return false; // Only Element nodes
+            return safeHasAttribute.call(node, name);
+          };
+        }
       }
     }
   } catch (e) {
