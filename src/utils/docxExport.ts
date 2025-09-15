@@ -831,7 +831,7 @@ export async function downloadDOCX(
         return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
       }
     })();
-    const languageName = HEALTHCARE_LANGUAGES.find(lang => lang.code === metadata.patientLanguage.toLowerCase())?.name || metadata.patientLanguage;
+    const languageName = getLanguageName(String(metadata.patientLanguage || 'english'));
     const languageStr = languageName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
     const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     saveAs(blob, filename);
