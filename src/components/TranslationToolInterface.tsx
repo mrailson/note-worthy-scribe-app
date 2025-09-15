@@ -1093,10 +1093,9 @@ export const TranslationToolInterface = () => {
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
       
-      // CRITICAL: Session guard - Don't process if no active session
-      if (!sessionManager.canSend()) {
-        console.warn('⚠️ Session Manager: Message received but no active session - queuing for later');
-        return;
+      // SessionManager state is for outbound messages; do not block inbound processing
+      if (!sessionManager.sessionId) {
+        console.warn('⚠️ Session Manager: No active session ID (continuing to process inbound message)');
       }
       
       // Normalize incoming fields from ElevenLabs (with proper type safety)

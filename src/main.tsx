@@ -108,6 +108,39 @@ import "./index.css";
   }
 })();
 
+// Additional global DOM safety guards for stubborn third-party observers
+(() => {
+  try {
+    // 1) Fallback: provide a non-enumerable, safe hasAttribute on Object.prototype
+    const desc = Object.getOwnPropertyDescriptor(Object.prototype, 'hasAttribute');
+    if (!desc) {
+      Object.defineProperty(Object.prototype, 'hasAttribute', {
+        value: function() { return false; },
+        configurable: true,
+        writable: true,
+        enumerable: false,
+      });
+    }
+
+    // 2) Wrap MutationObserver callbacks to avoid crash loops from third-party libs
+    if (typeof window !== 'undefined' && (window as any).MutationObserver) {
+      const OriginalMO = (window as any).MutationObserver as any;
+      (window as any).MutationObserver = class SafeMutationObserver extends OriginalMO {
+        constructor(callback: any) {
+          const safeCallback = (mutations: MutationRecord[], observer: MutationObserver) => {
+            try {
+              callback(mutations, observer);
+            } catch (e) {
+              console.debug('DOM safety: swallowed MutationObserver callback error', e);
+            }
+          };
+          super(safeCallback);
+        }
+      };
+    }
+  } catch (_) {}
+})();
+
 // Prevent browser navigation when dropping files outside designated zones
 (() => {
   try {
