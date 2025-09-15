@@ -1007,9 +1007,10 @@ export const TranslationToolInterface = () => {
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
       
-      // Normalize incoming fields from ElevenLabs
-      const contentText: string = (message?.message || message?.text || message?.content?.text || '').toString();
-      const rawSource: string = (message?.source || message?.role || message?.sender || '').toString().toLowerCase();
+      // Normalize incoming fields from ElevenLabs (with proper type safety)
+      const messageObj = message as any; // Cast to any for flexible property access
+      const contentText: string = (messageObj?.message || messageObj?.text || messageObj?.content?.text || '').toString();
+      const rawSource: string = (messageObj?.source || messageObj?.role || messageObj?.sender || '').toString().toLowerCase();
       const source: 'user' | 'ai' = /^(ai|agent|assistant)$/.test(rawSource) ? 'ai' : 'user';
 
       if (!contentText) {

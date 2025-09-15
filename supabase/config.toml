@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.ai-response-clinical-verification]
 verify_jwt = true
+
+[functions.save-translation-session]
+verify_jwt = true
