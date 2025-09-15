@@ -9,48 +9,102 @@ import { Toaster } from "@/components/ui/toaster";
 import App from "./App.tsx";
 import "./index.css";
 
-// DOM safety polyfill: some third-party scripts (e.g., analytics/helpers/rrweb)
-// call hasAttribute on nodes that are not Elements (Text/Comment) in production.
-// Ensure non-Element Nodes have a no-op hasAttribute to prevent runtime errors.
+// Enhanced DOM safety polyfill for rrweb/heidi.js compatibility
+// Prevents TypeError when hasAttribute is called on non-Element nodes
 (() => {
   try {
     if (typeof window !== "undefined" && (window as any).Node) {
-      const proto: any = (Node as any).prototype;
-      if (typeof proto.hasAttribute !== "function") {
-        Object.defineProperty(proto, "hasAttribute", {
-          value: function (_name: string) { return false; },
+      // Store original methods before any modifications
+      const originalElementHasAttribute = Element.prototype.hasAttribute;
+      
+      // Enhanced safe hasAttribute function with comprehensive checks
+      const createSafeHasAttribute = (originalMethod: Function) => {
+        return function(this: any, name: string) {
+          // Return false immediately for non-object types
+          if (!this || typeof this !== 'object') return false;
+          
+          // Check if this is actually an Element (nodeType 1)
+          if (!this.nodeType || this.nodeType !== 1) return false;
+          
+          // Verify this has Element-like properties
+          if (typeof this.getAttribute !== 'function') return false;
+          
+          // Additional safety: check if name is a valid string
+          if (typeof name !== 'string') return false;
+          
+          try {
+            return originalMethod.call(this, name);
+          } catch (e) {
+            return false;
+          }
+        };
+      };
+      
+      // Apply safe wrapper to Element.prototype.hasAttribute
+      if (originalElementHasAttribute) {
+        Element.prototype.hasAttribute = createSafeHasAttribute(originalElementHasAttribute);
+      }
+      
+      // Add hasAttribute to Node prototype for comprehensive coverage
+      const nodeProto: any = (Node as any).prototype;
+      if (!nodeProto.hasAttribute) {
+        Object.defineProperty(nodeProto, "hasAttribute", {
+          value: function(this: any, name: string) {
+            // Only return true for Elements, false for all other node types
+            if (this && this.nodeType === 1 && typeof this.getAttribute === 'function') {
+              try {
+                return originalElementHasAttribute ? originalElementHasAttribute.call(this, name) : false;
+              } catch (e) {
+                return false;
+              }
+            }
+            return false;
+          },
           writable: true,
           configurable: true,
         });
       }
       
-      // Additional safety for rrweb and similar libraries that might call hasAttribute directly
-      const originalHasAttribute = Element.prototype.hasAttribute;
-      
-      // Wrap hasAttribute calls to ensure they're only called on Elements
-      if (originalHasAttribute) {
-        const safeHasAttribute = function(name: string) {
-          if (this && this.nodeType === 1 && typeof originalHasAttribute === 'function') {
-            return originalHasAttribute.call(this, name);
-          }
+      // Enhanced global fallback for direct function calls
+      (window as any).hasAttributeSafe = function(node: any, name: string) {
+        if (!node || typeof node !== 'object') return false;
+        if (!node.nodeType || node.nodeType !== 1) return false;
+        if (typeof node.getAttribute !== 'function') return false;
+        if (typeof name !== 'string') return false;
+        
+        try {
+          return node.hasAttribute(name);
+        } catch (e) {
           return false;
-        };
-        
-        // Patch Element prototype
-        Element.prototype.hasAttribute = safeHasAttribute;
-        
-        // Add global fallback for direct calls
-        if (!(window as any).hasAttributeSafe) {
-          (window as any).hasAttributeSafe = function(node: any, name: string) {
-            if (!node) return false;
-            if (node.nodeType !== 1) return false; // Only Element nodes
-            return safeHasAttribute.call(node, name);
+        }
+      };
+      
+      // Additional protection: patch common problematic scenarios
+      const originalQuerySelectorAll = Document.prototype.querySelectorAll;
+      const originalGetElementsByTagName = Document.prototype.getElementsByTagName;
+      
+      // Ensure NodeList iteration safety
+      if (typeof NodeList !== 'undefined' && NodeList.prototype) {
+        const originalForEach = NodeList.prototype.forEach;
+        if (originalForEach) {
+          NodeList.prototype.forEach = function(callback: Function, thisArg?: any) {
+            for (let i = 0; i < this.length; i++) {
+              const node = this[i];
+              if (node && typeof node === 'object') {
+                callback.call(thisArg, node, i, this);
+              }
+            }
           };
         }
       }
+      
+      // Console logging for debugging (can be removed in production)
+      console.debug('Enhanced DOM safety polyfill applied for rrweb compatibility');
+      
     }
   } catch (e) {
     // Silent fail - safety shim only
+    console.debug('DOM safety polyfill failed to apply:', e);
   }
 })();
 
