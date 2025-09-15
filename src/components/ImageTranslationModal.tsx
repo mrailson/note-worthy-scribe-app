@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -86,6 +87,13 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   isOpen,
   onOpenChange,
 }) => {
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState('en');
@@ -524,7 +532,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                     <h3 className="text-lg font-semibold">Original Text</h3>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {result.detectedLanguage} - {Math.round(result.confidence * 100)}% confidence
+                        {getLanguageName(result.detectedLanguage)} - {Math.round(result.confidence * 100)}% confidence
                       </Badge>
                       <Button
                         variant="ghost"

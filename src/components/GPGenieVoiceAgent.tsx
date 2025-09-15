@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -50,6 +51,13 @@ interface QualityScore {
 }
 
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
   const [activeTab, setActiveTab] = useState(initialTab);
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -617,7 +625,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                                         qualityScore.overallSafety === 'REVIEW' ? 'Review Recommended' : 'Quality Issues Detected'}
                     {qualityScore.targetLanguage && (
                       <span className="ml-2 text-xs text-muted-foreground">
-                        (Translated to {qualityScore.targetLanguage})
+                        (Translated to {getLanguageName(qualityScore.targetLanguage)})
                       </span>
                     )}
                   </div>

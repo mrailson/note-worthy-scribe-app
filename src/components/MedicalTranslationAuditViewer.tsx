@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,13 @@ import { MedicalTranslationAuditTrail } from '@/utils/medicalTranslationAudit';
 import { Input } from '@/components/ui/input';
 
 export const MedicalTranslationAuditViewer: React.FC = () => {
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -252,7 +260,7 @@ export const MedicalTranslationAuditViewer: React.FC = () => {
                   <CardContent className="space-y-2 text-sm">
                     <div><strong>Timestamp:</strong> {new Date(selectedEntry.timestamp).toLocaleString()}</div>
                     <div><strong>Confidence:</strong> {Math.round(selectedEntry.confidence * 100)}%</div>
-                    <div><strong>Languages:</strong> {selectedEntry.sourceLanguage} → {selectedEntry.targetLanguage}</div>
+                    <div><strong>Languages:</strong> {getLanguageName(selectedEntry.sourceLanguage)} → {getLanguageName(selectedEntry.targetLanguage)}</div>
                     <div><strong>Services:</strong> {selectedEntry.servicesUsed?.join(', ')}</div>
                   </CardContent>
                 </Card>
