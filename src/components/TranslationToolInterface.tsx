@@ -529,8 +529,14 @@ export const TranslationToolInterface = () => {
     // Immediate save with debouncing
     triggerImmediateSave();
   };
-    
-    // ALWAYS update current translation first, regardless of other processing
+
+  const clearHistory = () => {
+    setTranslations([]);
+    setTranslationScores([]);
+    setSessionStart(new Date());
+    startNewSession();
+    toast.success('Translation history cleared');
+  };
     updateCurrentTranslation(userMessage, agentResponse);
     
     // LAYER 1: Skip language setup requests (but be less aggressive)
@@ -2863,4 +2869,4 @@ export const TranslationToolInterface = () => {
        )}
       </div>
     );
-};
+  };
