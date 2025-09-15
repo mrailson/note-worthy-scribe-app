@@ -155,6 +155,23 @@ export const TranslationToolInterface = () => {
     resetBuffer
   } = useTranslationBuffering();
 
+  // Enhanced Message Correlation System
+  const messageOutboxRef = useRef<Map<string, {
+    correlationId: string;
+    sessionId: string;
+    payload: any;
+    timestamp: number;
+    retryCount: number;
+  }>>(new Map());
+
+  const pendingSessionBufferRef = useRef<Array<{
+    correlationId: string;
+    payload: any;
+    timestamp: number;
+  }>>([]);
+
+  const activeSessionIdRef = useRef<string | null>(null);
+
   // WebSocket Session Manager - Fixes data loss issues
   const sessionManager = useWebSocketSessionManager({
     onDataLoss: (lostMessage) => {
@@ -164,8 +181,103 @@ export const TranslationToolInterface = () => {
     onSessionChange: (sessionId) => {
       console.log('🔄 Session Manager: Session changed:', sessionId);
       conversationIdRef.current = sessionId;
+      activeSessionIdRef.current = sessionId;
+      
+      // Re-subscribe to translation service after session change
+      if (sessionId) {
+        console.log('🔄 Re-subscribing to translation service with new session:', sessionId.slice(-6));
+        // Drain pending session buffer with new session
+        drainPendingBuffer(sessionId);
+      }
     }
   });
+
+  // Generate correlation ID for message tracking
+  const generateCorrelationId = useCallback((): string => {
+    return `corr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+  }, []);
+
+  // Safe send with correlation ID and session buffering
+  const safeSendMessage = useCallback((payload: any): string => {
+    const correlationId = generateCorrelationId();
+    const activeSessionId = activeSessionIdRef.current;
+    
+    console.debug('📤 TX:', { 
+      correlationId: correlationId.slice(-12), 
+      sessionId: activeSessionId?.slice(-6) || 'none',
+      type: payload.type || 'message',
+      hasSession: !!activeSessionId
+    });
+
+    if (!activeSessionId || !sessionManager.canSend()) {
+      // Buffer message until session is available
+      console.log('📦 Buffering message (no active session):', correlationId.slice(-12));
+      pendingSessionBufferRef.current.push({
+        correlationId,
+        payload,
+        timestamp: Date.now()
+      });
+      return correlationId;
+    }
+
+    // Add session and correlation to payload
+    const enrichedPayload = {
+      ...payload,
+      sessionId: activeSessionId,
+      correlationId
+    };
+
+    // Track in outbox for correlation matching
+    messageOutboxRef.current.set(correlationId, {
+      correlationId,
+      sessionId: activeSessionId,
+      payload: enrichedPayload,
+      timestamp: Date.now(),
+      retryCount: 0
+    });
+
+    // Send through session manager
+    const messageId = sessionManager.sendMessage(JSON.stringify(enrichedPayload), 'user');
+    
+    console.log('✅ Message sent with correlation tracking:', {
+      correlationId: correlationId.slice(-12),
+      messageId: messageId.slice(-12),
+      sessionId: activeSessionId.slice(-6),
+      outboxSize: messageOutboxRef.current.size
+    });
+
+    return correlationId;
+  }, [sessionManager, generateCorrelationId]);
+
+  // Drain pending buffer when session becomes available
+  const drainPendingBuffer = useCallback((newSessionId: string) => {
+    const pendingMessages = [...pendingSessionBufferRef.current];
+    pendingSessionBufferRef.current = [];
+    
+    console.log(`🚰 Draining ${pendingMessages.length} buffered messages to session ${newSessionId.slice(-6)}`);
+    
+    pendingMessages.forEach(({ correlationId, payload }) => {
+      const enrichedPayload = {
+        ...payload,
+        sessionId: newSessionId,
+        correlationId
+      };
+
+      messageOutboxRef.current.set(correlationId, {
+        correlationId,
+        sessionId: newSessionId,
+        payload: enrichedPayload,
+        timestamp: Date.now(),
+        retryCount: 0
+      });
+
+      const messageId = sessionManager.sendMessage(JSON.stringify(enrichedPayload), 'user');
+      console.log('📤 Drained message:', {
+        correlationId: correlationId.slice(-12),
+        messageId: messageId.slice(-12)
+      });
+    });
+  }, [sessionManager]);
 
   // Initialize DOM Safety Observer
   useEffect(() => {
@@ -226,6 +338,76 @@ export const TranslationToolInterface = () => {
       console.error('⚠️ Quality verification failed but continuing:', error);
     });
   };
+
+  // Process message with correlation ID matching
+  const processCorrelatedMessage = useCallback((inboundMessage: any, messageContent: string, source: 'user' | 'agent') => {
+    const { correlationId, sessionId } = inboundMessage;
+    
+    console.debug('📥 RX:', { 
+      correlationId: correlationId?.slice(-12) || 'none', 
+      sessionId: sessionId?.slice(-6) || 'none',
+      source,
+      type: inboundMessage.type || 'message'
+    });
+
+    // Session validation - ignore messages from wrong session
+    if (sessionId && sessionId !== activeSessionIdRef.current) {
+      console.warn('🚫 Ignoring message from stale session:', {
+        messageSession: sessionId.slice(-6),
+        activeSession: activeSessionIdRef.current?.slice(-6) || 'none'
+      });
+      return;
+    }
+
+    if (source === 'agent' && correlationId) {
+      // Find matching outbound message by correlation ID
+      const pendingMessage = messageOutboxRef.current.get(correlationId);
+      if (pendingMessage) {
+        console.log('🎯 Correlated response found:', {
+          correlationId: correlationId.slice(-12),
+          userMessage: pendingMessage.payload.content?.substring(0, 50) || '[no content]',
+          agentResponse: messageContent.substring(0, 50)
+        });
+        
+        // Remove from outbox
+        messageOutboxRef.current.delete(correlationId);
+        
+        // Process the matched pair
+        processTranslationExchange(pendingMessage.payload.content || '[Recovery]', messageContent);
+        return;
+      } else {
+        console.warn('🔍 No correlation match found for agent message:', {
+          correlationId: correlationId.slice(-12),
+          outboxSize: messageOutboxRef.current.size,
+          availableCorrelations: Array.from(messageOutboxRef.current.keys()).map(k => k.slice(-12))
+        });
+      }
+    }
+
+    // Fallback to old FIFO pairing within session if no correlation
+    console.log('📋 Using FIFO fallback for uncorrelated message');
+    // Continue with existing FIFO logic as safety net
+    return false; // Signal fallback needed
+  }, []);
+
+  // Periodic state logging for debugging
+  useEffect(() => {
+    const logInterval = setInterval(() => {
+      const stats = {
+        ws: sessionManager.wsState,
+        session: activeSessionIdRef.current?.slice(-6) || 'none',
+        outbox: messageOutboxRef.current.size,
+        pending: pendingSessionBufferRef.current.length,
+        sessionStats: sessionManager.getSessionStats()
+      };
+      
+      if (stats.outbox > 0 || stats.pending > 0) {
+        console.log('📊 Translation State:', stats);
+      }
+    }, 5000); // Log every 5 seconds if there are pending messages
+
+    return () => clearInterval(logInterval);
+  }, [sessionManager]);
 
   const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
     console.log('🔄 Updating current translation for modal display...');
@@ -1109,6 +1291,27 @@ export const TranslationToolInterface = () => {
         return;
       }
       
+      // Extract correlation and session data from message if present
+      const correlationId = messageObj?.correlationId;
+      const messageSessionId = messageObj?.sessionId;
+      
+      // Try correlation-based processing first
+      const correlationProcessed = processCorrelatedMessage({
+        correlationId,
+        sessionId: messageSessionId,
+        type: messageObj.type
+      }, contentText, source === 'ai' ? 'agent' : 'user');
+      
+      if (correlationProcessed !== false) {
+        // Successfully processed with correlation - acknowledge and return
+        const messageId = sessionManager.sendMessage(contentText, source === 'ai' ? 'agent' : 'user');
+        sessionManager.acknowledgeMessage(messageId);
+        return;
+      }
+      
+      // FALLBACK: Use enhanced FIFO pairing with session validation
+      console.log('📋 Using enhanced FIFO fallback for message processing');
+      
       // Send message through session manager for tracking
       const messageId = sessionManager.sendMessage(contentText, source === 'ai' ? 'agent' : source);
       
@@ -1117,14 +1320,13 @@ export const TranslationToolInterface = () => {
       const deduplicationId = createContentHash(contentText + source + sessionId);
       if (processedMessageIds.current.has(deduplicationId)) {
         console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', deduplicationId.substring(0, 8));
-        // Acknowledge the message anyway to prevent false data loss alerts
         sessionManager.acknowledgeMessage(messageId);
         return;
       }
       processedMessageIds.current.add(deduplicationId);
       
       // Critical: Log all messages for debugging data loss
-      console.log('🔍 CRITICAL_LOG: Message processing:', {
+      console.log('🔍 CRITICAL_LOG: Message processing (fallback):', {
         sessionId,
         source,
         content: contentText.substring(0, 100),
@@ -1133,14 +1335,11 @@ export const TranslationToolInterface = () => {
         sessionStats: sessionManager.getSessionStats()
       });
       
-      // Capture and verify conversations for quality assurance
-      console.log('🎯 Translation message - Source:', source, 'Content:', contentText.substring(0, 50) + '...');
-      
       setConversationBuffer(prev => {
         const updated = [...prev];
 
         if (source === 'user') {
-          console.log('👤 User message captured:', contentText.substring(0, 50) + '...');
+          console.log('👤 User message captured (fallback):', contentText.substring(0, 50) + '...');
           
           // Track user messages for data loss detection
           const trackingId = createContentHash(contentText + Date.now());
@@ -1150,17 +1349,13 @@ export const TranslationToolInterface = () => {
           });
           
           updated.push({ user: contentText, agent: '' });
-          
-          // Acknowledge user message immediately
           sessionManager.acknowledgeMessage(messageId);
-          
           return updated;
         }
 
-        // Source is AI/agent
-        // CRITICAL FIX: Find the FIRST (FIFO) unmatched user message instead of LAST (LIFO)
+        // Source is AI/agent - Enhanced FIFO with session freeze protection
         let indexToFill = -1;
-        for (let i = 0; i < updated.length; i++) {  // 🔥 FIXED: Forward iteration for FIFO pairing
+        for (let i = 0; i < updated.length; i++) {  // FIFO: Forward iteration
           if (updated[i].user && !updated[i].agent) {
             indexToFill = i;
             break;
@@ -1168,64 +1363,54 @@ export const TranslationToolInterface = () => {
         }
 
         if (indexToFill === -1) {
-          // Handle initial agent greeting or handshake without flagging data loss
+          // Handle initial agent greeting or orphaned responses
           const isInitialGreeting = updated.length === 0 ||
             /which language/i.test(contentText) ||
             /translation service/i.test(contentText) ||
             /ready/i.test(contentText);
 
           if (isInitialGreeting) {
-            console.log('ℹ️ Initial agent greeting received, not pairing with user message.');
-            // Acknowledge the greeting message
+            console.log('ℹ️ Initial agent greeting received (fallback)');
             sessionManager.acknowledgeMessage(messageId);
-            // Optionally surface in UI without affecting history to avoid noise
             updateCurrentTranslation('[System]', contentText);
             return updated;
           }
 
-          console.error('🚨 CRITICAL: AI message arrived without a pending user entry. This indicates data loss!');
-          console.error('🚨 MISSING_USER_MESSAGE:', {
-            aiMessage: contentText.substring(0, 100),
-            sessionId: sessionManager.sessionId,
-            bufferState: updated.map((entry, i) => ({
-              index: i,
-              hasUser: !!entry.user,
-              hasAgent: !!entry.agent,
-              userPreview: entry.user?.substring(0, 50),
-              agentPreview: entry.agent?.substring(0, 50)
-            }))
+          // Data loss recovery with better logging
+          console.error('🚨 FALLBACK DATA LOSS: Agent message without pending user message');
+          console.error('🚨 Recovery context:', {
+            agentMessage: contentText.substring(0, 100),
+            sessionId: sessionManager.sessionId?.slice(-6),
+            bufferLength: updated.length,
+            outboxSize: messageOutboxRef.current.size,
+            pendingSize: pendingSessionBufferRef.current.length
           });
           
-          // Create a recovery entry with placeholder user text to ensure AI response isn't lost
           const recoveryEntry = { 
-            user: '[Recovery: User message not captured]', 
+            user: '[Recovery: User message not captured via fallback]', 
             agent: contentText 
           };
           updated.push(recoveryEntry);
           
-          // Still update modal to show the translation
           updateCurrentTranslation(recoveryEntry.user, recoveryEntry.agent);
-          
-          // Acknowledge the message to prevent retry
           sessionManager.acknowledgeMessage(messageId);
           
-          // Process with buffering for history
           setTimeout(() => {
             try {
-              console.log('🔍 Processing recovery translation exchange...');
               processMessageWithBuffering(recoveryEntry.user, recoveryEntry.agent);
             } catch (error) {
-              console.error('🔥 Recovery processing failed:', error);
+              console.error('🔥 Recovery processing failed (fallback):', error);
             }
           }, 200);
           
           return updated;
         }
 
-        console.log('🤖 AI response captured:', contentText.substring(0, 50) + '...');
+        // Successful FIFO pairing
+        console.log('🤖 Agent response paired (fallback):', contentText.substring(0, 50) + '...');
         updated[indexToFill].agent = contentText;
         
-        // Update tracking - mark agent message received
+        // Update tracking
         const userText = updated[indexToFill].user;
         for (const [trackingId, trackingData] of conversationTrackingRef.current.activeMessages.entries()) {
           if (trackingData.user === userText && !trackingData.agent) {
@@ -1234,37 +1419,17 @@ export const TranslationToolInterface = () => {
           }
         }
 
-        // Acknowledge the agent message
         sessionManager.acknowledgeMessage(messageId);
-
-        // Immediately update the modal so UI never gets "stuck"
         updateCurrentTranslation(updated[indexToFill].user, updated[indexToFill].agent);
 
-        // Prepare verification + history processing with buffering
+        // Process with buffering
         const lastExchange = updated[indexToFill];
         if (lastExchange.user && lastExchange.agent) {
-          const exchangeVerificationKey = createContentHash(lastExchange.user + lastExchange.agent);
-          const existingVerification = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
-          if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 10000)) {
-            console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange in last 10s');
-            return updated;
-          }
-
-          conversationExchangeMap.current.set(exchangeVerificationKey + '_verification', {
-            timestamp: Date.now(),
-            processed: false
-          });
-
           setTimeout(() => {
             try {
-              console.log('🔍 Processing translation exchange with enhanced buffering...');
               processMessageWithBuffering(lastExchange.user, lastExchange.agent);
-              const entry = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
-              if (entry) entry.processed = true;
             } catch (error) {
-              console.error('🔥 Verification failed for exchange:', error);
-              conversationExchangeMap.current.delete(exchangeVerificationKey + '_verification');
-              toast.error('Translation quality check failed - will retry on next message');
+              console.error('🔥 Fallback processing failed:', error);
             }
           }, 200);
         }

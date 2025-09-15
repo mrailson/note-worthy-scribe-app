@@ -122,14 +122,24 @@ import "./index.css";
       });
     }
 
-    // 2) Wrap MutationObserver callbacks to avoid crash loops from third-party libs
+    // 2) Enhanced helper to safely filter nodes to elements only
+    (window as any).asElements = (nodes: NodeList | Node[] = []) => 
+      Array.from(nodes).filter((n): n is Element => n?.nodeType === 1);
+
+    // 3) Wrap MutationObserver callbacks to avoid crash loops from third-party libs
     if (typeof window !== 'undefined' && (window as any).MutationObserver) {
       const OriginalMO = (window as any).MutationObserver as any;
       (window as any).MutationObserver = class SafeMutationObserver extends OriginalMO {
         constructor(callback: any) {
           const safeCallback = (mutations: MutationRecord[], observer: MutationObserver) => {
             try {
-              callback(mutations, observer);
+              // Enhanced mutation processing with node type safety
+              const safeMutations = mutations.map(mut => ({
+                ...mut,
+                addedNodes: (window as any).asElements(mut.addedNodes),
+                removedNodes: (window as any).asElements(mut.removedNodes)
+              }));
+              callback(safeMutations, observer);
             } catch (e) {
               console.debug('DOM safety: swallowed MutationObserver callback error', e);
             }
@@ -137,8 +147,27 @@ import "./index.css";
           super(safeCallback);
         }
       };
+
+      // 4) Additional safety for existing observers that use descendants
+      const originalObserve = OriginalMO.prototype.observe;
+      OriginalMO.prototype.observe = function(target: Node, options?: MutationObserverInit) {
+        try {
+          // Ensure target is an element before observing
+          if (target && target.nodeType === 1) {
+            return originalObserve.call(this, target, options);
+          } else {
+            console.warn('DOM Safety: Blocking observe() on non-element node');
+          }
+        } catch (e) {
+          console.warn('DOM Safety: observe() failed safely:', e);
+        }
+      };
     }
-  } catch (_) {}
+
+    console.debug('Enhanced DOM safety polyfill with node filtering applied');
+  } catch (_) {
+    console.debug('DOM safety polyfill failed to apply (non-critical)');
+  }
 })();
 
 // Prevent browser navigation when dropping files outside designated zones
