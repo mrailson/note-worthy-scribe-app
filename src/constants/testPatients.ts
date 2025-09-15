@@ -991,7 +991,129 @@ We can arrange 3-month supplies of Amlodipine, which will be much more convenien
 
 Please call reception on 01604 123456 to confirm these arrangements.
 
-Best regards,
+    Best regards,
 Oak Lane Medical Practice Administration Team`
+  },
+  {
+    id: '17',
+    name: 'Dilini Perera',
+    language: 'Sinhala',
+    languageCode: 'si',
+    email: 'dilini.perera@email.com',
+    request: `Oak Lane Medical Practice හි ගරුණීය වෛද්‍යවරුන් වෙත,
+
+මම දිලිනි පෙරේරා. මම වසර දෙකක් තිස්සේ ඔබේ රෝහලේ ලියාපදිංචි රෝගියෙකි. මම මගේ 8 වසරේ පුතා සමන් ගැන ලියන්නේ.
+
+සමන්ට පසුගිය සතිය සිට මෙම රෝග ලක්‍ෂණ දක්නට ලැබේ:
+- නිතර කැක්කුම සහ සෙම්ප්‍රදාහය
+- රාත්‍රී කාලයේ උණ (38.5°C පමණ)
+- ආහාර ගැනීමට අකමැති වීම
+- සෙල්ලම් කිරීමට අකමැති වීම සහ වෙහෙස
+
+මම පැරසිටමෝල් දී ඇති නමුත් උණ නැවත එයි. ඔහුගේ ගෙල ටිකක් ඉදිමී ඇති බව මට පෙනේ.
+
+සමන් සාමාන්‍යයෙන් ඉතා ක්‍රියාශීලී ළමයෙක්. එම නිසා මම කරදර වෙමි. ඔහු පාසැලටත් යාමට අකමැතියි.
+
+මේ සතිය තුළ ඔහුව පරීක්‍ෂා කර බලන්න පුළුවන්ද? මම සවස වේලාවට හෝ සති අන්තයේ ගෙන එන්න පුළුවන්.
+
+මගේ දුරකථන අංකය: 07789 456123
+
+ස්තූතියි,
+දිලිනි පෙරේරා
+පුතාගේ නම: සමන් පෙරේරා (උපන් දිනය: 15/08/2016)`,
+    englishReply: `Dear Ms Perera,
+
+Thank you for contacting us about Saman's concerning symptoms. We understand your worry, especially as he's normally such an active child.
+
+**Urgent Appointment Arranged:**
+We have scheduled Saman for an urgent appointment with Dr. Jayasinghe tomorrow (${getNextWorkingDay(1)}) at 4:30 PM. Dr. Jayasinghe has experience with paediatric care and can communicate in Sinhala if needed.
+
+**Assessment Will Include:**
+- Throat and neck examination (checking for swollen glands and possible throat infection)
+- Chest examination for the persistent cough
+- Temperature monitoring and general health check
+- Possible throat swab if streptococcal infection is suspected
+
+**Before Your Appointment:**
+- Continue giving paracetamol every 4-6 hours for fever control
+- Encourage fluids (water, diluted fruit juice, warm broths)
+- Monitor his temperature and note the pattern
+- Bring a list of any medications he's currently taking
+
+**Warning Signs:** If Saman develops difficulty swallowing, severe breathing problems, or becomes very lethargic before your appointment, please contact us immediately on 01604 123456 or visit A&E.
+
+**School:** Please keep Saman off school until 24 hours after his fever has completely gone and he's feeling well enough to participate in normal activities.
+
+The combination of fever, swollen neck glands, and persistent cough in children often indicates a bacterial throat infection, which responds very well to appropriate antibiotic treatment if needed.
+
+Your prompt attention to his symptoms shows excellent parental care.
+
+Best regards,
+Oak Lane Medical Practice Paediatric Team`
+  },
+  {
+    id: '18',
+    name: 'László Kovács',
+    language: 'Hungarian',
+    languageCode: 'hu',
+    email: 'laszlo.kovacs@email.com',
+    request: `Tisztelt Oak Lane Medical Practice orvosai,
+
+Kovács László vagyok, három éve vagyok náluk beteg. A feleségem, Éva egészségével kapcsolatos problémák miatt írok.
+
+Éva 52 éves és körülbelül hat hónapja különböző tüneteket tapasztal:
+- Havi vérzés megszűnt (menopauza valószínűleg)
+- Éjjeli izzadások és hőhullámok naponta 8-10 alkalommal
+- Hangulatingadozások és ingerlékenység
+- Alvászavarok - nehezen alszik el és gyakran felébred
+- Ízületi fájdalmak, főleg reggel
+
+Ő nagyon elfoglalt adminisztrátorként dolgozik és ezek a tünetek már hatással vannak a munkájára. A kollégái is észrevették, hogy ingerlékennyebb lett.
+
+Éva szégyenlős természetű és nem szívesen beszél ezekről a problémákról, de én meggyőztem, hogy kérjen orvosi segítséget. Szeretné, ha női orvossal találkozhatna.
+
+Emellett szeretnénk információt kapni a hormonpótló terápiáról. Éva anyukájának osteoporosis volt, de nincs családi előzmény emlőrákra.
+
+Lehetséges-e időpontot kapni a következő két héten belül? Éva munkaideje rugalmas, így bármikor tud jönni.
+
+Telefonszámunk: 07890 567234
+
+Köszönettel,
+László Kovács (Éva férje)
+Éva születési dátuma: 28/09/1972`,
+    englishReply: `Dear Mr Kovács,
+
+Thank you for writing on behalf of your wife Éva regarding her menopausal symptoms. We appreciate your supportive approach in encouraging her to seek medical help, and we understand her preference for a female doctor.
+
+**Appointment Arranged:**
+We have scheduled Éva for a comprehensive menopause consultation with Dr. Sarah Mitchell on ${getNextWorkingDay(3)} at 2:30 PM. Dr. Mitchell specialises in women's health and menopause management.
+
+**Consultation Will Include:**
+- Full assessment of menopausal symptoms and their impact on daily life
+- Discussion of family history (particularly your mother-in-law's osteoporosis)
+- Review of hormone replacement therapy (HRT) options
+- Alternative treatments for symptom management
+- Workplace adjustment advice for managing symptoms
+
+**Before the Appointment:**
+- Keep a symptom diary for one week (noting hot flush frequency, sleep patterns, mood changes)
+- List all current medications and supplements
+- Prepare any questions about treatment options
+- Consider bringing you for support if Éva would find that helpful
+
+**Treatment Options to Discuss:**
+- Various HRT formulations (patches, tablets, gels)
+- Non-hormonal medications for hot flushes
+- Calcium and Vitamin D supplementation for bone health
+- Lifestyle modifications for symptom relief
+
+**Good News:** Given the family history of osteoporosis but no breast cancer history, Éva may be an excellent candidate for HRT, which can help with both her current symptoms and future bone health.
+
+**Work Support:** We can provide a letter for Éva's employer about reasonable adjustments if needed, such as access to cooling facilities or flexible working during difficult symptom periods.
+
+Please reassure Éva that menopause consultations are completely confidential and that Dr. Mitchell has extensive experience helping women navigate this natural transition comfortably.
+
+Best regards,
+Oak Lane Medical Practice Women's Health Team`
   }
 ];
