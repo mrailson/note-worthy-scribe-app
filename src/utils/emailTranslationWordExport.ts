@@ -542,7 +542,10 @@ export const downloadEmailTranslationProof = async (
     });
 
     const blob = await Packer.toBlob(doc);
-    const filename = `Notewell_AI_Translation_Proof_${currentDate.toISOString().split('T')[0]}_${currentDate.getTime().toString().slice(-6)}.docx`;
+    const dateStr = currentDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+    const timeStr = currentDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
+    const languageStr = (originalEmail.detectedLanguage || emailReply.targetLanguage || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     
     saveAs(blob, filename);
   } catch (error) {

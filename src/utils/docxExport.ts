@@ -823,14 +823,16 @@ export async function downloadDOCX(
 
     // Generate and save
     const blob = await Packer.toBlob(doc);
-    const filePrefix = isPatientCopy ? "Notewell_AI_Translation_Patient_Copy" : "Notewell_AI_Translation_Report";
-    const filename = `${filePrefix}_${metadata.sessionDate.toISOString().split('T')[0]}_${(() => {
+    const dateStr = metadata.sessionDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+    const timeStr = (() => {
       if (metadata.sessionStart instanceof Date) {
         return metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
       } else {
         return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
       }
-    })()}.docx`;
+    })();
+    const languageStr = metadata.patientLanguage.replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     saveAs(blob, filename);
     
   } catch (error) {

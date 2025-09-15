@@ -393,8 +393,10 @@ export async function downloadPatientDOCX(
 
     // Generate and save
     const blob = await Packer.toBlob(doc);
-    const patientLangName = metadata.patientLanguage.charAt(0).toUpperCase() + metadata.patientLanguage.slice(1);
-    const filename = `Patient_Translation_Record_${patientLangName}_${metadata.sessionDate.toISOString().split('T')[0]}.docx`;
+    const dateStr = metadata.sessionDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+    const timeStr = metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
+    const languageStr = metadata.patientLanguage.replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     saveAs(blob, filename);
     
   } catch (error) {
