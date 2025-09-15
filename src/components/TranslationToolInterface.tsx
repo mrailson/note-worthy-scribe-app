@@ -442,9 +442,9 @@ export const TranslationToolInterface = () => {
       return;
     }
 
-    // LAYER 2: Skip very short messages (reduced threshold for better capture)
-    if (userMessage.trim().length < 3 || agentResponse.trim().length < 3) {
-      console.log('🛡️ DEDUP: Skipping very short message from history');
+    // LAYER 2: Skip ultra-short noise only (allow 2+ chars so “ja”, “ok” etc. are kept)
+    if (userMessage.trim().length < 2 || agentResponse.trim().length < 2) {
+      console.log('🛡️ DEDUP: Skipping ultra-short noise (<2 chars)');
       return;
     }
 

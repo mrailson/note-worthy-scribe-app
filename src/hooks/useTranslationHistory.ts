@@ -137,13 +137,15 @@ export const useTranslationHistory = () => {
       if (error) throw error;
 
       // Update current session ID if this was a new session
+      let createdNewSession = false;
       if (!currentSessionId && data.session?.id) {
         setCurrentSessionId(data.session.id);
+        createdNewSession = true;
       }
 
-      // Only refresh sessions list if this is a completed session (not active)
-      if (!isActive) {
-        console.log('🔄 Refreshing sessions list after completing session');
+      // Refresh sessions list when a session is first created or completed
+      if (createdNewSession || !isActive) {
+        console.log('🔄 Refreshing sessions list after save', { createdNewSession, isActive });
         await loadSessions();
       }
 
