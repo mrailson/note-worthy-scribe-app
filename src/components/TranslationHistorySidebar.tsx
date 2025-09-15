@@ -1,11 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,32 +12,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
+  Languages,
+  X,
   Search,
-  Filter,
   Flag,
   Shield,
-  Trash2,
-  Download,
-  Languages,
-  Clock,
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Eye,
-  X,
-  Calendar,
-  Users,
+  Clock,
+  Download,
+  Trash2,
   FileText,
-  Loader2
+  Loader2,
+  RefreshCcw
 } from 'lucide-react';
 import { useTranslationHistory, TranslationSession } from '@/hooks/useTranslationHistory';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
-import { TranslationEntry } from '@/components/TranslationHistory';
-import { TranslationScore } from '@/utils/translationScoring';
+import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,6 +50,7 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   currentSessionId
 }) => {
   const navigate = useNavigate();
+  
   const {
     sessions,
     loading,
@@ -73,103 +67,79 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
   const [showProtectedOnly, setShowProtectedOnly] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('all');
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [isClearingAll, setIsClearingAll] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
 
-  const handleDownloadSession = async (session: TranslationSession) => {
+  // Extract available languages from sessions
+  const availableLanguages = useMemo(() => {
+    const languages = new Set<string>();
+    sessions.forEach(session => {
+      if (session.patient_language) {
+        languages.add(session.patient_language);
+      }
+      if (session.session_metadata?.languages) {
+        session.session_metadata.languages.forEach(lang => languages.add(lang));
+      }
+    });
+    return Array.from(languages).sort();
+  }, [sessions]);
+
+  const handleDownloadSession = async (session: TranslationSession, format: 'standard' | 'patient') => {
     try {
-      // Try to load session details, but fallback to session data if it fails
-      let translations: TranslationEntry[] = [];
-      let sessionDetails;
+      console.log('🔽 Starting session download for:', session.id);
       
-      try {
-        sessionDetails = await loadSessionDetails(session.id);
-        translations = sessionDetails.translations || [];
-      } catch (loadError) {
-        console.warn('Could not load detailed session data, using basic session info:', loadError);
-        // Create a basic translation entry when detailed data isn't available
-        translations = [];
+      const sessionData = await loadSessionDetails(session.id);
+      
+      if (!sessionData.translations || sessionData.translations.length === 0) {
+        toast.error('No translations found in this session');
+        return;
       }
 
-      // Create session metadata
-      const metadata: SessionMetadata = {
-        sessionDate: new Date(session.created_at),
+      const baseMetadata = {
+        sessionTitle: session.session_title,
         sessionStart: new Date(session.session_start),
         sessionEnd: session.session_end ? new Date(session.session_end) : new Date(),
+        sessionDate: new Date(session.session_start),
         patientLanguage: session.patient_language,
         totalTranslations: session.total_translations,
-        sessionDuration: session.session_metadata?.sessionDuration || 0,
-        overallSafetyRating: session.session_metadata?.overallSafetyRating || 'safe',
-        averageAccuracy: session.session_metadata?.averageAccuracy || 100,
-        averageConfidence: session.session_metadata?.averageConfidence || 100,
+        ...session.session_metadata
       };
 
-      // Create translation scores from session metadata or defaults
-      const translationScores: TranslationScore[] = translations.map((t, index) => ({
-        accuracy: t.accuracy || 100,
-        confidence: t.confidence || 100,
-        safetyFlag: t.safetyFlag || 'safe' as const,
-        medicalTermsDetected: t.medicalTermsDetected || [],
-        issues: (t as any).detectedIssues || [],
-        detectedIssues: (t as any).detectedIssues || []
-      }));
-
-      // If no translations available, create a basic document with session info
-      if (translations.length === 0) {
-        translations = [{
-          id: '1',
-          speaker: 'gp' as const,
-          originalText: 'Session summary not available - detailed translations could not be loaded',
-          translatedText: 'Resumen de la sesión no disponible - no se pudieron cargar las traducciones detalladas',
-          originalLanguage: 'English',
-          targetLanguage: session.patient_language || 'Spanish',
-          timestamp: new Date(session.session_start)
-        }];
+      if (format === 'patient') {
+        await downloadPatientDOCX(sessionData.translations, baseMetadata as PatientSessionMetadata, null);
+        toast.success('Patient report downloaded successfully');
+      } else {
+        await downloadDOCX(sessionData.translations, baseMetadata as SessionMetadata, null, true, 'standard');
+        toast.success('Standard report downloaded successfully');
       }
-
-      await downloadDOCX(translations, metadata, translationScores);
-      toast.success('Session report downloaded successfully');
-      
     } catch (error) {
-      console.error('Error downloading session:', error);
+      console.error('Download error:', error);
       toast.error('Failed to download session report');
     }
   };
 
   const handleClearAllSessions = async () => {
+    setIsClearingAll(true);
     try {
-      setIsClearingAll(true);
-      
-      const { data, error } = await supabase.functions.invoke('clear-translation-sessions');
-      
+      const { data, error } = await supabase.functions.invoke('clear-translation-sessions', {
+        body: { preserveProtected: true }
+      });
+
       if (error) throw error;
 
-      // Reload sessions to reflect changes
-      await loadSessions({ limit: 50, offset: 0 });
+      toast.success(data.message || 'Translation sessions cleared successfully');
       
-      toast.success(data.message || 'Successfully cleared translation sessions');
+      // Refresh the sessions list
+      await loadSessions();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error clearing sessions:', error);
-      toast.error('Failed to clear all sessions');
+      toast.error(error.message || 'Failed to clear translation sessions');
     } finally {
       setIsClearingAll(false);
     }
   };
-
-  // Get unique languages from sessions
-  const availableLanguages = useMemo(() => {
-    const languages = new Set<string>();
-    sessions.forEach(session => {
-      if (session.session_metadata?.languages) {
-        session.session_metadata.languages.forEach(lang => languages.add(lang));
-      } else if (session.patient_language && session.patient_language !== 'multiple') {
-        languages.add(session.patient_language);
-      }
-    });
-    return Array.from(languages).sort();
-  }, [sessions]);
 
   // Filter sessions based on search and filters
   const filteredSessions = useMemo(() => {
@@ -256,15 +226,24 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
     }
   };
 
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return 'Unknown';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
   const generateSessionPreview = (session: TranslationSession) => {
     const metadata = session.session_metadata;
     const languages = metadata?.languages?.join(', ') || session.patient_language;
-    const duration = metadata?.sessionDuration ? 
-      `${Math.floor(metadata.sessionDuration / 60)}m ${metadata.sessionDuration % 60}s` : 
-      'Unknown duration';
+    const duration = formatDuration(metadata?.sessionDuration);
 
     return {
-      overview: `${session.total_translations} translations in ${languages}`,
+      overview: `${session.total_translations} phrases in ${languages}`,
+      duration,
+      languages,
+      translationCount: session.total_translations,
+      createdAt: session.created_at,
       details: {
         'Duration': duration,
         'Average Accuracy': metadata?.averageAccuracy ? `${metadata.averageAccuracy}%` : 'N/A',
@@ -339,8 +318,28 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
           </select>
         )}
 
-        {/* Clear All Button */}
-        <div className="mt-3 pt-3 border-t border-border">
+        {/* Action Buttons */}
+        <div className="mt-3 pt-3 border-t border-border space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full flex items-center gap-2"
+            onClick={() => loadSessions()}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="h-4 w-4" />
+                Refresh
+              </>
+            )}
+          </Button>
+          
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -401,17 +400,7 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Translation Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{sessionToDelete?.title}"?
-              
-              <div className="mt-4 p-3 bg-muted rounded-md">
-                <div className="text-sm text-muted-foreground">
-                  This will permanently delete all translations and data from this session.
-                </div>
-              </div>
-              
-              <p className="mt-4 text-sm text-muted-foreground">
-                This action cannot be undone.
-              </p>
+              Are you sure you want to delete "{sessionToDelete?.title}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -427,134 +416,127 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                   Deleting...
                 </>
               ) : (
-                'Delete Session'
+                'Delete'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Content */}
+      {/* Sessions List */}
       <div className="flex-1 overflow-hidden">
-        {error && (
-          <Alert className="m-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {loading && (
-          <div className="flex items-center justify-center p-8">
+        {loading && sessions.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading sessions...</span>
           </div>
-        )}
-
-        <ScrollArea className="h-full">
-          <div className="p-4 space-y-3">
-            {filteredSessions.length === 0 && !loading && (
-              <div className="text-center text-muted-foreground py-8">
-                <Languages className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No translation sessions found</p>
-                {searchQuery && (
-                  <p className="text-xs mt-1">Try adjusting your search or filters</p>
-                )}
-              </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500">
+            <p>Error loading sessions</p>
+            <Button variant="outline" size="sm" onClick={() => loadSessions()} className="mt-2">
+              Retry
+            </Button>
+          </div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            <p>No translation sessions found</p>
+            {sessions.length > 0 && (
+              <p className="text-sm mt-1">Try adjusting your search or filters</p>
             )}
-
-            {filteredSessions.map((session) => {
-              const preview = generateSessionPreview(session);
-              const isCurrentSession = currentSessionId === session.id;
-
-              console.log('🔍 SIDEBAR: Rendering session in list:', {
-                id: session.id,
-                title: session.session_title,
-                totalTranslations: session.total_translations,
-                sessionStart: session.session_start,
-                preview: preview.overview
-              });
-
-              return (
-                <TooltipProvider key={session.id}>
-                  <div
-                    className={`
-                      p-3 border border-border rounded-lg hover:border-primary/50 transition-colors
-                      ${isCurrentSession ? 'bg-primary/5 border-primary' : 'bg-card'}
-                    `}
-                  >
-                    {/* Session Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm truncate">
-                          {session.session_title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {preview.overview}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        {session.is_flagged && (
-                          <Flag className="h-3 w-3 text-yellow-500" />
-                        )}
-                        {session.is_protected && (
-                          <Shield className="h-3 w-3 text-blue-500" />
-                        )}
-                        {getSafetyIcon(session.session_metadata?.overallSafetyRating || 'safe')}
-                      </div>
-                    </div>
-
-                    {/* Session Stats */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {session.total_translations}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(session.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Single navigation link and delete button */}
-                    <div className="flex justify-between items-center gap-2 pt-2 border-t border-border/50">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('🔗 CLICK: Button clicked for session:', session.id);
-                          console.log('🔗 CLICK: Session title:', session.session_title);
-                          console.log('🔗 CLICK: Total translations:', session.total_translations);
-                          console.log('🔗 CLICK: Navigating to:', `/translation-tool/${session.id}`);
-                          navigate(`/translation-tool/${session.id}`);
-                        }}
-                        className="h-6 px-2 text-xs flex-1"
-                      >
-                        View #{session.id.substring(0, 8)}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSession(session.id, session.session_title);
-                        }}
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        disabled={deletingSessionId === session.id}
-                      >
-                        {deletingSessionId === session.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </TooltipProvider>
-              );
-            })}
           </div>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-3">
+              {filteredSessions.map((session) => {
+                const preview = generateSessionPreview(session);
+                return (
+                  <TooltipProvider key={session.id}>
+                    <div className="border border-border rounded-lg p-3 hover:shadow-md transition-shadow bg-card">
+                      {/* Header with title and badges */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-sm text-foreground truncate">
+                            {session.session_title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {preview.overview}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          {session.is_flagged && (
+                            <Flag className="h-3 w-3 text-yellow-500" />
+                          )}
+                          {session.is_protected && (
+                            <Shield className="h-3 w-3 text-blue-500" />
+                          )}
+                          {getSafetyIcon(session.session_metadata?.overallSafetyRating || 'safe')}
+                        </div>
+                      </div>
+
+                      {/* Session Stats - Enhanced Display */}
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(session.created_at)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {session.total_translations} phrases
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Languages className="h-3 w-3" />
+                            {preview.languages}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {preview.duration}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Single navigation link and delete button */}
+                      <div className="flex justify-between items-center gap-2 pt-2 border-t border-border/50">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('🔗 CLICK: Button clicked for session:', session.id);
+                            console.log('🔗 CLICK: Session title:', session.session_title);
+                            console.log('🔗 CLICK: Total translations:', session.total_translations);
+                            console.log('🔗 CLICK: Navigating to:', `/translation-tool/${session.id}`);
+                            navigate(`/translation-tool/${session.id}`);
+                          }}
+                          className="h-6 px-2 text-xs flex-1"
+                        >
+                          View #{session.id.substring(0, 8)}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(session.id, session.session_title);
+                          }}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          disabled={deletingSessionId === session.id}
+                        >
+                          {deletingSessionId === session.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </TooltipProvider>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        )}
       </div>
 
       {/* Footer */}
@@ -567,8 +549,9 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
               size="sm"
               onClick={() => loadSessions({ offset: sessions.length })}
               className="ml-2"
+              disabled={loading}
             >
-              Load more
+              Load More
             </Button>
           )}
         </div>

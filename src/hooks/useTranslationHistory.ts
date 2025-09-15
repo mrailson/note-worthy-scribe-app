@@ -134,8 +134,11 @@ export const useTranslationHistory = () => {
         setCurrentSessionId(data.session.id);
       }
 
-      // Refresh sessions list
-      await loadSessions();
+      // Only refresh sessions list if this is a completed session (not active)
+      if (!isActive) {
+        console.log('🔄 Refreshing sessions list after completing session');
+        await loadSessions();
+      }
 
       return data.session;
 
@@ -290,9 +293,31 @@ export const useTranslationHistory = () => {
     setAutoSaveEnabled(false);
   }, []);
 
-  // Load sessions on mount
+  // Load sessions on mount and set up realtime subscription
   useEffect(() => {
     loadSessions();
+
+    // Subscribe to changes in translation_sessions table
+    const subscription = supabase
+      .channel('translation_sessions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'translation_sessions'
+        },
+        (payload) => {
+          console.log('📡 Realtime update for translation_sessions:', payload);
+          // Refresh sessions when there are database changes
+          loadSessions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadSessions]);
 
   // Cleanup auto-save interval on unmount
