@@ -85,7 +85,7 @@ Please arrive 15 minutes early for your blood tests, and ensure you have been fa
 
 Your prescription renewals will be ready for collection 48 hours after your appointment, or we can arrange electronic prescriptions to your preferred pharmacy.
 
-If you need to change this appointment, please call us on 0207 XXX XXXX at least 24 hours in advance.
+If you need to change this appointment, please call us on 01604 123456 at least 24 hours in advance.
 
 Best regards,
 Oak Lane Medical Practice Reception Team`
@@ -135,7 +135,7 @@ To proceed, please:
 2. Pay the administrative fee
 3. Confirm your preferred collection method
 
-Please contact our reception team on 0207 XXX XXXX to arrange collection or if you have any questions.
+Please contact our reception team on 01604 123456 to arrange collection or if you have any questions.
 
 Best regards,
 Oak Lane Medical Practice Administration Team`
@@ -186,7 +186,7 @@ Following Dr. Johnson's recommendation, we have processed your urgent referral t
 **Follow-up Appointment:**
 We have also scheduled your 3-month follow-up with Dr. Johnson for ${getNextWorkingDay(5)} at 2:15 PM. You will receive a confirmation text message.
 
-If you don't receive your dermatology appointment letter within 7 days, please call us immediately on 0207 XXX XXXX.
+If you don't receive your dermatology appointment letter within 7 days, please call us immediately on 01604 123456.
 
 We understand your concerns and want to assure you that urgent referrals are processed quickly by our local NHS trust.
 
@@ -293,7 +293,7 @@ We will prepare the following documents for your claim:
 
 All documents will be ready within 2 business days. There is no additional administrative charge for insurance documentation.
 
-Please confirm your preferred delivery method by calling 0207 XXX XXXX.
+Please confirm your preferred delivery method by calling 01604 123456.
 
 Best regards,
 Oak Lane Medical Practice Billing Department`
@@ -337,7 +337,7 @@ Dr. Williams will check Ahmed's chest, ears, throat, and overall condition to ru
 
 **Important:** If Ahmed develops difficulty breathing, becomes very lethargic, or refuses feeds completely before your appointment, please seek immediate medical attention.
 
-Please confirm your attendance by calling 0207 XXX XXXX or replying to this message.
+Please confirm your attendance by calling 01604 123456 or replying to this message.
 
 Best regards,
 Oak Lane Medical Practice Pediatric Team`
@@ -391,7 +391,7 @@ We have arranged an appointment for you with Dr. Thompson on ${getNextWorkingDay
 
 Based on your assessment, we may recommend physiotherapy, imaging, or workplace ergonomic adjustments. Many mechanical back injuries respond well to conservative treatment.
 
-Please bring a list of your current medications and confirm your attendance on 0207 XXX XXXX.
+Please bring a list of your current medications and confirm your attendance on 01604 123456.
 
 Best regards,
 Oak Lane Medical Practice`
@@ -836,7 +836,7 @@ We would also like to assess your family's health needs:
 **Immediate Safety Instructions:**
 If you experience severe chest pain, difficulty breathing, or feel faint before your appointment, please:
 - Call 999 immediately or go to A&E
-- Call our practice on 0207 XXX XXXX
+- Call our practice on 01604 123456
 
 **Additional Services:**
 - Veterans' mental health services (we recognize your military service)
@@ -989,7 +989,7 @@ We can arrange 3-month supplies of Amlodipine, which will be much more convenien
 3. Confirm your new pharmacy details
 4. Attend your scheduled blood pressure review
 
-Please call reception on 0207 XXX XXXX to confirm these arrangements.
+Please call reception on 01604 123456 to confirm these arrangements.
 
 Best regards,
 Oak Lane Medical Practice Administration Team`
