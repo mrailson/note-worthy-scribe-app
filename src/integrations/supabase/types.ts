@@ -5869,6 +5869,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      safe_similarity: {
+        Args: { text1: string; text2: string }
+        Returns: number
+      }
+      safe_unaccent: {
+        Args: { input_text: string }
+        Returns: string
+      }
       set_limit: {
         Args: { "": number }
         Returns: number
