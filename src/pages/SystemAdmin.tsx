@@ -49,6 +49,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
+import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 
 
 interface User {
@@ -2427,6 +2428,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* System Monitoring Tab */}
           <TabsContent value="monitoring" className="space-y-6">
             <SystemMonitoringDashboard />
+            
+            {/* Meeting Auto-Close Service */}
+            <AdminMeetingControls />
             
             {/* Database Maintenance Section */}
             <Card>

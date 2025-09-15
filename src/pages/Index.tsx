@@ -9,6 +9,7 @@ import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
@@ -16,6 +17,9 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const Index = () => {
   const { user, loading, hasModuleAccess } = useAuth();
+  
+  // Enable meeting auto-close service (runs every 5 minutes)
+  useMeetingAutoClose({ enabled: !!user, intervalMinutes: 5 });
   
   const [searchParams] = useSearchParams();
   const location = useLocation();
