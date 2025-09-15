@@ -812,9 +812,20 @@ export const TranslationToolInterface = () => {
   };
 
   const handleExportDOCX = async () => {
+    console.log('🔄 GP Export DOCX button clicked');
+    console.log('🔄 Translations count:', translations.length);
+    console.log('🔄 Translation scores count:', translationScores.length);
+    
+    if (translations.length === 0) {
+      toast.error('No translations to export');
+      return;
+    }
+    
     try {
       const sessionEnd = new Date();
       const sessionDuration = Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000);
+      
+      console.log('🔄 Session duration:', sessionDuration);
       
       const averageAccuracy = translationScores.length > 0 
         ? Math.round(translationScores.reduce((sum, s) => sum + s.accuracy, 0) / translationScores.length)
@@ -831,7 +842,7 @@ export const TranslationToolInterface = () => {
       let overallSafetyRating: 'safe' | 'warning' | 'unsafe' = 'safe';
       if (unsafeCount > 0) {
         overallSafetyRating = 'unsafe';
-      } else if (warningCount > translationScores.length * 0.3) {
+      } else if (warningCount > translations.length * 0.3) {
         overallSafetyRating = 'warning';
       }
 
@@ -847,15 +858,26 @@ export const TranslationToolInterface = () => {
         averageConfidence
       };
 
+      console.log('🔄 Starting DOCX export with metadata:', metadata);
       await downloadDOCX(translations, metadata, translationScores);
+      console.log('✅ GP Export DOCX completed successfully');
       toast.success('Translation history exported successfully');
     } catch (error) {
-      console.error('Export error:', error);
+      console.error('❌ GP Export error:', error);
       toast.error('Failed to export translation history');
     }
   };
 
   const handlePatientExportDOCX = async () => {
+    console.log('🔄 Patient Copy button clicked');
+    console.log('🔄 Translations count:', translations.length);
+    console.log('🔄 Translation scores count:', translationScores.length);
+    
+    if (translations.length === 0) {
+      toast.error('No translations to export');
+      return;
+    }
+    
     try {
       const sessionEnd = new Date();
       const sessionDuration = Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000);
@@ -865,6 +887,8 @@ export const TranslationToolInterface = () => {
         .filter(t => t.speaker === 'patient')
         .map(t => t.targetLanguage);
       
+      console.log('🔄 Patient languages found:', patientLanguages);
+      
       const languageCount: { [key: string]: number } = {};
       patientLanguages.forEach(lang => {
         languageCount[lang] = (languageCount[lang] || 0) + 1;
@@ -872,6 +896,8 @@ export const TranslationToolInterface = () => {
       
       const primaryPatientLanguage = Object.entries(languageCount)
         .sort(([,a], [,b]) => b - a)[0]?.[0] || 'English';
+
+      console.log('🔄 Primary patient language:', primaryPatientLanguage);
 
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
@@ -886,10 +912,12 @@ export const TranslationToolInterface = () => {
         gpName: "Your GP" // Could be made configurable
       };
 
+      console.log('🔄 Starting Patient DOCX export with metadata:', metadata);
       await downloadPatientDOCX(translations, metadata, translationScores);
+      console.log('✅ Patient Copy DOCX completed successfully');
       toast.success('Patient translation record exported successfully');
     } catch (error) {
-      console.error('Patient export error:', error);
+      console.error('❌ Patient export error:', error);
       toast.error('Failed to export patient translation record');
     }
   };
