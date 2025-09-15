@@ -2856,7 +2856,6 @@ export const TranslationToolInterface = () => {
         </DialogContent>
       </Dialog>
 
-
       {/* Translation History Sidebar */}
       {showHistorySidebar && (
         <div className="fixed inset-0 z-50 flex">
