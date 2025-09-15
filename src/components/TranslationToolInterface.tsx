@@ -1173,7 +1173,7 @@ export const TranslationToolInterface = () => {
                 Notewell AI Translation Service for GP Practices
               </CardTitle>
               <p className="text-xl text-primary-foreground/90 mt-2">
-                Real-time medical translation for Reception & Clinical Staff
+                Real-time translation for Reception & Clinical Staff
               </p>
             </CardHeader>
           </Card>
