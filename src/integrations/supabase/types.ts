@@ -4958,6 +4958,7 @@ export type Database = {
           session_title: string
           total_translations: number
           translation_scores: Json
+          translation_type: string | null
           translations: Json
           updated_at: string
           user_id: string
@@ -4975,6 +4976,7 @@ export type Database = {
           session_title: string
           total_translations?: number
           translation_scores?: Json
+          translation_type?: string | null
           translations?: Json
           updated_at?: string
           user_id: string
@@ -4992,6 +4994,7 @@ export type Database = {
           session_title?: string
           total_translations?: number
           translation_scores?: Json
+          translation_type?: string | null
           translations?: Json
           updated_at?: string
           user_id?: string
@@ -5822,7 +5825,7 @@ export type Database = {
               p_user_email?: string
               p_user_id?: string
             }
-        Returns: undefined
+        Returns: string
       }
       log_session_access_attempt: {
         Args: { p_access_type: string; p_session_id: string }
