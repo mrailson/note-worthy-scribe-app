@@ -513,18 +513,20 @@ export const TranslationToolInterface = () => {
       });
     }
 
-    // LAYER 6: State-level deduplication (final check against existing translations)
+    // LAYER 6: State-level deduplication (final check) - RELAXED to recent-window only
     const currentTimestamp = Math.floor(Date.now() / 1000); // Round to seconds
-    const isDuplicateInState = translations.some(translation => {
-      const translationTimestamp = Math.floor(translation.timestamp.getTime() / 1000);
-      const textMatch = translation.originalText.trim() === userMessage.trim() && 
-                       translation.translatedText.trim().includes(agentResponse.trim().substring(0, 50));
-      const timeMatch = Math.abs(translationTimestamp - currentTimestamp) <= 2; // Within 2 seconds
-      return textMatch || (timeMatch && textMatch);
+    const nowMs = Date.now();
+    const stateWindowMs = 1200; // Only consider duplicates within ~1.2s
+    const isDuplicateInState = translations.some(t => {
+      const ageMs = nowMs - new Date(t.timestamp).getTime();
+      if (ageMs > stateWindowMs) return false;
+      const originalMatch = t.originalText.trim() === userMessage.trim();
+      const translatedOverlap = t.translatedText.trim().includes(agentResponse.trim().substring(0, 50));
+      return originalMatch && translatedOverlap;
     });
     
     if (isDuplicateInState) {
-      console.log('🛡️ DEDUP: BLOCKED - Duplicate found in existing state');
+      console.log('🛡️ DEDUP: BLOCKED - State duplicate within 1.2s window');
       return;
     }
 
