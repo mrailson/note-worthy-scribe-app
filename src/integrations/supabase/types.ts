@@ -3233,6 +3233,7 @@ export type Database = {
           id: string
           import_metadata: Json | null
           import_source: string | null
+          is_paused: boolean | null
           left_audio_url: string | null
           live_transcript_text: string | null
           location: string | null
@@ -3279,6 +3280,7 @@ export type Database = {
           id?: string
           import_metadata?: Json | null
           import_source?: string | null
+          is_paused?: boolean | null
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
@@ -3325,6 +3327,7 @@ export type Database = {
           id?: string
           import_metadata?: Json | null
           import_source?: string | null
+          is_paused?: boolean | null
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
@@ -5892,6 +5895,10 @@ export type Database = {
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
         Returns: boolean
+      }
+      trigger_queue_processing: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       unaccent: {
         Args: { "": string }
