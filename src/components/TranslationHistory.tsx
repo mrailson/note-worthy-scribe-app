@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,6 +60,13 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   patientLanguage,
   onExportDOCX
 }) => {
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
 
   // Deduplicate translations based on exact timestamp to prevent showing duplicates
@@ -333,7 +341,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                             <div className="grid grid-cols-2 gap-4 text-xs">
                               <div>
                                 <span className="font-medium">Languages:</span>
-                                <p>{translation.originalLanguage} → {translation.targetLanguage}</p>
+                                <p>{getLanguageName(translation.originalLanguage)} → {getLanguageName(translation.targetLanguage)}</p>
                               </div>
                               {translation.confidence !== undefined && (
                                 <div>

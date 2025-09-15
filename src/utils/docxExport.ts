@@ -1,5 +1,6 @@
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { assessSessionSafety, TranslationScore } from './translationScoring';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -356,6 +357,14 @@ export function generateDOCXContent(
             const accuracyClass = !score ? '' : score.accuracy >= 90 ? 'accuracy-high' : score.accuracy >= 75 ? 'accuracy-medium' : 'accuracy-low';
             const confidenceClass = !score ? '' : score.confidence >= 90 ? 'accuracy-high' : score.confidence >= 75 ? 'accuracy-medium' : 'accuracy-low';
             
+            const getLanguageNameInner = (code: string) => {
+              if (!code) return 'Unknown';
+              const lower = code.toLowerCase();
+              const base = lower.split('-')[0];
+              const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+              return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+            };
+            
             return `
               <tr class="${translation.speaker === 'gp' ? 'speaker-gp' : 'speaker-patient'}">
                 <td style="text-align: center; font-weight: bold;">${index + 1}</td>
@@ -374,7 +383,7 @@ export function generateDOCXContent(
                 <td>${translation.originalText}</td>
                 <td>${translation.translatedText}</td>
                 <td style="text-align: center; font-size: 9pt;">
-                  ${translation.originalLanguage}<br>↓<br>${translation.targetLanguage}
+                  ${getLanguageNameInner(translation.originalLanguage)}<br>↓<br>${getLanguageNameInner(translation.targetLanguage)}
                 </td>
                 <td class="${accuracyClass}" style="text-align: center;">
                   ${score ? score.accuracy + '%' : 'N/A'}
@@ -430,6 +439,13 @@ export async function downloadDOCX(
   isPatientCopy: boolean = false,
   translatedContent?: any
 ): Promise<void> {
+  const getLanguageName = (code: string) => {
+    if (!code) return 'Unknown';
+    const lower = code.toLowerCase();
+    const base = lower.split('-')[0];
+    const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
+    return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
+  };
   try {
     // Deduplicate translations based on exact timestamp to prevent duplicates in export
     const deduplicatedTranslations = translations.filter((translation, index, array) => {
