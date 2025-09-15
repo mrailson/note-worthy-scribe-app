@@ -1280,11 +1280,12 @@ export const TranslationToolInterface = () => {
         console.warn('⚠️ Session Manager: No active session ID (continuing to process inbound message)');
       }
       
-      // Normalize incoming fields from ElevenLabs (with proper type safety)
+      // Normalize incoming fields and robustly determine source
       const messageObj = message as any; // Cast to any for flexible property access
       const contentText: string = (messageObj?.message || messageObj?.text || messageObj?.content?.text || '').toString();
-      const rawSource: string = (messageObj?.source || messageObj?.role || messageObj?.sender || '').toString().toLowerCase();
-      const source: 'user' | 'ai' = /^(ai|agent|assistant)$/.test(rawSource) ? 'ai' : 'user';
+      const roleField = (messageObj?.role || messageObj?.source || messageObj?.sender || messageObj?.from || '').toString().toLowerCase();
+      const hasLangTag = /^<[^>]+>/.test(contentText.trim());
+      const source: 'user' | 'ai' = hasLangTag || /^(ai|agent|assistant)$/.test(roleField) ? 'ai' : 'user';
 
       if (!contentText) {
         console.log('⚠️ Empty content in message payload, skipping');
@@ -1363,6 +1364,22 @@ export const TranslationToolInterface = () => {
         }
 
         if (indexToFill === -1) {
+          // If we have buffered user speech, pair with that instead of declaring data loss
+          const bufferedUser = (incompleteMessageBufferRef.current || '').trim();
+          if (bufferedUser) {
+            console.log('🧵 Using buffered user text to pair agent response');
+            updated.push({ user: bufferedUser, agent: contentText });
+            // Clear buffer since we've consumed it
+            setIncompleteMessageBuffer('');
+            incompleteMessageBufferRef.current = '';
+            sessionManager.acknowledgeMessage(messageId);
+            updateCurrentTranslation(bufferedUser, contentText);
+            setTimeout(() => {
+              try { processMessageWithBuffering(bufferedUser, contentText); } catch (e) { console.error('🔥 Buffer pair processing failed:', e); }
+            }, 200);
+            return updated;
+          }
+
           // Handle initial agent greeting or orphaned responses
           const isInitialGreeting = updated.length === 0 ||
             /which language/i.test(contentText) ||
