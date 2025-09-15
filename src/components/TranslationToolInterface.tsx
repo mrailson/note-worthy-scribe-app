@@ -54,6 +54,9 @@ import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
 import { TranslationValidationGuide } from './TranslationValidationGuide';
+import { useTranslationDeduplication } from '@/hooks/useTranslationDeduplication';
+import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
+import { extractLanguageAndCleanText, getLanguageName } from '@/utils/translationUtils';
 
 interface QualityScore {
   accuracy: number;
@@ -110,9 +113,6 @@ export const TranslationToolInterface = () => {
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showHistoricalView, setShowHistoricalView] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isAudioBuffering, setIsAudioBuffering] = useState(false);
-  const [incompleteMessageBuffer, setIncompleteMessageBuffer] = useState<string>('');
-  const [lastProcessingTime, setLastProcessingTime] = useState(0);
   const [missedTranslationFeedback, setMissedTranslationFeedback] = useState(false);
   const [selectedHistoricalSession, setSelectedHistoricalSession] = useState<{
     sessionId: string;
@@ -124,70 +124,40 @@ export const TranslationToolInterface = () => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const conversationIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Refs to ensure buffering never "loses" latest state
-  const lastProcessingTimeRef = useRef<number>(0);
-  const incompleteMessageBufferRef = useRef<string>('');
-  const bufferTimerRef = useRef<number | null>(null);
+
+  // Custom hooks
+  const {
+    processedExchangeIds,
+    processedMessageIds,
+    conversationExchangeMap,
+    lastProcessedTimestamp,
+    conversationTrackingRef,
+    createExchangeId,
+    createContentHash,
+    isWithinTimeWindow,
+    resetMemory: resetDeduplicationMemory
+  } = useTranslationDeduplication();
+
+  const {
+    isAudioBuffering,
+    setIsAudioBuffering,
+    incompleteMessageBuffer,
+    setIncompleteMessageBuffer,
+    lastProcessingTime,
+    setLastProcessingTime,
+    lastProcessingTimeRef,
+    incompleteMessageBufferRef,
+    bufferTimerRef,
+    isCompleteSentence,
+    resetBuffer
+  } = useTranslationBuffering();
+
   // Reset functionality state
   const [resetClickCount, setResetClickCount] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Bulletproof Deduplication System
-  const processedExchangeIds = useRef<Set<string>>(new Set());
-  const processedMessageIds = useRef<Set<string>>(new Set());
-  const conversationExchangeMap = useRef<Map<string, { timestamp: number, processed: boolean }>>(new Map());
-  const lastProcessedTimestamp = useRef<number>(0);
-  
-  // Enhanced conversation tracking with data loss prevention
-  const conversationTrackingRef = useRef<{
-    activeMessages: Map<string, { user: string; agent?: string; timestamp: number }>;
-    sessionStartTime: number;
-  }>({
-    activeMessages: new Map(),
-    sessionStartTime: Date.now()
-  });
-  
-  // Helper function to get full language name
-  const getLanguageName = (code: string) => {
-    const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
-    return language?.name || code.charAt(0).toUpperCase() + code.slice(1);
-  };
-  
-  // Add cleanup interval to prevent memory leaks
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      const CLEANUP_AGE = 300000; // 5 minutes
-      
-      // Clean up old exchange map entries
-      for (const [key, entry] of conversationExchangeMap.current.entries()) {
-        if (now - entry.timestamp > CLEANUP_AGE) {
-          conversationExchangeMap.current.delete(key);
-        }
-      }
-      
-      // Clean up old message IDs more aggressively
-      if (processedMessageIds.current.size > 30) {
-        const idsArray = Array.from(processedMessageIds.current);
-        processedMessageIds.current.clear();
-        // Keep only the most recent 10 entries
-        idsArray.slice(-10).forEach(id => processedMessageIds.current.add(id));
-      }
-      
-      console.log('🧹 Memory cleanup completed - Exchange map size:', conversationExchangeMap.current.size, 'Message IDs:', processedMessageIds.current.size);
-    }, 60000); // Run every minute
-    
-    return () => {
-      clearInterval(cleanupInterval);
-      // Clean up reset timeout on unmount
-      if (resetTimeoutRef.current) {
-        clearTimeout(resetTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Add data loss monitoring
+  // Data loss monitoring with cleaned up refs
   useEffect(() => {
     const monitoringInterval = setInterval(() => {
       const tracking = conversationTrackingRef.current;
@@ -215,7 +185,34 @@ export const TranslationToolInterface = () => {
     return () => clearInterval(monitoringInterval);
   }, []);
 
-  // Reset memory function
+  const processTranslationExchange = (userMessage: string, agentResponse: string) => {
+    console.log('🔄 Processing translation exchange...');
+    
+    // Process translation history first (includes modal update)  
+    addToTranslationHistory(userMessage, agentResponse);
+    
+    // Then do quality verification (async, doesn't block modal)
+    verifyConversationQuality(userMessage, agentResponse).catch(error => {
+      console.error('⚠️ Quality verification failed but continuing:', error);
+    });
+  };
+
+  const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
+    console.log('🔄 Updating current translation for modal display...');
+    
+    const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
+    
+    // Always update current translation for modal, even if we skip other processing
+    if (userMessage.trim().length >= 3 && cleanedResponse.trim().length >= 3) {
+      setCurrentTranslation({
+        englishText: userMessage,
+        translatedText: cleanedResponse,
+        targetLanguage: targetLanguage,
+        timestamp: new Date()
+      });
+      console.log('✅ Current translation updated for modal');
+    }
+  };
   const resetTranslationMemory = async () => {
     console.log('🗑️ Resetting translation memory...');
     setIsResetting(true);
@@ -227,10 +224,8 @@ export const TranslationToolInterface = () => {
       }
       
       // Clear all memory and state
-      processedExchangeIds.current.clear();
-      processedMessageIds.current.clear();
-      conversationExchangeMap.current.clear();
-      lastProcessedTimestamp.current = 0;
+      resetDeduplicationMemory();
+      resetBuffer();
       
       // Reset UI state
       setQualityScore(null);
@@ -294,57 +289,6 @@ export const TranslationToolInterface = () => {
     loadSessionDetails
   } = useTranslationHistory();
 
-  // Helper function to extract language and clean text from language tags
-  const extractLanguageAndCleanText = (text: string) => {
-    const languageMatch = text.match(/<(\w+)>(.*?)<\/\1>/);
-    if (languageMatch) {
-      return {
-        language: languageMatch[1],
-        cleanText: languageMatch[2]
-      };
-    }
-    return {
-      language: 'Unknown',
-      cleanText: text
-    };
-  };
-
-  // Bulletproof deduplication helper functions
-  const createExchangeId = (userMessage: string, agentResponse: string): string => {
-    const contentHash = btoa(userMessage.trim() + '|||' + agentResponse.trim())
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .substring(0, 16);
-    const timestamp = Math.floor(Date.now() / 1000); // Round to nearest second
-    return `${timestamp}_${contentHash}`;
-  };
-
-  const createContentHash = (text: string): string => {
-    return btoa(text.trim()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
-  };
-
-  const isWithinTimeWindow = (timestamp: number, windowMs: number = 2000): boolean => {
-    return Math.abs(Date.now() - timestamp) < windowMs;
-  };
-
-  // Enhanced sentence completion detection
-  const isCompleteSentence = (text: string): boolean => {
-    if (!text || text.trim().length < 3) return false;
-    
-    const trimmed = text.trim();
-    
-    // Check for sentence-ending punctuation
-    const hasSentenceEnding = /[.!?]$/.test(trimmed);
-    
-    // Check for complete thought indicators
-    const hasCompleteThought = /\b(yes|no|okay|sure|thanks|hello|goodbye|please|thank you)\b/i.test(trimmed) ||
-                              trimmed.length > 15; // Longer messages are likely complete
-    
-    // Check if it looks like a medical statement
-    const isMedicalStatement = /\b(pain|hurt|feel|symptom|doctor|medication|treatment|appointment)\b/i.test(trimmed);
-    
-    return hasSentenceEnding || hasCompleteThought || isMedicalStatement;
-  };
-  
   // Enhanced message processing with buffering
   const processMessageWithBuffering = (userMessage: string, agentResponse: string) => {
     console.log('🔊 Processing message with enhanced buffering...');
