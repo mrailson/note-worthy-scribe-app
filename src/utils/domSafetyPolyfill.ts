@@ -29,14 +29,14 @@ export class SafeDOMObserver {
     
     for (const mutation of mutations) {
       try {
-        // Safely process added nodes
+        // Safely process added nodes using type-safe helpers
         if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-          this.processNodesSafely(Array.from(mutation.addedNodes), processedNodes, 'added');
+          this.processNodesSafely(this.asElements(mutation.addedNodes), processedNodes, 'added');
         }
 
-        // Safely process removed nodes
+        // Safely process removed nodes using type-safe helpers  
         if (mutation.removedNodes && mutation.removedNodes.length > 0) {
-          this.processNodesSafely(Array.from(mutation.removedNodes), processedNodes, 'removed');
+          this.processNodesSafely(this.asElements(mutation.removedNodes), processedNodes, 'removed');
         }
       } catch (error) {
         console.error('🚨 DOM Safety: Mutation processing error:', error);
@@ -44,7 +44,7 @@ export class SafeDOMObserver {
       }
     }
 
-    // Call registered callbacks
+    // Call registered callbacks with safe mutations
     this.callbacks.forEach(callback => {
       try {
         callback(mutations);
@@ -54,30 +54,43 @@ export class SafeDOMObserver {
     });
   }
 
-  private processNodesSafely(nodes: Node[], processedNodes: WeakSet<Node>, type: 'added' | 'removed') {
-    for (const node of nodes) {
+  /**
+   * Type-safe helper to filter nodes to Elements only
+   * Prevents hasAttribute crashes on Text, Comment, or DocumentFragment nodes
+   */
+  private asElements(nodes: NodeList | Node[]): Element[] {
+    return Array.from(nodes).filter((n): n is Element => 
+      !!n && n.nodeType === Node.ELEMENT_NODE
+    );
+  }
+
+  private processNodesSafely(elements: Element[], processedNodes: WeakSet<Node>, type: 'added' | 'removed') {
+    for (const element of elements) {
       try {
         // Skip if already processed
-        if (processedNodes.has(node)) continue;
-        processedNodes.add(node);
+        if (processedNodes.has(element)) continue;
+        processedNodes.add(element);
 
-        // CRITICAL: Only process Element nodes (nodeType === 1)
-        if (node && node.nodeType === Node.ELEMENT_NODE) {
-          const element = node as Element;
-          
-          // Safe to call hasAttribute now
-          if (element.hasAttribute && typeof element.hasAttribute === 'function') {
-            this.processElementSafely(element, type);
-          }
+        // Safe to call hasAttribute - we know it's an Element
+        if (element.hasAttribute && typeof element.hasAttribute === 'function') {
+          this.processElementSafely(element, type);
         }
 
-        // Recursively process child nodes if they exist
-        if (node.childNodes && node.childNodes.length > 0) {
-          this.processNodesSafely(Array.from(node.childNodes), processedNodes, type);
+        // Process descendants safely using querySelectorAll (Elements only)
+        try {
+          const descendants = element.querySelectorAll('*');
+          for (const descendant of Array.from(descendants)) {
+            if (!processedNodes.has(descendant)) {
+              processedNodes.add(descendant);
+              this.processElementSafely(descendant, type);
+            }
+          }
+        } catch (descendantError) {
+          console.error('🚨 DOM Safety: Descendant processing error:', descendantError);
         }
       } catch (error) {
-        console.error('🚨 DOM Safety: Node processing error:', error);
-        continue; // Skip this node, process next
+        console.error('🚨 DOM Safety: Element processing error:', error);
+        continue; // Skip this element, process next
       }
     }
   }

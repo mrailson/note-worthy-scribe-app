@@ -47,15 +47,47 @@ export const useTranslationDeduplication = () => {
 
   // Bulletproof deduplication helper functions
   const createExchangeId = (userMessage: string, agentResponse: string): string => {
-    const contentHash = btoa(userMessage.trim() + '|||' + agentResponse.trim())
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .substring(0, 16);
-    const timestamp = Math.floor(Date.now() / 1000);
-    return `${timestamp}_${contentHash}`;
+    try {
+      // Use safe Unicode-compatible hashing
+      const contentHash = createContentHashSync(userMessage.trim() + '|||' + agentResponse.trim());
+      const timestamp = Math.floor(Date.now() / 1000);
+      return `${timestamp}_${contentHash}`;
+    } catch (error) {
+      console.error('Exchange ID creation failed:', error);
+      return `${Date.now()}_fallback_${Math.random().toString(36).substr(2, 9)}`;
+    }
   };
 
+  /**
+   * Creates a robust content hash with Unicode support
+   * Fixes btoa crash on French accents and other non-Latin1 characters
+   */
   const createContentHash = (text: string): string => {
-    return btoa(text.trim()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
+    return createContentHashSync(text);
+  };
+
+  /**
+   * Synchronous Unicode-safe hash function
+   * Uses simple string hash algorithm instead of base64
+   */
+  const createContentHashSync = (input: string): string => {
+    try {
+      let hash = 0;
+      const normalized = input.normalize('NFC').trim();
+      
+      if (normalized.length === 0) return '0';
+      
+      for (let i = 0; i < normalized.length; i++) {
+        const char = normalized.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      return Math.abs(hash).toString(36).substring(0, 12);
+    } catch (error) {
+      console.error('Hash creation failed:', error);
+      return Date.now().toString(36).substring(0, 8);
+    }
   };
 
   const isWithinTimeWindow = (timestamp: number, windowMs: number = 2000): boolean => {
