@@ -1437,13 +1437,25 @@ export const TranslationToolInterface = () => {
 
           {/* User Guide with Tabs */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Translation Service User Guide
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            <Collapsible open={isGuideOpen} onOpenChange={setIsGuideOpen}>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Translation Service User Guide
+                    </div>
+                    {isGuideOpen ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <CardContent>
               <Tabs defaultValue="getting-started" className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="getting-started" className="flex items-center gap-2">
@@ -2195,7 +2207,9 @@ export const TranslationToolInterface = () => {
                   </div>
                 </TabsContent>
               </Tabs>
-            </CardContent>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
 
         </TabsContent>
