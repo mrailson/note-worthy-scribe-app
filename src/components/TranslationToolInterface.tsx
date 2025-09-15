@@ -1435,23 +1435,40 @@ export const TranslationToolInterface = () => {
             </Card>
           )}
 
-          {/* Comprehensive User Guide Card */}
+          {/* User Guide with Tabs */}
           <Card>
-            <Collapsible open={isGuideOpen} onOpenChange={setIsGuideOpen}>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardTitle className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Translation Service User Guide
-                    </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${isGuideOpen ? 'rotate-180' : ''}`} />
-                  </CardTitle>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-6">
-                  
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Translation Service User Guide
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="getting-started" className="w-full">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="getting-started" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Getting Started
+                  </TabsTrigger>
+                  <TabsTrigger value="email-docs" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email & Documents
+                  </TabsTrigger>
+                  <TabsTrigger value="nhs-compliance" className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    NHS Compliance
+                  </TabsTrigger>
+                  <TabsTrigger value="safety" className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Safety & Quality
+                  </TabsTrigger>
+                  <TabsTrigger value="support" className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Support
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="getting-started" className="space-y-6 mt-6">
                   {/* Live Speech Translation Guide */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2 border-b">
@@ -1581,7 +1598,9 @@ export const TranslationToolInterface = () => {
                       </div>
                     </div>
                   </div>
+                </TabsContent>
 
+                <TabsContent value="email-docs" className="space-y-6 mt-6">
                   {/* Email Translation Guide */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2 border-b">
@@ -1745,57 +1764,9 @@ export const TranslationToolInterface = () => {
                       </div>
                     </div>
                   </div>
+                </TabsContent>
 
-                  {/* Safety & Compliance Information */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <Shield className="h-5 w-5 text-red-600" />
-                      <h3 className="text-lg font-semibold text-red-800">Safety & Compliance</h3>
-                      <Badge variant="secondary" className="bg-red-100 text-red-800">NHS Standards</Badge>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="bg-green-50 border-green-200">
-                        <CardContent className="p-4">
-                          <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
-                          <h4 className="font-semibold text-green-900 mb-2">Medical Accuracy</h4>
-                          <ul className="text-xs text-green-700 space-y-1">
-                            <li>• NHS clinical terminology database</li>
-                            <li>• BNF drug name verification</li>
-                            <li>• Dosage safety checking</li>
-                            <li>• Medical context preservation</li>
-                          </ul>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-blue-50 border-blue-200">
-                        <CardContent className="p-4">
-                          <Database className="h-8 w-8 text-blue-600 mb-2" />
-                          <h4 className="font-semibold text-blue-900 mb-2">Data Protection</h4>
-                          <ul className="text-xs text-blue-700 space-y-1">
-                            <li>• GDPR compliant processing</li>
-                            <li>• NHS Data Security Standards</li>
-                            <li>• Encrypted data transmission</li>
-                            <li>• Automatic data retention policies</li>
-                          </ul>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-purple-50 border-purple-200">
-                        <CardContent className="p-4">
-                          <FileText className="h-8 w-8 text-purple-600 mb-2" />
-                          <h4 className="font-semibold text-purple-900 mb-2">Audit & Governance</h4>
-                          <ul className="text-xs text-purple-700 space-y-1">
-                            <li>• Complete translation audit trails</li>
-                            <li>• Quality score documentation</li>
-                            <li>• User action logging</li>
-                            <li>• Compliance reporting tools</li>
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-
+                <TabsContent value="nhs-compliance" className="space-y-6 mt-6">
                   {/* NHS Compliance & Clinical Evidence */}
                   <div className="space-y-6 bg-gradient-to-br from-blue-50 to-green-50 p-6 rounded-lg border-2 border-blue-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-blue-300">
@@ -2077,7 +2048,96 @@ export const TranslationToolInterface = () => {
                       </p>
                     </div>
                   </div>
+                </TabsContent>
 
+                <TabsContent value="safety" className="space-y-6 mt-6">
+                  {/* Safety & Compliance Information */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Shield className="h-5 w-5 text-red-600" />
+                      <h3 className="text-lg font-semibold text-red-800">Safety & Compliance</h3>
+                      <Badge variant="secondary" className="bg-red-100 text-red-800">NHS Standards</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-green-50 border-green-200">
+                        <CardContent className="p-4">
+                          <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
+                          <h4 className="font-semibold text-green-900 mb-2">Medical Accuracy</h4>
+                          <ul className="text-xs text-green-700 space-y-1">
+                            <li>• NHS clinical terminology database</li>
+                            <li>• BNF drug name verification</li>
+                            <li>• Dosage safety checking</li>
+                            <li>• Medical context preservation</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="p-4">
+                          <Database className="h-8 w-8 text-blue-600 mb-2" />
+                          <h4 className="font-semibold text-blue-900 mb-2">Data Protection</h4>
+                          <ul className="text-xs text-blue-700 space-y-1">
+                            <li>• GDPR compliant processing</li>
+                            <li>• NHS Data Security Standards</li>
+                            <li>• Encrypted data transmission</li>
+                            <li>• Automatic data retention policies</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-purple-50 border-purple-200">
+                        <CardContent className="p-4">
+                          <FileText className="h-8 w-8 text-purple-600 mb-2" />
+                          <h4 className="font-semibold text-purple-900 mb-2">Audit & Governance</h4>
+                          <ul className="text-xs text-purple-700 space-y-1">
+                            <li>• Complete translation audit trails</li>
+                            <li>• Quality score documentation</li>
+                            <li>• User action logging</li>
+                            <li>• Compliance reporting tools</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Service Features Overview */}
+                    <div className="mt-6 pt-6 border-t border-border">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="bg-blue-50 border-blue-200">
+                          <CardContent className="p-4 text-center">
+                            <Globe className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                            <h3 className="font-semibold text-blue-900">50+ Languages</h3>
+                            <p className="text-sm text-blue-700 mt-1">
+                              Real-time support for languages commonly spoken by NHS patients
+                            </p>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-green-50 border-green-200">
+                          <CardContent className="p-4 text-center">
+                            <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                            <h3 className="font-semibold text-green-900">Medical Accuracy</h3>
+                            <p className="text-sm text-green-700 mt-1">
+                              NHS clinical terminology and BNF pharmaceutical standards
+                            </p>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-purple-50 border-purple-200">
+                          <CardContent className="p-4 text-center">
+                            <UserCheck className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                            <h3 className="font-semibold text-purple-900">Quality Assured</h3>
+                            <p className="text-sm text-purple-700 mt-1">
+                              8-layer validation system with real-time safety monitoring
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="support" className="space-y-6 mt-6">
                   {/* Troubleshooting Guide */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2 border-b">
@@ -2133,44 +2193,9 @@ export const TranslationToolInterface = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Service Features Overview */}
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card className="bg-blue-50 border-blue-200">
-                        <CardContent className="p-4 text-center">
-                          <Globe className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                          <h3 className="font-semibold text-blue-900">50+ Languages</h3>
-                          <p className="text-sm text-blue-700 mt-1">
-                            Real-time support for languages commonly spoken by NHS patients
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-green-50 border-green-200">
-                        <CardContent className="p-4 text-center">
-                          <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                          <h3 className="font-semibold text-green-900">Medical Accuracy</h3>
-                          <p className="text-sm text-green-700 mt-1">
-                            NHS clinical terminology and BNF pharmaceutical standards
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-purple-50 border-purple-200">
-                        <CardContent className="p-4 text-center">
-                          <UserCheck className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                          <h3 className="font-semibold text-purple-900">Quality Assured</h3>
-                          <p className="text-sm text-purple-700 mt-1">
-                            8-layer validation system with real-time safety monitoring
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
           </Card>
 
         </TabsContent>
