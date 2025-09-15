@@ -106,6 +106,10 @@ export const TranslationToolInterface = () => {
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showHistoricalView, setShowHistoricalView] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isAudioBuffering, setIsAudioBuffering] = useState(false);
+  const [incompleteMessageBuffer, setIncompleteMessageBuffer] = useState<string>('');
+  const [lastProcessingTime, setLastProcessingTime] = useState(0);
+  const [missedTranslationFeedback, setMissedTranslationFeedback] = useState(false);
   const [selectedHistoricalSession, setSelectedHistoricalSession] = useState<{
     sessionId: string;
     sessionTitle: string;
@@ -278,23 +282,153 @@ export const TranslationToolInterface = () => {
     return Math.abs(Date.now() - timestamp) < windowMs;
   };
 
+  // Enhanced sentence completion detection
+  const isCompleteSentence = (text: string): boolean => {
+    if (!text || text.trim().length < 3) return false;
+    
+    const trimmed = text.trim();
+    
+    // Check for sentence-ending punctuation
+    const hasSentenceEnding = /[.!?]$/.test(trimmed);
+    
+    // Check for complete thought indicators
+    const hasCompleteThought = /\b(yes|no|okay|sure|thanks|hello|goodbye|please|thank you)\b/i.test(trimmed) ||
+                              trimmed.length > 15; // Longer messages are likely complete
+    
+    // Check if it looks like a medical statement
+    const isMedicalStatement = /\b(pain|hurt|feel|symptom|doctor|medication|treatment|appointment)\b/i.test(trimmed);
+    
+    return hasSentenceEnding || hasCompleteThought || isMedicalStatement;
+  };
+  
+  // Enhanced message processing with buffering
+  const processMessageWithBuffering = (userMessage: string, agentResponse: string) => {
+    console.log('🔊 Processing message with enhanced buffering...');
+    
+    const now = Date.now();
+    setLastProcessingTime(now);
+    
+    // Check if user message seems incomplete
+    if (!isCompleteSentence(userMessage) && userMessage.length < 20) {
+      console.log('📝 Message may be incomplete, starting buffer timer...');
+      setIsAudioBuffering(true);
+      setIncompleteMessageBuffer(prev => {
+        const combined = prev ? `${prev} ${userMessage}` : userMessage;
+        console.log('📝 Buffering message:', combined);
+        return combined;
+      });
+      
+      // Wait for completion or timeout
+      setTimeout(() => {
+        const timeSinceLastProcessing = Date.now() - lastProcessingTime;
+        if (timeSinceLastProcessing >= 2800) { // Process if no new messages in 3s
+          console.log('⏰ Buffer timeout - processing accumulated message');
+          const bufferedMessage = incompleteMessageBuffer;
+          setIncompleteMessageBuffer('');
+          setIsAudioBuffering(false);
+          
+          if (bufferedMessage.trim()) {
+            processTranslationExchange(bufferedMessage, agentResponse);
+          }
+        }
+      }, 3000);
+      
+      return; // Don't process immediately
+    }
+    
+    // Process complete message (including any buffered content)
+    const finalMessage = incompleteMessageBuffer ? 
+                        `${incompleteMessageBuffer} ${userMessage}`.trim() : 
+                        userMessage;
+    
+    setIncompleteMessageBuffer('');
+    setIsAudioBuffering(false);
+    
+    processTranslationExchange(finalMessage, agentResponse);
+  };
+  
+  // Manual translation refresh for missed translations
+  const refreshTranslationDisplay = () => {
+    console.log('🔄 Manual refresh requested by user');
+    
+    if (conversationBuffer.length >= 2) {
+      const lastExchange = conversationBuffer[conversationBuffer.length - 1];
+      console.log('🔄 Re-processing last exchange for manual refresh');
+      
+      // Force update the current translation
+      updateCurrentTranslation(lastExchange.user, lastExchange.agent);
+      
+      toast.success('Translation refreshed');
+    } else {
+      toast.info('No recent translation to refresh');
+    }
+  };
+  
+  // User feedback for missed translations
+  const reportMissedTranslation = () => {
+    setMissedTranslationFeedback(true);
+    console.log('📊 User reported missed translation');
+    
+    // Log for improvement
+    console.log('📊 Missed translation context:', {
+      bufferLength: conversationBuffer.length,
+      currentTranslation: currentTranslation?.englishText,
+      lastBufferedMessage: incompleteMessageBuffer
+    });
+    
+    toast.info('Thank you for the feedback. Please try speaking again clearly.');
+    
+    // Auto-hide feedback after 3 seconds
+    setTimeout(() => setMissedTranslationFeedback(false), 3000);
+  };
+  const processTranslationExchange = (userMessage: string, agentResponse: string) => {
+    console.log('🔄 Processing translation exchange...');
+    
+    // Process translation history first (includes modal update)  
+    addToTranslationHistory(userMessage, agentResponse);
+    
+    // Then do quality verification (async, doesn't block modal)
+    verifyConversationQuality(userMessage, agentResponse).catch(error => {
+      console.error('⚠️ Quality verification failed but continuing:', error);
+    });
+  };
+  const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
+    console.log('🔄 Updating current translation for modal display...');
+    
+    const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
+    
+    // Always update current translation for modal, even if we skip other processing
+    if (userMessage.trim().length >= 3 && cleanedResponse.trim().length >= 3) {
+      setCurrentTranslation({
+        englishText: userMessage,
+        translatedText: cleanedResponse,
+        targetLanguage: targetLanguage,
+        timestamp: new Date()
+      });
+      console.log('✅ Current translation updated for modal');
+    }
+  };
+
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
-    console.log('🛡️ DEDUP: Starting bulletproof deduplication check...');
+    console.log('🛡️ DEDUP: Starting enhanced deduplication check...');
     
-    // LAYER 1: Skip language setup requests
+    // ALWAYS update current translation first, regardless of other processing
+    updateCurrentTranslation(userMessage, agentResponse);
+    
+    // LAYER 1: Skip language setup requests (but be less aggressive)
     const isLanguageSetup = userMessage.toLowerCase().includes('please') && 
                            userMessage.toLowerCase().match(/\b(polish|arabic|spanish|french|urdu|bengali|chinese|german|italian|portuguese|ukrainian|hungarian|russian|hindi)\b/i) &&
                            agentResponse.toLowerCase().includes('ready');
     
     if (isLanguageSetup) {
-      console.log('🛡️ DEDUP: Skipping language setup request');
+      console.log('🛡️ DEDUP: Skipping language setup request from history');
       return;
     }
 
-    // LAYER 2: Skip short/setup messages
-    if (userMessage.trim().length < 5 || agentResponse.trim().length < 5) {
-      console.log('🛡️ DEDUP: Skipping short/setup message');
+    // LAYER 2: Skip very short messages (reduced threshold for better capture)
+    if (userMessage.trim().length < 3 || agentResponse.trim().length < 3) {
+      console.log('🛡️ DEDUP: Skipping very short message from history');
       return;
     }
 
@@ -752,9 +886,9 @@ export const TranslationToolInterface = () => {
       return;
     }
     
-    // Only verify if we have meaningful content (not just setup messages)
-    if (userInput.trim().length < 5 || agentResponse.trim().length < 5) {
-      console.log('🔧 Skipping short/setup message from quality verification');
+    // Only verify if we have meaningful content (reduced threshold)
+    if (userInput.trim().length < 3 || agentResponse.trim().length < 3) {
+      console.log('🔧 Skipping very short message from quality verification');
       return;
     }
     
@@ -790,14 +924,14 @@ export const TranslationToolInterface = () => {
       };
       setQualityScore(enrichedData);
       
-      // Update current translation for modal display
-      setCurrentTranslation({
+      // Update current translation with quality score (this may override the basic one from updateCurrentTranslation)
+      setCurrentTranslation(prev => ({
         englishText: userInput,
         translatedText: cleanedResponse,
         targetLanguage: targetLanguage,
         qualityScore: enrichedData,
         timestamp: new Date()
-      });
+      }));
       
       // Modal is now manually triggered by user button
       
@@ -918,9 +1052,10 @@ export const TranslationToolInterface = () => {
               // Use setTimeout with better error handling
               setTimeout(async () => {
                 try {
-                  console.log('🔍 Starting quality verification for exchange');
-                  await verifyConversationQuality(lastExchange.user, lastExchange.agent);
-                  addToTranslationHistory(lastExchange.user, lastExchange.agent);
+                  console.log('🔍 Processing translation exchange with enhanced buffering...');
+                  
+                  // Use enhanced processing with buffering
+                  processMessageWithBuffering(lastExchange.user, lastExchange.agent);
                   
                   // Mark as successfully processed
                   const entry = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
@@ -1230,6 +1365,12 @@ export const TranslationToolInterface = () => {
                       Translating...
                     </Badge>
                   )}
+                  {isAudioBuffering && (
+                    <Badge variant="outline" className="text-sm px-3 py-1 animate-pulse">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Buffering Audio...
+                    </Badge>
+                  )}
                 </div>
               )}
 
@@ -1257,6 +1398,29 @@ export const TranslationToolInterface = () => {
                     >
                       <Eye className="h-6 w-6" />
                       {currentTranslation ? 'Show Translation' : 'No Translation Yet'}
+                    </Button>
+                    
+                    {/* Manual Refresh Button */}
+                    <Button
+                      onClick={refreshTranslationDisplay}
+                      variant="secondary"
+                      size="lg"
+                      className="flex items-center gap-2 px-6 py-3"
+                      disabled={conversationBuffer.length === 0}
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                      Refresh
+                    </Button>
+                    
+                    {/* Missed Translation Feedback */}
+                    <Button
+                      onClick={reportMissedTranslation}
+                      variant="outline"
+                      size="sm"
+                      className="text-sm"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Missed Translation?
                     </Button>
                   </div>
                 ) : (
@@ -1296,9 +1460,20 @@ export const TranslationToolInterface = () => {
                         {resetClickCount === 1 ? 'Click Again to Reset' : 'Reset'}
                       </Button>
                     )}
-                  </div>
+                   </div>
                 )}
               </div>
+
+              {/* Missed Translation Feedback Alert */}
+              {missedTranslationFeedback && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    <strong>Feedback Received:</strong> We'll improve translation capture. 
+                    Try speaking more slowly and clearly, or use the refresh button if needed.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Languages Available */}
               <div className="mt-8">
