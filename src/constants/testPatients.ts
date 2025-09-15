@@ -930,59 +930,68 @@ Oak Lane Medical Practice Women's Health & Cultural Services Team`
     email: 'cerys.williams@email.com',
     request: `Annwyl Oak Lane Medical Practice,
 
-Cerys Williams ydw i, ac rwy'n glaf cofrestredig ers dwy flynedd. Rwy'n ysgrifennu i ofyn am apwyntiad brys i drafod symptomau rwy'n eu cael ers pythefnos.
+Cerys Williams ydw i, ac rwy'n glaf cofrestredig ers tair blynedd. Rwy'n ysgrifennu i ofyn am help gyda sawl mater gweinyddol.
 
-Mae gen i boen cyson yn fy mol sy'n gwaethygu, yn enwedig ar ôl bwyta. Rwy hefyd wedi sylwi ar y canlynol:
-- Cyfog a theimlo'n sâl yn y bore
-- Colli pwysau heb geisio gwneud (tua 5kg yn y mis diwethaf)
-- Blinder mawr - prin yn gallu cwblhau fy ngwaith fel nyrs
-- Croen melyn ac wedi mynd yn dywyll o amgylch fy llygaid
+Yn gyntaf, mae angen copi o fy nghofnodion meddygol arnaf ar gyfer yswiriant iechyd newydd fy nghyflogwr. Mae'r cwmni yswiriant yn gofyn am:
+- Crynodeb meddygol cyflawn o'r 5 mlynedd diwethaf
+- Manylion unrhyw gyflyrau parhaus (mae gen i bwysedd gwaed uchel)
+- Rhestr o'r holl feddyginiaethau cyfredol
+- Canlyniadau profion gwaed diweddar
 
-Mae hyn yn fy mhoeni'n fawr gan fod fy mam-gu wedi cael canser yr afu/iau. Rwy'n gweithio fel nyrs yn yr ysbyty lleol ac yn adnabod yr arwyddion hyn.
+Yn ail, hoffwn newid fy fferyllfa gofrestredig o Boots i'r fferyllfa leol Lloyds sydd ger fy ngwaith newydd. Mae hyn yn fwy cyfleus i mi gasglu presgripsiynau.
 
-A allwch chi drefnu apwyntiad brys yr wythnos hon os gwelwch yn dda? Rwy'n barod i ddod unrhyw amser. Mae angen i mi gael prawf gwaed a sgan os yw'n bosibl.
+Yn drydydd, mae angen i mi drefnu apwyntiad adolygu blynyddol ar gyfer fy mhwysedd gwaed uchel. Mae'r Dr. Jones wedi dweud y dylwn gael adolygiad bob 6 mis, ond mae dros 8 mis ers fy apwyntiad diwethaf.
 
-Rwy hefyd angen tystysgrif salwch ar gyfer y gwaith gan mod i wedi bod yn absennol ers dau ddiwrnod oherwydd y symptomau.
+Hefyd, a yw hi'n bosibl cael presgripsiynau 3 mis yn hytrach na mis ar gyfer fy meddyginiaeth Amlodipine? Mae'n anodd dod i'r fferyllfa bob mis oherwydd fy oriau gwaith.
+
+Os oes unrhyw ffioedd gweinyddol, rhowch wybod i mi os gwelwch yn dda.
 
 Fy rhif ffôn: 07678 345123
 
-Diolch yn fawr,
+Diolch yn fawr am eich help,
 Cerys Williams
 Dyddiad geni: 12/04/1988
 Rhif claf: CW1988`,
     englishReply: `Dear Ms Williams,
 
-Thank you for contacting us urgently about your concerning symptoms. Given your nursing background, we take your clinical concerns very seriously, and your symptoms do require immediate investigation.
+Thank you for your administrative requests. We're happy to help you with these important matters.
 
-**Urgent Assessment Arranged:**
-We have prioritized your case and arranged:
-- **Emergency blood tests and liver function**: ${getNextWorkingDay(1)} at 7:30 AM (fasting required)
-- **Urgent consultation with Dr. Evans**: ${getNextWorkingDay(1)} at 9:00 AM
-- **Abdominal ultrasound scan**: ${getNextWorkingDay(2)} at 11:00 AM (arranged directly)
+**Medical Records for Insurance:**
+We can provide the comprehensive medical summary you've requested for your employer's health insurance. This will include:
+- Complete 5-year medical history summary
+- Current hypertension management details and blood pressure readings
+- Current medications list (Amlodipine and any others)
+- Recent blood test results and monitoring data
 
-**Your Assessment Will Include:**
-- Comprehensive examination for abdominal pain and weight loss
-- Urgent liver function tests, full blood count, and tumor markers
-- Assessment for jaundice and any abdominal masses
-- Discussion of family history and immediate referral pathways if needed
+**Administrative Details:**
+- Processing time: 5-7 working days
+- Fee: £25 for comprehensive medical records (as per NHS guidelines)
+- Collection: Available from reception or posted to your address
 
-**Before Your Appointment:**
-- No food or drink after 8:00 PM tonight (water allowed until midnight)
-- Bring a list of all medications and supplements
-- Note any changes in urine/bowel habits
-- Bring your staff ID for medical professional courtesy
+**Pharmacy Transfer:**
+We'll arrange the transfer of your repeat prescriptions from Boots to Lloyds Pharmacy. Please provide:
+- Full address of the new Lloyds pharmacy
+- Confirmation you've registered with them
+- Transfer will be effective from your next prescription
 
-**Immediate Action:**
-Given your symptoms (jaundice, weight loss, abdominal pain, family history), we are arranging potential urgent referral to gastroenterology/hepatology under the 2-week cancer pathway, pending your test results.
+**Annual Blood Pressure Review:**
+You're absolutely right that your review is overdue. We've scheduled your annual hypertension review with Practice Nurse Sarah on ${getNextWorkingDay(4)} at 3:30 PM. This will include:
+- Blood pressure monitoring and medication review
+- Routine blood tests (kidney function, cholesterol if due)
+- Lifestyle advice and blood pressure targets
 
-**Sick Note:**
-We will provide a medical certificate backdated to cover your absence and extend as needed pending investigation results.
+**3-Month Prescriptions:**
+We can arrange 3-month supplies of Amlodipine, which will be much more convenient for you. Dr. Jones has approved this change, and it will start with your next prescription.
 
-**Important:** If you develop severe abdominal pain, vomiting, or feel unwell before your appointment, please attend A&E immediately or call 999.
+**To Proceed:**
+1. Complete the medical records request form (available at reception)
+2. Pay the £25 administrative fee
+3. Confirm your new pharmacy details
+4. Attend your scheduled blood pressure review
 
-As a fellow healthcare professional, we appreciate your vigilance in seeking prompt medical attention. We will ensure you receive priority care and keep you fully informed throughout the diagnostic process.
+Please call reception on 0207 XXX XXXX to confirm these arrangements.
 
 Best regards,
-Oak Lane Medical Practice Emergency Assessment Team`
+Oak Lane Medical Practice Administration Team`
   }
 ];
