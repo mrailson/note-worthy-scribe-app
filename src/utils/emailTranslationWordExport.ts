@@ -193,7 +193,7 @@ export const downloadEmailTranslationProof = async (
           new Paragraph({
             children: [
               new TextRun({
-                text: '1. ORIGINAL INCOMING EMAIL',
+                text: '1. ORIGINAL PATIENT COMMUNICATION',
                 bold: true,
                 size: 24,
                 color: '2563EB'
