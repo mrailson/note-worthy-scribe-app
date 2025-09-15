@@ -488,7 +488,7 @@ export const TranslationToolInterface = () => {
       timestamp: Date.now(), 
       processed: true 
     });
-    lastProcessedTimestamp.current = currentTimestamp;
+    lastProcessedTimestamp.current = nowMs;
 
     // Clean up old entries to prevent memory bloat (keep last 100)
     if (processedExchangeIds.current.size > 100) {
@@ -518,7 +518,7 @@ export const TranslationToolInterface = () => {
     );
     
     // Create bulletproof unique ID
-    const uniqueId = `${currentTimestamp}_${createContentHash(userMessage + cleanedResponse)}_${Math.random().toString(36).substring(2, 6)}`;
+    const uniqueId = `${nowMs}_${createContentHash(userMessage + cleanedResponse)}_${Math.random().toString(36).substring(2, 6)}`;
     
     const newTranslation: TranslationEntry = {
       id: uniqueId,
@@ -2586,6 +2586,7 @@ export const TranslationToolInterface = () => {
             onPatientExportDOCX={handlePatientExportDOCX}
             onOpenSaved={() => setShowHistorySidebar(true)}
           />
+        </TabsContent>
       </Tabs>
       </>
       )}
