@@ -706,11 +706,13 @@ export const TranslationToolInterface = () => {
     }, 1500); // 1.5 second debounce
   }, [translations.length, getTranslations, getTranslationScores, sessionStart, saveSession]);
 
-  // Auto-save current translations
+  // Manual save with proper loading state
+  const [isSaving, setIsSaving] = useState(false);
   const handleAutoSave = async () => {
-    if (translations.length > 0) {
+    if (translations.length > 0 && !isSaving) {
+      setIsSaving(true);
       try {
-        console.log('🔄 Auto-saving translations...', { count: translations.length });
+        console.log('🔄 Saving translations...', { count: translations.length });
         await saveSession(
           getTranslations(),
           getTranslationScores(),
@@ -718,10 +720,13 @@ export const TranslationToolInterface = () => {
           undefined,
           true
         );
-        console.log('✅ Auto-save successful');
+        console.log('✅ Save successful');
+        toast.success('Session saved successfully');
       } catch (error) {
-        console.error('❌ Auto-save failed:', error);
-        toast.error('Auto-save failed');
+        console.error('❌ Save failed:', error);
+        toast.error('Failed to save session');
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -2499,10 +2504,10 @@ export const TranslationToolInterface = () => {
                     variant="secondary" 
                     size="sm"
                     className="flex items-center gap-2"
-                    disabled={translations.length === 0}
+                    disabled={translations.length === 0 || isSaving}
                   >
                     <Database className="w-4 h-4" />
-                    {translations.length > 0 ? 'Save Now' : 'Session Saved'}
+                    {isSaving ? 'Saving...' : translations.length > 0 ? 'Save Now' : 'Session Saved'}
                   </Button>
                   <Button onClick={clearHistory} variant="outline" size="sm">
                     <RotateCcw className="w-4 h-4 mr-2" />
