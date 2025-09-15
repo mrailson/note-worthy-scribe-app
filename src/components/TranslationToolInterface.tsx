@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useConversation } from '@11labs/react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,8 @@ import {
   Database,
   Plus,
   Mail,
-  Shield
+  Shield,
+  Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -90,6 +91,7 @@ interface CurrentTranslation {
 }
 
 export const TranslationToolInterface = () => {
+  const navigate = useNavigate();
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
@@ -2524,6 +2526,78 @@ export const TranslationToolInterface = () => {
               patientLanguage="Multiple Languages"
               onExportDOCX={handleExportDOCX}
             />
+          ) : sessions.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Saved Translation Sessions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {sessions.slice(0, 5).map((session) => {
+                    const preview = {
+                      languages: session.session_metadata?.languages?.join(', ') || session.patient_language,
+                      duration: session.session_metadata?.sessionDuration ? 
+                        `${Math.floor(session.session_metadata.sessionDuration / 60)}m ${session.session_metadata.sessionDuration % 60}s` : 
+                        'Unknown',
+                      createdAt: new Date(session.created_at).toLocaleDateString() + ' ' + new Date(session.created_at).toLocaleTimeString()
+                    };
+                    
+                    return (
+                      <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{session.session_title}</h4>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {preview.createdAt}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Languages className="h-3 w-3" />
+                                {preview.languages}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                {session.total_translations} phrases
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {preview.duration}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            console.log('Loading session from main tab:', session.id);
+                            navigate(`/translation-tool/${session.id}`);
+                          }}
+                        >
+                          View Session
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  {sessions.length > 5 && (
+                    <div className="text-center pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowHistorySidebar(true)}
+                      >
+                        View All {sessions.length} Sessions
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="text-center py-8">
