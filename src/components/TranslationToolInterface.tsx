@@ -139,6 +139,15 @@ export const TranslationToolInterface = () => {
   const conversationExchangeMap = useRef<Map<string, { timestamp: number, processed: boolean }>>(new Map());
   const lastProcessedTimestamp = useRef<number>(0);
   
+  // Enhanced conversation tracking with data loss prevention
+  const conversationTrackingRef = useRef<{
+    activeMessages: Map<string, { user: string; agent?: string; timestamp: number }>;
+    sessionStartTime: number;
+  }>({
+    activeMessages: new Map(),
+    sessionStartTime: Date.now()
+  });
+  
   // Helper function to get full language name
   const getLanguageName = (code: string) => {
     const language = HEALTHCARE_LANGUAGES.find(l => l.code === code);
@@ -176,6 +185,34 @@ export const TranslationToolInterface = () => {
         clearTimeout(resetTimeoutRef.current);
       }
     };
+  }, []);
+
+  // Add data loss monitoring
+  useEffect(() => {
+    const monitoringInterval = setInterval(() => {
+      const tracking = conversationTrackingRef.current;
+      const now = Date.now();
+      
+      // Check for orphaned user messages (user messages without responses after 30 seconds)
+      for (const [messageId, messageData] of tracking.activeMessages.entries()) {
+        if (!messageData.agent && (now - messageData.timestamp) > 30000) {
+          console.error('🚨 DATA_LOSS_DETECTED: Orphaned user message:', {
+            messageId,
+            userMessage: messageData.user.substring(0, 100),
+            ageInSeconds: (now - messageData.timestamp) / 1000,
+            sessionId: conversationIdRef.current
+          });
+          
+          // Report to user
+          toast.error('Translation may have been missed. Please check your session history.');
+          
+          // Clean up tracking
+          tracking.activeMessages.delete(messageId);
+        }
+      }
+    }, 15000); // Check every 15 seconds
+    
+    return () => clearInterval(monitoringInterval);
   }, []);
 
   // Reset memory function
@@ -1076,13 +1113,23 @@ export const TranslationToolInterface = () => {
         return;
       }
       
-      // Message-level deduplication
-      const messageId = createContentHash(contentText + source);
+      // Message-level deduplication with session isolation
+      const sessionId = conversationIdRef.current || 'default';
+      const messageId = createContentHash(contentText + source + sessionId);
       if (processedMessageIds.current.has(messageId)) {
         console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId.substring(0, 8));
         return;
       }
       processedMessageIds.current.add(messageId);
+      
+      // Critical: Log all messages for debugging data loss
+      console.log('🔍 CRITICAL_LOG: Message processing:', {
+        sessionId,
+        source,
+        content: contentText.substring(0, 100),
+        messageId: messageId.substring(0, 12),
+        timestamp: new Date().toISOString()
+      });
       
       // Capture and verify conversations for quality assurance
       console.log('🎯 Translation message - Source:', source, 'Content:', contentText.substring(0, 50) + '...');
@@ -1092,6 +1139,14 @@ export const TranslationToolInterface = () => {
 
         if (source === 'user') {
           console.log('👤 User message captured:', contentText.substring(0, 50) + '...');
+          
+          // Track user messages for data loss detection
+          const trackingId = createContentHash(contentText + Date.now());
+          conversationTrackingRef.current.activeMessages.set(trackingId, {
+            user: contentText,
+            timestamp: Date.now()
+          });
+          
           updated.push({ user: contentText, agent: '' });
           return updated;
         }
@@ -1107,7 +1162,18 @@ export const TranslationToolInterface = () => {
         }
 
         if (indexToFill === -1) {
-          console.warn('⚠️ AI message arrived without a pending user entry. Creating recovery entry to prevent loss.');
+          console.error('🚨 CRITICAL: AI message arrived without a pending user entry. This indicates data loss!');
+          console.error('🚨 MISSING_USER_MESSAGE:', {
+            aiMessage: contentText.substring(0, 100),
+            sessionId: conversationIdRef.current,
+            bufferState: updated.map((entry, i) => ({
+              index: i,
+              hasUser: !!entry.user,
+              hasAgent: !!entry.agent,
+              userPreview: entry.user?.substring(0, 50),
+              agentPreview: entry.agent?.substring(0, 50)
+            }))
+          });
           
           // Create a recovery entry with placeholder user text to ensure AI response isn't lost
           const recoveryEntry = { 
@@ -1134,6 +1200,15 @@ export const TranslationToolInterface = () => {
 
         console.log('🤖 AI response captured:', contentText.substring(0, 50) + '...');
         updated[indexToFill].agent = contentText;
+        
+        // Update tracking - mark agent message received
+        const userText = updated[indexToFill].user;
+        for (const [trackingId, trackingData] of conversationTrackingRef.current.activeMessages.entries()) {
+          if (trackingData.user === userText && !trackingData.agent) {
+            trackingData.agent = contentText;
+            break;
+          }
+        }
 
         // Immediately update the modal so UI never gets "stuck"
         updateCurrentTranslation(updated[indexToFill].user, updated[indexToFill].agent);
