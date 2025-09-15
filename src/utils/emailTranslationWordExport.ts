@@ -102,7 +102,7 @@ export const downloadEmailTranslationProof = async (
   try {
     const currentDate = new Date();
     const formattedDate = currentDate.toLocaleDateString('en-GB');
-    const formattedTime = currentDate.toLocaleTimeString('en-GB');
+    const formattedTime = currentDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     
     const doc = new Document({
       styles: {

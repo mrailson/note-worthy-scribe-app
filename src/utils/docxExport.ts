@@ -237,9 +237,9 @@ export function generateDOCXContent(
         </tr>
         <tr>
           <th>Session Start</th>
-          <td>${metadata.sessionStart.toLocaleTimeString('en-GB')}</td>
+          <td>${metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
           <th>Session End</th>
-          <td>${metadata.sessionEnd.toLocaleTimeString('en-GB')}</td>
+          <td>${metadata.sessionEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
         </tr>
         <tr>
           <th>Duration</th>
@@ -370,11 +370,11 @@ export function generateDOCXContent(
                 <td style="text-align: center; font-weight: bold;">${index + 1}</td>
                 <td style="text-align: center;">${(() => {
                   if (typeof translation.timestamp === 'number') {
-                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                   } else if (translation.timestamp instanceof Date) {
-                    return translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                   } else if (typeof translation.timestamp === 'string') {
-                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                   } else {
                     return 'Unknown time';
                   }
@@ -554,8 +554,8 @@ export async function downloadDOCX(
       
       new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.reportGenerated || 'Report Generated'}: ${new Date().toLocaleString('en-GB')}`)] }),
       new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionDate || 'Session Date'}: ${metadata.sessionDate.toLocaleDateString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionStart || 'Session Start'}: ${metadata.sessionStart.toLocaleTimeString('en-GB')}`)] }),
-      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionEnd || 'Session End'}: ${metadata.sessionEnd.toLocaleTimeString('en-GB')}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionStart || 'Session Start'}: ${metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`)] }),
+      new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.sessionEnd || 'Session End'}: ${metadata.sessionEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`)] }),
       new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.duration || 'Duration'}: ${formatDuration(metadata.sessionDuration)}`)] }),
       new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.patientLanguage || 'Patient Language'}: ${metadata.patientLanguage}`)] }),
       new Paragraph({ children: [new TextRun(`${translatedContent?.generalLabels?.totalTranslations || 'Total Translations'}: ${metadata.totalTranslations}`)] }),
@@ -718,11 +718,11 @@ export async function downloadDOCX(
             new TableCell({
               children: [new Paragraph({ children: [new TextRun((() => {
                 if (typeof translation.timestamp === 'number') {
-                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else if (translation.timestamp instanceof Date) {
-                  return translation.timestamp.toLocaleTimeString('en-GB');
+                  return translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else if (typeof translation.timestamp === 'string') {
-                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else {
                   return 'Unknown time';
                 }
@@ -748,11 +748,11 @@ export async function downloadDOCX(
             new TableCell({
               children: [new Paragraph({ children: [new TextRun((() => {
                 if (typeof translation.timestamp === 'number') {
-                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else if (translation.timestamp instanceof Date) {
-                  return translation.timestamp.toLocaleTimeString('en-GB');
+                  return translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else if (typeof translation.timestamp === 'string') {
-                  return new Date(translation.timestamp).toLocaleTimeString('en-GB');
+                  return new Date(translation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 } else {
                   return 'Unknown time';
                 }
@@ -826,9 +826,9 @@ export async function downloadDOCX(
     const filePrefix = isPatientCopy ? "Notewell_AI_Translation_Patient_Copy" : "Notewell_AI_Translation_Report";
     const filename = `${filePrefix}_${metadata.sessionDate.toISOString().split('T')[0]}_${(() => {
       if (metadata.sessionStart instanceof Date) {
-        return metadata.sessionStart.toLocaleTimeString('en-GB').replace(/:/g, '-');
+        return metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
       } else {
-        return new Date().toLocaleTimeString('en-GB').replace(/:/g, '-');
+        return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
       }
     })()}.docx`;
     saveAs(blob, filename);

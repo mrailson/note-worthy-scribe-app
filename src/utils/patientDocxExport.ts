@@ -262,7 +262,7 @@ export async function downloadPatientDOCX(
       }),
       
       new Paragraph({ children: [new TextRun(`${t.date}: ${metadata.sessionDate.toLocaleDateString()}`)] }),
-      new Paragraph({ children: [new TextRun(`${t.time}: ${metadata.sessionStart.toLocaleTimeString()} - ${metadata.sessionEnd.toLocaleTimeString()}`)] }),
+      new Paragraph({ children: [new TextRun(`${t.time}: ${metadata.sessionStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${metadata.sessionEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)] }),
       new Paragraph({ children: [new TextRun(`${t.duration}: ${formatDuration(metadata.sessionDuration)}`)] }),
       new Paragraph({ children: [new TextRun(`${t.language}: ${metadata.patientLanguage}`)] }),
       ...(metadata.gpName ? [
@@ -286,7 +286,7 @@ export async function downloadPatientDOCX(
         new Paragraph({
           children: [
             new TextRun({ 
-              text: `${index + 1}. ${translation.timestamp.toLocaleTimeString()}`, 
+              text: `${index + 1}. ${translation.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 
               bold: true,
               color: "333333"
             })
