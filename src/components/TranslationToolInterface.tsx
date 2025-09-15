@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useConversation } from '@11labs/react';
-import { useParams, useNavigate } from 'react-router-dom';
+  import React, { useState, useRef, useEffect, useCallback } from 'react';
+  import { useConversation } from '@11labs/react';
+  import { useParams, useNavigate } from 'react-router-dom';
+  import { getSafeDOMObserver } from '@/utils/domSafetyPolyfill';
+  import { useWebSocketSessionManager } from '@/hooks/useWebSocketSessionManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +154,33 @@ export const TranslationToolInterface = () => {
     isCompleteSentence,
     resetBuffer
   } = useTranslationBuffering();
+
+  // WebSocket Session Manager - Fixes data loss issues
+  const sessionManager = useWebSocketSessionManager({
+    onDataLoss: (lostMessage) => {
+      console.error('🚨 Session Manager: Data loss detected:', lostMessage);
+      toast.error('Translation may have been missed. Please check your session history.');
+    },
+    onSessionChange: (sessionId) => {
+      console.log('🔄 Session Manager: Session changed:', sessionId);
+      conversationIdRef.current = sessionId;
+    }
+  });
+
+  // Initialize DOM Safety Observer
+  useEffect(() => {
+    const domObserver = getSafeDOMObserver();
+    
+    domObserver.onMutation((mutations) => {
+      console.log('🔍 DOM Safety: Safe mutations processed:', mutations.length);
+    });
+    
+    domObserver.start();
+    
+    return () => {
+      domObserver.destroy();
+    };
+  }, []);
 
   // Reset functionality state
   const [resetClickCount, setResetClickCount] = useState(0);
@@ -1005,7 +1034,11 @@ export const TranslationToolInterface = () => {
       toast.success('Connected to Translation Service');
       setError(null);
       
-      conversationIdRef.current = `translation_${Date.now()}`;
+      const sessionId = `translation_${Date.now()}`;
+      
+      // Notify session manager of connection
+      sessionManager.onSessionConnect(sessionId);
+      
       // Don't clear quality score on connection - only on manual reset
       setConversationBuffer([]);
       
@@ -1030,7 +1063,10 @@ export const TranslationToolInterface = () => {
     onDisconnect: () => {
       console.log('Disconnected from Notewell AI Translation Service');
       toast.info('Disconnected from Translation Service');
-      conversationIdRef.current = null;
+      
+      // Notify session manager of disconnection
+      sessionManager.onSessionDisconnect();
+      
       // Close translation modal when disconnected
       setIsTranslationModalOpen(false);
       setCurrentTranslation(null);
@@ -1057,6 +1093,12 @@ export const TranslationToolInterface = () => {
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
       
+      // CRITICAL: Session guard - Don't process if no active session
+      if (!sessionManager.canSend()) {
+        console.warn('⚠️ Session Manager: Message received but no active session - queuing for later');
+        return;
+      }
+      
       // Normalize incoming fields from ElevenLabs (with proper type safety)
       const messageObj = message as any; // Cast to any for flexible property access
       const contentText: string = (messageObj?.message || messageObj?.text || messageObj?.content?.text || '').toString();
@@ -1068,14 +1110,19 @@ export const TranslationToolInterface = () => {
         return;
       }
       
+      // Send message through session manager for tracking
+      const messageId = sessionManager.sendMessage(contentText, source === 'ai' ? 'agent' : source);
+      
       // Message-level deduplication with session isolation
-      const sessionId = conversationIdRef.current || 'default';
-      const messageId = createContentHash(contentText + source + sessionId);
-      if (processedMessageIds.current.has(messageId)) {
-        console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId.substring(0, 8));
+      const sessionId = sessionManager.sessionId || 'default';
+      const deduplicationId = createContentHash(contentText + source + sessionId);
+      if (processedMessageIds.current.has(deduplicationId)) {
+        console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', deduplicationId.substring(0, 8));
+        // Acknowledge the message anyway to prevent false data loss alerts
+        sessionManager.acknowledgeMessage(messageId);
         return;
       }
-      processedMessageIds.current.add(messageId);
+      processedMessageIds.current.add(deduplicationId);
       
       // Critical: Log all messages for debugging data loss
       console.log('🔍 CRITICAL_LOG: Message processing:', {
@@ -1083,7 +1130,8 @@ export const TranslationToolInterface = () => {
         source,
         content: contentText.substring(0, 100),
         messageId: messageId.substring(0, 12),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        sessionStats: sessionManager.getSessionStats()
       });
       
       // Capture and verify conversations for quality assurance
@@ -1103,13 +1151,17 @@ export const TranslationToolInterface = () => {
           });
           
           updated.push({ user: contentText, agent: '' });
+          
+          // Acknowledge user message immediately
+          sessionManager.acknowledgeMessage(messageId);
+          
           return updated;
         }
 
         // Source is AI/agent
-        // Find the most recent entry with a user but no agent yet
+        // CRITICAL FIX: Find the FIRST (FIFO) unmatched user message instead of LAST (LIFO)
         let indexToFill = -1;
-        for (let i = updated.length - 1; i >= 0; i--) {
+        for (let i = 0; i < updated.length; i++) {  // 🔥 FIXED: Forward iteration for FIFO pairing
           if (updated[i].user && !updated[i].agent) {
             indexToFill = i;
             break;
@@ -1125,8 +1177,9 @@ export const TranslationToolInterface = () => {
 
           if (isInitialGreeting) {
             console.log('ℹ️ Initial agent greeting received, not pairing with user message.');
-            // Do not push a recovery entry; simply ignore for history to avoid noise
-            // Optionally surface in UI without affecting history
+            // Acknowledge the greeting message
+            sessionManager.acknowledgeMessage(messageId);
+            // Optionally surface in UI without affecting history to avoid noise
             updateCurrentTranslation('[System]', contentText);
             return updated;
           }
@@ -1134,7 +1187,7 @@ export const TranslationToolInterface = () => {
           console.error('🚨 CRITICAL: AI message arrived without a pending user entry. This indicates data loss!');
           console.error('🚨 MISSING_USER_MESSAGE:', {
             aiMessage: contentText.substring(0, 100),
-            sessionId: conversationIdRef.current,
+            sessionId: sessionManager.sessionId,
             bufferState: updated.map((entry, i) => ({
               index: i,
               hasUser: !!entry.user,
@@ -1153,6 +1206,9 @@ export const TranslationToolInterface = () => {
           
           // Still update modal to show the translation
           updateCurrentTranslation(recoveryEntry.user, recoveryEntry.agent);
+          
+          // Acknowledge the message to prevent retry
+          sessionManager.acknowledgeMessage(messageId);
           
           // Process with buffering for history
           setTimeout(() => {
@@ -1178,6 +1234,9 @@ export const TranslationToolInterface = () => {
             break;
           }
         }
+
+        // Acknowledge the agent message
+        sessionManager.acknowledgeMessage(messageId);
 
         // Immediately update the modal so UI never gets "stuck"
         updateCurrentTranslation(updated[indexToFill].user, updated[indexToFill].agent);
