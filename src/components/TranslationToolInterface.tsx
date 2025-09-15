@@ -2856,6 +2856,9 @@ export const TranslationToolInterface = () => {
         </DialogContent>
       </Dialog>
 
+      </>
+      )}
+
       {/* Translation History Sidebar */}
       {showHistorySidebar && (
         <div className="fixed inset-0 z-50 flex">
@@ -2863,10 +2866,10 @@ export const TranslationToolInterface = () => {
           <TranslationHistorySidebar
             onSessionLoad={handleSessionLoad}
             onClose={() => setShowHistorySidebar(false)}
-             currentSessionId={currentSessionId}
-           />
-         </div>
-       )}
+            currentSessionId={currentSessionId}
+          />
+        </div>
+      )}
       </div>
     );
   };
