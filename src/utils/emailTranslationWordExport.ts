@@ -544,7 +544,9 @@ export const downloadEmailTranslationProof = async (
     const blob = await Packer.toBlob(doc);
     const dateStr = currentDate.toLocaleDateString('en-GB').replace(/\//g, '-');
     const timeStr = currentDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
-    const languageStr = (originalEmail.detectedLanguage || emailReply.targetLanguage || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
+    const detectedLang = originalEmail.detectedLanguage || emailReply.targetLanguage || 'Unknown';
+    const languageName = HEALTHCARE_LANGUAGES.find(lang => lang.code === detectedLang.toLowerCase())?.name || detectedLang;
+    const languageStr = languageName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
     const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     
     saveAs(blob, filename);

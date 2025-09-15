@@ -1,5 +1,6 @@
 import { TranslationEntry } from '@/components/TranslationHistory';
 import { TranslationScore } from './translationScoring';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -395,7 +396,8 @@ export async function downloadPatientDOCX(
     const blob = await Packer.toBlob(doc);
     const dateStr = metadata.sessionDate.toLocaleDateString('en-GB').replace(/\//g, '-');
     const timeStr = metadata.sessionStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
-    const languageStr = metadata.patientLanguage.replace(/[^a-zA-Z0-9]/g, '_');
+    const languageName = HEALTHCARE_LANGUAGES.find(lang => lang.code === metadata.patientLanguage.toLowerCase())?.name || metadata.patientLanguage;
+    const languageStr = languageName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
     const filename = `Notewell_AI_Translation_Audit_${dateStr}_${timeStr}_${languageStr}.docx`;
     saveAs(blob, filename);
     
