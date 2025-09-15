@@ -2961,7 +2961,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                      <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="translation_service_access">Translation Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to NHS translation tool for multilingual patient communication</p>
+                        <p className="text-xs text-muted-foreground">Access to Notewell AI translation tool for multilingual patient communication</p>
                       </div>
                        <Switch
                          id="translation_service_access"

@@ -824,7 +824,7 @@ export const TranslationToolInterface = () => {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('✅ Connected to NHS Translation Service');
+      console.log('✅ Connected to Notewell AI Translation Service');
       toast.success('Connected to Translation Service');
       setError(null);
       
@@ -851,7 +851,7 @@ export const TranslationToolInterface = () => {
       }, 500);
     },
     onDisconnect: () => {
-      console.log('Disconnected from NHS Translation Service');
+      console.log('Disconnected from Notewell AI Translation Service');
       toast.info('Disconnected from Translation Service');
       conversationIdRef.current = null;
       // Close translation modal when disconnected
@@ -1170,7 +1170,7 @@ export const TranslationToolInterface = () => {
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
                 <Languages className="h-8 w-8" />
-                NHS Translation Service for GP Practices
+                Notewell AI Translation Service for GP Practices
               </CardTitle>
               <p className="text-xl text-primary-foreground/90 mt-2">
                 Real-time medical translation for Reception & Clinical Staff

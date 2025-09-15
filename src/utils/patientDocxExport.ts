@@ -22,7 +22,7 @@ const PATIENT_TRANSLATIONS = {
   // English fallback
   en: {
     title: "Your Medical Consultation Translation Record",
-    subtitle: "NHS Translation Service - Patient Copy",
+    subtitle: "Notewell AI Translation Service - Patient Copy",
     practiceInfo: "Practice Information",
     consultationDetails: "Consultation Details",
     date: "Date",
