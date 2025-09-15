@@ -243,6 +243,9 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
           sessionStart: now.toISOString(),
           sessionEnd: now.toISOString(),
           isActive: false,
+          sessionMetadata: {
+            translationType: 'Email Translation' // Specify email translation type
+          }
         },
       });
 

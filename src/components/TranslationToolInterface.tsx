@@ -2559,6 +2559,7 @@ export const TranslationToolInterface = () => {
               translations={translations}
               sessionStart={sessionStart}
               patientLanguage="Multiple Languages"
+              translationType="Live Speech Translation"
               onExportDOCX={handleExportDOCX}
             />
           ) : sessions.length > 0 ? (

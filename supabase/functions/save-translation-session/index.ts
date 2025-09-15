@@ -134,6 +134,7 @@ serve(async (req) => {
       warningCount,
       unsafeCount,
       sessionDuration,
+      translationType: 'Live Speech Translation', // Add translation type
       languages: Array.from(new Set([...patientLanguages, 'english']))
     };
 

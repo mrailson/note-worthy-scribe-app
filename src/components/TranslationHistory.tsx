@@ -38,6 +38,7 @@ interface TranslationHistoryProps {
   translations: TranslationEntry[];
   sessionStart: Date;
   patientLanguage: string;
+  translationType?: string; // Add translation type prop
   onExportDOCX: () => void;
 }
 
@@ -58,6 +59,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   translations,
   sessionStart,
   patientLanguage,
+  translationType = 'Live Speech Translation', // Default value
   onExportDOCX
 }) => {
   const getLanguageName = (code: string) => {
@@ -206,7 +208,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-blue-600" />
@@ -214,6 +216,14 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
               </div>
               <p className="text-lg font-bold text-blue-900">{sessionStart.toLocaleDateString()}</p>
               <p className="text-sm text-muted-foreground">{sessionStart.toLocaleTimeString()}</p>
+            </div>
+
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <FileText className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">Translation Type</span>
+              </div>
+              <p className="text-lg font-bold text-emerald-900">{translationType}</p>
             </div>
             
             <div className="text-center p-3 bg-purple-50 rounded-lg">

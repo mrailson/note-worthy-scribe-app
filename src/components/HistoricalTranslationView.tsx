@@ -284,7 +284,7 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-blue-600" />
@@ -301,6 +301,16 @@ export const HistoricalTranslationView: React.FC<HistoricalTranslationViewProps>
                   new Date(sessionMetadata.sessionStart).toLocaleTimeString() : 
                   'Unknown Time'
                 }
+              </p>
+            </div>
+
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <FileText className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">Translation Type</span>
+              </div>
+              <p className="text-lg font-bold text-emerald-900">
+                {(sessionMetadata as any)?.translationType || 'Live Speech Translation'}
               </p>
             </div>
             
