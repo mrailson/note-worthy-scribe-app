@@ -519,11 +519,9 @@ export const TranslationToolInterface = () => {
       return;
     }
 
-    // LAYER 7: Timestamp-based protection against rapid succession
-    if (currentTimestamp <= lastProcessedTimestamp.current) {
-      console.log('🛡️ DEDUP: BLOCKED - Timestamp collision protection');
-      return;
-    }
+    // LAYER 7: Timestamp-based protection against rapid succession - REMOVED
+    // This was blocking legitimate translations happening within the same second
+    console.log('🛡️ DEDUP: Layer 7 timestamp collision check - DISABLED for better translation capture');
 
     console.log('🛡️ DEDUP: ✅ PASSED all deduplication layers - Processing exchange');
     
