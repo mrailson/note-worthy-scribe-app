@@ -42,30 +42,6 @@ import {
   Mic,
   MicOff
 } from 'lucide-react';
-  Building2,
-  Users,
-  FileText,
-  CircleCheck,
-  AlertTriangle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-  Stethoscope,
-  UserCheck,
-  Globe,
-  History,
-  Download,
-  RotateCcw,
-  Eye,
-  EyeOff,
-  Database,
-  Plus,
-  Mail,
-  Shield,
-  Clock,
-  Mic,
-  MicOff
-} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TranslationHistory from './TranslationHistory';
