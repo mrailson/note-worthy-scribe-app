@@ -44,8 +44,7 @@ export class TranslationDataLossMonitor {
     console.log('🔍 DATA_MONITOR: User message tracked:', {
       messageId,
       sessionId,
-      preview: userMessage.substring(0, 50),
-      totalActive: this.activeConversations.size
+      preview: userMessage.substring(0, 50)
     });
 
     return messageId;
@@ -106,8 +105,8 @@ export class TranslationDataLossMonitor {
   private startMonitoring(): void {
     this.monitoringInterval = setInterval(() => {
       const now = Date.now();
-      const orphanThreshold = 20000; // Reduced to 20 seconds
-      const unprocessedThreshold = 45000; // Reduced to 45 seconds
+      const orphanThreshold = 30000; // 30 seconds
+      const unprocessedThreshold = 60000; // 60 seconds
 
       for (const [messageId, conversation] of this.activeConversations.entries()) {
         const age = now - conversation.timestamp;
@@ -118,8 +117,7 @@ export class TranslationDataLossMonitor {
             messageId,
             userMessage: conversation.userMessage.substring(0, 100),
             ageSeconds: Math.round(age / 1000),
-            sessionId: conversation.sessionId,
-            totalActive: this.activeConversations.size
+            sessionId: conversation.sessionId
           });
 
           this.lostMessages.push({ ...conversation });
@@ -139,8 +137,7 @@ export class TranslationDataLossMonitor {
             userMessage: conversation.userMessage.substring(0, 50),
             agentResponse: conversation.agentResponse.substring(0, 50),
             ageSeconds: Math.round(age / 1000),
-            sessionId: conversation.sessionId,
-            totalActive: this.activeConversations.size
+            sessionId: conversation.sessionId
           });
 
           this.lostMessages.push({ ...conversation });
@@ -150,12 +147,7 @@ export class TranslationDataLossMonitor {
           }
         }
       }
-      
-      console.log('🔍 DATA_MONITOR: Monitoring check completed -', {
-        activeConversations: this.activeConversations.size,
-        lostMessages: this.lostMessages.length
-      });
-    }, 10000); // Check every 10 seconds (more frequent)
+    }, 15000); // Check every 15 seconds
   }
 
   /**
