@@ -1103,6 +1103,20 @@ export const TranslationToolInterface = () => {
         }
 
         if (indexToFill === -1) {
+          // Handle initial agent greeting or handshake without flagging data loss
+          const isInitialGreeting = updated.length === 0 ||
+            /which language/i.test(contentText) ||
+            /translation service/i.test(contentText) ||
+            /ready/i.test(contentText);
+
+          if (isInitialGreeting) {
+            console.log('ℹ️ Initial agent greeting received, not pairing with user message.');
+            // Do not push a recovery entry; simply ignore for history to avoid noise
+            // Optionally surface in UI without affecting history
+            updateCurrentTranslation('[System]', contentText);
+            return updated;
+          }
+
           console.error('🚨 CRITICAL: AI message arrived without a pending user entry. This indicates data loss!');
           console.error('🚨 MISSING_USER_MESSAGE:', {
             aiMessage: contentText.substring(0, 100),
