@@ -675,7 +675,7 @@ We have scheduled you for an extended consultation with Dr. Khan on ${getNextWor
 - Pain management for chronic back and knee pain
 - Specialist referral to refugee mental health services
 - Sleep clinic referral if needed
-- Connection with local refugee support organizations
+- Connection with local refugee support organisations
 - Help with medical documentation for your asylum case if required
 
 **Before Your Appointment:**
@@ -754,7 +754,7 @@ We have arranged a certified Kurdish interpreter for both appointments to ensure
 
 **Additional Support Services:**
 - Kurdish Women's Support Group (meets weekly)
-- Children's trauma counseling with Kurdish-speaking therapists
+- Children's trauma counselling with Kurdish-speaking therapists
 - Family therapy services specializing in refugee families
 - Educational support liaison for school-related difficulties
 
@@ -826,7 +826,7 @@ Given your heart-related symptoms, we have prioritized your case:
 We would also like to assess your family's health needs:
 - Health screening for your wife and three children
 - Educational support coordination for your children
-- Family counseling services with Afghan cultural understanding
+- Family counselling services with Afghan cultural understanding
 
 **Interpreter and Cultural Support:**
 - Dr. Kazemi speaks Pashto fluently, so no interpreter needed for your consultation
@@ -840,8 +840,8 @@ If you experience severe chest pain, difficulty breathing, or feel faint before 
 
 **Additional Services:**
 - Veterans' mental health services (we recognize your military service)
-- Benefits and housing support through refugee organizations
-- Employment guidance programs for former military personnel
+- Benefits and housing support through refugee organisations
+- Employment guidance programmes for former military personnel
 
 Your courage in seeking help demonstrates strong leadership for your family. We are committed to providing comprehensive care that respects your background and honors your service.
 
@@ -901,7 +901,7 @@ We have arranged a certified Tigrinya interpreter for your appointments to ensur
 - Gynecology specialist for menstrual irregularities
 - Women's mental health services with trauma expertise
 - Eritrean community support groups for professional women
-- Career counseling for international educators seeking UK qualification recognition
+- Career counselling for international educators seeking UK qualification recognition
 
 **Cultural Sensitivity:**
 - All female healthcare team for your intimate examinations
@@ -910,7 +910,7 @@ We have arranged a certified Tigrinya interpreter for your appointments to ensur
 - Respect for traditional healing practices alongside medical treatment
 
 **Educational Qualification Support:**
-We can connect you with organizations that help international teachers gain UK teaching qualifications, as we understand how important your profession is to your identity.
+We can connect you with organisations that help international teachers gain UK teaching qualifications, as we understand how important your profession is to your identity.
 
 **Before Your Appointment:**
 - Bring any medical documents from Eritrea if available
