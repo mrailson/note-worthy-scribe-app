@@ -1049,8 +1049,28 @@ export const TranslationToolInterface = () => {
         }
 
         if (indexToFill === -1) {
-          console.warn('⚠️ AI message arrived without a pending user entry. Holding until user message is captured.');
-          // Optionally, you could create a placeholder entry, but we prefer to pair properly
+          console.warn('⚠️ AI message arrived without a pending user entry. Creating recovery entry to prevent loss.');
+          
+          // Create a recovery entry with placeholder user text to ensure AI response isn't lost
+          const recoveryEntry = { 
+            user: '[Recovery: User message not captured]', 
+            agent: contentText 
+          };
+          updated.push(recoveryEntry);
+          
+          // Still update modal to show the translation
+          updateCurrentTranslation(recoveryEntry.user, recoveryEntry.agent);
+          
+          // Process with buffering for history
+          setTimeout(() => {
+            try {
+              console.log('🔍 Processing recovery translation exchange...');
+              processMessageWithBuffering(recoveryEntry.user, recoveryEntry.agent);
+            } catch (error) {
+              console.error('🔥 Recovery processing failed:', error);
+            }
+          }, 200);
+          
           return updated;
         }
 
