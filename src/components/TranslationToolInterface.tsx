@@ -378,33 +378,7 @@ export const TranslationToolInterface = () => {
     // Auto-hide feedback after 3 seconds
     setTimeout(() => setMissedTranslationFeedback(false), 3000);
   };
-  const processTranslationExchange = (userMessage: string, agentResponse: string) => {
-    console.log('🔄 Processing translation exchange...');
-    
-    // Process translation history first (includes modal update)  
-    addToTranslationHistory(userMessage, agentResponse);
-    
-    // Then do quality verification (async, doesn't block modal)
-    verifyConversationQuality(userMessage, agentResponse).catch(error => {
-      console.error('⚠️ Quality verification failed but continuing:', error);
-    });
-  };
-  const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
-    console.log('🔄 Updating current translation for modal display...');
-    
-    const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
-    
-    // Always update current translation for modal, even if we skip other processing
-    if (userMessage.trim().length >= 3 && cleanedResponse.trim().length >= 3) {
-      setCurrentTranslation({
-        englishText: userMessage,
-        translatedText: cleanedResponse,
-        targetLanguage: targetLanguage,
-        timestamp: new Date()
-      });
-      console.log('✅ Current translation updated for modal');
-    }
-  };
+  // Duplicate functions removed after refactor to avoid redeclaration
 
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
@@ -1697,13 +1671,13 @@ export const TranslationToolInterface = () => {
                       {/* Translation Details */}
                       <div className="space-y-3 p-4 rounded border bg-muted/20">
                         <div>
-                          <span className="text-sm font-medium text-muted-foreground">Original ({getLanguageName(qualityScore.sourceLanguage)}):</span>
+                          <span className="text-sm font-medium text-muted-foreground">Original ({getLanguageName(qualityScore.sourceLanguage, HEALTHCARE_LANGUAGES)}):</span>
                           <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.originalPhrase}
                           </div>
                         </div>
                         <div>
-                          <span className="text-sm font-medium text-muted-foreground">Translation ({getLanguageName(qualityScore.targetLanguage)}):</span>
+                          <span className="text-sm font-medium text-muted-foreground">Translation ({getLanguageName(qualityScore.targetLanguage, HEALTHCARE_LANGUAGES)}):</span>
                           <div className="text-lg mt-2 p-3 rounded bg-background border font-medium">
                             {qualityScore.translatedPhrase}
                           </div>
