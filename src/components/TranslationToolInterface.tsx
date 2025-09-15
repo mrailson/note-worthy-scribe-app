@@ -54,6 +54,7 @@ import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
 import { TranslationValidationGuide } from './TranslationValidationGuide';
+import { simplifiedDeduplication } from '@/utils/SimplifiedDeduplication';
 
 interface QualityScore {
   accuracy: number;
@@ -309,17 +310,12 @@ export const TranslationToolInterface = () => {
     };
   };
 
-  // Bulletproof deduplication helper functions
-  const createExchangeId = (userMessage: string, agentResponse: string): string => {
-    const contentHash = btoa(userMessage.trim() + '|||' + agentResponse.trim())
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .substring(0, 16);
-    const timestamp = Math.floor(Date.now() / 1000); // Round to nearest second
-    return `${timestamp}_${contentHash}`;
-  };
-
+  // Simplified content hashing for deduplication
   const createContentHash = (text: string): string => {
-    return btoa(text.trim()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
+    // Include timestamp and sequence to prevent false collisions
+    const timestamp = Date.now();
+    const sequence = translations.length;
+    return btoa(`${text.trim()}_${timestamp}_${sequence}`).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
   };
 
   const isWithinTimeWindow = (timestamp: number, windowMs: number = 2000): boolean => {
@@ -370,10 +366,10 @@ export const TranslationToolInterface = () => {
         bufferTimerRef.current = null;
       }
       
-      // Wait for completion or timeout
+      // Wait for completion or timeout (reduced to 1.5s for faster processing)
       bufferTimerRef.current = window.setTimeout(() => {
         const timeSinceLastProcessing = Date.now() - lastProcessingTimeRef.current;
-        if (timeSinceLastProcessing >= 2800) { // Process if no new messages in ~3s
+        if (timeSinceLastProcessing >= 1400) { // Process if no new messages in ~1.5s
           console.log('⏰ Buffer timeout - processing accumulated message');
           const bufferedMessage = (incompleteMessageBufferRef.current || '').trim();
           setIncompleteMessageBuffer('');
@@ -384,7 +380,7 @@ export const TranslationToolInterface = () => {
             processTranslationExchange(bufferedMessage, agentResponse);
           }
         }
-      }, 3000);
+      }, 1500);
       
       return; // Don't process immediately
     }
@@ -464,7 +460,75 @@ export const TranslationToolInterface = () => {
 
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
-    console.log('🛡️ DEDUP: Starting enhanced deduplication check...');
+    console.log('💬 Processing translation exchange:', {
+      userMessage: userMessage.substring(0, 100),
+      agentResponse: agentResponse.substring(0, 100)
+    });
+    
+    // ALWAYS update current translation first, regardless of other processing
+    updateCurrentTranslation(userMessage, agentResponse);
+    
+    // Use simplified deduplication system
+    const deduplicationResult = simplifiedDeduplication.shouldProcessTranslation(userMessage, agentResponse);
+    
+    if (!deduplicationResult.shouldProcess) {
+      console.log('⏭️ Skipping translation:', deduplicationResult.reason);
+      return;
+    }
+
+    console.log('✅ PROCESSING - Translation passed all checks');
+    
+    // Mark as processed
+    const exchangeId = simplifiedDeduplication.markProcessed(userMessage, agentResponse);
+
+    const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
+    const translationLatency = 1000; // Approximate for AI conversations
+    
+    // Score the translation
+    const translationScore = scoreTranslation(
+      userMessage,
+      cleanedResponse,
+      'en',
+      targetLanguage.toLowerCase(),
+      translationLatency
+    );
+    
+    // Create unique ID with timestamp + sequence + hash
+    const currentTimestamp = Date.now();
+    const sequenceNumber = translations.length;
+    const uniqueId = `${currentTimestamp}_${sequenceNumber}_${createContentHash(userMessage + cleanedResponse)}_${Math.random().toString(36).substring(2, 6)}`;
+    
+    const newTranslation: TranslationEntry = {
+      id: uniqueId,
+      speaker: 'gp',
+      originalText: userMessage,
+      translatedText: cleanedResponse,
+      originalLanguage: 'en',
+      targetLanguage: targetLanguage.toLowerCase(),
+      timestamp: new Date(),
+      accuracy: translationScore.accuracy,
+      confidence: translationScore.confidence,
+      safetyFlag: translationScore.safetyFlag,
+      medicalTermsDetected: translationScore.medicalTermsDetected,
+      translationLatency
+    };
+    
+    console.log('✅ Adding translation with ID:', uniqueId);
+    
+    setTranslations(prev => {
+      const updated = [...prev, newTranslation];
+      console.log('📊 Translation added, total count:', updated.length);
+      return updated;
+    });
+    setTranslationScores(prev => {
+      const updated = [...prev, translationScore];
+      console.log('📊 Translation score added, total count:', updated.length);
+      return updated;
+    });
+
+    // Immediate save with debouncing
+    triggerImmediateSave();
+  };
     
     // ALWAYS update current translation first, regardless of other processing
     updateCurrentTranslation(userMessage, agentResponse);
@@ -527,27 +591,14 @@ export const TranslationToolInterface = () => {
 
     console.log('🛡️ DEDUP: ✅ PASSED all deduplication layers - Processing exchange');
     
-    // Mark this exchange as processed
+    // Mark this exchange as processed (simplified tracking)
     processedExchangeIds.current.add(exchangeId);
-    conversationExchangeMap.current.set(exchangeKey, { 
-      timestamp: Date.now(), 
-      processed: true 
-    });
-    lastProcessedTimestamp.current = currentTimestamp;
-
-    // Clean up old entries to prevent memory bloat (keep last 100)
-    if (processedExchangeIds.current.size > 100) {
+    
+    // Simplified cleanup - keep last 20 entries only
+    if (processedExchangeIds.current.size > 20) {
       const idsArray = Array.from(processedExchangeIds.current);
-      const toRemove = idsArray.slice(0, idsArray.length - 100);
+      const toRemove = idsArray.slice(0, idsArray.length - 20);
       toRemove.forEach(id => processedExchangeIds.current.delete(id));
-    }
-
-    if (conversationExchangeMap.current.size > 50) {
-      const entriesArray = Array.from(conversationExchangeMap.current.entries());
-      const oldEntries = entriesArray
-        .filter(([, data]) => !isWithinTimeWindow(data.timestamp, 30000))
-        .slice(0, 25);
-      oldEntries.forEach(([key]) => conversationExchangeMap.current.delete(key));
     }
 
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
@@ -2806,10 +2857,10 @@ export const TranslationToolInterface = () => {
           <TranslationHistorySidebar
             onSessionLoad={handleSessionLoad}
             onClose={() => setShowHistorySidebar(false)}
-            currentSessionId={currentSessionId}
-          />
-        </div>
-      )}
-    </div>
-  );
+             currentSessionId={currentSessionId}
+           />
+         </div>
+       )}
+      </div>
+    );
 };
