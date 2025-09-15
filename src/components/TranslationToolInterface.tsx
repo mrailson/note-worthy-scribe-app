@@ -57,6 +57,7 @@ import { TranslationValidationGuide } from './TranslationValidationGuide';
 import { useTranslationDeduplication } from '@/hooks/useTranslationDeduplication';
 import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
 import { extractLanguageAndCleanText, getLanguageName } from '@/utils/translationUtils';
+import { HistorySubTabs } from './HistorySubTabs';
 
 interface QualityScore {
   accuracy: number;
