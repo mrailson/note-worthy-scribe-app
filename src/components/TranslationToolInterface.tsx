@@ -457,7 +457,6 @@ export const TranslationToolInterface = () => {
     }
 
     // LAYER 6: State-level deduplication (final check) - STRICT equality matching within short window
-    const currentTimestamp = Math.floor(Date.now() / 1000); // Round to seconds
     const nowMs = Date.now();
     const stateWindowMs = 400; // Reduced to 400ms for only true rapid duplicates
     const isDuplicateInState = translations.some(t => {
