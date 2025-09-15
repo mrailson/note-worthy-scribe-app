@@ -69,7 +69,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {user && (
             <h1 
               className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
-              onClick={() => navigate('/ai4gp')}
+              onClick={() => navigate('/')}
             >
               <span className="hidden sm:inline">Notewell AI</span>
               <span className="sm:hidden">Notewell AI</span>
@@ -80,7 +80,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
               <Button 
-                onClick={() => navigate('/ai4gp')}
+                onClick={() => navigate('/')}
                 variant="secondary"
                 size="sm"
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -323,7 +323,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                          onClick={() => navigate('/ai4gp')}
+                          onClick={() => navigate('/')}
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home

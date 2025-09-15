@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LoginForm } from '@/components/LoginForm';
+import { SimpleLoginForm } from '@/components/SimpleLoginForm';
 import { Header } from '@/components/Header';
 import { MaintenanceBanner } from '@/components/MaintenanceBanner';
 import AI4GPService from '@/components/AI4GPService';
@@ -144,7 +144,7 @@ const AI4GP = () => {
                 Please log in to access the AI4GP service
               </p>
             </div>
-            <LoginForm />
+            <SimpleLoginForm />
           </div>
         </div>
       </div>
