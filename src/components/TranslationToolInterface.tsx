@@ -297,6 +297,20 @@ export const TranslationToolInterface = () => {
     setLastProcessingTime(now);
     lastProcessingTimeRef.current = now;
     
+    // IMMEDIATE PROCESSING: If we have both user and agent messages, bypass buffering
+    if (userMessage.trim() && agentResponse.trim()) {
+      console.log('⚡ Paired message detected - bypassing buffering for immediate processing');
+      const finalBuffered = (incompleteMessageBufferRef.current || '').trim();
+      const finalMessage = finalBuffered ? `${finalBuffered} ${userMessage}`.trim() : userMessage;
+      
+      setIncompleteMessageBuffer('');
+      incompleteMessageBufferRef.current = '';
+      setIsAudioBuffering(false);
+      
+      processTranslationExchange(finalMessage, agentResponse);
+      return;
+    }
+    
     // Check if user message seems incomplete
     if (!isCompleteSentence(userMessage) && userMessage.length < 20) {
       console.log('📝 Message may be incomplete, starting buffer timer...');
@@ -314,10 +328,10 @@ export const TranslationToolInterface = () => {
         bufferTimerRef.current = null;
       }
       
-      // Wait for completion or timeout
+      // Wait for completion or timeout - REDUCED timeouts
       bufferTimerRef.current = window.setTimeout(() => {
         const timeSinceLastProcessing = Date.now() - lastProcessingTimeRef.current;
-        if (timeSinceLastProcessing >= 2800) { // Process if no new messages in ~3s
+        if (timeSinceLastProcessing >= 1000) { // Reduced from 2800ms to 1000ms
           console.log('⏰ Buffer timeout - processing accumulated message');
           const bufferedMessage = (incompleteMessageBufferRef.current || '').trim();
           setIncompleteMessageBuffer('');
@@ -328,7 +342,7 @@ export const TranslationToolInterface = () => {
             processTranslationExchange(bufferedMessage, agentResponse);
           }
         }
-      }, 3000);
+      }, 1200); // Reduced from 3000ms to 1200ms
       
       return; // Don't process immediately
     }
@@ -428,33 +442,33 @@ export const TranslationToolInterface = () => {
     const exchangeKey = createContentHash(userMessage) + '_' + createContentHash(agentResponse);
     const existingExchange = conversationExchangeMap.current.get(exchangeKey);
     
-    if (existingExchange && isWithinTimeWindow(existingExchange.timestamp, 900)) { // Reduced from 3000ms to 900ms
-      console.log('🛡️ DEDUP: BLOCKED - Rapid duplicate exchange within 900ms window:', exchangeKey, {
+    if (existingExchange && isWithinTimeWindow(existingExchange.timestamp, 250)) { // Reduced to 250ms for more precise deduplication
+      console.log('🛡️ DEDUP: BLOCKED - Rapid duplicate exchange within 250ms window:', exchangeKey, {
         timeSinceLastExchange: Date.now() - existingExchange.timestamp,
         userMessage: userMessage.substring(0, 50),
         agentResponse: agentResponse.substring(0, 50)
       });
       return;
     } else if (existingExchange) {
-      console.log('🛡️ DEDUP: Layer 5 PASSED - Exchange outside 900ms window, allowing through:', {
+      console.log('🛡️ DEDUP: Layer 5 PASSED - Exchange outside 250ms window, allowing through:', {
         timeSinceLastExchange: Date.now() - existingExchange.timestamp,
         userMessage: userMessage.substring(0, 50)
       });
     }
 
-    // LAYER 6: State-level deduplication (final check) - RELAXED to recent-window only
+    // LAYER 6: State-level deduplication (final check) - STRICT equality matching within short window
     const currentTimestamp = Math.floor(Date.now() / 1000); // Round to seconds
     const nowMs = Date.now();
-    const stateWindowMs = 700; // Reduced from 1200ms to 700ms for faster acceptance of repeats
+    const stateWindowMs = 400; // Reduced to 400ms for only true rapid duplicates
     const isDuplicateInState = translations.some(t => {
       const ageMs = nowMs - new Date(t.timestamp).getTime();
       if (ageMs > stateWindowMs) return false;
       const originalMatch = t.originalText.trim() === userMessage.trim();
-      const translatedOverlap = t.translatedText.trim().includes(agentResponse.trim().substring(0, 50));
-      if (originalMatch && translatedOverlap) {
-        console.log('🧪 Layer 6 candidate duplicate', { ageMs, stateWindowMs, originalMatch, translatedOverlap });
+      const translatedMatch = t.translatedText.trim() === agentResponse.trim(); // Changed from includes to strict equality
+      if (originalMatch && translatedMatch) {
+        console.log('🧪 Layer 6 exact duplicate found', { ageMs, stateWindowMs, originalMatch, translatedMatch });
       }
-      return originalMatch && translatedOverlap;
+      return originalMatch && translatedMatch;
     });
     
     if (isDuplicateInState) {
