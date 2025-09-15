@@ -138,7 +138,7 @@ export const downloadEmailTranslationProof = async (
           new Paragraph({
             children: [
               new TextRun({
-                text: 'EMAIL TRANSLATION PROOF CERTIFICATE',
+                text: 'Translated Audit & Evidence with Certification',
                 bold: true,
                 size: 28,
                 color: '1F2937'
