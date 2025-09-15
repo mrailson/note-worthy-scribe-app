@@ -464,6 +464,12 @@ export const TranslationToolInterface = () => {
 
   // Add conversation to translation history
   const addToTranslationHistory = (userMessage: string, agentResponse: string) => {
+    console.log('🔍 TRANSLATION ATTEMPT:', {
+      phraseNumber: `PHRASE_${Date.now()}`,
+      userMessage: userMessage.substring(0, 100),
+      agentResponse: agentResponse.substring(0, 100),
+      timestamp: new Date().toLocaleTimeString()
+    });
     console.log('🛡️ DEDUP: Starting enhanced deduplication check...');
     
     // ALWAYS update current translation first, regardless of other processing
@@ -475,15 +481,20 @@ export const TranslationToolInterface = () => {
                            agentResponse.toLowerCase().includes('ready');
     
     if (isLanguageSetup) {
-      console.log('🛡️ DEDUP: Skipping language setup request from history');
+      console.log('❌ BLOCKED: Layer 1 - Language setup request from history');
       return;
     }
+    console.log('✅ PASSED: Layer 1 - Not a language setup request');
 
     // LAYER 2: Skip ultra-short noise only (allow 2+ chars so “ja”, “ok” etc. are kept)
     if (userMessage.trim().length < 2 || agentResponse.trim().length < 2) {
-      console.log('🛡️ DEDUP: Skipping ultra-short noise (<2 chars)');
+      console.log('❌ BLOCKED: Layer 2 - Ultra-short noise (<2 chars)', {
+        userLen: userMessage.trim().length,
+        agentLen: agentResponse.trim().length
+      });
       return;
     }
+    console.log('✅ PASSED: Layer 2 - Content length sufficient');
 
     // LAYER 3: Create unique exchange ID (timestamp + content hash)
     const exchangeId = createExchangeId(userMessage, agentResponse);
