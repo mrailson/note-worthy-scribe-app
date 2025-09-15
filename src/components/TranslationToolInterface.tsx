@@ -669,14 +669,16 @@ export const TranslationToolInterface = () => {
 
     // Set new debounced save
     saveTimeoutRef.current = setTimeout(async () => {
-      if (translations.length > 0) {
+      const currentTranslations = getTranslations();
+      const currentScores = getTranslationScores();
+      if (currentTranslations.length > 0) {
         try {
           setSaveStatus('saving');
-          console.log('💾 Immediate save triggered...', { count: translations.length });
+          console.log('💾 Immediate save triggered...', { count: currentTranslations.length });
           
           await saveSession(
-            getTranslations(),
-            getTranslationScores(),
+            currentTranslations,
+            currentScores,
             sessionStart,
             undefined,
             true
@@ -1003,6 +1005,25 @@ export const TranslationToolInterface = () => {
       // Close translation modal when disconnected
       setIsTranslationModalOpen(false);
       setCurrentTranslation(null);
+
+      // Finalize and persist the session so it appears in Saved Sessions
+      try {
+        const currentTranslations = getTranslations();
+        if (currentTranslations.length > 0) {
+          const sessionEnd = new Date();
+          saveSession(
+            currentTranslations,
+            getTranslationScores(),
+            sessionStart,
+            sessionEnd,
+            false
+          )
+          .then(() => console.log('💾 Final session save on disconnect completed'))
+          .catch((e) => console.error('❌ Final session save failed:', e));
+        }
+      } catch (e) {
+        console.error('❌ Error during final save on disconnect:', e);
+      }
     },
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);

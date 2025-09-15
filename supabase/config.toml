@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.save-translation-session]
 verify_jwt = true
+
+[functions.load-translation-sessions]
+verify_jwt = true
