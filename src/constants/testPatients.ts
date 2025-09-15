@@ -1,3 +1,39 @@
+// Utility function to calculate the next working day (Monday-Friday)
+const getNextWorkingDay = (daysFromNow: number = 1): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  
+  // If it's weekend, move to next Monday
+  while (date.getDay() === 0 || date.getDay() === 6) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+// Utility function to format date for appointment times
+const formatAppointmentDate = (daysFromNow: number = 1): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  
+  // If it's weekend, move to next Monday
+  while (date.getDay() === 0 || date.getDay() === 6) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  const day = date.getDate();
+  const suffix = day % 10 === 1 && day !== 11 ? 'st' : 
+                 day % 10 === 2 && day !== 12 ? 'nd' : 
+                 day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+  
+  return `${day}${suffix} ${date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`;
+};
+
 export interface TestPatient {
   id: string;
   name: string;
@@ -40,7 +76,7 @@ Número de paciente: MG1985`,
 
 Thank you for your request to schedule your annual health check-up and prescription renewals.
 
-We are pleased to offer you an appointment with Dr. Smith on Tuesday, [DATE] at 10:30 AM for your comprehensive annual review. This will include:
+We are pleased to offer you an appointment with Dr. Smith on ${getNextWorkingDay(3)} at 10:30 AM for your comprehensive annual review. This will include:
 - General health examination and blood pressure check
 - Blood tests for cholesterol and kidney function  
 - Review and renewal of your current medications (Lisinopril 10mg, Simvastatin 20mg, and Vitamin D3)
@@ -148,7 +184,7 @@ Following Dr. Johnson's recommendation, we have processed your urgent referral t
 **No additional documents are required** - we have included all relevant information from your consultation with Dr. Johnson.
 
 **Follow-up Appointment:**
-We have also scheduled your 3-month follow-up with Dr. Johnson for [DATE] at [TIME]. You will receive a confirmation text message.
+We have also scheduled your 3-month follow-up with Dr. Johnson for ${getNextWorkingDay(5)} at 2:15 PM. You will receive a confirmation text message.
 
 If you don't receive your dermatology appointment letter within 7 days, please call us immediately on 0207 XXX XXXX.
 
@@ -194,7 +230,7 @@ Thank you for your prescription renewal request. We're pleased to hear that your
 
 **Collection Options:**
 1. **Pharmacy Collection**: Your prescription will be ready for collection from your nominated pharmacy within 48 hours
-2. **Practice Collection**: Available from our reception desk from [DATE]
+2. **Practice Collection**: Available from our reception desk from ${getNextWorkingDay(2)}
 3. **Delivery Service**: We can arrange delivery through our pharmacy partner for a small fee (£3.50)
 
 Please note: Your next routine diabetes review is due in 4 months. Reception will contact you closer to the time to schedule this appointment.
@@ -236,7 +272,7 @@ Patient Number: PS1990`,
 
 Thank you for your inquiry regarding Rahul's recent private consultation billing details.
 
-**Billing Summary for Rahul's Visit ([DATE]):**
+**Billing Summary for Rahul's Visit (${formatAppointmentDate(1)}):**
 - Private consultation fee with Dr. Patel: £150.00
 - Prescription administration: £10.00
 - **Total Amount: £160.00**
@@ -288,7 +324,7 @@ Oak Lane Medical Practice Billing Department`
 Thank you for contacting us about baby Ahmed's symptoms. We understand your concern about his persistent fever and feeding difficulties.
 
 **Urgent Appointment Available:**
-We can offer you an appointment with Dr. Williams tomorrow ([DATE]) at 2:30 PM to assess Ahmed's condition properly. For a 6-month-old with ongoing fever, we prefer to examine babies within 24-48 hours.
+We can offer you an appointment with Dr. Williams tomorrow (${getNextWorkingDay(1)}) at 2:30 PM to assess Ahmed's condition properly. For a 6-month-old with ongoing fever, we prefer to examine babies within 24-48 hours.
 
 **Before Your Visit:**
 - Continue giving infant paracetamol as directed (every 4-6 hours, not exceeding 4 doses in 24 hours)
@@ -338,7 +374,7 @@ Data urodzenia: 22/08/1975`,
 Thank you for contacting us about your back pain concerns. We understand how work-related back injuries can be persistent and concerning.
 
 **Appointment Scheduled:**
-We have arranged an appointment for you with Dr. Thompson on Thursday [DATE] at 3:00 PM. Dr. Thompson specializes in musculoskeletal conditions and will conduct a thorough assessment.
+We have arranged an appointment for you with Dr. Thompson on ${getNextWorkingDay(4)} at 3:00 PM. Dr. Thompson specializes in musculoskeletal conditions and will conduct a thorough assessment.
 
 **Assessment Will Include:**
 - Physical examination of your spine and posture
@@ -388,7 +424,7 @@ Oak Lane Medical Practice`
 Thank you for your concern about Sabina's skin condition. We understand how disruptive persistent itching can be for children and their sleep.
 
 **Appointment Arranged:**
-We have booked Sabina for an appointment with Dr. Ahmed on Monday [DATE] at 4:00 PM. Dr. Ahmed has experience with pediatric dermatology and will be able to properly diagnose the condition.
+We have booked Sabina for an appointment with Dr. Ahmed on ${getNextWorkingDay(2)} at 4:00 PM. Dr. Ahmed has experience with pediatric dermatology and will be able to properly diagnose the condition.
 
 **Likely Conditions to Assess:**
 Given your description and the fact that other school children have similar symptoms, Dr. Ahmed will examine for:
@@ -442,10 +478,10 @@ Data de nascimento: 14/06/1982`,
 Thank you for contacting us regarding your recent symptoms. Given your family history and the symptoms you've described, we agree that prompt assessment is important.
 
 **Urgent Appointment Arranged:**
-We have scheduled you for an appointment with Dr. Martinez on Friday [DATE] at 5:30 PM. The symptoms you describe (excessive thirst, frequent urination, weight loss, fatigue) do require investigation for diabetes.
+We have scheduled you for an appointment with Dr. Martinez on ${getNextWorkingDay(5)} at 5:30 PM. The symptoms you describe (excessive thirst, frequent urination, weight loss, fatigue) do require investigation for diabetes.
 
 **Blood Tests Required:**
-Please attend our practice on Thursday [DATE] at 8:00 AM (fasting for 12 hours) for the following tests:
+Please attend our practice on ${getNextWorkingDay(3)} at 8:00 AM (fasting for 12 hours) for the following tests:
 - Fasting glucose and HbA1c (diabetes screening)
 - Full blood count and kidney function
 - Cholesterol profile
@@ -499,7 +535,7 @@ Doğum tarihi: 23/04/1974`,
 Thank you for contacting us about your menopause symptoms. We completely understand how disruptive these symptoms can be to your daily life and work.
 
 **Appointment Scheduled:**
-We have arranged a comprehensive menopause consultation with Dr. Roberts on Wednesday [DATE] at 2:00 PM. Dr. Roberts specializes in women's health and hormone replacement therapy (HRT).
+We have arranged a comprehensive menopause consultation with Dr. Roberts on ${getNextWorkingDay(3)} at 2:00 PM. Dr. Roberts specializes in women's health and hormone replacement therapy (HRT).
 
 **Your Consultation Will Cover:**
 - Full assessment of your menopausal symptoms
@@ -558,7 +594,7 @@ Data nașterii mea: 30/08/1985`,
 Thank you for reaching out about your mother's deteriorating condition. As a healthcare worker yourself, we understand how challenging it must be to witness these changes in your mother while managing her care.
 
 **Urgent Assessment Arranged:**
-We have scheduled an urgent home visit with Dr. Patel and our community psychiatric nurse on Thursday [DATE] at 10:00 AM. Given your mother's increased confusion and falls risk, a home assessment will be more appropriate than bringing her to the surgery.
+We have scheduled an urgent home visit with Dr. Patel and our community psychiatric nurse on ${getNextWorkingDay(2)} at 10:00 AM. Given your mother's increased confusion and falls risk, a home assessment will be more appropriate than bringing her to the surgery.
 
 **The Assessment Will Include:**
 - Review of current medications and possible adjustments
@@ -627,7 +663,7 @@ Oak Lane Medical Practice Elderly Care Team`
 Thank you for registering with our practice and for sharing your health concerns with us. We understand the significant challenges you're facing both physically and mentally, and we want to provide comprehensive care to help you.
 
 **Urgent Appointment Arranged:**
-We have scheduled you for an extended consultation with Dr. Khan on Tuesday [DATE] at 9:00 AM. Dr. Khan speaks Farsi and has experience working with refugees and asylum seekers, so you won't need an interpreter.
+We have scheduled you for an extended consultation with Dr. Khan on ${getNextWorkingDay(2)} at 9:00 AM. Dr. Khan speaks Farsi and has experience working with refugees and asylum seekers, so you won't need an interpreter.
 
 **Your Assessment Will Include:**
 - Full physical examination for your back, knee, and headache concerns
@@ -699,8 +735,8 @@ Thank you for trusting us with your and your children's health concerns. We unde
 
 **Family Assessment Arranged:**
 We have scheduled appointments for your entire family:
-- **You**: Thursday [DATE] at 2:00 PM with Dr. Sarah Ahmed (female doctor who works extensively with Kurdish families)
-- **Your children**: Friday [DATE] at 10:00 AM with our pediatric specialist Dr. Williams
+- **You**: ${getNextWorkingDay(2)} at 2:00 PM with Dr. Sarah Ahmed (female doctor who works extensively with Kurdish families)
+- **Your children**: ${getNextWorkingDay(3)} at 10:00 AM with our pediatric specialist Dr. Williams
 
 **Interpreter Services:**
 We have arranged a certified Kurdish interpreter for both appointments to ensure clear communication about all your concerns.
@@ -776,8 +812,8 @@ Thank you for entrusting us with your health concerns. We understand the signifi
 
 **Urgent Cardiac Assessment Arranged:**
 Given your heart-related symptoms, we have prioritized your case:
-- **Emergency ECG and Blood Tests**: Monday [DATE] at 8:00 AM
-- **Consultation with Dr. Mohammad Kazemi**: Monday [DATE] at 10:00 AM (male doctor, speaks Pashto)
+- **Emergency ECG and Blood Tests**: ${getNextWorkingDay(1)} at 8:00 AM
+- **Consultation with Dr. Mohammad Kazemi**: ${getNextWorkingDay(1)} at 10:00 AM (male doctor, speaks Pashto)
 
 **Your Assessment Will Include:**
 - Comprehensive cardiac examination and ECG
@@ -850,7 +886,7 @@ Oak Lane Medical Practice Veterans & Refugee Health Team`
 Thank you for sharing your health concerns with us. We deeply respect your background as an educator and understand the challenges you're facing in adapting to life in the UK.
 
 **Comprehensive Women's Health Assessment Arranged:**
-We have scheduled you with Dr. Fatima Al-Zahra (female specialist) on Wednesday [DATE] at 11:00 AM, with follow-up appointments as needed.
+We have scheduled you with Dr. Fatima Al-Zahra (female specialist) on ${getNextWorkingDay(2)} at 11:00 AM, with follow-up appointments as needed.
 
 **Your Assessment Will Include:**
 - Gynecological examination for heavy menstrual bleeding and abdominal pain
@@ -885,5 +921,68 @@ Your courage in seeking help while maintaining your dignity and cultural values 
 
 Best regards,
 Oak Lane Medical Practice Women's Health & Cultural Services Team`
+  },
+  {
+    id: '16',
+    name: 'Cerys Williams',
+    language: 'Welsh',
+    languageCode: 'cy',
+    email: 'cerys.williams@email.com',
+    request: `Annwyl Oak Lane Medical Practice,
+
+Cerys Williams ydw i, ac rwy'n glaf cofrestredig ers dwy flynedd. Rwy'n ysgrifennu i ofyn am apwyntiad brys i drafod symptomau rwy'n eu cael ers pythefnos.
+
+Mae gen i boen cyson yn fy mol sy'n gwaethygu, yn enwedig ar ôl bwyta. Rwy hefyd wedi sylwi ar y canlynol:
+- Cyfog a theimlo'n sâl yn y bore
+- Colli pwysau heb geisio gwneud (tua 5kg yn y mis diwethaf)
+- Blinder mawr - prin yn gallu cwblhau fy ngwaith fel nyrs
+- Croen melyn ac wedi mynd yn dywyll o amgylch fy llygaid
+
+Mae hyn yn fy mhoeni'n fawr gan fod fy mam-gu wedi cael canser yr afu/iau. Rwy'n gweithio fel nyrs yn yr ysbyty lleol ac yn adnabod yr arwyddion hyn.
+
+A allwch chi drefnu apwyntiad brys yr wythnos hon os gwelwch yn dda? Rwy'n barod i ddod unrhyw amser. Mae angen i mi gael prawf gwaed a sgan os yw'n bosibl.
+
+Rwy hefyd angen tystysgrif salwch ar gyfer y gwaith gan mod i wedi bod yn absennol ers dau ddiwrnod oherwydd y symptomau.
+
+Fy rhif ffôn: 07678 345123
+
+Diolch yn fawr,
+Cerys Williams
+Dyddiad geni: 12/04/1988
+Rhif claf: CW1988`,
+    englishReply: `Dear Ms Williams,
+
+Thank you for contacting us urgently about your concerning symptoms. Given your nursing background, we take your clinical concerns very seriously, and your symptoms do require immediate investigation.
+
+**Urgent Assessment Arranged:**
+We have prioritized your case and arranged:
+- **Emergency blood tests and liver function**: ${getNextWorkingDay(1)} at 7:30 AM (fasting required)
+- **Urgent consultation with Dr. Evans**: ${getNextWorkingDay(1)} at 9:00 AM
+- **Abdominal ultrasound scan**: ${getNextWorkingDay(2)} at 11:00 AM (arranged directly)
+
+**Your Assessment Will Include:**
+- Comprehensive examination for abdominal pain and weight loss
+- Urgent liver function tests, full blood count, and tumor markers
+- Assessment for jaundice and any abdominal masses
+- Discussion of family history and immediate referral pathways if needed
+
+**Before Your Appointment:**
+- No food or drink after 8:00 PM tonight (water allowed until midnight)
+- Bring a list of all medications and supplements
+- Note any changes in urine/bowel habits
+- Bring your staff ID for medical professional courtesy
+
+**Immediate Action:**
+Given your symptoms (jaundice, weight loss, abdominal pain, family history), we are arranging potential urgent referral to gastroenterology/hepatology under the 2-week cancer pathway, pending your test results.
+
+**Sick Note:**
+We will provide a medical certificate backdated to cover your absence and extend as needed pending investigation results.
+
+**Important:** If you develop severe abdominal pain, vomiting, or feel unwell before your appointment, please attend A&E immediately or call 999.
+
+As a fellow healthcare professional, we appreciate your vigilance in seeking prompt medical attention. We will ensure you receive priority care and keep you fully informed throughout the diagnostic process.
+
+Best regards,
+Oak Lane Medical Practice Emergency Assessment Team`
   }
 ];
