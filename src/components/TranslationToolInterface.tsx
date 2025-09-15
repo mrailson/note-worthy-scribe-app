@@ -495,13 +495,22 @@ export const TranslationToolInterface = () => {
       return;
     }
 
-    // LAYER 5: Check conversation exchange map for rapid duplicates (debouncing)
+    // LAYER 5: Check conversation exchange map for rapid duplicates (debouncing) - RELAXED
     const exchangeKey = createContentHash(userMessage) + '_' + createContentHash(agentResponse);
     const existingExchange = conversationExchangeMap.current.get(exchangeKey);
     
-    if (existingExchange && isWithinTimeWindow(existingExchange.timestamp, 3000)) {
-      console.log('🛡️ DEDUP: BLOCKED - Rapid duplicate exchange within 3s window:', exchangeKey);
+    if (existingExchange && isWithinTimeWindow(existingExchange.timestamp, 900)) { // Reduced from 3000ms to 900ms
+      console.log('🛡️ DEDUP: BLOCKED - Rapid duplicate exchange within 900ms window:', exchangeKey, {
+        timeSinceLastExchange: Date.now() - existingExchange.timestamp,
+        userMessage: userMessage.substring(0, 50),
+        agentResponse: agentResponse.substring(0, 50)
+      });
       return;
+    } else if (existingExchange) {
+      console.log('🛡️ DEDUP: Layer 5 PASSED - Exchange outside 900ms window, allowing through:', {
+        timeSinceLastExchange: Date.now() - existingExchange.timestamp,
+        userMessage: userMessage.substring(0, 50)
+      });
     }
 
     // LAYER 6: State-level deduplication (final check against existing translations)
