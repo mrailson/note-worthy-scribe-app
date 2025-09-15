@@ -89,6 +89,13 @@ export const useTranslationHistory = () => {
 
       if (error) throw error;
 
+      console.log('📊 Sessions loaded:', {
+        sessionsCount: data?.sessions?.length || 0,
+        totalCount: data?.totalCount || 0,
+        hasMore: data?.hasMore || false,
+        sessions: data?.sessions
+      });
+
       setSessions(data.sessions || []);
       setTotalCount(data.totalCount || 0);
       setHasMore(data.hasMore || false);

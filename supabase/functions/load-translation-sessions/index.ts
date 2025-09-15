@@ -14,17 +14,25 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('No authorization header provided')
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    // Create client with user's JWT (this will respect RLS)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    })
+
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError) {
       console.error('Auth error:', authError)
@@ -64,7 +72,7 @@ serve(async (req) => {
         is_protected,
         is_active
       `)
-      .eq('user_id', user.id)
+      // RLS will automatically filter by user_id
       .order('created_at', { ascending: false })
 
     // Apply filters
@@ -95,7 +103,7 @@ serve(async (req) => {
     let countQuery = supabase
       .from('translation_sessions')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      // RLS will automatically filter by user_id
 
     if (flaggedOnly) {
       countQuery = countQuery.eq('is_flagged', true)
