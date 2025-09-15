@@ -120,7 +120,10 @@ export const TranslationToolInterface = () => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const conversationIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  // Refs to ensure buffering never "loses" latest state
+  const lastProcessingTimeRef = useRef<number>(0);
+  const incompleteMessageBufferRef = useRef<string>('');
+  const bufferTimerRef = useRef<number | null>(null);
   // Reset functionality state
   const [resetClickCount, setResetClickCount] = useState(0);
   const [isResetting, setIsResetting] = useState(false);
@@ -307,6 +310,7 @@ export const TranslationToolInterface = () => {
     
     const now = Date.now();
     setLastProcessingTime(now);
+    lastProcessingTimeRef.current = now;
     
     // Check if user message seems incomplete
     if (!isCompleteSentence(userMessage) && userMessage.length < 20) {
@@ -315,19 +319,27 @@ export const TranslationToolInterface = () => {
       setIncompleteMessageBuffer(prev => {
         const combined = prev ? `${prev} ${userMessage}` : userMessage;
         console.log('📝 Buffering message:', combined);
+        incompleteMessageBufferRef.current = combined;
         return combined;
       });
       
+      // Reset any existing timer
+      if (bufferTimerRef.current) {
+        clearTimeout(bufferTimerRef.current);
+        bufferTimerRef.current = null;
+      }
+      
       // Wait for completion or timeout
-      setTimeout(() => {
-        const timeSinceLastProcessing = Date.now() - lastProcessingTime;
-        if (timeSinceLastProcessing >= 2800) { // Process if no new messages in 3s
+      bufferTimerRef.current = window.setTimeout(() => {
+        const timeSinceLastProcessing = Date.now() - lastProcessingTimeRef.current;
+        if (timeSinceLastProcessing >= 2800) { // Process if no new messages in ~3s
           console.log('⏰ Buffer timeout - processing accumulated message');
-          const bufferedMessage = incompleteMessageBuffer;
+          const bufferedMessage = (incompleteMessageBufferRef.current || '').trim();
           setIncompleteMessageBuffer('');
+          incompleteMessageBufferRef.current = '';
           setIsAudioBuffering(false);
           
-          if (bufferedMessage.trim()) {
+          if (bufferedMessage) {
             processTranslationExchange(bufferedMessage, agentResponse);
           }
         }
@@ -337,11 +349,11 @@ export const TranslationToolInterface = () => {
     }
     
     // Process complete message (including any buffered content)
-    const finalMessage = incompleteMessageBuffer ? 
-                        `${incompleteMessageBuffer} ${userMessage}`.trim() : 
-                        userMessage;
+    const finalBuffered = (incompleteMessageBufferRef.current || '').trim();
+    const finalMessage = finalBuffered ? `${finalBuffered} ${userMessage}`.trim() : userMessage;
     
     setIncompleteMessageBuffer('');
+    incompleteMessageBufferRef.current = '';
     setIsAudioBuffering(false);
     
     processTranslationExchange(finalMessage, agentResponse);
@@ -995,87 +1007,89 @@ export const TranslationToolInterface = () => {
     onMessage: (message) => {
       console.log('📨 Translation message received:', message);
       
-      // BULLETPROOF DEDUPLICATION - Message Level
-      const messageContent = message.message || '';
-      const messageSource = message.source || '';
-      // Fixed: Remove timestamp from messageId to allow proper deduplication
-      const messageId = createContentHash(messageContent + messageSource);
+      // Normalize incoming fields from ElevenLabs
+      const contentText: string = (message?.message || message?.text || message?.content?.text || '').toString();
+      const rawSource: string = (message?.source || message?.role || message?.sender || '').toString().toLowerCase();
+      const source: 'user' | 'ai' = /^(ai|agent|assistant)$/.test(rawSource) ? 'ai' : 'user';
+
+      if (!contentText) {
+        console.log('⚠️ Empty content in message payload, skipping');
+        return;
+      }
       
-      // Check if we've already processed this exact message recently
+      // Message-level deduplication
+      const messageId = createContentHash(contentText + source);
       if (processedMessageIds.current.has(messageId)) {
         console.log('🛡️ MSG_DEDUP: BLOCKED - Message already processed:', messageId.substring(0, 8));
         return;
       }
-
-      // Mark this message as processed
       processedMessageIds.current.add(messageId);
       
       // Capture and verify conversations for quality assurance
-      if (message.message && message.source) {
-        console.log('🎯 Translation message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
-        
-        const newEntry = {
-          user: message.source === 'user' ? message.message : '',
-          agent: message.source === 'ai' ? message.message : ''
-        };
-        
-        setConversationBuffer(prev => {
-          const updated = [...prev];
-          if (message.source === 'user') {
-            console.log('👤 User message captured:', message.message.substring(0, 50) + '...');
-            updated.push(newEntry);
-          } else if (message.source === 'ai' && updated.length > 0) {
-            console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
-            updated[updated.length - 1].agent = message.message;
-            
-            // Trigger verification for the complete exchange with improved error handling
-            const lastExchange = updated[updated.length - 1];
-            if (lastExchange.user && lastExchange.agent) {
-              console.log('🔄 Triggering verification for complete exchange');
-              
-              // Create exchange key for this specific conversation pair
-              const exchangeVerificationKey = createContentHash(lastExchange.user + lastExchange.agent);
-              
-              // Check if we've already processed this exact exchange for verification
-              const existingVerification = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
-              if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 10000)) {
-                console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange in last 10s');
-                return updated;
-              }
+      console.log('🎯 Translation message - Source:', source, 'Content:', contentText.substring(0, 50) + '...');
+      
+      setConversationBuffer(prev => {
+        const updated = [...prev];
 
-              // Mark this exchange as being verified with improved tracking
-              conversationExchangeMap.current.set(exchangeVerificationKey + '_verification', {
-                timestamp: Date.now(),
-                processed: false // Will be set to true when verification completes
-              });
-
-              // Use setTimeout with better error handling
-              setTimeout(async () => {
-                try {
-                  console.log('🔍 Processing translation exchange with enhanced buffering...');
-                  
-                  // Use enhanced processing with buffering
-                  processMessageWithBuffering(lastExchange.user, lastExchange.agent);
-                  
-                  // Mark as successfully processed
-                  const entry = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
-                  if (entry) {
-                    entry.processed = true;
-                  }
-                } catch (error) {
-                  console.error('🔥 Verification failed for exchange:', error);
-                  // Remove failed entry to allow retry
-                  conversationExchangeMap.current.delete(exchangeVerificationKey + '_verification');
-                  toast.error('Translation quality check failed - will retry on next message');
-                }
-              }, 200);
-            }
-          }
+        if (source === 'user') {
+          console.log('👤 User message captured:', contentText.substring(0, 50) + '...');
+          updated.push({ user: contentText, agent: '' });
           return updated;
-        });
-      } else {
-        console.log('⚠️ Translation message missing data - message:', !!message.message, 'source:', message.source);
-      }
+        }
+
+        // Source is AI/agent
+        // Find the most recent entry with a user but no agent yet
+        let indexToFill = -1;
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].user && !updated[i].agent) {
+            indexToFill = i;
+            break;
+          }
+        }
+
+        if (indexToFill === -1) {
+          console.warn('⚠️ AI message arrived without a pending user entry. Holding until user message is captured.');
+          // Optionally, you could create a placeholder entry, but we prefer to pair properly
+          return updated;
+        }
+
+        console.log('🤖 AI response captured:', contentText.substring(0, 50) + '...');
+        updated[indexToFill].agent = contentText;
+
+        // Immediately update the modal so UI never gets "stuck"
+        updateCurrentTranslation(updated[indexToFill].user, updated[indexToFill].agent);
+
+        // Prepare verification + history processing with buffering
+        const lastExchange = updated[indexToFill];
+        if (lastExchange.user && lastExchange.agent) {
+          const exchangeVerificationKey = createContentHash(lastExchange.user + lastExchange.agent);
+          const existingVerification = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
+          if (existingVerification && isWithinTimeWindow(existingVerification.timestamp, 10000)) {
+            console.log('🛡️ EXCHANGE_DEDUP: BLOCKED - Verification already done for this exchange in last 10s');
+            return updated;
+          }
+
+          conversationExchangeMap.current.set(exchangeVerificationKey + '_verification', {
+            timestamp: Date.now(),
+            processed: false
+          });
+
+          setTimeout(() => {
+            try {
+              console.log('🔍 Processing translation exchange with enhanced buffering...');
+              processMessageWithBuffering(lastExchange.user, lastExchange.agent);
+              const entry = conversationExchangeMap.current.get(exchangeVerificationKey + '_verification');
+              if (entry) entry.processed = true;
+            } catch (error) {
+              console.error('🔥 Verification failed for exchange:', error);
+              conversationExchangeMap.current.delete(exchangeVerificationKey + '_verification');
+              toast.error('Translation quality check failed - will retry on next message');
+            }
+          }, 200);
+        }
+
+        return updated;
+      });
     },
     onError: (error) => {
       console.error('Translation conversation error:', error);
