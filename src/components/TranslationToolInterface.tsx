@@ -131,6 +131,9 @@ export const TranslationToolInterface = () => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const conversationIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const lastVolumeRef = useRef(0.8);
 
   // Custom hooks
   const {
@@ -415,6 +418,12 @@ export const TranslationToolInterface = () => {
 
   const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
     console.log('🔄 Updating current translation for modal display...');
+    
+    // Respect mic mute: do not update the live modal when input is muted
+    if (isMicMuted) {
+      console.log('🎙️ Mic muted - skipping modal update');
+      return;
+    }
     
     const { language: targetLanguage, cleanText: cleanedResponse } = extractLanguageAndCleanText(agentResponse);
     
@@ -957,6 +966,10 @@ export const TranslationToolInterface = () => {
 
   // Text-to-speech function for repeating phrases
   const repeatTranslatedPhrase = async (text: string, language: string) => {
+    if (isSpeakerMuted) {
+      toast.info('Speaker is muted');
+      return;
+    }
     if (isSpeaking) {
       toast.info('Already speaking, please wait...');
       return;
@@ -1281,8 +1294,12 @@ export const TranslationToolInterface = () => {
       // Enhanced audio setup to prevent cutouts
       setTimeout(() => {
         console.log('🔊 Setting optimal volume and audio configuration...');
-        conversation.setVolume({ volume: 0.8 });
-        
+        if (!isSpeakerMuted) {
+          conversation.setVolume({ volume: 0.8 });
+          lastVolumeRef.current = 0.8;
+        } else {
+          conversation.setVolume({ volume: 0 });
+        }
         // Additional audio context resume (for safety)
         try {
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -1303,10 +1320,7 @@ export const TranslationToolInterface = () => {
       // Notify session manager of disconnection
       sessionManager.onSessionDisconnect();
       
-      // Close translation modal when disconnected
-      setIsTranslationModalOpen(false);
-      setCurrentTranslation(null);
-
+      // Keep modal open and retain last translation on disconnect as requested
       // Finalize and persist the session so it appears in Saved Sessions
       try {
         const currentTranslations = getTranslations();
@@ -1640,6 +1654,36 @@ export const TranslationToolInterface = () => {
     } catch (err: any) {
       console.error('Failed to end translation service:', err);
     }
+  };
+  
+  // Audio controls for modal header
+  const toggleSpeakerMute = async () => {
+    try {
+      if (isSpeakerMuted) {
+        await conversation.setVolume({ volume: lastVolumeRef.current || 0.8 });
+        setIsSpeakerMuted(false);
+        toast.success('Speaker unmuted');
+      } else {
+        await conversation.setVolume({ volume: 0 });
+        setIsSpeakerMuted(true);
+        toast.info('Speaker muted');
+      }
+    } catch (e) {
+      console.error('Failed to toggle speaker mute:', e);
+      toast.error('Unable to toggle speaker');
+    }
+  };
+
+  const toggleMicMute = () => {
+    setIsMicMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        toast.info('Microphone muted');
+      } else {
+        toast.success('Microphone unmuted');
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -2919,7 +2963,7 @@ export const TranslationToolInterface = () => {
                         size="sm" 
                         className="h-8 w-8 p-0 hover:bg-muted"
                         onClick={() => {
-                          // Add pause functionality here
+                          // TODO: Implement pause functionality (non-blocking)
                           toast.info('Translation paused');
                         }}
                       >
@@ -2955,16 +2999,14 @@ export const TranslationToolInterface = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={() => {
-                          // Add mute functionality here
-                          toast.info('Microphone muted');
-                        }}
+                        onClick={toggleMicMute}
+                        aria-label={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                       >
-                        <MicOff className="w-4 h-4" />
+                        <MicOff className={`w-4 h-4 ${isMicMuted ? 'text-muted-foreground' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="z-[110]">
-                      <p>Mute microphone</p>
+                      <p>{isMicMuted ? 'Unmute microphone' : 'Mute microphone'}</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -2975,16 +3017,14 @@ export const TranslationToolInterface = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={() => {
-                          // Add speaker mute functionality here
-                          toast.info('Speaker muted');
-                        }}
+                        onClick={toggleSpeakerMute}
+                        aria-label={isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}
                       >
-                        <VolumeX className="w-4 h-4" />
+                        <VolumeX className={`w-4 h-4 ${isSpeakerMuted ? 'text-muted-foreground' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="z-[110]">
-                      <p>Mute speaker output</p>
+                      <p>{isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

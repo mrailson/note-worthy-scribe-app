@@ -80,7 +80,7 @@ export const useTranslationService = () => {
 
       if (error) throw error;
 
-      const audio = new HTMLAudioElement();
+      const audio = new Audio();
       audio.src = data.audioUrl;
       currentAudioRef.current = audio;
 
@@ -128,7 +128,7 @@ export const useTranslationService = () => {
 
       if (error) throw error;
 
-      const audio = new HTMLAudioElement();
+      const audio = new Audio();
       audio.src = data.audioUrl;
       
       audio.onended = () => {

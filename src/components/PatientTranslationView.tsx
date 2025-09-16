@@ -302,9 +302,9 @@ export const PatientTranslationView = ({
                     >
                       {translation.speaker}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {translation.timestamp.toLocaleTimeString()}
-                    </span>
+                     <span className="text-xs text-muted-foreground">
+                       {translation.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                     </span>
                   </div>
                   
                   <div className="grid gap-3">
