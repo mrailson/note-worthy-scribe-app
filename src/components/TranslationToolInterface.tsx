@@ -2858,28 +2858,40 @@ export const TranslationToolInterface = () => {
                 <p className="text-3xl text-green-900 leading-relaxed">
                   {currentTranslation.translatedText}
                 </p>
-                <Button
-                  onClick={() =>
-                    repeatTranslatedPhrase(
-                      currentTranslation.translatedText,
-                      currentTranslation.targetLanguage
-                    )
-                  }
-                  className="px-8 py-3 text-lg mt-6"
-                  disabled={isSpeaking}
-                >
-                  {isSpeaking ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Playing...
-                    </>
-                  ) : (
-                    <>
-                      <Languages className="w-5 h-5 mr-2" />
-                      Repeat Phrase
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    onClick={() =>
+                      repeatTranslatedPhrase(
+                        currentTranslation.translatedText,
+                        currentTranslation.targetLanguage
+                      )
+                    }
+                    className="px-8 py-3 text-lg"
+                    disabled={isSpeaking}
+                  >
+                    {isSpeaking ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Playing...
+                      </>
+                    ) : (
+                      <>
+                        <Languages className="w-5 h-5 mr-2" />
+                        Repeat Phrase
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    onClick={handleExportDOCX}
+                    variant="outline"
+                    className="px-8 py-3 text-lg"
+                    disabled={translations.length === 0}
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    Download Transcript
+                  </Button>
+                </div>
               </div>
             </div>
           )}
