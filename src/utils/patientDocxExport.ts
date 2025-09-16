@@ -244,15 +244,17 @@ export async function downloadPatientDOCX(
         heading: HeadingLevel.HEADING_2
       }),
       
-      ...(metadata.practiceName ? [
-        new Paragraph({ children: [new TextRun(`${metadata.practiceName}`)] })
-      ] : []),
+      new Paragraph({ children: [new TextRun(`${metadata.practiceName || 'NHS GP Practice'}`)] }),
       ...(metadata.practiceAddress ? [
         new Paragraph({ children: [new TextRun(`${metadata.practiceAddress}`)] })
-      ] : []),
+      ] : [
+        new Paragraph({ children: [new TextRun('Contact your practice for address details')] })
+      ]),
       ...(metadata.practicePhone ? [
         new Paragraph({ children: [new TextRun(`${metadata.practicePhone}`)] })
-      ] : []),
+      ] : [
+        new Paragraph({ children: [new TextRun('Contact your practice for phone details')] })
+      ]),
       
       new Paragraph({ text: "" }), // Empty line
       
@@ -309,7 +311,7 @@ export async function downloadPatientDOCX(
       children.push(
         new Paragraph({
           children: [
-            new TextRun({ text: `${t.translated}: `, bold: true, color: "006600" }),
+            new TextRun({ text: `${HEALTHCARE_LANGUAGES.find(lang => lang.code === patientLanguage)?.name || patientLanguage} (${t.translated}): `, bold: true, color: "006600" }),
             new TextRun({ text: translation.translatedText, color: "333333" })
           ]
         })

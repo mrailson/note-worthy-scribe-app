@@ -57,6 +57,7 @@ import { TranslationHistorySidebar } from './TranslationHistorySidebar';
 import { HistoricalTranslationView } from './HistoricalTranslationView';
 import { EmailHandler } from './EmailHandler';
 import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, TranslationScore as HistoryTranslationScore } from '@/hooks/useTranslationHistory';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
@@ -186,6 +187,9 @@ export const TranslationToolInterface = () => {
   const [isEmailingPatient, setIsEmailingPatient] = useState(false);
   const lastVolumeRef = useRef(0.8);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
+  
+  // User profile hook
+  const { profile } = useUserProfile();
 
   // Custom hooks
   const {
@@ -1966,6 +1970,23 @@ export const TranslationToolInterface = () => {
           <div style="font-size: 12px; color: #666; margin-bottom: 20px;">Automated Translation Session Documentation</div>
         </div>
 
+        <!-- Practice Information -->
+        <div style="margin: 20px 0;">
+          <h3 style="font-size: 14px; font-weight: bold; color: #005EB8; margin: 25px 0 10px 0; border-bottom: 2px solid #005EB8; padding-bottom: 5px;">Practice Information</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd;">
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; font-weight: bold; color: #005EB8; width: 25%;">Practice Name</th>
+              <td style="border: 1px solid #ddd; padding: 8px;">${metadata.practiceName || 'NHS GP Practice'}</td>
+              <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; font-weight: bold; color: #005EB8; width: 25%;">Contact</th>
+              <td style="border: 1px solid #ddd; padding: 8px;">${metadata.practicePhone || 'Contact your practice for phone details'}</td>
+            </tr>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; font-weight: bold; color: #005EB8;">Address</th>
+              <td colspan="3" style="border: 1px solid #ddd; padding: 8px;">${metadata.practiceAddress || 'Contact your practice for address details'}</td>
+            </tr>
+          </table>
+        </div>
+
         <!-- Session Information -->
         <div style="margin: 20px 0;">
           <h3 style="font-size: 14px; font-weight: bold; color: #005EB8; margin: 25px 0 10px 0; border-bottom: 2px solid #005EB8; padding-bottom: 5px;">Session Information</h3>
@@ -2038,7 +2059,7 @@ export const TranslationToolInterface = () => {
                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 8%;">Time</th>
                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 8%;">Speaker</th>
                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 35%;">Original Text</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 35%;">Translation</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 35%;">Translation (${metadata.patientLanguage})</th>
                 <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 9%;">Languages</th>
               </tr>
             </thead>
@@ -2114,6 +2135,14 @@ export const TranslationToolInterface = () => {
         return;
       }
 
+      // Fetch practice details
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('user_id', user?.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
       // Create session metadata for email
       const sessionMetadata = {
         sessionDate: new Date(),
@@ -2127,7 +2156,11 @@ export const TranslationToolInterface = () => {
         averageAccuracy: translationScores.length > 0 ? 
           Math.round(translationScores.reduce((sum, score) => sum + score.accuracy, 0) / translationScores.length) : 100,
         averageConfidence: translationScores.length > 0 ? 
-          Math.round(translationScores.reduce((sum, score) => sum + score.confidence, 0) / translationScores.length) : 100
+          Math.round(translationScores.reduce((sum, score) => sum + score.confidence, 0) / translationScores.length) : 100,
+        // Add practice details from database
+        practiceName: practiceData?.practice_name || 'NHS GP Practice',
+        practiceAddress: practiceData?.address || 'Contact your practice for address details',
+        practicePhone: practiceData?.phone || 'Contact your practice for phone details'
       };
 
       // Generate the same comprehensive content as DOCX export but for email
@@ -2176,6 +2209,14 @@ export const TranslationToolInterface = () => {
         return;
       }
 
+      // Fetch practice details
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('user_id', user?.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
       // Create session metadata for patient email
       const sessionMetadata = {
         sessionDate: new Date(),
@@ -2189,7 +2230,11 @@ export const TranslationToolInterface = () => {
         averageAccuracy: translationScores.length > 0 ? 
           Math.round(translationScores.reduce((sum, score) => sum + score.accuracy, 0) / translationScores.length) : 100,
         averageConfidence: translationScores.length > 0 ? 
-          Math.round(translationScores.reduce((sum, score) => sum + score.confidence, 0) / translationScores.length) : 100
+          Math.round(translationScores.reduce((sum, score) => sum + score.confidence, 0) / translationScores.length) : 100,
+        // Add practice details from database
+        practiceName: practiceData?.practice_name || 'NHS GP Practice',
+        practiceAddress: practiceData?.address || 'Contact your practice for address details',
+        practicePhone: practiceData?.phone || 'Contact your practice for phone details'
       };
 
       // Generate patient-friendly version of the complete session
