@@ -84,20 +84,55 @@ export const MobileTranslationInterface = () => {
   };
 
   const playTranslation = async () => {
-    if (!translation?.translatedText || !selectedLang?.voice) return;
+    if (!translation?.translatedText) return;
 
     setIsPlaying(true);
     try {
-      const utterance = new SpeechSynthesisUtterance(translation.translatedText);
-      utterance.lang = selectedLanguage;
-      utterance.rate = 0.8;
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => setIsPlaying(false);
+      // Use ElevenLabs TTS for better quality
+      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+        body: {
+          text: translation.translatedText,
+          languageCode: selectedLanguage
+        }
+      });
+
+      if (error) {
+        console.error('ElevenLabs TTS error:', error);
+        // Fallback to browser speech synthesis
+        const utterance = new SpeechSynthesisUtterance(translation.translatedText);
+        utterance.lang = selectedLanguage;
+        utterance.rate = 0.8;
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = () => setIsPlaying(false);
+        speechSynthesis.speak(utterance);
+        return;
+      }
+
+      // Play the ElevenLabs audio
+      const audioData = data.audioData;
+      const audioBlob = new Blob([
+        Uint8Array.from(atob(audioData), c => c.charCodeAt(0))
+      ], { type: 'audio/mpeg' });
       
-      speechSynthesis.speak(utterance);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      await audio.play();
+      
     } catch (error) {
       console.error('Speech error:', error);
       setIsPlaying(false);
+      toast.error('Speech playback failed');
     }
   };
 
@@ -176,7 +211,11 @@ export const MobileTranslationInterface = () => {
                     disabled={isPlaying}
                     className="text-white hover:bg-white/20"
                   >
-                    <Volume2 className="h-4 w-4" />
+                    {isPlaying ? (
+                      <div className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
               </div>
