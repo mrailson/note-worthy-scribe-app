@@ -50,10 +50,16 @@ export const ServiceOverview = () => {
       benefits: ["Audio transcription", "Action item extraction", "Meeting summaries"]
     },
     {
+      icon: <MessageSquare className="h-6 w-6" />,
+      title: "Translation Service",
+      description: "Professional multilingual translation service for NHS patient communications and documents",
+      benefits: ["Medical document translation", "Patient letter translation", "Multilingual voice translation", "NHS-compliant terminology", "Real-time translation support"]
+    },
+    {
       icon: <BarChart3 className="h-6 w-6" />,
-      title: "Complaints Management",
-      description: "Streamlined patient complaint handling and response",
-      benefits: ["Automated tracking", "Response templates", "Compliance monitoring"]
+      title: "Complaints System",
+      description: "Comprehensive patient complaint management system with automated workflows and NHS compliance",
+      benefits: ["Automated complaint tracking", "Response template library", "NHS compliance monitoring", "Performance analytics", "Multi-channel complaint capture"]
     },
     {
       icon: <FolderOpen className="h-6 w-6" />,
@@ -64,7 +70,7 @@ export const ServiceOverview = () => {
   ];
 
   // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI4GP Service','AI4PM Service','Meeting Recording & Management']);
+  const allowedServices = new Set(['AI4GP Service','AI4PM Service','Meeting Recording & Management','Translation Service','Complaints System']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
   // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
