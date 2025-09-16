@@ -1777,28 +1777,6 @@ export const TranslationToolInterface = () => {
                       {currentTranslation ? 'Show Translation' : 'No Translation Yet'}
                     </Button>
                     
-                    {/* Manual Refresh Button */}
-                    <Button
-                      onClick={refreshTranslationDisplay}
-                      variant="secondary"
-                      size="lg"
-                      className="flex items-center gap-2 px-6 py-3"
-                      disabled={conversationBuffer.length === 0}
-                    >
-                      <RotateCcw className="h-5 w-5" />
-                      Refresh
-                    </Button>
-                    
-                    {/* Missed Translation Feedback */}
-                    <Button
-                      onClick={reportMissedTranslation}
-                      variant="outline"
-                      size="sm"
-                      className="text-sm"
-                    >
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Missed Translation?
-                    </Button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
