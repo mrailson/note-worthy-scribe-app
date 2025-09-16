@@ -119,6 +119,8 @@ const ComplaintDetails = () => {
   const [complianceAuditLogs, setComplianceAuditLogs] = useState<any[]>([]);
   const [complaintDocuments, setComplaintDocuments] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
+  const [countdown, setCountdown] = useState(10);
+  const [isGeneratingAcknowledgement, setIsGeneratingAcknowledgement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showOutstandingOnly, setShowOutstandingOnly] = useState(false);
   
@@ -456,6 +458,27 @@ const ComplaintDetails = () => {
     };
   }, []);
 
+  // Countdown effect for acknowledgement generation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isGeneratingAcknowledgement && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGeneratingAcknowledgement, countdown]);
+
   // Conditional return AFTER all hooks are called
   if (!user) {
     return <LoginForm />;
@@ -581,6 +604,8 @@ const ComplaintDetails = () => {
 
   const handleGenerateAcknowledgement = async (complaintId: string) => {
     setSubmitting(true);
+    setIsGeneratingAcknowledgement(true);
+    setCountdown(10);
     try {
       const { data, error } = await supabase.functions.invoke('generate-complaint-acknowledgement', {
         body: { complaintId }
@@ -595,6 +620,7 @@ const ComplaintDetails = () => {
       toast.error("Failed to generate acknowledgement letter");
     } finally {
       setSubmitting(false);
+      setIsGeneratingAcknowledgement(false);
     }
   };
 
@@ -1681,7 +1707,9 @@ I am committed to ensuring that all patients receive the care and service they d
                       disabled={submitting}
                     >
                       <Mail className="h-4 w-4 mr-2" />
-                      {submitting ? 'Generating...' : 'Generate Acknowledgement Letter'}
+                      {submitting 
+                        ? (countdown > 0 ? `Generating... (${countdown}s)` : 'Generating...') 
+                        : 'Generate Acknowledgement Letter'}
                     </Button>
                   ) : (
                     <div className="space-y-4">
