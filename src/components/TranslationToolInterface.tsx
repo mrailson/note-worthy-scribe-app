@@ -3641,19 +3641,19 @@ export const TranslationToolInterface = () => {
             <div className="space-y-8">
               {/* English Text */}
               <div className="bg-blue-50 p-8 rounded-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <Globe className="w-6 h-6 text-blue-600" />
-                  <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
-                </div>
-                <p className="text-3xl text-blue-900 leading-relaxed mb-4">
-                  {currentTranslation.englishText}
-                </p>
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
+                  </div>
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-2 px-4 py-2 text-lg">
                     <Shield className="w-5 h-5" />
                     Verified Safe & Accurate
                   </Badge>
                 </div>
+                <p className="text-3xl text-blue-900 leading-relaxed">
+                  {currentTranslation.englishText}
+                </p>
               </div>
 
               {/* Translated Text */}
@@ -3673,19 +3673,19 @@ export const TranslationToolInterface = () => {
             <div className="space-y-8">
               {/* English Text - Empty State */}
               <div className="bg-blue-50 p-8 rounded-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <Globe className="w-6 h-6 text-blue-600" />
-                  <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
-                </div>
-                <p className="text-3xl text-blue-900 leading-relaxed mb-4">
-                  [System]
-                </p>
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
+                  </div>
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-2 px-4 py-2 text-lg">
                     <Shield className="w-5 h-5" />
                     Verified Safe & Accurate
                   </Badge>
                 </div>
+                <p className="text-3xl text-blue-900 leading-relaxed">
+                  [System]
+                </p>
               </div>
 
               {/* Patient Language - Empty State */}
