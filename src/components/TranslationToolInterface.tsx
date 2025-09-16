@@ -1070,6 +1070,70 @@ export const TranslationToolInterface = () => {
     }
   };
 
+  const handlePatientLanguageExportDOCX = async () => {
+    console.log('🔄 Patient Language Transcript button clicked');
+    console.log('🔄 Translations count:', translations.length);
+    console.log('🔄 Translation scores count:', translationScores.length);
+    
+    if (translations.length === 0) {
+      toast.error('No translations to export');
+      return;
+    }
+    
+    try {
+      const sessionEnd = new Date();
+      const sessionDuration = Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000);
+      
+      // Detect the most common patient language
+      const patientLanguages = translations
+        .filter(t => t.speaker === 'patient')
+        .map(t => t.targetLanguage);
+      
+      const languageCount: { [key: string]: number } = {};
+      patientLanguages.forEach(lang => {
+        languageCount[lang] = (languageCount[lang] || 0) + 1;
+      });
+      
+      const primaryPatientLanguage = Object.entries(languageCount)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'English';
+
+      // Calculate safety metrics
+      const scores = translationScores;
+      const validScores = scores.filter(score => score.accuracy > 0);
+      const averageAccuracy = validScores.length > 0 ? validScores.reduce((sum, score) => sum + score.accuracy, 0) / validScores.length : 0;
+      const averageConfidence = validScores.length > 0 ? validScores.reduce((sum, score) => sum + score.confidence, 0) / validScores.length : 0;
+      const overallSafetyRating = validScores.some(score => score.safetyFlag === 'unsafe') ? 'unsafe' : 
+                                 validScores.some(score => score.safetyFlag === 'warning') ? 'warning' : 'safe';
+
+      const metadata: SessionMetadata = {
+        sessionDate: sessionStart,
+        sessionStart,
+        sessionEnd,
+        patientLanguage: primaryPatientLanguage,
+        totalTranslations: translations.length,
+        sessionDuration,
+        overallSafetyRating,
+        averageAccuracy,
+        averageConfidence
+      };
+
+      // Filter out technical scores and details for patient copy
+      const patientFriendlyScores = translationScores.map(score => ({
+        ...score,
+        issues: [], // Remove technical issues from patient copy
+        medicalTermsDetected: [] // Remove medical terms analysis from patient copy
+      }));
+
+      console.log('🔄 Starting Patient Language DOCX export with metadata:', metadata);
+      await downloadDOCX(translations, metadata, patientFriendlyScores, true, undefined);
+      console.log('✅ Patient Language DOCX completed successfully');
+      toast.success(`Patient copy exported in ${primaryPatientLanguage}`);
+    } catch (error) {
+      console.error('❌ Patient Language export error:', error);
+      toast.error('Failed to export patient language transcript');
+    }
+  };
+
   const handlePatientExportDOCX = async () => {
     console.log('🔄 Patient Copy button clicked');
     console.log('🔄 Translations count:', translations.length);
@@ -2893,7 +2957,7 @@ export const TranslationToolInterface = () => {
                   </Button>
                   
                   <Button
-                    onClick={handlePatientExportDOCX}
+                    onClick={handlePatientLanguageExportDOCX}
                     variant="outline"
                     className="px-6 py-3 text-base"
                     disabled={translations.length === 0}
