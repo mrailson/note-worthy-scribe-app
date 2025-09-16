@@ -2055,12 +2055,12 @@ export const TranslationToolInterface = () => {
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10px;">
             <thead>
               <tr style="background-color: #005EB8; color: white;">
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 5%;">#</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 8%;">Time</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 8%;">Speaker</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 35%;">Original Text</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 35%;">Translation (${metadata.patientLanguage})</th>
-                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 9%;">Languages</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 2%;">#</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 3%;">Time</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 3%;">Speaker</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 45%;">Original Text</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 45%;">Translation (${metadata.patientLanguage})</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold; width: 2%;">Languages</th>
               </tr>
             </thead>
             <tbody>
