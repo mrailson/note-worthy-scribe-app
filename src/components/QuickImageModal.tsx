@@ -194,7 +194,7 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
   const [isGenerating, setIsGenerating] = useState(false);
   const [galleryImages, setGalleryImages] = useState<GeneratedImage[]>([]);
   const [generationProgress, setGenerationProgress] = useState("");
-  const [includePracticeDetails, setIncludePracticeDetails] = useState(true);
+  const [includePracticeDetails, setIncludePracticeDetails] = useState(false);
   
   // Voice Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -682,15 +682,41 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Image Prompt
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium">
+                      Image Prompt
+                    </label>
+                    <Button
+                      onClick={isRecording ? stopRecording : startRecording}
+                      variant={isRecording ? "destructive" : "outline"}
+                      size="sm"
+                      disabled={isGenerating}
+                    >
+                      {isRecording ? (
+                        <>
+                          <MicOff className="w-4 h-4 mr-2" />
+                          Stop Recording
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4 mr-2" />
+                          Voice Input
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Textarea
                     placeholder="Describe the image you want to generate..."
                     value={quickPrompt}
                     onChange={(e) => setQuickPrompt(e.target.value)}
                     className="min-h-[80px]"
                   />
+                  {isRecording && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse mt-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                      Recording... Click the mic to stop
+                    </div>
+                  )}
                 </div>
 
                 <div>
