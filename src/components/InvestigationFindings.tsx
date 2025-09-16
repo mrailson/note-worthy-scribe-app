@@ -35,7 +35,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
   const [editing, setEditing] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingFindings, setGeneratingFindings] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     fetchInvestigationFindings();
