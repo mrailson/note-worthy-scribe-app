@@ -54,7 +54,6 @@ import { useTranslationHistory, TranslationEntry as HistoryTranslationEntry, Tra
 import { scoreTranslation, TranslationScore } from '@/utils/translationScoring';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { downloadPatientDOCX, PatientSessionMetadata } from '@/utils/patientDocxExport';
-import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
 import { TranslationValidationGuide } from './TranslationValidationGuide';
 import { useTranslationDeduplication } from '@/hooks/useTranslationDeduplication';
 import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
@@ -2825,7 +2824,6 @@ export const TranslationToolInterface = () => {
               </span>
               <div className="flex items-center gap-2">
                 <TranslationValidationGuide />
-                <MedicalTranslationAuditViewer />
               </div>
             </DialogTitle>
           </DialogHeader>
