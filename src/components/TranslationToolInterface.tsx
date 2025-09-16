@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { 
   Languages, 
@@ -1739,6 +1740,37 @@ export const TranslationToolInterface = () => {
             </CardHeader>
           </Card>
 
+      {/* Download Actions */}
+      <div className="flex justify-end mb-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Download Transcripts
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem 
+              onClick={handleExportDOCX}
+              disabled={translations.length === 0}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Download GP Practice Audit Record
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handlePatientLanguageExportDOCX}
+              disabled={translations.length === 0}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Download Patient Copy of Translation
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {/* Main Interface Tabs */}
       <Tabs defaultValue="translate" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -2932,25 +2964,6 @@ export const TranslationToolInterface = () => {
                     )}
                   </Button>
                   
-                  <Button
-                    onClick={handleExportDOCX}
-                    variant="outline"
-                    className="px-6 py-3 text-base"
-                    disabled={translations.length === 0}
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    GP Transcript
-                  </Button>
-                  
-                  <Button
-                    onClick={handlePatientLanguageExportDOCX}
-                    variant="outline"
-                    className="px-6 py-3 text-base"
-                    disabled={translations.length === 0}
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    Patient Language Transcript
-                  </Button>
                 </div>
               </div>
             </div>
