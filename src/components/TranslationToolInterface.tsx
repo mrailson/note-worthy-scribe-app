@@ -47,7 +47,8 @@ import {
   MicOff,
   Pause,
   Square,
-  VolumeX
+  VolumeX,
+  Volume2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -64,6 +65,53 @@ import { useTranslationDeduplication } from '@/hooks/useTranslationDeduplication
 import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
 import { extractLanguageAndCleanText, getLanguageName } from '@/utils/translationUtils';
 import { HistorySubTabs } from './HistorySubTabs';
+
+// Native language names mapping
+const NATIVE_LANGUAGE_NAMES: Record<string, string> = {
+  'french': 'Français',
+  'spanish': 'Español', 
+  'german': 'Deutsch',
+  'italian': 'Italiano',
+  'portuguese': 'Português',
+  'dutch': 'Nederlands',
+  'russian': 'Русский',
+  'chinese': '中文',
+  'japanese': '日本語',
+  'korean': '한국어',
+  'arabic': 'العربية',
+  'hindi': 'हिन्दी',
+  'bengali': 'বাংলা',
+  'urdu': 'اردو',
+  'punjabi': 'ਪੰਜਾਬੀ',
+  'gujarati': 'ગુજરાતી',
+  'tamil': 'தமிழ்',
+  'telugu': 'తెలుగు',
+  'kannada': 'ಕನ್ನಡ',
+  'malayalam': 'മലയാളം',
+  'marathi': 'मराठी',
+  'nepali': 'नेपाली',
+  'polish': 'Polski',
+  'romanian': 'Română',
+  'turkish': 'Türkçe',
+  'ukrainian': 'Українська',
+  'vietnamese': 'Tiếng Việt',
+  'thai': 'ไทย',
+  'indonesian': 'Bahasa Indonesia',
+  'malay': 'Bahasa Melayu',
+  'tagalog': 'Tagalog',
+  'swahili': 'Kiswahili',
+  'amharic': 'አማርኛ',
+  'yoruba': 'Yorùbá',
+  'igbo': 'Igbo',
+  'hausa': 'Hausa',
+  'somali': 'Soomaali',
+  'oromo': 'Afaan Oromoo'
+};
+
+const getNativeLanguageName = (language: string): string => {
+  const lowercaseLanguage = language.toLowerCase();
+  return NATIVE_LANGUAGE_NAMES[lowercaseLanguage] || language.charAt(0).toUpperCase() + language.slice(1);
+};
 
 interface QualityScore {
   accuracy: number;
@@ -3361,6 +3409,82 @@ export const TranslationToolInterface = () => {
               </span>
               <div className="flex items-center gap-2">
                 <TooltipProvider delayDuration={300}>
+                  {/* Repeat Phrase Icon */}
+                  {currentTranslation && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          onClick={() =>
+                            repeatTranslatedPhrase(
+                              currentTranslation.translatedText,
+                              currentTranslation.targetLanguage
+                            )
+                          }
+                          disabled={isSpeaking}
+                          aria-label="Repeat phrase"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="z-[110]">
+                        <p>Repeat phrase</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
+                  {/* Download Icon */}
+                  {currentTranslation && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          aria-label="Download options"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-64 bg-background border shadow-lg z-[110]">
+                        <DropdownMenuItem 
+                          onClick={handleExportDOCX}
+                          disabled={translations.length === 0}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Download className="w-4 h-4" />
+                          GP Practice Audit Record
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handlePatientLanguageExportDOCX}
+                          disabled={translations.length === 0}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Download className="w-4 h-4" />
+                          Patient Copy of Translation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleEmailToMe}
+                          disabled={translations.length === 0 || isEmailingSelf}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {isEmailingSelf ? 'Emailing Complete Session...' : 'Email Complete Session to Me'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleEmailToPatient}
+                          disabled={translations.length === 0 || isEmailingPatient}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {isEmailingPatient ? 'Emailing Patient Copy...' : 'Email Complete Session to Patient'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
                   {/* Pause Icon */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -3437,7 +3561,7 @@ export const TranslationToolInterface = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {currentTranslation && (
+          {currentTranslation ? (
             <div className="space-y-8">
               {/* English Text */}
               <div className="bg-blue-50 p-8 rounded-lg">
@@ -3461,81 +3585,44 @@ export const TranslationToolInterface = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <Languages className="w-6 h-6 text-green-600" />
                   <h3 className="text-2xl font-semibold text-green-800">
-                    {currentTranslation.targetLanguage.charAt(0).toUpperCase() + currentTranslation.targetLanguage.slice(1)} (Patient)
+                    {getNativeLanguageName(currentTranslation.targetLanguage)} (Patient)
                   </h3>
                 </div>
                 <p className="text-3xl text-green-900 leading-relaxed">
                   {currentTranslation.translatedText}
                 </p>
-                <div className="flex gap-4 justify-center">
-                  <Button
-                    onClick={() =>
-                      repeatTranslatedPhrase(
-                        currentTranslation.translatedText,
-                        currentTranslation.targetLanguage
-                      )
-                    }
-                    className="px-8 py-3 text-lg"
-                    disabled={isSpeaking}
-                  >
-                    {isSpeaking ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Playing...
-                      </>
-                    ) : (
-                      <>
-                        <Languages className="w-5 h-5 mr-2" />
-                        Repeat Phrase
-                      </>
-                    )}
-                   </Button>
-                   
-                   {/* Download Dropdown */}
-                   <DropdownMenu>
-                     <DropdownMenuTrigger asChild>
-                       <Button variant="outline" className="flex items-center gap-2 px-6 py-3 text-base">
-                         <Download className="w-5 h-5" />
-                         Download
-                         <ChevronDown className="w-4 h-4" />
-                       </Button>
-                     </DropdownMenuTrigger>
-                      <DropdownMenuContent align="center" className="w-64 bg-background border shadow-lg z-[110]">
-                        <DropdownMenuItem 
-                          onClick={handleExportDOCX}
-                          disabled={translations.length === 0}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Download className="w-4 h-4" />
-                          GP Practice Audit Record
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handlePatientLanguageExportDOCX}
-                          disabled={translations.length === 0}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Download className="w-4 h-4" />
-                          Patient Copy of Translation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handleEmailToMe}
-                          disabled={translations.length === 0 || isEmailingSelf}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {isEmailingSelf ? 'Emailing Complete Session...' : 'Email Complete Session to Me'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handleEmailToPatient}
-                          disabled={translations.length === 0 || isEmailingPatient}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {isEmailingPatient ? 'Emailing Patient Copy...' : 'Email Complete Session to Patient'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                   </DropdownMenu>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* English Text - Empty State */}
+              <div className="bg-blue-50 p-8 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                  <h3 className="text-2xl font-semibold text-blue-800">English (GP)</h3>
                 </div>
+                <p className="text-3xl text-blue-900 leading-relaxed mb-4">
+                  [System]
+                </p>
+                <div className="flex justify-end">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-2 px-4 py-2 text-lg">
+                    <Shield className="w-5 h-5" />
+                    Verified Safe & Accurate
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Patient Language - Empty State */}
+              <div className="bg-green-50 p-8 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <Languages className="w-6 h-6 text-green-600" />
+                  <h3 className="text-2xl font-semibold text-green-800">
+                    Select Language (Patient)
+                  </h3>
+                </div>
+                <p className="text-3xl text-green-900 leading-relaxed">
+                  Translation Service, Which Language Please?
+                </p>
               </div>
             </div>
           )}
