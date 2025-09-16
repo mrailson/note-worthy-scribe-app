@@ -2,19 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Volume2, Mic, MicOff, Languages, Square } from 'lucide-react';
+import { Volume2, Mic, Languages, Square } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Translation {
-  englishText: string;
-  translatedText: string;
-  targetLanguage: string;
-  speaker: 'staff' | 'patient';
-  timestamp: Date;
-}
 
 interface TranslationEntry {
   id: string;
@@ -26,23 +17,8 @@ interface TranslationEntry {
   timestamp: Date;
 }
 
-const COMMON_PHRASES = [
-  "Good morning. How can I help you today?",
-  "What is your name?",
-  "What is your date of birth?", 
-  "Do you have your NHS number?",
-  "Please take a seat and wait to be called",
-  "The doctor will see you shortly",
-  "Do you need an interpreter?",
-  "Is this your first visit here?",
-  "Have you registered with us before?",
-  "Please fill out this form"
-];
-
 export const MobileTranslationInterface = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('fr');
-  const [currentPhrase, setCurrentPhrase] = useState(COMMON_PHRASES[0]);
-  const [translation, setTranslation] = useState<Translation | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -155,15 +131,6 @@ export const MobileTranslationInterface = () => {
         
         // Auto-play the translation with ElevenLabs
         await playTranslationAudio(translatedText, targetLang);
-      } else {
-        // Update current translation for manual text
-        setTranslation({
-          englishText: sourceLang === 'en' ? text : translatedText,
-          translatedText: targetLang === 'en' ? translatedText : translatedText,
-          targetLanguage: targetLang,
-          speaker: 'staff',
-          timestamp: new Date()
-        });
       }
 
     } catch (error) {
@@ -249,21 +216,10 @@ export const MobileTranslationInterface = () => {
 
   const clearHistory = () => {
     setConversationHistory([]);
-    setTranslation(null);
-  };
-
-  const handlePhraseSelect = (phrase: string) => {
-    setCurrentPhrase(phrase);
-    if (selectedLanguage !== 'none') {
-      translateText(phrase, selectedLanguage);
-    }
   };
 
   const handleLanguageChange = (langCode: string) => {
     setSelectedLanguage(langCode);
-    if (langCode !== 'none' && currentPhrase) {
-      translateText(currentPhrase, langCode);
-    }
     // Update recognition language if listening
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
@@ -380,12 +336,12 @@ export const MobileTranslationInterface = () => {
 
         {/* Conversation History */}
         {conversationHistory.length > 0 && (
-          <Card className="p-4 bg-white/90 backdrop-blur-sm max-h-60 overflow-y-auto">
+          <Card className="p-4 bg-white/90 backdrop-blur-sm max-h-96 overflow-y-auto">
             <h3 className="font-medium mb-3">Conversation</h3>
             <div className="space-y-3">
-              {conversationHistory.slice(-6).map((entry) => (
+              {conversationHistory.slice(-10).map((entry) => (
                 <div key={entry.id} className="space-y-1">
-                  <div className={`p-2 rounded-lg ${
+                  <div className={`p-3 rounded-lg ${
                     entry.speaker === 'staff' ? 'bg-blue-50' : 'bg-teal-50'
                   }`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -396,28 +352,30 @@ export const MobileTranslationInterface = () => {
                     <p className="text-sm">{entry.originalText}</p>
                   </div>
                   {entry.translatedText && (
-                    <div className={`p-2 rounded-lg border-l-2 ml-4 ${
+                    <div className={`p-3 rounded-lg border-l-2 ml-4 ${
                       entry.speaker === 'staff' 
                         ? 'bg-teal-50 border-teal-400' 
                         : 'bg-blue-50 border-blue-400'
                     }`}>
-                      <p className="text-sm">{entry.translatedText}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => playTranslationAudio(
-                          entry.translatedText, 
-                          entry.targetLanguage
-                        )}
-                        disabled={isPlaying}
-                        className="h-6 w-6 p-0 mt-1"
-                      >
-                        {isPlaying ? (
-                          <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
-                        ) : (
-                          <Volume2 className="h-3 w-3" />
-                        )}
-                      </Button>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm flex-1">{entry.translatedText}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => playTranslationAudio(
+                            entry.translatedText, 
+                            entry.targetLanguage
+                          )}
+                          disabled={isPlaying}
+                          className="h-8 w-8 p-0 flex-shrink-0"
+                        >
+                          {isPlaying ? (
+                            <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
+                          ) : (
+                            <Volume2 className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -425,90 +383,6 @@ export const MobileTranslationInterface = () => {
             </div>
           </Card>
         )}
-
-        {/* Manual Text Translation */}
-        <Card className="p-4 bg-white/90 backdrop-blur-sm">
-          <h3 className="font-medium mb-3">Manual Translation</h3>
-          
-          {/* English (Staff) Section */}
-          <Card className="overflow-hidden mb-4">
-            <div className="bg-blue-600 text-white p-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🇬🇧</span>
-                <span className="font-medium">English (Staff)</span>
-              </div>
-            </div>
-            <div className="p-4 bg-white">
-              <Textarea
-                value={currentPhrase}
-                onChange={(e) => setCurrentPhrase(e.target.value)}
-                placeholder="Type your message here..."
-                className="min-h-[80px] text-base resize-none border-0 p-0 focus:ring-0"
-                onBlur={() => {
-                  if (selectedLanguage !== 'none' && currentPhrase) {
-                    translateText(currentPhrase, selectedLanguage);
-                  }
-                }}
-              />
-            </div>
-          </Card>
-
-          {/* Translated (Patient) Section */}
-          {selectedLanguage !== 'none' && (
-            <Card className="overflow-hidden">
-              <div className="bg-teal-600 text-white p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{selectedLang?.flag}</span>
-                    <span className="font-medium">{selectedLang?.name} (Patient)</span>
-                  </div>
-                  {translation?.translatedText && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => playTranslationAudio(translation.translatedText, selectedLanguage)}
-                      disabled={isPlaying}
-                      className="text-white hover:bg-white/20"
-                    >
-                      {isPlaying ? (
-                        <div className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="p-4 bg-white min-h-[80px] flex items-center">
-                {isTranslating ? (
-                  <div className="text-muted-foreground">Translating...</div>
-                ) : translation?.translatedText ? (
-                  <p className="text-base leading-relaxed">{translation.translatedText}</p>
-                ) : (
-                  <p className="text-muted-foreground">Translation will appear here</p>
-                )}
-              </div>
-            </Card>
-          )}
-        </Card>
-
-        {/* Common Phrases */}
-        <Card className="p-4 bg-white/80 backdrop-blur-sm">
-          <h3 className="font-medium mb-3 text-center">Common Phrases</h3>
-          <div className="grid gap-2">
-            {COMMON_PHRASES.slice(0, 6).map((phrase, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => handlePhraseSelect(phrase)}
-                className="text-left justify-start h-auto py-3 px-3 text-sm leading-tight"
-              >
-                {phrase}
-              </Button>
-            ))}
-          </div>
-        </Card>
 
       </div>
     </div>
