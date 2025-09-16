@@ -27,8 +27,16 @@ export const MobileTranslationInterface = () => {
   
   const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedLang = HEALTHCARE_LANGUAGES.find(lang => lang.code === selectedLanguage);
+
+  // Auto-scroll to bottom when conversation updates
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversationHistory]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -233,11 +241,11 @@ export const MobileTranslationInterface = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
-      <div className="max-w-md mx-auto space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 flex flex-col">
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
         
         {/* Header */}
-        <div className="text-center py-4">
+        <div className="text-center py-4 flex-shrink-0">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Languages className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-semibold">Quick Translate</h1>
@@ -246,7 +254,7 @@ export const MobileTranslationInterface = () => {
         </div>
 
         {/* Language Selector */}
-        <Card className="p-4 bg-white/80 backdrop-blur-sm">
+        <Card className="p-4 bg-white/80 backdrop-blur-sm mb-4 flex-shrink-0">
           <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
             <SelectTrigger className="w-full h-12 text-base">
               <div className="flex items-center gap-3">
@@ -254,7 +262,7 @@ export const MobileTranslationInterface = () => {
                 <SelectValue placeholder="Select language" />
               </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white border shadow-lg z-50">
               {HEALTHCARE_LANGUAGES.filter(lang => lang.code !== 'none').map((language) => (
                 <SelectItem key={language.code} value={language.code}>
                   <div className="flex items-center gap-3">
@@ -268,7 +276,7 @@ export const MobileTranslationInterface = () => {
         </Card>
 
         {/* Live Translation Controls */}
-        <Card className="p-4 bg-white/90 backdrop-blur-sm">
+        <Card className="p-4 bg-white/90 backdrop-blur-sm mb-4 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium">Live Translation</h3>
             <Button
@@ -334,31 +342,56 @@ export const MobileTranslationInterface = () => {
           </div>
         </Card>
 
-        {/* Conversation History */}
-        {conversationHistory.length > 0 && (
-          <Card className="p-4 bg-white/90 backdrop-blur-sm max-h-96 overflow-y-auto">
-            <h3 className="font-medium mb-3">Conversation</h3>
-            <div className="space-y-3">
-              {conversationHistory.slice(-10).map((entry) => (
-                <div key={entry.id} className="space-y-1">
+        {/* Conversation History - Expanded */}
+        <Card className="bg-white/90 backdrop-blur-sm flex-1 flex flex-col min-h-0">
+          <div className="p-4 border-b flex-shrink-0">
+            <h3 className="font-medium">Conversation</h3>
+          </div>
+          <div 
+            ref={scrollRef}
+            className="flex-1 p-4 overflow-y-auto space-y-3"
+          >
+            {conversationHistory.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p className="text-sm text-center">
+                  Start speaking to begin the conversation.<br />
+                  Select who is speaking and tap the microphone.
+                </p>
+              </div>
+            ) : (
+              conversationHistory.map((entry) => (
+                <div key={entry.id} className="space-y-2">
                   <div className={`p-3 rounded-lg ${
-                    entry.speaker === 'staff' ? 'bg-blue-50' : 'bg-teal-50'
+                    entry.speaker === 'staff' ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-teal-50 border-l-4 border-teal-400'
                   }`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-medium">
                         {entry.speaker === 'staff' ? '🇬🇧 Staff' : `${selectedLang?.flag} Patient`}
                       </span>
+                      <span className="text-xs text-muted-foreground">
+                        {entry.timestamp.toLocaleTimeString('en-GB', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
                     </div>
-                    <p className="text-sm">{entry.originalText}</p>
+                    <p className="text-base">{entry.originalText}</p>
                   </div>
                   {entry.translatedText && (
-                    <div className={`p-3 rounded-lg border-l-2 ml-4 ${
+                    <div className={`p-3 rounded-lg ml-6 ${
                       entry.speaker === 'staff' 
-                        ? 'bg-teal-50 border-teal-400' 
-                        : 'bg-blue-50 border-blue-400'
+                        ? 'bg-teal-100 border-l-4 border-teal-500' 
+                        : 'bg-blue-100 border-l-4 border-blue-500'
                     }`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm flex-1">{entry.translatedText}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Translation to {entry.speaker === 'staff' ? selectedLang?.name : 'English'}:
+                            </span>
+                          </div>
+                          <p className="text-base">{entry.translatedText}</p>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -370,19 +403,19 @@ export const MobileTranslationInterface = () => {
                           className="h-8 w-8 p-0 flex-shrink-0"
                         >
                           {isPlaying ? (
-                            <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
+                            <div className="h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full" />
                           ) : (
-                            <Volume2 className="h-3 w-3" />
+                            <Volume2 className="h-4 w-4" />
                           )}
                         </Button>
                       </div>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </Card>
-        )}
+              ))
+            )}
+          </div>
+        </Card>
 
       </div>
     </div>
