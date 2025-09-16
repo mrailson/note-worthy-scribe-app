@@ -3481,7 +3481,7 @@ export const TranslationToolInterface = () => {
             <DialogTitle className="flex items-center justify-between text-2xl">
               <span className="flex items-center gap-3">
                 <Languages className="w-8 h-8 text-primary" />
-                Live Translation Display
+                Notewell AI Translation Service
               </span>
               <div className="flex items-center gap-2">
                 <TooltipProvider delayDuration={300}>
