@@ -208,11 +208,34 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
       if (data?.success && data?.content) {
         try {
           const recommendation = JSON.parse(data.content);
-          setDecisionType(recommendation.decision);
-          setDecisionReasoning(recommendation.reasoning);
+          
+          // Extract decision type if available
+          if (recommendation.decision) {
+            setDecisionType(recommendation.decision);
+          }
+          
+          // Handle reasoning - could be a string or nested object
+          let reasoning = '';
+          if (typeof recommendation.reasoning === 'string') {
+            reasoning = recommendation.reasoning;
+          } else if (typeof recommendation.reasoning === 'object') {
+            // If reasoning is an object, extract text content
+            reasoning = Object.values(recommendation.reasoning).join('\n\n');
+          } else if (recommendation.analysis || recommendation.conclusion) {
+            // Handle common JSON structures
+            const parts = [];
+            if (recommendation.analysis) parts.push(recommendation.analysis);
+            if (recommendation.conclusion) parts.push(recommendation.conclusion);
+            reasoning = parts.join('\n\n');
+          } else {
+            // Fallback: use the entire JSON content as text
+            reasoning = JSON.stringify(recommendation, null, 2).replace(/[{}"]/g, '').replace(/,/g, '');
+          }
+          
+          setDecisionReasoning(reasoning);
           toast.success('Decision recommendation generated successfully');
         } catch (parseError) {
-          // If JSON parsing fails, treat as text
+          // If JSON parsing fails, treat as plain text
           setDecisionReasoning(data.content);
           toast.success('Decision recommendation generated successfully');
         }
