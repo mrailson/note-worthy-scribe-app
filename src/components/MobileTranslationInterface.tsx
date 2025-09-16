@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Volume2, ChevronDown, Languages } from 'lucide-react';
+import { Volume2, Mic, MicOff, Languages, Square } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +12,18 @@ interface Translation {
   englishText: string;
   translatedText: string;
   targetLanguage: string;
+  speaker: 'staff' | 'patient';
+  timestamp: Date;
+}
+
+interface TranslationEntry {
+  id: string;
+  speaker: 'staff' | 'patient';
+  originalText: string;
+  translatedText: string;
+  originalLanguage: string;
+  targetLanguage: string;
+  timestamp: Date;
 }
 
 const COMMON_PHRASES = [
@@ -33,10 +45,84 @@ export const MobileTranslationInterface = () => {
   const [translation, setTranslation] = useState<Translation | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<TranslationEntry[]>([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState<'staff' | 'patient'>('staff');
+  
+  const recognitionRef = useRef<any>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedLang = HEALTHCARE_LANGUAGES.find(lang => lang.code === selectedLanguage);
 
-  const translateText = async (text: string, targetLang: string) => {
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      
+      const recognition = recognitionRef.current;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = currentSpeaker === 'staff' ? 'en-GB' : selectedLanguage;
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognition.onresult = (event: any) => {
+        const lastResult = event.results[event.results.length - 1];
+        if (lastResult.isFinal) {
+          const transcript = lastResult[0].transcript.trim();
+          if (transcript) {
+            handleSpeechResult(transcript);
+          }
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        toast.error('Speech recognition failed');
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [currentSpeaker, selectedLanguage]);
+
+  const handleSpeechResult = async (transcript: string) => {
+    const isFromStaff = currentSpeaker === 'staff';
+    const sourceLanguage = isFromStaff ? 'en' : selectedLanguage;
+    const targetLanguage = isFromStaff ? selectedLanguage : 'en';
+    
+    // Add to conversation history
+    const entry: TranslationEntry = {
+      id: Date.now().toString(),
+      speaker: currentSpeaker,
+      originalText: transcript,
+      translatedText: '',
+      originalLanguage: sourceLanguage,
+      targetLanguage: targetLanguage,
+      timestamp: new Date()
+    };
+    
+    setConversationHistory(prev => [...prev, entry]);
+    
+    // Translate the speech
+    await translateText(transcript, targetLanguage, sourceLanguage, entry.id);
+  };
+
+  const translateText = async (text: string, targetLang: string, sourceLang: string = 'en', entryId?: string) => {
     if (!text.trim()) return;
 
     setIsTranslating(true);
@@ -45,7 +131,7 @@ export const MobileTranslationInterface = () => {
         body: {
           text: text,
           toLang: targetLang,
-          fromLang: 'en'
+          fromLang: sourceLang
         }
       });
 
@@ -55,11 +141,30 @@ export const MobileTranslationInterface = () => {
         return;
       }
 
-      setTranslation({
-        englishText: text,
-        translatedText: data.translatedText,
-        targetLanguage: targetLang
-      });
+      const translatedText = data.translatedText;
+      
+      // Update conversation history if this was from speech
+      if (entryId) {
+        setConversationHistory(prev => 
+          prev.map(entry => 
+            entry.id === entryId 
+              ? { ...entry, translatedText }
+              : entry
+          )
+        );
+        
+        // Auto-play the translation with ElevenLabs
+        await playTranslationAudio(translatedText, targetLang);
+      } else {
+        // Update current translation for manual text
+        setTranslation({
+          englishText: sourceLang === 'en' ? text : translatedText,
+          translatedText: targetLang === 'en' ? translatedText : translatedText,
+          targetLanguage: targetLang,
+          speaker: 'staff',
+          timestamp: new Date()
+        });
+      }
 
     } catch (error) {
       console.error('Error translating:', error);
@@ -69,38 +174,22 @@ export const MobileTranslationInterface = () => {
     }
   };
 
-  const handlePhraseSelect = (phrase: string) => {
-    setCurrentPhrase(phrase);
-    if (selectedLanguage !== 'none') {
-      translateText(phrase, selectedLanguage);
-    }
-  };
-
-  const handleLanguageChange = (langCode: string) => {
-    setSelectedLanguage(langCode);
-    if (langCode !== 'none' && currentPhrase) {
-      translateText(currentPhrase, langCode);
-    }
-  };
-
-  const playTranslation = async () => {
-    if (!translation?.translatedText) return;
-
+  const playTranslationAudio = async (text: string, languageCode: string) => {
     setIsPlaying(true);
     try {
       // Use ElevenLabs TTS for better quality
       const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
         body: {
-          text: translation.translatedText,
-          languageCode: selectedLanguage
+          text: text,
+          languageCode: languageCode
         }
       });
 
       if (error) {
         console.error('ElevenLabs TTS error:', error);
         // Fallback to browser speech synthesis
-        const utterance = new SpeechSynthesisUtterance(translation.translatedText);
-        utterance.lang = selectedLanguage;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = languageCode;
         utterance.rate = 0.8;
         utterance.onend = () => setIsPlaying(false);
         utterance.onerror = () => setIsPlaying(false);
@@ -136,6 +225,57 @@ export const MobileTranslationInterface = () => {
     }
   };
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      toast.error('Speech recognition not supported');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      // Update recognition language based on current speaker
+      recognitionRef.current.lang = currentSpeaker === 'staff' ? 'en-GB' : selectedLanguage;
+      recognitionRef.current.start();
+    }
+  };
+
+  const switchSpeaker = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    }
+    setCurrentSpeaker(prev => prev === 'staff' ? 'patient' : 'staff');
+  };
+
+  const clearHistory = () => {
+    setConversationHistory([]);
+    setTranslation(null);
+  };
+
+  const handlePhraseSelect = (phrase: string) => {
+    setCurrentPhrase(phrase);
+    if (selectedLanguage !== 'none') {
+      translateText(phrase, selectedLanguage);
+    }
+  };
+
+  const handleLanguageChange = (langCode: string) => {
+    setSelectedLanguage(langCode);
+    if (langCode !== 'none' && currentPhrase) {
+      translateText(currentPhrase, langCode);
+    }
+    // Update recognition language if listening
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setTimeout(() => {
+        if (recognitionRef.current) {
+          recognitionRef.current.lang = currentSpeaker === 'staff' ? 'en-GB' : langCode;
+          recognitionRef.current.start();
+        }
+      }, 100);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
       <div className="max-w-md mx-auto space-y-4">
@@ -146,7 +286,7 @@ export const MobileTranslationInterface = () => {
             <Languages className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-semibold">Quick Translate</h1>
           </div>
-          <p className="text-sm text-muted-foreground">For staff use with patients</p>
+          <p className="text-sm text-muted-foreground">Live two-way translation for staff</p>
         </div>
 
         {/* Language Selector */}
@@ -171,66 +311,186 @@ export const MobileTranslationInterface = () => {
           </Select>
         </Card>
 
-        {/* English (GP) Section */}
-        <Card className="overflow-hidden">
-          <div className="bg-blue-600 text-white p-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🇬🇧</span>
-              <span className="font-medium">English (Staff)</span>
-            </div>
+        {/* Live Translation Controls */}
+        <Card className="p-4 bg-white/90 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium">Live Translation</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearHistory}
+              className="text-xs"
+            >
+              Clear
+            </Button>
           </div>
-          <div className="p-4 bg-white">
-            <Textarea
-              value={currentPhrase}
-              onChange={(e) => setCurrentPhrase(e.target.value)}
-              placeholder="Type your message here..."
-              className="min-h-[80px] text-base resize-none border-0 p-0 focus:ring-0"
-              onBlur={() => {
-                if (selectedLanguage !== 'none' && currentPhrase) {
-                  translateText(currentPhrase, selectedLanguage);
-                }
-              }}
-            />
+
+          <div className="space-y-3">
+            {/* Speaker Toggle */}
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant={currentSpeaker === 'staff' ? 'default' : 'outline'}
+                size="sm"
+                onClick={switchSpeaker}
+                disabled={isListening}
+                className="flex-1"
+              >
+                🇬🇧 Staff
+              </Button>
+              <Button
+                variant={currentSpeaker === 'patient' ? 'default' : 'outline'}
+                size="sm"
+                onClick={switchSpeaker}
+                disabled={isListening}
+                className="flex-1"
+              >
+                {selectedLang?.flag} Patient
+              </Button>
+            </div>
+
+            {/* Microphone Control */}
+            <div className="flex justify-center">
+              <Button
+                onClick={toggleListening}
+                disabled={isTranslating || isPlaying}
+                className={`h-16 w-16 rounded-full ${
+                  isListening
+                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                    : currentSpeaker === 'staff'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-teal-600 hover:bg-teal-700'
+                }`}
+              >
+                {isListening ? (
+                  <Square className="h-6 w-6 text-white" />
+                ) : (
+                  <Mic className="h-6 w-6 text-white" />
+                )}
+              </Button>
+            </div>
+
+            <p className="text-center text-sm text-muted-foreground">
+              {isListening
+                ? `Listening to ${currentSpeaker}...`
+                : `Tap to start listening to ${currentSpeaker}`
+              }
+            </p>
           </div>
         </Card>
 
-        {/* Translated (Patient) Section */}
-        {selectedLanguage !== 'none' && (
-          <Card className="overflow-hidden">
-            <div className="bg-teal-600 text-white p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{selectedLang?.flag}</span>
-                  <span className="font-medium">{selectedLang?.name} (Patient)</span>
+        {/* Conversation History */}
+        {conversationHistory.length > 0 && (
+          <Card className="p-4 bg-white/90 backdrop-blur-sm max-h-60 overflow-y-auto">
+            <h3 className="font-medium mb-3">Conversation</h3>
+            <div className="space-y-3">
+              {conversationHistory.slice(-6).map((entry) => (
+                <div key={entry.id} className="space-y-1">
+                  <div className={`p-2 rounded-lg ${
+                    entry.speaker === 'staff' ? 'bg-blue-50' : 'bg-teal-50'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium">
+                        {entry.speaker === 'staff' ? '🇬🇧 Staff' : `${selectedLang?.flag} Patient`}
+                      </span>
+                    </div>
+                    <p className="text-sm">{entry.originalText}</p>
+                  </div>
+                  {entry.translatedText && (
+                    <div className={`p-2 rounded-lg border-l-2 ml-4 ${
+                      entry.speaker === 'staff' 
+                        ? 'bg-teal-50 border-teal-400' 
+                        : 'bg-blue-50 border-blue-400'
+                    }`}>
+                      <p className="text-sm">{entry.translatedText}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => playTranslationAudio(
+                          entry.translatedText, 
+                          entry.targetLanguage
+                        )}
+                        disabled={isPlaying}
+                        className="h-6 w-6 p-0 mt-1"
+                      >
+                        {isPlaying ? (
+                          <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {translation?.translatedText && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={playTranslation}
-                    disabled={isPlaying}
-                    className="text-white hover:bg-white/20"
-                  >
-                    {isPlaying ? (
-                      <div className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <Volume2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="p-4 bg-white min-h-[80px] flex items-center">
-              {isTranslating ? (
-                <div className="text-muted-foreground">Translating...</div>
-              ) : translation?.translatedText ? (
-                <p className="text-base leading-relaxed">{translation.translatedText}</p>
-              ) : (
-                <p className="text-muted-foreground">Translation will appear here</p>
-              )}
+              ))}
             </div>
           </Card>
         )}
+
+        {/* Manual Text Translation */}
+        <Card className="p-4 bg-white/90 backdrop-blur-sm">
+          <h3 className="font-medium mb-3">Manual Translation</h3>
+          
+          {/* English (Staff) Section */}
+          <Card className="overflow-hidden mb-4">
+            <div className="bg-blue-600 text-white p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🇬🇧</span>
+                <span className="font-medium">English (Staff)</span>
+              </div>
+            </div>
+            <div className="p-4 bg-white">
+              <Textarea
+                value={currentPhrase}
+                onChange={(e) => setCurrentPhrase(e.target.value)}
+                placeholder="Type your message here..."
+                className="min-h-[80px] text-base resize-none border-0 p-0 focus:ring-0"
+                onBlur={() => {
+                  if (selectedLanguage !== 'none' && currentPhrase) {
+                    translateText(currentPhrase, selectedLanguage);
+                  }
+                }}
+              />
+            </div>
+          </Card>
+
+          {/* Translated (Patient) Section */}
+          {selectedLanguage !== 'none' && (
+            <Card className="overflow-hidden">
+              <div className="bg-teal-600 text-white p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{selectedLang?.flag}</span>
+                    <span className="font-medium">{selectedLang?.name} (Patient)</span>
+                  </div>
+                  {translation?.translatedText && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playTranslationAudio(translation.translatedText, selectedLanguage)}
+                      disabled={isPlaying}
+                      className="text-white hover:bg-white/20"
+                    >
+                      {isPlaying ? (
+                        <div className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 bg-white min-h-[80px] flex items-center">
+                {isTranslating ? (
+                  <div className="text-muted-foreground">Translating...</div>
+                ) : translation?.translatedText ? (
+                  <p className="text-base leading-relaxed">{translation.translatedText}</p>
+                ) : (
+                  <p className="text-muted-foreground">Translation will appear here</p>
+                )}
+              </div>
+            </Card>
+          )}
+        </Card>
 
         {/* Common Phrases */}
         <Card className="p-4 bg-white/80 backdrop-blur-sm">
