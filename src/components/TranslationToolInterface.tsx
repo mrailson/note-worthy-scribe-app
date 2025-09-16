@@ -1746,85 +1746,6 @@ export const TranslationToolInterface = () => {
 
       {/* Control Actions */}
       <div className="flex justify-end items-center gap-2 mb-4">
-        <TooltipProvider>
-          {/* Pause Icon */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={() => {
-                  // Add pause functionality here
-                  toast.info('Translation paused');
-                }}
-              >
-                <Pause className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Pause translation service</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* End Translation Icon */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={endTranslationService}
-              >
-                <Square className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>End translation session</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Mute Icon */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={() => {
-                  // Add mute functionality here
-                  toast.info('Microphone muted');
-                }}
-              >
-                <MicOff className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Mute microphone</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Speaker Off Icon */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={() => {
-                  // Add speaker mute functionality here
-                  toast.info('Speaker muted');
-                }}
-              >
-                <VolumeX className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Mute speaker output</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
         {/* Download Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -2989,6 +2910,84 @@ export const TranslationToolInterface = () => {
                 Live Translation Display
               </span>
               <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  {/* Pause Icon */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          // Add pause functionality here
+                          toast.info('Translation paused');
+                        }}
+                      >
+                        <Pause className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Pause translation service</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* End Translation Icon */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={endTranslationService}
+                      >
+                        <Square className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>End translation session</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Mute Icon */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          // Add mute functionality here
+                          toast.info('Microphone muted');
+                        }}
+                      >
+                        <MicOff className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Mute microphone</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Speaker Off Icon */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          // Add speaker mute functionality here
+                          toast.info('Speaker muted');
+                        }}
+                      >
+                        <VolumeX className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Mute speaker output</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <TranslationValidationGuide />
               </div>
             </DialogTitle>
