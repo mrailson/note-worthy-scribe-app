@@ -1131,7 +1131,7 @@ export const TranslationToolInterface = () => {
         .select('practice_name, address, phone, email')
         .eq('user_id', user?.user?.id)
         .eq('is_default', true)
-        .single();
+        .maybeSingle();
 
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
@@ -1195,7 +1195,7 @@ export const TranslationToolInterface = () => {
         .select('practice_name, address, phone, email')
         .eq('user_id', user?.user?.id)
         .eq('is_default', true)
-        .single();
+        .maybeSingle();
 
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
