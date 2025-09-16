@@ -185,6 +185,7 @@ export const TranslationToolInterface = () => {
   const [isEmailingSelf, setIsEmailingSelf] = useState(false);
   const [isEmailingPatient, setIsEmailingPatient] = useState(false);
   const lastVolumeRef = useRef(0.8);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
 
   // Custom hooks
   const {
@@ -1744,11 +1745,16 @@ export const TranslationToolInterface = () => {
   const toggleSpeakerMute = async () => {
     try {
       if (isSpeakerMuted) {
-        await conversation.setVolume({ volume: lastVolumeRef.current || 0.8 });
+        if (conversation.status === 'connected') {
+          await conversation.setVolume({ volume: lastVolumeRef.current || 0.8 });
+        }
         setIsSpeakerMuted(false);
         toast.success('Speaker unmuted');
       } else {
-        await conversation.setVolume({ volume: 0 });
+        lastVolumeRef.current = 0.8; // Store current volume before muting
+        if (conversation.status === 'connected') {
+          await conversation.setVolume({ volume: 0 });
+        }
         setIsSpeakerMuted(true);
         toast.info('Speaker muted');
       }
@@ -1758,16 +1764,75 @@ export const TranslationToolInterface = () => {
     }
   };
 
-  const toggleMicMute = () => {
+  const toggleMicMute = async () => {
     setIsMicMuted((prev) => {
       const next = !prev;
-      if (next) {
-        toast.info('Microphone muted');
+      
+      // Handle microphone muting at the MediaStream level
+      if (microphoneStreamRef.current) {
+        // Use existing stream if available
+        microphoneStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = !next; // Disable track when muted
+        });
+        
+        if (next) {
+          toast.info('Microphone muted - audio input disabled');
+        } else {
+          toast.success('Microphone unmuted - audio input enabled');
+        }
       } else {
-        toast.success('Microphone unmuted');
+        // Try to get access to microphone stream
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+          navigator.mediaDevices.getUserMedia({ audio: true })
+            .then((stream) => {
+              microphoneStreamRef.current = stream;
+              stream.getAudioTracks().forEach((track) => {
+                track.enabled = !next; // Disable track when muted
+              });
+              
+              if (next) {
+                toast.info('Microphone muted - audio input disabled');
+              } else {
+                toast.success('Microphone unmuted - audio input enabled');
+              }
+            })
+            .catch((err) => {
+              console.warn('Could not access microphone for muting:', err);
+              toast.error('Unable to access microphone for muting');
+            });
+        } else {
+          toast.error('Microphone control not supported in this browser');
+        }
       }
+      
       return next;
     });
+  };
+
+  const togglePause = async () => {
+    try {
+      if (isPaused) {
+        // Resume: restart the session if we were connected
+        if (conversation.status === 'disconnected') {
+          // Restart the session
+          await startTranslationService();
+        }
+        setIsPaused(false);
+        toast.success('Translation resumed - service reactivated');
+      } else {
+        // Pause: end the current session
+        if (conversation.status === 'connected') {
+          await conversation.endSession();
+        }
+        setIsPaused(true);
+        toast.info('Translation paused - service temporarily stopped');
+      }
+    } catch (e) {
+      console.error('Failed to toggle pause:', e);
+      toast.error('Unable to pause/resume translation');
+      // Revert state on error
+      setIsPaused(prev => !prev);
+    }
   };
 
   // Function to convert content to styled HTML for email (matching EmailHandler style)
@@ -2156,17 +2221,7 @@ export const TranslationToolInterface = () => {
     console.log('🗑️ Deleted all translations');
   };
 
-  const togglePause = () => {
-    setIsPaused((prev) => {
-      const next = !prev;
-      if (next) {
-        toast.info('Translation paused - audio capture stopped');
-      } else {
-        toast.success('Translation resumed - audio capture active');
-      }
-      return next;
-    });
-  };
+  // Remove the old togglePause function as it's now above
 
   useEffect(() => {
     // Check if microphone permission is already granted
