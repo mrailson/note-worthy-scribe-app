@@ -57,7 +57,7 @@ export const ServiceOverview = () => {
     },
     {
       icon: <BarChart3 className="h-6 w-6" />,
-      title: "Complaints System",
+      title: "Complaints Management System",
       description: "Comprehensive patient complaint management system with automated workflows and NHS compliance",
       benefits: ["Automated complaint tracking", "Response template library", "NHS compliance monitoring", "Performance analytics", "Multi-channel complaint capture"]
     },
@@ -70,7 +70,7 @@ export const ServiceOverview = () => {
   ];
 
   // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI4GP Service','AI4PM Service','Meeting Recording & Management','Translation Service','Complaints System']);
+  const allowedServices = new Set(['AI4GP Service','Meeting Recording & Management','Translation Service','Complaints Management System']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
   // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
