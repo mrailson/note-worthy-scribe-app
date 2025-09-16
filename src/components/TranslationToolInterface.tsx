@@ -2902,7 +2902,7 @@ export const TranslationToolInterface = () => {
       
       {/* Translation Display Modal - Large Text for Patients */}
       <Dialog open={isTranslationModalOpen} onOpenChange={setIsTranslationModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto z-[100]">
           <DialogHeader className="border-b pb-6">
             <DialogTitle className="flex items-center justify-between text-2xl">
               <span className="flex items-center gap-3">
@@ -2910,14 +2910,14 @@ export const TranslationToolInterface = () => {
                 Live Translation Display
               </span>
               <div className="flex items-center gap-2">
-                <TooltipProvider>
+                <TooltipProvider delayDuration={300}>
                   {/* Pause Icon */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-muted"
                         onClick={() => {
                           // Add pause functionality here
                           toast.info('Translation paused');
@@ -2926,7 +2926,7 @@ export const TranslationToolInterface = () => {
                         <Pause className="w-4 h-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom" className="z-[110]">
                       <p>Pause translation service</p>
                     </TooltipContent>
                   </Tooltip>
@@ -2937,13 +2937,13 @@ export const TranslationToolInterface = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-muted"
                         onClick={endTranslationService}
                       >
                         <Square className="w-4 h-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom" className="z-[110]">
                       <p>End translation session</p>
                     </TooltipContent>
                   </Tooltip>
@@ -2954,7 +2954,7 @@ export const TranslationToolInterface = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-muted"
                         onClick={() => {
                           // Add mute functionality here
                           toast.info('Microphone muted');
@@ -2963,7 +2963,7 @@ export const TranslationToolInterface = () => {
                         <MicOff className="w-4 h-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom" className="z-[110]">
                       <p>Mute microphone</p>
                     </TooltipContent>
                   </Tooltip>
@@ -2974,7 +2974,7 @@ export const TranslationToolInterface = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 hover:bg-muted"
                         onClick={() => {
                           // Add speaker mute functionality here
                           toast.info('Speaker muted');
@@ -2983,7 +2983,7 @@ export const TranslationToolInterface = () => {
                         <VolumeX className="w-4 h-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom" className="z-[110]">
                       <p>Mute speaker output</p>
                     </TooltipContent>
                   </Tooltip>
@@ -3045,8 +3045,36 @@ export const TranslationToolInterface = () => {
                         Repeat Phrase
                       </>
                     )}
-                  </Button>
-                  
+                   </Button>
+                   
+                   {/* Download Dropdown */}
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                       <Button variant="outline" className="flex items-center gap-2 px-6 py-3 text-base">
+                         <Download className="w-5 h-5" />
+                         Download
+                         <ChevronDown className="w-4 h-4" />
+                       </Button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent align="center" className="w-64 bg-background border shadow-lg z-[110]">
+                       <DropdownMenuItem 
+                         onClick={handleExportDOCX}
+                         disabled={translations.length === 0}
+                         className="flex items-center gap-2 cursor-pointer py-3"
+                       >
+                         <Download className="w-4 h-4" />
+                         GP Practice Audit Record
+                       </DropdownMenuItem>
+                       <DropdownMenuItem 
+                         onClick={handlePatientLanguageExportDOCX}
+                         disabled={translations.length === 0}
+                         className="flex items-center gap-2 cursor-pointer py-3"
+                       >
+                         <Download className="w-4 h-4" />
+                         Patient Copy of Translation
+                       </DropdownMenuItem>
+                     </DropdownMenuContent>
+                   </DropdownMenu>
                 </div>
               </div>
             </div>
