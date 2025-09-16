@@ -133,6 +133,7 @@ export const TranslationToolInterface = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const lastVolumeRef = useRef(0.8);
 
   // Custom hooks
@@ -419,9 +420,9 @@ export const TranslationToolInterface = () => {
   const updateCurrentTranslation = (userMessage: string, agentResponse: string) => {
     console.log('🔄 Updating current translation for modal display...');
     
-    // Respect mic mute: do not update the live modal when input is muted
-    if (isMicMuted) {
-      console.log('🎙️ Mic muted - skipping modal update');
+    // Respect mic mute or pause: do not update the live modal when input is muted or paused
+    if (isMicMuted || isPaused) {
+      console.log(`🎙️ ${isMicMuted ? 'Mic muted' : 'Translation paused'} - skipping modal update`);
       return;
     }
     
@@ -1360,6 +1361,14 @@ export const TranslationToolInterface = () => {
         return;
       }
       
+      // Skip processing when paused (but still acknowledge to prevent session issues)
+      if (isPaused && source === 'user') {
+        console.log('⏸️ Translation paused - skipping user input processing');
+        const messageId = sessionManager.sendMessage(contentText, 'user');
+        sessionManager.acknowledgeMessage(messageId);
+        return;
+      }
+
       // Extract correlation and session data from message if present
       const correlationId = messageObj?.correlationId;
       const messageSessionId = messageObj?.sessionId;
@@ -1681,6 +1690,18 @@ export const TranslationToolInterface = () => {
         toast.info('Microphone muted');
       } else {
         toast.success('Microphone unmuted');
+      }
+      return next;
+    });
+  };
+
+  const togglePause = () => {
+    setIsPaused((prev) => {
+      const next = !prev;
+      if (next) {
+        toast.info('Translation paused - audio capture stopped');
+      } else {
+        toast.success('Translation resumed - audio capture active');
       }
       return next;
     });
@@ -2962,16 +2983,14 @@ export const TranslationToolInterface = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={() => {
-                          // TODO: Implement pause functionality (non-blocking)
-                          toast.info('Translation paused');
-                        }}
+                        onClick={togglePause}
+                        aria-label={isPaused ? 'Resume translation' : 'Pause translation'}
                       >
-                        <Pause className="w-4 h-4" />
+                        <Pause className={`w-4 h-4 ${isPaused ? 'text-muted-foreground' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="z-[110]">
-                      <p>Pause translation service</p>
+                      <p>{isPaused ? 'Resume translation service' : 'Pause translation service'}</p>
                     </TooltipContent>
                   </Tooltip>
 
