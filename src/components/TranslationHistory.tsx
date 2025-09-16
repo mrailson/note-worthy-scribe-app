@@ -4,6 +4,7 @@ import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Download, 
   FileText, 
@@ -15,9 +16,24 @@ import {
   Shield,
   ShieldAlert,
   Calendar,
-  Timer
+  Timer,
+  Trash2,
+  Trash,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export interface TranslationEntry {
   id: string;
@@ -40,6 +56,10 @@ interface TranslationHistoryProps {
   patientLanguage: string;
   translationType?: string; // Add translation type prop
   onExportDOCX: () => void;
+  onDeleteTranslation?: (translationId: string) => void;
+  onDeleteSelectedTranslations?: (translationIds: string[]) => void;
+  onDeleteAllTranslations?: () => void;
+  isHistorical?: boolean; // Flag to indicate if this is historical data (read-only)
 }
 
 interface SessionMetrics {
@@ -60,7 +80,11 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   sessionStart,
   patientLanguage,
   translationType = 'Live Speech Translation', // Default value
-  onExportDOCX
+  onExportDOCX,
+  onDeleteTranslation,
+  onDeleteSelectedTranslations,
+  onDeleteAllTranslations,
+  isHistorical = false
 }) => {
   const getLanguageName = (code: string) => {
     if (!code) return 'Unknown';
@@ -69,7 +93,62 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
     const match = HEALTHCARE_LANGUAGES.find(l => l.code === lower) || HEALTHCARE_LANGUAGES.find(l => l.code === base);
     return match?.name || (base ? base.charAt(0).toUpperCase() + base.slice(1) : code);
   };
+  
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
+  const [selectedTranslations, setSelectedTranslations] = useState<Set<string>>(new Set());
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<{
+    type: 'single' | 'selected' | 'all';
+    translationId?: string;
+  } | null>(null);
+
+  // Handle individual selection
+  const handleTranslationSelect = (translationId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTranslations);
+    if (checked) {
+      newSelected.add(translationId);
+    } else {
+      newSelected.delete(translationId);
+    }
+    setSelectedTranslations(newSelected);
+  };
+
+  // Handle select all/none
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTranslations(new Set(deduplicatedTranslations.map(t => t.id)));
+    } else {
+      setSelectedTranslations(new Set());
+    }
+  };
+
+  // Handle delete confirmation
+  const handleConfirmDelete = () => {
+    if (!showDeleteConfirmation) return;
+
+    switch (showDeleteConfirmation.type) {
+      case 'single':
+        if (showDeleteConfirmation.translationId && onDeleteTranslation) {
+          onDeleteTranslation(showDeleteConfirmation.translationId);
+          toast.success('Translation deleted');
+        }
+        break;
+      case 'selected':
+        if (selectedTranslations.size > 0 && onDeleteSelectedTranslations) {
+          onDeleteSelectedTranslations(Array.from(selectedTranslations));
+          setSelectedTranslations(new Set());
+          toast.success(`${selectedTranslations.size} translations deleted`);
+        }
+        break;
+      case 'all':
+        if (onDeleteAllTranslations) {
+          onDeleteAllTranslations();
+          setSelectedTranslations(new Set());
+          toast.success('All translations deleted');
+        }
+        break;
+    }
+    setShowDeleteConfirmation(null);
+  };
 
   // Deduplicate translations based on exact timestamp to prevent showing duplicates
   const deduplicatedTranslations = useMemo(() => {
@@ -294,7 +373,70 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
       {/* Translation History Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Translation History</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Detailed Translation History</CardTitle>
+            {!isHistorical && (onDeleteTranslation || onDeleteSelectedTranslations || onDeleteAllTranslations) && (
+              <div className="flex items-center gap-2">
+                {deduplicatedTranslations.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all"
+                      checked={selectedTranslations.size === deduplicatedTranslations.length && deduplicatedTranslations.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      className="mr-2"
+                    />
+                    <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
+                      Select All ({selectedTranslations.size}/{deduplicatedTranslations.length})
+                    </label>
+                  </div>
+                )}
+                
+                {selectedTranslations.size > 0 && onDeleteSelectedTranslations && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirmation({ type: 'selected' })}
+                    className="flex items-center gap-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Selected ({selectedTranslations.size})
+                  </Button>
+                )}
+                
+                {deduplicatedTranslations.length > 0 && onDeleteAllTranslations && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Trash className="w-4 h-4" />
+                        Delete All
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete All Translations?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete all {deduplicatedTranslations.length} translations from this session. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => setShowDeleteConfirmation({ type: 'all' })}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete All
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-96">
@@ -308,73 +450,98 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                 {deduplicatedTranslations.map((translation, index) => (
                   <div
                     key={translation.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                    className={`p-4 border rounded-lg transition-all hover:shadow-md ${
                       selectedEntry === translation.id ? 'ring-2 ring-primary' : ''
                     } ${
                       translation.speaker === 'gp' 
                         ? 'bg-blue-50 border-blue-200' 
                         : 'bg-green-50 border-green-200'
                     }`}
-                    onClick={() => setSelectedEntry(selectedEntry === translation.id ? null : translation.id)}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline">
-                            #{index + 1} {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {translation.timestamp.toLocaleTimeString()}
-                          </span>
-                          {translation.accuracy !== undefined && (
-                            <Badge className={getAccuracyColor(translation.accuracy)}>
-                              {translation.accuracy}% accuracy
-                            </Badge>
-                          )}
-                          {translation.safetyFlag && getSafetyBadge(translation.safetyFlag)}
-                        </div>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {!isHistorical && onDeleteTranslation && (
+                          <Checkbox
+                            checked={selectedTranslations.has(translation.id)}
+                            onCheckedChange={(checked) => 
+                              handleTranslationSelect(translation.id, checked as boolean)
+                            }
+                            className="mt-1"
+                          />
+                        )}
                         
-                        <div className="space-y-2">
-                          <div className="p-2 bg-white/60 rounded border-l-2 border-l-blue-400">
-                            <p className="text-sm font-medium text-blue-700">Original:</p>
-                            <p className="text-sm">{translation.originalText}</p>
+                        <div 
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => setSelectedEntry(selectedEntry === translation.id ? null : translation.id)}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline">
+                              #{index + 1} {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {translation.timestamp.toLocaleTimeString()}
+                            </span>
+                            {translation.accuracy !== undefined && (
+                              <Badge className={getAccuracyColor(translation.accuracy)}>
+                                {translation.accuracy}% accuracy
+                              </Badge>
+                            )}
+                            {translation.safetyFlag && getSafetyBadge(translation.safetyFlag)}
                           </div>
-                          <div className="p-2 bg-white/60 rounded border-l-2 border-l-green-400">
-                            <p className="text-sm font-medium text-green-700">Translation:</p>
-                            <p className="text-sm">{translation.translatedText}</p>
-                          </div>
-                        </div>
-
-                        {selectedEntry === translation.id && (
-                          <div className="mt-3 pt-3 border-t bg-white/40 rounded p-3">
-                            <h5 className="font-medium mb-2">Technical Details</h5>
-                            <div className="grid grid-cols-2 gap-4 text-xs">
-                              <div>
-                                <span className="font-medium">Languages:</span>
-                                <p>{getLanguageName(translation.originalLanguage)} → {getLanguageName(translation.targetLanguage)}</p>
-                              </div>
-                              {translation.confidence !== undefined && (
-                                <div>
-                                  <span className="font-medium">Confidence:</span>
-                                  <p>{translation.confidence}%</p>
-                                </div>
-                              )}
-                              {translation.translationLatency !== undefined && (
-                                <div>
-                                  <span className="font-medium">Processing Time:</span>
-                                  <p>{translation.translationLatency}ms</p>
-                                </div>
-                              )}
-                              {translation.medicalTermsDetected && translation.medicalTermsDetected.length > 0 && (
-                                <div className="col-span-2">
-                                  <span className="font-medium">Medical Terms:</span>
-                                  <p>{translation.medicalTermsDetected.join(', ')}</p>
-                                </div>
-                              )}
+                          
+                          <div className="space-y-2">
+                            <div className="p-2 bg-white/60 rounded border-l-2 border-l-blue-400">
+                              <p className="text-sm font-medium text-blue-700">Original:</p>
+                              <p className="text-sm">{translation.originalText}</p>
+                            </div>
+                            <div className="p-2 bg-white/60 rounded border-l-2 border-l-green-400">
+                              <p className="text-sm font-medium text-green-700">Translation:</p>
+                              <p className="text-sm">{translation.translatedText}</p>
                             </div>
                           </div>
-                        )}
+
+                          {selectedEntry === translation.id && (
+                            <div className="mt-3 pt-3 border-t bg-white/40 rounded p-3">
+                              <h5 className="font-medium mb-2">Technical Details</h5>
+                              <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                  <span className="font-medium">Languages:</span>
+                                  <p>{getLanguageName(translation.originalLanguage)} → {getLanguageName(translation.targetLanguage)}</p>
+                                </div>
+                                {translation.confidence !== undefined && (
+                                  <div>
+                                    <span className="font-medium">Confidence:</span>
+                                    <p>{translation.confidence}%</p>
+                                  </div>
+                                )}
+                                {translation.translationLatency !== undefined && (
+                                  <div>
+                                    <span className="font-medium">Processing Time:</span>
+                                    <p>{translation.translationLatency}ms</p>
+                                  </div>
+                                )}
+                                {translation.medicalTermsDetected && translation.medicalTermsDetected.length > 0 && (
+                                  <div className="col-span-2">
+                                    <span className="font-medium">Medical Terms:</span>
+                                    <p>{translation.medicalTermsDetected.join(', ')}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      
+                      {!isHistorical && onDeleteTranslation && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDeleteConfirmation({ type: 'single', translationId: translation.id })}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -383,6 +550,41 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!showDeleteConfirmation} onOpenChange={() => setShowDeleteConfirmation(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {showDeleteConfirmation?.type === 'single' && 'Delete Translation?'}
+              {showDeleteConfirmation?.type === 'selected' && `Delete ${selectedTranslations.size} Selected Translations?`}
+              {showDeleteConfirmation?.type === 'all' && 'Delete All Translations?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {showDeleteConfirmation?.type === 'single' && 
+                'This translation will be permanently deleted. This action cannot be undone.'
+              }
+              {showDeleteConfirmation?.type === 'selected' && 
+                `The ${selectedTranslations.size} selected translations will be permanently deleted. This action cannot be undone.`
+              }
+              {showDeleteConfirmation?.type === 'all' && 
+                `All ${deduplicatedTranslations.length} translations in this session will be permanently deleted. This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {showDeleteConfirmation?.type === 'single' && 'Delete'}
+              {showDeleteConfirmation?.type === 'selected' && `Delete ${selectedTranslations.size}`}
+              {showDeleteConfirmation?.type === 'all' && 'Delete All'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

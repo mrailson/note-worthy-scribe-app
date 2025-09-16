@@ -31,6 +31,9 @@ interface Props {
   onExportDOCX: () => void;
   onPatientExportDOCX: () => void;
   onOpenSaved: () => void;
+  onDeleteTranslation?: (translationId: string) => void;
+  onDeleteSelectedTranslations?: (translationIds: string[]) => void;
+  onDeleteAllTranslations?: () => void;
 }
 
 export const HistorySubTabs: React.FC<Props> = ({
@@ -45,6 +48,9 @@ export const HistorySubTabs: React.FC<Props> = ({
   onExportDOCX,
   onPatientExportDOCX,
   onOpenSaved,
+  onDeleteTranslation,
+  onDeleteSelectedTranslations,
+  onDeleteAllTranslations,
 }) => {
   const navigate = useNavigate();
 
@@ -102,6 +108,10 @@ export const HistorySubTabs: React.FC<Props> = ({
             patientLanguage="Multiple Languages"
             translationType="Live Speech Translation"
             onExportDOCX={onExportDOCX}
+            onDeleteTranslation={onDeleteTranslation}
+            onDeleteSelectedTranslations={onDeleteSelectedTranslations}
+            onDeleteAllTranslations={onDeleteAllTranslations}
+            isHistorical={false}
           />
         ) : sessions.length > 0 ? (
           <Card>

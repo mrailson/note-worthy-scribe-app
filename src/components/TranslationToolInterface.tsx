@@ -2071,6 +2071,25 @@ export const TranslationToolInterface = () => {
     }
   };
 
+  // Handle deleting individual translation
+  const handleDeleteTranslation = (translationId: string) => {
+    setTranslations(prev => prev.filter(t => t.id !== translationId));
+    console.log('🗑️ Deleted translation:', translationId);
+  };
+
+  // Handle deleting selected translations
+  const handleDeleteSelectedTranslations = (translationIds: string[]) => {
+    setTranslations(prev => prev.filter(t => !translationIds.includes(t.id)));
+    console.log('🗑️ Deleted selected translations:', translationIds.length);
+  };
+
+  // Handle deleting all translations
+  const handleDeleteAllTranslations = () => {
+    setTranslations([]);
+    setTranslationScores([]);
+    console.log('🗑️ Deleted all translations');
+  };
+
   const togglePause = () => {
     setIsPaused((prev) => {
       const next = !prev;
@@ -3304,6 +3323,9 @@ export const TranslationToolInterface = () => {
             onExportDOCX={handleExportDOCX}
             onPatientExportDOCX={handlePatientExportDOCX}
             onOpenSaved={() => setShowHistorySidebar(true)}
+            onDeleteTranslation={handleDeleteTranslation}
+            onDeleteSelectedTranslations={handleDeleteSelectedTranslations}
+            onDeleteAllTranslations={handleDeleteAllTranslations}
           />
         </TabsContent>
       </Tabs>
