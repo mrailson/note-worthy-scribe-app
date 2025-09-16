@@ -9,13 +9,24 @@ const TranslationTool = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (isMobile) {
-      navigate('/mobile-translate', { replace: true });
-    }
-  }, [isMobile, navigate]);
+    // Force redirect to mobile version on any mobile device
+    const checkMobile = () => {
+      const isMobileScreen = window.innerWidth < 768;
+      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobileScreen || isMobileUserAgent) {
+        navigate('/mobile-translate', { replace: true });
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [navigate]);
 
   // Don't render anything while checking mobile status to avoid flash
-  if (isMobile) {
+  if (isMobile || window.innerWidth < 768) {
     return null;
   }
 

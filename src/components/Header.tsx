@@ -198,9 +198,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Mic Test Service
                           </DropdownMenuItem>
                         )}
-                        {hasModuleAccess('translation_service') && (
+                         {hasModuleAccess('translation_service') && (
                           <DropdownMenuItem 
-                            onClick={() => navigate('/translation-tool')}
+                            onClick={() => {
+                              // Check if mobile and redirect accordingly
+                              const isMobileScreen = window.innerWidth < 768;
+                              const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                              
+                              if (isMobileScreen || isMobileUserAgent) {
+                                navigate('/mobile-translate');
+                              } else {
+                                navigate('/translation-tool');
+                              }
+                            }}
                             className="cursor-pointer py-3"
                           >
                             <Languages className="h-4 w-4 mr-2" />
@@ -416,9 +426,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </Button>
                               </DrawerClose>
                             )}
-                           {hasModuleAccess('translation_service') && (
+                            {hasModuleAccess('translation_service') && (
                               <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/translation-tool')}>
+                                <Button variant="ghost" className="justify-start" onClick={() => {
+                                  // Check if mobile and redirect accordingly
+                                  const isMobileScreen = window.innerWidth < 768;
+                                  const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                                  
+                                  if (isMobileScreen || isMobileUserAgent) {
+                                    navigate('/mobile-translate');
+                                  } else {
+                                    navigate('/translation-tool');
+                                  }
+                                }}>
                                   <Languages className="h-4 w-4 mr-2" />
                                   Translation Service
                                 </Button>

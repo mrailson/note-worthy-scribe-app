@@ -434,7 +434,17 @@ const AI4GPService = () => {
                           <BookOpen className="w-4 h-4 mr-2" />
                           User Guide & Help
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/translation-tool')}>
+                        <DropdownMenuItem onClick={() => {
+                          // Check if mobile and redirect accordingly
+                          const isMobileScreen = window.innerWidth < 768;
+                          const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          
+                          if (isMobileScreen || isMobileUserAgent) {
+                            navigate('/mobile-translate');
+                          } else {
+                            navigate('/translation-tool');
+                          }
+                        }}>
                           <Languages className="w-4 h-4 mr-2" />
                           Translation Service
                         </DropdownMenuItem>
