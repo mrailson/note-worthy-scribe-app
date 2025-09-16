@@ -3511,55 +3511,23 @@ export const TranslationToolInterface = () => {
                     </Tooltip>
                   )}
 
-                  {/* Download Icon */}
-                  {currentTranslation && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-muted"
-                          aria-label="Download options"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="center" className="w-64 bg-background border shadow-lg z-[110]">
-                        <DropdownMenuItem 
-                          onClick={handleExportDOCX}
-                          disabled={translations.length === 0}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Download className="w-4 h-4" />
-                          GP Practice Audit Record
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handlePatientLanguageExportDOCX}
-                          disabled={translations.length === 0}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Download className="w-4 h-4" />
-                          Patient Copy of Translation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handleEmailToMe}
-                          disabled={translations.length === 0 || isEmailingSelf}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {isEmailingSelf ? 'Emailing Complete Session...' : 'Email Complete Session to Me'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={handleEmailToPatient}
-                          disabled={translations.length === 0 || isEmailingPatient}
-                          className="flex items-center gap-2 cursor-pointer py-3"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {isEmailingPatient ? 'Emailing Patient Copy...' : 'Email Complete Session to Patient'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  {/* Speaker Off Icon */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                        onClick={toggleSpeakerMute}
+                        aria-label={isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}
+                      >
+                        <VolumeX className={`w-4 h-4 ${isSpeakerMuted ? 'text-muted-foreground' : ''}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="z-[110]">
+                      <p>{isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}</p>
+                    </TooltipContent>
+                  </Tooltip>
 
                   {/* Pause Icon */}
                   <Tooltip>
@@ -3614,23 +3582,55 @@ export const TranslationToolInterface = () => {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Speaker Off Icon */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={toggleSpeakerMute}
-                        aria-label={isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}
-                      >
-                        <VolumeX className={`w-4 h-4 ${isSpeakerMuted ? 'text-muted-foreground' : ''}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="z-[110]">
-                      <p>{isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  {/* Download Icon */}
+                  {currentTranslation && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          aria-label="Download options"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-64 bg-background border shadow-lg z-[110]">
+                        <DropdownMenuItem 
+                          onClick={handleExportDOCX}
+                          disabled={translations.length === 0}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Download className="w-4 h-4" />
+                          GP Practice Audit Record
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handlePatientLanguageExportDOCX}
+                          disabled={translations.length === 0}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Download className="w-4 h-4" />
+                          Patient Copy of Translation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleEmailToMe}
+                          disabled={translations.length === 0 || isEmailingSelf}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {isEmailingSelf ? 'Emailing Complete Session...' : 'Email Complete Session to Me'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleEmailToPatient}
+                          disabled={translations.length === 0 || isEmailingPatient}
+                          className="flex items-center gap-2 cursor-pointer py-3"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {isEmailingPatient ? 'Emailing Patient Copy...' : 'Email Complete Session to Patient'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TooltipProvider>
                 <TranslationValidationGuide />
               </div>

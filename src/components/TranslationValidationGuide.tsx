@@ -204,7 +204,6 @@ export const TranslationValidationGuide: React.FC = () => {
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           <Shield className="w-4 h-4" />
-          View Validation System Details
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto z-[100]">
