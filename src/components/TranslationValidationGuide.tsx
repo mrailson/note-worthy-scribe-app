@@ -207,7 +207,7 @@ export const TranslationValidationGuide: React.FC = () => {
           View Validation System Details
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto z-[100]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-blue-600" />
