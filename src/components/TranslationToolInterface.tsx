@@ -2885,11 +2885,21 @@ export const TranslationToolInterface = () => {
                   <Button
                     onClick={handleExportDOCX}
                     variant="outline"
-                    className="px-8 py-3 text-lg"
+                    className="px-6 py-3 text-base"
                     disabled={translations.length === 0}
                   >
                     <Download className="w-5 h-5 mr-2" />
-                    Download Transcript
+                    GP Transcript
+                  </Button>
+                  
+                  <Button
+                    onClick={handlePatientExportDOCX}
+                    variant="outline"
+                    className="px-6 py-3 text-base"
+                    disabled={translations.length === 0}
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    Patient Language Transcript
                   </Button>
                 </div>
               </div>
