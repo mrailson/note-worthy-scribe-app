@@ -26,6 +26,7 @@ import { SlideContent, PresentationContent, GenerationMetadata, SlideAnimation }
 import { generateEnhancedPowerPoint } from "@/utils/enhancedPresentationGenerator";
 import { getTemplateById, PRESENTATION_TEMPLATES } from "@/utils/presentationTemplates";
 import PptxGenJS from "pptxgenjs";
+import defaultPptBackground from "@/assets/default-ppt-background.jpg";
 
 interface PowerPointGeneratorProps {
   open: boolean;
@@ -58,7 +59,7 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [complexityLevel, setComplexityLevel] = useState("intermediate");
   const [slideCount, setSlideCount] = useState(10);
   const [selectedTemplate, setSelectedTemplate] = useState(PRESENTATION_TEMPLATES[0].id);
-  const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundImage, setBackgroundImage] = useState<string>(defaultPptBackground);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
