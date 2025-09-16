@@ -1124,6 +1124,15 @@ export const TranslationToolInterface = () => {
       );
       const languageDisplayName = languageEntry?.name || primaryPatientLanguage;
 
+      // Fetch practice details
+      const { data: user } = await supabase.auth.getUser();
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('user_id', user?.user?.id)
+        .eq('is_default', true)
+        .single();
+
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
         sessionStart,
@@ -1131,9 +1140,9 @@ export const TranslationToolInterface = () => {
         patientLanguage: languageDisplayName, // Use display name instead of code
         totalTranslations: translations.length,
         sessionDuration,
-        practiceName: "NHS GP Practice", // Could be made configurable
-        practiceAddress: "Contact your practice for address details",
-        practicePhone: "Contact your practice for phone details",
+        practiceName: practiceData?.practice_name || "NHS GP Practice",
+        practiceAddress: practiceData?.address || "Contact your practice for address details",
+        practicePhone: practiceData?.phone || "Contact your practice for phone details",
         gpName: "Your GP" // Could be made configurable
       };
 
@@ -1179,6 +1188,15 @@ export const TranslationToolInterface = () => {
 
       console.log('🔄 Primary patient language:', primaryPatientLanguage);
 
+      // Fetch practice details
+      const { data: user } = await supabase.auth.getUser();
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('user_id', user?.user?.id)
+        .eq('is_default', true)
+        .single();
+
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
         sessionStart,
@@ -1186,9 +1204,9 @@ export const TranslationToolInterface = () => {
         patientLanguage: primaryPatientLanguage,
         totalTranslations: translations.length,
         sessionDuration,
-        practiceName: "NHS GP Practice", // Could be made configurable
-        practiceAddress: "Contact your practice for address details",
-        practicePhone: "Contact your practice for phone details",
+        practiceName: practiceData?.practice_name || "NHS GP Practice",
+        practiceAddress: practiceData?.address || "Contact your practice for address details",
+        practicePhone: practiceData?.phone || "Contact your practice for phone details",
         gpName: "Your GP" // Could be made configurable
       };
 
