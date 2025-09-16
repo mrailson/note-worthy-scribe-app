@@ -104,6 +104,7 @@ export const TranslationToolInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
   const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
   const [isQualityDetailsOpen, setIsQualityDetailsOpen] = useState(false);
@@ -1543,6 +1544,13 @@ export const TranslationToolInterface = () => {
       setIsLoading(true);
       setError(null);
       
+      // Start countdown
+      for (let i = 3; i >= 1; i--) {
+        setCountdown(i);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      setCountdown(null);
+      
       // Initialize audio context first to prevent cutouts
       await initializeAudioContext();
       
@@ -1782,16 +1790,28 @@ export const TranslationToolInterface = () => {
                   <div className="flex flex-col items-center gap-4">
                     <Button
                       onClick={startTranslationService}
-                      disabled={isLoading}
+                      disabled={isLoading || countdown !== null}
                       size="lg"
-                      className="flex items-center gap-3 px-12 py-6 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                      className="flex items-center gap-3 px-12 py-6 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
                     >
-                      {isLoading ? (
-                        <Loader2 className="h-7 w-7 animate-spin" />
+                      {countdown !== null ? (
+                        <>
+                          <div className="h-7 w-7 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold">
+                            {countdown}
+                          </div>
+                          Starting Translation Service...
+                        </>
+                      ) : isLoading ? (
+                        <>
+                          <Loader2 className="h-7 w-7 animate-spin" />
+                          Initialising...
+                        </>
                       ) : (
-                        <Phone className="h-7 w-7" />
+                        <>
+                          <Phone className="h-7 w-7" />
+                          Start Translation Service
+                        </>
                       )}
-                      Start Translation Service
                     </Button>
                     
                     {/* Reset Button - Only show after a call has ended and there's memory to clear */}
