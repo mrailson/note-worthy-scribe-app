@@ -1099,6 +1099,27 @@ export const TranslationToolInterface = () => {
       
       console.log('🔄 Session duration:', sessionDuration);
       
+      // Detect the most common patient language from translations
+      const patientLanguages = translations
+        .filter(t => t.speaker === 'patient' || t.targetLanguage !== 'en')
+        .map(t => t.targetLanguage);
+      
+      const languageCount: { [key: string]: number } = {};
+      patientLanguages.forEach(lang => {
+        languageCount[lang] = (languageCount[lang] || 0) + 1;
+      });
+      
+      // Get primary patient language, defaulting to English if no translations found
+      const primaryPatientLanguage = Object.entries(languageCount)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'english';
+
+      // Get the full language name for display
+      const languageEntry = HEALTHCARE_LANGUAGES.find(lang => 
+        lang.code === primaryPatientLanguage.toLowerCase()
+      );
+      const patientLanguageDisplayName = languageEntry?.name || 
+        (primaryPatientLanguage.charAt(0).toUpperCase() + primaryPatientLanguage.slice(1));
+      
       const averageAccuracy = translationScores.length > 0 
         ? Math.round(translationScores.reduce((sum, s) => sum + s.accuracy, 0) / translationScores.length)
         : 0;
@@ -1122,7 +1143,7 @@ export const TranslationToolInterface = () => {
         sessionDate: sessionStart,
         sessionStart,
         sessionEnd,
-        patientLanguage: 'Multiple Languages',
+        patientLanguage: patientLanguageDisplayName,
         totalTranslations: translations.length,
         sessionDuration,
         overallSafetyRating,
