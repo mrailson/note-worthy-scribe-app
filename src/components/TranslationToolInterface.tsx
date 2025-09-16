@@ -1097,35 +1097,21 @@ export const TranslationToolInterface = () => {
       const primaryPatientLanguage = Object.entries(languageCount)
         .sort(([,a], [,b]) => b - a)[0]?.[0] || 'English';
 
-      // Calculate safety metrics
-      const scores = translationScores;
-      const validScores = scores.filter(score => score.accuracy > 0);
-      const averageAccuracy = validScores.length > 0 ? validScores.reduce((sum, score) => sum + score.accuracy, 0) / validScores.length : 0;
-      const averageConfidence = validScores.length > 0 ? validScores.reduce((sum, score) => sum + score.confidence, 0) / validScores.length : 0;
-      const overallSafetyRating = validScores.some(score => score.safetyFlag === 'unsafe') ? 'unsafe' : 
-                                 validScores.some(score => score.safetyFlag === 'warning') ? 'warning' : 'safe';
-
-      const metadata: SessionMetadata = {
+      const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
         sessionStart,
         sessionEnd,
         patientLanguage: primaryPatientLanguage,
         totalTranslations: translations.length,
         sessionDuration,
-        overallSafetyRating,
-        averageAccuracy,
-        averageConfidence
+        practiceName: "NHS GP Practice", // Could be made configurable
+        practiceAddress: "Contact your practice for address details",
+        practicePhone: "Contact your practice for phone details",
+        gpName: "Your GP" // Could be made configurable
       };
 
-      // Filter out technical scores and details for patient copy
-      const patientFriendlyScores = translationScores.map(score => ({
-        ...score,
-        issues: [], // Remove technical issues from patient copy
-        medicalTermsDetected: [] // Remove medical terms analysis from patient copy
-      }));
-
       console.log('🔄 Starting Patient Language DOCX export with metadata:', metadata);
-      await downloadDOCX(translations, metadata, patientFriendlyScores, true, undefined);
+      await downloadPatientDOCX(translations, metadata, translationScores);
       console.log('✅ Patient Language DOCX completed successfully');
       toast.success(`Patient copy exported in ${primaryPatientLanguage}`);
     } catch (error) {
