@@ -10,7 +10,7 @@ import { Gavel, Save, Edit, CheckCircle, Sparkles, Loader2, BookOpen, FileText, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
-import { ManualCQCReportGenerator } from '@/components/ManualCQCReportGenerator';
+
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -679,15 +679,6 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
                     )}
                   </div>
 
-                  {/* CQC Compliance Report Section */}
-                  {decision && (
-                    <div className="pt-4 border-t">
-                      <ManualCQCReportGenerator 
-                        complaintId={complaintId}
-                        complaintReference={complaintReferenceNumber}
-                      />
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
