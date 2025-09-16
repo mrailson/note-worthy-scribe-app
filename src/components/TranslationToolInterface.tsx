@@ -1987,37 +1987,6 @@ export const TranslationToolInterface = () => {
             </CardHeader>
           </Card>
 
-      {/* Control Actions */}
-      <div className="flex justify-end items-center gap-2 mb-4">
-        {/* Download Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Download Transcripts
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md z-50">
-            <DropdownMenuItem 
-              onClick={handleExportDOCX}
-              disabled={translations.length === 0}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              Download GP Practice Audit Record
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handlePatientLanguageExportDOCX}
-              disabled={translations.length === 0}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              Download Patient Copy of Translation
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
       {/* Main Interface Tabs */}
       <Tabs defaultValue="translate" className="w-full">
