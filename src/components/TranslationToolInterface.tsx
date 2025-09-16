@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { 
   Languages, 
@@ -43,7 +44,10 @@ import {
   Shield,
   Clock,
   Mic,
-  MicOff
+  MicOff,
+  Pause,
+  Square,
+  VolumeX
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -1740,8 +1744,88 @@ export const TranslationToolInterface = () => {
             </CardHeader>
           </Card>
 
-      {/* Download Actions */}
-      <div className="flex justify-end mb-4">
+      {/* Control Actions */}
+      <div className="flex justify-end items-center gap-2 mb-4">
+        <TooltipProvider>
+          {/* Pause Icon */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  // Add pause functionality here
+                  toast.info('Translation paused');
+                }}
+              >
+                <Pause className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Pause translation service</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* End Translation Icon */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={endTranslationService}
+              >
+                <Square className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>End translation session</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Mute Icon */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  // Add mute functionality here
+                  toast.info('Microphone muted');
+                }}
+              >
+                <MicOff className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Mute microphone</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Speaker Off Icon */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  // Add speaker mute functionality here
+                  toast.info('Speaker muted');
+                }}
+              >
+                <VolumeX className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Mute speaker output</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Download Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="flex items-center gap-2">
@@ -1750,7 +1834,7 @@ export const TranslationToolInterface = () => {
               <ChevronDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md z-50">
             <DropdownMenuItem 
               onClick={handleExportDOCX}
               disabled={translations.length === 0}
