@@ -1118,11 +1118,17 @@ export const TranslationToolInterface = () => {
       const primaryPatientLanguage = Object.entries(languageCount)
         .sort(([,a], [,b]) => b - a)[0]?.[0] || 'English';
 
+      // Get the full language name for display
+      const languageEntry = HEALTHCARE_LANGUAGES.find(lang => 
+        lang.code === primaryPatientLanguage.toLowerCase()
+      );
+      const languageDisplayName = languageEntry?.name || primaryPatientLanguage;
+
       const metadata: PatientSessionMetadata = {
         sessionDate: sessionStart,
         sessionStart,
         sessionEnd,
-        patientLanguage: primaryPatientLanguage,
+        patientLanguage: languageDisplayName, // Use display name instead of code
         totalTranslations: translations.length,
         sessionDuration,
         practiceName: "NHS GP Practice", // Could be made configurable
@@ -1132,9 +1138,10 @@ export const TranslationToolInterface = () => {
       };
 
       console.log('🔄 Starting Patient Language DOCX export with metadata:', metadata);
-      await downloadPatientDOCX(translations, metadata, translationScores);
+      // Use null for translationScores to match Translation History behavior
+      await downloadPatientDOCX(translations, metadata, null);
       console.log('✅ Patient Language DOCX completed successfully');
-      toast.success(`Patient copy exported in ${primaryPatientLanguage}`);
+      toast.success(`Patient copy exported in ${languageDisplayName}`);
     } catch (error) {
       console.error('❌ Patient Language export error:', error);
       toast.error('Failed to export patient language transcript');
