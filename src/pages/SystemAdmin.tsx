@@ -1263,6 +1263,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             role: userFormData.role,
             practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
             assigned_by: user?.id,
+            ai4gp_access: userFormData.module_access.ai4gp_access,
             module_access: userFormData.module_access,
             api_testing_service_access: userFormData.module_access.api_testing_service_access
           }

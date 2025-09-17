@@ -14,6 +14,7 @@ interface CreateUserRequest {
   role: string;
   practice_id?: string;
   assigned_by: string;
+  ai4gp_access?: boolean;
   module_access?: {
     meeting_notes_access: boolean;
     gp_scribe_access: boolean;
@@ -101,6 +102,21 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("Role assigned successfully");
+
+    // Update AI4GP access if specified
+    if (userData.ai4gp_access !== undefined) {
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({ ai4gp_access: userData.ai4gp_access })
+        .eq('user_id', authData.user.id);
+
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
+
+      console.log("AI4GP access updated:", userData.ai4gp_access);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
