@@ -50,13 +50,11 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
     setLoading(true);
 
     try {
-      const redirectUrl = "https://notewell.dialai.co.uk/";
-      
-      // Send magic link using Supabase's built-in magic link functionality
+      // Generate magic link using Supabase's built-in method
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: "https://notewell.dialai.co.uk/",
           shouldCreateUser: false // Only allow existing users to use magic links
         }
       });
@@ -68,6 +66,23 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
           variant: "destructive"
         });
       } else {
+        // Send custom notification email via our edge function
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-magic-link', {
+            body: {
+              email: email,
+              magic_link: "Please check your email for the secure login link",
+              user_name: email.split('@')[0]
+            }
+          });
+
+          if (emailError) {
+            console.warn("Custom email notification failed:", emailError);
+          }
+        } catch (emailError) {
+          console.warn("Failed to send custom notification:", emailError);
+        }
+
         setSubmitted(true);
         toast({
           title: "Magic Link Sent!",
