@@ -72,6 +72,7 @@ interface Practice {
   pcn_code?: string;
   pcn_name?: string;
   neighbourhood_id?: string;
+  neighbourhoods?: { name: string } | null;
   ics_code: string;
   ics_name: string;
   organisation_type: string;
@@ -1740,8 +1741,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       <TableRow>
                         <TableHead>Practice Name</TableHead>
                         <TableHead>K Code (ODS)</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Phone</TableHead>
+                        <TableHead>Neighbourhood</TableHead>
                         <TableHead>PCN Name</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -1755,8 +1755,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           <TableRow key={practice.id}>
                             <TableCell className="font-medium">{practice.name}</TableCell>
                             <TableCell>{practice.practice_code}</TableCell>
-                            <TableCell>{practice.email || 'Not specified'}</TableCell>
-                            <TableCell>{practice.phone || 'Not specified'}</TableCell>
+                            <TableCell>{practice.neighbourhoods?.name || 'Unassigned'}</TableCell>
                             <TableCell>{practice.pcn_name || 'Unassigned'}</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
