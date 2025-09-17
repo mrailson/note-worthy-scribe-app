@@ -1770,7 +1770,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                         <TableHead>
                           <div className="space-y-2">
                             <div>Neighbourhood</div>
-                            <Select value={neighbourhoodFilter} onValueChange={setNeighbourhoodFilter}>
+                            <Select value={neighbourhoodFilter} onValueChange={(value) => {
+                              console.log('Neighbourhood filter changed to:', value);
+                              setNeighbourhoodFilter(value);
+                            }}>
                               <SelectTrigger className="h-8 text-xs bg-background border-border">
                                 <SelectValue placeholder="All" />
                               </SelectTrigger>
@@ -1789,7 +1792,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                         <TableHead>
                           <div className="space-y-2">
                             <div>PCN Name</div>
-                            <Select value={pcnFilter} onValueChange={setPcnFilter}>
+                            <Select value={pcnFilter} onValueChange={(value) => {
+                              console.log('PCN filter changed to:', value);
+                              setPcnFilter(value);
+                            }}>
                               <SelectTrigger className="h-8 text-xs bg-background border-border">
                                 <SelectValue placeholder="All" />
                               </SelectTrigger>
@@ -1815,14 +1821,28 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           const matchesSearch = practice.name.toLowerCase().includes(practiceSearchQuery.toLowerCase());
                           
                           // Neighbourhood filter
+                          const practiceNeighbourhood = practice.neighbourhoods?.name;
                           const matchesNeighbourhood = neighbourhoodFilter === 'all' || 
-                            (neighbourhoodFilter === 'unassigned' && !practice.neighbourhoods?.name) ||
-                            practice.neighbourhoods?.name === neighbourhoodFilter;
+                            (neighbourhoodFilter === 'unassigned' && !practiceNeighbourhood) ||
+                            practiceNeighbourhood === neighbourhoodFilter;
                           
-                          // PCN filter
+                          // PCN filter  
                           const matchesPCN = pcnFilter === 'all' || 
                             (pcnFilter === 'unassigned' && !practice.pcn_name) ||
                             practice.pcn_name === pcnFilter;
+                          
+                          // Debug logging
+                          if (neighbourhoodFilter !== 'all' || pcnFilter !== 'all') {
+                            console.log('Filtering practice:', practice.name, {
+                              neighbourhoodFilter,
+                              practiceNeighbourhood,
+                              matchesNeighbourhood,
+                              pcnFilter,
+                              practicePCN: practice.pcn_name,
+                              matchesPCN,
+                              finalMatch: matchesSearch && matchesNeighbourhood && matchesPCN
+                            });
+                          }
                           
                           return matchesSearch && matchesNeighbourhood && matchesPCN;
                         })
