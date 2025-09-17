@@ -211,7 +211,9 @@ const SystemAdmin = () => {
     postcode: '',
     website: '',
     email: '',
-    phone: ''
+    phone: '',
+    neighbourhood_id: '',
+    pcn_code: ''
   });
   
   // PCN management state
@@ -1306,7 +1308,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       postcode: '',
       website: '',
       email: '',
-      phone: ''
+      phone: '',
+      neighbourhood_id: '',
+      pcn_code: ''
     });
     setShowPracticeModal(true);
   };
@@ -1320,7 +1324,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       postcode: practice.postcode || '',
       website: practice.website || '',
       email: practice.email || '',
-      phone: practice.phone || ''
+      phone: practice.phone || '',
+      neighbourhood_id: practice.neighbourhood_id || '',
+      pcn_code: practice.pcn_code || ''
     });
     setShowPracticeModal(true);
   };
@@ -1340,6 +1346,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             website: practiceFormData.website,
             email: practiceFormData.email,
             phone: practiceFormData.phone,
+            neighbourhood_id: practiceFormData.neighbourhood_id || null,
+            pcn_code: practiceFormData.pcn_code || null,
           })
           .eq('id', editingPractice.id);
         
