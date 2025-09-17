@@ -5764,26 +5764,6 @@ export type Database = {
         }
         Returns: string
       }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5939,18 +5919,6 @@ export type Database = {
         Args: { input_text: string }
         Returns: string
       }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
         Returns: boolean
@@ -5958,14 +5926,6 @@ export type Database = {
       trigger_queue_processing: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      unaccent: {
-        Args: { "": string }
-        Returns: string
-      }
-      unaccent_init: {
-        Args: { "": unknown }
-        Returns: unknown
       }
       update_user_session_activity: {
         Args:
