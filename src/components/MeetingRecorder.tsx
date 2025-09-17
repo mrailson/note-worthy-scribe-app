@@ -4312,7 +4312,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -4323,11 +4323,12 @@ export const MeetingRecorder = ({
             <span className="hidden sm:inline">Meeting Transcript</span>
             <span className="sm:hidden">Transcript</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
+          {/* Temporarily hidden - Meeting Settings tab */}
+          {/* <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Settings</span>
             <span className="sm:hidden">Settings</span>
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting History</span>
@@ -4792,8 +4793,8 @@ export const MeetingRecorder = ({
         </TabsContent>
 
 
-        {/* Meeting Settings Tab */}
-        <TabsContent value="settings" className="space-y-4 mt-6">
+        {/* Temporarily hidden - Meeting Settings Tab */}
+        {/* <TabsContent value="settings" className="space-y-4 mt-6">
           <MeetingSettings
             onSettingsChange={handleSettingsChange}
             onTranscriptImported={(importedTranscript) => {
@@ -4818,7 +4819,7 @@ export const MeetingRecorder = ({
             }}
             initialSettings={meetingSettings}
           />
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Meeting History Tab */}
         <TabsContent value="history" className="space-y-4 mt-6">
