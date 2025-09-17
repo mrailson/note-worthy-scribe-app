@@ -306,8 +306,19 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
 
-      // Apply current volume immediately after connect
-      await conversation.setVolume({ volume: isMuted ? 0 : volume });
+      // AUDIO CUTOUT FIX: Delay volume setting to allow ElevenLabs audio stream to properly initialize
+      setTimeout(async () => {
+        console.log('🔊 Setting volume after connection stabilized...');
+        try {
+          if (conversation.status === 'connected') {
+            await conversation.setVolume({ volume: isMuted ? 0 : volume });
+            console.log('✅ Volume set successfully:', isMuted ? 0 : volume);
+          }
+        } catch (err) {
+          console.error('❌ Failed to set volume after delay:', err);
+        }
+      }, 1500); // 1.5 second delay to ensure audio stream is stable
+      
       console.log('Conversation started:', conversationId);
       
     } catch (err: any) {
@@ -342,8 +353,19 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         signedUrl: data.signed_url
       });
 
-      // Apply current volume immediately after connect
-      await conversation.setVolume({ volume: isMuted ? 0 : volume });
+      // AUDIO CUTOUT FIX: Delay volume setting to allow ElevenLabs audio stream to properly initialize
+      setTimeout(async () => {
+        console.log('🔊 Setting volume after language test connection stabilized...');
+        try {
+          if (conversation.status === 'connected') {
+            await conversation.setVolume({ volume: isMuted ? 0 : volume });
+            console.log('✅ Language test volume set successfully:', isMuted ? 0 : volume);
+          }
+        } catch (err) {
+          console.error('❌ Failed to set language test volume after delay:', err);
+        }
+      }, 1500); // 1.5 second delay to ensure audio stream is stable
+      
       console.log('Language test conversation started:', conversationId);
       
     } catch (err: any) {
