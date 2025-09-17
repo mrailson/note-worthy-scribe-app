@@ -1613,7 +1613,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => deleteFile(file)}
+                            onClick={() => {
+                              console.log('Button clicked!', file);
+                              deleteFile(file);
+                            }}
                             disabled={isDeleting}
                             className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
                           >
