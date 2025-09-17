@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Brain, Bot, Clock, Zap, Save, TestTube, CheckCircle, XCircle, Loader2, Shield, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Mic, MicOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SettingsModalProps {
   open: boolean;
@@ -138,6 +139,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   autoCollapseUserPrompts,
   onAutoCollapseUserPromptsChange,
 }) => {
+  const { isSystemAdmin } = useAuth();
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
   const [testResults, setTestResults] = useState<ApiTestResult[]>([]);
   const [isTesting, setIsTesting] = useState(false);
@@ -261,10 +263,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="model-select" className="text-sm font-medium">
-                  Select AI Model
+                  Select AI Model {!isSystemAdmin && <span className="text-xs text-muted-foreground">(Super Admin Only)</span>}
                 </Label>
-                <Select value={selectedModel} onValueChange={onModelChange}>
-                  <SelectTrigger>
+                <Select 
+                  value={selectedModel} 
+                  onValueChange={isSystemAdmin ? onModelChange : undefined}
+                  disabled={!isSystemAdmin}
+                >
+                  <SelectTrigger className={!isSystemAdmin ? "opacity-50 cursor-not-allowed" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border border-border z-[9999]">
@@ -284,6 +290,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                {!isSystemAdmin && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Shield className="h-3 w-3" />
+                    Only Super Administrators can change the AI model. Current model is managed by your system administrator.
+                  </p>
+                )}
               </div>
               
               {selectedModelInfo && (
