@@ -75,16 +75,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   }, [open, user]);
 
   // Add auto-refresh when modal is open
-  useEffect(() => {
-    if (open && user) {
-      const interval = setInterval(() => {
-        console.log('Auto-refreshing practice details...');
-        fetchPracticeDetails();
-      }, 5000); // Refresh every 5 seconds when modal is open
-      
-      return () => clearInterval(interval);
-    }
-  }, [open, user]);
+  // Removed periodic auto-refresh to prevent overwriting in-progress edits (e.g., digital signature)
+  // Previously this ran every 5s and could reset local state while typing.
+  // If needed later, reintroduce with an "isEditing" guard around SignatureEditor.
 
   const fetchUserProfile = async () => {
     if (!user) return;
