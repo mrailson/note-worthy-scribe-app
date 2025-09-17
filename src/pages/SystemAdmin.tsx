@@ -2207,18 +2207,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Audio Backup Management</CardTitle>
-                  <CardDescription>
-                    Manage audio backups for meetings with poor transcription quality (Super Admin only)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AudioBackupManager />
-                </CardContent>
-              </Card>
-
             </div>
           </TabsContent>
 
@@ -2723,6 +2711,22 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Audio Backup Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileCheck className="h-5 w-5" />
+                  Audio Backup Management
+                </CardTitle>
+                <CardDescription>
+                  Manage audio backups for meetings with poor transcription quality (Super Admin only)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AudioBackupManager />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
