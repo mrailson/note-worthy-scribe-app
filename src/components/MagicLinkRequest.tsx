@@ -50,7 +50,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = "https://notewell.dialai.co.uk/";
       
       // Send magic link using Supabase's built-in magic link functionality
       const { error } = await supabase.auth.signInWithOtp({
