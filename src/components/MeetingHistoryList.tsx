@@ -194,6 +194,9 @@ export const MeetingHistoryList = ({
     error?: string;
   }>>({});
 
+  // Add deduplication state for preventing duplicate modal opens
+  const [lastActionTime, setLastActionTime] = useState<Record<string, number>>({});
+
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
     if (audioUrls[meetingId]) return; // Already generated
@@ -248,6 +251,25 @@ export const MeetingHistoryList = ({
       // For desktop, also call the original callback if needed
       onViewSummary(meeting.id);
     }
+  };
+
+  // Deduplicated version to prevent both touch and click events from triggering
+  const handleViewNotesWithDeduplication = (meeting: Meeting, eventType: 'touch' | 'click') => {
+    const now = Date.now();
+    const actionKey = `${meeting.id}_viewNotes`;
+    const lastTime = lastActionTime[actionKey] || 0;
+    
+    // If less than 500ms has passed since last action, ignore this event
+    if (now - lastTime < 500) {
+      console.log('🚫 Duplicate event prevented for:', meeting.title, 'eventType:', eventType);
+      return;
+    }
+    
+    // Update last action time
+    setLastActionTime(prev => ({ ...prev, [actionKey]: now }));
+    
+    // Call the actual handler
+    handleViewNotes(meeting);
   };
 
   // Handle inline title editing
@@ -1105,7 +1127,7 @@ export const MeetingHistoryList = ({
                         
                         console.log('📱 iPhone: Touch end - calling handleViewNotes for meeting:', meeting.id);
                         try {
-                          handleViewNotes(meeting);
+                          handleViewNotesWithDeduplication(meeting, 'touch');
                         } catch (error) {
                           console.error('❌ Error in handleViewNotes:', error);
                           alert('Error: ' + error.message);
@@ -1129,7 +1151,7 @@ export const MeetingHistoryList = ({
                     
                     console.log('📱 Click event - calling handleViewNotes for meeting:', meeting.id);
                     try {
-                      handleViewNotes(meeting);
+                      handleViewNotesWithDeduplication(meeting, 'click');
                     } catch (error) {
                       console.error('❌ Error:', error);
                       alert('Error opening notes: ' + error.message);
