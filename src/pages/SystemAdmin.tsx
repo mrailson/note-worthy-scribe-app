@@ -848,6 +848,16 @@ const openLoginHistoryModal = async (user: User) => {
   
   try {
     console.log('Fetching login history for user:', user.user_id, user.full_name);
+    
+    // Clean up expired sessions first
+    console.log('Cleaning up expired sessions...');
+    const { data: cleanupResult, error: cleanupError } = await supabase.rpc('cleanup_expired_sessions');
+    if (cleanupError) {
+      console.error('Error cleaning up expired sessions:', cleanupError);
+    } else {
+      console.log('Cleaned up expired sessions:', cleanupResult);
+    }
+    
     const { data, error } = await supabase
       .from('user_sessions')
       .select('*')

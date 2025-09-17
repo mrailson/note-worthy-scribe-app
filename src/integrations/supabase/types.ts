@@ -5433,6 +5433,14 @@ export type Database = {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
       }
+      cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      cleanup_old_sessions: {
+        Args: { days_old?: number }
+        Returns: number
+      }
       cleanup_stuck_meetings: {
         Args: Record<PropertyKey, never>
         Returns: {
