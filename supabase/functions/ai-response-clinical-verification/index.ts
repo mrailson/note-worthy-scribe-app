@@ -218,7 +218,7 @@ function performClinicalVerification(aiResponse: string, originalPrompt: string)
         assessment: riskLevel === 'low' ? 'Clinically robust with comprehensive evidence base' : 
                    riskLevel === 'medium' ? 'Clinically appropriate with minor enhancement needed' : 
                    'Requires substantial clinical review and verification',
-        agreementLevel: Math.max(40, confidenceScore),
+        agreementLevel: Math.min(100, Math.max(40, confidenceScore)),
         concerns: gpt4Concerns.length > 0 ? gpt4Concerns : ['Response meets clinical standards']
       },
       {
@@ -227,7 +227,7 @@ function performClinicalVerification(aiResponse: string, originalPrompt: string)
         assessment: riskLevel === 'low' ? 'Aligns well with UK clinical practice guidelines' :
                    riskLevel === 'medium' ? 'Generally consistent with medical standards' :
                    'Significant gaps in evidence-based recommendations',
-        agreementLevel: Math.max(35, confidenceScore - 8),
+        agreementLevel: Math.min(100, Math.max(35, confidenceScore - 8)),
         concerns: claudeConcerns.length > 0 ? claudeConcerns : ['Evidence-based approach confirmed']
       },
       {
@@ -236,7 +236,7 @@ function performClinicalVerification(aiResponse: string, originalPrompt: string)
         assessment: riskLevel === 'low' ? 'Strong adherence to medical best practices' :
                    riskLevel === 'medium' ? 'Acceptable clinical guidance with reservations' :
                    'Multiple clinical safety concerns identified',
-        agreementLevel: Math.max(30, confidenceScore - 12),
+        agreementLevel: Math.min(100, Math.max(30, confidenceScore - 12)),
         concerns: geminiConcerns.length > 0 ? geminiConcerns : ['Clinical safety protocols adequate']
       }
     ],
