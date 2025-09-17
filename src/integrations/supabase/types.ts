@@ -3258,6 +3258,8 @@ export type Database = {
           start_time: string
           status: string
           title: string
+          transcript_cleaned_at: string | null
+          transcript_cleaned_word_count: number | null
           updated_at: string
           user_id: string
           whisper_confidence: number | null
@@ -3305,6 +3307,8 @@ export type Database = {
           start_time?: string
           status?: string
           title: string
+          transcript_cleaned_at?: string | null
+          transcript_cleaned_word_count?: number | null
           updated_at?: string
           user_id: string
           whisper_confidence?: number | null
@@ -3352,6 +3356,8 @@ export type Database = {
           start_time?: string
           status?: string
           title?: string
+          transcript_cleaned_at?: string | null
+          transcript_cleaned_word_count?: number | null
           updated_at?: string
           user_id?: string
           whisper_confidence?: number | null

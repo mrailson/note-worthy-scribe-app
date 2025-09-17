@@ -620,7 +620,7 @@ export const MeetingHistoryList = ({
       // Check if transcript needs cleaning (only if not already cleaned or new text added)
       const { data: currentMeeting } = await supabase
         .from('meetings')
-        .select('word_count, duration_minutes, updated_at')
+        .select('word_count, duration_minutes, updated_at, transcript_cleaned_at, transcript_cleaned_word_count')
         .eq('id', meetingId)
         .single();
 
@@ -633,20 +633,16 @@ export const MeetingHistoryList = ({
 
       let shouldClean = true;
       
-      // Use client-side cache to skip re-cleaning if nothing new
-      const cacheKey = `meeting-clean-status:${meetingId}`;
-      let cachedClean: { cleanedAt: string; cleanedWordCount: number } | null = null;
-      try {
-        cachedClean = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-      } catch {}
-
-      if (cachedClean) {
-        const cleanTime = new Date(cachedClean.cleanedAt);
+      // Check server-side clean status to skip re-cleaning if nothing new
+      if (currentMeeting?.transcript_cleaned_at) {
+        const cleanTime = new Date(currentMeeting.transcript_cleaned_at);
         const meetingUpdatedTime = new Date(currentMeeting?.updated_at || 0);
         const currentWordCount = currentMeeting?.word_count || 0;
+        const lastCleanedWordCount = currentMeeting?.transcript_cleaned_word_count || 0;
         const deltaThreshold = 50; // allow small drift
 
-        if (cleanTime > meetingUpdatedTime && Math.abs(currentWordCount - (cachedClean.cleanedWordCount || 0)) <= deltaThreshold) {
+        // Skip cleaning if cleaned recently and word count hasn't grown significantly
+        if (cleanTime > meetingUpdatedTime && Math.abs(currentWordCount - lastCleanedWordCount) <= deltaThreshold) {
           shouldClean = false;
           toast.info("Transcript already cleaned recently, skipping...");
         }
@@ -674,14 +670,16 @@ export const MeetingHistoryList = ({
           throw new Error(`Deep clean failed: ${cleanError.message}`);
         }
 
-        // Remember clean status locally to avoid re-cleaning on subsequent runs
+        // Update server-side clean status to avoid re-cleaning on subsequent runs
         if (cleanResult?.cleanedTranscript) {
-          try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-              cleanedAt: new Date().toISOString(),
-              cleanedWordCount: cleanResult.cleanedTranscript.split(' ').length
-            }));
-          } catch {}
+          await supabase
+            .from('meetings')
+            .update({
+              transcript_cleaned_at: new Date().toISOString(),
+              transcript_cleaned_word_count: cleanResult.cleanedTranscript.split(' ').length,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', meetingId);
         }
       }
 
