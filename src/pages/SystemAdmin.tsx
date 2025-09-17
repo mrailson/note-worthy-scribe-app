@@ -49,6 +49,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { CSOComplianceReport } from '@/components/CSOComplianceReport';
+import { HazardAnalysisReport } from '@/components/HazardAnalysisReport';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 
@@ -2352,6 +2353,22 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
               <TabsContent value="compliance" className="space-y-6">
                 <div className="space-y-6">
+                  {/* Hazard Analysis Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                        Clinical Safety Hazard Analysis
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive hazard identification and risk assessment for Notewell systems (DCB0129 compliant)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <HazardAnalysisReport />
+                    </CardContent>
+                  </Card>
+
                   {/* CSO Compliance Report */}
                   <Card>
                     <CardHeader>
