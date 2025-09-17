@@ -487,31 +487,6 @@ export default function Settings() {
             </TabsList>
 
             <TabsContent value="general" className="space-y-6">
-              {/* AI Service Display Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <SettingsIcon className="h-5 w-5" />
-                    Show AI Service
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Display which AI model was used
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="show-ai-service"
-                      checked={profile?.show_ai_service || false}
-                      onCheckedChange={async (checked) => {
-                        await updateProfile({ show_ai_service: checked });
-                      }}
-                    />
-                    <Label htmlFor="show-ai-service">Display AI model information</Label>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Local Policy Guidance */}
               <Card className="border-2 border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
                 <CardHeader>
