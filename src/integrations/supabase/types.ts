@@ -5834,13 +5834,13 @@ export type Database = {
       }
       log_complaint_activity: {
         Args: {
-          p_action_description: string
-          p_action_type: string
+          p_action: string
           p_complaint_id: string
+          p_description: string
           p_new_values?: Json
           p_old_values?: Json
         }
-        Returns: string
+        Returns: undefined
       }
       log_complaint_document_action: {
         Args: {
