@@ -1437,7 +1437,34 @@ export const TranslationToolInterface = () => {
       const contentText: string = (messageObj?.message || messageObj?.text || messageObj?.content?.text || '').toString();
       const roleField = (messageObj?.role || messageObj?.source || messageObj?.sender || messageObj?.from || '').toString().toLowerCase();
       const hasLangTag = /^<[^>]+>/.test(contentText.trim());
-      const source: 'user' | 'ai' = hasLangTag || /^(ai|agent|assistant)$/.test(roleField) ? 'ai' : 'user';
+      
+      // Enhanced source detection with better logging
+      let source: 'user' | 'ai' = 'user'; // Default to user
+      
+      // Check for AI indicators more carefully
+      const isAIRole = /^(ai|agent|assistant)$/.test(roleField);
+      const isTranslation = hasLangTag;
+      const isSystemMessage = /^(system|bot)$/i.test(roleField);
+      
+      // AI message indicators
+      if (isTranslation || isAIRole || isSystemMessage) {
+        source = 'ai';
+      }
+      
+      // Additional ElevenLabs specific checks
+      if (messageObj?.source === 'ai' || messageObj?.source === 'agent') {
+        source = 'ai';
+      }
+      
+      console.log('🔍 Message classification:', {
+        contentPreview: contentText.substring(0, 50),
+        roleField,
+        hasLangTag,
+        isAIRole,
+        isTranslation,
+        detectedSource: source,
+        rawMessage: messageObj
+      });
 
       if (!contentText) {
         console.log('⚠️ Empty content in message payload, skipping');
@@ -1501,6 +1528,12 @@ export const TranslationToolInterface = () => {
 
         if (source === 'user') {
           console.log('👤 User message captured (fallback):', contentText.substring(0, 50) + '...');
+          console.log('📊 User message context:', {
+            totalMessages: updated.length,
+            pendingUserMessages: updated.filter(m => m.user && !m.agent).length,
+            sessionId: sessionManager.sessionId?.slice(-6),
+            messageId: messageId.slice(-12)
+          });
           
           // Track user messages for data loss detection
           const trackingId = createContentHash(contentText + Date.now());
@@ -1554,14 +1587,22 @@ export const TranslationToolInterface = () => {
           }
 
           // Data loss recovery with better logging
-          console.error('🚨 FALLBACK DATA LOSS: Agent message without pending user message');
+          console.error('🚨 POTENTIAL DATA LOSS: Agent message without pending user message');
           console.error('🚨 Recovery context:', {
             agentMessage: contentText.substring(0, 100),
             sessionId: sessionManager.sessionId?.slice(-6),
             bufferLength: updated.length,
             outboxSize: messageOutboxRef.current.size,
-            pendingSize: pendingSessionBufferRef.current.length
+            pendingSize: pendingSessionBufferRef.current.length,
+            recentUserMessages: updated.slice(-3).filter(m => m.user).map(m => m.user.substring(0, 30)),
+            micMuted: isMicMuted,
+            paused: isPaused
           });
+          
+          // If mic is muted or paused, this might be expected behavior
+          if (isMicMuted || isPaused) {
+            console.log('ℹ️ Recovery may be expected - mic muted or translation paused');
+          }
           
           const recoveryEntry = { 
             user: '[Recovery: User message not captured via fallback]', 
