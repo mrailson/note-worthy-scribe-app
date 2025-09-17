@@ -689,19 +689,6 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
             </div>
           )}
 
-          {/* Test Verification Button - Only for Oak Lane Patient Line */}
-          {activeTab === 'patient-line' && (
-            <div className="w-full max-w-md">
-              <Button 
-                onClick={testVerification}
-                variant="outline"
-                size="sm"
-                className="w-full mb-4"
-              >
-                🧪 Test Translation Verification System
-              </Button>
-            </div>
-          )}
 
           {/* Status Indicator */}
           <div className="text-center space-y-2">
