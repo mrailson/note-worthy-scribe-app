@@ -503,10 +503,14 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
   };
 
   const deleteFile = async (file: typeof largeFiles[0]) => {
+    console.log('Delete file clicked:', file);
+    
     if (!window.confirm(`Are you sure you want to delete "${file.file_name}"? This action cannot be undone.`)) {
+      console.log('Delete cancelled by user');
       return;
     }
 
+    console.log('Delete confirmed, proceeding...');
     const fileKey = `${file.table_name}-${file.file_name}`;
     setDeletingFile(fileKey);
 
@@ -516,6 +520,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       // Handle different table types with type-safe queries
       switch (file.table_name) {
         case 'meeting_documents':
+          console.log('Deleting from meeting_documents table');
           const { error: meetingDocError } = await supabase
             .from('meeting_documents')
             .delete()
@@ -524,6 +529,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           break;
           
         case 'complaint_documents':
+          console.log('Deleting from complaint_documents table');
           const { error: complaintDocError } = await supabase
             .from('complaint_documents')
             .delete()
@@ -532,6 +538,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           break;
           
         case 'complaint_investigation_evidence':
+          console.log('Deleting from complaint_investigation_evidence table');
           const { error: investigationError } = await supabase
             .from('complaint_investigation_evidence')
             .delete()
@@ -540,6 +547,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           break;
           
         case 'cqc_evidence':
+          console.log('Deleting from cqc_evidence table');
           const { error: cqcError } = await supabase
             .from('cqc_evidence')
             .delete()
@@ -548,6 +556,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           break;
           
         case 'contractor_resumes':
+          console.log('Deleting from contractor_resumes table');
           const { error: resumeError } = await supabase
             .from('contractor_resumes')
             .delete()
@@ -556,6 +565,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           break;
 
         case 'meeting_audio_backups':
+          console.log('Deleting from meeting_audio_backups table');
           const { error: audioError } = await supabase
             .from('meeting_audio_backups')
             .delete()
@@ -569,8 +579,12 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           throw new Error(`Table ${file.table_name} is not configured for deletion. Please contact support.`);
       }
       
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Database delete error:', deleteError);
+        throw deleteError;
+      }
 
+      console.log('File deleted successfully from database');
       toast.success(`File "${file.file_name}" deleted successfully`);
       
       // Refresh the large files list
