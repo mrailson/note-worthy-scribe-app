@@ -11,6 +11,7 @@ import {
   Play,
   MessageSquare,
   CheckCircle,
+  CheckCircle2,
   AlertCircle,
   Edit,
   FileTextIcon,
@@ -26,7 +27,8 @@ import {
   ChevronDown,
   ExternalLink,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  Bot
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -64,6 +66,7 @@ import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 import { MobileNotesSheet } from "@/components/MobileNotesSheet";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 
 
 interface Meeting {
@@ -180,19 +183,24 @@ export const MeetingHistoryList = ({
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
   
-  // Add state for processing
-  // Enhanced processing state to track individual stages
+  // Add state for processing - Multi-type notes processing
   const [processingMeetings, setProcessingMeetings] = useState<Record<string, {
     isProcessing: boolean;
-    currentStage: 'clean-transcript' | 'generate-notes' | 'generate-overview' | 'update-stats' | 'complete';
+    currentStage: 'deep-clean' | 'standard' | 'brief' | 'limerick' | 'executive' | 'complete';
     stages: {
-      'clean-transcript': 'pending' | 'processing' | 'success' | 'failed';
-      'generate-notes': 'pending' | 'processing' | 'success' | 'failed';
-      'generate-overview': 'pending' | 'processing' | 'success' | 'failed';
-      'update-stats': 'pending' | 'processing' | 'success' | 'failed';
+      'deep-clean': 'pending' | 'processing' | 'success' | 'failed';
+      'standard': 'pending' | 'processing' | 'success' | 'failed';
+      'brief': 'pending' | 'processing' | 'success' | 'failed';
+      'limerick': 'pending' | 'processing' | 'success' | 'failed';
+      'executive': 'pending' | 'processing' | 'success' | 'failed';
     };
     error?: string;
+    completedCount?: number;
+    totalCount?: number;
   }>>({});
+
+  // Multi-type notes hooks for each meeting
+  const [multiTypeHooks, setMultiTypeHooks] = useState<Record<string, any>>({});
 
   // Add deduplication state for preventing duplicate modal opens
   const [lastActionTime, setLastActionTime] = useState<Record<string, number>>({});
@@ -579,7 +587,7 @@ export const MeetingHistoryList = ({
     }
   };
 
-  // Handle full processing pipeline
+  // Handle full processing pipeline - Multi-type notes with deep clean
   const handleFullProcessing = async (meeting: Meeting) => {
     const meetingId = meeting.id;
     
@@ -592,77 +600,153 @@ export const MeetingHistoryList = ({
       ...prev,
       [meetingId]: {
         isProcessing: true,
-        currentStage: 'clean-transcript',
+        currentStage: 'deep-clean',
         stages: {
-          'clean-transcript': 'processing',
-          'generate-notes': 'pending',
-          'generate-overview': 'pending',
-          'update-stats': 'pending'
-        }
+          'deep-clean': 'processing',
+          'standard': 'pending',
+          'brief': 'pending',
+          'limerick': 'pending',
+          'executive': 'pending'
+        },
+        completedCount: 0,
+        totalCount: 5
       }
     }));
 
     try {
-      // Stage 1: Generate meeting notes (this now handles transcript cleaning, notes generation, overview extraction, and word count)
-      toast.info("Starting transcript cleaning and notes generation...");
+      // Stage 1: Deep Clean Transcript (with time-based limits)
+      toast.info("Starting deep clean of transcript...");
       
-      const { data: notesResult, error: notesError } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-        body: { 
-          meetingId,
-          forceRegenerate: true 
-        }
-      });
+      // Check if transcript needs cleaning (only if not already cleaned or new text added)
+      const { data: currentMeeting } = await supabase
+        .from('meetings')
+        .select('word_count, duration_minutes, updated_at')
+        .eq('id', meetingId)
+        .single();
 
-      if (notesError) {
-        throw new Error(`Notes generation failed: ${notesError.message}`);
+      // Get transcript from proper source using the existing function
+      const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
+        p_meeting_id: meetingId 
+      });
+      
+      const transcript = transcriptData?.[0]?.transcript;
+
+      let shouldClean = true;
+      
+      // Check if already cleaned recently
+      const { data: existingClean } = await supabase
+        .from('meeting_notes_multi')
+        .select('created_at')
+        .eq('meeting_id', meetingId)
+        .eq('note_type', 'clean')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingClean) {
+        const cleanTime = new Date(existingClean.created_at);
+        const meetingUpdatedTime = new Date(currentMeeting?.updated_at || '');
+        
+        // Skip cleaning if already cleaned and meeting hasn't been updated since
+        if (cleanTime > meetingUpdatedTime) {
+          shouldClean = false;
+          toast.info("Transcript already cleaned, skipping...");
+        }
       }
 
-      // Mark transcript cleaning and notes generation as success
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: {
-          ...prev[meetingId],
-          currentStage: 'generate-overview',
-          stages: {
-            ...prev[meetingId].stages,
-            'clean-transcript': 'success',
-            'generate-notes': 'success',
-            'generate-overview': 'processing'
-          }
-        }
-      }));
-
-      toast.success("Transcript cleaned and notes generated successfully!");
-
-      // Overview generation is handled by the auto-generate-meeting-notes function
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: {
-          ...prev[meetingId],
-          currentStage: 'update-stats',
-          stages: {
-            ...prev[meetingId].stages,
-            'generate-overview': 'success',
-            'update-stats': 'processing'
-          }
-        }
-      }));
-
-      // Stage 2: Calculate duration if not already set
-      let durationMinutes = meeting.duration_minutes;
-      if (!durationMinutes && meeting.start_time) {
-        const startTime = new Date(meeting.start_time);
-        const endTime = meeting.end_time ? new Date(meeting.end_time) : new Date();
-        durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      if (shouldClean && transcript) {
+        // Apply time-based limit: 1 minute per hour of meeting duration
+        const durationHours = (currentMeeting?.duration_minutes || 60) / 60;
+        const maxProcessingTimeMs = Math.max(60000, durationHours * 60000); // Min 1 minute, 1 minute per hour
         
-        // Update duration in the database
-        const { error: durationError } = await supabase
-          .from('meetings')
-          .update({ duration_minutes: durationMinutes })
-          .eq('id', meetingId);
-          
-        if (durationError) {
-          console.warn('Failed to update duration:', durationError.message);
+        const { data: cleanResult, error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
+          body: { 
+            meetingId,
+            transcript: transcript,
+            maxProcessingTime: maxProcessingTimeMs
+          }
+        });
+
+        if (cleanError) {
+          throw new Error(`Deep clean failed: ${cleanError.message}`);
+        }
+      }
+
+      // Mark deep clean as success and move to multi-type notes generation
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'standard',
+          stages: {
+            ...prev[meetingId].stages,
+            'deep-clean': 'success',
+            'standard': 'processing'
+          },
+          completedCount: 1
+        }
+      }));
+
+      toast.success("Deep clean completed! Starting sequential note generation...");
+
+      // Stage 2-5: Generate all note types sequentially
+      const noteTypes = ['standard', 'brief', 'limerick', 'executive'] as const;
+      let currentIndex = 0;
+
+      for (const noteType of noteTypes) {
+        // Update current processing stage
+        setProcessingMeetings(prev => ({
+          ...prev,
+          [meetingId]: {
+            ...prev[meetingId],
+            currentStage: noteType,
+            stages: {
+              ...prev[meetingId].stages,
+              [noteType]: 'processing'
+            }
+          }
+        }));
+
+        toast.info(`Generating ${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes...`);
+
+        // Map note types to actual generation calls
+        const noteTypeMapping = {
+          'standard': 'detailed', // Use detailed for standard
+          'brief': 'brief',
+          'limerick': 'limerick', 
+          'executive': 'executive'
+        };
+
+        const { data: noteResult, error: noteError } = await supabase.functions.invoke('generate-multi-type-notes', {
+          body: {
+            meetingId,
+            noteType: noteTypeMapping[noteType],
+            forceRegenerate: true
+          }
+        });
+
+        if (noteError) {
+          throw new Error(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes generation failed: ${noteError.message}`);
+        }
+
+        // Mark this note type as complete
+        setProcessingMeetings(prev => ({
+          ...prev,
+          [meetingId]: {
+            ...prev[meetingId],
+            stages: {
+              ...prev[meetingId].stages,
+              [noteType]: 'success'
+            },
+            completedCount: prev[meetingId].completedCount! + 1
+          }
+        }));
+
+        currentIndex++;
+        
+        // Small delay between generations
+        if (currentIndex < noteTypes.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
@@ -673,39 +757,34 @@ export const MeetingHistoryList = ({
           ...prev[meetingId],
           currentStage: 'complete',
           stages: {
-            'clean-transcript': 'success',
-            'generate-notes': 'success',
-            'generate-overview': 'success',
-            'update-stats': 'success'
-          }
+            'deep-clean': 'success',
+            'standard': 'success',
+            'brief': 'success',
+            'limerick': 'success',
+            'executive': 'success'
+          },
+          completedCount: 5,
+          isProcessing: false
         }
       }));
 
-      // Get updated meeting data to show current stats
-      const { data: updatedMeeting } = await supabase
-        .from('meetings')
-        .select('word_count, overview')
-        .eq('id', meetingId)
-        .single();
-
-      const wordCount = updatedMeeting?.word_count || 'Unknown';
-      const hasOverview = Boolean(updatedMeeting?.overview);
-
-      toast.success(`All processing complete! Generated notes, word count (${wordCount} words)${durationMinutes ? `, duration (${durationMinutes} min)` : ''}${hasOverview ? ', and overview' : ''}.`);
+      toast.success("All processing complete! Generated deep cleaned transcript and all note types (Standard, Brief, Limerick, Executive).");
 
       // Refresh the meeting data
       if (onRefresh) {
         onRefresh();
       }
 
-      // Clear processing state after a brief delay
+      // Keep the completed state visible (don't auto-clear it)
       setTimeout(() => {
-        setProcessingMeetings(prev => {
-          const newState = { ...prev };
-          delete newState[meetingId];
-          return newState;
-        });
-      }, 3000);
+        setProcessingMeetings(prev => ({
+          ...prev,
+          [meetingId]: {
+            ...prev[meetingId],
+            isProcessing: false
+          }
+        }));
+      }, 2000);
 
     } catch (error: any) {
       console.error('Processing error:', error);
@@ -729,7 +808,18 @@ export const MeetingHistoryList = ({
         };
       });
       
-      toast.error(`Processing failed at ${processingMeetings[meetingId]?.currentStage?.replace('-', ' ') || 'unknown stage'}: ${error.message}`);
+      const stageNames = {
+        'deep-clean': 'Deep Clean',
+        'standard': 'Standard Notes',
+        'brief': 'Brief Notes',
+        'limerick': 'Limerick Notes',
+        'executive': 'Executive Notes'
+      };
+      
+      const currentStage = processingMeetings[meetingId]?.currentStage;
+      const stageName = currentStage ? stageNames[currentStage] || currentStage : 'unknown stage';
+      
+      toast.error(`Processing failed at ${stageName}: ${error.message}`);
       
       // Clear error state after delay
       setTimeout(() => {
@@ -742,18 +832,34 @@ export const MeetingHistoryList = ({
     }
   };
   
-  // Helper functions for processing button display
+  // Helper functions for processing button display - Multi-type notes
   const getProcessingButtonText = (processing: any) => {
-    if (!processing?.isProcessing) return 'Process';
+    if (!processing) return 'Process';
     
-    switch (processing.currentStage) {
-      case 'clean-transcript': return 'Cleaning...';
-      case 'generate-notes': return 'Generating...';
-      case 'generate-overview': return 'Creating Overview...';
-      case 'update-stats': return 'Updating Stats...';
-      case 'complete': return 'Complete!';
-      default: return 'Processing...';
+    if (processing.currentStage === 'complete' && processing.completedCount === 5) {
+      return 'Complete!';
     }
+    
+    if (!processing.isProcessing && processing.completedCount === 5) {
+      return 'Complete!';
+    }
+    
+    if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
+      return 'Failed';
+    }
+    
+    if (processing.isProcessing) {
+      const stageNames = {
+        'deep-clean': 'Deep Cleaning...',
+        'standard': 'Standard Notes...',
+        'brief': 'Brief Notes...',
+        'limerick': 'Limerick Notes...',
+        'executive': 'Executive Notes...'
+      };
+      return stageNames[processing.currentStage] || 'Processing...';
+    }
+    
+    return 'Process';
   };
 
   const getProcessingButtonIcon = (processing: any) => {
@@ -763,8 +869,9 @@ export const MeetingHistoryList = ({
       return AlertCircle;
     }
     
-    if (processing.currentStage === 'complete') {
-      return CheckCircle;
+    // Show green tick when all 5 stages are complete
+    if (processing.completedCount === 5 || (processing.currentStage === 'complete' && processing.completedCount === 5)) {
+      return CheckCircle2;
     }
     
     if (processing.isProcessing) {
@@ -781,7 +888,8 @@ export const MeetingHistoryList = ({
       return 'text-destructive hover:text-destructive/80';
     }
     
-    if (processing.currentStage === 'complete') {
+    // Green color when all notes are complete
+    if (processing.completedCount === 5 || (processing.currentStage === 'complete' && processing.completedCount === 5)) {
       return 'text-green-600 hover:text-green-700';
     }
     
@@ -793,27 +901,37 @@ export const MeetingHistoryList = ({
   };
 
   const getProcessingTooltip = (processing: any) => {
-    if (!processing) return "Clean transcript, generate notes & overview, update statistics";
+    if (!processing) return "Deep clean transcript, then generate Standard → Brief → Limerick → Executive notes";
     
     if (processing.error) {
-      return `Failed at ${processing.currentStage?.replace('-', ' ')}: ${processing.error}`;
+      const stageNames = {
+        'deep-clean': 'Deep Clean',
+        'standard': 'Standard Notes',
+        'brief': 'Brief Notes', 
+        'limerick': 'Limerick Notes',
+        'executive': 'Executive Notes'
+      };
+      const stageName = stageNames[processing.currentStage] || processing.currentStage;
+      return `Failed at ${stageName}: ${processing.error}`;
     }
     
-    if (processing.currentStage === 'complete') {
-      return "All processing stages completed successfully";
+    if (processing.completedCount === 5) {
+      return "All processing complete: Deep clean + Standard, Brief, Limerick & Executive notes generated";
     }
     
     if (processing.isProcessing) {
       const stageLabels = {
-        'clean-transcript': 'Cleaning transcript and removing duplicates',
-        'generate-notes': 'Generating meeting notes from clean transcript', 
-        'generate-overview': 'Creating overview and extracting key points',
-        'update-stats': 'Updating word count and duration statistics'
+        'deep-clean': 'Deep cleaning transcript (removing duplicates, 1 min per hour limit)',
+        'standard': 'Generating standard meeting notes',
+        'brief': 'Generating brief summary notes',
+        'limerick': 'Generating limerick-style notes',
+        'executive': 'Generating executive summary notes'
       };
-      return stageLabels[processing.currentStage] || 'Processing...';
+      const progress = `(${processing.completedCount || 0}/5 complete)`;
+      return `${stageLabels[processing.currentStage] || 'Processing...'} ${progress}`;
     }
     
-    return "Clean transcript, generate notes & overview, update statistics";
+    return "Deep clean transcript, then generate Standard → Brief → Limerick → Executive notes";
   };
 
   const getStatusIcon = (status: string) => {
