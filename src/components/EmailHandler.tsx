@@ -542,24 +542,6 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                       )}
                     </Button>
                     
-                    <Button
-                      variant="outline"
-                      onClick={handleDownloadProof}
-                      disabled={isDownloadingProof}
-                    >
-                      {isDownloadingProof ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download Proof
-                        </>
-                      )}
-                    </Button>
-                    
                     {qualityAssessment.overallSafety === 'warning' && (
                       <Alert className="flex-1">
                         <AlertTriangle className="w-4 h-4" />
