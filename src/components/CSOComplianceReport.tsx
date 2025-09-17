@@ -76,7 +76,7 @@ export function CSOComplianceReport({ complaintId, complaintReference }: CSOComp
         totalItems: 12,
         completionRate: 75,
         criticalItems: 3,
-        overdueItems: 1,
+        overdueItems: 0,
         estimatedCompletionDate: addDays(now, 14)
       },
       dcb0129Compliance: {
@@ -159,31 +159,31 @@ export function CSOComplianceReport({ complaintId, complaintReference }: CSOComp
         {
           id: '5',
           title: 'Complete Outstanding Hazard Analysis',
-          description: 'Critical: Hazard analysis workshop and documentation must be completed within 7 days',
+          description: 'Critical: Hazard analysis workshop and documentation must be completed by 1st October 2025',
           priority: 'critical',
           status: 'in_progress',
-          dueDate: addDays(now, 7),
+          dueDate: new Date('2025-10-01'),
           assignedTo: 'Dr. Sarah Johnson (CSO)',
           nextSteps: [
-            'Schedule final hazard identification workshop (Due: 3 days)',
-            'Update comprehensive hazard log (Due: 5 days)',
-            'Submit completed analysis for CSO review (Due: 7 days)'
+            'Schedule final hazard identification workshop (Due: 15th September 2025)',
+            'Update comprehensive hazard log (Due: 25th September 2025)',
+            'Submit completed analysis for CSO review (Due: 1st October 2025)'
           ],
           evidence: ['Draft hazard analysis', 'Workshop notes'],
           riskLevel: 'high'
         },
         {
           id: '6',
-          title: 'Overdue Risk Mitigation Documentation',
-          description: 'Critical: Risk mitigation strategies documentation is overdue and blocking implementation',
+          title: 'Risk Mitigation Documentation',
+          description: 'Critical: Risk mitigation strategies documentation required for implementation approval',
           priority: 'critical',
-          status: 'overdue',
-          dueDate: addDays(now, -2),
+          status: 'pending',
+          dueDate: new Date('2025-10-01'),
           assignedTo: 'Risk Management Team',
           nextSteps: [
-            'IMMEDIATE: Complete risk mitigation documentation (Overdue by 2 days)',
-            'Escalate to Clinical Director for resource allocation',
-            'Implement interim risk controls pending documentation'
+            'Initiate risk mitigation documentation process (Due: 20th September 2025)',
+            'Engage Clinical Director for resource allocation (Due: 25th September 2025)',
+            'Complete comprehensive risk controls documentation (Due: 1st October 2025)'
           ],
           evidence: [],
           riskLevel: 'high'
