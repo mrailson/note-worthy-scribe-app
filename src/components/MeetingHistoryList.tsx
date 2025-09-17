@@ -633,25 +633,28 @@ export const MeetingHistoryList = ({
 
       let shouldClean = true;
       
-      // Check if already cleaned recently
-      const { data: existingClean } = await supabase
-        .from('meeting_notes_multi')
-        .select('created_at')
-        .eq('meeting_id', meetingId)
-        .eq('note_type', 'clean')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Use client-side cache to skip re-cleaning if nothing new
+      const cacheKey = `meeting-clean-status:${meetingId}`;
+      let cachedClean: { cleanedAt: string; cleanedWordCount: number } | null = null;
+      try {
+        cachedClean = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+      } catch {}
 
-      if (existingClean) {
-        const cleanTime = new Date(existingClean.created_at);
-        const meetingUpdatedTime = new Date(currentMeeting?.updated_at || '');
-        
-        // Skip cleaning if already cleaned and meeting hasn't been updated since
-        if (cleanTime > meetingUpdatedTime) {
+      if (cachedClean) {
+        const cleanTime = new Date(cachedClean.cleanedAt);
+        const meetingUpdatedTime = new Date(currentMeeting?.updated_at || 0);
+        const currentWordCount = currentMeeting?.word_count || 0;
+        const deltaThreshold = 50; // allow small drift
+
+        if (cleanTime > meetingUpdatedTime && Math.abs(currentWordCount - (cachedClean.cleanedWordCount || 0)) <= deltaThreshold) {
           shouldClean = false;
-          toast.info("Transcript already cleaned, skipping...");
+          toast.info("Transcript already cleaned recently, skipping...");
         }
+      }
+
+      // No transcript available, skip cleaning
+      if (!transcript) {
+        shouldClean = false;
       }
 
       if (shouldClean && transcript) {
@@ -669,6 +672,16 @@ export const MeetingHistoryList = ({
 
         if (cleanError) {
           throw new Error(`Deep clean failed: ${cleanError.message}`);
+        }
+
+        // Remember clean status locally to avoid re-cleaning on subsequent runs
+        if (cleanResult?.cleanedTranscript) {
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+              cleanedAt: new Date().toISOString(),
+              cleanedWordCount: cleanResult.cleanedTranscript.split(' ').length
+            }));
+          } catch {}
         }
       }
 
