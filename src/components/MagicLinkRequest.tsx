@@ -107,7 +107,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
               <p>• Click the link in your email to log in securely</p>
               <p>• The link expires in 60 minutes for security</p>
               <p>• No VPN required - works from any network</p>
-              <p>• Check your spam folder if you don't see it</p>
+              <p className="font-bold text-foreground">• The email will appear from Supabase Automatic service - please check your junk folder if it hasn't arrived in the next two minutes</p>
             </div>
 
             <div className="space-y-2">
