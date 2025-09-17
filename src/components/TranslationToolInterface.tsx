@@ -1393,27 +1393,9 @@ export const TranslationToolInterface = () => {
       // Don't clear quality score on connection - only on manual reset
       setConversationBuffer([]);
       
-      // Enhanced audio setup to prevent cutouts
-      setTimeout(() => {
-        console.log('🔊 Setting optimal volume and audio configuration...');
-        if (!isSpeakerMuted) {
-          conversation.setVolume({ volume: 0.8 });
-          lastVolumeRef.current = 0.8;
-        } else {
-          conversation.setVolume({ volume: 0 });
-        }
-        // Additional audio context resume (for safety)
-        try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          if (audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-              console.log('🔊 Audio context re-resumed after connection');
-            });
-          }
-        } catch (error) {
-          console.warn('⚠️ Could not re-resume audio context:', error);
-        }
-      }, 500);
+      // AUDIO CUTOUT FIX: Do not set volume programmatically after connection - this causes interruptions
+      console.log('✅ Translation Service connected without programmatic volume changes');
+      console.log('🎚️ Volume control reserved for user actions only');
     },
     onDisconnect: () => {
       console.log('Disconnected from Notewell AI Translation Service');
@@ -1768,12 +1750,14 @@ export const TranslationToolInterface = () => {
   
   // Audio controls for modal header
   const toggleSpeakerMute = async () => {
+    console.log('🎚️ User-triggered speaker mute toggle:', !isSpeakerMuted);
     try {
       if (isSpeakerMuted) {
         if (conversation.status === 'connected') {
           await conversation.setVolume({ volume: lastVolumeRef.current || 0.8 });
         }
         setIsSpeakerMuted(false);
+        console.log('✅ User speaker unmute applied successfully');
         toast.success('Speaker unmuted');
       } else {
         lastVolumeRef.current = 0.8; // Store current volume before muting
@@ -1781,10 +1765,11 @@ export const TranslationToolInterface = () => {
           await conversation.setVolume({ volume: 0 });
         }
         setIsSpeakerMuted(true);
+        console.log('✅ User speaker mute applied successfully');
         toast.info('Speaker muted');
       }
     } catch (e) {
-      console.error('Failed to toggle speaker mute:', e);
+      console.error('❌ User speaker toggle failed:', e);
       toast.error('Unable to toggle speaker');
     }
   };

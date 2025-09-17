@@ -305,19 +305,9 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       });
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
-
-      // AUDIO CUTOUT FIX: Delay volume setting to allow ElevenLabs audio stream to properly initialize
-      setTimeout(async () => {
-        console.log('🔊 Setting volume after connection stabilized...');
-        try {
-          if (conversation.status === 'connected') {
-            await conversation.setVolume({ volume: isMuted ? 0 : volume });
-            console.log('✅ Volume set successfully:', isMuted ? 0 : volume);
-          }
-        } catch (err) {
-          console.error('❌ Failed to set volume after delay:', err);
-        }
-      }, 1500); // 1.5 second delay to ensure audio stream is stable
+      
+      // AUDIO CUTOUT FIX: Do not set volume programmatically after connection - this causes interruptions
+      console.log('✅ Connection established without programmatic volume changes');
       
       console.log('Conversation started:', conversationId);
       
@@ -353,18 +343,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         signedUrl: data.signed_url
       });
 
-      // AUDIO CUTOUT FIX: Delay volume setting to allow ElevenLabs audio stream to properly initialize
-      setTimeout(async () => {
-        console.log('🔊 Setting volume after language test connection stabilized...');
-        try {
-          if (conversation.status === 'connected') {
-            await conversation.setVolume({ volume: isMuted ? 0 : volume });
-            console.log('✅ Language test volume set successfully:', isMuted ? 0 : volume);
-          }
-        } catch (err) {
-          console.error('❌ Failed to set language test volume after delay:', err);
-        }
-      }, 1500); // 1.5 second delay to ensure audio stream is stable
+      // AUDIO CUTOUT FIX: Do not set volume programmatically after connection - this causes interruptions
+      console.log('✅ Language test connection established without programmatic volume changes');
       
       console.log('Language test conversation started:', conversationId);
       
@@ -386,17 +366,24 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }
   };
 
-  // Handle volume change
+  // Handle volume change (user-triggered only)
   const handleVolumeChange = async (newVolume: number) => {
+    console.log('🎚️ User-triggered volume change:', newVolume);
     setVolume(newVolume);
     if (conversation.status === 'connected' && !isMuted) {
-      await conversation.setVolume({ volume: newVolume });
+      try {
+        await conversation.setVolume({ volume: newVolume });
+        console.log('✅ User volume change applied successfully');
+      } catch (err) {
+        console.error('❌ User volume change failed:', err);
+      }
     }
   };
 
-  // Toggle sound mute
+  // Toggle sound mute (user-triggered only)
   const toggleSoundMute = async () => {
     const newMutedState = !isMuted;
+    console.log('🎚️ User-triggered mute toggle:', newMutedState);
     setIsMuted(newMutedState);
     
     try {
@@ -405,19 +392,21 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           // store current volume and mute
           prevVolumeRef.current = volume;
           await conversation.setVolume({ volume: 0 });
+          console.log('✅ User mute applied successfully');
           toast.info('Speaker muted');
         } else {
           // restore previous volume
           const restore = prevVolumeRef.current ?? 0.8;
           setVolume(restore);
           await conversation.setVolume({ volume: restore });
+          console.log('✅ User unmute applied successfully');
           toast.info('Speaker unmuted');
         }
       } else {
         toast.info(newMutedState ? 'Speaker muted' : 'Speaker unmuted');
       }
     } catch (err) {
-      console.error('Sound toggle failed:', err);
+      console.error('❌ User sound toggle failed:', err);
       toast.error('Failed to toggle speaker');
       // Revert state if operation failed
       setIsMuted(!newMutedState);
