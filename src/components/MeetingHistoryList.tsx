@@ -248,8 +248,7 @@ export const MeetingHistoryList = ({
       setMobileNotesOpen(true);
     } else {
       setDesktopNotesOpen(true);
-      // For desktop, also call the original callback if needed
-      onViewSummary(meeting.id);
+      // Use only the local modal to avoid duplicate modals
     }
   };
 
