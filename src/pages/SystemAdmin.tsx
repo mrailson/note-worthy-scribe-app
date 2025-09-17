@@ -1617,7 +1617,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 <TabsTrigger value="users" className="text-xs sm:text-sm p-2">Users</TabsTrigger>
                 <TabsTrigger value="practices" className="text-xs sm:text-sm p-2">Practices</TabsTrigger>
                 <TabsTrigger value="pcns" className="text-xs sm:text-sm p-2">PCNs</TabsTrigger>
-                <TabsTrigger value="neighbourhoods" className="text-xs sm:text-sm p-2">Areas</TabsTrigger>
+                <TabsTrigger value="neighbourhoods" className="text-xs sm:text-sm p-2">Neighbourhoods</TabsTrigger>
                 <TabsTrigger value="policies" className="text-xs sm:text-sm p-2">Policies</TabsTrigger>
               </TabsList>
               
