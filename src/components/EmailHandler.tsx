@@ -537,7 +537,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
                       ) : (
                         <>
                           <Send className="w-4 h-4 mr-2" />
-                          Send Email & Download Proof
+                          Send eMail and download Translation Audit Evidence
                         </>
                       )}
                     </Button>
