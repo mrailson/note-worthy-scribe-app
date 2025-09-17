@@ -3204,6 +3204,47 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="neighbourhood_select">Neighbourhood</Label>
+                  <Select 
+                    value={practiceFormData.neighbourhood_id} 
+                    onValueChange={(value) => setPracticeFormData({...practiceFormData, neighbourhood_id: value})}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select neighbourhood..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border shadow-lg z-[100] max-h-60">
+                      <SelectItem value="">No neighbourhood assigned</SelectItem>
+                      {neighbourhoods.map((neighbourhood) => (
+                        <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
+                          {neighbourhood.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="pcn_select">PCN</Label>
+                  <Select 
+                    value={practiceFormData.pcn_code} 
+                    onValueChange={(value) => setPracticeFormData({...practiceFormData, pcn_code: value})}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select PCN..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border shadow-lg z-[100] max-h-60">
+                      <SelectItem value="">No PCN assigned</SelectItem>
+                      {pcns.map((pcn) => (
+                        <SelectItem key={pcn.id} value={pcn.pcn_code}>
+                          {pcn.pcn_name} ({pcn.pcn_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
 
             <DialogFooter>
