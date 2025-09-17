@@ -148,9 +148,6 @@ export const MeetingRecorder = ({
   });
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
-  
-  // Mic test service visibility (controls both tab and recording playback)
-  const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
@@ -3897,43 +3894,10 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Fetch mic test service access from user_roles 
-  const fetchMicTestServiceSettings = async () => {
-    if (!user) return;
-
-    try {
-      // Check both user_roles access and profile visibility setting
-      const [roleData, profileData] = await Promise.all([
-        supabase
-          .from('user_roles')
-          .select('mic_test_service_access')
-          .eq('user_id', user.id)
-          .limit(1)
-          .single(),
-        supabase
-          .from('profiles')
-          .select('mic_test_service_visible')
-          .eq('user_id', user.id)
-          .single()
-      ]);
-
-      // Service is visible if both access is granted AND visibility is enabled
-      const hasAccess = roleData.data?.mic_test_service_access ?? false;
-      const isVisible = profileData.data?.mic_test_service_visible ?? true; // Default to true for backwards compatibility
-      
-      setMicTestServiceVisible(hasAccess && isVisible);
-    } catch (error) {
-      console.error('Error fetching mic test service settings:', error);
-      // Default to false if there's an error
-      setMicTestServiceVisible(false);
-    }
-  };
-
   // Load history when user changes or component mounts
   useEffect(() => {
     if (user) {
       loadMeetingHistory();
-      fetchMicTestServiceSettings();
     }
   }, [user]);
 
@@ -4348,7 +4312,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -4369,13 +4333,6 @@ export const MeetingRecorder = ({
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
           </TabsTrigger>
-          {micTestServiceVisible && (
-            <TabsTrigger value="mic-test" className="flex items-center gap-2">
-              <Headphones className="h-5 w-5" />
-              <span className="hidden sm:inline">Mic Test Service</span>
-              <span className="sm:hidden">Test</span>
-            </TabsTrigger>
-          )}
         </TabsList>
 
         {/* Meeting Recorder Tab - ONLY recording controls */}
@@ -4575,8 +4532,8 @@ export const MeetingRecorder = ({
                     )}
                     
                     
-                      {/* Recording Audio Player - Show after recording stops (controlled by micTestServiceVisible) */}
-                      {recordingAudioUrl && !isRecording && micTestServiceVisible && (
+                      {/* Recording Audio Player - Show after recording stops */}
+                      {recordingAudioUrl && !isRecording && (
                        <div className="mt-4 space-y-3">
                         {/* Mixed Stereo Playback */}
                         <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
@@ -5130,27 +5087,6 @@ export const MeetingRecorder = ({
             showRecordingPlayback={false}
           />
         </TabsContent>
-
-        {/* Mic Test Service Tab */}
-        {micTestServiceVisible && (
-          <TabsContent value="mic-test" className="space-y-4 mt-6">
-            <Tabs defaultValue="whisper-test" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="whisper-test">Whisper Hallucination Test</TabsTrigger>
-                <TabsTrigger value="mic-input-test">Speaker Capture Test</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="whisper-test" className="mt-6">
-                <WhisperHallucinationTestSuite />
-              </TabsContent>
-              
-              <TabsContent value="mic-input-test" className="mt-6">
-                <MicInputRecordingTester />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-        )}
-
 
       </Tabs>
       
