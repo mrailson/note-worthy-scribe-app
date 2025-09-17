@@ -57,6 +57,7 @@ import { InvestigationDecisionAndLearning } from "@/components/InvestigationDeci
 
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { CQCReportModal } from "@/components/CQCReportModal";
+import { CSOComplianceReport } from "@/components/CSOComplianceReport";
 
 interface Complaint {
   id: string;
@@ -2409,6 +2410,10 @@ I am committed to ensuring that all patients receive the care and service they d
                         <span className="text-xs text-blue-700 font-medium">📊 Generated Reports:</span>
                       </div>
                       <CQCReportModal 
+                        complaintId={complaintId || ''} 
+                        complaintReference={complaint?.reference_number || ''} 
+                      />
+                      <CSOComplianceReport 
                         complaintId={complaintId || ''} 
                         complaintReference={complaint?.reference_number || ''} 
                       />
