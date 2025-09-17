@@ -470,11 +470,11 @@ async function combineWithPracticeInfo(ctx: QuickPickContext): Promise<string> {
       }
 
       if (practiceDetails.email_signature) {
-        practiceInfo.push(`Email Signature: ${practiceDetails.email_signature}`);
+        practiceInfo.push(`Email Signature: ${practiceDetails.email_signature.replace(/<[^>]*>/g, '')}`);
       }
 
       if (practiceDetails.letter_signature) {
-        practiceInfo.push(`Letter Signature: ${practiceDetails.letter_signature}`);
+        practiceInfo.push(`Letter Signature: ${practiceDetails.letter_signature.replace(/<[^>]*>/g, '')}`);
       }
     }
 
