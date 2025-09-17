@@ -4773,6 +4773,27 @@ export type Database = {
         }
         Relationships: []
       }
+      system_extensions_info: {
+        Row: {
+          documented_at: string | null
+          extension_name: string
+          reason_not_moved: string | null
+          security_notes: string | null
+        }
+        Insert: {
+          documented_at?: string | null
+          extension_name: string
+          reason_not_moved?: string | null
+          security_notes?: string | null
+        }
+        Update: {
+          documented_at?: string | null
+          extension_name?: string
+          reason_not_moved?: string | null
+          security_notes?: string | null
+        }
+        Relationships: []
+      }
       system_monitoring_status: {
         Row: {
           check_details: Json | null
