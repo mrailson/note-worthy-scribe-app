@@ -1254,7 +1254,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         toast.success('User updated successfully');
       } else {
         console.log('=== CREATING NEW USER ===');
-        // Create new user
+        // Create new user with AI4GP access support
         const { data, error } = await supabase.functions.invoke('create-user-admin', {
           body: {
             email: userFormData.email,
