@@ -200,6 +200,8 @@ const SystemAdmin = () => {
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchQuery, setPracticeSearchQuery] = useState('');
+  const [neighbourhoodFilter, setNeighbourhoodFilter] = useState('all');
+  const [pcnFilter, setPcnFilter] = useState('all');
   const [showPracticeModal, setShowPracticeModal] = useState(false);
   const [editingPractice, setEditingPractice] = useState<Practice | null>(null);
   const [practiceFormData, setPracticeFormData] = useState({
@@ -1739,18 +1741,91 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Practice Name</TableHead>
-                        <TableHead>K Code (ODS)</TableHead>
-                        <TableHead>Neighbourhood</TableHead>
-                        <TableHead>PCN Name</TableHead>
+                        <TableHead>
+                          <div className="space-y-2">
+                            <div>Practice Name</div>
+                            <Select value="all" onValueChange={() => {}}>
+                              <SelectTrigger className="h-8 text-xs bg-background border-border">
+                                <SelectValue placeholder="All" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                <SelectItem value="all">All</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="space-y-2">
+                            <div>K Code (ODS)</div>
+                            <Select value="all" onValueChange={() => {}}>
+                              <SelectTrigger className="h-8 text-xs bg-background border-border">
+                                <SelectValue placeholder="All" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                <SelectItem value="all">All</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="space-y-2">
+                            <div>Neighbourhood</div>
+                            <Select value={neighbourhoodFilter} onValueChange={setNeighbourhoodFilter}>
+                              <SelectTrigger className="h-8 text-xs bg-background border-border">
+                                <SelectValue placeholder="All" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                <SelectItem value="all">All</SelectItem>
+                                {neighbourhoods.map((neighbourhood) => (
+                                  <SelectItem key={neighbourhood.id} value={neighbourhood.name}>
+                                    {neighbourhood.name}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="space-y-2">
+                            <div>PCN Name</div>
+                            <Select value={pcnFilter} onValueChange={setPcnFilter}>
+                              <SelectTrigger className="h-8 text-xs bg-background border-border">
+                                <SelectValue placeholder="All" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border shadow-lg z-50">
+                                <SelectItem value="all">All</SelectItem>
+                                {pcns.map((pcn) => (
+                                  <SelectItem key={pcn.id} value={pcn.pcn_name}>
+                                    {pcn.pcn_name}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {practices
-                        .filter(practice => 
-                          practice.name.toLowerCase().includes(practiceSearchQuery.toLowerCase())
-                        )
+                        .filter(practice => {
+                          // Text search filter
+                          const matchesSearch = practice.name.toLowerCase().includes(practiceSearchQuery.toLowerCase());
+                          
+                          // Neighbourhood filter
+                          const matchesNeighbourhood = neighbourhoodFilter === 'all' || 
+                            (neighbourhoodFilter === 'unassigned' && !practice.neighbourhoods?.name) ||
+                            practice.neighbourhoods?.name === neighbourhoodFilter;
+                          
+                          // PCN filter
+                          const matchesPCN = pcnFilter === 'all' || 
+                            (pcnFilter === 'unassigned' && !practice.pcn_name) ||
+                            practice.pcn_name === pcnFilter;
+                          
+                          return matchesSearch && matchesNeighbourhood && matchesPCN;
+                        })
                         .map((practice) => (
                           <TableRow key={practice.id}>
                             <TableCell className="font-medium">{practice.name}</TableCell>
