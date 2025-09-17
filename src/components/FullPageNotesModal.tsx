@@ -3097,39 +3097,50 @@ ${transcript}`;
                     <div className="flex items-center gap-4">
                       <h3 className="text-lg font-semibold">Meeting Transcript</h3>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={handleGPTCleanTranscript}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
-                        title="Deep clean transcript using GPT to remove duplicates and improve formatting"
-                      >
-                        <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
-                        {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
-                      </Button>
-                      <Button
-                        onClick={handleUndo}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={transcriptVersions.length === 0}
-                        title={`Undo (${transcriptVersions.length} versions available)`}
-                      >
-                        <Undo2 className="h-4 w-4" />
-                        Undo
-                      </Button>
-                      <Button
-                        onClick={handleEditToggle}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        {isEditing ? 'Save' : 'Edit'}
-                      </Button>
-                    </div>
+                     <div className="flex items-center gap-2">
+                       <Button
+                         onClick={() => copyToClipboard(transcript || '')}
+                         variant="outline"
+                         size="sm"
+                         className="gap-2"
+                         disabled={!transcript || transcript.trim().length === 0}
+                         title="Copy transcript to clipboard"
+                       >
+                         <Copy className="h-4 w-4" />
+                         Copy
+                       </Button>
+                       <Button
+                         onClick={handleGPTCleanTranscript}
+                         variant="outline"
+                         size="sm"
+                         className="gap-2"
+                         disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
+                         title="Deep clean transcript using GPT to remove duplicates and improve formatting"
+                       >
+                         <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
+                         {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
+                       </Button>
+                       <Button
+                         onClick={handleUndo}
+                         variant="outline"
+                         size="sm"
+                         className="gap-2"
+                         disabled={transcriptVersions.length === 0}
+                         title={`Undo (${transcriptVersions.length} versions available)`}
+                       >
+                         <Undo2 className="h-4 w-4" />
+                         Undo
+                       </Button>
+                       <Button
+                         onClick={handleEditToggle}
+                         variant="outline"
+                         size="sm"
+                         className="gap-2"
+                       >
+                         <Edit3 className="h-4 w-4" />
+                         {isEditing ? 'Save' : 'Edit'}
+                       </Button>
+                     </div>
                   </div>
                   
                   <div className="flex-1 overflow-auto p-6 pt-0">
