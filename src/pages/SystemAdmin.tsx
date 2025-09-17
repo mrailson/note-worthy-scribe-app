@@ -48,6 +48,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
+import { CSOComplianceReport } from '@/components/CSOComplianceReport';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 
@@ -2362,61 +2363,89 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </TabsContent>
 
               <TabsContent value="compliance" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  {/* CSO Compliance Report */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Compliance Status
+                        <Shield className="h-5 w-5 text-purple-600" />
+                        Clinical Safety Officer (CSO) Compliance Reports
                       </CardTitle>
-                      <CardDescription>Current compliance with healthcare standards</CardDescription>
+                      <CardDescription>
+                        Generate detailed CSO compliance reports with timelines and next steps for critical items
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {Object.entries(complianceStatus).map(([key, status]) => (
-                        <div key={key} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <h4 className="font-medium">
-                              {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Last checked: {status.lastCheck}
-                            </p>
-                          </div>
-                          {getStatusBadge(status.status)}
-                        </div>
-                      ))}
+                    <CardContent>
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-purple-700">
+                          Access comprehensive CSO compliance reporting including DCB0129 requirements, 
+                          implementation timelines, and critical action items with specific next steps.
+                        </p>
+                      </div>
+                      <CSOComplianceReport 
+                        complaintId="" 
+                        complaintReference="SYSTEM-ADMIN" 
+                      />
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" />
-                        Compliance Trends
-                      </CardTitle>
-                      <CardDescription>Compliance metrics over time</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Overall Compliance</span>
-                          <span className="text-lg font-bold text-green-600">85%</span>
+                  {/* Existing Compliance Status */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5" />
+                          Compliance Status
+                        </CardTitle>
+                        <CardDescription>Current compliance with healthcare standards</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {Object.entries(complianceStatus).map(([key, status]) => (
+                          <div key={key} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                              <h4 className="font-medium">
+                                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Last checked: {status.lastCheck}
+                              </p>
+                            </div>
+                            {getStatusBadge(status.status)}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5" />
+                          Compliance Trends
+                        </CardTitle>
+                        <CardDescription>Compliance metrics over time</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Overall Compliance</span>
+                            <span className="text-lg font-bold text-green-600">85%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Data Protection</span>
+                            <span className="text-lg font-bold text-green-600">92%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Access Control</span>
+                            <span className="text-lg font-bold text-orange-500">78%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Audit Compliance</span>
+                            <span className="text-lg font-bold text-green-600">95%</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Data Protection</span>
-                          <span className="text-lg font-bold text-green-600">92%</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Access Control</span>
-                          <span className="text-lg font-bold text-orange-500">78%</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Audit Compliance</span>
-                          <span className="text-lg font-bold text-green-600">95%</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
