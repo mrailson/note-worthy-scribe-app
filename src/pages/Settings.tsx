@@ -1745,18 +1745,6 @@ export default function Settings() {
                           </div>
                         </div>
                         
-                        <div className="flex items-start gap-3">
-                          <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium">Documentation Portal</p>
-                            <Button variant="link" className="p-0 h-auto text-xs" asChild>
-                              <a href="https://docs.notewell.ai" target="_blank" rel="noopener noreferrer">
-                                Complete user guides and tutorials
-                                <ExternalLink className="h-3 w-3 ml-1" />
-                              </a>
-                            </Button>
-                          </div>
-                        </div>
 
                         <div className="flex items-start gap-3">
                           <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
@@ -1777,18 +1765,7 @@ export default function Settings() {
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium">24/7 System Status</p>
-                            <Button variant="link" className="p-0 h-auto text-xs" asChild>
-                              <a href="https://status.notewell.ai" target="_blank" rel="noopener noreferrer">
-                                Real-time system monitoring
-                                <ExternalLink className="h-3 w-3 ml-1" />
-                              </a>
-                            </Button>
-                          </div>
-                        </div>
+                        
 
                         <div className="flex items-start gap-3">
                           <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
