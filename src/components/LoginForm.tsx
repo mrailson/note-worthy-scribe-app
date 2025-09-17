@@ -181,7 +181,7 @@ export const LoginForm = () => {
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       <Mail className="h-4 w-4 mr-1" />
-                      VPN Issues? Get Magic Link
+                      eMail me a login link
                     </Button>
                   </div>
                 </div>

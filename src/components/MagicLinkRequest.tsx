@@ -50,7 +50,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
     setLoading(true);
 
     try {
-      // Generate magic link using Supabase's built-in method
+      // Use Supabase's built-in magic link system which includes the actual working magic link
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
@@ -66,23 +66,6 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
           variant: "destructive"
         });
       } else {
-        // Send custom notification email via our edge function
-        try {
-          const { error: emailError } = await supabase.functions.invoke('send-magic-link', {
-            body: {
-              email: email,
-              magic_link: "Please check your email for the secure login link",
-              user_name: email.split('@')[0]
-            }
-          });
-
-          if (emailError) {
-            console.warn("Custom email notification failed:", emailError);
-          }
-        } catch (emailError) {
-          console.warn("Failed to send custom notification:", emailError);
-        }
-
         setSubmitted(true);
         toast({
           title: "Magic Link Sent!",
