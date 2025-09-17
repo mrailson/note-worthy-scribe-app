@@ -709,6 +709,17 @@ export const MeetingHistoryList = ({
 
         toast.info(`Generating ${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes...`);
 
+        // Get the latest transcript (might have been cleaned)
+        const { data: latestTranscriptData } = await supabase.rpc('get_meeting_full_transcript', { 
+          p_meeting_id: meetingId 
+        });
+        
+        const latestTranscript = latestTranscriptData?.[0]?.transcript || transcript;
+
+        if (!latestTranscript) {
+          throw new Error(`No transcript available for ${noteType} notes generation`);
+        }
+
         // Map note types to actual generation calls
         const noteTypeMapping = {
           'standard': 'detailed', // Use detailed for standard
@@ -720,6 +731,7 @@ export const MeetingHistoryList = ({
         const { data: noteResult, error: noteError } = await supabase.functions.invoke('generate-multi-type-notes', {
           body: {
             meetingId,
+            transcript: latestTranscript,
             noteType: noteTypeMapping[noteType],
             forceRegenerate: true
           }
