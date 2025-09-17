@@ -212,8 +212,8 @@ const SystemAdmin = () => {
     website: '',
     email: '',
     phone: '',
-    neighbourhood_id: '',
-    pcn_code: ''
+    neighbourhood_id: 'none',
+    pcn_code: 'none'
   });
   
   // PCN management state
@@ -1309,8 +1309,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       website: '',
       email: '',
       phone: '',
-      neighbourhood_id: '',
-      pcn_code: ''
+      neighbourhood_id: 'none',
+      pcn_code: 'none'
     });
     setShowPracticeModal(true);
   };
@@ -1325,8 +1325,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       website: practice.website || '',
       email: practice.email || '',
       phone: practice.phone || '',
-      neighbourhood_id: practice.neighbourhood_id || '',
-      pcn_code: practice.pcn_code || ''
+      neighbourhood_id: practice.neighbourhood_id || 'none',
+      pcn_code: practice.pcn_code || 'none'
     });
     setShowPracticeModal(true);
   };
@@ -1346,8 +1346,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             website: practiceFormData.website,
             email: practiceFormData.email,
             phone: practiceFormData.phone,
-            neighbourhood_id: practiceFormData.neighbourhood_id || null,
-            pcn_code: practiceFormData.pcn_code || null,
+            neighbourhood_id: practiceFormData.neighbourhood_id === 'none' ? null : practiceFormData.neighbourhood_id || null,
+            pcn_code: practiceFormData.pcn_code === 'none' ? null : practiceFormData.pcn_code || null,
           })
           .eq('id', editingPractice.id);
         
@@ -3216,7 +3216,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       <SelectValue placeholder="Select neighbourhood..." />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-border shadow-lg z-[100] max-h-60">
-                      <SelectItem value="">No neighbourhood assigned</SelectItem>
+                      <SelectItem value="none">No neighbourhood assigned</SelectItem>
                       {neighbourhoods.map((neighbourhood) => (
                         <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
                           {neighbourhood.name}
@@ -3235,7 +3235,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       <SelectValue placeholder="Select PCN..." />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-border shadow-lg z-[100] max-h-60">
-                      <SelectItem value="">No PCN assigned</SelectItem>
+                      <SelectItem value="none">No PCN assigned</SelectItem>
                       {pcns.map((pcn) => (
                         <SelectItem key={pcn.id} value={pcn.pcn_code}>
                           {pcn.pcn_name} ({pcn.pcn_code})
