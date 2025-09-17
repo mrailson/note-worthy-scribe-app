@@ -687,79 +687,101 @@ export const MeetingHistoryList = ({
         }
       }));
 
-      toast.success("Deep clean completed! Starting sequential note generation...");
+      toast.success("Deep clean completed! Starting parallel note generation...");
 
-      // Stage 2-5: Generate all note types sequentially
-      const noteTypes = ['standard', 'brief', 'limerick', 'executive'] as const;
-      let currentIndex = 0;
-
-      for (const noteType of noteTypes) {
-        // Update current processing stage
-        setProcessingMeetings(prev => ({
-          ...prev,
-          [meetingId]: {
-            ...prev[meetingId],
-            currentStage: noteType,
-            stages: {
-              ...prev[meetingId].stages,
-              [noteType]: 'processing'
-            }
+      // Stage 2: Generate all note types in one call (parallel processing)
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'standard',
+          stages: {
+            ...prev[meetingId].stages,
+            'standard': 'processing',
+            'brief': 'processing', 
+            'limerick': 'processing',
+            'executive': 'processing'
           }
-        }));
-
-        toast.info(`Generating ${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes...`);
-
-        // Get the latest transcript (might have been cleaned)
-        const { data: latestTranscriptData } = await supabase.rpc('get_meeting_full_transcript', { 
-          p_meeting_id: meetingId 
-        });
-        
-        const latestTranscript = latestTranscriptData?.[0]?.transcript || transcript;
-
-        if (!latestTranscript) {
-          throw new Error(`No transcript available for ${noteType} notes generation`);
         }
+      }));
 
-        // Map note types to actual generation calls
-        const noteTypeMapping = {
-          'standard': 'detailed', // Use detailed for standard
+      toast.info("Generating all note types in parallel... (estimated 1-2 mins)");
+
+      // Get the latest transcript (might have been cleaned)
+      const { data: latestTranscriptData } = await supabase.rpc('get_meeting_full_transcript', { 
+        p_meeting_id: meetingId 
+      });
+      
+      const latestTranscript = latestTranscriptData?.[0]?.transcript || transcript;
+
+      if (!latestTranscript) {
+        throw new Error(`No transcript available for notes generation`);
+      }
+
+      // Single call to generate ALL note types in parallel
+      const { data: noteResult, error: noteError } = await supabase.functions.invoke('generate-multi-type-notes', {
+        body: {
+          meetingId,
+          transcript: latestTranscript,
+          forceRegenerate: true
+        }
+      });
+
+      if (noteError) {
+        throw new Error(`Note generation failed: ${noteError.message}`);
+      }
+
+      // Poll for completion of all note types
+      const checkCompletion = async () => {
+        const { data: existingNotes } = await supabase
+          .from('meeting_notes_multi')
+          .select('note_type')
+          .eq('meeting_id', meetingId);
+
+        const completedTypes = new Set(existingNotes?.map(n => n.note_type) || []);
+        const targetTypes = ['detailed', 'brief', 'limerick', 'executive'];
+        
+        // Update UI for each completed type
+        const stageMapping = {
+          'detailed': 'standard',
           'brief': 'brief',
           'limerick': 'limerick', 
           'executive': 'executive'
         };
 
-        const { data: noteResult, error: noteError } = await supabase.functions.invoke('generate-multi-type-notes', {
-          body: {
-            meetingId,
-            transcript: latestTranscript,
-            noteType: noteTypeMapping[noteType],
-            forceRegenerate: true
-          }
+        const stages: any = {};
+        targetTypes.forEach(type => {
+          const stage = stageMapping[type as keyof typeof stageMapping];
+          stages[stage] = completedTypes.has(type) ? 'success' : 'processing';
         });
 
-        if (noteError) {
-          throw new Error(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes generation failed: ${noteError.message}`);
-        }
-
-        // Mark this note type as complete
+        const completedCount = targetTypes.filter(type => completedTypes.has(type)).length;
+        
         setProcessingMeetings(prev => ({
           ...prev,
           [meetingId]: {
             ...prev[meetingId],
             stages: {
               ...prev[meetingId].stages,
-              [noteType]: 'success'
+              ...stages
             },
-            completedCount: prev[meetingId].completedCount! + 1
+            completedCount: completedCount + 1 // +1 for deep clean
           }
         }));
 
-        currentIndex++;
+        return completedCount === targetTypes.length;
+      };
+
+      // Poll every 3 seconds for completion
+      const maxPolls = 40; // 2 minutes max
+      let polls = 0;
+      
+      while (polls < maxPolls) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        polls++;
         
-        // Small delay between generations
-        if (currentIndex < noteTypes.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        const allComplete = await checkCompletion();
+        if (allComplete) break;
       }
 
       // Mark all stages as complete
