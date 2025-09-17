@@ -8,6 +8,7 @@ import { Mail, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSecurityValidation } from "@/hooks/useSecurityValidation";
 import { ForgotPassword } from "./ForgotPassword";
+import { MagicLinkRequest } from "./MagicLinkRequest";
 import { ServiceOverview } from "./ServiceOverview";
 
 export const LoginForm = () => {
@@ -17,12 +18,17 @@ export const LoginForm = () => {
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
   const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
 
   if (showForgotPassword) {
     return <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />;
+  }
+
+  if (showMagicLink) {
+    return <MagicLinkRequest onBackToLogin={() => setShowMagicLink(false)} />;
   }
 
   const validateNHSEmail = (email: string) => {
@@ -156,7 +162,7 @@ export const LoginForm = () => {
                     {loading ? "Signing In..." : "Sign In"}
                   </Button>
 
-                  <div className="text-center">
+                  <div className="text-center space-y-2">
                     <Button
                       variant="link"
                       size="sm"
@@ -164,6 +170,18 @@ export const LoginForm = () => {
                       className="text-primary hover:text-primary-hover text-sm"
                     >
                       Forgot your password?
+                    </Button>
+                    
+                    <div className="text-xs text-muted-foreground">or</div>
+                    
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setShowMagicLink(true)}
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      <Mail className="h-4 w-4 mr-1" />
+                      VPN Issues? Get Magic Link
                     </Button>
                   </div>
                 </div>
