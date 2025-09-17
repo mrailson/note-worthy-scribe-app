@@ -3676,6 +3676,51 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_neighbourhood_assignments: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_branch_site: boolean | null
+          is_main_site: boolean | null
+          neighbourhood_id: string
+          notes: string | null
+          practice_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_branch_site?: boolean | null
+          is_main_site?: boolean | null
+          neighbourhood_id: string
+          notes?: string | null
+          practice_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_branch_site?: boolean | null
+          is_main_site?: boolean | null
+          neighbourhood_id?: string
+          notes?: string | null
+          practice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_neighbourhood_assignments_neighbourhood_id_fkey"
+            columns: ["neighbourhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighbourhoods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_neighbourhood_assignments_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_policy_assignments: {
         Row: {
           assigned_at: string | null
