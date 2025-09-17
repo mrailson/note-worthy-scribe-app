@@ -1289,13 +1289,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
 
       setTranscript(data.cleanedTranscript);
+      // Persist immediately so the deep-cleaned version is kept when navigating away
+      await saveTranscriptToDatabase(data.cleanedTranscript);
       
       // Enhanced success message with custom corrections info
       const customCorrectionsText = data.appliedCustomCorrections > 0 
         ? ` Applied ${data.appliedCustomCorrections} custom corrections.` 
         : '';
       
-      toast.success(`✅ Transcript cleaned! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.${customCorrectionsText}`);
+      toast.success(`✅ Transcript cleaned and saved! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.${customCorrectionsText}`);
       
     } catch (error) {
       console.error('Error cleaning transcript:', error);
