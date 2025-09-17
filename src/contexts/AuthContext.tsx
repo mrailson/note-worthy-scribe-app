@@ -263,7 +263,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = 'https://notewell.dialai.co.uk/reset-password';
+    const redirectUrl = `${window.location.origin}/reset-password`;
     
     // Generate the actual reset link via Supabase
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
