@@ -847,6 +847,7 @@ const openLoginHistoryModal = async (user: User) => {
   setLoadingLoginHistory(true);
   
   try {
+    console.log('Fetching login history for user:', user.user_id, user.full_name);
     const { data, error } = await supabase
       .from('user_sessions')
       .select('*')
@@ -855,6 +856,7 @@ const openLoginHistoryModal = async (user: User) => {
       .limit(50);
     
     if (error) throw error;
+    console.log('Login history data:', data);
     setLoginHistory(data || []);
   } catch (error) {
     console.error('Error fetching login history:', error);
@@ -3178,7 +3180,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       {loginHistory.map((session) => (
                         <TableRow key={session.id}>
                           <TableCell className="font-mono text-sm">
-                            {new Date(session.login_time).toLocaleString()}
+                            {session.login_time ? new Date(session.login_time).toLocaleString() : 'N/A'}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
                             {session.last_activity ? new Date(session.last_activity).toLocaleString() : 'N/A'}
