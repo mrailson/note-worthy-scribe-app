@@ -187,6 +187,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user?.id]);
 
+  // Update session activity every 5 minutes and cleanup expired sessions
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const updateActivity = async () => {
+      try {
+        await supabase.rpc('update_session_activity', { p_user_id: user.id });
+      } catch (error) {
+        console.error('Error updating session activity:', error);
+      }
+    };
+
+    const cleanupSessions = async () => {
+      try {
+        await supabase.rpc('cleanup_expired_sessions');
+      } catch (error) {
+        console.error('Error cleaning up expired sessions:', error);
+      }
+    };
+
+    // Update activity immediately
+    updateActivity();
+    
+    // Set up intervals
+    const activityInterval = setInterval(updateActivity, 5 * 60 * 1000); // Every 5 minutes
+    const cleanupInterval = setInterval(cleanupSessions, 15 * 60 * 1000); // Every 15 minutes
+
+    return () => {
+      clearInterval(activityInterval);
+      clearInterval(cleanupInterval);
+    };
+  }, [user?.id]);
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -238,6 +271,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Starting logout process...');
+      
+      // Mark session as inactive in database before signing out
+      if (user?.id) {
+        try {
+          await supabase.rpc('mark_session_inactive', { p_user_id: user.id });
+          console.log('Session marked as inactive');
+        } catch (sessionError) {
+          console.error('Error marking session inactive:', sessionError);
+        }
+      }
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
