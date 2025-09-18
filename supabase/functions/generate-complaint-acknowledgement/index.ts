@@ -228,13 +228,27 @@ CRITICAL: Never include personal email addresses or direct contact details in th
       console.log('No logo URLs found in practice details');
     }
     
+    // Get the authenticated user from the request headers
+    const authHeader = req.headers.get('authorization');
+    let currentUser = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(token);
+        currentUser = user;
+      } catch (error) {
+        console.log('Could not get user from token:', error.message);
+      }
+    }
+
     // Store the acknowledgement in the database
     const { error: insertError } = await supabase
       .from('complaint_acknowledgements')
       .insert({
         complaint_id: complaintId,
         acknowledgement_letter: acknowledgementLetter,
-        sent_by: null, // Will be set by the frontend
+        sent_by: currentUser?.id || complaint.created_by, // Use authenticated user or complaint creator
       });
 
     if (insertError) {
