@@ -578,7 +578,7 @@ export function CSOComplianceReport({ complaintId, complaintReference }: CSOComp
                     </p>
                   </div>
                   
-                  {Object.entries(reportData.dcb0129Compliance).map(([key, item]) => (
+                  {reportData?.dcb0129Compliance ? Object.entries(reportData.dcb0129Compliance).map(([key, item]) => (
                     <Card key={key} className="border-l-4 border-l-blue-500">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
@@ -636,7 +636,12 @@ export function CSOComplianceReport({ complaintId, complaintReference }: CSOComp
                         )}
                       </CardContent>
                     </Card>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No DCB0129 compliance data available.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
