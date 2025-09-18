@@ -2860,7 +2860,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 <TabsTrigger value="data-access" className="text-xs sm:text-sm p-2">Data</TabsTrigger>
                 <TabsTrigger value="vulnerabilities" className="text-xs sm:text-sm p-2">Vulns</TabsTrigger>
                 <TabsTrigger value="cso-compliance" className="text-xs sm:text-sm p-2">CSO Compliance</TabsTrigger>
-                <TabsTrigger value="dcb0129" className="text-xs sm:text-sm p-2">DCB0129</TabsTrigger>
+                <TabsTrigger value="dcb0129" className="text-xs sm:text-sm p-2 font-medium">DCB0129</TabsTrigger>
                 <TabsTrigger value="security-reports" className="text-xs sm:text-sm p-2">Security Reports</TabsTrigger>
               </TabsList>
 
