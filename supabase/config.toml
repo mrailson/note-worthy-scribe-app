@@ -1,7 +1,7 @@
 project_id = "dphcnbricafkbtizkoal"
 
 [functions.assemblyai-realtime]
-verify_jwt = false
+verify_jwt = true
 
 [functions.assemblyai-realtime-token]
 verify_jwt = false
