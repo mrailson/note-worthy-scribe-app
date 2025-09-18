@@ -488,21 +488,6 @@ export default function SecurityCompliance() {
               </CardContent>
             </Card>
 
-            {/* Download Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {userType === 'governance' && (
-                <>
-                  <Button onClick={() => downloadEvidencePack('cqc')} className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download CQC Evidence Pack
-                  </Button>
-                  <Button onClick={() => downloadEvidencePack('advanced')} variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download Advanced Evidence Pack
-                  </Button>
-                </>
-              )}
-            </div>
 
             {/* Closing Messages */}
             <Card className="bg-muted/20">
