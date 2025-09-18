@@ -43,7 +43,8 @@ import {
   Upload,
   FileJson,
   TestTube,
-  FileCheck
+  FileCheck,
+  Lock
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
