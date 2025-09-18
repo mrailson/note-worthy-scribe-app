@@ -36,9 +36,7 @@ import {
   Volume2,
   VolumeX
 } from 'lucide-react';
-import { useTrafficLightResolver } from '@/hooks/useTrafficLightResolver';
 import PolicyBadge from '@/components/PolicyBadge';
-import EvidenceDrawer from '@/components/EvidenceDrawer';
 import PolicyBanner from '@/components/PolicyBanner';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -95,7 +93,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
   const [verificationData, setVerificationData] = useState(null);
-  const [policyHits, setPolicyHits] = useState<any[]>([]);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
   const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
     // Auto-collapse based on global setting OR if it's a quick pick message  
@@ -114,7 +111,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
   const { sendEmailAutomatically, isSending } = useAutoEmail();
-  const { resolveMedicines } = useTrafficLightResolver();
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -128,23 +124,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   }, [message.content, message.isStreaming]);
 
-  // Check for policy violations when message content updates
-  useEffect(() => {
-    const checkPolicyViolations = async () => {
-      if (message.content && (message.role === 'user' || message.role === 'assistant')) {
-        try {
-          const result = await resolveMedicines(message.content);
-          if (result.hits.length > 0) {
-            setPolicyHits(result.hits);
-          }
-        } catch (error) {
-          console.error('Policy check failed:', error);
-        }
-      }
-    };
-
-    checkPolicyViolations();
-  }, [message.content, message.role, resolveMedicines]);
   
   // Calculate if this is a large response (more than 1000 characters or multiple sections)
   const isLargeResponse = message.role === 'assistant' && (

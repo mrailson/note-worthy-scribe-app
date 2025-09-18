@@ -8,7 +8,6 @@ import { SimpleLoginForm } from '@/components/SimpleLoginForm';
 import { Header } from '@/components/Header';
 import { MaintenanceBanner } from '@/components/MaintenanceBanner';
 import AI4GPService from '@/components/AI4GPService';
-import { DrugQuickModal } from '@/components/DrugQuickModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -17,7 +16,6 @@ import { Separator } from '@/components/ui/separator';
 const AI4GP = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [drugModalOpen, setDrugModalOpen] = useState(false);
   
   // Function to regenerate meeting notes using GPT auto-generation for consistent formatting
   const regenerateMeetingNotes = async (meetingId: string) => {
@@ -66,27 +64,6 @@ const AI4GP = () => {
   }, [user]);
   
 
-  // Keyboard shortcut for Northamptonshire Prescribing Guidance (Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.key === 'k') {
-        event.preventDefault();
-        setDrugModalOpen(true);
-      }
-    };
-
-    const handleOpenDrugModal = () => {
-      setDrugModalOpen(true);
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('openDrugModal', handleOpenDrugModal);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('openDrugModal', handleOpenDrugModal);
-    };
-  }, []);
 
   // Fetch user profile to check AI4GP access
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -206,11 +183,6 @@ const AI4GP = () => {
         
       </main>
 
-      {/* Northamptonshire Prescribing Guidance Modal */}
-      <DrugQuickModal 
-        open={drugModalOpen} 
-        onClose={() => setDrugModalOpen(false)} 
-      />
     </div>
   );
 };

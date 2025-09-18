@@ -2260,63 +2260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      icn_policy_synonyms: {
-        Row: {
-          canonical: string
-          created_at: string
-          term: string
-        }
-        Insert: {
-          canonical: string
-          created_at?: string
-          term: string
-        }
-        Update: {
-          canonical?: string
-          created_at?: string
-          term?: string
-        }
-        Relationships: []
-      }
-      icn_prior_approval: {
-        Row: {
-          created_at: string
-          criteria_excerpt: string | null
-          drug_name: string
-          id: string
-          last_updated: string | null
-          notes: string | null
-          pa_route: string
-          pa_status_enum: string
-          source_url: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          criteria_excerpt?: string | null
-          drug_name: string
-          id?: string
-          last_updated?: string | null
-          notes?: string | null
-          pa_route: string
-          pa_status_enum: string
-          source_url?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          criteria_excerpt?: string | null
-          drug_name?: string
-          id?: string
-          last_updated?: string | null
-          notes?: string | null
-          pa_route?: string
-          pa_status_enum?: string
-          source_url?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       image_processing_requests: {
         Row: {
           created_at: string | null
@@ -3827,57 +3770,6 @@ export type Database = {
         }
         Relationships: []
       }
-      prior_approval_criteria: {
-        Row: {
-          application_route: string | null
-          application_url: string | null
-          category: string | null
-          created_at: string
-          criteria_text: string
-          drug_name_norm: string
-          effective_from: string | null
-          effective_to: string | null
-          evidence_required: string | null
-          icb_pdf_url: string | null
-          icb_version: string | null
-          id: string
-          last_scraped: string | null
-          review_interval_months: number | null
-        }
-        Insert: {
-          application_route?: string | null
-          application_url?: string | null
-          category?: string | null
-          created_at?: string
-          criteria_text: string
-          drug_name_norm: string
-          effective_from?: string | null
-          effective_to?: string | null
-          evidence_required?: string | null
-          icb_pdf_url?: string | null
-          icb_version?: string | null
-          id?: string
-          last_scraped?: string | null
-          review_interval_months?: number | null
-        }
-        Update: {
-          application_route?: string | null
-          application_url?: string | null
-          category?: string | null
-          created_at?: string
-          criteria_text?: string
-          drug_name_norm?: string
-          effective_from?: string | null
-          effective_to?: string | null
-          evidence_required?: string | null
-          icb_pdf_url?: string | null
-          icb_version?: string | null
-          id?: string
-          last_scraped?: string | null
-          review_interval_months?: number | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           ai4gp_access: boolean | null
@@ -4938,39 +4830,6 @@ export type Database = {
         }
         Relationships: []
       }
-      traffic_light_vocab: {
-        Row: {
-          bnf_chapter: string | null
-          created_at: string
-          id: string
-          last_modified: string | null
-          medicine_name: string
-          notes: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          bnf_chapter?: string | null
-          created_at?: string
-          id?: string
-          last_modified?: string | null
-          medicine_name: string
-          notes?: string | null
-          status: string
-          updated_at?: string
-        }
-        Update: {
-          bnf_chapter?: string | null
-          created_at?: string
-          id?: string
-          last_modified?: string | null
-          medicine_name?: string
-          notes?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       transcription_chunks: {
         Row: {
           audio_chunk_id: string | null
@@ -5335,98 +5194,6 @@ export type Database = {
       }
     }
     Views: {
-      icn_pa_norm: {
-        Row: {
-          criteria_excerpt: string | null
-          drug_name: string | null
-          id: string | null
-          last_updated: string | null
-          name_norm: string | null
-          notes: string | null
-          pa_route: string | null
-          pa_status_enum: string | null
-          source_url: string | null
-        }
-        Insert: {
-          criteria_excerpt?: string | null
-          drug_name?: string | null
-          id?: string | null
-          last_updated?: string | null
-          name_norm?: never
-          notes?: string | null
-          pa_route?: string | null
-          pa_status_enum?: string | null
-          source_url?: string | null
-        }
-        Update: {
-          criteria_excerpt?: string | null
-          drug_name?: string | null
-          id?: string | null
-          last_updated?: string | null
-          name_norm?: never
-          notes?: string | null
-          pa_route?: string | null
-          pa_status_enum?: string | null
-          source_url?: string | null
-        }
-        Relationships: []
-      }
-      icn_pa_norm2: {
-        Row: {
-          canonical: string | null
-          criteria_excerpt: string | null
-          drug_name: string | null
-          id: string | null
-          last_updated: string | null
-          name_norm: string | null
-          notes: string | null
-          pa_route: string | null
-          pa_status_enum: string | null
-          source_url: string | null
-        }
-        Relationships: []
-      }
-      icn_policy_unified: {
-        Row: {
-          bnf_chapter: string | null
-          criteria_excerpt: string | null
-          pa_id: string | null
-          pa_last_updated: string | null
-          pa_name: string | null
-          pa_notes: string | null
-          pa_route: string | null
-          pa_source_url: string | null
-          pa_status_enum: string | null
-          tl_detail_url: string | null
-          tl_id: string | null
-          tl_last_modified: string | null
-          tl_name: string | null
-          tl_notes: string | null
-          tl_status_enum: string | null
-        }
-        Relationships: []
-      }
-      icn_policy_unified_fuzzy: {
-        Row: {
-          bnf_chapter: string | null
-          criteria_excerpt: string | null
-          pa_id: string | null
-          pa_last_updated: string | null
-          pa_name: string | null
-          pa_notes: string | null
-          pa_route: string | null
-          pa_source_url: string | null
-          pa_status_enum: string | null
-          sim: number | null
-          tl_detail_url: string | null
-          tl_id: string | null
-          tl_last_modified: string | null
-          tl_name: string | null
-          tl_notes: string | null
-          tl_status_enum: string | null
-        }
-        Relationships: []
-      }
       icn_tl_norm: {
         Row: {
           bnf_chapter: string | null
@@ -5457,20 +5224,6 @@ export type Database = {
           name_norm?: never
           notes?: string | null
           status_enum?: string | null
-        }
-        Relationships: []
-      }
-      icn_tl_norm2: {
-        Row: {
-          bnf_chapter: string | null
-          canonical: string | null
-          detail_url: string | null
-          drug_name: string | null
-          id: string | null
-          last_modified: string | null
-          name_norm: string | null
-          notes: string | null
-          status_enum: string | null
         }
         Relationships: []
       }

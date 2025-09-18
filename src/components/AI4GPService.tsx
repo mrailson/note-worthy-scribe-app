@@ -28,7 +28,6 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
-import { TrafficLightQuickPick } from '@/components/TrafficLightQuickPick';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
