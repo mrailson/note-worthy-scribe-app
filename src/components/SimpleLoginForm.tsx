@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { VpnTroubleshootingGuide } from "./VpnTroubleshootingGuide";
 
 export const SimpleLoginForm = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,8 @@ export const SimpleLoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isValid, setIsValid] = useState(false);
+  const [showVpnGuide, setShowVpnGuide] = useState(false);
+  const [loginError, setLoginError] = useState<any>(null);
   
   const { signIn } = useAuth();
 
@@ -48,15 +51,31 @@ export const SimpleLoginForm = () => {
 
     setLoading(true);
     setError('');
+    setLoginError(null);
 
     try {
       const { error: signInError } = await signIn(email, password);
       
       if (signInError) {
-        setError(signInError.message || 'Login failed');
+        const errorMessage = signInError.message || 'Login failed';
+        setError(errorMessage);
+        setLoginError(signInError);
+        
+        // Automatically show VPN guide for VPN-related errors
+        const isVpnRelated = signInError.isVpnRelated || 
+          errorMessage.toLowerCase().includes('network') ||
+          errorMessage.toLowerCase().includes('timeout') ||
+          errorMessage.toLowerCase().includes('rate limit') ||
+          errorMessage.toLowerCase().includes('corporate');
+          
+        if (isVpnRelated) {
+          setTimeout(() => setShowVpnGuide(true), 1500);
+        }
       }
-    } catch (error) {
-      setError('An unexpected error occurred');
+    } catch (error: any) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      setError(errorMessage);
+      setLoginError(error);
     } finally {
       setLoading(false);
     }
@@ -128,16 +147,36 @@ export const SimpleLoginForm = () => {
             {loading ? 'Signing In...' : 'Sign In'}
           </Button>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <Link 
               to="/reset-password" 
               className="text-sm text-primary hover:underline"
             >
               Forgot your password?
             </Link>
+            
+            {/* VPN Help Button */}
+            <div className="pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowVpnGuide(true)}
+                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                <HelpCircle className="h-3 w-3" />
+                Having trouble logging in? (VPN Help)
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
+      
+      {/* VPN Troubleshooting Guide */}
+      <VpnTroubleshootingGuide 
+        isVisible={showVpnGuide}
+        onClose={() => setShowVpnGuide(false)}
+        loginError={loginError}
+      />
     </Card>
   );
 };

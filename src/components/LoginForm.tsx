@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSecurityValidation } from "@/hooks/useSecurityValidation";
 import { ForgotPassword } from "./ForgotPassword";
 import { MagicLinkRequest } from "./MagicLinkRequest";
 import { ServiceOverview } from "./ServiceOverview";
+import { VpnTroubleshootingGuide } from "./VpnTroubleshootingGuide";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -20,6 +21,8 @@ export const LoginForm = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showVpnGuide, setShowVpnGuide] = useState(false);
+  const [loginError, setLoginError] = useState<any>(null);
   const { signIn } = useAuth();
   const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
 
@@ -68,12 +71,27 @@ export const LoginForm = () => {
     
     setLoading(true);
     setError(null);
+    setLoginError(null);
     
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
-        setError(error.message || "Invalid email or password. Please check your credentials and try again.");
+        const errorMessage = error.message || "Invalid email or password. Please check your credentials and try again.";
+        setError(errorMessage);
+        setLoginError(error);
+        
+        // Automatically show VPN guide for VPN-related errors or network issues
+        const isVpnRelated = error.isVpnRelated || 
+          errorMessage.toLowerCase().includes('network') ||
+          errorMessage.toLowerCase().includes('timeout') ||
+          errorMessage.toLowerCase().includes('rate limit') ||
+          errorMessage.toLowerCase().includes('corporate');
+          
+        if (isVpnRelated) {
+          // Delay showing guide slightly to let error message display first
+          setTimeout(() => setShowVpnGuide(true), 1500);
+        }
         
         // Log VPN-related errors for monitoring
         if (error.isVpnRelated) {
@@ -81,7 +99,9 @@ export const LoginForm = () => {
         }
       }
     } catch (error: any) {
-      setError(error.message || "An unexpected error occurred during login.");
+      const errorMessage = error.message || "An unexpected error occurred during login.";
+      setError(errorMessage);
+      setLoginError(error);
     } finally {
       setLoading(false);
     }
