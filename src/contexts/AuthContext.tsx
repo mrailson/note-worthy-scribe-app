@@ -189,25 +189,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Basic authentication with VPN-friendly timeout
-      const timeoutMs = 15000; // 15 seconds for all users
-      
-      const loginPromise = supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Connection timeout - please check your network')), timeoutMs)
-      );
-
-      const { error } = await Promise.race([loginPromise, timeoutPromise]);
       
       if (error) {
         console.error("Login Failed:", error.message);
         
-        // Enhanced error for VPN users
-        if (error.message?.includes('fetch') || error.message?.includes('timeout')) {
+        // Enhanced error messages for common issues
+        if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch') || 
+            error.message?.includes('network') || error.message?.includes('timeout')) {
           const enhancedError = {
             ...error,
             message: 'Connection failed. If using a corporate VPN, try disconnecting temporarily.',
@@ -227,6 +219,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     } catch (authError: any) {
       console.error("Authentication error:", authError);
+      
+      // Handle fetch errors
+      if (authError.message?.includes('fetch') || authError.message?.includes('Failed to fetch')) {
+        const enhancedError = {
+          ...authError,
+          message: 'Connection failed. If using a corporate VPN, try disconnecting temporarily.',
+          isVpnRelated: true
+        };
+        return { error: enhancedError };
+      }
+      
       return { error: authError };
     }
   };
