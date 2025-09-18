@@ -66,22 +66,23 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
     <header className="bg-gradient-primary text-primary-foreground shadow-strong sticky top-0 z-50">
       <div className="container mx-auto px-3 py-1 sm:px-4 sm:py-4">
         <div className="flex items-center justify-between">
-          {/* Mobile-friendly title */}
-          {user && (
-            <div
-              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-              onClick={() => navigate('/')}
-            >
+          {/* Mobile-friendly title - show for both logged in and logged out */}
+          <div
+            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+            onClick={() => navigate('/')}
+          >
+            {user && (
               <img 
                 src={notewellLogo} 
                 alt="Notewell AI" 
                 className="h-8 sm:h-10 w-auto"
               />
-              <span className="text-sm sm:text-xl font-bold text-white hidden xs:inline">
-                Notewell AI
-              </span>
-            </div>
-          )}
+            )}
+            <span className="text-sm sm:text-xl font-bold text-white flex items-center">
+              Notewell AI
+              <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
+            </span>
+          </div>
           
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
