@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -190,56 +189,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Import VPN diagnostics utilities
-      const { 
-        diagnoseLoginIssue, 
-        generateVpnFriendlyErrorMessage, 
-        testNetworkConnectivity 
-      } = await import('@/utils/vpnDiagnostics');
-      const { validateAuthAttempt } = await import('@/utils/enhancedSecurityValidation');
-
-      // Pre-flight security validation
-      const authValidation = validateAuthAttempt(
-        email,
-        undefined, // IP not available in browser
-        navigator.userAgent
-      );
-
-      if (!authValidation.allowed) {
-        const error = new Error(authValidation.reason || 'Authentication not allowed');
-        return { error };
-      }
-
-      // Attempt login with timeout for VPN users
-      const timeoutMs = authValidation.isVpnLikely ? 15000 : 10000;
+      // Basic authentication with VPN-friendly timeout
+      const timeoutMs = 15000; // 15 seconds for all users
       
       const loginPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Login timeout - please check your connection')), timeoutMs)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout - please check your network')), timeoutMs)
       );
 
-      const { error } = await Promise.race([loginPromise, timeoutPromise]) as any;
+      const { error } = await Promise.race([loginPromise, timeoutPromise]);
       
       if (error) {
-        // Diagnose the login issue
-        const diagnostic = await diagnoseLoginIssue(email, error, 1);
-        const userFriendlyMessage = generateVpnFriendlyErrorMessage(diagnostic, error);
+        console.error("Login Failed:", error.message);
         
-        console.error("Login Failed:", userFriendlyMessage);
+        // Enhanced error for VPN users
+        if (error.message?.includes('fetch') || error.message?.includes('timeout')) {
+          const enhancedError = {
+            ...error,
+            message: 'Connection failed. If using a corporate VPN, try disconnecting temporarily.',
+            isVpnRelated: true
+          };
+          return { error: enhancedError };
+        }
         
-        // Return enhanced error with user-friendly message
-        const enhancedError = {
-          ...error,
-          message: userFriendlyMessage,
-          diagnostic,
-          isVpnRelated: diagnostic?.isVpnLikely
-        };
-        
-        return { error: enhancedError };
+        return { error };
       }
 
       // Success
@@ -250,17 +227,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     } catch (authError: any) {
       console.error("Authentication error:", authError);
-      
-      // Handle specific network errors
-      if (authError.message?.includes('fetch') || authError.message?.includes('timeout')) {
-        const enhancedError = {
-          ...authError,
-          message: 'Connection failed. Please check your network connection and try again. If using a corporate VPN, you may need to disconnect temporarily.',
-          isVpnRelated: true
-        };
-        return { error: enhancedError };
-      }
-      
       return { error: authError };
     }
   };
