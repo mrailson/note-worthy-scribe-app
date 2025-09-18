@@ -193,9 +193,10 @@ export default function SecurityCompliance() {
   ];
 
   const riskAssessments = [
+    // General Platform Risks
     {
       id: "H001",
-      hazard: "Unauthorized access to patient data",
+      hazard: "Unauthorised access to patient data",
       severity: "High",
       probability: "Low",
       riskLevel: "Medium",
@@ -211,17 +212,153 @@ export default function SecurityCompliance() {
       mitigation: "TLS 1.3 encryption, secure API endpoints",
       residualRisk: "Very Low"
     },
+    
+    // Translation Tool Risks
     {
-      id: "H003",
-      hazard: "Incorrect AI-generated clinical suggestions",
-      severity: "Medium",
-      probability: "Low",
-      riskLevel: "Medium",
-      mitigation: "Human oversight required, clinical validation disclaimers",
+      id: "TT-H001",
+      hazard: "Incorrect translation of medical terminology affecting patient safety",
+      severity: "High",
+      probability: "Medium",
+      riskLevel: "High",
+      mitigation: "NHS-compliant medical dictionary, human validation required for clinical communications, translation quality assurance",
       residualRisk: "Low"
     },
     {
-      id: "H004",
+      id: "TT-H002", 
+      hazard: "Confidential patient information exposed through translation logs",
+      severity: "High",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "Auto-deletion of translation history, encrypted storage, user-specific data isolation",
+      residualRisk: "Very Low"
+    },
+    {
+      id: "TT-H003",
+      hazard: "Translation service unavailability during critical patient communications",
+      severity: "Medium",
+      probability: "Low", 
+      riskLevel: "Medium",
+      mitigation: "Offline translation capabilities, service redundancy, manual translation procedures",
+      residualRisk: "Low"
+    },
+
+    // AI4GP Service Risks
+    {
+      id: "AI4GP-H001",
+      hazard: "Incorrect AI-generated clinical suggestions affecting patient care",
+      severity: "High",
+      probability: "Medium",
+      riskLevel: "High", 
+      mitigation: "Human oversight mandatory, clinical validation disclaimers, NICE guidance integration, professional responsibility frameworks",
+      residualRisk: "Medium"
+    },
+    {
+      id: "AI4GP-H002",
+      hazard: "AI system providing outdated or contraindicated medical advice",
+      severity: "High",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "Regular BNF updates, real-time clinical guideline integration, version control and audit trails",
+      residualRisk: "Low"
+    },
+    {
+      id: "AI4GP-H003",
+      hazard: "Over-reliance on AI leading to reduced clinical competence",
+      severity: "Medium",
+      probability: "Medium",
+      riskLevel: "Medium",
+      mitigation: "Training requirements, clinical supervision, AI as decision support only, continuing professional development",
+      residualRisk: "Low"
+    },
+    {
+      id: "AI4GP-H004",
+      hazard: "AI system bias affecting healthcare equity",
+      severity: "Medium",
+      probability: "Low",
+      riskLevel: "Low",
+      mitigation: "Diverse training data, bias monitoring, clinical review processes, equality impact assessments",
+      residualRisk: "Very Low"
+    },
+
+    // Meeting Notes Service Risks
+    {
+      id: "MN-H001",
+      hazard: "Confidential meeting content exposed through inadequate access controls",
+      severity: "High",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "User-based data isolation, meeting-specific permissions, encrypted storage, automatic data retention",
+      residualRisk: "Very Low"
+    },
+    {
+      id: "MN-H002",
+      hazard: "Inaccurate transcription leading to misrepresented meeting outcomes",
+      severity: "Medium",
+      probability: "Medium",
+      riskLevel: "Medium",
+      mitigation: "Human review required, transcript editing capabilities, audio backup retention, version control",
+      residualRisk: "Low"
+    },
+    {
+      id: "MN-H003",
+      hazard: "Meeting recording system failure during critical discussions",
+      severity: "Medium",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "System redundancy, local backup recording, manual note-taking procedures, service monitoring",
+      residualRisk: "Low"
+    },
+    {
+      id: "MN-H004",
+      hazard: "Unauthorised access to meeting recordings or transcripts",
+      severity: "High",
+      probability: "Very Low",
+      riskLevel: "Medium",
+      mitigation: "Multi-factor authentication, audit logging, sharing permissions, time-limited access tokens",
+      residualRisk: "Very Low"
+    },
+
+    // Complaint Manager Service Risks
+    {
+      id: "CM-H001",
+      hazard: "Complainant personal data breach affecting privacy rights",
+      severity: "High",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "Practice-specific data isolation, encrypted storage, access logging, GDPR compliance procedures",
+      residualRisk: "Very Low"
+    },
+    {
+      id: "CM-H002",
+      hazard: "Complaint handling delays causing regulatory non-compliance",
+      severity: "Medium",
+      probability: "Medium",
+      riskLevel: "Medium",
+      mitigation: "Automated workflow tracking, deadline alerts, escalation procedures, compliance monitoring dashboards",
+      residualRisk: "Low"
+    },
+    {
+      id: "CM-H003",
+      hazard: "Inadequate complaint investigation leading to patient harm",
+      severity: "High",
+      probability: "Low",
+      riskLevel: "Medium",
+      mitigation: "Structured investigation templates, evidence management, external investigator options, clinical safety review",
+      residualRisk: "Low"
+    },
+    {
+      id: "CM-H004",
+      hazard: "Complaint data loss affecting legal and regulatory requirements",
+      severity: "Medium",
+      probability: "Very Low",
+      riskLevel: "Low",
+      mitigation: "Automated backups, audit trails, retention policies, disaster recovery procedures",
+      residualRisk: "Very Low"
+    },
+
+    // General System Risks  
+    {
+      id: "H003",
       hazard: "System downtime during consultations",
       severity: "Medium",
       probability: "Low",
