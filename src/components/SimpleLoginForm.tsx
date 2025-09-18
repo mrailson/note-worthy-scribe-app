@@ -65,6 +65,8 @@ export const SimpleLoginForm = () => {
         const isVpnRelated = signInError.isVpnRelated || 
           errorMessage.toLowerCase().includes('network') ||
           errorMessage.toLowerCase().includes('timeout') ||
+          errorMessage.toLowerCase().includes('connection') ||
+          errorMessage.toLowerCase().includes('fetch') ||
           errorMessage.toLowerCase().includes('rate limit') ||
           errorMessage.toLowerCase().includes('corporate');
           

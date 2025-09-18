@@ -190,48 +190,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Enhanced login with VPN support and retry logic
-      const { useEnhancedAuth } = await import('@/hooks/useEnhancedAuth');
-      const { enhancedSignIn } = useEnhancedAuth();
-      const result = await enhancedSignIn(email, password);
+      // Import VPN diagnostics utilities
+      const { 
+        diagnoseLoginIssue, 
+        generateVpnFriendlyErrorMessage, 
+        testNetworkConnectivity 
+      } = await import('@/utils/vpnDiagnostics');
+      const { validateAuthAttempt } = await import('@/utils/enhancedSecurityValidation');
+
+      // Pre-flight security validation
+      const authValidation = validateAuthAttempt(
+        email,
+        undefined, // IP not available in browser
+        navigator.userAgent
+      );
+
+      if (!authValidation.allowed) {
+        const error = new Error(authValidation.reason || 'Authentication not allowed');
+        return { error };
+      }
+
+      // Attempt login with timeout for VPN users
+      const timeoutMs = authValidation.isVpnLikely ? 15000 : 10000;
       
-      if (result.success) {
-        // Only show welcome toast on desktop
-        if (!isMobile) {
-          console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
-        }
-        return { error: null };
-      } else {
-        console.error("Enhanced Login Failed:", result.userFriendlyMessage || result.error?.message);
+      const loginPromise = supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Login timeout - please check your connection')), timeoutMs)
+      );
+
+      const { error } = await Promise.race([loginPromise, timeoutPromise]) as any;
+      
+      if (error) {
+        // Diagnose the login issue
+        const diagnostic = await diagnoseLoginIssue(email, error, 1);
+        const userFriendlyMessage = generateVpnFriendlyErrorMessage(diagnostic, error);
+        
+        console.error("Login Failed:", userFriendlyMessage);
         
         // Return enhanced error with user-friendly message
         const enhancedError = {
-          ...result.error,
-          message: result.userFriendlyMessage || result.error?.message,
-          diagnostic: result.diagnostic,
-          isVpnRelated: result.diagnostic?.isVpnLikely
+          ...error,
+          message: userFriendlyMessage,
+          diagnostic,
+          isVpnRelated: diagnostic?.isVpnLikely
         };
         
         return { error: enhancedError };
       }
-    } catch (importError) {
-      // Fallback to basic auth if enhanced auth fails to load
-      console.warn('Enhanced auth failed to load, falling back to basic auth:', importError);
+
+      // Success
+      if (!isMobile) {
+        console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
+      }
+      return { error: null };
+
+    } catch (authError: any) {
+      console.error("Authentication error:", authError);
       
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        console.error("Basic Login Failed:", error.message);
-      } else {
-        if (!isMobile) {
-          console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
-        }
+      // Handle specific network errors
+      if (authError.message?.includes('fetch') || authError.message?.includes('timeout')) {
+        const enhancedError = {
+          ...authError,
+          message: 'Connection failed. Please check your network connection and try again. If using a corporate VPN, you may need to disconnect temporarily.',
+          isVpnRelated: true
+        };
+        return { error: enhancedError };
       }
       
-      return { error };
+      return { error: authError };
     }
   };
 
