@@ -473,20 +473,6 @@ export default function SecurityCompliance() {
               </CardContent>
             </Card>
 
-            {/* CQC Inspection Note */}
-            <Card className="border-success/20 bg-success/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-success">
-                  <CheckCircle className="h-5 w-5" />
-                  CQC Inspection Note
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  This system meets NHS Digital and GDPR requirements for protecting patient data. Every user action is logged, access is strictly controlled, and all data is hosted and backed up securely in the UK. Practice managers are supported at every step – you do not need technical knowledge to evidence compliance. This page can be shown to CQC inspectors as proof of IT governance and data protection.
-                </p>
-              </CardContent>
-            </Card>
 
 
             {/* Closing Messages */}
