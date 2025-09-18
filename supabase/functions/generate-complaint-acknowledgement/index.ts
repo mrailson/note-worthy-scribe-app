@@ -229,14 +229,14 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     
     // Get the authenticated user from the request headers
     const authHeader = req.headers.get('authorization');
-    let currentUser = null;
+    let currentUser: { id: string } | null = null;
     let token: string | null = null;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         token = authHeader.replace('Bearer ', '');
-        const { data: { user } } = await supabase.auth.getUser(token);
-        currentUser = user;
+        const { data } = await supabase.auth.getUser(token);
+        currentUser = data.user ? { id: data.user.id } : null;
       } catch (error) {
         console.log('Could not get user from token:', (error as Error).message);
       }
@@ -251,13 +251,23 @@ CRITICAL: Never include personal email addresses or direct contact details in th
         )
       : supabase;
 
+    if (!currentUser?.id) {
+      return new Response(JSON.stringify({
+        error: 'Unauthenticated request',
+        details: 'No user token provided in Authorization header'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Store the acknowledgement in the database (use authed client so triggers log with user context)
     const { error: insertError } = await supabaseAuthed
       .from('complaint_acknowledgements')
       .insert({
         complaint_id: complaintId,
         acknowledgement_letter: acknowledgementLetter,
-        sent_by: currentUser?.id || complaint.created_by, // Use authenticated user or complaint creator
+        sent_by: currentUser.id,
       });
 
     if (insertError) {
