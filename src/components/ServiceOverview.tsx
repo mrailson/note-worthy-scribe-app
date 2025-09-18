@@ -19,8 +19,6 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export const ServiceOverview = () => {
   const navigate = useNavigate();
@@ -73,57 +71,6 @@ export const ServiceOverview = () => {
   const allowedServices = new Set(['AI4GP Service','Meeting Recording & Management','Translation Service','Complaints Management System']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
-  // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
-  type NewsArticle = { id: string; title: string; summary: string; url: string; source: string; published_at: string; image_url?: string; tags?: string[]; content?: string; };
-  const [news, setNews] = useState<NewsArticle[]>([]);
-  const [newsLoading, setNewsLoading] = useState(true);
-  
-  // Health-related keywords to filter Northampton Chronicle articles
-  const healthKeywords = [
-    'nhs','gp','general practice','practice manager','primary care','pcn','ics','icb',
-    'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
-    'vaccin','immunis','flu','covid','measles','pharmacy','pharmacist','prescription',
-    'dental','dentist','urgent care','a&e','emergency department','cqc','midwife','maternity',
-    'health centre','clinic','surgery','surgeries','public health'
-  ];
-  
-  const isHealthRelated = (article: NewsArticle) => {
-    const hay = `${article.title} ${article.summary} ${article.content || ''}`.toLowerCase();
-    return healthKeywords.some(k => hay.includes(k));
-  };
-  
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('news_articles')
-          .select('*')
-          .or('source.ilike.%pulse%,source.ilike.%bbc%')
-          .order('published_at', { ascending: false })
-          .limit(20);
-        if (error) throw error;
-        
-        // Filter out non-health service articles from Northampton Chronicle
-        const filteredData = (data || []).filter(article => {
-          // For Northampton Chronicle, only show health service related articles
-          if (article.source?.toLowerCase().includes('northampton chronicle')) {
-            return isHealthRelated(article);
-          }
-          // For other sources (Pulse, BBC), show all articles
-          return true;
-        });
-        
-        if (mounted) setNews(filteredData.slice(0, 6));
-      } catch (e) {
-        console.error('Failed to load latest news', e);
-      } finally {
-        if (mounted) setNewsLoading(false);
-      }
-    };
-    load();
-    return () => { mounted = false; };
-  }, []);
 
   const securityFeatures = [
     "End-to-end encryption for all data transmission",
@@ -189,38 +136,6 @@ export const ServiceOverview = () => {
         </div>
       </div>
 
-      {/* Latest Healthcare News */}
-      <section aria-label="Latest Healthcare News" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Latest Healthcare News</h2>
-          <Button variant="outline" size="sm" onClick={() => navigate('/ai-4-pm')}>View all</Button>
-        </div>
-        {newsLoading ? (
-          <p className="text-sm text-muted-foreground">Loading latest news…</p>
-        ) : news.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No recent articles from Pulse or BBC News.</p>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {news.map(a => (
-              <Card key={a.id} className="h-full">
-                <CardHeader className="pb-2">
-                  <div className="text-sm text-muted-foreground">{a.source}</div>
-                  <CardTitle className="text-base">{a.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {a.image_url && (
-                    <img src={a.image_url} alt={`${a.source} article image: ${a.title}`} className="w-full h-36 object-cover rounded-md" loading="lazy" />
-                  )}
-                  <p className="text-sm text-muted-foreground line-clamp-3">{a.summary}</p>
-                  <Button asChild variant="outline" size="sm" className="mt-1">
-                    <a href={a.url} target="_blank" rel="noopener noreferrer" aria-label={`Read on ${a.source}`}>Read article</a>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Combined Features - Tabbed Interface */}
       <Card className="bg-gradient-subtle border-primary/20">
