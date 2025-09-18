@@ -264,9 +264,13 @@ const [loginHistoryUser, setLoginHistoryUser] = useState<User | null>(null);
 const [loginHistory, setLoginHistory] = useState<any[]>([]);
 const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
 
-// Enhanced security monitoring state
-const [authenticationLogs, setAuthenticationLogs] = useState([]);
-const [patientDataAccess, setPatientDataAccess] = useState([]);
+  // Enhanced security monitoring state
+  const [authenticationLogs, setAuthenticationLogs] = useState([]);
+  const [patientDataAccess, setPatientDataAccess] = useState([]);
+  const [authSearchQuery, setAuthSearchQuery] = useState('');
+  const [authEventFilter, setAuthEventFilter] = useState('all');
+  const [authDateFilter, setAuthDateFilter] = useState('7'); // Last 7 days
+  const [loadingAuthLogs, setLoadingAuthLogs] = useState(false);
   const [vulnerabilityScans, setVulnerabilityScans] = useState([]);
   const [complianceStatus, setComplianceStatus] = useState({
     nhsDigitalCompliance: { status: 'compliant', lastCheck: '2024-01-15' },
@@ -652,98 +656,141 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
   };
 
   const fetchEnhancedSecurityData = async () => {
-    // Mock data for demonstration - in real implementation, these would be proper API calls
-    setAuthenticationLogs([
-      { id: 1, timestamp: '2024-01-15 14:30:00', user: 'john.doe@nhs.uk', event: 'successful_login', ip: '192.168.1.100' },
-      { id: 2, timestamp: '2024-01-15 14:25:00', user: 'jane.smith@nhs.uk', event: 'failed_login', ip: '192.168.1.101' },
-      { id: 3, timestamp: '2024-01-15 14:20:00', user: 'admin@nhs.uk', event: 'mfa_challenge', ip: '192.168.1.102' }
-    ]);
+    try {
+      setLoadingAuthLogs(true);
+      
+      // Get real authentication events from system_audit_log
+      const { data: auditLogs, error: auditError } = await supabase
+        .from('system_audit_log')
+        .select('*')
+        .in('operation', ['USER_LOGIN', 'USER_LOGOUT', 'AUTHENTICATION_FAILED', 'SESSION_CREATED', 'SESSION_EXPIRED'])
+        .gte('timestamp', new Date(Date.now() - parseInt(authDateFilter) * 24 * 60 * 60 * 1000).toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(100);
 
-    setPatientDataAccess([
-      { id: 1, timestamp: '2024-01-15 15:00:00', user: 'dr.brown@practice.nhs.uk', action: 'view_patient_record', patient_id: 'XXXX1234', duration: '5 min' },
-      { id: 2, timestamp: '2024-01-15 14:45:00', user: 'nurse.green@practice.nhs.uk', action: 'update_patient_notes', patient_id: 'XXXX5678', duration: '2 min' }
-    ]);
+      if (auditError) throw auditError;
 
-    // Real security scan data from today's audit
-    const todaysDate = '2025-09-18';
-    const scanTime = '14:15'; // Approximately 12 minutes ago
-    
-    setVulnerabilityScans([
-      { 
-        id: 1, 
-        scan_date: todaysDate,
-        scan_time: scanTime,
-        type: 'Supabase Linter', 
-        status: 'completed', 
-        findings: 3, 
-        critical: 0, 
-        high: 0, 
-        medium: 3,
-        detailed_findings: [
-          { 
-            title: 'Function Search Paths', 
-            description: 'Some functions missing secure search paths', 
-            severity: 'medium',
-            remediation: 'Add SET search_path to remaining functions'
-          },
-          { 
-            title: 'Extension in Public Schema', 
-            description: 'Extensions installed in public schema', 
-            severity: 'medium',
-            remediation: 'Move extensions to appropriate schemas'
-          },
-          { 
-            title: 'Postgres Version', 
-            description: 'Security patches available for current version', 
-            severity: 'medium',
-            remediation: 'Consider upgrading to latest patch version'
+      // Get security events 
+      const { data: securityLogs, error: securityError } = await supabase
+        .from('security_events')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - parseInt(authDateFilter) * 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (securityError) throw securityError;
+
+      // Get user sessions with profile data separately
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .gte('login_time', new Date(Date.now() - parseInt(authDateFilter) * 24 * 60 * 60 * 1000).toISOString())
+        .order('login_time', { ascending: false })
+        .limit(50);
+
+      if (sessionsError) throw sessionsError;
+
+      // Get profile emails for session users
+      const userIds = sessions?.map(s => s.user_id).filter(Boolean) || [];
+      const { data: profiles } = userIds.length > 0 
+        ? await supabase
+            .from('profiles')
+            .select('user_id, email')
+            .in('user_id', userIds)
+        : { data: [] };
+
+      // Create a map of user_id to email
+      const userEmailMap = new Map<string, string>();
+      profiles?.forEach(p => {
+        if (p.user_id && p.email) {
+          userEmailMap.set(p.user_id, p.email);
+        }
+      });
+
+      // Combine and format authentication logs
+      const combinedLogs = [];
+      
+      // Add audit logs
+      auditLogs?.forEach(log => {
+        combinedLogs.push({
+          id: `audit-${log.id}`,
+          timestamp: new Date(log.timestamp).toLocaleString('en-GB'),
+          user: log.user_email || 'System',
+          event: log.operation.toLowerCase().replace('_', ' '),
+          ip: log.ip_address || 'N/A',
+          status: log.operation.includes('FAILED') ? 'failed' : 'success',
+          source: 'audit_log',
+          details: log.new_values
+        });
+      });
+
+      // Add security events
+      securityLogs?.forEach(log => {
+        combinedLogs.push({
+          id: `security-${log.id}`,
+          timestamp: new Date(log.created_at).toLocaleString('en-GB'),
+          user: log.user_email || 'Unknown',
+          event: log.event_type.toLowerCase().replace('_', ' '),
+          ip: log.ip_address || 'N/A',
+          status: log.severity === 'high' || log.severity === 'critical' ? 'failed' : 'success',
+          source: 'security_events',
+          details: log.event_details
+        });
+      });
+
+      // Add session data
+      sessions?.forEach(session => {
+        const profileEmail = userEmailMap.get(session.user_id) || 'Unknown';
+        combinedLogs.push({
+          id: `session-${session.id}`,
+          timestamp: new Date(session.login_time).toLocaleString('en-GB'),
+          user: profileEmail,
+          event: session.is_active ? 'active session' : 'session ended',
+          ip: session.ip_address || 'N/A',
+          status: 'success',
+          source: 'user_sessions',
+          details: {
+            session_duration: session.logout_time ? 
+              Math.round((new Date(session.logout_time).getTime() - new Date(session.login_time).getTime()) / (1000 * 60)) + ' minutes' :
+              'Active',
+            user_agent: session.user_agent
           }
-        ]
-      },
-      { 
-        id: 2, 
-        scan_date: todaysDate,
-        scan_time: scanTime,
-        type: 'Data Security Review', 
-        status: 'completed', 
-        findings: 5, 
-        critical: 0, 
-        high: 0, 
-        medium: 5,
-        detailed_findings: [
-          { 
-            title: 'Public Medical Data', 
-            description: 'News articles table publicly readable', 
-            severity: 'medium',
-            remediation: 'Review if public access is intended'
-          },
-          { 
-            title: 'NHS Terms Database', 
-            description: 'Terminology exposed without authentication', 
-            severity: 'medium',
-            remediation: 'Consider access control requirements'
-          },
-          { 
-            title: 'Healthcare Operations', 
-            description: 'Bank holiday schedules publicly accessible', 
-            severity: 'medium',
-            remediation: 'Assess if public access is appropriate'
-          },
-          { 
-            title: 'CQC Compliance Framework', 
-            description: 'Assessment framework exposed', 
-            severity: 'medium',
-            remediation: 'Review public data exposure'
-          },
-          { 
-            title: 'Data Retention Policies', 
-            description: 'Retention schedules publicly visible', 
-            severity: 'medium',
-            remediation: 'Consider restricting policy visibility'
-          }
-        ]
-      }
-    ]);
+        });
+      });
+
+      // Sort by timestamp (most recent first)
+      combinedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      setAuthenticationLogs(combinedLogs);
+
+      // Mock patient data access for now (replace with real data when patient data exists)
+      setPatientDataAccess([
+        { 
+          id: 1, 
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toLocaleString('en-GB'), 
+          user: 'dr.brown@practice.nhs.uk', 
+          action: 'view_meeting_notes', 
+          patient_id: 'Meeting-1234', 
+          duration: '5 min' 
+        },
+        { 
+          id: 2, 
+          timestamp: new Date(Date.now() - 1000 * 60 * 45).toLocaleString('en-GB'), 
+          user: 'nurse.green@practice.nhs.uk', 
+          action: 'create_meeting_transcript', 
+          patient_id: 'Meeting-5678', 
+          duration: '12 min' 
+        }
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching authentication data:', error);
+      toast.error("Failed to fetch authentication logs");
+      setAuthenticationLogs([]);
+      setPatientDataAccess([]);
+    } finally {
+      setLoadingAuthLogs(false);
+    }
   };
   
   // Policy management functions
@@ -2448,6 +2495,61 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </TabsList>
 
               <TabsContent value="monitoring" className="space-y-6">
+                {/* Authentication Monitoring Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Logins</p>
+                          <p className="text-2xl font-bold">{authenticationLogs.filter(log => log.event.includes('login') || log.event.includes('session')).length}</p>
+                          <p className="text-xs text-muted-foreground">Last {authDateFilter} days</p>
+                        </div>
+                        <UserCheck className="h-8 w-8 text-blue-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Failed Attempts</p>
+                          <p className="text-2xl font-bold text-red-600">{authenticationLogs.filter(log => log.status === 'failed').length}</p>
+                          <p className="text-xs text-muted-foreground">Security alerts</p>
+                        </div>
+                        <AlertTriangle className="h-8 w-8 text-red-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Active Sessions</p>
+                          <p className="text-2xl font-bold text-green-600">{authenticationLogs.filter(log => log.event === 'active session').length}</p>
+                          <p className="text-xs text-muted-foreground">Currently logged in</p>
+                        </div>
+                        <Activity className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Security Events</p>
+                          <p className="text-2xl font-bold">{authenticationLogs.filter(log => log.source === 'security_events').length}</p>
+                          <p className="text-xs text-muted-foreground">Monitored events</p>
+                        </div>
+                        <Shield className="h-8 w-8 text-orange-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -2456,33 +2558,115 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     </CardTitle>
                     <CardDescription>Monitor login attempts and authentication events</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Timestamp</TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Event</TableHead>
-                          <TableHead>IP Address</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {authenticationLogs.map((log: any) => (
-                          <TableRow key={log.id}>
-                            <TableCell>{log.timestamp}</TableCell>
-                            <TableCell>{log.user}</TableCell>
-                            <TableCell>{log.event}</TableCell>
-                            <TableCell>{log.ip}</TableCell>
-                            <TableCell>
-                              <Badge variant={log.event === 'failed_login' ? 'destructive' : 'default'}>
-                                {log.event === 'failed_login' ? 'Failed' : 'Success'}
-                              </Badge>
-                            </TableCell>
+                  <CardContent className="space-y-4">
+                    {/* Search and Filter Controls */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by user, event, or IP address..."
+                            value={authSearchQuery}
+                            onChange={(e) => setAuthSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={authEventFilter} onValueChange={setAuthEventFilter}>
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="Event Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Events</SelectItem>
+                            <SelectItem value="login">Logins</SelectItem>
+                            <SelectItem value="failed">Failed Attempts</SelectItem>
+                            <SelectItem value="session">Sessions</SelectItem>
+                            <SelectItem value="security">Security Events</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={authDateFilter} onValueChange={(value) => {
+                          setAuthDateFilter(value);
+                          fetchEnhancedSecurityData();
+                        }}>
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Time Range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Last 24 hours</SelectItem>
+                            <SelectItem value="7">Last 7 days</SelectItem>
+                            <SelectItem value="30">Last 30 days</SelectItem>
+                            <SelectItem value="90">Last 90 days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Button onClick={fetchEnhancedSecurityData} variant="outline" size="icon">
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {loadingAuthLogs ? (
+                      <div className="flex items-center justify-center p-8">
+                        <div className="text-muted-foreground">Loading authentication logs...</div>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Timestamp</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Event</TableHead>
+                            <TableHead>IP Address</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Source</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {authenticationLogs
+                            .filter(log => {
+                              const matchesSearch = authSearchQuery === '' || 
+                                log.user.toLowerCase().includes(authSearchQuery.toLowerCase()) ||
+                                log.event.toLowerCase().includes(authSearchQuery.toLowerCase()) ||
+                                log.ip.toLowerCase().includes(authSearchQuery.toLowerCase());
+                              
+                              const matchesFilter = authEventFilter === 'all' ||
+                                (authEventFilter === 'login' && log.event.includes('login')) ||
+                                (authEventFilter === 'failed' && log.status === 'failed') ||
+                                (authEventFilter === 'session' && log.event.includes('session')) ||
+                                (authEventFilter === 'security' && log.source === 'security_events');
+                              
+                              return matchesSearch && matchesFilter;
+                            })
+                            .map((log: any) => (
+                              <TableRow key={log.id}>
+                                <TableCell className="font-mono text-xs">{log.timestamp}</TableCell>
+                                <TableCell>{log.user}</TableCell>
+                                <TableCell className="capitalize">{log.event}</TableCell>
+                                <TableCell className="font-mono text-xs">{log.ip}</TableCell>
+                                <TableCell>
+                                  <Badge variant={log.status === 'failed' ? 'destructive' : 'default'}>
+                                    {log.status === 'failed' ? 'Failed' : 'Success'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">
+                                    {log.source?.replace('_', ' ')}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          {authenticationLogs.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                No authentication events found
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
