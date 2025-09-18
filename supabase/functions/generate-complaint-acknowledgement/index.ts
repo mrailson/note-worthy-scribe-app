@@ -230,19 +230,29 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     // Get the authenticated user from the request headers
     const authHeader = req.headers.get('authorization');
     let currentUser = null;
+    let token: string | null = null;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
-        const token = authHeader.replace('Bearer ', '');
+        token = authHeader.replace('Bearer ', '');
         const { data: { user } } = await supabase.auth.getUser(token);
         currentUser = user;
       } catch (error) {
-        console.log('Could not get user from token:', error.message);
+        console.log('Could not get user from token:', (error as Error).message);
       }
     }
 
-    // Store the acknowledgement in the database
-    const { error: insertError } = await supabase
+    // Create a Supabase client that carries the user's JWT so DB triggers see auth.uid()
+    const supabaseAuthed = token
+      ? createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+          { global: { headers: { Authorization: `Bearer ${token}` } } }
+        )
+      : supabase;
+
+    // Store the acknowledgement in the database (use authed client so triggers log with user context)
+    const { error: insertError } = await supabaseAuthed
       .from('complaint_acknowledgements')
       .insert({
         complaint_id: complaintId,
@@ -262,7 +272,7 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     }
 
     // Update complaint status to "under_review" after acknowledgement is generated
-    const { error: statusError } = await supabase
+    const { error: statusError } = await supabaseAuthed
       .from('complaints')
       .update({ 
         status: 'under_review',
