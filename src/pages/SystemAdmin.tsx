@@ -783,6 +783,87 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         }
       ]);
 
+      // Set vulnerability scans data (today's scan results)
+      const todaysDate = '2025-09-18';
+      const scanTime = '14:15';
+      
+      setVulnerabilityScans([
+        { 
+          id: 1, 
+          scan_date: todaysDate,
+          scan_time: scanTime,
+          type: 'Supabase Linter', 
+          status: 'completed', 
+          findings: 3, 
+          critical: 0, 
+          high: 0, 
+          medium: 3,
+          detailed_findings: [
+            { 
+              title: 'Function Search Paths', 
+              description: 'Some functions missing secure search paths', 
+              severity: 'medium',
+              remediation: 'Add SET search_path to remaining functions'
+            },
+            { 
+              title: 'Extension in Public Schema', 
+              description: 'Extensions installed in public schema', 
+              severity: 'medium',
+              remediation: 'Move extensions to appropriate schemas'
+            },
+            { 
+              title: 'Postgres Version', 
+              description: 'Security patches available for current version', 
+              severity: 'medium',
+              remediation: 'Consider upgrading to latest patch version'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          scan_date: todaysDate,
+          scan_time: scanTime,
+          type: 'Data Security Review', 
+          status: 'completed', 
+          findings: 5, 
+          critical: 0, 
+          high: 0, 
+          medium: 5,
+          detailed_findings: [
+            { 
+              title: 'Public Medical Data', 
+              description: 'News articles table publicly readable', 
+              severity: 'medium',
+              remediation: 'Review if public access is intended'
+            },
+            { 
+              title: 'NHS Terms Database', 
+              description: 'Terminology exposed without authentication', 
+              severity: 'medium',
+              remediation: 'Consider access control requirements'
+            },
+            { 
+              title: 'Healthcare Operations', 
+              description: 'Bank holiday schedules publicly accessible', 
+              severity: 'medium',
+              remediation: 'Assess if public access is appropriate'
+            },
+            { 
+              title: 'CQC Compliance Framework', 
+              description: 'Assessment framework exposed', 
+              severity: 'medium',
+              remediation: 'Review public data exposure'
+            },
+            { 
+              title: 'Data Retention Policies', 
+              description: 'Retention schedules publicly visible', 
+              severity: 'medium',
+              remediation: 'Consider restricting policy visibility'
+            }
+          ]
+        }
+      ]);
+
     } catch (error) {
       console.error('Error fetching authentication data:', error);
       toast.error("Failed to fetch authentication logs");
