@@ -201,8 +201,7 @@ CRITICAL: Never include personal email addresses or direct contact details in th
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 1500,
+        max_completion_tokens: 1500, // Fixed: use max_completion_tokens for GPT-4.1
       }),
     });
 
@@ -252,7 +251,14 @@ CRITICAL: Never include personal email addresses or direct contact details in th
       });
 
     if (insertError) {
-      throw new Error('Failed to store acknowledgement');
+      console.error('Database insertion error:', insertError);
+      console.error('Insert error details:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
+      throw new Error(`Failed to store acknowledgement: ${insertError.message}`);
     }
 
     // Update complaint status to "under_review" after acknowledgement is generated
