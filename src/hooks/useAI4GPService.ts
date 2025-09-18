@@ -897,6 +897,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setHighContrast(preferences.highContrast ?? false);
           setReadingFont(preferences.readingFont ?? false);
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
+          setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -976,7 +977,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, saveUserSettings]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, saveUserSettings]);
 
   // Use Display Settings Effect to apply CSS classes
   useEffect(() => {

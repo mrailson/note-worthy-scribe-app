@@ -565,7 +565,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </p>
                 </div>
                 <Select 
-                  value={chatHistoryRetentionDays.toString()} 
+                  value={(chatHistoryRetentionDays || 30).toString()} 
                   onValueChange={(value) => onChatHistoryRetentionDaysChange(parseInt(value))}
                 >
                   <SelectTrigger className="w-40">
@@ -583,9 +583,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="p-3 bg-red-50 rounded-lg border border-red-200">
                 <div className="text-sm font-medium text-red-800">🗑️ Automatic Cleanup Active</div>
                 <div className="text-xs text-red-700 mt-1">
-                  Chat history older than {chatHistoryRetentionDays === 1 ? '1 day' : 
-                    chatHistoryRetentionDays === 7 ? '7 days' : 
-                    chatHistoryRetentionDays === 30 ? '30 days' : '12 months'} 
+                  Chat history older than {(chatHistoryRetentionDays || 30) === 1 ? '1 day' : 
+                    (chatHistoryRetentionDays || 30) === 7 ? '7 days' : 
+                    (chatHistoryRetentionDays || 30) === 30 ? '30 days' : '12 months'} 
                   will be automatically deleted daily at 02:00
                 </div>
               </div>
