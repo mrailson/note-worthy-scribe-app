@@ -19,6 +19,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { ConsultationSummaryPreview } from "@/components/ConsultationSummaryPreview";
+import notewellLogo from "@/assets/notewell-logo.png";
 interface HeaderProps {
   onNewMeeting?: () => void;
 }
@@ -67,14 +68,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         <div className="flex items-center justify-between">
           {/* Mobile-friendly title */}
           {user && (
-            <h1 
-              className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
+            <div
+              className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
               onClick={() => navigate('/')}
             >
-              <span className="hidden sm:inline">Notewell AI</span>
-              <span className="sm:hidden">Notewell AI</span>
-              <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
-            </h1>
+              <img 
+                src={notewellLogo} 
+                alt="Notewell AI" 
+                className="h-8 sm:h-10 w-auto"
+              />
+              <span className="text-sm sm:text-xl font-bold text-white hidden xs:inline">
+                Notewell AI
+              </span>
+            </div>
           )}
           
             {/* Navigation */}

@@ -115,13 +115,6 @@ export const ServiceOverview = () => {
 
       {/* Hero Section - Moved below services */}
       <div className="text-center space-y-4">
-        <div className="flex justify-center mb-6">
-          <img 
-            src={notewellLogo} 
-            alt="Notewell AI" 
-            className="h-16 w-auto"
-          />
-        </div>
         <h2 className="text-2xl font-semibold text-foreground">
           AI-Powered Primary Care Support
         </h2>
