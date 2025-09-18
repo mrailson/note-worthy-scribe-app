@@ -232,8 +232,6 @@ const CQCCompliance = () => {
     }
   };
 
-  // loadDashboardData function handles loading mock data
-
 
   if (loading) {
     return (
@@ -258,466 +256,201 @@ const CQCCompliance = () => {
   return (
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={handleNewMeeting} />
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">CQC Compliance Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor your practice's compliance status and prepare for inspections
-          </p>
-        </div>
-        <Button 
-          onClick={() => setChatOpen(!chatOpen)}
-          className="flex items-center gap-2"
-        >
-          <MessageSquare className="h-4 w-4" />
-          Ask CQC Assistant
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="dashboard">Compliance Dashboard</TabsTrigger>
-          <TabsTrigger value="security-report">Notewell System Security Report</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="space-y-6">
-
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Inspection</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {daysUntilInspection ? `${daysUntilInspection} days` : 'Not scheduled'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {practiceSettings.next_inspection_date ? 
-                `Due: ${new Date(practiceSettings.next_inspection_date).toLocaleDateString()}` : 
-                'Set your inspection date'
-              }
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Rating</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{practiceSettings.current_rating || 'Not rated'}</div>
-            <p className="text-xs text-muted-foreground">
-              Last inspection: {practiceSettings.last_inspection_date ? 
-                new Date(practiceSettings.last_inspection_date).toLocaleDateString() : 
-                'Never'
-              }
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{alerts.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {alerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length} high priority
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* CQC Domains Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <TrendingUp className="h-6 w-6" />
-              CQC Domain Compliance
-            </h2>
+            <h1 className="text-3xl font-bold">CQC Compliance Dashboard</h1>
             <p className="text-muted-foreground">
-              Traffic light system for the five CQC domains
+              Monitor your practice's compliance status and prepare for inspections
             </p>
+          </div>
+          <Button 
+            onClick={() => setChatOpen(!chatOpen)}
+            className="flex items-center gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Ask CQC Assistant
+          </Button>
+        </div>
+
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Next Inspection</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {daysUntilInspection ? `${daysUntilInspection} days` : 'Not scheduled'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {practiceSettings.next_inspection_date ? 
+                  `Due: ${new Date(practiceSettings.next_inspection_date).toLocaleDateString()}` : 
+                  'Set your inspection date'
+                }
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Rating</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{practiceSettings.current_rating || 'Not rated'}</div>
+              <p className="text-xs text-muted-foreground">
+                Last inspection: {practiceSettings.last_inspection_date ? 
+                  new Date(practiceSettings.last_inspection_date).toLocaleDateString() : 
+                  'Never'
+                }
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{alerts.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {alerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length} high priority
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* CQC Domains Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <TrendingUp className="h-6 w-6" />
+                CQC Domain Compliance
+              </h2>
+              <p className="text-muted-foreground">
+                Traffic light system for the five CQC domains
+              </p>
+            </div>
+          </div>
+
+          {/* Display first 2 domains, then show more button */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {domains.slice(0, showMoreDomains ? domains.length : 2).map((domain, index) => (
+              <CQCDomainCard key={domain.name} domain={domain} index={index} />
+            ))}
+          </div>
+
+          {domains.length > 2 && (
+            <div className="text-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowMoreDomains(!showMoreDomains)}
+                className="flex items-center gap-2"
+              >
+                {showMoreDomains ? 'Show Less' : `Show ${domains.length - 2} More Domains`}
+                <ChevronDown className={`h-4 w-4 transition-transform ${showMoreDomains ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Alerts & Tasks Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <CQCAlertsPanel alerts={alerts} />
+          </div>
+          
+          {/* Overall Compliance Summary */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Overall Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary">
+                    {Math.round(domains.reduce((acc, domain) => acc + domain.percentage, 0) / domains.length)}%
+                  </div>
+                  <p className="text-sm text-muted-foreground">Average Compliance</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Compliant Domains</span>
+                    <span className="font-medium text-green-600">
+                      {domains.filter(d => d.status === 'compliant').length}/{domains.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Critical Issues</span>
+                    <span className="font-medium text-red-600">
+                      {domains.filter(d => d.status === 'critical').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>High Priority Alerts</span>
+                    <span className="font-medium text-orange-600">
+                      {alerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Display first 2 domains, then show more button */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {domains.slice(0, showMoreDomains ? domains.length : 2).map((domain, index) => (
-            <CQCDomainCard key={domain.name} domain={domain} index={index} />
-          ))}
-        </div>
-
-        {domains.length > 2 && (
-          <div className="text-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowMoreDomains(!showMoreDomains)}
-              className="flex items-center gap-2"
-            >
-              {showMoreDomains ? 'Show Less' : `Show ${domains.length - 2} More Domains`}
-              <ChevronDown className={`h-4 w-4 transition-transform ${showMoreDomains ? 'rotate-180' : ''}`} />
-            </Button>
+        {/* Enhanced CQC AI Assistant */}
+        {chatOpen && (
+          <div className="max-w-none mb-8">
+            <EnhancedCQCAI 
+              practiceContext={{
+                complianceStatus: domains.reduce((acc, domain) => {
+                  acc[domain.name] = domain.percentage;
+                  return acc;
+                }, {} as Record<string, number>),
+                recentAlerts: alerts.slice(0, 3),
+                policies: [],
+                practiceSettings
+              }}
+              onClose={() => setChatOpen(false)}
+            />
           </div>
         )}
-      </div>
 
-      {/* Alerts & Tasks Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <CQCAlertsPanel alerts={alerts} />
-        </div>
-        
-        {/* Overall Compliance Summary */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Overall Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {Math.round(domains.reduce((acc, domain) => acc + domain.percentage, 0) / domains.length)}%
-                </div>
-                <p className="text-sm text-muted-foreground">Average Compliance</p>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Compliant Domains</span>
-                  <span className="font-medium text-green-600">
-                    {domains.filter(d => d.status === 'compliant').length}/{domains.length}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Critical Issues</span>
-                  <span className="font-medium text-red-600">
-                    {domains.filter(d => d.status === 'critical').length}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>High Priority Alerts</span>
-                  <span className="font-medium text-orange-600">
-                    {alerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Enhanced CQC AI Assistant */}
-      {chatOpen && (
-        <div className="max-w-none mb-8"> {/* Added margin-bottom to prevent overflow */}
-          <EnhancedCQCAI 
-            practiceContext={{
-              complianceStatus: domains.reduce((acc, domain) => {
-                acc[domain.name] = domain.percentage;
-                return acc;
-              }, {} as Record<string, number>),
-              recentAlerts: alerts.slice(0, 3),
-              policies: [], // Would be populated from actual data
-              practiceSettings
-            }}
-            onClose={() => setChatOpen(false)}
-          />
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col">
-              <FileText className="h-6 w-6 mb-2" />
-              Upload Policy
-            </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <Shield className="h-6 w-6 mb-2" />
-              Add Evidence
-            </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <CheckCircle className="h-6 w-6 mb-2" />
-              Self Assessment
-            </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <Calendar className="h-6 w-6 mb-2" />
-              Set Inspection Date
-            </Button>
-          </div>
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button variant="outline" className="h-20 flex-col">
+                <FileText className="h-6 w-6 mb-2" />
+                Upload Policy
+              </Button>
+              <Button variant="outline" className="h-20 flex-col">
+                <Shield className="h-6 w-6 mb-2" />
+                Add Evidence
+              </Button>
+              <Button variant="outline" className="h-20 flex-col">
+                <CheckCircle className="h-6 w-6 mb-2" />
+                Self Assessment
+              </Button>
+              <Button variant="outline" className="h-20 flex-col">
+                <Calendar className="h-6 w-6 mb-2" />
+                Set Inspection Date
+              </Button>
+            </div>
           </CardContent>
         </Card>
-        </TabsContent>
-
-        <TabsContent value="security-report" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-6 w-6" />
-                Clinical Safety Officer Report
-              </CardTitle>
-              <CardDescription>
-                Healthcare Management System - Safety Assessment | Report Date: {new Date().toLocaleDateString('en-GB', { 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="prose prose-sm max-w-none">
-              <div className="space-y-6">
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertTitle>Executive Summary</AlertTitle>
-                  <AlertDescription>
-                    This report provides a comprehensive safety assessment of the Healthcare Management System for Clinical Safety Officer review. 
-                    The system includes meeting transcription, complaints management, CQC compliance tools, and practice administration features with AI-enhanced capabilities.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <Card className="border-green-200 bg-green-50">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 text-green-700 font-medium mb-2">
-                        <CheckCircle className="h-4 w-4" />
-                        Security Strengths
-                      </div>
-                      <ul className="text-sm text-green-600 space-y-1">
-                        <li>• Row Level Security (RLS) across all tables</li>
-                        <li>• User authentication & role-based access</li>
-                        <li>• Comprehensive audit logging</li>
-                        <li>• Data encryption at rest and in transit</li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-amber-200 bg-amber-50">
-                    <CardContent className="pt-4">
-                      <div className="flex items-center gap-2 text-amber-700 font-medium mb-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        Areas Requiring Attention
-                      </div>
-                      <ul className="text-sm text-amber-600 space-y-1">
-                        <li>• AI/ML components need clinical validation</li>
-                        <li>• 8 security configuration warnings</li>
-                        <li>• Formal clinical risk assessment required</li>
-                        <li>• User training programme needed</li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Heart className="h-5 w-5" />
-                    Clinical Safety Risk Assessment
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    <Card className="border-red-200">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-red-700">HIGH RISK AREAS</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <h4 className="font-medium text-red-600">AI-Generated Content Safety</h4>
-                          <p className="text-sm text-gray-600">Risk: AI-generated meeting notes may contain inaccuracies affecting clinical decisions</p>
-                          <p className="text-sm text-blue-600">Mitigation: User review required for all AI content</p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-red-600">Data Integrity in Transcription</h4>
-                          <p className="text-sm text-gray-600">Risk: Audio transcription errors affecting clinical record accuracy</p>
-                          <p className="text-sm text-blue-600">Mitigation: Word-level confidence scoring, user editing capability</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-amber-200">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-amber-700">MEDIUM RISK AREAS</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <h4 className="font-medium text-amber-600">System Availability</h4>
-                          <p className="text-sm text-gray-600">Risk: System downtime affecting clinical workflows</p>
-                          <p className="text-sm text-blue-600">Mitigation: Cloud-hosted infrastructure (Supabase)</p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-amber-600">Data Loss Prevention</h4>
-                          <p className="text-sm text-gray-600">Risk: Accidental deletion of clinical information</p>
-                          <p className="text-sm text-green-600">Status: ✅ Adequate protection mechanisms</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    Security & Privacy Assessment
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="border-green-200 bg-green-50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-green-700">✅ Implemented Controls</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="text-sm space-y-1">
-                          <li>• Multi-factor authentication</li>
-                          <li>• Role-based access control</li>
-                          <li>• Data encryption (rest & transit)</li>
-                          <li>• Row Level Security policies</li>
-                          <li>• Comprehensive audit logging</li>
-                          <li>• Session management with timeouts</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-amber-200 bg-amber-50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-amber-700">⚠️ Current Issues</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="text-sm space-y-1">
-                          <li>• 5 priority-1 warnings (data access)</li>
-                          <li>• 3 priority-2 warnings (configuration)</li>
-                          <li>• Function search path issues</li>
-                          <li>• Extension schema locations</li>
-                          <li>• Password protection settings</li>
-                          <li>• Database version updates needed</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Regulatory Compliance
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">NHS Digital Standards</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="text-sm space-y-1">
-                          <li>• DCB0129 (Clinical Risk Management)</li>
-                          <li>• DCB0160 (Clinical Safety Officer)</li>
-                          <li>• Data Security & Protection Toolkit</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">GDPR/Data Protection</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="text-sm space-y-1">
-                          <li>• Legal basis for processing</li>
-                          <li>• Data subject rights support</li>
-                          <li>• Privacy by design architecture</li>
-                          <li>• DPIA required for deployment</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Clinical Governance</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="text-sm space-y-1">
-                          <li>• Professional accountability support</li>
-                          <li>• Quality improvement tools</li>
-                          <li>• Incident reporting capability</li>
-                          <li>• Not classified as medical device</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Implementation Recommendations
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    <Card className="border-red-200">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-red-700">IMMEDIATE ACTIONS REQUIRED</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ol className="text-sm space-y-2 list-decimal list-inside">
-                          <li><strong>Address Security Warnings:</strong> Fix 8 identified security configuration issues</li>
-                          <li><strong>Clinical Validation Protocols:</strong> Implement mandatory clinical review for AI content</li>
-                          <li><strong>Formal Risk Assessment:</strong> Complete DCB0129 clinical risk management documentation</li>
-                        </ol>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-amber-200">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-amber-700">BEFORE PRODUCTION DEPLOYMENT</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ol className="text-sm space-y-2 list-decimal list-inside">
-                          <li><strong>Security Hardening:</strong> Complete penetration testing and additional monitoring</li>
-                          <li><strong>User Training Programme:</strong> Develop comprehensive training materials and competency framework</li>
-                          <li><strong>Governance Framework:</strong> Appoint Clinical Safety Officer and establish governance committee</li>
-                        </ol>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                <Alert className="border-blue-200 bg-blue-50">
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertTitle>Overall Assessment</AlertTitle>
-                  <AlertDescription>
-                    The system is suitable for NHS deployment following completion of recommended security fixes and implementation of clinical governance frameworks. 
-                    Strong foundational security controls provide a solid base for clinical safety.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="text-xs text-muted-foreground border-t pt-4">
-                  <p><strong>Report Generated:</strong> {new Date().toLocaleDateString('en-GB', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
-                  <p><strong>System Version:</strong> Current Production</p>
-                  <p><strong>Next Review:</strong> 6 months post-deployment</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
       </div>
     </div>
   );
