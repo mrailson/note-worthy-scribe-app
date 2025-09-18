@@ -43,7 +43,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.nhs-gp-news]
-verify_jwt = false
+verify_jwt = true
 
 [functions.clean-transcript-chunk]
 verify_jwt = false
@@ -82,7 +82,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.serve-pdf]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-icb-traffic-light-drugs]
 verify_jwt = true
