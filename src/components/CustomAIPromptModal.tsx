@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sparkles, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { SpeechToText } from '@/components/SpeechToText';
+import { toast } from 'sonner';
 
 interface CustomAIPromptModalProps {
   open: boolean;
@@ -21,6 +23,7 @@ export const CustomAIPromptModal: React.FC<CustomAIPromptModalProps> = ({
   currentText
 }) => {
   const [customPrompt, setCustomPrompt] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const quickPrompts = [
     "Make it more professional and formal",
@@ -45,6 +48,11 @@ export const CustomAIPromptModal: React.FC<CustomAIPromptModalProps> = ({
 
   const handleQuickPromptClick = (prompt: string) => {
     setCustomPrompt(prompt);
+  };
+
+  const handleSpeechInput = (text: string) => {
+    setCustomPrompt(prev => prev ? `${prev} ${text}` : text);
+    toast.success("Speech added to prompt");
   };
 
   const textPreview = currentText.length > 150 
@@ -93,12 +101,21 @@ export const CustomAIPromptModal: React.FC<CustomAIPromptModalProps> = ({
 
           {/* Custom Prompt Input */}
           <div className="space-y-2">
-            <Label htmlFor="custom-prompt" className="text-sm font-medium">
-              Custom Enhancement Request:
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="custom-prompt" className="text-sm font-medium">
+                Custom Enhancement Request:
+              </Label>
+              <SpeechToText 
+                onTranscription={handleSpeechInput}
+                size="sm"
+                className="h-8"
+                inputRef={textareaRef}
+              />
+            </div>
             <Textarea
+              ref={textareaRef}
               id="custom-prompt"
-              placeholder="Describe exactly how you want the content enhanced, modified, or transformed..."
+              placeholder="Describe exactly how you want the content enhanced, modified, or transformed... (or use the mic button to speak)"
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               className="min-h-[100px] resize-none"
@@ -109,7 +126,7 @@ export const CustomAIPromptModal: React.FC<CustomAIPromptModalProps> = ({
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Tip: Be specific about what changes you want. Use Ctrl+Enter to submit.
+              Tip: Be specific about what changes you want. Use the mic button to speak or type your request. Use Ctrl+Enter to submit.
             </p>
           </div>
 
