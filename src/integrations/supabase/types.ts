@@ -5673,6 +5673,10 @@ export type Database = {
         }
         Returns: string
       }
+      mark_session_inactive: {
+        Args: { p_session_id?: string; p_user_id: string }
+        Returns: undefined
+      }
       purge_expired_data: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -5707,6 +5711,10 @@ export type Database = {
       trigger_queue_processing: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_session_activity: {
+        Args: { p_session_id?: string; p_user_id: string }
+        Returns: undefined
       }
       update_user_session_activity: {
         Args:
