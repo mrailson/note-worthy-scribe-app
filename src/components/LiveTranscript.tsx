@@ -527,7 +527,12 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
           .select('*')
           .eq('meeting_id', currentMeetingId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to avoid 406 errors
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching live notes:', error);
+          return;
+        }
 
         if (data) {
           setLiveNotesData(data);

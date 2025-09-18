@@ -325,7 +325,19 @@ export class DesktopWhisperTranscriber {
 
       if (error) {
         console.error('❌ Desktop Whisper API error:', error);
-        this.onError('Transcription failed');
+        
+        // Provide more detailed error information to user
+        let errorMessage = 'Transcription failed';
+        if (error.message?.includes('FunctionsHttpError')) {
+          errorMessage = 'Speech-to-text service temporarily unavailable. Retrying automatically...';
+          console.log('🔄 API error detected, edge function will retry automatically');
+        } else if (error.message?.includes('Network')) {
+          errorMessage = 'Network connection issue. Please check your internet connection.';
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = 'Transcription timeout. Please try speaking more clearly.';
+        }
+        
+        this.onError(errorMessage);
         return;
       }
 

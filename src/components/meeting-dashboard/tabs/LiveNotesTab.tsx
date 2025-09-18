@@ -141,7 +141,12 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
           .select('*')
           .eq('meeting_id', meetingData.id)
           .eq('user_id', meetingData.user_id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to avoid 406 errors
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading live notes:', error);
+          return;
+        }
 
         if (data) {
           setLiveNotesData(data);
