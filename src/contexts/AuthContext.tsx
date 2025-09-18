@@ -189,23 +189,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      console.error("Login Failed:", error.message);
-    } else {
-      // Only show welcome toast on desktop
-      if (!isMobile) {
-        console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
+    try {
+      // Enhanced login with VPN support and retry logic
+      const { useEnhancedAuth } = await import('@/hooks/useEnhancedAuth');
+      const { enhancedSignIn } = useEnhancedAuth();
+      const result = await enhancedSignIn(email, password);
+      
+      if (result.success) {
+        // Only show welcome toast on desktop
+        if (!isMobile) {
+          console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
+        }
+        return { error: null };
+      } else {
+        console.error("Enhanced Login Failed:", result.userFriendlyMessage || result.error?.message);
+        
+        // Return enhanced error with user-friendly message
+        const enhancedError = {
+          ...result.error,
+          message: result.userFriendlyMessage || result.error?.message,
+          diagnostic: result.diagnostic,
+          isVpnRelated: result.diagnostic?.isVpnLikely
+        };
+        
+        return { error: enhancedError };
       }
+    } catch (importError) {
+      // Fallback to basic auth if enhanced auth fails to load
+      console.warn('Enhanced auth failed to load, falling back to basic auth:', importError);
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error("Basic Login Failed:", error.message);
+      } else {
+        if (!isMobile) {
+          console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
+        }
+      }
+      
+      return { error };
     }
-    
-    return { error };
   };
 
 

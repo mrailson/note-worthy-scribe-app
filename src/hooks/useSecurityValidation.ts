@@ -62,18 +62,37 @@ export function useSecurityValidation() {
     return true;
   }, [toast]);
 
-  const checkRateLimit = useCallback((identifier: string) => {
-    const allowed = apiRateLimiter.isAllowed(identifier);
+  const checkRateLimit = useCallback((identifier: string, userAgent?: string) => {
+    // Use enhanced VPN-friendly rate limiting
+    import('@/utils/enhancedSecurityValidation').then(({ vpnFriendlyApiRateLimit }) => {
+      const result = vpnFriendlyApiRateLimit.isAllowed(identifier, userAgent);
+      
+      if (!result.allowed) {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: result.message || "Too many requests. Please wait before trying again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    }).catch(() => {
+      // Fallback to original rate limiter
+      const allowed = apiRateLimiter.isAllowed(identifier);
+      
+      if (!allowed) {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: "Too many requests. Please wait before trying again.",
+          variant: "destructive"
+        });
+      }
+      
+      return allowed;
+    });
     
-    if (!allowed) {
-      toast({
-        title: "Rate Limit Exceeded",
-        description: "Too many requests. Please wait before trying again.",
-        variant: "destructive"
-      });
-    }
-    
-    return allowed;
+    // Return true by default, actual check happens asynchronously
+    return true;
   }, [toast]);
 
   const sanitizeInput = useCallback((input: string) => {

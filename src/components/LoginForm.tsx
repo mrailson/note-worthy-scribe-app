@@ -53,8 +53,9 @@ export const LoginForm = () => {
   };
 
   const handleLogin = async () => {
-    // Rate limiting check
-    if (!checkRateLimit(`login_${email}`)) {
+    // Rate limiting check with VPN awareness
+    const userAgent = navigator.userAgent;
+    if (!checkRateLimit(`login_${email}`, userAgent)) {
       return;
     }
     
@@ -67,13 +68,23 @@ export const LoginForm = () => {
     
     setLoading(true);
     setError(null);
-    const { error } = await signIn(email, password);
     
-    if (error) {
-      setError("Invalid email or password. Please check your credentials and try again.");
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        setError(error.message || "Invalid email or password. Please check your credentials and try again.");
+        
+        // Log VPN-related errors for monitoring
+        if (error.isVpnRelated) {
+          console.log('VPN-related login error detected:', error.diagnostic);
+        }
+      }
+    } catch (error: any) {
+      setError(error.message || "An unexpected error occurred during login.");
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
 

@@ -139,7 +139,7 @@ export function validateFileUpload(file: File): {
 /**
  * Rate limiting utility for API calls
  */
-class RateLimiter {
+export class RateLimiter {
   private attempts: Map<string, number[]> = new Map();
   private readonly maxAttempts: number;
   private readonly windowMs: number;
