@@ -73,10 +73,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.comprehensive-drug-lookup]
-verify_jwt = false
+verify_jwt = true
 
 [functions.drug-vocabulary]
-verify_jwt = false
+verify_jwt = true
 
 [functions.import-prior-approval-data]
 verify_jwt = true
