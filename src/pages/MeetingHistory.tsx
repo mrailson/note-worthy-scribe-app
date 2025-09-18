@@ -1826,7 +1826,6 @@ const MeetingHistory = () => {
             className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
           >
             <RefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">Check Latest</span>
             <span className="sm:hidden">Refresh</span>
           </Button>
         </div>
