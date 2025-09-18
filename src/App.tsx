@@ -2,6 +2,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { SecurityWrapper } from '@/components/SecurityWrapper';
+import { useSessionActivity } from '@/hooks/useSessionActivity';
 import Index from "./pages/Index";
 import AI4GP from "./pages/AI4GP";
 import GPScribe from "./pages/GPScribe";
@@ -49,7 +50,11 @@ import MobileTranslation from "./pages/MobileTranslation";
 import GPGenie from "./pages/GPGenie";
 
 
-const App = () => (
+const App = () => {
+  // Track user session activity
+  useSessionActivity();
+
+  return (
   <HelmetProvider>
     <SecurityWrapper>
       <TooltipProvider>
@@ -115,6 +120,7 @@ const App = () => (
       </TooltipProvider>
     </SecurityWrapper>
   </HelmetProvider>
-);
+  );
+};
 
 export default App;
