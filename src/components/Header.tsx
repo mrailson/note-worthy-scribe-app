@@ -71,13 +71,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
             onClick={() => navigate('/')}
           >
-            {user && (
-              <img 
-                src={notewellLogo} 
-                alt="Notewell AI" 
-                className="h-8 sm:h-10 w-auto"
-              />
-            )}
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
               <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
