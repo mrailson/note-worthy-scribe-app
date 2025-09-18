@@ -59,21 +59,68 @@ serve(async (req) => {
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
-    // Send to OpenAI Whisper API
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: formData,
-    });
+    // Retry logic for OpenAI API with exponential backoff
+    let response;
+    let lastError;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 SPEECH-TO-TEXT: Attempt ${attempt}/${maxRetries}`);
+        
+        response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: formData,
+          // Add timeout
+          signal: AbortSignal.timeout(60000), // 60 second timeout
+        });
 
-    console.log('📨 SPEECH-TO-TEXT: OpenAI response status:', response.status);
+        console.log('📨 SPEECH-TO-TEXT: OpenAI response status:', response.status);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ SPEECH-TO-TEXT: OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        if (response.ok) {
+          break; // Success, exit retry loop
+        }
+        
+        const errorText = await response.text();
+        console.error(`❌ SPEECH-TO-TEXT: OpenAI API error (attempt ${attempt}):`, response.status, errorText);
+        
+        // Don't retry on client errors (4xx), only server errors (5xx) and network issues
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(`OpenAI API client error: ${response.status} - ${errorText}`);
+        }
+        
+        lastError = new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        
+        // Exponential backoff: wait 1s, 2s, 4s between retries
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⏳ SPEECH-TO-TEXT: Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+      } catch (error) {
+        console.error(`❌ SPEECH-TO-TEXT: Network error (attempt ${attempt}):`, error);
+        lastError = error;
+        
+        // Don't retry on timeout or abort errors immediately
+        if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+          break;
+        }
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⏳ SPEECH-TO-TEXT: Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error('❌ SPEECH-TO-TEXT: All retry attempts failed');
+      throw lastError || new Error('Failed to connect to OpenAI API after all retries');
     }
 
     const result = await response.json();
