@@ -2218,48 +2218,6 @@ export type Database = {
         }
         Relationships: []
       }
-      icn_formulary: {
-        Row: {
-          bnf_chapter_name: string | null
-          id: number
-          is_preferred: boolean | null
-          item_name: string
-          last_published: string | null
-          name_norm: string | null
-          notes: string | null
-          otc: boolean | null
-          page_url: string
-          preference_rank: number | null
-          section: string | null
-        }
-        Insert: {
-          bnf_chapter_name?: string | null
-          id?: number
-          is_preferred?: boolean | null
-          item_name: string
-          last_published?: string | null
-          name_norm?: string | null
-          notes?: string | null
-          otc?: boolean | null
-          page_url: string
-          preference_rank?: number | null
-          section?: string | null
-        }
-        Update: {
-          bnf_chapter_name?: string | null
-          id?: number
-          is_preferred?: boolean | null
-          item_name?: string
-          last_published?: string | null
-          name_norm?: string | null
-          notes?: string | null
-          otc?: boolean | null
-          page_url?: string
-          preference_rank?: number | null
-          section?: string | null
-        }
-        Relationships: []
-      }
       image_processing_requests: {
         Row: {
           created_at: string | null
