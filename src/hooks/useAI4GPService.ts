@@ -21,6 +21,7 @@ export const useAI4GPService = () => {
   const [showAIService, setShowAIService] = useState(false);
   const [isClinical, setIsClinical] = useState(false);
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
+  const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   
   // Display Settings
   const [textSize, setTextSize] = useState<'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest'>('default');
@@ -934,7 +935,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         containerWidth,
         highContrast,
         readingFont,
-        autoCollapseUserPrompts
+        autoCollapseUserPrompts,
+        chatHistoryRetentionDays
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -949,15 +951,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           onConflict: 'user_id,setting_key'
         });
 
-      if (error) {
-        console.error('Error saving user settings:', error);
+      // Also save chat retention to profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ ai4gp_chat_retention_days: chatHistoryRetentionDays })
+        .eq('user_id', user.id);
+
+      if (error || profileError) {
+        console.error('Error saving settings:', error || profileError);
       } else {
         console.log('AI4GP settings saved successfully');
       }
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -1314,6 +1322,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     readingFont,
     setReadingFont,
     autoCollapseUserPrompts,
-    setAutoCollapseUserPrompts
+    setAutoCollapseUserPrompts,
+    chatHistoryRetentionDays,
+    setChatHistoryRetentionDays
   };
 };

@@ -30,6 +30,8 @@ interface SettingsModalProps {
   onUseOpenAIChange: (enabled: boolean) => void;
   northamptonshireICB: boolean;
   onNorthamptonshireICBChange: (enabled: boolean) => void;
+  chatHistoryRetentionDays: number;
+  onChatHistoryRetentionDaysChange: (days: number) => void;
   onSaveSettings?: () => void;
   // Display Settings
   textSize: 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
@@ -125,6 +127,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUseOpenAIChange,
   northamptonshireICB,
   onNorthamptonshireICBChange,
+  chatHistoryRetentionDays,
+  onChatHistoryRetentionDaysChange,
   onSaveSettings,
   textSize,
   onTextSizeChange,
@@ -539,6 +543,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Chat History Retention */}
+          <Card className="border-red-200 bg-gradient-to-r from-background to-red-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Clock className="h-4 w-4 text-red-600" />
+                Chat History Retention
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="chat-retention" className="text-sm font-medium">
+                    Auto-delete chat history after
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Protected searches marked with a star will not be deleted automatically
+                  </p>
+                </div>
+                <Select 
+                  value={chatHistoryRetentionDays.toString()} 
+                  onValueChange={(value) => onChatHistoryRetentionDaysChange(parseInt(value))}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 day</SelectItem>
+                    <SelectItem value="7">7 days</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                    <SelectItem value="365">12 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                <div className="text-sm font-medium text-red-800">🗑️ Automatic Cleanup Active</div>
+                <div className="text-xs text-red-700 mt-1">
+                  Chat history older than {chatHistoryRetentionDays === 1 ? '1 day' : 
+                    chatHistoryRetentionDays === 7 ? '7 days' : 
+                    chatHistoryRetentionDays === 30 ? '30 days' : '12 months'} 
+                  will be automatically deleted daily at 02:00
+                </div>
+              </div>
             </CardContent>
           </Card>
 

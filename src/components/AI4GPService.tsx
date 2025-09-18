@@ -159,7 +159,9 @@ const AI4GPService = () => {
     readingFont,
     setReadingFont,
     autoCollapseUserPrompts,
-    setAutoCollapseUserPrompts
+    setAutoCollapseUserPrompts,
+    chatHistoryRetentionDays,
+    setChatHistoryRetentionDays
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -740,6 +742,8 @@ const AI4GPService = () => {
           onReadingFontChange={setReadingFont}
           autoCollapseUserPrompts={autoCollapseUserPrompts}
           onAutoCollapseUserPromptsChange={setAutoCollapseUserPrompts}
+          chatHistoryRetentionDays={chatHistoryRetentionDays}
+          onChatHistoryRetentionDaysChange={setChatHistoryRetentionDays}
         />
 
       {/* Quick Image Modal */}

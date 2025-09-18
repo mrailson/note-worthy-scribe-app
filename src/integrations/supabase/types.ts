@@ -3881,6 +3881,7 @@ export type Database = {
       profiles: {
         Row: {
           ai4gp_access: boolean | null
+          ai4gp_chat_retention_days: number | null
           ai4gp_disclaimer_collapsed: boolean | null
           created_at: string
           department: string | null
@@ -3902,6 +3903,7 @@ export type Database = {
         }
         Insert: {
           ai4gp_access?: boolean | null
+          ai4gp_chat_retention_days?: number | null
           ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
           department?: string | null
@@ -3923,6 +3925,7 @@ export type Database = {
         }
         Update: {
           ai4gp_access?: boolean | null
+          ai4gp_chat_retention_days?: number | null
           ai4gp_disclaimer_collapsed?: boolean | null
           created_at?: string
           department?: string | null
@@ -5498,6 +5501,10 @@ export type Database = {
       check_user_practice_assignment: {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
+      }
+      cleanup_ai4gp_chat_history: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
