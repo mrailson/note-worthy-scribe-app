@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Languages, 
   Mic, 
@@ -26,7 +31,9 @@ import {
   Users,
   FileText,
   History,
-  RotateCcw
+  RotateCcw,
+  Settings,
+  Eye
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -63,6 +70,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : { patient: true, gp: true };
   });
 
+  // Translation history view toggle with persistence
+  const [showLastOnly, setShowLastOnly] = useState<boolean>(() => {
+    const saved = localStorage.getItem('manual-translation-history-view');
+    return saved ? JSON.parse(saved) : false;
+  });
+
   // Ref for scroll area to auto-scroll to bottom
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +83,11 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   useEffect(() => {
     localStorage.setItem('manual-translation-speaker-settings', JSON.stringify(speakerSettings));
   }, [speakerSettings]);
+
+  // Persist translation history view toggle
+  useEffect(() => {
+    localStorage.setItem('manual-translation-history-view', JSON.stringify(showLastOnly));
+  }, [showLastOnly]);
 
   const toggleSpeaker = (speaker: 'patient' | 'gp') => {
     setSpeakerSettings(prev => ({
@@ -482,7 +500,44 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
             {/* Right Panel - Translation History */}
             <div className="flex-1 flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Translation History</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold">Translation History</h3>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 border-primary/20 hover:border-primary/40"
+                      title="Translation display settings"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 z-[60] bg-background border shadow-lg" align="start">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Display Settings</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Configure how translations are displayed
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {showLastOnly ? 'Show Last Translation Only' : 'Show Full History'}
+                          </span>
+                        </div>
+                        <Switch
+                          id="manual-history-toggle"
+                          checked={showLastOnly}
+                          onCheckedChange={setShowLastOnly}
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-2">
                 {translations.length > 0 && (
                   <>
@@ -510,7 +565,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       <div className="text-sm">Start speaking to begin translation</div>
                     </div>
                   ) : (
-                    [...translations].reverse().map((translation) => (
+                    // Filter translations based on view mode
+                    (() => {
+                      const reversedTranslations = [...translations].reverse();
+                      const displayedTranslations = showLastOnly && reversedTranslations.length > 0 
+                        ? [reversedTranslations[0]] 
+                        : reversedTranslations;
+                      
+                      return displayedTranslations.map((translation) => (
                       <div
                         key={translation.id}
                         className={`p-3 rounded-lg border-l-4 ${
@@ -591,9 +653,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                             </div>
                           )}
                         </div>
-                      </div>
-                    ))
-                  )}
+                       </div>
+                     ))})()
+                   )}
                 </div>
               </ScrollArea>
             </div>

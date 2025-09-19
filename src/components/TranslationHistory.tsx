@@ -406,11 +406,16 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
               <CardTitle>Translation History</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 border-primary/20 hover:border-primary/40"
+                    title="Translation display settings"
+                  >
                     <Settings className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80" align="start">
+                <PopoverContent className="w-80 z-[60] bg-background border shadow-lg" align="start">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <h4 className="font-medium leading-none">Display Settings</h4>
