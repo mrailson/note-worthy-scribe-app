@@ -25,7 +25,8 @@ import {
   VolumeX,
   Users,
   FileText,
-  History
+  History,
+  RotateCcw
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -132,6 +133,17 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     } catch (error) {
       console.error('❌ Failed to end session:', error);
     }
+  };
+
+  const handleReset = () => {
+    if (isActive) {
+      stopListening();
+      clearSession();
+    }
+    // Reset all state  
+    setSelectedLanguage('');
+    setSelectedLanguageName('');
+    toast.success('Session cleared - ready for new translation');
   };
 
   const handleClose = () => {
@@ -469,12 +481,25 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
 
             {/* Right Panel - Translation History */}
             <div className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Translation History</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Translation History</h3>
+              <div className="flex items-center gap-2">
                 {translations.length > 0 && (
-                  <Badge variant="outline">{translations.length} exchanges</Badge>
+                  <>
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      title="Clear session and start fresh"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                    <Badge variant="outline">{translations.length} exchanges</Badge>
+                  </>
                 )}
               </div>
+            </div>
 
               <ScrollArea ref={scrollAreaRef} className="flex-1 border rounded-lg">
                 <div className="p-4 space-y-3">
