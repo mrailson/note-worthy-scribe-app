@@ -194,6 +194,7 @@ export const useManualTranslation = () => {
       );
 
       console.log('✅ Speech recognition initialized');
+      await speechRecognitionRef.current?.setLanguage(targetLanguageCode);
 
       // Log consent to audit trail
       if (consentGiven) {

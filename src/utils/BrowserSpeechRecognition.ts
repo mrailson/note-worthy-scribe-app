@@ -9,6 +9,8 @@ interface TranscriptData {
 export class BrowserSpeechRecognition {
   private recognition: any = null;
   private isListening = false;
+  private isStarting = false;
+  private stoppedByUser = false;
   private currentSpeaker = 'Speaker';
   private preferredLang = 'en-GB';
 
@@ -25,6 +27,12 @@ export class BrowserSpeechRecognition {
   async startRecognition() {
     if (!this.isSupported()) {
       this.onError('Speech recognition not supported in this browser. Please use Chrome, Edge, or Android Chrome.');
+      return;
+    }
+
+    // Prevent double starts
+    if (this.isListening || this.isStarting) {
+      console.log('ℹ️ Recognition already active or starting, skipping start');
       return;
     }
 
@@ -46,7 +54,7 @@ export class BrowserSpeechRecognition {
       // Configure recognition
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-GB'; // British English default
+      this.recognition.lang = this.preferredLang; // Use preferred language
       this.recognition.maxAlternatives = 1;
 
       // Handle results
@@ -72,20 +80,29 @@ export class BrowserSpeechRecognition {
       // Handle start
       this.recognition.onstart = () => {
         this.isListening = true;
+        this.isStarting = false;
+        this.stoppedByUser = false;
         this.onStatusChange('Listening for speech...');
         console.log('Speech recognition started');
       };
 
       // Handle end
       this.recognition.onend = () => {
-        if (this.isListening) {
+        if (this.isListening && !this.stoppedByUser) {
           // Restart if we're supposed to be listening
           console.log('Speech recognition ended, restarting...');
           setTimeout(() => {
-            if (this.isListening) {
-              this.recognition.start();
+            if (this.isListening && !this.isStarting) {
+              try {
+                this.isStarting = true;
+                this.recognition.start();
+              } catch (e) {
+                console.warn('Restart failed:', e);
+              }
             }
-          }, 100);
+          }, 300);
+        } else {
+          console.log('Speech recognition ended');
         }
       };
 
@@ -104,13 +121,28 @@ export class BrowserSpeechRecognition {
             // Don't treat no-speech as an error, just continue
             console.log('No speech detected, continuing...');
             break;
+          case 'aborted':
+            // Happens when stop() is called or rapid restarts; not a user-facing error
+            console.log('Recognition aborted (likely due to restart); continuing...');
+            break;
           default:
             this.onError(`Speech recognition error: ${event.error}`);
         }
       };
 
       // Start recognition
-      this.recognition.start();
+      this.stoppedByUser = false;
+      try {
+        this.isStarting = true;
+        this.recognition.start();
+      } catch (e: any) {
+        this.isStarting = false;
+        if (e && (e.name === 'InvalidStateError' || `${e}`.includes('already started'))) {
+          console.warn('Recognition already started; ignoring duplicate start');
+          return;
+        }
+        throw e;
+      }
       
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
@@ -120,6 +152,8 @@ export class BrowserSpeechRecognition {
 
   stopRecognition() {
     if (this.recognition && this.isListening) {
+      this.stoppedByUser = true;
+      this.isStarting = false;
       this.isListening = false;
       this.recognition.stop();
       this.onStatusChange('Speech recognition stopped');
