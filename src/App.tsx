@@ -47,6 +47,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
 import TranslationTool from "./pages/TranslationTool";
 import MobileTranslation from "./pages/MobileTranslation";
+import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
 
 
@@ -108,6 +109,7 @@ const App = () => {
             <Route path="/transcription-comparison" element={<TranscriptionComparison />} />
             <Route path="/translation-tool" element={<TranslationTool />} />
             <Route path="/mobile-translate" element={<MobileTranslation />} />
+            <Route path="/patient-language-select" element={<PatientLanguageSelection />} />
             <Route path="/gp-genie" element={<GPGenie />} />
             <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
             
