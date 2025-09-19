@@ -108,7 +108,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   });
 
   // Text size setting with persistence
-  const [translationTextSize, setTranslationTextSize] = useState<'small' | 'medium' | 'large'>(() => {
+  const [translationTextSize, setTranslationTextSize] = useState<'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant'>(() => {
     const saved = localStorage.getItem('manual-translation-text-size');
     return saved ? JSON.parse(saved) : 'medium';
   });
@@ -448,12 +448,18 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     }
   };
 
-  const getTextSizeClass = (size: 'small' | 'medium' | 'large') => {
+  const getTextSizeClass = (size: 'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant') => {
     switch (size) {
-      case 'small': return 'text-xs';
-      case 'medium': return 'text-sm';
-      case 'large': return 'text-base';
-      default: return 'text-sm';
+      case 'smallest': return 'text-xs';
+      case 'small': return 'text-sm';
+      case 'medium': return 'text-base';
+      case 'large': return 'text-lg';
+      case 'larger': return 'text-xl';
+      case 'largest': return 'text-2xl';
+      case 'huge': return 'text-3xl';
+      case 'massive': return 'text-4xl';
+      case 'giant': return 'text-5xl';
+      default: return 'text-base';
     }
   };
 
@@ -904,14 +910,20 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                              <Type className="w-4 h-4 text-muted-foreground" />
                              <span className="text-sm">Text Size</span>
                            </div>
-                           <Select value={translationTextSize} onValueChange={(value: 'small' | 'medium' | 'large') => setTranslationTextSize(value)}>
-                             <SelectTrigger className="w-24 h-8">
+                           <Select value={translationTextSize} onValueChange={(value: 'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant') => setTranslationTextSize(value)}>
+                             <SelectTrigger className="w-28 h-8">
                                <SelectValue />
                              </SelectTrigger>
                              <SelectContent>
+                               <SelectItem value="smallest">Smallest</SelectItem>
                                <SelectItem value="small">Small</SelectItem>
                                <SelectItem value="medium">Medium</SelectItem>
                                <SelectItem value="large">Large</SelectItem>
+                               <SelectItem value="larger">Larger</SelectItem>
+                               <SelectItem value="largest">Largest</SelectItem>
+                               <SelectItem value="huge">Huge</SelectItem>
+                               <SelectItem value="massive">Massive</SelectItem>
+                               <SelectItem value="giant">Giant</SelectItem>
                              </SelectContent>
                            </Select>
                          </div>
