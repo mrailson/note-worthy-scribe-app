@@ -49,7 +49,8 @@ import {
   Square,
   VolumeX,
   Volume2,
-  Settings
+  Settings,
+  Maximize2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -170,6 +171,7 @@ export const TranslationToolInterface = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showHistoricalView, setShowHistoricalView] = useState(false);
+  const [showFullScreenHistory, setShowFullScreenHistory] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [missedTranslationFeedback, setMissedTranslationFeedback] = useState(false);
   const [selectedHistoricalSession, setSelectedHistoricalSession] = useState<{
@@ -3557,6 +3559,15 @@ export const TranslationToolInterface = () => {
             </div>
             <div className="flex gap-2">
               <Button
+                onClick={() => setShowFullScreenHistory(true)}
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Maximize2 className="h-4 w-4" />
+                Expand
+              </Button>
+              <Button
                 onClick={() => setShowHistorySidebar(true)}
                 variant="outline"
                 size="sm"
@@ -3859,6 +3870,55 @@ export const TranslationToolInterface = () => {
         initialLanguageCode={selectedManualLanguage?.code}
         initialLanguageName={selectedManualLanguage?.name}
       />
+
+      {/* Full Screen Translation History Modal */}
+      <Dialog open={showFullScreenHistory} onOpenChange={setShowFullScreenHistory}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5 text-primary" />
+              Translation History - Full Screen View
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {translations.map((translation, index) => (
+                <div
+                  key={index}
+                  className={`p-6 rounded-lg ${
+                    translation.speaker === 'gp' 
+                      ? 'bg-blue-50 border-l-4 border-blue-500' 
+                      : 'bg-green-50 border-l-4 border-green-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="font-semibold text-lg">
+                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="text-lg">
+                      <span className="font-semibold">Original:</span> 
+                      <div className="mt-2 text-foreground leading-relaxed">{translation.originalText}</div>
+                    </div>
+                    <div className="text-lg">
+                      <span className="font-semibold">Translation:</span>
+                      <div className="mt-2 text-foreground leading-relaxed">{translation.translatedText}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {translation.originalLanguage} → {translation.targetLanguage}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Translation History Sidebar */}
       {showHistorySidebar && (
