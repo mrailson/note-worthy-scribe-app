@@ -128,10 +128,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   // How it works section state
   const [showInstructions, setShowInstructions] = useState<boolean>(() => {
     const saved = localStorage.getItem('manual-translation-show-instructions');
-    return saved ? JSON.parse(saved) : true;
+    return saved ? JSON.parse(saved) : false; // Default to false (hidden)
   });
-
+  
   const [showInstructionsInPatientLanguage, setShowInstructionsInPatientLanguage] = useState<boolean>(false);
+  
+  // Active session visibility state
+  const [showActiveSession, setShowActiveSession] = useState<boolean>(() => {
+    const saved = localStorage.getItem('manual-translation-show-active-session');
+    return saved ? JSON.parse(saved) : false; // Default to false (hidden)
+  });
 
   // Ref for scroll area to auto-scroll to bottom
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -591,19 +597,26 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
 
               {/* Session Controls */}
               {isActive && currentSession && (
-                <Card className="border-green-200 bg-green-50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center justify-between text-green-800">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                        Active Session
-                      </div>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 font-semibold">
-                        English ↔ {currentSession.targetLanguageName}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                <Collapsible open={showActiveSession} onOpenChange={setShowActiveSession}>
+                  <Card className="border-green-200 bg-green-50">
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="text-lg flex items-center justify-between text-green-800">
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                            Active Session
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-green-100 text-green-800 font-semibold">
+                              English ↔ {currentSession.targetLanguageName}
+                            </Badge>
+                            {showActiveSession ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-3">
                     {/* Listening Controls */}
                     <div className="flex gap-2">
                       <Button
@@ -678,8 +691,10 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                         </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
 
               {/* Instructions */}
