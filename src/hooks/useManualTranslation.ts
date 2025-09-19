@@ -359,8 +359,14 @@ export const useManualTranslation = () => {
       currentSession: !!currentSession, 
       speechRecognition: !!speechRecognitionRef.current, 
       isActive,
+      isListening,
       languageDetector: !!languageDetectorRef.current
     });
+    
+    if (isListening) {
+      console.log('ℹ️ Already listening, skipping start');
+      return;
+    }
     
     if (!isActive) {
       console.log('❌ Cannot start listening - session not active');
@@ -402,7 +408,7 @@ export const useManualTranslation = () => {
       console.error('❌ Failed to start listening:', error);
       toast.error('Failed to start speech recognition');
     }
-  }, [currentSession, isActive]);
+  }, [currentSession, isActive, isListening]);
 
   const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
     console.log('🔄 Processing speech result:', { 

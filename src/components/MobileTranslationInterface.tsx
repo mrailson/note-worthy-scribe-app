@@ -73,7 +73,8 @@ export const MobileTranslationInterface = () => {
     setShowConsentModal(false);
     try {
       await startSession(pendingLanguage.code, pendingLanguage.name, true);
-      // startSession already includes auto-start listening with proper timing
+      // Start listening immediately on user gesture; startSession also has a fallback auto-start
+      await startListening();
       toast.success(`Translation session started with consent for ${pendingLanguage.name}`);
     } catch (error) {
       toast.error('Failed to start translation session');
