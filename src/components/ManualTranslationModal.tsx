@@ -43,6 +43,7 @@ import {
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { ManualTranslationHistory } from './ManualTranslationHistory';
+import { TranslationVerificationModal } from './TranslationVerificationModal';
 import { toast } from 'sonner';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 import { supabase } from '@/integrations/supabase/client';
@@ -117,6 +118,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     const saved = localStorage.getItem('manual-translation-translated-text-size');
     return saved ? JSON.parse(saved) : 'medium';
   });
+
+  // Translation verification modal state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [selectedTranslationForVerification, setSelectedTranslationForVerification] = useState<any>(null);
+  const [verificationResults, setVerificationResults] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // How it works section state
   const [showInstructions, setShowInstructions] = useState<boolean>(() => {
@@ -1062,13 +1069,17 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                     <ArrowUpDown className="h-3 w-3" />
                                   )}
                                 </Button>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
+                                <button
+                                  className={`inline-flex items-center justify-center rounded-full w-6 h-6 border transition-colors hover:bg-muted cursor-pointer ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
+                                  onClick={() => {
+                                    // Open translation verification modal
+                                    setSelectedTranslationForVerification(finalTranslation);
+                                    setShowVerificationModal(true);
+                                  }}
+                                  title="Click to verify translation accuracy against multiple providers"
                                 >
                                   {getSafetyIcon(finalTranslation.safetyFlag)}
-                                  {finalTranslation.safetyFlag}
-                                </Badge>
+                                </button>
                                 {correctedTranslations[translation.id] && (
                                   <Badge variant="secondary" className="text-xs">
                                     Corrected
@@ -1157,6 +1168,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
+
+        {/* Translation Verification Modal */}
+        <TranslationVerificationModal
+          isOpen={showVerificationModal}
+          onClose={() => {
+            setShowVerificationModal(false);
+            setSelectedTranslationForVerification(null);
+          }}
+          translation={selectedTranslationForVerification}
+        />
       </DialogContent>
     </Dialog>
   );
