@@ -169,24 +169,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Languages className="h-5 w-5 text-primary" />
-                Manual Translation Service
-              </DialogTitle>
-              <DialogDescription>
-                Text-based translation with automatic language detection for GP-Patient communication
-              </DialogDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5 text-primary" />
+              Manual Translation Service
+            </DialogTitle>
+            <DialogDescription>
+              Text-based translation with automatic language detection for GP-Patient communication
+            </DialogDescription>
           </div>
         </DialogHeader>
 
