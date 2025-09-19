@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +61,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : { patient: true, gp: true };
   });
 
+  // Ref for scroll area to auto-scroll to bottom
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
   // Persist speaker settings
   useEffect(() => {
     localStorage.setItem('manual-translation-speaker-settings', JSON.stringify(speakerSettings));
@@ -95,6 +98,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     stopListening,
     sessionStats
   } = useManualTranslation();
+
+  // Auto-scroll to bottom when translations update
+  useEffect(() => {
+    if (scrollAreaRef.current && translations.length > 0) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [translations]);
 
   const handleStartSession = async () => {
     console.log('🚀 Starting manual translation session:', { selectedLanguage, selectedLanguageName });
@@ -143,9 +156,41 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   };
 
   const handleExport = () => {
-    if (currentSession && onExportSession) {
-      onExportSession(currentSession);
+    if (translations.length === 0) {
+      toast.error('No translations to export');
+      return;
     }
+
+    // Create transcript content
+    const transcript = translations.map((translation, index) => {
+      const timeStr = translation.timestamp.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      const speakerLabel = translation.speaker === 'gp' ? 'GP' : 'Patient';
+      
+      return `[${timeStr}] ${speakerLabel}:\nOriginal (${translation.originalLanguageDetected}): ${translation.originalText}\nTranslation (${translation.targetLanguage}): ${translation.translatedText}\nAccuracy: ${translation.translationAccuracy}% | Confidence: ${translation.translationConfidence}% | Safety: ${translation.safetyFlag}\n${translation.medicalTermsDetected.length > 0 ? `Medical terms: ${translation.medicalTermsDetected.join(', ')}\n` : ''}`;
+    }).join('\n---\n\n');
+
+    // Add session header
+    const sessionInfo = currentSession ? 
+      `Manual Translation Session: ${currentSession.targetLanguageName}\nDate: ${new Date().toLocaleDateString('en-GB')}\nTotal Exchanges: ${translations.length}\n\n` : 
+      `Manual Translation Session\nDate: ${new Date().toLocaleDateString('en-GB')}\nTotal Exchanges: ${translations.length}\n\n`;
+
+    const fullTranscript = sessionInfo + transcript;
+
+    // Create and download file
+    const blob = new Blob([fullTranscript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `manual-translation-${selectedLanguageName || 'session'}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success('Translation transcript downloaded');
   };
 
   const formatTime = (seconds: number) => {
@@ -406,7 +451,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                 )}
               </div>
 
-              <ScrollArea className="flex-1 border rounded-lg">
+              <ScrollArea ref={scrollAreaRef} className="flex-1 border rounded-lg">
                 <div className="p-4 space-y-3">
                   {translations.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
