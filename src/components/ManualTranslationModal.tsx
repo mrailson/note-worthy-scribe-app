@@ -468,16 +468,6 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       </Button>
                     </div>
 
-                    {/* Processing Status */}
-                    {isProcessing && (
-                      <Alert>
-                        <Clock className="h-4 w-4" />
-                        <AlertDescription>
-                          Processing translation...
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
                     {/* Session Stats */}
                     {sessionStats && (
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -623,6 +613,13 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                     </div>
                   </PopoverContent>
                 </Popover>
+                {/* Processing Status */}
+                {isProcessing && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="h-3 w-3 animate-spin" />
+                    <span>Processing translation...</span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {translations.length > 0 && (
