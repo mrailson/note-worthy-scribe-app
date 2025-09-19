@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Languages, 
   Mic, 
@@ -20,6 +22,7 @@ import {
   CheckCircle,
   Clock,
   Volume2,
+  VolumeX,
   Users,
   FileText,
   History
@@ -51,6 +54,24 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguageCode || '');
   const [selectedLanguageName, setSelectedLanguageName] = useState<string>(initialLanguageName || '');
+  
+  // Speaker settings with persistence
+  const [speakerSettings, setSpeakerSettings] = useState(() => {
+    const saved = localStorage.getItem('manual-translation-speaker-settings');
+    return saved ? JSON.parse(saved) : { patient: true, gp: true };
+  });
+
+  // Persist speaker settings
+  useEffect(() => {
+    localStorage.setItem('manual-translation-speaker-settings', JSON.stringify(speakerSettings));
+  }, [speakerSettings]);
+
+  const toggleSpeaker = (speaker: 'patient' | 'gp') => {
+    setSpeakerSettings(prev => ({
+      ...prev,
+      [speaker]: !prev[speaker]
+    }));
+  };
   
   // Update selected language when initial props change
   useEffect(() => {
@@ -298,6 +319,35 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                    {/* Speaker Controls */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">Audio Settings</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="gp-speaker" className="text-sm flex items-center gap-2">
+                            {speakerSettings.gp ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                            GP Audio
+                          </Label>
+                          <Switch
+                            id="gp-speaker"
+                            checked={speakerSettings.gp}
+                            onCheckedChange={() => toggleSpeaker('gp')}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="patient-speaker" className="text-sm flex items-center gap-2">
+                            {speakerSettings.patient ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                            Patient Audio
+                          </Label>
+                          <Switch
+                            id="patient-speaker"
+                            checked={speakerSettings.patient}
+                            onCheckedChange={() => toggleSpeaker('patient')}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Session Actions */}
                     <div className="flex gap-2">

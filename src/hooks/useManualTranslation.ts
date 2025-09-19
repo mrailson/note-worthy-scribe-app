@@ -45,6 +45,12 @@ export const useManualTranslation = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Get speaker settings from localStorage
+  const getSpeakerSettings = () => {
+    const saved = localStorage.getItem('manual-translation-speaker-settings');
+    return saved ? JSON.parse(saved) : { patient: true, gp: true };
+  };
+  
   const languageDetectorRef = useRef<LanguageDetector | null>(null);
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const webSpeechDetectorRef = useRef<WebSpeechLanguageDetector | null>(null);
@@ -268,41 +274,48 @@ export const useManualTranslation = () => {
 
       // Speak the translation using browser TTS with correct language
       if ('speechSynthesis' in window && data.translatedText) {
-        console.log('🗣️ Speaking translation in language:', targetLanguage);
-        const utterance = new SpeechSynthesisUtterance(data.translatedText);
+        const speakerSettings = getSpeakerSettings();
+        const shouldSpeak = (speaker === 'gp' && speakerSettings.gp) || (speaker === 'patient' && speakerSettings.patient);
         
-        // Set correct language for TTS
-        if (targetLanguage === 'en') {
-          utterance.lang = 'en-GB'; // British English
+        if (shouldSpeak) {
+          console.log('🗣️ Speaking translation in language:', targetLanguage, 'for speaker:', speaker);
+          const utterance = new SpeechSynthesisUtterance(data.translatedText);
+          
+          // Set correct language for TTS
+          if (targetLanguage === 'en') {
+            utterance.lang = 'en-GB'; // British English
+          } else {
+            // Map language codes to proper TTS language codes
+            const languageMap: Record<string, string> = {
+              'de': 'de-DE',
+              'fr': 'fr-FR', 
+              'es': 'es-ES',
+              'it': 'it-IT',
+              'pt': 'pt-PT',
+              'ru': 'ru-RU',
+              'zh': 'zh-CN',
+              'ar': 'ar-SA',
+              'hi': 'hi-IN',
+              'pl': 'pl-PL',
+              'tr': 'tr-TR',
+              'bn': 'bn-BD',
+              'ur': 'ur-PK'
+            };
+            utterance.lang = languageMap[targetLanguage] || targetLanguage;
+          }
+          
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          
+          // Stop any current speech before starting new one
+          speechSynthesis.cancel();
+          speechSynthesis.speak(utterance);
+          
+          console.log('🗣️ TTS started for language:', utterance.lang);
         } else {
-          // Map language codes to proper TTS language codes
-          const languageMap: Record<string, string> = {
-            'de': 'de-DE',
-            'fr': 'fr-FR', 
-            'es': 'es-ES',
-            'it': 'it-IT',
-            'pt': 'pt-PT',
-            'ru': 'ru-RU',
-            'zh': 'zh-CN',
-            'ar': 'ar-SA',
-            'hi': 'hi-IN',
-            'pl': 'pl-PL',
-            'tr': 'tr-TR',
-            'bn': 'bn-BD',
-            'ur': 'ur-PK'
-          };
-          utterance.lang = languageMap[targetLanguage] || targetLanguage;
+          console.log('🔇 TTS disabled for speaker:', speaker);
         }
-        
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        utterance.volume = 0.8;
-        
-        // Stop any current speech before starting new one
-        speechSynthesis.cancel();
-        speechSynthesis.speak(utterance);
-        
-        console.log('🗣️ TTS started for language:', utterance.lang);
       }
 
       toast.success(`Translation: ${speaker === 'gp' ? '👨‍⚕️' : '👤'} ${text.substring(0, 30)}... → ${data.translatedText.substring(0, 30)}...`);
