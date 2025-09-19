@@ -107,9 +107,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : true;
   });
 
-  // Text size setting with persistence
-  const [translationTextSize, setTranslationTextSize] = useState<'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant'>(() => {
-    const saved = localStorage.getItem('manual-translation-text-size');
+  // Text size settings with persistence - separate for English and translated text
+  const [englishTextSize, setEnglishTextSize] = useState<'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant'>(() => {
+    const saved = localStorage.getItem('manual-translation-english-text-size');
+    return saved ? JSON.parse(saved) : 'medium';
+  });
+
+  const [translatedTextSize, setTranslatedTextSize] = useState<'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant'>(() => {
+    const saved = localStorage.getItem('manual-translation-translated-text-size');
     return saved ? JSON.parse(saved) : 'medium';
   });
 
@@ -144,8 +149,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   }, [showSpeakers]);
 
   useEffect(() => {
-    localStorage.setItem('manual-translation-text-size', JSON.stringify(translationTextSize));
-  }, [translationTextSize]);
+    localStorage.setItem('manual-translation-english-text-size', JSON.stringify(englishTextSize));
+  }, [englishTextSize]);
+
+  useEffect(() => {
+    localStorage.setItem('manual-translation-translated-text-size', JSON.stringify(translatedTextSize));
+  }, [translatedTextSize]);
 
   useEffect(() => {
     localStorage.setItem('manual-translation-show-instructions', JSON.stringify(showInstructions));
@@ -908,9 +917,31 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                          <div className="flex items-center justify-between">
                            <div className="flex items-center gap-2">
                              <Type className="w-4 h-4 text-muted-foreground" />
-                             <span className="text-sm">Text Size</span>
+                             <span className="text-sm">English Text Size</span>
                            </div>
-                           <Select value={translationTextSize} onValueChange={(value: 'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant') => setTranslationTextSize(value)}>
+                           <Select value={englishTextSize} onValueChange={(value: 'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant') => setEnglishTextSize(value)}>
+                             <SelectTrigger className="w-28 h-8">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="smallest">Smallest</SelectItem>
+                               <SelectItem value="small">Small</SelectItem>
+                               <SelectItem value="medium">Medium</SelectItem>
+                               <SelectItem value="large">Large</SelectItem>
+                               <SelectItem value="larger">Larger</SelectItem>
+                               <SelectItem value="largest">Largest</SelectItem>
+                               <SelectItem value="huge">Huge</SelectItem>
+                               <SelectItem value="massive">Massive</SelectItem>
+                               <SelectItem value="giant">Giant</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <Type className="w-4 h-4 text-muted-foreground" />
+                             <span className="text-sm">Translation Text Size</span>
+                           </div>
+                           <Select value={translatedTextSize} onValueChange={(value: 'smallest' | 'small' | 'medium' | 'large' | 'larger' | 'largest' | 'huge' | 'massive' | 'giant') => setTranslatedTextSize(value)}>
                              <SelectTrigger className="w-28 h-8">
                                <SelectValue />
                              </SelectTrigger>
@@ -1059,14 +1090,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                                  Original ({finalTranslation.originalLanguageDetected})
                                </div>
-                               <div className={`${getTextSizeClass(translationTextSize)}`}>{finalTranslation.originalText}</div>
+                               <div className={`${getTextSizeClass(englishTextSize)}`}>{finalTranslation.originalText}</div>
                              </div>
                              
                               <div>
                                 <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                                   All translations will be shown here in {currentSession?.targetLanguageName || finalTranslation.targetLanguage}
                                 </div>
-                               <div className={`${getTextSizeClass(translationTextSize)} font-medium`}>{finalTranslation.translatedText}</div>
+                               <div className={`${getTextSizeClass(translatedTextSize)} font-medium`}>{finalTranslation.translatedText}</div>
                                
                                {/* TTS Button */}
                                {showSpeakers && 'speechSynthesis' in window && (
