@@ -217,7 +217,7 @@ export const MobileTranslationInterface = () => {
                   </div>
                 )}
                 
-                <div className="flex gap-4 justify-center">
+                <div className="flex justify-center">
                   <Button
                     onClick={toggleListening}
                     size="lg"
@@ -235,15 +235,6 @@ export const MobileTranslationInterface = () => {
                         Start Listening
                       </>
                     )}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleEndSession}
-                    size="lg"
-                    variant="outline"
-                    className="h-14 px-8"
-                  >
-                    End Session
                   </Button>
                 </div>
                 
@@ -268,14 +259,26 @@ export const MobileTranslationInterface = () => {
           <div className="flex-1 overflow-hidden">
             <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
               <h3 className="font-medium">Translation History</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFullScreen(true)}
-                className="h-8 w-8 p-0"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDownloadWord}
+                  className="h-8 w-8 p-0"
+                  title="Download as Word document"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFullScreen(true)}
+                  className="h-8 w-8 p-0"
+                  title="View full screen"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
               {translations.map((translation, index) => (
