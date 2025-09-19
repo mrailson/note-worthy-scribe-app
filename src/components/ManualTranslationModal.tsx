@@ -557,8 +557,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Show Speakers</span>
+                            <Volume2 className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">Show Play Buttons</span>
                           </div>
                           <Switch
                             id="show-speakers-toggle"
@@ -627,11 +627,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            {showSpeakers && (
-                              <span className="text-sm font-medium">
-                                {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                              </span>
-                            )}
+                            <span className="text-sm font-medium">
+                              {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               #{translation.exchangeNumber}
                             </Badge>
@@ -666,7 +664,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                             <div className="text-sm font-medium">{translation.translatedText}</div>
                             
                             {/* TTS Button */}
-                            {'speechSynthesis' in window && (
+                            {showSpeakers && 'speechSynthesis' in window && (
                               <Button
                                 variant="ghost"
                                 size="sm"
