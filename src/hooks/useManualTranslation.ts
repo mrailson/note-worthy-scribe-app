@@ -163,6 +163,25 @@ export const useManualTranslation = () => {
       console.log('✅ Session started successfully for:', targetLanguageName);
       toast.success(`Manual translation session started for ${targetLanguageName}`);
       
+      // Auto-start listening immediately after session initialization
+      if (speechRecognitionRef.current) {
+        try {
+          console.log('🤖 Auto-starting speech recognition...');
+          
+          // Proactively request mic permission
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('✅ Microphone access confirmed for auto-start');
+          
+          await speechRecognitionRef.current.startRecognition();
+          setIsListening(true);
+          console.log('✅ Auto-started speech recognition successfully');
+        } catch (autoStartError) {
+          console.error('❌ Failed to auto-start listening:', autoStartError);
+          // Don't show error toast here as the session started successfully
+          // User can manually click Start Listening if needed
+        }
+      }
+      
     } catch (error) {
       console.error('Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
