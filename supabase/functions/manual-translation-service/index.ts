@@ -98,11 +98,14 @@ serve(async (req) => {
     }
 
     const openAIData = await openAIResponse.json();
-    const translatedText = openAIData.choices[0]?.message?.content?.trim();
+    let translatedText = openAIData.choices[0]?.message?.content?.trim();
 
     if (!translatedText) {
       throw new Error('No translation received from service');
     }
+
+    // Remove surrounding quotes if present
+    translatedText = translatedText.replace(/^["']|["']$/g, '');
 
     const processingTime = Date.now() - startTime;
 

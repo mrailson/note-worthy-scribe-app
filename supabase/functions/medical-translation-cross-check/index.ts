@@ -234,7 +234,10 @@ Translate the following medical text from ${sourceLang} to ${targetLang}. Only p
   }
 
   const data = await response.json();
-  const translatedText = data.choices[0].message.content;
+  let translatedText = data.choices[0].message.content;
+  
+  // Remove surrounding quotes if present
+  translatedText = translatedText.replace(/^["']|["']$/g, '');
   
   const medicalTermsPreserved = checkMedicalTermPreservation(text, translatedText);
   const warnings = validateMedicalTranslation(translatedText, 'openai');

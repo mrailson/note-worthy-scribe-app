@@ -42,10 +42,14 @@ serve(async (req) => {
       
       const data = await response.json();
       
-      if (data.responseStatus === 200) {
+       if (data.responseStatus === 200) {
+        let translatedText = data.responseData.translatedText;
+        // Remove surrounding quotes if present
+        translatedText = translatedText.replace(/^["']|["']$/g, '');
+        
         return new Response(
           JSON.stringify({ 
-            translatedText: data.responseData.translatedText,
+            translatedText,
             detectedLanguage: sourceLanguage,
             confidence: 85 
           }),
@@ -85,8 +89,11 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const translatedText = data.data.translations[0].translatedText;
+    let translatedText = data.data.translations[0].translatedText;
     const detectedLanguage = data.data.translations[0].detectedSourceLanguage || sourceLanguage;
+
+    // Remove surrounding quotes if present
+    translatedText = translatedText.replace(/^["']|["']$/g, '');
 
     console.log(`Translation successful: "${translatedText}"`);
 

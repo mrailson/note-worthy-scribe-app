@@ -57,7 +57,10 @@ ${translatedReply}`;
     });
 
     const reverseData = await reverseResponse.json();
-    const reverseTranslation = reverseData.choices[0].message.content.trim();
+    let reverseTranslation = reverseData.choices[0].message.content.trim();
+    
+    // Remove surrounding quotes if present
+    reverseTranslation = reverseTranslation.replace(/^["']|["']$/g, '');
 
     // Step 2: Comprehensive quality assessment
     const assessmentPrompt = `As a medical translation quality expert, assess this email translation chain for NHS GP communication:
