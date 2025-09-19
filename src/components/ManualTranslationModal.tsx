@@ -1019,70 +1019,70 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                            }`}
                          >
                            <div className="flex items-center justify-between mb-2">
-                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">
-                                  {displaySpeaker === 'gp' ? '👨‍⚕️ GP Practice' : '👤 Patient'}
-                                </span>
-                               <Badge 
-                                 variant="outline" 
-                                 className={`text-xs ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
-                               >
-                                 {getSafetyIcon(finalTranslation.safetyFlag)}
-                                 {finalTranslation.safetyFlag}
-                               </Badge>
-                               {correctedTranslations[translation.id] && (
-                                 <Badge variant="secondary" className="text-xs">
-                                   Corrected
-                                 </Badge>
-                               )}
-                             </div>
-                             <div className="flex items-center gap-2">
-                               {/* Toggle Button */}
-                               <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 className={`h-6 w-6 p-0 ${processingTranslations.has(translation.id) ? 'opacity-50 cursor-not-allowed' : ''} ${correctedTranslations[translation.id] ? 'bg-secondary' : ''}`}
-                                 onClick={async () => {
-                                   if (processingTranslations.has(translation.id)) return;
-                                   
-                                   // Calculate new toggle state
-                                   const currentToggle = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
-                                   const newToggleState = {
-                                     textSwapped: !currentToggle.textSwapped,
-                                     speakerSwapped: !currentToggle.speakerSwapped
-                                   };
-                                   
-                                   // Update toggle state
-                                   setTranslationToggles(prev => ({
-                                     ...prev,
-                                     [translation.id]: newToggleState
-                                   }));
-                                   
-                                   // Pass the new state directly to avoid async state issues
-                                   await recalculateTranslationMetrics(translation.id, newToggleState);
-                                 }}
-                                 disabled={processingTranslations.has(translation.id)}
-                                 title={
-                                   processingTranslations.has(translation.id) 
-                                     ? "Processing correction..." 
-                                     : correctedTranslations[translation.id]
-                                       ? "Translation corrected"
-                                       : "Correct language detection (swap text and speaker)"
-                                 }
-                               >
-                                 {processingTranslations.has(translation.id) ? (
-                                   <Clock className="h-3 w-3 animate-spin" />
-                                 ) : (
-                                   <ArrowUpDown className="h-3 w-3" />
-                                 )}
-                               </Button>
-                               <div className="text-xs text-muted-foreground">
-                                 {translation.timestamp.toLocaleTimeString('en-GB', { 
-                                   hour: '2-digit', 
-                                   minute: '2-digit' 
-                                 })}
-                               </div>
-                             </div>
+                              <div className="flex items-center gap-2">
+                                 <span className="text-sm font-medium">
+                                   {displaySpeaker === 'gp' ? '👨‍⚕️ GP Practice' : '👤 Patient'}
+                                 </span>
+                                {/* Toggle Button - moved here */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-6 w-6 p-0 ${processingTranslations.has(translation.id) ? 'opacity-50 cursor-not-allowed' : ''} ${correctedTranslations[translation.id] ? 'bg-secondary' : ''}`}
+                                  onClick={async () => {
+                                    if (processingTranslations.has(translation.id)) return;
+                                    
+                                    // Calculate new toggle state
+                                    const currentToggle = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
+                                    const newToggleState = {
+                                      textSwapped: !currentToggle.textSwapped,
+                                      speakerSwapped: !currentToggle.speakerSwapped
+                                    };
+                                    
+                                    // Update toggle state
+                                    setTranslationToggles(prev => ({
+                                      ...prev,
+                                      [translation.id]: newToggleState
+                                    }));
+                                    
+                                    // Pass the new state directly to avoid async state issues
+                                    await recalculateTranslationMetrics(translation.id, newToggleState);
+                                  }}
+                                  disabled={processingTranslations.has(translation.id)}
+                                  title={
+                                    processingTranslations.has(translation.id) 
+                                      ? "Processing correction..." 
+                                      : correctedTranslations[translation.id]
+                                        ? "Translation corrected"
+                                        : "Correct language detection (swap text and speaker)"
+                                  }
+                                >
+                                  {processingTranslations.has(translation.id) ? (
+                                    <Clock className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <ArrowUpDown className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
+                                >
+                                  {getSafetyIcon(finalTranslation.safetyFlag)}
+                                  {finalTranslation.safetyFlag}
+                                </Badge>
+                                {correctedTranslations[translation.id] && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Corrected
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-muted-foreground">
+                                  {translation.timestamp.toLocaleTimeString('en-GB', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </div>
+                              </div>
                            </div>
  
                            <div className="space-y-2">
