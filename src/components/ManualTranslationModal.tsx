@@ -78,6 +78,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     speakerSwapped: boolean;
   }>>({});
 
+  // Store corrected translations locally
+  const [correctedTranslations, setCorrectedTranslations] = useState<Record<string, any>>({});
+
   // Translation history view toggle with persistence
   const [showLastOnly, setShowLastOnly] = useState<boolean>(() => {
     const saved = localStorage.getItem('manual-translation-history-view');
@@ -153,39 +156,60 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     if (!translation || !currentSession) return;
 
     try {
-      console.log('🔄 Recalculating metrics for corrected translation:', translationId);
+      console.log('🔄 Recalculating and retranslating for corrected translation:', translationId);
       
       // Get the corrected assignment
       const toggleState = translationToggles[translationId] || { textSwapped: false, speakerSwapped: false };
-      const correctedSpeaker = toggleState.speakerSwapped 
-        ? (translation.speaker === 'gp' ? 'patient' : 'gp') 
-        : translation.speaker;
       
-      const correctedOriginalText = toggleState.textSwapped ? translation.translatedText : translation.originalText;
-      const correctedTranslatedText = toggleState.textSwapped ? translation.originalText : translation.translatedText;
-      const correctedOriginalLang = toggleState.textSwapped ? translation.targetLanguage : translation.originalLanguageDetected;
-      const correctedTargetLang = toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage;
+      if (!toggleState.textSwapped) {
+        console.log('No text swap needed, just updating display');
+        return;
+      }
 
-      // Call translation service to recalculate metrics
+      // After correction: English text should be translated to patient's language
+      const englishText = translation.originalText; // This was incorrectly detected as patient speech
+      const targetLanguage = currentSession.targetLanguageCode; // Patient's chosen language
+      
+      console.log('Translating English to patient language:', { englishText, targetLanguage });
+
+      // Call translation service to translate English to patient's language
       const { data, error } = await supabase.functions.invoke('manual-translation-service', {
         body: {
-          text: correctedOriginalText,
-          sourceLanguage: correctedOriginalLang,
-          targetLanguage: correctedTargetLang,
-          isToEnglish: correctedTargetLang.toLowerCase() === 'english'
+          text: englishText,
+          sourceLanguage: 'English',
+          targetLanguage: targetLanguage,
+          isToEnglish: false
         }
       });
 
       if (error) throw error;
 
-      // Update the translation with new metrics - this will update the original hook state
-      // We need to find a way to update the translations from the hook
-      console.log('✅ Translation metrics recalculated successfully', data);
-      toast.success('Translation corrected and metrics updated');
+      // Update the translation entry with corrected data
+      const updatedTranslation = {
+        ...translation,
+        speaker: toggleState.speakerSwapped ? (translation.speaker === 'gp' ? 'patient' : 'gp') : translation.speaker,
+        originalText: englishText, // GP's English text
+        translatedText: data.translatedText, // Translated to patient's language
+        originalLanguageDetected: 'English',
+        targetLanguage: targetLanguage,
+        translationAccuracy: data.accuracy,
+        translationConfidence: data.confidence,
+        safetyFlag: data.safetyFlag,
+        medicalTermsDetected: data.medicalTermsCount > 0 ? ['medical terms detected'] : []
+      };
+
+      // Store the corrected translation locally
+      setCorrectedTranslations(prev => ({
+        ...prev,
+        [translationId]: updatedTranslation
+      }));
+
+      console.log('✅ Translation completed successfully:', updatedTranslation);
+      toast.success(`Corrected: English translated to ${currentSession.targetLanguageName}`);
 
     } catch (error) {
       console.error('❌ Failed to recalculate translation metrics:', error);
-      toast.error('Failed to update translation metrics');
+      toast.error('Failed to translate corrected text');
     }
   }, [translations, translationToggles, currentSession]);
 
@@ -634,14 +658,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                          : reversedTranslations;
                        
                        return displayedTranslations.map((translation) => {
+                         // Use corrected translation if available, otherwise use original
+                         const finalTranslation = correctedTranslations[translation.id] || translation;
                          const toggleState = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
-                         const displaySpeaker = toggleState.speakerSwapped 
-                           ? (translation.speaker === 'gp' ? 'patient' : 'gp')
-                           : translation.speaker;
+                         const displaySpeaker = finalTranslation.speaker;
                          
                          return (
                          <div
-                           key={translation.id}
+                           key={finalTranslation.id}
                            className={`p-3 rounded-lg border-l-4 ${
                              displaySpeaker === 'gp'
                                ? 'bg-blue-50 border-l-blue-500'
@@ -654,16 +678,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                  {displaySpeaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
                                </span>
                                <Badge variant="outline" className="text-xs">
-                                 #{translation.exchangeNumber}
+                                 #{finalTranslation.exchangeNumber}
                                </Badge>
                                <Badge 
                                  variant="outline" 
-                                 className={`text-xs ${getSafetyBadgeColor(translation.safetyFlag)}`}
+                                 className={`text-xs ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
                                >
-                                 {getSafetyIcon(translation.safetyFlag)}
-                                 {translation.safetyFlag}
+                                 {getSafetyIcon(finalTranslation.safetyFlag)}
+                                 {finalTranslation.safetyFlag}
                                </Badge>
-                               {(toggleState.textSwapped || toggleState.speakerSwapped) && (
+                               {correctedTranslations[translation.id] && (
                                  <Badge variant="secondary" className="text-xs">
                                    Corrected
                                  </Badge>
@@ -705,20 +729,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                            <div className="space-y-2">
                              <div>
                                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                 {toggleState.textSwapped ? 'Translation' : 'Original'} ({toggleState.textSwapped ? translation.targetLanguage : translation.originalLanguageDetected})
+                                 Original ({finalTranslation.originalLanguageDetected})
                                </div>
-                               <div className="text-sm">
-                                 {toggleState.textSwapped ? translation.translatedText : translation.originalText}
-                               </div>
+                               <div className="text-sm">{finalTranslation.originalText}</div>
                              </div>
                              
                              <div>
                                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                 {toggleState.textSwapped ? 'Original' : 'Translation'} ({toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage})
+                                 Translation ({finalTranslation.targetLanguage})
                                </div>
-                               <div className="text-sm font-medium">
-                                 {toggleState.textSwapped ? translation.originalText : translation.translatedText}
-                               </div>
+                               <div className="text-sm font-medium">{finalTranslation.translatedText}</div>
                                
                                {/* TTS Button */}
                                {showSpeakers && 'speechSynthesis' in window && (
@@ -727,10 +747,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                    size="sm"
                                    className="h-6 px-2 mt-1"
                                    onClick={() => {
-                                     const textToSpeak = toggleState.textSwapped ? translation.originalText : translation.translatedText;
-                                     const langToUse = toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage;
-                                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                                     utterance.lang = langToUse;
+                                     const utterance = new SpeechSynthesisUtterance(finalTranslation.translatedText);
+                                     utterance.lang = finalTranslation.targetLanguage;
                                      utterance.rate = 0.9;
                                      speechSynthesis.speak(utterance);
                                    }}
@@ -740,20 +758,20 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                  </Button>
                                )}
                              </div>
- 
+
                            {showMetrics && (
                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                               <span>Accuracy: {translation.translationAccuracy}%</span>
-                               <span>Confidence: {translation.translationConfidence}%</span>
-                               <span>{translation.processingTimeMs}ms</span>
+                               <span>Accuracy: {finalTranslation.translationAccuracy}%</span>
+                               <span>Confidence: {finalTranslation.translationConfidence}%</span>
+                               <span>{finalTranslation.processingTimeMs}ms</span>
                              </div>
                            )}
- 
-                           {translation.medicalTermsDetected.length > 0 && (
+
+                           {finalTranslation.medicalTermsDetected.length > 0 && (
                              <div className="text-xs">
                                <span className="text-muted-foreground">Medical terms: </span>
                                <span className="text-primary font-medium">
-                                 {translation.medicalTermsDetected.join(', ')}
+                                 {finalTranslation.medicalTermsDetected.join(', ')}
                                </span>
                              </div>
                            )}
