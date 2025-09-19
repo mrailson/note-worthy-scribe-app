@@ -31,6 +31,7 @@ import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { ManualTranslationHistory } from './ManualTranslationHistory';
 import { toast } from 'sonner';
+import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
 
 interface ManualTranslationModalProps {
   isOpen: boolean;
@@ -145,42 +146,76 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     onClose();
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (translations.length === 0) {
       toast.error('No translations to export');
       return;
     }
 
-    // Create transcript content
-    const transcript = translations.map((translation, index) => {
-      const timeStr = translation.timestamp.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      const speakerLabel = translation.speaker === 'gp' ? 'GP' : 'Patient';
-      
-      return `[${timeStr}] ${speakerLabel}:\nOriginal (${translation.originalLanguageDetected}): ${translation.originalText}\nTranslation (${translation.targetLanguage}): ${translation.translatedText}\nAccuracy: ${translation.translationAccuracy}% | Confidence: ${translation.translationConfidence}% | Safety: ${translation.safetyFlag}\n${translation.medicalTermsDetected.length > 0 ? `Medical terms: ${translation.medicalTermsDetected.join(', ')}\n` : ''}`;
-    }).join('\n---\n\n');
+    try {
+      // Convert manual translations to the format expected by downloadDOCX
+      const formattedTranslations = translations.map((translation) => ({
+        id: translation.id,
+        originalText: translation.originalText,
+        translatedText: translation.translatedText,
+        originalLanguage: translation.originalLanguageDetected,
+        targetLanguage: translation.targetLanguage,
+        timestamp: translation.timestamp,
+        speaker: translation.speaker,
+        accuracy: translation.translationAccuracy,
+        confidence: translation.translationConfidence,
+        safety: translation.safetyFlag,
+        medicalTerms: translation.medicalTermsDetected,
+        processingTime: translation.processingTimeMs,
+        exchange_number: translation.exchangeNumber,
+        original_text: translation.originalText,
+        translated_text: translation.translatedText,
+        original_language_detected: translation.originalLanguageDetected,
+        target_language: translation.targetLanguage,
+        detection_confidence: translation.detectionConfidence,
+        translation_accuracy: translation.translationAccuracy,
+        translation_confidence: translation.translationConfidence,
+        safety_flag: translation.safetyFlag,
+        medical_terms_detected: translation.medicalTermsDetected,
+        processing_time_ms: translation.processingTimeMs,
+        created_at: translation.timestamp.toISOString()
+      }));
 
-    // Add session header
-    const sessionInfo = currentSession ? 
-      `Manual Translation Session: ${currentSession.targetLanguageName}\nDate: ${new Date().toLocaleDateString('en-GB')}\nTotal Exchanges: ${translations.length}\n\n` : 
-      `Manual Translation Session\nDate: ${new Date().toLocaleDateString('en-GB')}\nTotal Exchanges: ${translations.length}\n\n`;
+      // Create session metadata
+      const sessionStart = currentSession?.sessionStart || new Date();
+      const sessionEnd = new Date();
+      const safetyRating = (sessionStats?.safetyStatus === 'safe' || sessionStats?.safetyStatus === 'warning' || sessionStats?.safetyStatus === 'unsafe') 
+        ? sessionStats.safetyStatus 
+        : 'safe' as const;
 
-    const fullTranscript = sessionInfo + transcript;
+      const metadata: SessionMetadata = {
+        sessionDate: sessionStart,
+        sessionStart: sessionStart,
+        sessionEnd: sessionEnd,
+        patientLanguage: selectedLanguageName || 'Unknown',
+        totalTranslations: translations.length,
+        sessionDuration: sessionStats?.duration || Math.floor((sessionEnd.getTime() - sessionStart.getTime()) / 1000),
+        averageAccuracy: sessionStats?.averageAccuracy || Math.round(translations.reduce((sum, t) => sum + t.translationAccuracy, 0) / translations.length) || 0,
+        averageConfidence: Math.round(translations.reduce((sum, t) => sum + t.translationConfidence, 0) / translations.length) || 0,
+        overallSafetyRating: safetyRating
+      };
 
-    // Create and download file
-    const blob = new Blob([fullTranscript], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `manual-translation-${selectedLanguageName || 'session'}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Calculate translation scores for each entry
+      const translationScores = formattedTranslations.map(translation => ({
+        accuracy: translation.translation_accuracy,
+        confidence: translation.translation_confidence,
+        safetyFlag: translation.safety_flag,
+        medicalTermsDetected: translation.medical_terms_detected,
+        processingTime: translation.processing_time_ms,
+        issues: [] // Manual translations don't have technical issues like AI processing
+      }));
 
-    toast.success('Translation transcript downloaded');
+      await downloadDOCX(formattedTranslations, metadata, translationScores);
+      toast.success('Manual translation session exported to Word document');
+    } catch (error) {
+      console.error('Failed to export manual translation:', error);
+      toast.error('Failed to export session. Please try again.');
+    }
   };
 
   const formatTime = (seconds: number) => {
