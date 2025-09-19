@@ -254,13 +254,20 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   };
 
   const handleReset = () => {
+    console.log('🔄 Resetting manual translation session');
     if (isActive) {
       stopListening();
       clearSession();
     }
-    // Reset all state  
+    
+    // Reset all modal state completely
     setSelectedLanguage('');
     setSelectedLanguageName('');
+    setTranslationToggles({});
+    setCorrectedTranslations({});
+    setProcessingTranslations(new Set());
+    
+    console.log('✅ All manual translation state cleared');
     toast.success('Session cleared - ready for new translation');
   };
 
@@ -270,9 +277,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
       stopListening();
       clearSession();
     }
-    // Reset modal state
+    
+    // Reset all modal state completely
     setSelectedLanguage('');
     setSelectedLanguageName('');
+    setTranslationToggles({});
+    setCorrectedTranslations({});
+    setProcessingTranslations(new Set());
+    
     onClose();
   };
 
