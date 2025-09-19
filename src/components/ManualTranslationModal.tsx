@@ -152,17 +152,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
       await startSession(selectedLanguage, selectedLanguageName);
       console.log('✅ Session started successfully');
       
-      // Small delay to ensure session is fully initialized, then auto-start listening
-      setTimeout(() => {
-        console.log('🎧 Auto-starting listening after session initialization');
-        startListening().then(() => {
-          console.log('✅ Auto-listening started successfully');
-          toast.success('Translation session started - listening for speech');
-        }).catch((error) => {
-          console.error('❌ Failed to auto-start listening:', error);
-          toast.error('Session started but failed to begin listening. Please click "Start Listening" manually.');
-        });
-      }, 500);
+      // Auto-start listening immediately after the session starts to preserve user gesture
+      console.log('🎧 Auto-starting listening immediately after session initialization');
+      await startListening();
+      console.log('✅ Auto-listening started successfully');
+      toast.success('Translation session started - listening for speech');
+
     } catch (error) {
       console.error('❌ Failed to start session:', error);
       toast.error('Failed to start translation session');
@@ -443,34 +438,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       </div>
                     )}
 
-                    {/* Speaker Controls */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">Audio Settings</div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="gp-speaker" className="text-sm flex items-center gap-2">
-                            {speakerSettings.gp ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                            GP Audio
-                          </Label>
-                          <Switch
-                            id="gp-speaker"
-                            checked={speakerSettings.gp}
-                            onCheckedChange={() => toggleSpeaker('gp')}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="patient-speaker" className="text-sm flex items-center gap-2">
-                            {speakerSettings.patient ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                            Patient Audio
-                          </Label>
-                          <Switch
-                            id="patient-speaker"
-                            checked={speakerSettings.patient}
-                            onCheckedChange={() => toggleSpeaker('patient')}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    {/* Audio Settings moved to main settings cog - removed from here as requested */}
+
 
                     {/* Session Actions */}
                     <div className="flex gap-2">
