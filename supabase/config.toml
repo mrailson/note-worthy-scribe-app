@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.load-translation-sessions]
 verify_jwt = true
+
+[functions.manual-translation-service]
+verify_jwt = true

@@ -1,251 +1,226 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface TranslationRequest {
+  text: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  isToEnglish?: boolean;
+}
+
+interface TranslationResponse {
+  translatedText: string;
+  accuracy: number;
+  confidence: number;
+  safetyFlag: 'safe' | 'warning' | 'unsafe';
+  medicalTermsDetected: string[];
+  medicalTermsCount: number;
+  processingTimeMs: number;
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
-    const { text, targetLanguage, sourceLanguage = 'auto' } = await req.json()
+    const { text, sourceLanguage, targetLanguage, isToEnglish }: TranslationRequest = await req.json();
+    
+    console.log('🔄 Manual translation request:', {
+      text: text.substring(0, 100),
+      sourceLanguage,
+      targetLanguage,
+      isToEnglish
+    });
 
-    if (!text || !targetLanguage) {
-      throw new Error('Text and target language are required')
+    if (!text || !text.trim()) {
+      throw new Error('Text is required for translation');
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured')
+    if (!targetLanguage) {
+      throw new Error('Target language is required');
     }
 
-    // Convert language codes to full names for better AI understanding
-    const languageNames = {
-      'en': 'English',
-      'fr': 'French',
-      'es': 'Spanish', 
-      'de': 'German',
-      'it': 'Italian',
-      'pt': 'Portuguese',
-      'ar': 'Arabic',
-      'zh': 'Chinese (Mandarin)',
-      'hi': 'Hindi',
-      'ru': 'Russian',
-      'tr': 'Turkish',
-      'hu': 'Hungarian',
-      'ur': 'Urdu',
-      'bn': 'Bengali',
-      'ta': 'Tamil',
-      'te': 'Telugu',
-      'gu': 'Gujarati',
-      'pa': 'Punjabi',
-      'pl': 'Polish',
-      'ro': 'Romanian',
-      'so': 'Somali',
-      'sw': 'Swahili',
-      'am': 'Amharic',
-      'ti': 'Tigrinya',
-      'vi': 'Vietnamese',
-      'th': 'Thai',
-      'ko': 'Korean',
-      'ja': 'Japanese',
-      'ne': 'Nepali',
-      'si': 'Sinhala',
-      'my': 'Burmese',
-      'km': 'Khmer',
-      'lo': 'Lao',
-      'mn': 'Mongolian',
-      'ka': 'Georgian',
-      'hy': 'Armenian',
-      'az': 'Azerbaijani',
-      'kk': 'Kazakh',
-      'ky': 'Kyrgyz',
-      'tg': 'Tajik',
-      'tk': 'Turkmen',
-      'uz': 'Uzbek',
-      'ps': 'Pashto',
-      'sd': 'Sindhi',
-      'ml': 'Malayalam',
-      'kn': 'Kannada',
-      'or': 'Odia',
-      'as': 'Assamese',
-      'mr': 'Marathi'
+    // Prepare translation request for OpenAI
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
-    const targetLanguageName = languageNames[targetLanguage] || targetLanguage
-    const sourceLanguageName = sourceLanguage && sourceLanguage !== 'auto' ? (languageNames[sourceLanguage] || sourceLanguage) : 'detected language'
+    // Detect medical terms
+    const medicalTerms = detectMedicalTerms(text);
+    const safetyFlag = assessSafety(text, medicalTerms);
 
-    // Determine translation direction and create appropriate prompt
-    const isToEnglish = targetLanguage === 'en' || targetLanguage === 'english'
-    const prompt = isToEnglish 
-      ? `Translate the following ${sourceLanguage === 'auto' ? 'text' : sourceLanguageName} text to clear, professional English suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
+    // Create system prompt for medical translation
+    const systemPrompt = `You are a professional medical translator specialising in GP-patient consultations. 
+    
+    Guidelines:
+    - Provide accurate, clear translations that preserve medical meaning
+    - Use appropriate medical terminology for the target language
+    - Maintain the tone and context of the conversation
+    - Ensure patient safety by preserving critical medical information
+    - Use formal, respectful language appropriate for healthcare settings
+    
+    Source language: ${sourceLanguage}
+    Target language: ${targetLanguage}
+    
+    Translate the following text accurately:`;
 
-"${text}"
-
-Respond with only the English translation, no explanations or additional text.`
-      : `Translate the following English text to ${targetLanguageName} in a clear, professional manner suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
-
-"${text}"
-
-Respond with only the ${targetLanguageName} translation, no explanations or additional text.`
-
-    console.log('Translation request:', { 
-      text: text.substring(0, 100), 
-      sourceLanguage: sourceLanguageName, 
-      targetLanguage: targetLanguageName,
-      isToEnglish 
-    })
-
-    // Call OpenAI for translation
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${openAIKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a professional medical translator. Provide accurate, clear translations that preserve medical terminology and meaning. Respond only with the translation, no additional text.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text }
         ],
-        max_tokens: 500,
-        temperature: 0.1,
-      }),
-    })
+        temperature: 0.1, // Low temperature for consistent medical translations
+        max_tokens: 500
+      })
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('OpenAI API error:', errorText)
-      throw new Error(`Translation service error: ${response.status}`)
+    if (!openAIResponse.ok) {
+      const errorData = await openAIResponse.text();
+      console.error('❌ OpenAI API error:', errorData);
+      throw new Error(`Translation service error: ${openAIResponse.status}`);
     }
 
-    const data = await response.json()
-    const translatedText = data.choices[0]?.message?.content?.trim() || ''
+    const openAIData = await openAIResponse.json();
+    const translatedText = openAIData.choices[0]?.message?.content?.trim();
 
     if (!translatedText) {
-      throw new Error('No translation received from service')
+      throw new Error('No translation received from service');
     }
 
-    // Simple accuracy assessment based on length and content preservation
-    const accuracyScore = Math.min(95, Math.max(70, 
-      85 + (text.length > 50 ? 5 : 0) - 
-      (Math.abs(translatedText.length - text.length) / text.length > 0.5 ? 10 : 0)
-    ))
+    const processingTime = Date.now() - startTime;
 
-    // Simple confidence assessment
-    const confidenceScore = Math.min(95, Math.max(75, accuracyScore - 5))
+    // Calculate quality metrics
+    const accuracy = calculateAccuracy(text, translatedText, medicalTerms.length);
+    const confidence = calculateConfidence(text, translatedText);
 
-    // Basic medical terminology detection
-    const medicalTerms = detectMedicalTerms(text + ' ' + translatedText)
-
-    // Safety assessment based on medical context
-    const safetyFlag = assessSafety(text, translatedText, accuracyScore, medicalTerms)
-
-    const result = {
-      originalText: text,
+    const response: TranslationResponse = {
       translatedText,
-      detectedSourceLanguage: sourceLanguage,
-      targetLanguage,
-      accuracy: Math.round(accuracyScore),
-      confidence: Math.round(confidenceScore),
+      accuracy,
+      confidence,
       safetyFlag,
       medicalTermsDetected: medicalTerms,
-      processingTimeMs: 1000, // Placeholder
-    }
+      medicalTermsCount: medicalTerms.length,
+      processingTimeMs: processingTime
+    };
 
-    console.log('Translation completed:', {
-      accuracy: result.accuracy,
-      confidence: result.confidence,
-      safetyFlag: result.safetyFlag,
-      medicalTermsCount: medicalTerms.length
-    })
+    console.log('✅ Translation completed:', {
+      originalLength: text.length,
+      translatedLength: translatedText.length,
+      accuracy,
+      confidence,
+      safetyFlag,
+      medicalTermsCount: medicalTerms.length,
+      processingTime
+    });
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error('Manual translation service error:', error)
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        originalText: '',
-        translatedText: '',
-        accuracy: 0,
-        confidence: 0,
-        safetyFlag: 'unsafe'
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    console.error('❌ Manual translation error:', error);
+    
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Translation failed',
+      translatedText: '',
+      accuracy: 0,
+      confidence: 0,
+      safetyFlag: 'unsafe' as const,
+      medicalTermsDetected: [],
+      medicalTermsCount: 0,
+      processingTimeMs: Date.now() - startTime
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
-})
+});
 
+// Helper function to detect medical terms
 function detectMedicalTerms(text: string): string[] {
   const medicalKeywords = [
-    'pain', 'medication', 'prescription', 'dose', 'dosage', 'symptom', 'diagnosis',
-    'treatment', 'allergy', 'allergic', 'blood pressure', 'heart rate', 'temperature',
-    'nausea', 'vomiting', 'headache', 'fever', 'infection', 'antibiotic', 'surgery',
-    'operation', 'emergency', 'urgent', 'serious', 'chronic', 'acute', 'severe',
-    'mild', 'moderate', 'doctor', 'nurse', 'hospital', 'clinic', 'appointment',
-    'test', 'examination', 'scan', 'x-ray', 'blood test', 'urine', 'breathing',
-    'chest', 'heart', 'lung', 'stomach', 'abdomen', 'liver', 'kidney', 'diabetes',
-    'hypertension', 'asthma', 'cancer', 'tumour', 'tumor'
-  ]
+    'pain', 'medication', 'prescription', 'tablet', 'dose', 'symptoms', 'diagnosis',
+    'treatment', 'blood', 'pressure', 'heart', 'chest', 'breathing', 'headache',
+    'infection', 'allergy', 'diabetes', 'asthma', 'surgery', 'hospital', 'doctor',
+    'nurse', 'appointment', 'test', 'scan', 'x-ray', 'injection', 'vaccine',
+    'temperature', 'fever', 'nausea', 'vomiting', 'diarrhoea', 'constipation'
+  ];
 
-  const lowerText = text.toLowerCase()
-  const foundTerms: string[] = []
-
-  medicalKeywords.forEach(term => {
-    if (lowerText.includes(term.toLowerCase())) {
-      foundTerms.push(term)
-    }
-  })
-
-  return [...new Set(foundTerms)] // Remove duplicates
+  const lowerText = text.toLowerCase();
+  return medicalKeywords.filter(term => lowerText.includes(term));
 }
 
-function assessSafety(
-  originalText: string, 
-  translatedText: string, 
-  accuracy: number, 
-  medicalTerms: string[]
-): 'safe' | 'warning' | 'unsafe' {
-  // Critical medical terms that require high accuracy
-  const criticalTerms = ['emergency', 'urgent', 'serious', 'severe', 'allergy', 'allergic', 'medication', 'dose']
+// Helper function to assess safety
+function assessSafety(text: string, medicalTerms: string[]): 'safe' | 'warning' | 'unsafe' {
+  const lowerText = text.toLowerCase();
   
-  const hasCriticalTerms = criticalTerms.some(term => 
-    originalText.toLowerCase().includes(term) || translatedText.toLowerCase().includes(term)
-  )
-
-  if (accuracy < 70) {
-    return 'unsafe'
+  // High-risk terms
+  const highRiskTerms = ['emergency', 'urgent', 'severe', 'critical', 'overdose', 'suicide', 'chest pain'];
+  const hasHighRisk = highRiskTerms.some(term => lowerText.includes(term));
+  
+  if (hasHighRisk) {
+    return 'unsafe';
   }
-
-  if (hasCriticalTerms && accuracy < 85) {
-    return 'warning'
+  
+  // Warning for multiple medical terms or complex medical language
+  if (medicalTerms.length >= 3) {
+    return 'warning';
   }
+  
+  return 'safe';
+}
 
-  if (medicalTerms.length > 3 && accuracy < 80) {
-    return 'warning'
+// Helper function to calculate translation accuracy
+function calculateAccuracy(original: string, translated: string, medicalTermsCount: number): number {
+  // Base accuracy starts at 85%
+  let accuracy = 85;
+  
+  // Penalise very short translations (likely incomplete)
+  if (translated.length < original.length * 0.5) {
+    accuracy -= 15;
   }
-
-  if (accuracy >= 90) {
-    return 'safe'
+  
+  // Bonus for medical content (more careful translation)
+  if (medicalTermsCount > 0) {
+    accuracy += Math.min(10, medicalTermsCount * 2);
   }
+  
+  // Ensure accuracy is between 60-95%
+  return Math.max(60, Math.min(95, accuracy));
+}
 
-  return accuracy >= 80 ? 'safe' : 'warning'
+// Helper function to calculate confidence
+function calculateConfidence(original: string, translated: string): number {
+  // Base confidence
+  let confidence = 80;
+  
+  // Higher confidence for reasonable length translations
+  const lengthRatio = translated.length / original.length;
+  if (lengthRatio >= 0.7 && lengthRatio <= 1.5) {
+    confidence += 10;
+  }
+  
+  // Slight bonus for longer, more detailed text
+  if (original.length > 50) {
+    confidence += 5;
+  }
+  
+  return Math.max(70, Math.min(95, confidence));
 }

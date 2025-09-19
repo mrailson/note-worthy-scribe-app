@@ -68,6 +68,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguageCode || '');
   const [selectedLanguageName, setSelectedLanguageName] = useState<string>(initialLanguageName || '');
+  const [showConsent, setShowConsent] = useState<boolean>(false);
+  const [consentGiven, setConsentGiven] = useState<boolean>(false);
   
   // Speaker settings with persistence
   const [speakerSettings, setSpeakerSettings] = useState(() => {
@@ -248,14 +250,30 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
       return;
     }
 
+    // Show consent dialog first
+    setShowConsent(true);
+  };
+
+  const handleConsentGiven = async () => {
+    console.log('✅ Consent given, starting session');
+    setConsentGiven(true);
+    setShowConsent(false);
+    
     try {
       console.log('🔄 About to start session with:', { selectedLanguage, selectedLanguageName });
-      await startSession(selectedLanguage, selectedLanguageName);
+      await startSession(selectedLanguage, selectedLanguageName, true);
       console.log('✅ Session started successfully with auto-listening');
     } catch (error) {
       console.error('❌ Failed to start session:', error);
       toast.error('Failed to start translation session');
     }
+  };
+
+  const handleConsentDeclined = () => {
+    console.log('❌ Consent declined');
+    setShowConsent(false);
+    setConsentGiven(false);
+    toast.error('Consent is required to use the translation service');
   };
 
   const handleEndSession = async () => {
@@ -281,6 +299,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     setTranslationToggles({});
     setCorrectedTranslations({});
     setProcessingTranslations(new Set());
+    setShowConsent(false);
+    setConsentGiven(false);
     
     console.log('✅ All manual translation state cleared');
     toast.success('Session cleared - ready for new translation');
@@ -299,6 +319,8 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     setTranslationToggles({});
     setCorrectedTranslations({});
     setProcessingTranslations(new Set());
+    setShowConsent(false);
+    setConsentGiven(false);
     
     onClose();
   };
@@ -443,6 +465,47 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
           </TabsList>
 
           <TabsContent value="live-session" className="flex-1 overflow-hidden flex gap-4 mt-4">
+            {/* Consent Dialog */}
+            {showConsent && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Translation Service Consent
+                  </h3>
+                  <div className="space-y-4 mb-6">
+                    <p className="text-sm text-muted-foreground">
+                      Before starting the translation session, please confirm:
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-2 ml-4">
+                      <li>• Patient has consented to translation assistance</li>
+                      <li>• Sensitive medical information will be processed</li>
+                      <li>• Translations are logged for quality assurance</li>
+                      <li>• This is a medical professional consultation tool</li>
+                    </ul>
+                    <p className="text-sm font-medium">
+                      Target Language: <span className="text-primary">{selectedLanguageName}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleConsentDeclined}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleConsentGiven}
+                      className="flex-1"
+                    >
+                      I Consent & Start Session
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Left Panel - Controls */}
             <div className="w-80 flex flex-col gap-4">
               {/* Language Selection */}
