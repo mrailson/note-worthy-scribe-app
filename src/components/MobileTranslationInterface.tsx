@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Volume2, Mic, Languages, Square } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Volume2, Mic, Languages, Square, Maximize2 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ export const MobileTranslationInterface = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('fr');
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
+  const [showFullScreen, setShowFullScreen] = useState(false);
   
   // Use the manual translation hook
   const {
@@ -201,8 +203,16 @@ export const MobileTranslationInterface = () => {
         {/* Translation History */}
         {isActive && translations.length > 0 && (
           <div className="flex-1 overflow-hidden">
-            <div className="p-4 border-b bg-muted/50">
+            <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
               <h3 className="font-medium">Translation History</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFullScreen(true)}
+                className="h-8 w-8 p-0"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
               {translations.map((translation, index) => (
@@ -257,6 +267,64 @@ export const MobileTranslationInterface = () => {
         languageCode={pendingLanguage?.code || ''}
         languageName={pendingLanguage?.name || ''}
       />
+
+      {/* Full Screen Translation History Modal */}
+      <Dialog open={showFullScreen} onOpenChange={setShowFullScreen}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5 text-primary" />
+              Translation History - Full Screen View
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {translations.map((translation, index) => (
+                <div
+                  key={index}
+                  className={`p-6 rounded-lg ${
+                    translation.speaker === 'gp' 
+                      ? 'bg-blue-50 border-l-4 border-blue-500' 
+                      : 'bg-green-50 border-l-4 border-green-500'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="font-semibold text-lg">
+                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {translation.safetyFlag !== 'safe' && (
+                      <div className={`text-sm px-3 py-1 rounded ${
+                        translation.safetyFlag === 'warning' 
+                          ? 'bg-yellow-100 text-yellow-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {translation.safetyFlag.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="text-lg">
+                      <span className="font-semibold">Original:</span> 
+                      <div className="mt-2 text-foreground leading-relaxed">{translation.originalText}</div>
+                    </div>
+                    <div className="text-lg">
+                      <span className="font-semibold">Translation:</span>
+                      <div className="mt-2 text-foreground leading-relaxed">{translation.translatedText}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Accuracy: {translation.translationAccuracy}% | Confidence: {translation.translationConfidence}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
