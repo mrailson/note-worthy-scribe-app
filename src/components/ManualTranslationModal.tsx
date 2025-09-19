@@ -76,6 +76,17 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : false;
   });
 
+  // Display settings with persistence
+  const [showMetrics, setShowMetrics] = useState<boolean>(() => {
+    const saved = localStorage.getItem('manual-translation-show-metrics');
+    return saved ? JSON.parse(saved) : true;
+  });
+
+  const [showSpeakers, setShowSpeakers] = useState<boolean>(() => {
+    const saved = localStorage.getItem('manual-translation-show-speakers');
+    return saved ? JSON.parse(saved) : true;
+  });
+
   // Ref for scroll area to auto-scroll to bottom
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +99,15 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   useEffect(() => {
     localStorage.setItem('manual-translation-history-view', JSON.stringify(showLastOnly));
   }, [showLastOnly]);
+
+  // Persist display settings
+  useEffect(() => {
+    localStorage.setItem('manual-translation-show-metrics', JSON.stringify(showMetrics));
+  }, [showMetrics]);
+
+  useEffect(() => {
+    localStorage.setItem('manual-translation-show-speakers', JSON.stringify(showSpeakers));
+  }, [showSpeakers]);
 
   const toggleSpeaker = (speaker: 'patient' | 'gp') => {
     setSpeakerSettings(prev => ({
@@ -521,18 +541,42 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                           Configure how translations are displayed
                         </p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Eye className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {showLastOnly ? 'Show Last Translation Only' : 'Show Full History'}
-                          </span>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              {showLastOnly ? 'Show Last Translation Only' : 'Show Full History'}
+                            </span>
+                          </div>
+                          <Switch
+                            id="manual-history-toggle"
+                            checked={showLastOnly}
+                            onCheckedChange={setShowLastOnly}
+                          />
                         </div>
-                        <Switch
-                          id="manual-history-toggle"
-                          checked={showLastOnly}
-                          onCheckedChange={setShowLastOnly}
-                        />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">Show Speakers</span>
+                          </div>
+                          <Switch
+                            id="show-speakers-toggle"
+                            checked={showSpeakers}
+                            onCheckedChange={setShowSpeakers}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">Show Accuracy & Metrics</span>
+                          </div>
+                          <Switch
+                            id="show-metrics-toggle"
+                            checked={showMetrics}
+                            onCheckedChange={setShowMetrics}
+                          />
+                        </div>
                       </div>
                     </div>
                   </PopoverContent>
@@ -583,9 +627,11 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                            </span>
+                            {showSpeakers && (
+                              <span className="text-sm font-medium">
+                                {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                              </span>
+                            )}
                             <Badge variant="outline" className="text-xs">
                               #{translation.exchangeNumber}
                             </Badge>
@@ -638,11 +684,13 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Accuracy: {translation.translationAccuracy}%</span>
-                            <span>Confidence: {translation.translationConfidence}%</span>
-                            <span>{translation.processingTimeMs}ms</span>
-                          </div>
+                          {showMetrics && (
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Accuracy: {translation.translationAccuracy}%</span>
+                              <span>Confidence: {translation.translationConfidence}%</span>
+                              <span>{translation.processingTimeMs}ms</span>
+                            </div>
+                          )}
 
                           {translation.medicalTermsDetected.length > 0 && (
                             <div className="text-xs">
