@@ -1,0 +1,347 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { LanguageDetector, WebSpeechLanguageDetector } from '@/utils/languageDetection';
+import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
+
+interface ManualTranslationEntry {
+  id: string;
+  exchangeNumber: number;
+  speaker: 'gp' | 'patient';
+  originalText: string;
+  translatedText: string;
+  originalLanguageDetected: string;
+  targetLanguage: string;
+  detectionConfidence: number;
+  translationAccuracy: number;
+  translationConfidence: number;
+  safetyFlag: 'safe' | 'warning' | 'unsafe';
+  medicalTermsDetected: string[];
+  processingTimeMs: number;
+  timestamp: Date;
+}
+
+interface ManualTranslationSession {
+  id: string;
+  sessionTitle: string;
+  targetLanguageCode: string;
+  targetLanguageName: string;
+  totalExchanges: number;
+  sessionDurationSeconds: number;
+  averageAccuracy: number;
+  averageConfidence: number;
+  overallSafetyRating: 'safe' | 'warning' | 'unsafe';
+  sessionStart: Date;
+  sessionEnd?: Date;
+  isCompleted: boolean;
+  entries: ManualTranslationEntry[];
+}
+
+export const useManualTranslation = () => {
+  const [isActive, setIsActive] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [currentSession, setCurrentSession] = useState<ManualTranslationSession | null>(null);
+  const [translations, setTranslations] = useState<ManualTranslationEntry[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const languageDetectorRef = useRef<LanguageDetector | null>(null);
+  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const webSpeechDetectorRef = useRef<WebSpeechLanguageDetector | null>(null);
+  const exchangeCounterRef = useRef(0);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    webSpeechDetectorRef.current = new WebSpeechLanguageDetector();
+    return () => {
+      speechRecognitionRef.current?.stopRecognition();
+    };
+  }, []);
+
+  const startSession = useCallback(async (targetLanguageCode: string, targetLanguageName: string) => {
+    try {
+      setError(null);
+      
+      // Create new session in database
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('manual_translation_sessions')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          target_language_code: targetLanguageCode,
+          target_language_name: targetLanguageName,
+          session_title: `Manual Translation - ${targetLanguageName}`,
+          session_start: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (sessionError) throw sessionError;
+
+      // Initialize session state
+      const session: ManualTranslationSession = {
+        id: sessionData.id,
+        sessionTitle: sessionData.session_title,
+        targetLanguageCode,
+        targetLanguageName,
+        totalExchanges: 0,
+        sessionDurationSeconds: 0,
+        averageAccuracy: 0,
+        averageConfidence: 0,
+        overallSafetyRating: 'safe',
+        sessionStart: new Date(sessionData.session_start),
+        isCompleted: false,
+        entries: []
+      };
+
+      setCurrentSession(session);
+      setTranslations([]);
+      exchangeCounterRef.current = 0;
+
+      // Initialize language detector
+      languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
+
+      // Initialize speech recognition
+      if (webSpeechDetectorRef.current?.isSupported()) {
+        speechRecognitionRef.current = new BrowserSpeechRecognition(
+          (transcript) => handleSpeechResult(transcript.text, transcript.isFinal),
+          (error) => {
+            console.error('Speech recognition error:', error);
+            toast.error('Speech recognition error: ' + error);
+          },
+          (status) => {
+            console.log('Speech recognition status:', status);
+          }
+        );
+      }
+
+      setIsActive(true);
+      toast.success(`Manual translation session started for ${targetLanguageName}`);
+      
+    } catch (error) {
+      console.error('Failed to start manual translation session:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start session');
+      toast.error('Failed to start translation session');
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    speechRecognitionRef.current?.stopRecognition();
+    setIsListening(false);
+  }, []);
+
+  const startListening = useCallback(async () => {
+    if (!currentSession || !speechRecognitionRef.current) {
+      toast.error('No active session or speech recognition not available');
+      return;
+    }
+
+    try {
+      setError(null);
+      await speechRecognitionRef.current.startRecognition();
+      setIsListening(true);
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      toast.error('Failed to start speech recognition');
+    }
+  }, [currentSession]);
+
+  const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
+    if (!currentSession || !languageDetectorRef.current || !text.trim()) {
+      return;
+    }
+
+    // Only process final results
+    if (!isFinal) {
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    try {
+      // Detect language and determine speaker
+      const detection = languageDetectorRef.current.detectLanguage(text);
+      const speaker = detection.suggestedSpeaker;
+      const isToEnglish = detection.isEnglish ? false : true; // If detected English, translate to target language
+      
+      const sourceLanguage = detection.isEnglish ? 'en' : currentSession.targetLanguageCode;
+      const targetLanguage = detection.isEnglish ? currentSession.targetLanguageCode : 'en';
+
+      // Call translation service
+      const { data, error } = await supabase.functions.invoke('manual-translation-service', {
+        body: {
+          text: text.trim(),
+          targetLanguage,
+          sourceLanguage
+        }
+      });
+
+      if (error) throw error;
+
+      exchangeCounterRef.current++;
+
+      // Create translation entry
+      const entry: ManualTranslationEntry = {
+        id: crypto.randomUUID(),
+        exchangeNumber: exchangeCounterRef.current,
+        speaker,
+        originalText: text.trim(),
+        translatedText: data.translatedText,
+        originalLanguageDetected: sourceLanguage,
+        targetLanguage,
+        detectionConfidence: detection.confidence,
+        translationAccuracy: data.accuracy,
+        translationConfidence: data.confidence,
+        safetyFlag: data.safetyFlag,
+        medicalTermsDetected: data.medicalTermsDetected || [],
+        processingTimeMs: data.processingTimeMs || 1000,
+        timestamp: new Date()
+      };
+
+      // Save to database
+      const { error: insertError } = await supabase
+        .from('manual_translation_entries')
+        .insert({
+          session_id: currentSession.id,
+          exchange_number: entry.exchangeNumber,
+          speaker: entry.speaker,
+          original_text: entry.originalText,
+          translated_text: entry.translatedText,
+          original_language_detected: entry.originalLanguageDetected,
+          target_language: entry.targetLanguage,
+          detection_confidence: entry.detectionConfidence,
+          translation_accuracy: entry.translationAccuracy,
+          translation_confidence: entry.translationConfidence,
+          safety_flag: entry.safetyFlag,
+          medical_terms_detected: entry.medicalTermsDetected,
+          processing_time_ms: entry.processingTimeMs,
+        });
+
+      if (insertError) throw insertError;
+
+      // Update local state
+      setTranslations(prev => [...prev, entry]);
+
+      // Speak the translation using browser TTS
+      if ('speechSynthesis' in window && data.translatedText) {
+        const utterance = new SpeechSynthesisUtterance(data.translatedText);
+        utterance.lang = targetLanguage;
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        speechSynthesis.speak(utterance);
+      }
+
+      toast.success(`Translation: ${speaker === 'gp' ? '👨‍⚕️' : '👤'} ${text.substring(0, 30)}... → ${data.translatedText.substring(0, 30)}...`);
+
+    } catch (error) {
+      console.error('Translation processing error:', error);
+      setError(error instanceof Error ? error.message : 'Translation failed');
+      toast.error('Translation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentSession]);
+
+  const endSession = useCallback(async () => {
+    if (!currentSession) return;
+
+    try {
+      const sessionEnd = new Date();
+      const sessionDuration = Math.floor((sessionEnd.getTime() - currentSession.sessionStart.getTime()) / 1000);
+      
+      // Calculate session statistics
+      const averageAccuracy = translations.length > 0 
+        ? translations.reduce((sum, t) => sum + t.translationAccuracy, 0) / translations.length 
+        : 0;
+      
+      const averageConfidence = translations.length > 0 
+        ? translations.reduce((sum, t) => sum + t.translationConfidence, 0) / translations.length 
+        : 0;
+
+      const unsafeCount = translations.filter(t => t.safetyFlag === 'unsafe').length;
+      const warningCount = translations.filter(t => t.safetyFlag === 'warning').length;
+      
+      const overallSafetyRating: 'safe' | 'warning' | 'unsafe' = 
+        unsafeCount > 0 ? 'unsafe' : 
+        warningCount > translations.length * 0.3 ? 'warning' : 'safe';
+
+      // Update session in database
+      const { error } = await supabase
+        .from('manual_translation_sessions')
+        .update({
+          session_end: sessionEnd.toISOString(),
+          session_duration_seconds: sessionDuration,
+          total_exchanges: translations.length,
+          average_accuracy: Math.round(averageAccuracy * 100) / 100,
+          average_confidence: Math.round(averageConfidence * 100) / 100,
+          overall_safety_rating: overallSafetyRating,
+          is_completed: true
+        })
+        .eq('id', currentSession.id);
+
+      if (error) throw error;
+
+      // Stop any ongoing speech recognition
+      stopListening();
+      
+      // Update local state
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        sessionEnd,
+        sessionDurationSeconds: sessionDuration,
+        totalExchanges: translations.length,
+        averageAccuracy,
+        averageConfidence,
+        overallSafetyRating,
+        isCompleted: true,
+        entries: translations
+      } : null);
+
+      setIsActive(false);
+      toast.success('Manual translation session completed');
+
+    } catch (error) {
+      console.error('Failed to end session:', error);
+      toast.error('Failed to end session properly');
+    }
+  }, [currentSession, translations, stopListening]);
+
+  const clearSession = useCallback(() => {
+    setCurrentSession(null);
+    setTranslations([]);
+    setIsActive(false);
+    setIsListening(false);
+    setError(null);
+    exchangeCounterRef.current = 0;
+    stopListening();
+  }, [stopListening]);
+
+  return {
+    // Session state
+    isActive,
+    currentSession,
+    translations,
+    isListening,
+    isProcessing,
+    error,
+
+    // Actions
+    startSession,
+    endSession,
+    clearSession,
+    startListening,
+    stopListening,
+
+    // Computed values
+    sessionStats: currentSession ? {
+      duration: currentSession.sessionEnd 
+        ? Math.floor((currentSession.sessionEnd.getTime() - currentSession.sessionStart.getTime()) / 1000)
+        : Math.floor((new Date().getTime() - currentSession.sessionStart.getTime()) / 1000),
+      exchangeCount: translations.length,
+      averageAccuracy: translations.length > 0 
+        ? Math.round(translations.reduce((sum, t) => sum + t.translationAccuracy, 0) / translations.length)
+        : 0,
+      safetyStatus: translations.filter(t => t.safetyFlag === 'unsafe').length > 0 ? 'unsafe' : 
+                   translations.filter(t => t.safetyFlag === 'warning').length > translations.length * 0.3 ? 'warning' : 'safe'
+    } : null
+  };
+};

@@ -2400,6 +2400,128 @@ export type Database = {
           },
         ]
       }
+      manual_translation_entries: {
+        Row: {
+          created_at: string
+          detection_confidence: number | null
+          exchange_number: number
+          id: string
+          medical_terms_detected: string[] | null
+          original_language_detected: string
+          original_text: string
+          processing_time_ms: number | null
+          safety_flag: string | null
+          session_id: string
+          speaker: string
+          target_language: string
+          timestamp: string
+          translated_text: string
+          translation_accuracy: number | null
+          translation_confidence: number | null
+        }
+        Insert: {
+          created_at?: string
+          detection_confidence?: number | null
+          exchange_number: number
+          id?: string
+          medical_terms_detected?: string[] | null
+          original_language_detected: string
+          original_text: string
+          processing_time_ms?: number | null
+          safety_flag?: string | null
+          session_id: string
+          speaker: string
+          target_language: string
+          timestamp?: string
+          translated_text: string
+          translation_accuracy?: number | null
+          translation_confidence?: number | null
+        }
+        Update: {
+          created_at?: string
+          detection_confidence?: number | null
+          exchange_number?: number
+          id?: string
+          medical_terms_detected?: string[] | null
+          original_language_detected?: string
+          original_text?: string
+          processing_time_ms?: number | null
+          safety_flag?: string | null
+          session_id?: string
+          speaker?: string
+          target_language?: string
+          timestamp?: string
+          translated_text?: string
+          translation_accuracy?: number | null
+          translation_confidence?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_translation_entries_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "manual_translation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_translation_sessions: {
+        Row: {
+          average_accuracy: number | null
+          average_confidence: number | null
+          created_at: string
+          id: string
+          is_completed: boolean | null
+          overall_safety_rating: string | null
+          session_duration_seconds: number | null
+          session_end: string | null
+          session_metadata: Json | null
+          session_start: string | null
+          session_title: string | null
+          target_language_code: string
+          target_language_name: string
+          total_exchanges: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_accuracy?: number | null
+          average_confidence?: number | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          overall_safety_rating?: string | null
+          session_duration_seconds?: number | null
+          session_end?: string | null
+          session_metadata?: Json | null
+          session_start?: string | null
+          session_title?: string | null
+          target_language_code: string
+          target_language_name: string
+          total_exchanges?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_accuracy?: number | null
+          average_confidence?: number | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          overall_safety_rating?: string | null
+          session_duration_seconds?: number | null
+          session_end?: string | null
+          session_metadata?: Json | null
+          session_start?: string | null
+          session_title?: string | null
+          target_language_code?: string
+          target_language_name?: string
+          total_exchanges?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       medical_term_corrections: {
         Row: {
           context_phrase: string | null
