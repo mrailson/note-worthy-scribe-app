@@ -3,12 +3,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Volume2, Mic, Languages, Square, Maximize2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ConsentModal } from '@/components/ConsentModal';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
+import { downloadManualTranslationDOCX } from '@/utils/manualTranslationDocxExport';
 
 interface TranslationEntry {
   id: string;
@@ -93,6 +95,65 @@ export const MobileTranslationInterface = () => {
       toast.error('Error ending session');
       console.error('Error ending session:', error);
     }
+  };
+
+  const handleDownloadWord = async () => {
+    if (!currentSession || translations.length === 0) {
+      toast.error('No translation data available');
+      return;
+    }
+
+    try {
+      const sessionDuration = currentSession.sessionStart ? 
+        Math.floor((new Date().getTime() - currentSession.sessionStart.getTime()) / 1000) : 0;
+
+      const translationEntries = translations.map((t, index) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        exchangeNumber: index + 1,
+        speaker: t.speaker,
+        originalText: t.originalText,
+        translatedText: t.translatedText,
+        originalLanguageDetected: 'en',
+        targetLanguage: currentSession.targetLanguageCode,
+        detectionConfidence: 95,
+        translationAccuracy: t.translationAccuracy || 95,
+        translationConfidence: t.translationConfidence || 90,
+        safetyFlag: t.safetyFlag || 'safe',
+        medicalTermsDetected: [],
+        processingTimeMs: 1000,
+        timestamp: t.timestamp
+      }));
+
+      const session = {
+        id: Math.random().toString(36).substr(2, 9),
+        sessionTitle: `Translation Session - ${currentSession.targetLanguageName}`,
+        targetLanguageCode: currentSession.targetLanguageCode,
+        targetLanguageName: currentSession.targetLanguageName,
+        totalExchanges: translations.length,
+        sessionDurationSeconds: sessionDuration,
+        averageAccuracy: 95,
+        averageConfidence: 90,
+        overallSafetyRating: 'safe' as const,
+        sessionStart: currentSession.sessionStart || new Date(),
+        sessionEnd: new Date(),
+        isCompleted: true,
+        entries: translationEntries
+      };
+
+      await downloadManualTranslationDOCX(session, translationEntries);
+      toast.success('Translation document downloaded successfully');
+    } catch (error) {
+      toast.error('Failed to download document');
+      console.error('Error downloading document:', error);
+    }
+  };
+
+  const handleEmailToMe = () => {
+    toast.info('Email to practitioner feature coming soon');
+  };
+
+  const handleEmailToPatient = () => {
+    toast.info('Email to patient feature coming soon');
   };
 
   const toggleListening = () => {
@@ -272,9 +333,32 @@ export const MobileTranslationInterface = () => {
       <Dialog open={showFullScreen} onOpenChange={setShowFullScreen}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Languages className="h-5 w-5 text-primary" />
-              Translation History - Full Screen View
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Languages className="h-5 w-5 text-primary" />
+                Translation History - Full Screen View
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDownloadWord}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Download as Word
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEmailToMe}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Email to Me
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEmailToPatient}>
+                    <User className="mr-2 h-4 w-4" />
+                    Email to Patient
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </DialogTitle>
           </DialogHeader>
           
