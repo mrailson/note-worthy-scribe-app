@@ -37,8 +37,7 @@ import {
   Eye,
   ArrowUpDown,
   ChevronDown,
-  ChevronRight,
-  Maximize2
+  ChevronRight
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -71,7 +70,6 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   const [selectedLanguageName, setSelectedLanguageName] = useState<string>(initialLanguageName || '');
   const [showConsent, setShowConsent] = useState<boolean>(false);
   const [consentGiven, setConsentGiven] = useState<boolean>(false);
-  const [showFullScreen, setShowFullScreen] = useState<boolean>(false);
   
   // Speaker settings with persistence
   const [speakerSettings, setSpeakerSettings] = useState(() => {
@@ -885,17 +883,6 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 border-primary/20 hover:border-primary/40"
-                  title="Expand view"
-                  onClick={() => setShowFullScreen(true)}
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
                 {/* Processing Status - moved inline with heading */}
                 {isProcessing && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
