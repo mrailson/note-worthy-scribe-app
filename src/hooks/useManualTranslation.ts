@@ -166,8 +166,9 @@ export const useManualTranslation = () => {
       }
 
       // Initialize language detection
-      console.log('🔧 Language detection ready for session...');
-      // Note: WebSpeechLanguageDetector doesn't require initialization
+      console.log('🔧 Initializing language detector...');
+      languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
+      console.log('✅ Language detector initialized');
 
       // Initialize speech recognition
       console.log('🎙️ Initializing speech recognition...');
