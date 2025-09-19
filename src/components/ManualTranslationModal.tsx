@@ -99,16 +99,6 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     sessionStats
   } = useManualTranslation();
 
-  // Auto-scroll to bottom when translations update
-  useEffect(() => {
-    if (scrollAreaRef.current && translations.length > 0) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  }, [translations]);
-
   const handleStartSession = async () => {
     console.log('🚀 Starting manual translation session:', { selectedLanguage, selectedLanguageName });
     
@@ -460,7 +450,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       <div className="text-sm">Start speaking to begin translation</div>
                     </div>
                   ) : (
-                    translations.map((translation) => (
+                    [...translations].reverse().map((translation) => (
                       <div
                         key={translation.id}
                         className={`p-3 rounded-lg border-l-4 ${
