@@ -23,24 +23,80 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
+    // Convert language codes to full names for better AI understanding
+    const languageNames = {
+      'en': 'English',
+      'fr': 'French',
+      'es': 'Spanish', 
+      'de': 'German',
+      'it': 'Italian',
+      'pt': 'Portuguese',
+      'ar': 'Arabic',
+      'zh': 'Chinese (Mandarin)',
+      'hi': 'Hindi',
+      'ru': 'Russian',
+      'tr': 'Turkish',
+      'fa': 'Persian',
+      'ur': 'Urdu',
+      'bn': 'Bengali',
+      'ta': 'Tamil',
+      'te': 'Telugu',
+      'gu': 'Gujarati',
+      'pa': 'Punjabi',
+      'pl': 'Polish',
+      'ro': 'Romanian',
+      'so': 'Somali',
+      'sw': 'Swahili',
+      'am': 'Amharic',
+      'ti': 'Tigrinya',
+      'vi': 'Vietnamese',
+      'th': 'Thai',
+      'ko': 'Korean',
+      'ja': 'Japanese',
+      'ne': 'Nepali',
+      'si': 'Sinhala',
+      'my': 'Burmese',
+      'km': 'Khmer',
+      'lo': 'Lao',
+      'mn': 'Mongolian',
+      'ka': 'Georgian',
+      'hy': 'Armenian',
+      'az': 'Azerbaijani',
+      'kk': 'Kazakh',
+      'ky': 'Kyrgyz',
+      'tg': 'Tajik',
+      'tk': 'Turkmen',
+      'uz': 'Uzbek',
+      'ps': 'Pashto',
+      'sd': 'Sindhi',
+      'ml': 'Malayalam',
+      'kn': 'Kannada',
+      'or': 'Odia',
+      'as': 'Assamese',
+      'mr': 'Marathi'
+    }
+
+    const targetLanguageName = languageNames[targetLanguage] || targetLanguage
+    const sourceLanguageName = sourceLanguage && sourceLanguage !== 'auto' ? (languageNames[sourceLanguage] || sourceLanguage) : 'detected language'
+
     // Determine translation direction and create appropriate prompt
     const isToEnglish = targetLanguage === 'en' || targetLanguage === 'english'
     const prompt = isToEnglish 
-      ? `Translate the following ${sourceLanguage === 'auto' ? 'text' : sourceLanguage} text to clear, professional English suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
+      ? `Translate the following ${sourceLanguage === 'auto' ? 'text' : sourceLanguageName} text to clear, professional English suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
 
 "${text}"
 
 Respond with only the English translation, no explanations or additional text.`
-      : `Translate the following English text to ${targetLanguage} in a clear, professional manner suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
+      : `Translate the following English text to ${targetLanguageName} in a clear, professional manner suitable for medical contexts. Preserve all medical terminology and maintain the original meaning precisely:
 
 "${text}"
 
-Respond with only the ${targetLanguage} translation, no explanations or additional text.`
+Respond with only the ${targetLanguageName} translation, no explanations or additional text.`
 
     console.log('Translation request:', { 
       text: text.substring(0, 100), 
-      sourceLanguage, 
-      targetLanguage, 
+      sourceLanguage: sourceLanguageName, 
+      targetLanguage: targetLanguageName,
       isToEnglish 
     })
 
