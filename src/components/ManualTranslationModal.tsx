@@ -37,7 +37,8 @@ import {
   Eye,
   ArrowUpDown,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Type
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -106,6 +107,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : true;
   });
 
+  // Text size setting with persistence
+  const [translationTextSize, setTranslationTextSize] = useState<'small' | 'medium' | 'large'>(() => {
+    const saved = localStorage.getItem('manual-translation-text-size');
+    return saved ? JSON.parse(saved) : 'medium';
+  });
+
   // How it works section state
   const [showInstructions, setShowInstructions] = useState<boolean>(() => {
     const saved = localStorage.getItem('manual-translation-show-instructions');
@@ -135,6 +142,10 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   useEffect(() => {
     localStorage.setItem('manual-translation-show-speakers', JSON.stringify(showSpeakers));
   }, [showSpeakers]);
+
+  useEffect(() => {
+    localStorage.setItem('manual-translation-text-size', JSON.stringify(translationTextSize));
+  }, [translationTextSize]);
 
   useEffect(() => {
     localStorage.setItem('manual-translation-show-instructions', JSON.stringify(showInstructions));
@@ -434,6 +445,15 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
       case 'warning': return <AlertTriangle className="h-3 w-3" />;
       case 'unsafe': return <AlertTriangle className="h-3 w-3" />;
       default: return null;
+    }
+  };
+
+  const getTextSizeClass = (size: 'small' | 'medium' | 'large') => {
+    switch (size) {
+      case 'small': return 'text-xs';
+      case 'medium': return 'text-sm';
+      case 'large': return 'text-base';
+      default: return 'text-sm';
     }
   };
 
@@ -868,17 +888,33 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                             onCheckedChange={setShowSpeakers}
                           />
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Show Accuracy & Metrics</span>
-                          </div>
-                          <Switch
-                            id="show-metrics-toggle"
-                            checked={showMetrics}
-                            onCheckedChange={setShowMetrics}
-                          />
-                        </div>
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <Clock className="w-4 h-4 text-muted-foreground" />
+                             <span className="text-sm">Show Accuracy & Metrics</span>
+                           </div>
+                           <Switch
+                             id="show-metrics-toggle"
+                             checked={showMetrics}
+                             onCheckedChange={setShowMetrics}
+                           />
+                         </div>
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <Type className="w-4 h-4 text-muted-foreground" />
+                             <span className="text-sm">Text Size</span>
+                           </div>
+                           <Select value={translationTextSize} onValueChange={(value: 'small' | 'medium' | 'large') => setTranslationTextSize(value)}>
+                             <SelectTrigger className="w-24 h-8">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="small">Small</SelectItem>
+                               <SelectItem value="medium">Medium</SelectItem>
+                               <SelectItem value="large">Large</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
                       </div>
                     </div>
                   </PopoverContent>
@@ -1011,14 +1047,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                                  Original ({finalTranslation.originalLanguageDetected})
                                </div>
-                               <div className="text-sm">{finalTranslation.originalText}</div>
+                               <div className={`${getTextSizeClass(translationTextSize)}`}>{finalTranslation.originalText}</div>
                              </div>
                              
                               <div>
                                 <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                                   All translations will be shown here in {currentSession?.targetLanguageName || finalTranslation.targetLanguage}
                                 </div>
-                               <div className="text-sm font-medium">{finalTranslation.translatedText}</div>
+                               <div className={`${getTextSizeClass(translationTextSize)} font-medium`}>{finalTranslation.translatedText}</div>
                                
                                {/* TTS Button */}
                                {showSpeakers && 'speechSynthesis' in window && (
