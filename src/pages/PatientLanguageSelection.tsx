@@ -3,150 +3,70 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 
-// Enhanced language data with native names and "I speak" phrases
-const PATIENT_LANGUAGES = [
-  { 
-    code: 'en', 
-    name: 'English', 
-    nativeName: 'English',
-    flag: '🇬🇧', 
-    phrase: 'I speak English'
-  },
-  { 
-    code: 'ar', 
-    name: 'Arabic', 
-    nativeName: 'العربية',
-    flag: '🇸🇦', 
-    phrase: 'أتكلم العربية'
-  },
-  { 
-    code: 'zh', 
-    name: 'Chinese', 
-    nativeName: '中文',
-    flag: '🇨🇳', 
-    phrase: '我说中文'
-  },
-  { 
-    code: 'fr', 
-    name: 'French', 
-    nativeName: 'Français',
-    flag: '🇫🇷', 
-    phrase: 'Je parle français'
-  },
-  { 
-    code: 'de', 
-    name: 'German', 
-    nativeName: 'Deutsch',
-    flag: '🇩🇪', 
-    phrase: 'Ich spreche Deutsch'
-  },
-  { 
-    code: 'hi', 
-    name: 'Hindi', 
-    nativeName: 'हिन्दी',
-    flag: '🇮🇳', 
-    phrase: 'मैं हिन्दी बोलता हूँ'
-  },
-  { 
-    code: 'it', 
-    name: 'Italian', 
-    nativeName: 'Italiano',
-    flag: '🇮🇹', 
-    phrase: 'Parlo italiano'
-  },
-  { 
-    code: 'es', 
-    name: 'Spanish', 
-    nativeName: 'Español',
-    flag: '🇪🇸', 
-    phrase: 'Hablo español'
-  },
-  { 
-    code: 'pt', 
-    name: 'Portuguese', 
-    nativeName: 'Português',
-    flag: '🇵🇹', 
-    phrase: 'Eu falo português'
-  },
-  { 
-    code: 'ru', 
-    name: 'Russian', 
-    nativeName: 'Русский',
-    flag: '🇷🇺', 
-    phrase: 'Я говорю по-русски'
-  },
-  { 
-    code: 'pl', 
-    name: 'Polish', 
-    nativeName: 'Polski',
-    flag: '🇵🇱', 
-    phrase: 'Mówię po polsku'
-  },
-  { 
-    code: 'tr', 
-    name: 'Turkish', 
-    nativeName: 'Türkçe',
-    flag: '🇹🇷', 
-    phrase: 'Türkçe konuşuyorum'
-  },
-  { 
-    code: 'nl', 
-    name: 'Dutch', 
-    nativeName: 'Nederlands',
-    flag: '🇳🇱', 
-    phrase: 'Ik spreek Nederlands'
-  },
-  { 
-    code: 'bn', 
-    name: 'Bengali', 
-    nativeName: 'বাংলা',
-    flag: '🇧🇩', 
-    phrase: 'আমি বাংলা বলি'
-  },
-  { 
-    code: 'ur', 
-    name: 'Urdu', 
-    nativeName: 'اردو',
-    flag: '🇵🇰', 
-    phrase: 'میں اردو بولتا ہوں'
-  },
-  { 
-    code: 'pa', 
-    name: 'Punjabi', 
-    nativeName: 'ਪੰਜਾਬੀ',
-    flag: '🇮🇳', 
-    phrase: 'ਮੈਂ ਪੰਜਾਬੀ ਬੋਲਦਾ ਹਾਂ'
-  },
-  { 
-    code: 'gu', 
-    name: 'Gujarati', 
-    nativeName: 'ગુજરાતી',
-    flag: '🇮🇳', 
-    phrase: 'હું ગુજરાતી બોલું છું'
-  },
-  { 
-    code: 'ta', 
-    name: 'Tamil', 
-    nativeName: 'தமிழ்',
-    flag: '🇮🇳', 
-    phrase: 'நான் தமிழ் பேசுகிறேன்'
-  },
-  { 
-    code: 'fa', 
-    name: 'Persian', 
-    nativeName: 'فارسی',
-    flag: '🇮🇷', 
-    phrase: 'من فارسی صحبت می‌کنم'
-  },
-  { 
-    code: 'so', 
-    name: 'Somali', 
-    nativeName: 'Soomaali',
-    flag: '🇸🇴', 
-    phrase: 'Waxaan ku hadlaa Soomaaliga'
-  }
-];
+// Native language names and phrases mapping
+const LANGUAGE_DETAILS: Record<string, { nativeName: string; phrase: string }> = {
+  'en': { nativeName: 'English', phrase: 'I speak English' },
+  'ar': { nativeName: 'العربية', phrase: 'أتكلم العربية' },
+  'zh': { nativeName: '中文', phrase: '我说中文' },
+  'fr': { nativeName: 'Français', phrase: 'Je parle français' },
+  'de': { nativeName: 'Deutsch', phrase: 'Ich spreche Deutsch' },
+  'hi': { nativeName: 'हिन्दी', phrase: 'मैं हिन्दी बोलता हूँ' },
+  'it': { nativeName: 'Italiano', phrase: 'Parlo italiano' },
+  'es': { nativeName: 'Español', phrase: 'Hablo español' },
+  'pt': { nativeName: 'Português', phrase: 'Eu falo português' },
+  'ru': { nativeName: 'Русский', phrase: 'Я говорю по-русски' },
+  'pl': { nativeName: 'Polski', phrase: 'Mówię po polsku' },
+  'tr': { nativeName: 'Türkçe', phrase: 'Türkçe konuşuyorum' },
+  'nl': { nativeName: 'Nederlands', phrase: 'Ik spreek Nederlands' },
+  'bn': { nativeName: 'বাংলা', phrase: 'আমি বাংলা বলি' },
+  'ur': { nativeName: 'اردو', phrase: 'میں اردو بولتا ہوں' },
+  'pa': { nativeName: 'ਪੰਜਾਬੀ', phrase: 'ਮੈਂ ਪੰਜਾਬੀ ਬੋਲਦਾ ਹਾਂ' },
+  'gu': { nativeName: 'ગુજરાતી', phrase: 'હું ગુજરાતી બોલું છું' },
+  'ta': { nativeName: 'தமிழ்', phrase: 'நான் தமிழ் பேசுகிறேன்' },
+  'te': { nativeName: 'తెలుగు', phrase: 'నేను తెలుగు మాట్లాడతాను' },
+  'kn': { nativeName: 'ಕನ್ನಡ', phrase: 'ನಾನು ಕನ್ನಡ ಮಾತನಾಡುತ್ತೇನೆ' },
+  'ml': { nativeName: 'മലയാളം', phrase: 'ഞാൻ മലയാളം സംസാരിക്കുന്നു' },
+  'mr': { nativeName: 'मराठी', phrase: 'मी मराठी बोलतो' },
+  'fa': { nativeName: 'فارسی', phrase: 'من فارسی صحبت می‌کنم' },
+  'so': { nativeName: 'Soomaali', phrase: 'Waxaan ku hadlaa Soomaaliga' },
+  'sw': { nativeName: 'Kiswahili', phrase: 'Ninazungumza Kiswahili' },
+  'am': { nativeName: 'አማርኛ', phrase: 'አማርኛ እናገራለሁ' },
+  'ti': { nativeName: 'ትግርኛ', phrase: 'ትግርኛ እናገር' },
+  'om': { nativeName: 'Afaan Oromoo', phrase: 'Afaan Oromoo nan dubadha' },
+  'yo': { nativeName: 'Yorùbá', phrase: 'Mo n sọ Yorùbá' },
+  'ig': { nativeName: 'Igbo', phrase: 'Ana m asụ Igbo' },
+  'ha': { nativeName: 'Hausa', phrase: 'Ina jin Hausa' },
+  'bg': { nativeName: 'Български', phrase: 'Говоря български' },
+  'hr': { nativeName: 'Hrvatski', phrase: 'Govorim hrvatski' },
+  'cs': { nativeName: 'Čeština', phrase: 'Mluvím česky' },
+  'da': { nativeName: 'Dansk', phrase: 'Jeg taler dansk' },
+  'el': { nativeName: 'Ελληνικά', phrase: 'Μιλάω ελληνικά' },
+  'hu': { nativeName: 'Magyar', phrase: 'Magyarul beszélek' },
+  'ro': { nativeName: 'Română', phrase: 'Vorbesc română' },
+  'ku': { nativeName: 'کوردی', phrase: 'من کوردی قسه می کنم' },
+  'ps': { nativeName: 'پښتو', phrase: 'زه پښتو وایم' },
+  'ne': { nativeName: 'नेपाली', phrase: 'म नेपाली बोल्छु' },
+  'uk': { nativeName: 'Українська', phrase: 'Я розмовляю українською' },
+  'vi': { nativeName: 'Tiếng Việt', phrase: 'Tôi nói tiếng Việt' },
+  'th': { nativeName: 'ไทย', phrase: 'ฉันพูดภาษาไทย' },
+  'id': { nativeName: 'Bahasa Indonesia', phrase: 'Saya berbicara bahasa Indonesia' },
+  'ms': { nativeName: 'Bahasa Melayu', phrase: 'Saya bertutur dalam bahasa Melayu' },
+  'tl': { nativeName: 'Tagalog', phrase: 'Nagsasalita ako ng Tagalog' }
+};
+
+// Create patient languages from healthcare languages with native details
+const PATIENT_LANGUAGES = HEALTHCARE_LANGUAGES
+  .filter(lang => lang.code !== 'none') // Exclude the 'No Translation' option
+  .map(lang => ({
+    code: lang.code,
+    name: lang.name,
+    flag: lang.flag,
+    nativeName: LANGUAGE_DETAILS[lang.code]?.nativeName || lang.name,
+    phrase: LANGUAGE_DETAILS[lang.code]?.phrase || `I speak ${lang.name}`
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by English name
 
 const PatientLanguageSelection = () => {
   const navigate = useNavigate();
