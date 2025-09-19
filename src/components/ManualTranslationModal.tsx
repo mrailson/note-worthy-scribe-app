@@ -301,6 +301,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
         // Use corrected translation if it exists, otherwise use original
         const finalTranslation = correctedTranslations[translation.id] || translation;
         
+        console.log(`Export: Translation ${translation.id}:`, {
+          originalSpeaker: translation.speaker,
+          correctedSpeaker: finalTranslation.speaker,
+          hasCorrectedVersion: !!correctedTranslations[translation.id]
+        });
+        
         return {
           id: finalTranslation.id,
           originalText: finalTranslation.originalText,
@@ -328,6 +334,10 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
           created_at: finalTranslation.timestamp.toISOString()
         };
       });
+
+      console.log('📋 Exporting with corrected speaker assignments:', 
+        formattedTranslations.map(t => ({ id: t.id, speaker: t.speaker }))
+      );
 
       // Create session metadata
       const sessionStart = currentSession?.sessionStart || new Date();
