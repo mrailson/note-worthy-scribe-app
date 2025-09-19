@@ -711,12 +711,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                          >
                            <div className="flex items-center justify-between mb-2">
                              <div className="flex items-center gap-2">
-                               <span className="text-sm font-medium">
-                                 {displaySpeaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                               </span>
-                               <Badge variant="outline" className="text-xs">
-                                 #{finalTranslation.exchangeNumber}
-                               </Badge>
+                                <span className="text-sm font-medium">
+                                  {displaySpeaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                                </span>
                                <Badge 
                                  variant="outline" 
                                  className={`text-xs ${getSafetyBadgeColor(finalTranslation.safetyFlag)}`}
