@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
@@ -48,7 +48,8 @@ import {
   Pause,
   Square,
   VolumeX,
-  Volume2
+  Volume2,
+  Settings
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -188,6 +189,7 @@ export const TranslationToolInterface = () => {
   const [isEmailingPatient, setIsEmailingPatient] = useState(false);
   const [isManualTranslationOpen, setIsManualTranslationOpen] = useState(false);
   const [selectedManualLanguage, setSelectedManualLanguage] = useState<{code: string, name: string} | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const lastVolumeRef = useRef(0.8);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
   
@@ -3625,76 +3627,104 @@ export const TranslationToolInterface = () => {
                     </Tooltip>
                   )}
 
-                  {/* Speaker Off Icon */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={toggleSpeakerMute}
-                        aria-label={isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}
-                      >
-                        <VolumeX className={`w-4 h-4 ${isSpeakerMuted ? 'text-muted-foreground' : ''}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="z-[110]">
-                      <p>{isSpeakerMuted ? 'Unmute speaker output' : 'Mute speaker output'}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  {/* Settings Icon - Contains Audio Controls */}
+                  <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                    <DialogTrigger asChild>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 hover:bg-muted"
+                            aria-label="Audio settings"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="z-[110]">
+                          <p>Audio settings</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md z-[120]">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Settings className="w-5 h-5" />
+                          Audio Settings
+                        </DialogTitle>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        {/* GP Audio Controls */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Stethoscope className="w-4 h-4 text-blue-600" />
+                            GP Audio
+                          </h4>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant={isMicMuted ? "default" : "outline"}
+                              size="sm"
+                              onClick={toggleMicMute}
+                              className="justify-start"
+                            >
+                              <MicOff className="w-4 h-4 mr-2" />
+                              {isMicMuted ? 'Microphone Muted' : 'Mute Microphone'}
+                            </Button>
+                            
+                            <Button
+                              variant={isPaused ? "default" : "outline"}
+                              size="sm"
+                              onClick={togglePause}
+                              className="justify-start"
+                            >
+                              <Pause className="w-4 h-4 mr-2" />
+                              {isPaused ? 'Translation Paused' : 'Pause Translation'}
+                            </Button>
+                          </div>
+                        </div>
 
-                  {/* Pause Icon */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={togglePause}
-                        aria-label={isPaused ? 'Resume translation' : 'Pause translation'}
-                      >
-                        <Pause className={`w-4 h-4 ${isPaused ? 'text-muted-foreground' : ''}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="z-[110]">
-                      <p>{isPaused ? 'Resume translation service' : 'Pause translation service'}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                        {/* Patient Audio Controls */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Users className="w-4 h-4 text-green-600" />
+                            Patient Audio
+                          </h4>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant={isSpeakerMuted ? "default" : "outline"}
+                              size="sm"
+                              onClick={toggleSpeakerMute}
+                              className="justify-start"
+                            >
+                              <VolumeX className="w-4 h-4 mr-2" />
+                              {isSpeakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
+                            </Button>
+                          </div>
+                        </div>
 
-                  {/* End Translation Icon */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={endTranslationService}
-                      >
-                        <Square className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="z-[110]">
-                      <p>End translation session</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  {/* Mute Icon */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={toggleMicMute}
-                        aria-label={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
-                      >
-                        <MicOff className={`w-4 h-4 ${isMicMuted ? 'text-muted-foreground' : ''}`} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="z-[110]">
-                      <p>{isMicMuted ? 'Unmute microphone' : 'Mute microphone'}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                        {/* Session Control */}
+                        <div className="space-y-3 pt-3 border-t">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-red-600" />
+                            Session Control
+                          </h4>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              endTranslationService();
+                              setIsSettingsOpen(false);
+                            }}
+                            className="justify-start w-full"
+                          >
+                            <Square className="w-4 h-4 mr-2" />
+                            End Translation Session
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
 
                   {/* Download Icon */}
                   {currentTranslation && (
