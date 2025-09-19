@@ -136,12 +136,15 @@ export const TranslationVerificationModal: React.FC<TranslationVerificationModal
     }
   };
 
-  // Auto-start verification when modal opens
+  // Auto-start verification when modal opens or translation changes
   useEffect(() => {
-    if (isOpen && translation && !verificationResults && !isVerifying) {
+    if (isOpen && translation) {
+      // Clear previous results and start fresh verification
+      setVerificationResults(null);
+      setExpandedProviders(new Set([0])); // Reset expanded state
       startVerification();
     }
-  }, [isOpen, translation]);
+  }, [isOpen, translation?.id]); // Watch translation ID to detect changes
 
   const getRatingColor = (rating: string) => {
     switch (rating) {
