@@ -21,22 +21,62 @@ export class LanguageDetector {
     const cleanText = text.trim().toLowerCase();
     console.log('🔍 Language detection for text:', cleanText.substring(0, 50), 'Target:', this.targetLanguageName);
     
-    // Simple English detection - only look for very common English words
-    const basicEnglishWords = [
+    // Comprehensive English detection with medical and common terms
+    const commonEnglishWords = [
+      // Basic function words
       'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 
       'will', 'would', 'could', 'should', 'can', 'may', 'do', 'does', 'did',
-      'hello', 'hi', 'yes', 'no', 'please', 'thank', 'you', 'sorry', 'how', 'what', 'when', 'where',
-      'pain', 'feel', 'hurt', 'take', 'medication', 'doctor', 'need', 'help'
+      'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'these', 'those',
+      'what', 'when', 'where', 'why', 'how', 'who', 'which', 'with', 'from', 'to', 'for',
+      
+      // Common conversational words
+      'hello', 'hi', 'yes', 'no', 'please', 'thank', 'you', 'sorry', 'okay', 'right',
+      'good', 'well', 'today', 'now', 'here', 'there', 'about', 'some', 'any', 'all',
+      
+      // Medical/healthcare terms commonly used by GPs
+      'pain', 'feel', 'feeling', 'hurt', 'hurts', 'take', 'taking', 'medication', 'medicine',
+      'doctor', 'need', 'needs', 'help', 'symptoms', 'symptom', 'problem', 'problems',
+      'prescription', 'tablet', 'tablets', 'dose', 'treatment', 'condition', 'patient',
+      'blood', 'pressure', 'heart', 'breathing', 'chest', 'head', 'stomach', 'back',
+      'better', 'worse', 'improving', 'getting', 'days', 'weeks', 'months', 'morning',
+      'evening', 'night', 'before', 'after', 'during', 'since', 'started', 'stopped',
+      
+      // GP consultation phrases
+      'tell', 'me', 'let\'s', 'lets', 'see', 'check', 'examine', 'look', 'show', 'describe',
+      'explain', 'understand', 'concerned', 'worry', 'worried', 'follow', 'up', 'appointment',
+      'next', 'come', 'back', 'contact', 'call', 'if', 'anything', 'changes'
     ];
     
-    const words = cleanText.split(/\s+/);
-    const englishWordCount = words.filter(word => basicEnglishWords.includes(word)).length;
-    const englishRatio = englishWordCount / Math.max(words.length, 1);
+    const words = cleanText.split(/\s+/).filter(word => word.length > 0);
+    const englishWordCount = words.filter(word => commonEnglishWords.includes(word.replace(/[.,!?;:]/g, ''))).length;
+    const totalWords = words.length;
+    const englishRatio = englishWordCount / Math.max(totalWords, 1);
     
-    console.log('📊 English detection:', { englishWordCount, totalWords: words.length, ratio: englishRatio });
+    console.log('📊 English detection:', { 
+      englishWordCount, 
+      totalWords, 
+      ratio: englishRatio,
+      detectedWords: words.filter(word => commonEnglishWords.includes(word.replace(/[.,!?;:]/g, '')))
+    });
     
-    // If we detect English words (even just one in a short phrase), assume GP speaking English
-    if (englishRatio > 0.15 || englishWordCount > 0) {
+    // Enhanced English detection logic:
+    // 1. For short phrases (1-3 words): require at least 1 English word
+    // 2. For medium phrases (4-8 words): require at least 30% English words
+    // 3. For longer phrases (9+ words): require at least 25% English words
+    let isEnglishDetected = false;
+    
+    if (totalWords <= 3) {
+      // Short phrases - require at least 1 English word
+      isEnglishDetected = englishWordCount >= 1;
+    } else if (totalWords <= 8) {
+      // Medium phrases - require at least 30% English content
+      isEnglishDetected = englishRatio >= 0.3 || englishWordCount >= 2;
+    } else {
+      // Longer phrases - require at least 25% English content and minimum 3 English words
+      isEnglishDetected = englishRatio >= 0.25 && englishWordCount >= 3;
+    }
+    
+    if (isEnglishDetected) {
       console.log('✅ Detected as English (GP speaking)');
       return {
         detectedLanguage: 'en',
