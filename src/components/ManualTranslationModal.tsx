@@ -608,33 +608,58 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       {showInstructionsInPatientLanguage && selectedLanguage ? (
                         // Instructions in patient's language (translated)
                         <>
-                          <div className="flex items-start gap-2">
-                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                            <div>GP speaks in English → Translates to {selectedLanguageName}</div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                            <div>Patient speaks in {selectedLanguageName} → Translates to English</div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
-                            <div>Automatic language detection and speaker identification</div>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
-                            <div>Text-to-speech playback for translated text</div>
-                          </div>
+                          {selectedLanguage === 'nl' ? (
+                            // Dutch translations
+                            <>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                                <div>Arts spreekt in het Engels → Wordt vertaald naar het Nederlands</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                                <div>Uw woorden in het Nederlands → Worden vertaald naar het Engels</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                                <div>Automatische taalherkenning en sprekeridentificatie</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                                <div>Tekst-naar-spraak voor vertaalde tekst</div>
+                              </div>
+                            </>
+                          ) : (
+                            // Generic patient language version
+                            <>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                                <div>GP speaks in English → Your words will be translated to {selectedLanguageName}</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                                <div>Your words in {selectedLanguageName} → Will be translated to English</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                                <div>Automatic language detection and speaker identification</div>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                                <div>Text-to-speech playback for translated text</div>
+                              </div>
+                            </>
+                          )}
                         </>
                       ) : (
                         // Instructions in English (default)
                         <>
                           <div className="flex items-start gap-2">
                             <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                            <div>GP speaks in English → Translates to patient language</div>
+                            <div>GP speaks in English → Words will be translated to patient language</div>
                           </div>
                           <div className="flex items-start gap-2">
                             <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                            <div>Patient speaks in their language → Translates to English</div>
+                            <div>Patient speaks in their language → Words will be translated to English</div>
                           </div>
                           <div className="flex items-start gap-2">
                             <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
