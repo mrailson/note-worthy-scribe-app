@@ -10,6 +10,7 @@ export class BrowserSpeechRecognition {
   private recognition: any = null;
   private isListening = false;
   private currentSpeaker = 'Speaker';
+  private preferredLang = 'en-GB';
 
   constructor(
     private onTranscript: (transcript: TranscriptData) => void,
@@ -28,14 +29,24 @@ export class BrowserSpeechRecognition {
     }
 
     try {
+      // Ensure mic permission is granted before starting
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('✅ Microphone permission granted');
+      } catch (permErr) {
+        console.error('❌ Microphone permission error:', permErr);
+        this.onError('Microphone permission denied or unavailable');
+        return;
+      }
+
       // @ts-ignore
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
 
       // Configure recognition
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-US';
+      this.recognition.lang = 'en-GB'; // British English default
       this.recognition.maxAlternatives = 1;
 
       // Handle results
@@ -118,5 +129,28 @@ export class BrowserSpeechRecognition {
 
   isActive(): boolean {
     return this.isListening;
+  }
+
+  async setLanguage(lang: string) {
+    try {
+      this.preferredLang = lang;
+      if (this.recognition) {
+        console.log('🌐 Switching recognition language to:', lang);
+        this.recognition.lang = lang;
+        if (this.isListening) {
+          // Restart to apply language change reliably
+          this.recognition.stop();
+          setTimeout(() => {
+            try {
+              this.recognition.start();
+            } catch (e) {
+              console.warn('Could not restart recognition after language change:', e);
+            }
+          }, 150);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to set recognition language:', e);
+    }
   }
 }

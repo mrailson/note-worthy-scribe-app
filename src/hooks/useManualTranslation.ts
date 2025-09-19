@@ -107,22 +107,20 @@ export const useManualTranslation = () => {
       // Initialize language detector
       languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
 
-      // Initialize speech recognition
-      if (webSpeechDetectorRef.current?.isSupported()) {
-        speechRecognitionRef.current = new BrowserSpeechRecognition(
-          (transcript) => {
-            console.log('🎤 Speech recognition result:', transcript);
-            handleSpeechResult(transcript.text, transcript.isFinal);
-          },
-          (error) => {
-            console.error('Speech recognition error:', error);
-            toast.error('Speech recognition error: ' + error);
-          },
-          (status) => {
-            console.log('Speech recognition status:', status);
-          }
-        );
-      }
+      // Initialize speech recognition (create regardless; it self-checks support)
+      speechRecognitionRef.current = new BrowserSpeechRecognition(
+        (transcript) => {
+          console.log('🎤 Speech recognition result:', transcript);
+          handleSpeechResult(transcript.text, transcript.isFinal);
+        },
+        (error) => {
+          console.error('Speech recognition error:', error);
+          toast.error('Speech recognition error: ' + error);
+        },
+        (status) => {
+          console.log('Speech recognition status:', status);
+        }
+      );
 
       setIsActive(true);
       toast.success(`Manual translation session started for ${targetLanguageName}`);
@@ -149,6 +147,17 @@ export const useManualTranslation = () => {
 
     try {
       setError(null);
+
+      // Proactively request mic permission (improves reliability on some browsers)
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('✅ Microphone access confirmed');
+      } catch (permErr) {
+        console.error('❌ Microphone permission error:', permErr);
+        toast.error('Microphone permission denied');
+        return;
+      }
+
       console.log('🚀 Starting speech recognition...');
       await speechRecognitionRef.current.startRecognition();
       setIsListening(true);
