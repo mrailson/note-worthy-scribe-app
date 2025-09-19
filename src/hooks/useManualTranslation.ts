@@ -75,6 +75,7 @@ export const useManualTranslation = () => {
     try {
       console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName });
       setError(null);
+      setIsActive(false); // Reset first
       
       // Stop any existing speech recognition first
       if (speechRecognitionRef.current) {
@@ -84,9 +85,13 @@ export const useManualTranslation = () => {
       }
       
       // Clear any previous session state
+      setCurrentSession(null);
       setTranslations([]);
       exchangeCounterRef.current = 0;
       
+      // Small delay to ensure cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Create new session in database
       const { data: sessionData, error: sessionError } = await supabase
         .from('manual_translation_sessions')
@@ -101,6 +106,8 @@ export const useManualTranslation = () => {
         .single();
 
       if (sessionError) throw sessionError;
+
+      console.log('📝 Session created in database:', sessionData);
 
       // Initialize session state
       const session: ManualTranslationSession = {
@@ -118,16 +125,24 @@ export const useManualTranslation = () => {
         entries: []
       };
 
+      console.log('🎯 Setting current session:', session);
       setCurrentSession(session);
 
       // Initialize language detector with ONLY English and target language
       languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
+      console.log('🔧 LanguageDetector initialized');
 
       // Initialize speech recognition (create regardless; it self-checks support)
       speechRecognitionRef.current = new BrowserSpeechRecognition(
         (transcript) => {
           console.log('🎤 Speech recognition result:', transcript);
-          handleSpeechResult(transcript.text, transcript.isFinal);
+          // Use the current session state directly instead of handleSpeechResult callback
+          const currentSessionState = session;
+          if (currentSessionState && languageDetectorRef.current && transcript.text.trim() && transcript.isFinal) {
+            console.log('✅ Processing final speech result immediately:', transcript.text);
+            // Process the speech result inline to avoid callback dependency issues
+            processTranscript(transcript.text, currentSessionState);
+          }
         },
         (error) => {
           console.error('Speech recognition error:', error);
@@ -146,6 +161,102 @@ export const useManualTranslation = () => {
       console.error('Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
       toast.error('Failed to start translation session');
+    }
+  }, []);
+
+  // Inline processing function to avoid dependency issues
+  const processTranscript = useCallback(async (text: string, sessionState: ManualTranslationSession) => {
+    console.log('🌐 Starting translation process for:', text);
+    setIsProcessing(true);
+    
+    try {
+      // Detect language and determine speaker
+      const detection = languageDetectorRef.current!.detectLanguage(text);
+      console.log('🔍 Language detection result:', detection);
+      
+      const speaker = detection.suggestedSpeaker;
+      const isToEnglish = detection.isEnglish ? false : true;
+      
+      const sourceLanguage = detection.isEnglish ? 'en' : sessionState.targetLanguageCode;
+      const targetLanguage = detection.isEnglish ? sessionState.targetLanguageCode : 'en';
+
+      console.log('📡 Calling translation service:', {
+        text: text.trim(),
+        sourceLanguage,
+        targetLanguage,
+        speaker
+      });
+
+      // Call translation service
+      const { data, error } = await supabase.functions.invoke('manual-translation-service', {
+        body: {
+          text: text.trim(),
+          targetLanguage,
+          sourceLanguage
+        }
+      });
+
+      console.log('📥 Translation service response:', { data, error });
+
+      if (error) throw error;
+
+      exchangeCounterRef.current++;
+
+      // Create translation entry
+      const entry: ManualTranslationEntry = {
+        id: crypto.randomUUID(),
+        exchangeNumber: exchangeCounterRef.current,
+        speaker,
+        originalText: text.trim(),
+        translatedText: data.translatedText,
+        originalLanguageDetected: sourceLanguage,
+        targetLanguage,
+        detectionConfidence: detection.confidence,
+        translationAccuracy: data.accuracy,
+        translationConfidence: data.confidence,
+        safetyFlag: data.safetyFlag,
+        medicalTermsDetected: data.medicalTermsDetected || [],
+        processingTimeMs: data.processingTimeMs || 1000,
+        timestamp: new Date()
+      };
+
+      console.log('💾 Saving translation entry:', entry);
+
+      // Save to database
+      const { error: saveError } = await supabase
+        .from('manual_translation_entries')
+        .insert({
+          session_id: sessionState.id,
+          exchange_number: entry.exchangeNumber,
+          speaker: entry.speaker,
+          original_text: entry.originalText,
+          translated_text: entry.translatedText,
+          original_language_detected: entry.originalLanguageDetected,
+          target_language: entry.targetLanguage,
+          detection_confidence: entry.detectionConfidence,
+          translation_accuracy: entry.translationAccuracy,
+          translation_confidence: entry.translationConfidence,
+          safety_flag: entry.safetyFlag,
+          medical_terms_detected: entry.medicalTermsDetected,
+          processing_time_ms: entry.processingTimeMs
+        });
+
+      if (saveError) {
+        console.error('Failed to save translation entry:', saveError);
+      } else {
+        console.log('✅ Translation entry saved successfully');
+      }
+
+      // Update local state
+      setTranslations(prev => [...prev, entry]);
+
+      console.log('🎯 Translation completed successfully');
+
+    } catch (error) {
+      console.error('❌ Translation processing failed:', error);
+      toast.error('Translation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsProcessing(false);
     }
   }, []);
 
