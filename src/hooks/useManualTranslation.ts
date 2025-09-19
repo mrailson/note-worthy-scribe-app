@@ -181,30 +181,56 @@ export const useManualTranslation = () => {
       console.log('🔍 Language detection result:', detection);
       
       const speaker = detection.suggestedSpeaker;
-      const isToEnglish = detection.isEnglish ? false : true;
       
+      // Determine source and target languages
       const sourceLanguage = detection.isEnglish ? 'en' : sessionState.targetLanguageCode;
       const targetLanguage = detection.isEnglish ? sessionState.targetLanguageCode : 'en';
 
-      console.log('📡 Calling translation service:', {
+      console.log('🔄 Translation direction:', {
         text: text.trim(),
         sourceLanguage,
         targetLanguage,
-        speaker
+        speaker,
+        sameLanguage: sourceLanguage === targetLanguage
       });
 
-      // Call translation service
-      const { data, error } = await supabase.functions.invoke('manual-translation-service', {
-        body: {
+      let translatedText: string;
+      let translationData: any = {
+        accuracy: 100,
+        confidence: 100,
+        safetyFlag: 'safe',
+        medicalTermsDetected: [],
+        processingTimeMs: 0
+      };
+
+      // Check if source and target languages are the same
+      if (sourceLanguage === targetLanguage) {
+        console.log('⚠️ Same source and target language detected, skipping translation');
+        translatedText = text.trim();
+      } else {
+        console.log('📡 Calling translation service:', {
           text: text.trim(),
+          sourceLanguage,
           targetLanguage,
-          sourceLanguage
-        }
-      });
+          speaker
+        });
 
-      console.log('📥 Translation service response:', { data, error });
+        // Call translation service
+        const { data, error } = await supabase.functions.invoke('manual-translation-service', {
+          body: {
+            text: text.trim(),
+            targetLanguage,
+            sourceLanguage
+          }
+        });
 
-      if (error) throw error;
+        console.log('📥 Translation service response:', { data, error });
+
+        if (error) throw error;
+
+        translatedText = data.translatedText;
+        translationData = data;
+      }
 
       exchangeCounterRef.current++;
 
@@ -214,15 +240,15 @@ export const useManualTranslation = () => {
         exchangeNumber: exchangeCounterRef.current,
         speaker,
         originalText: text.trim(),
-        translatedText: data.translatedText,
+        translatedText: translatedText,
         originalLanguageDetected: sourceLanguage,
         targetLanguage,
         detectionConfidence: detection.confidence,
-        translationAccuracy: data.accuracy,
-        translationConfidence: data.confidence,
-        safetyFlag: data.safetyFlag,
-        medicalTermsDetected: data.medicalTermsDetected || [],
-        processingTimeMs: data.processingTimeMs || 1000,
+        translationAccuracy: translationData.accuracy,
+        translationConfidence: translationData.confidence,
+        safetyFlag: translationData.safetyFlag,
+        medicalTermsDetected: translationData.medicalTermsDetected || [],
+        processingTimeMs: translationData.processingTimeMs || 0,
         timestamp: new Date()
       };
 
