@@ -81,6 +81,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   // Store corrected translations locally
   const [correctedTranslations, setCorrectedTranslations] = useState<Record<string, any>>({});
 
+  // Track which translations are being processed
+  const [processingTranslations, setProcessingTranslations] = useState<Set<string>>(new Set());
+
   // Translation history view toggle with persistence
   const [showLastOnly, setShowLastOnly] = useState<boolean>(() => {
     const saved = localStorage.getItem('manual-translation-history-view');
@@ -151,18 +154,21 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   } = useManualTranslation();
 
   // Recalculate translation metrics when corrected
-  const recalculateTranslationMetrics = useCallback(async (translationId: string) => {
+  const recalculateTranslationMetrics = useCallback(async (translationId: string, newToggleState: { textSwapped: boolean; speakerSwapped: boolean }) => {
     const translation = translations.find(t => t.id === translationId);
     if (!translation || !currentSession) return;
 
     try {
       console.log('🔄 Recalculating and retranslating for corrected translation:', translationId);
+      setProcessingTranslations(prev => new Set(prev).add(translationId));
       
-      // Get the corrected assignment
-      const toggleState = translationToggles[translationId] || { textSwapped: false, speakerSwapped: false };
-      
-      if (!toggleState.textSwapped) {
+      if (!newToggleState.textSwapped) {
         console.log('No text swap needed, just updating display');
+        setProcessingTranslations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(translationId);
+          return newSet;
+        });
         return;
       }
 
@@ -187,7 +193,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
       // Update the translation entry with corrected data
       const updatedTranslation = {
         ...translation,
-        speaker: toggleState.speakerSwapped ? (translation.speaker === 'gp' ? 'patient' : 'gp') : translation.speaker,
+        speaker: newToggleState.speakerSwapped ? (translation.speaker === 'gp' ? 'patient' : 'gp') : translation.speaker,
         originalText: englishText, // GP's English text
         translatedText: data.translatedText, // Translated to patient's language
         originalLanguageDetected: 'English',
@@ -210,8 +216,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     } catch (error) {
       console.error('❌ Failed to recalculate translation metrics:', error);
       toast.error('Failed to translate corrected text');
+    } finally {
+      setProcessingTranslations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(translationId);
+        return newSet;
+      });
     }
-  }, [translations, translationToggles, currentSession]);
+  }, [translations, currentSession]);
 
   const handleStartSession = async () => {
     console.log('🚀 Starting manual translation session:', { selectedLanguage, selectedLanguageName });
@@ -695,24 +707,40 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                <Button
                                  variant="ghost"
                                  size="sm"
-                                 className="h-6 w-6 p-0"
+                                 className={`h-6 w-6 p-0 ${processingTranslations.has(translation.id) ? 'opacity-50 cursor-not-allowed' : ''} ${correctedTranslations[translation.id] ? 'bg-secondary' : ''}`}
                                  onClick={async () => {
-                                   // Toggle both text and speaker in one click for simplicity
+                                   if (processingTranslations.has(translation.id)) return;
+                                   
+                                   // Calculate new toggle state
                                    const currentToggle = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
+                                   const newToggleState = {
+                                     textSwapped: !currentToggle.textSwapped,
+                                     speakerSwapped: !currentToggle.speakerSwapped
+                                   };
+                                   
+                                   // Update toggle state
                                    setTranslationToggles(prev => ({
                                      ...prev,
-                                     [translation.id]: {
-                                       textSwapped: !currentToggle.textSwapped,
-                                       speakerSwapped: !currentToggle.speakerSwapped
-                                     }
+                                     [translation.id]: newToggleState
                                    }));
                                    
-                                   // Recalculate translation metrics with corrected assignment
-                                   await recalculateTranslationMetrics(translation.id);
+                                   // Pass the new state directly to avoid async state issues
+                                   await recalculateTranslationMetrics(translation.id, newToggleState);
                                  }}
-                                 title="Correct language detection (swap text and speaker)"
+                                 disabled={processingTranslations.has(translation.id)}
+                                 title={
+                                   processingTranslations.has(translation.id) 
+                                     ? "Processing correction..." 
+                                     : correctedTranslations[translation.id]
+                                       ? "Translation corrected"
+                                       : "Correct language detection (swap text and speaker)"
+                                 }
                                >
-                                 <ArrowUpDown className="h-3 w-3" />
+                                 {processingTranslations.has(translation.id) ? (
+                                   <Clock className="h-3 w-3 animate-spin" />
+                                 ) : (
+                                   <ArrowUpDown className="h-3 w-3" />
+                                 )}
                                </Button>
                                <div className="text-xs text-muted-foreground">
                                  {translation.timestamp.toLocaleTimeString('en-GB', { 
