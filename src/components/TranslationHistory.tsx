@@ -23,7 +23,8 @@ import {
   CheckSquare,
   Square,
   History,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -37,6 +38,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export interface TranslationEntry {
   id: string;
@@ -398,18 +404,36 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <CardTitle>Translation History</CardTitle>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {showLastOnly ? 'Last Translation Only' : 'Full History'}
-                </span>
-                <Switch
-                  id="history-toggle"
-                  checked={showLastOnly}
-                  onCheckedChange={setShowLastOnly}
-                />
-                <History className="w-4 h-4 text-muted-foreground" />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="start">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Display Settings</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Configure how translations are displayed
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {showLastOnly ? 'Show Last Translation Only' : 'Show Full History'}
+                        </span>
+                      </div>
+                      <Switch
+                        id="history-toggle"
+                        checked={showLastOnly}
+                        onCheckedChange={setShowLastOnly}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             {!isHistorical && !showLastOnly && (onDeleteTranslation || onDeleteSelectedTranslations || onDeleteAllTranslations) && (
               <div className="flex items-center gap-2">
