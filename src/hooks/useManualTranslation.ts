@@ -158,10 +158,30 @@ export const useManualTranslation = () => {
 
       // Initialize speech recognition with dependency on currentSession
       console.log('🎙️ Initializing speech recognition...');
+      const sessionSnapshot = newSession;
       speechRecognitionRef.current = new BrowserSpeechRecognition(
         (transcript: any) => {
           console.log('📝 Speech recognition callback received:', transcript);
-          handleSpeechResult(transcript.text, transcript.isFinal);
+          try {
+            const text = (transcript?.text || '').trim();
+            const isFinal = !!transcript?.isFinal;
+            if (!text) {
+              console.log('📝 Empty or whitespace transcript, ignoring');
+              return;
+            }
+            if (!isFinal) {
+              console.log('📝 Interim result, skipping:', text.substring(0, 50));
+              return;
+            }
+            if (!languageDetectorRef.current) {
+              console.warn('⚠️ Language detector not ready yet, buffering ignored');
+              return;
+            }
+            // Use snapshot to avoid stale closure on currentSession
+            processTranscript(text, sessionSnapshot);
+          } catch (e) {
+            console.error('❌ Error handling transcript:', e);
+          }
         },
         (error: string) => {
           console.error('❌ Speech recognition error:', error);
