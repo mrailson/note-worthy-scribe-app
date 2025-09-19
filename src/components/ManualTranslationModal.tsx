@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,7 @@ import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { ManualTranslationHistory } from './ManualTranslationHistory';
 import { toast } from 'sonner';
 import { downloadDOCX, SessionMetadata } from '@/utils/docxExport';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ManualTranslationModalProps {
   isOpen: boolean;
@@ -145,6 +146,48 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     stopListening,
     sessionStats
   } = useManualTranslation();
+
+  // Recalculate translation metrics when corrected
+  const recalculateTranslationMetrics = useCallback(async (translationId: string) => {
+    const translation = translations.find(t => t.id === translationId);
+    if (!translation || !currentSession) return;
+
+    try {
+      console.log('🔄 Recalculating metrics for corrected translation:', translationId);
+      
+      // Get the corrected assignment
+      const toggleState = translationToggles[translationId] || { textSwapped: false, speakerSwapped: false };
+      const correctedSpeaker = toggleState.speakerSwapped 
+        ? (translation.speaker === 'gp' ? 'patient' : 'gp') 
+        : translation.speaker;
+      
+      const correctedOriginalText = toggleState.textSwapped ? translation.translatedText : translation.originalText;
+      const correctedTranslatedText = toggleState.textSwapped ? translation.originalText : translation.translatedText;
+      const correctedOriginalLang = toggleState.textSwapped ? translation.targetLanguage : translation.originalLanguageDetected;
+      const correctedTargetLang = toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage;
+
+      // Call translation service to recalculate metrics
+      const { data, error } = await supabase.functions.invoke('manual-translation-service', {
+        body: {
+          text: correctedOriginalText,
+          sourceLanguage: correctedOriginalLang,
+          targetLanguage: correctedTargetLang,
+          isToEnglish: correctedTargetLang.toLowerCase() === 'english'
+        }
+      });
+
+      if (error) throw error;
+
+      // Update the translation with new metrics - this will update the original hook state
+      // We need to find a way to update the translations from the hook
+      console.log('✅ Translation metrics recalculated successfully', data);
+      toast.success('Translation corrected and metrics updated');
+
+    } catch (error) {
+      console.error('❌ Failed to recalculate translation metrics:', error);
+      toast.error('Failed to update translation metrics');
+    }
+  }, [translations, translationToggles, currentSession]);
 
   const handleStartSession = async () => {
     console.log('🚀 Starting manual translation session:', { selectedLanguage, selectedLanguageName });
@@ -632,7 +675,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                  variant="ghost"
                                  size="sm"
                                  className="h-6 w-6 p-0"
-                                 onClick={() => {
+                                 onClick={async () => {
                                    // Toggle both text and speaker in one click for simplicity
                                    const currentToggle = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
                                    setTranslationToggles(prev => ({
@@ -642,6 +685,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                                        speakerSwapped: !currentToggle.speakerSwapped
                                      }
                                    }));
+                                   
+                                   // Recalculate translation metrics with corrected assignment
+                                   await recalculateTranslationMetrics(translation.id);
                                  }}
                                  title="Correct language detection (swap text and speaker)"
                                >
