@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { 
   Download, 
   FileText, 
@@ -20,7 +21,9 @@ import {
   Trash2,
   Trash,
   CheckSquare,
-  Square
+  Square,
+  History,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -100,6 +103,15 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
     type: 'single' | 'selected' | 'all';
     translationId?: string;
   } | null>(null);
+  const [showLastOnly, setShowLastOnly] = useState<boolean>(() => {
+    const saved = localStorage.getItem('translation-history-view');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // Persist toggle selection
+  useEffect(() => {
+    localStorage.setItem('translation-history-view', JSON.stringify(showLastOnly));
+  }, [showLastOnly]);
 
   // Handle individual selection
   const handleTranslationSelect = (translationId: string, checked: boolean) => {
@@ -163,6 +175,16 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
       return true;
     });
   }, [translations]);
+
+  // Filter translations based on view mode
+  const displayedTranslations = useMemo(() => {
+    if (showLastOnly && deduplicatedTranslations.length > 0) {
+      // Sort by timestamp descending and return only the most recent one
+      const sorted = [...deduplicatedTranslations].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      return [sorted[0]];
+    }
+    return deduplicatedTranslations;
+  }, [deduplicatedTranslations, showLastOnly]);
 
   // Calculate session metrics
   const sessionMetrics: SessionMetrics = useMemo(() => {
@@ -374,8 +396,22 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Detailed Translation History</CardTitle>
-            {!isHistorical && (onDeleteTranslation || onDeleteSelectedTranslations || onDeleteAllTranslations) && (
+            <div className="flex items-center gap-4">
+              <CardTitle>Translation History</CardTitle>
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {showLastOnly ? 'Last Translation Only' : 'Full History'}
+                </span>
+                <Switch
+                  id="history-toggle"
+                  checked={showLastOnly}
+                  onCheckedChange={setShowLastOnly}
+                />
+                <History className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </div>
+            {!isHistorical && !showLastOnly && (onDeleteTranslation || onDeleteSelectedTranslations || onDeleteAllTranslations) && (
               <div className="flex items-center gap-2">
                 {deduplicatedTranslations.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -440,14 +476,14 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-96">
-            {deduplicatedTranslations.length === 0 ? (
+            {displayedTranslations.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No translations recorded yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {deduplicatedTranslations.map((translation, index) => (
+                {displayedTranslations.map((translation, index) => (
                   <div
                     key={translation.id}
                     className={`p-4 border rounded-lg transition-all hover:shadow-md ${
@@ -460,7 +496,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {!isHistorical && onDeleteTranslation && (
+                        {!isHistorical && !showLastOnly && onDeleteTranslation && (
                           <Checkbox
                             checked={selectedTranslations.has(translation.id)}
                             onCheckedChange={(checked) => 
@@ -532,7 +568,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                         </div>
                       </div>
                       
-                      {!isHistorical && onDeleteTranslation && (
+                      {!isHistorical && !showLastOnly && onDeleteTranslation && (
                         <Button
                           variant="ghost"
                           size="sm"
