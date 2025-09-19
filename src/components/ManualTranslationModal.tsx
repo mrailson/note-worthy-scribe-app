@@ -100,10 +100,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   };
 
   const handleClose = () => {
+    console.log('🚪 Closing modal and clearing all state');
     if (isActive) {
       stopListening();
       clearSession();
     }
+    // Reset modal state
+    setSelectedLanguage('');
+    setSelectedLanguageName('');
     onClose();
   };
 
@@ -206,15 +210,17 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
             )}
 
             {/* Session Controls */}
-            {isActive && (
-              <Card>
+            {isActive && currentSession && (
+              <Card className="border-green-200 bg-green-50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Languages className="h-4 w-4" />
-                    Active Session
-                    {selectedLanguageName && (
-                      <Badge variant="secondary">{selectedLanguageName}</Badge>
-                    )}
+                  <CardTitle className="text-lg flex items-center justify-between text-green-800">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                      Active Session
+                    </div>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 font-semibold">
+                      English ↔ {currentSession.targetLanguageName}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

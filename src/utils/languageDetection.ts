@@ -14,10 +14,12 @@ export class LanguageDetector {
   constructor(targetLanguage: string, targetLanguageName: string) {
     this.targetLanguage = targetLanguage;
     this.targetLanguageName = targetLanguageName;
+    console.log('🔧 LanguageDetector initialized for:', { targetLanguage, targetLanguageName });
   }
 
   detectLanguage(text: string): LanguageDetectionResult {
     const cleanText = text.trim().toLowerCase();
+    console.log('🔍 Language detection for text:', cleanText.substring(0, 50), 'Target:', this.targetLanguageName);
     
     // Basic English detection patterns
     const englishPatterns = [
@@ -27,9 +29,11 @@ export class LanguageDetector {
     ];
 
     const englishScore = this.calculatePatternScore(cleanText, englishPatterns);
+    console.log('📊 English score:', englishScore);
     
     // If high English score, likely GP speaking
     if (englishScore > 0.3) {
+      console.log('✅ Detected as English (GP speaking)');
       return {
         detectedLanguage: 'en',
         confidence: Math.min(95, englishScore * 100),
@@ -40,8 +44,10 @@ export class LanguageDetector {
 
     // Check for target language patterns
     const targetLanguageScore = this.detectTargetLanguage(cleanText);
+    console.log('📊 Target language score:', targetLanguageScore);
     
     if (targetLanguageScore > 0.2) {
+      console.log('✅ Detected as', this.targetLanguageName, '(Patient speaking)');
       return {
         detectedLanguage: this.targetLanguage,
         confidence: Math.min(90, targetLanguageScore * 100),
@@ -56,6 +62,7 @@ export class LanguageDetector {
     
     // If short text with simple structure, assume patient in target language
     if (wordCount <= 3 && !hasComplexGrammar) {
+      console.log('📝 Short text - assuming patient in', this.targetLanguageName);
       return {
         detectedLanguage: this.targetLanguage,
         confidence: 60,
@@ -65,6 +72,7 @@ export class LanguageDetector {
     }
 
     // Default to English for longer, structured text
+    console.log('📝 Default to English (GP)');
     return {
       detectedLanguage: 'en',
       confidence: 70,

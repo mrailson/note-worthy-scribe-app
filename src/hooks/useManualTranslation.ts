@@ -67,7 +67,12 @@ export const useManualTranslation = () => {
 
   const startSession = useCallback(async (targetLanguageCode: string, targetLanguageName: string) => {
     try {
+      console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName });
       setError(null);
+      
+      // Clear any previous session state
+      setTranslations([]);
+      exchangeCounterRef.current = 0;
       
       // Create new session in database
       const { data: sessionData, error: sessionError } = await supabase
@@ -101,10 +106,8 @@ export const useManualTranslation = () => {
       };
 
       setCurrentSession(session);
-      setTranslations([]);
-      exchangeCounterRef.current = 0;
 
-      // Initialize language detector
+      // Initialize language detector with ONLY English and target language
       languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
 
       // Initialize speech recognition (create regardless; it self-checks support)
@@ -123,6 +126,7 @@ export const useManualTranslation = () => {
       );
 
       setIsActive(true);
+      console.log('✅ Session started successfully for:', targetLanguageName);
       toast.success(`Manual translation session started for ${targetLanguageName}`);
       
     } catch (error) {
@@ -262,13 +266,43 @@ export const useManualTranslation = () => {
       // Update local state
       setTranslations(prev => [...prev, entry]);
 
-      // Speak the translation using browser TTS
+      // Speak the translation using browser TTS with correct language
       if ('speechSynthesis' in window && data.translatedText) {
+        console.log('🗣️ Speaking translation in language:', targetLanguage);
         const utterance = new SpeechSynthesisUtterance(data.translatedText);
-        utterance.lang = targetLanguage;
+        
+        // Set correct language for TTS
+        if (targetLanguage === 'en') {
+          utterance.lang = 'en-GB'; // British English
+        } else {
+          // Map language codes to proper TTS language codes
+          const languageMap: Record<string, string> = {
+            'de': 'de-DE',
+            'fr': 'fr-FR', 
+            'es': 'es-ES',
+            'it': 'it-IT',
+            'pt': 'pt-PT',
+            'ru': 'ru-RU',
+            'zh': 'zh-CN',
+            'ar': 'ar-SA',
+            'hi': 'hi-IN',
+            'pl': 'pl-PL',
+            'tr': 'tr-TR',
+            'bn': 'bn-BD',
+            'ur': 'ur-PK'
+          };
+          utterance.lang = languageMap[targetLanguage] || targetLanguage;
+        }
+        
         utterance.rate = 0.9;
         utterance.pitch = 1;
+        utterance.volume = 0.8;
+        
+        // Stop any current speech before starting new one
+        speechSynthesis.cancel();
         speechSynthesis.speak(utterance);
+        
+        console.log('🗣️ TTS started for language:', utterance.lang);
       }
 
       toast.success(`Translation: ${speaker === 'gp' ? '👨‍⚕️' : '👤'} ${text.substring(0, 30)}... → ${data.translatedText.substring(0, 30)}...`);
@@ -348,14 +382,26 @@ export const useManualTranslation = () => {
   }, [currentSession, translations, stopListening]);
 
   const clearSession = useCallback(() => {
+    console.log('🧹 Clearing session state completely');
     setCurrentSession(null);
     setTranslations([]);
     setIsActive(false);
     setIsListening(false);
     setError(null);
+    setIsProcessing(false);
     exchangeCounterRef.current = 0;
-    stopListening();
-  }, [stopListening]);
+    
+    // Clean up speech recognition
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stopRecognition();
+      speechRecognitionRef.current = null;
+    }
+    
+    // Clear language detector
+    languageDetectorRef.current = null;
+    
+    console.log('✅ Session cleared completely');
+  }, []);
 
   return {
     // Session state
