@@ -105,7 +105,13 @@ export const useManualTranslation = () => {
         .select()
         .single();
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error('Database session error:', sessionError);
+        if (sessionError.message?.includes('JWT') || sessionError.message?.includes('401') || sessionError.message?.includes('Invalid Refresh Token')) {
+          throw new Error('Authentication expired. Please refresh the page and log in again.');
+        }
+        throw sessionError;
+      }
 
       console.log('📝 Session created in database:', sessionData);
 
