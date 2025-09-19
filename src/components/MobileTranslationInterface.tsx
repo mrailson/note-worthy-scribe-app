@@ -49,14 +49,18 @@ export const MobileTranslationInterface = () => {
     }
   }, [translations]);
 
-  const handleStartSession = () => {
-    if (!selectedLang) return;
+  const handleLanguageSelect = (languageCode: string) => {
+    setSelectedLanguage(languageCode);
     
-    setPendingLanguage({
-      code: selectedLang.code,
-      name: selectedLang.name
-    });
-    setShowConsentModal(true);
+    // Auto-start session flow
+    const lang = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
+    if (lang) {
+      setPendingLanguage({
+        code: lang.code,
+        name: lang.name
+      });
+      setShowConsentModal(true);
+    }
   };
 
   const handleConsentGiven = async () => {
@@ -110,8 +114,8 @@ export const MobileTranslationInterface = () => {
             {!isActive ? (
               <>
                 <div className="space-y-4">
-                  <div className="text-lg font-medium">Select Patient Language</div>
-                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                  <div className="text-lg font-medium">Select Patient Language to Begin</div>
+                  <Select value={selectedLanguage} onValueChange={handleLanguageSelect}>
                     <SelectTrigger className="text-lg h-12">
                       <SelectValue />
                     </SelectTrigger>
@@ -128,15 +132,10 @@ export const MobileTranslationInterface = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <div className="text-sm text-muted-foreground text-center">
+                    Selecting a language will start the translation session
+                  </div>
                 </div>
-                
-                <Button 
-                  onClick={handleStartSession}
-                  size="lg" 
-                  className="w-full h-14 text-lg font-semibold"
-                >
-                  Start Translation Session
-                </Button>
               </>
             ) : (
               <div className="space-y-4">
