@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User } from 'lucide-react';
+import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ export const MobileTranslationInterface = () => {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
   const [showFullScreen, setShowFullScreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   
   // Use the manual translation hook
   const {
@@ -166,6 +167,17 @@ export const MobileTranslationInterface = () => {
     }
   };
 
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (!isMuted) {
+      stopListening();
+      toast.info('Microphone muted');
+    } else {
+      startListening();
+      toast.info('Microphone unmuted');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 flex flex-col">
       <Card className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
@@ -263,6 +275,15 @@ export const MobileTranslationInterface = () => {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={toggleMute}
+                  className="h-8 w-8 p-0"
+                  title={isMuted ? "Unmute microphone" : "Mute microphone"}
+                >
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleDownloadWord}
                   className="h-8 w-8 p-0"
                   title="Download as Word document"
@@ -297,15 +318,6 @@ export const MobileTranslationInterface = () => {
                     <div className="text-xs text-muted-foreground">
                       {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    {translation.safetyFlag !== 'safe' && (
-                      <div className={`text-xs px-2 py-1 rounded ${
-                        translation.safetyFlag === 'warning' 
-                          ? 'bg-yellow-100 text-yellow-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {translation.safetyFlag.toUpperCase()}
-                      </div>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="text-sm">
@@ -313,9 +325,6 @@ export const MobileTranslationInterface = () => {
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Translation:</span> {translation.translatedText}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Accuracy: {translation.translationAccuracy}% | Confidence: {translation.translationConfidence}%
                     </div>
                   </div>
                 </div>
@@ -385,15 +394,6 @@ export const MobileTranslationInterface = () => {
                     <div className="text-sm text-muted-foreground">
                       {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    {translation.safetyFlag !== 'safe' && (
-                      <div className={`text-sm px-3 py-1 rounded ${
-                        translation.safetyFlag === 'warning' 
-                          ? 'bg-yellow-100 text-yellow-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {translation.safetyFlag.toUpperCase()}
-                      </div>
-                    )}
                   </div>
                   <div className="space-y-4">
                     <div className="text-lg">
