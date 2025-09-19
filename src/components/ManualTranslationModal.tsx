@@ -33,7 +33,8 @@ import {
   History,
   RotateCcw,
   Settings,
-  Eye
+  Eye,
+  ArrowUpDown
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -69,6 +70,12 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     const saved = localStorage.getItem('manual-translation-speaker-settings');
     return saved ? JSON.parse(saved) : { patient: true, gp: true };
   });
+
+  // Toggle states for individual translations
+  const [translationToggles, setTranslationToggles] = useState<Record<string, {
+    textSwapped: boolean;
+    speakerSwapped: boolean;
+  }>>({});
 
   // Translation history view toggle with persistence
   const [showLastOnly, setShowLastOnly] = useState<boolean>(() => {
@@ -576,100 +583,140 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       <div>No translations yet</div>
                       <div className="text-sm">Start speaking to begin translation</div>
                     </div>
-                  ) : (
-                    // Filter translations based on view mode
-                    (() => {
-                      const reversedTranslations = [...translations].reverse();
-                      const displayedTranslations = showLastOnly && reversedTranslations.length > 0 
-                        ? [reversedTranslations[0]] 
-                        : reversedTranslations;
-                      
-                      return displayedTranslations.map((translation) => (
-                      <div
-                        key={translation.id}
-                        className={`p-3 rounded-lg border-l-4 ${
-                          translation.speaker === 'gp'
-                            ? 'bg-blue-50 border-l-blue-500'
-                            : 'bg-green-50 border-l-green-500'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              #{translation.exchangeNumber}
-                            </Badge>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${getSafetyBadgeColor(translation.safetyFlag)}`}
-                            >
-                              {getSafetyIcon(translation.safetyFlag)}
-                              {translation.safetyFlag}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {translation.timestamp.toLocaleTimeString('en-GB', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </div>
+                   ) : (
+                     (() => {
+                       const reversedTranslations = [...translations].reverse();
+                       const displayedTranslations = showLastOnly && reversedTranslations.length > 0 
+                         ? [reversedTranslations[0]] 
+                         : reversedTranslations;
+                       
+                       return displayedTranslations.map((translation) => {
+                         const toggleState = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
+                         const displaySpeaker = toggleState.speakerSwapped 
+                           ? (translation.speaker === 'gp' ? 'patient' : 'gp')
+                           : translation.speaker;
+                         
+                         return (
+                         <div
+                           key={translation.id}
+                           className={`p-3 rounded-lg border-l-4 ${
+                             displaySpeaker === 'gp'
+                               ? 'bg-blue-50 border-l-blue-500'
+                               : 'bg-green-50 border-l-green-500'
+                           }`}
+                         >
+                           <div className="flex items-center justify-between mb-2">
+                             <div className="flex items-center gap-2">
+                               <span className="text-sm font-medium">
+                                 {displaySpeaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                               </span>
+                               <Badge variant="outline" className="text-xs">
+                                 #{translation.exchangeNumber}
+                               </Badge>
+                               <Badge 
+                                 variant="outline" 
+                                 className={`text-xs ${getSafetyBadgeColor(translation.safetyFlag)}`}
+                               >
+                                 {getSafetyIcon(translation.safetyFlag)}
+                                 {translation.safetyFlag}
+                               </Badge>
+                               {(toggleState.textSwapped || toggleState.speakerSwapped) && (
+                                 <Badge variant="secondary" className="text-xs">
+                                   Corrected
+                                 </Badge>
+                               )}
+                             </div>
+                             <div className="flex items-center gap-2">
+                               {/* Toggle Button */}
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 className="h-6 w-6 p-0"
+                                 onClick={() => {
+                                   // Toggle both text and speaker in one click for simplicity
+                                   const currentToggle = translationToggles[translation.id] || { textSwapped: false, speakerSwapped: false };
+                                   setTranslationToggles(prev => ({
+                                     ...prev,
+                                     [translation.id]: {
+                                       textSwapped: !currentToggle.textSwapped,
+                                       speakerSwapped: !currentToggle.speakerSwapped
+                                     }
+                                   }));
+                                 }}
+                                 title="Correct language detection (swap text and speaker)"
+                               >
+                                 <ArrowUpDown className="h-3 w-3" />
+                               </Button>
+                               <div className="text-xs text-muted-foreground">
+                                 {translation.timestamp.toLocaleTimeString('en-GB', { 
+                                   hour: '2-digit', 
+                                   minute: '2-digit' 
+                                 })}
+                               </div>
+                             </div>
+                           </div>
+ 
+                           <div className="space-y-2">
+                             <div>
+                               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                 {toggleState.textSwapped ? 'Translation' : 'Original'} ({toggleState.textSwapped ? translation.targetLanguage : translation.originalLanguageDetected})
+                               </div>
+                               <div className="text-sm">
+                                 {toggleState.textSwapped ? translation.translatedText : translation.originalText}
+                               </div>
+                             </div>
+                             
+                             <div>
+                               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                 {toggleState.textSwapped ? 'Original' : 'Translation'} ({toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage})
+                               </div>
+                               <div className="text-sm font-medium">
+                                 {toggleState.textSwapped ? translation.originalText : translation.translatedText}
+                               </div>
+                               
+                               {/* TTS Button */}
+                               {showSpeakers && 'speechSynthesis' in window && (
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   className="h-6 px-2 mt-1"
+                                   onClick={() => {
+                                     const textToSpeak = toggleState.textSwapped ? translation.originalText : translation.translatedText;
+                                     const langToUse = toggleState.textSwapped ? translation.originalLanguageDetected : translation.targetLanguage;
+                                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                                     utterance.lang = langToUse;
+                                     utterance.rate = 0.9;
+                                     speechSynthesis.speak(utterance);
+                                   }}
+                                 >
+                                   <Volume2 className="h-3 w-3 mr-1" />
+                                   Play
+                                 </Button>
+                               )}
+                             </div>
+ 
+                           {showMetrics && (
+                             <div className="flex items-center justify-between text-xs text-muted-foreground">
+                               <span>Accuracy: {translation.translationAccuracy}%</span>
+                               <span>Confidence: {translation.translationConfidence}%</span>
+                               <span>{translation.processingTimeMs}ms</span>
+                             </div>
+                           )}
+ 
+                           {translation.medicalTermsDetected.length > 0 && (
+                             <div className="text-xs">
+                               <span className="text-muted-foreground">Medical terms: </span>
+                               <span className="text-primary font-medium">
+                                 {translation.medicalTermsDetected.join(', ')}
+                               </span>
+                             </div>
+                           )}
+                         </div>
                         </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                              Original ({translation.originalLanguageDetected})
-                            </div>
-                            <div className="text-sm">{translation.originalText}</div>
-                          </div>
-                          
-                          <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                              Translation ({translation.targetLanguage})
-                            </div>
-                            <div className="text-sm font-medium">{translation.translatedText}</div>
-                            
-                            {/* TTS Button */}
-                            {showSpeakers && 'speechSynthesis' in window && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 mt-1"
-                                onClick={() => {
-                                  const utterance = new SpeechSynthesisUtterance(translation.translatedText);
-                                  utterance.lang = translation.targetLanguage;
-                                  utterance.rate = 0.9;
-                                  speechSynthesis.speak(utterance);
-                                }}
-                              >
-                                <Volume2 className="h-3 w-3 mr-1" />
-                                Play
-                              </Button>
-                            )}
-                          </div>
-
-                          {showMetrics && (
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>Accuracy: {translation.translationAccuracy}%</span>
-                              <span>Confidence: {translation.translationConfidence}%</span>
-                              <span>{translation.processingTimeMs}ms</span>
-                            </div>
-                          )}
-
-                          {translation.medicalTermsDetected.length > 0 && (
-                            <div className="text-xs">
-                              <span className="text-muted-foreground">Medical terms: </span>
-                              <span className="text-primary font-medium">
-                                {translation.medicalTermsDetected.join(', ')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                       </div>
-                     ))})()
-                   )}
+                       );
+                     });
+                   })()
+                 )}
                 </div>
               </ScrollArea>
             </div>
