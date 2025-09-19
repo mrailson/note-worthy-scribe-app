@@ -36,7 +36,7 @@ serve(async (req) => {
       'hi': 'Hindi',
       'ru': 'Russian',
       'tr': 'Turkish',
-      'fa': 'Persian',
+      'hu': 'Hungarian',
       'ur': 'Urdu',
       'bn': 'Bengali',
       'ta': 'Tamil',

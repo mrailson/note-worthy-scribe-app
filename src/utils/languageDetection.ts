@@ -21,63 +21,38 @@ export class LanguageDetector {
     const cleanText = text.trim().toLowerCase();
     console.log('🔍 Language detection for text:', cleanText.substring(0, 50), 'Target:', this.targetLanguageName);
     
-    // Basic English detection patterns
-    const englishPatterns = [
-      /\b(the|and|or|but|is|are|was|were|have|has|had|will|would|could|should|can|may|might)\b/g,
-      /\b(hello|hi|yes|no|please|thank you|sorry|excuse me|good morning|good afternoon)\b/g,
-      /\b(pain|medication|doctor|nurse|hospital|appointment|prescription|allergy)\b/g
+    // Simple English detection - only look for very common English words
+    const basicEnglishWords = [
+      'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 
+      'will', 'would', 'could', 'should', 'can', 'may', 'do', 'does', 'did',
+      'hello', 'hi', 'yes', 'no', 'please', 'thank', 'you', 'sorry', 'how', 'what', 'when', 'where',
+      'pain', 'feel', 'hurt', 'take', 'medication', 'doctor', 'need', 'help'
     ];
-
-    const englishScore = this.calculatePatternScore(cleanText, englishPatterns);
-    console.log('📊 English score:', englishScore);
     
-    // If high English score, likely GP speaking
-    if (englishScore > 0.3) {
+    const words = cleanText.split(/\s+/);
+    const englishWordCount = words.filter(word => basicEnglishWords.includes(word)).length;
+    const englishRatio = englishWordCount / Math.max(words.length, 1);
+    
+    console.log('📊 English detection:', { englishWordCount, totalWords: words.length, ratio: englishRatio });
+    
+    // If we detect English words (even just one in a short phrase), assume GP speaking English
+    if (englishRatio > 0.15 || englishWordCount > 0) {
       console.log('✅ Detected as English (GP speaking)');
       return {
         detectedLanguage: 'en',
-        confidence: Math.min(95, englishScore * 100),
+        confidence: Math.min(95, 70 + (englishRatio * 25)),
         isEnglish: true,
         suggestedSpeaker: 'gp'
       };
     }
 
-    // Check for target language patterns
-    const targetLanguageScore = this.detectTargetLanguage(cleanText);
-    console.log('📊 Target language score:', targetLanguageScore);
-    
-    if (targetLanguageScore > 0.2) {
-      console.log('✅ Detected as', this.targetLanguageName, '(Patient speaking)');
-      return {
-        detectedLanguage: this.targetLanguage,
-        confidence: Math.min(90, targetLanguageScore * 100),
-        isEnglish: false,
-        suggestedSpeaker: 'patient'
-      };
-    }
-
-    // Fallback to length-based heuristics
-    const hasComplexGrammar = /[,;:\.!?]/.test(text);
-    const wordCount = text.split(/\s+/).length;
-    
-    // If short text with simple structure, assume patient in target language
-    if (wordCount <= 3 && !hasComplexGrammar) {
-      console.log('📝 Short text - assuming patient in', this.targetLanguageName);
-      return {
-        detectedLanguage: this.targetLanguage,
-        confidence: 60,
-        isEnglish: false,
-        suggestedSpeaker: 'patient'
-      };
-    }
-
-    // Default to English for longer, structured text
-    console.log('📝 Default to English (GP)');
+    // Otherwise, assume patient speaking in the target language
+    console.log('✅ Detected as', this.targetLanguageName, '(Patient speaking)');
     return {
-      detectedLanguage: 'en',
-      confidence: 70,
-      isEnglish: true,
-      suggestedSpeaker: 'gp'
+      detectedLanguage: this.targetLanguage,
+      confidence: 85,
+      isEnglish: false,
+      suggestedSpeaker: 'patient'
     };
   }
 
