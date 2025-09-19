@@ -186,7 +186,15 @@ export const useManualTranslation = () => {
   }, [currentSession]);
 
   const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
-    console.log('🔄 Processing speech result:', { text, isFinal, currentSession: !!currentSession, languageDetector: !!languageDetectorRef.current });
+    console.log('🔄 Processing speech result:', { 
+      text, 
+      isFinal, 
+      hasCurrentSession: !!currentSession,
+      hasLanguageDetector: !!languageDetectorRef.current,
+      hasText: !!text.trim(),
+      sessionId: currentSession?.id,
+      targetLanguage: currentSession?.targetLanguageCode
+    });
     
     if (!currentSession || !languageDetectorRef.current || !text.trim()) {
       console.log('⚠️ Skipping speech result - missing requirements:', {
@@ -425,7 +433,7 @@ export const useManualTranslation = () => {
     languageDetectorRef.current = null;
     
     console.log('✅ Session cleared completely');
-  }, []);
+  }, [currentSession, languageDetectorRef]);
 
   return {
     // Session state
