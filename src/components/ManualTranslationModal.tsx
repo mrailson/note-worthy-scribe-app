@@ -107,6 +107,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     try {
       await startSession(selectedLanguage, selectedLanguageName);
       console.log('✅ Session started successfully');
+      // Auto-start listening to reduce friction
+      await startListening();
+      console.log('🎧 Auto-listening started');
     } catch (error) {
       console.error('❌ Failed to start session:', error);
       toast.error('Failed to start translation session');
