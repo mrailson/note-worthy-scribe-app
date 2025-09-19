@@ -109,13 +109,13 @@ export const useManualTranslation = () => {
           user_id: (await supabase.auth.getUser()).data.user?.id,
           target_language_code: targetLanguageCode,
           target_language_name: targetLanguageName,
-          session_start_time: now.toISOString(),
+          session_start: now.toISOString(),
           is_active: true,
           total_exchanges: 0,
           average_accuracy: 0,
           average_confidence: 0,
-          session_duration: 0,
-          overall_safety_status: 'safe' as const,
+          session_duration_seconds: 0,
+          overall_safety_rating: 'safe' as const,
           session_metadata: sessionMetadata
         })
         .select()

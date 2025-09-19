@@ -2471,6 +2471,7 @@ export type Database = {
           average_confidence: number | null
           created_at: string
           id: string
+          is_active: boolean
           is_completed: boolean | null
           overall_safety_rating: string | null
           session_duration_seconds: number | null
@@ -2489,6 +2490,7 @@ export type Database = {
           average_confidence?: number | null
           created_at?: string
           id?: string
+          is_active?: boolean
           is_completed?: boolean | null
           overall_safety_rating?: string | null
           session_duration_seconds?: number | null
@@ -2507,6 +2509,7 @@ export type Database = {
           average_confidence?: number | null
           created_at?: string
           id?: string
+          is_active?: boolean
           is_completed?: boolean | null
           overall_safety_rating?: string | null
           session_duration_seconds?: number | null
