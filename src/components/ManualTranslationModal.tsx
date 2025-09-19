@@ -1119,9 +1119,9 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                              </div>
                              
                               <div>
-                                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                  All translations will be shown here in {currentSession?.targetLanguageName || finalTranslation.targetLanguage}
-                                </div>
+                                 <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                                   {currentSession?.targetLanguageName || finalTranslation.targetLanguage}
+                                 </div>
                                <div className={`${getTextSizeClass(translatedTextSize)} font-medium`}>{finalTranslation.translatedText}</div>
                                
                                {/* TTS Button */}
