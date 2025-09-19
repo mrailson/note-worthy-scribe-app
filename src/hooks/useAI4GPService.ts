@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Message, UploadedFile, SearchHistory } from '@/types/ai4gp';
+import { useDisplayPreferences } from './useDisplayPreferences';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -23,13 +24,21 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   
-  // Display Settings
-  const [textSize, setTextSize] = useState<'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest'>('default');
-  const [interfaceDensity, setInterfaceDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
-  const [containerWidth, setContainerWidth] = useState<'narrow' | 'standard' | 'wide' | 'full'>('full');
-  const [highContrast, setHighContrast] = useState(false);
-  const [readingFont, setReadingFont] = useState(false);
-  const [autoCollapseUserPrompts, setAutoCollapseUserPrompts] = useState(false);
+  // Display Settings - now managed by useDisplayPreferences
+  const {
+    textSize,
+    setTextSize,
+    interfaceDensity,
+    setInterfaceDensity,
+    containerWidth,
+    setContainerWidth,
+    highContrast,
+    setHighContrast,
+    readingFont,
+    setReadingFont,
+    autoCollapseUserPrompts,
+    setAutoCollapseUserPrompts,
+  } = useDisplayPreferences();
 
   // Update isClinical when verificationLevel changes
   useEffect(() => {
