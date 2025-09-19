@@ -536,6 +536,26 @@ export async function downloadDOCX(
       
       new Paragraph({ text: "" }), // Empty line
       
+      // Add consent information to document if available
+      ...(metadata.consentGiven && metadata.consentTimestamp ? [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Patient Consent: ",
+              bold: true,
+              color: "155724",
+            }),
+            new TextRun({
+              text: `✓ Obtained on ${metadata.consentTimestamp.toLocaleDateString('en-GB')} at ${metadata.consentTimestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} (${metadata.patientLanguage})`,
+              color: "155724",
+            }),
+          ],
+          spacing: {
+            after: 240,
+          },
+        })
+      ] : []),
+      
       // Practice Information (if available)
       ...(metadata.practiceInfo ? [
         new Paragraph({

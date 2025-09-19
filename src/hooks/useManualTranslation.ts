@@ -35,6 +35,9 @@ interface ManualTranslationSession {
   sessionEnd?: Date;
   isCompleted: boolean;
   entries: ManualTranslationEntry[];
+  consentGiven?: boolean;
+  consentTimestamp?: Date;
+  consentLanguage?: string;
 }
 
 export const useManualTranslation = () => {
@@ -71,9 +74,9 @@ export const useManualTranslation = () => {
     };
   }, []);
 
-  const startSession = useCallback(async (targetLanguageCode: string, targetLanguageName: string) => {
+  const startSession = useCallback(async (targetLanguageCode: string, targetLanguageName: string, consentGiven: boolean = false) => {
     try {
-      console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName });
+      console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName, consentGiven });
       setError(null);
       setIsActive(false); // Reset first
       
@@ -92,6 +95,13 @@ export const useManualTranslation = () => {
       // Small delay to ensure cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      const now = new Date();
+      const sessionMetadata = {
+        consentGiven,
+        consentTimestamp: consentGiven ? now.toISOString() : null,
+        consentLanguage: targetLanguageCode
+      };
+
       // Create new session in database
       const { data: sessionData, error: sessionError } = await supabase
         .from('manual_translation_sessions')
@@ -99,26 +109,30 @@ export const useManualTranslation = () => {
           user_id: (await supabase.auth.getUser()).data.user?.id,
           target_language_code: targetLanguageCode,
           target_language_name: targetLanguageName,
-          session_title: `Manual Translation - ${targetLanguageName}`,
-          session_start: new Date().toISOString(),
+          session_start_time: now.toISOString(),
+          is_active: true,
+          total_exchanges: 0,
+          average_accuracy: 0,
+          average_confidence: 0,
+          session_duration: 0,
+          overall_safety_status: 'safe' as const,
+          session_metadata: sessionMetadata
         })
         .select()
         .single();
 
       if (sessionError) {
-        console.error('Database session error:', sessionError);
-        if (sessionError.message?.includes('JWT') || sessionError.message?.includes('401') || sessionError.message?.includes('Invalid Refresh Token')) {
-          throw new Error('Authentication expired. Please refresh the page and log in again.');
-        }
-        throw sessionError;
+        console.error('❌ Error creating session:', sessionError);
+        setError('Failed to start translation session');
+        return;
       }
 
-      console.log('📝 Session created in database:', sessionData);
+      console.log('✅ Session created:', sessionData);
 
-      // Initialize session state
-      const session: ManualTranslationSession = {
+      // Set current session state
+      const newSession: ManualTranslationSession = {
         id: sessionData.id,
-        sessionTitle: sessionData.session_title,
+        sessionTitle: `${targetLanguageName} Translation Session`,
         targetLanguageCode,
         targetLanguageName,
         totalExchanges: 0,
@@ -126,12 +140,61 @@ export const useManualTranslation = () => {
         averageAccuracy: 0,
         averageConfidence: 0,
         overallSafetyRating: 'safe',
-        sessionStart: new Date(sessionData.session_start),
+        sessionStart: new Date(sessionData.session_start_time),
         isCompleted: false,
-        entries: []
+        entries: [],
+        consentGiven: sessionData.session_metadata?.consentGiven || false,
+        consentTimestamp: sessionData.session_metadata?.consentTimestamp ? new Date(sessionData.session_metadata.consentTimestamp) : undefined,
+        consentLanguage: sessionData.session_metadata?.consentLanguage
       };
 
-      console.log('🎯 Setting current session:', session);
+      setCurrentSession(newSession);
+
+      // Log consent to audit trail
+      if (consentGiven) {
+        await supabase.rpc('log_system_activity', {
+          p_table_name: 'manual_translation_sessions',
+          p_operation: 'CONSENT_OBTAINED',
+          p_record_id: sessionData.id,
+          p_new_values: {
+            session_id: sessionData.id,
+            consent_language: targetLanguageCode,
+            consent_timestamp: now.toISOString(),
+            language_name: targetLanguageName
+          }
+        });
+      }
+
+      // Initialize language detection
+      console.log('🔧 Initializing language detection for session...');
+      if (webSpeechDetectorRef.current) {
+        await webSpeechDetectorRef.current.initialize();
+        console.log('✅ Language detection initialized');
+      }
+
+      // Initialize speech recognition
+      console.log('🎙️ Initializing speech recognition...');
+      speechRecognitionRef.current = new BrowserSpeechRecognition(
+        handleSpeechResult,
+        (listening: boolean) => setIsListening(listening),
+        (error: string) => {
+          console.error('❌ Speech recognition error:', error);
+          setError(`Speech recognition error: ${error}`);
+          setIsListening(false);
+        }
+      );
+
+      console.log('✅ Speech recognition initialized');
+      
+      setIsActive(true);
+      console.log('🎉 Session started successfully!');
+      
+      // Auto-start listening after session creation
+      setTimeout(() => {
+        startListening();
+      }, 500);
+
+    } catch (error) {
       setCurrentSession(session);
 
       // Initialize language detector with ONLY English and target language
@@ -177,8 +240,6 @@ export const useManualTranslation = () => {
           console.log('✅ Auto-started speech recognition successfully');
         } catch (autoStartError) {
           console.error('❌ Failed to auto-start listening:', autoStartError);
-          // Don't show error toast here as the session started successfully
-          // User can manually click Start Listening if needed
         }
       }
       
