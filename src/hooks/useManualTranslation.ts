@@ -140,12 +140,12 @@ export const useManualTranslation = () => {
         averageAccuracy: 0,
         averageConfidence: 0,
         overallSafetyRating: 'safe',
-        sessionStart: new Date(sessionData.session_start_time),
+        sessionStart: new Date(sessionData.session_start),
         isCompleted: false,
         entries: [],
-        consentGiven: sessionData.session_metadata?.consentGiven || false,
-        consentTimestamp: sessionData.session_metadata?.consentTimestamp ? new Date(sessionData.session_metadata.consentTimestamp) : undefined,
-        consentLanguage: sessionData.session_metadata?.consentLanguage
+        consentGiven: (sessionData.session_metadata as any)?.consentGiven || false,
+        consentTimestamp: (sessionData.session_metadata as any)?.consentTimestamp ? new Date((sessionData.session_metadata as any).consentTimestamp) : undefined,
+        consentLanguage: (sessionData.session_metadata as any)?.consentLanguage
       };
 
       setCurrentSession(newSession);
@@ -166,21 +166,20 @@ export const useManualTranslation = () => {
       }
 
       // Initialize language detection
-      console.log('🔧 Initializing language detection for session...');
-      if (webSpeechDetectorRef.current) {
-        await webSpeechDetectorRef.current.initialize();
-        console.log('✅ Language detection initialized');
-      }
+      console.log('🔧 Language detection ready for session...');
+      // Note: WebSpeechLanguageDetector doesn't require initialization
 
       // Initialize speech recognition
       console.log('🎙️ Initializing speech recognition...');
       speechRecognitionRef.current = new BrowserSpeechRecognition(
-        handleSpeechResult,
-        (listening: boolean) => setIsListening(listening),
+        (transcript: any) => handleSpeechResult(transcript.text, transcript.isFinal),
         (error: string) => {
           console.error('❌ Speech recognition error:', error);
           setError(`Speech recognition error: ${error}`);
           setIsListening(false);
+        },
+        (status: string) => {
+          console.log('Speech recognition status:', status);
         }
       );
 
@@ -194,55 +193,6 @@ export const useManualTranslation = () => {
         startListening();
       }, 500);
 
-    } catch (error) {
-      setCurrentSession(session);
-
-      // Initialize language detector with ONLY English and target language
-      languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
-      console.log('🔧 LanguageDetector initialized');
-
-      // Initialize speech recognition (create regardless; it self-checks support)
-      speechRecognitionRef.current = new BrowserSpeechRecognition(
-        (transcript) => {
-          console.log('🎤 Speech recognition result:', transcript);
-          // Use the current session state directly instead of handleSpeechResult callback
-          const currentSessionState = session;
-          if (currentSessionState && languageDetectorRef.current && transcript.text.trim() && transcript.isFinal) {
-            console.log('✅ Processing final speech result immediately:', transcript.text);
-            // Process the speech result inline to avoid callback dependency issues
-            processTranscript(transcript.text, currentSessionState);
-          }
-        },
-        (error) => {
-          console.error('Speech recognition error:', error);
-          toast.error('Speech recognition error: ' + error);
-        },
-        (status) => {
-          console.log('Speech recognition status:', status);
-        }
-      );
-
-      setIsActive(true);
-      console.log('✅ Session started successfully for:', targetLanguageName);
-      toast.success(`Manual translation session started for ${targetLanguageName}`);
-      
-      // Auto-start listening immediately after session initialization
-      if (speechRecognitionRef.current) {
-        try {
-          console.log('🤖 Auto-starting speech recognition...');
-          
-          // Proactively request mic permission
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-          console.log('✅ Microphone access confirmed for auto-start');
-          
-          await speechRecognitionRef.current.startRecognition();
-          setIsListening(true);
-          console.log('✅ Auto-started speech recognition successfully');
-        } catch (autoStartError) {
-          console.error('❌ Failed to auto-start listening:', autoStartError);
-        }
-      }
-      
     } catch (error) {
       console.error('Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
