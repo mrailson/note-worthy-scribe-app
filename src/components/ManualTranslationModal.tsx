@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import {
   Popover,
@@ -34,7 +35,9 @@ import {
   RotateCcw,
   Settings,
   Eye,
-  ArrowUpDown
+  ArrowUpDown,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
@@ -101,6 +104,14 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
     return saved ? JSON.parse(saved) : true;
   });
 
+  // How it works section state
+  const [showInstructions, setShowInstructions] = useState<boolean>(() => {
+    const saved = localStorage.getItem('manual-translation-show-instructions');
+    return saved ? JSON.parse(saved) : true;
+  });
+
+  const [showInstructionsInPatientLanguage, setShowInstructionsInPatientLanguage] = useState<boolean>(false);
+
   // Ref for scroll area to auto-scroll to bottom
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +133,10 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   useEffect(() => {
     localStorage.setItem('manual-translation-show-speakers', JSON.stringify(showSpeakers));
   }, [showSpeakers]);
+
+  useEffect(() => {
+    localStorage.setItem('manual-translation-show-instructions', JSON.stringify(showInstructions));
+  }, [showInstructions]);
 
   const toggleSpeaker = (speaker: 'patient' | 'gp') => {
     setSpeakerSettings(prev => ({
@@ -564,29 +579,77 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
               )}
 
               {/* Instructions */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">How It Works</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                    <div>GP speaks in English → Translates to patient language</div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                    <div>Patient speaks in their language → Translates to English</div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
-                    <div>Automatic language detection and speaker identification</div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
-                    <div>Text-to-speech playback for translated text</div>
-                  </div>
-                </CardContent>
-              </Card>
+              <Collapsible open={showInstructions} onOpenChange={setShowInstructions}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm">How It Works</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 opacity-60 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowInstructionsInPatientLanguage(!showInstructionsInPatientLanguage);
+                            }}
+                            title={`Show in ${showInstructionsInPatientLanguage ? 'English' : selectedLanguageName || 'patient language'}`}
+                          >
+                            <Languages className="h-3 w-3" />
+                          </Button>
+                          {showInstructions ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="text-sm space-y-2">
+                      {showInstructionsInPatientLanguage && selectedLanguage ? (
+                        // Instructions in patient's language (translated)
+                        <>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                            <div>GP speaks in English → Translates to {selectedLanguageName}</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                            <div>Patient speaks in {selectedLanguageName} → Translates to English</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                            <div>Automatic language detection and speaker identification</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                            <div>Text-to-speech playback for translated text</div>
+                          </div>
+                        </>
+                      ) : (
+                        // Instructions in English (default)
+                        <>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                            <div>GP speaks in English → Translates to patient language</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                            <div>Patient speaks in their language → Translates to English</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                            <div>Automatic language detection and speaker identification</div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                            <div>Text-to-speech playback for translated text</div>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             </div>
 
             {/* Right Panel - Translation History */}
