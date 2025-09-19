@@ -608,47 +608,126 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       {showInstructionsInPatientLanguage && selectedLanguage ? (
                         // Instructions in patient's language (translated)
                         <>
-                          {selectedLanguage === 'nl' ? (
-                            // Dutch translations
-                            <>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                                <div>Arts spreekt in het Engels → Wordt vertaald naar het Nederlands</div>
+                          {(() => {
+                            const getInstructions = (languageCode: string, languageName: string) => {
+                              const instructions = {
+                                ar: [ // Arabic
+                                  'الطبيب يتحدث بالإنجليزية ← سيتم ترجمة كلماتك إلى العربية',
+                                  'كلماتك بالعربية ← سيتم ترجمتها إلى الإنجليزية',
+                                  'اكتشاف اللغة التلقائي وتحديد المتحدث',
+                                  'تشغيل النص المترجم صوتياً'
+                                ],
+                                zh: [ // Chinese
+                                  '医生用英语讲话 ← 您的话将被翻译成中文',
+                                  '您用中文说的话 ← 将被翻译成英语',
+                                  '自动语言检测和说话人识别',
+                                  '翻译文本的语音播放'
+                                ],
+                                fr: [ // French
+                                  'Le médecin parle en anglais ← Vos mots seront traduits en français',
+                                  'Vos mots en français ← Seront traduits en anglais',
+                                  'Détection automatique de la langue et identification du locuteur',
+                                  'Lecture vocale du texte traduit'
+                                ],
+                                de: [ // German
+                                  'Arzt spricht auf Englisch ← Ihre Worte werden ins Deutsche übersetzt',
+                                  'Ihre Worte auf Deutsch ← Werden ins Englische übersetzt',
+                                  'Automatische Spracherkennung und Sprecheridentifikation',
+                                  'Sprachausgabe für übersetzten Text'
+                                ],
+                                hi: [ // Hindi
+                                  'डॉक्टर अंग्रेजी में बोलते हैं ← आपके शब्दों का हिंदी में अनुवाद होगा',
+                                  'आपके हिंदी के शब्द ← अंग्रेजी में अनुवादित होंगे',
+                                  'स्वचालित भाषा पहचान और वक्ता पहचान',
+                                  'अनुवादित पाठ के लिए टेक्स्ट-टू-स्पीच'
+                                ],
+                                it: [ // Italian
+                                  'Il medico parla in inglese ← Le tue parole saranno tradotte in italiano',
+                                  'Le tue parole in italiano ← Saranno tradotte in inglese',
+                                  'Rilevamento automatico della lingua e identificazione del parlante',
+                                  'Riproduzione vocale del testo tradotto'
+                                ],
+                                es: [ // Spanish
+                                  'El médico habla en inglés ← Tus palabras serán traducidas al español',
+                                  'Tus palabras en español ← Serán traducidas al inglés',
+                                  'Detección automática de idioma e identificación del hablante',
+                                  'Reproducción de voz para texto traducido'
+                                ],
+                                nl: [ // Dutch
+                                  'Arts spreekt in het Engels ← Uw woorden worden vertaald naar het Nederlands',
+                                  'Uw woorden in het Nederlands ← Worden vertaald naar het Engels',
+                                  'Automatische taalherkenning en sprekeridentificatie',
+                                  'Tekst-naar-spraak voor vertaalde tekst'
+                                ],
+                                pt: [ // Portuguese
+                                  'O médico fala em inglês ← Suas palavras serão traduzidas para português',
+                                  'Suas palavras em português ← Serão traduzidas para inglês',
+                                  'Detecção automática de idioma e identificação do falante',
+                                  'Reprodução de voz para texto traduzido'
+                                ],
+                                ru: [ // Russian
+                                  'Врач говорит по-английски ← Ваши слова будут переведены на русский',
+                                  'Ваши слова на русском ← Будут переведены на английский',
+                                  'Автоматическое определение языка и идентификация говорящего',
+                                  'Озвучивание переведённого текста'
+                                ],
+                                ja: [ // Japanese
+                                  '医師は英語で話します ← あなたの言葉は日本語に翻訳されます',
+                                  'あなたの日本語の言葉 ← 英語に翻訳されます',
+                                  '自動言語検出と話者識別',
+                                  '翻訳されたテキストの音声再生'
+                                ],
+                                ko: [ // Korean
+                                  '의사가 영어로 말합니다 ← 당신의 말이 한국어로 번역됩니다',
+                                  '당신의 한국어 말 ← 영어로 번역됩니다',
+                                  '자동 언어 감지 및 화자 식별',
+                                  '번역된 텍스트의 음성 재생'
+                                ],
+                                pl: [ // Polish
+                                  'Lekarz mówi po angielsku ← Twoje słowa będą przetłumaczone na polski',
+                                  'Twoje słowa po polsku ← Będą przetłumaczone na angielski',
+                                  'Automatyczne wykrywanie języka i identyfikacja mówcy',
+                                  'Odtwarzanie głosowe przetłumaczonego tekstu'
+                                ],
+                                tr: [ // Turkish
+                                  'Doktor İngilizce konuşuyor ← Sözleriniz Türkçeye çevrilecek',
+                                  'Türkçe sözleriniz ← İngilizceye çevrilecek',
+                                  'Otomatik dil algılama ve konuşmacı tanımlama',
+                                  'Çevrilmiş metin için sesli okuma'
+                                ],
+                                uk: [ // Ukrainian
+                                  'Лікар говорить англійською ← Ваші слова будуть перекладені українською',
+                                  'Ваші слова українською ← Будуть перекладені англійською',
+                                  'Автоматичне виявлення мови та ідентифікація мовця',
+                                  'Голосове відтворення перекладеного тексту'
+                                ],
+                                vi: [ // Vietnamese
+                                  'Bác sĩ nói tiếng Anh ← Lời nói của bạn sẽ được dịch sang tiếng Việt',
+                                  'Lời nói tiếng Việt của bạn ← Sẽ được dịch sang tiếng Anh',
+                                  'Tự động phát hiện ngôn ngữ và nhận dạng người nói',
+                                  'Phát âm cho văn bản đã dịch'
+                                ]
+                              };
+                              
+                              return instructions[languageCode] || [
+                                `GP speaks in English → Your words will be translated to ${languageName}`,
+                                `Your words in ${languageName} → Will be translated to English`,
+                                'Automatic language detection and speaker identification',
+                                'Text-to-speech playback for translated text'
+                              ];
+                            };
+
+                            const translatedInstructions = getInstructions(selectedLanguage, selectedLanguageName);
+                            
+                            return translatedInstructions.map((instruction, index) => (
+                              <div key={index} className="flex items-start gap-2">
+                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">
+                                  {index + 1}
+                                </div>
+                                <div>{instruction}</div>
                               </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                                <div>Uw woorden in het Nederlands → Worden vertaald naar het Engels</div>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
-                                <div>Automatische taalherkenning en sprekeridentificatie</div>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
-                                <div>Tekst-naar-spraak voor vertaalde tekst</div>
-                              </div>
-                            </>
-                          ) : (
-                            // Generic patient language version
-                            <>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</div>
-                                <div>GP speaks in English → Your words will be translated to {selectedLanguageName}</div>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</div>
-                                <div>Your words in {selectedLanguageName} → Will be translated to English</div>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</div>
-                                <div>Automatic language detection and speaker identification</div>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
-                                <div>Text-to-speech playback for translated text</div>
-                              </div>
-                            </>
-                          )}
+                            ));
+                          })()}
                         </>
                       ) : (
                         // Instructions in English (default)
@@ -667,7 +746,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                           </div>
                           <div className="flex items-start gap-2">
                             <div className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</div>
-                            <div>Text-to-speech playback for translated text</div>
+                            <div>Text-to-speech playbook for translated text</div>
                           </div>
                         </>
                       )}
