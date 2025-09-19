@@ -30,6 +30,8 @@ interface ManualTranslationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExportSession?: (session: any) => void;
+  initialLanguageCode?: string;
+  initialLanguageName?: string;
 }
 
 // Languages that require manual translation (not supported by ElevenLabs voice)
@@ -40,10 +42,20 @@ const MANUAL_TRANSLATION_LANGUAGES = HEALTHCARE_LANGUAGES.filter(lang =>
 export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   isOpen,
   onClose,
-  onExportSession
+  onExportSession,
+  initialLanguageCode,
+  initialLanguageName
 }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
-  const [selectedLanguageName, setSelectedLanguageName] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguageCode || '');
+  const [selectedLanguageName, setSelectedLanguageName] = useState<string>(initialLanguageName || '');
+  
+  // Update selected language when initial props change
+  useEffect(() => {
+    if (initialLanguageCode && initialLanguageName) {
+      setSelectedLanguage(initialLanguageCode);
+      setSelectedLanguageName(initialLanguageName);
+    }
+  }, [initialLanguageCode, initialLanguageName]);
   
   const {
     isActive,

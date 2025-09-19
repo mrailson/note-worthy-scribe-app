@@ -66,6 +66,7 @@ import { useTranslationDeduplication } from '@/hooks/useTranslationDeduplication
 import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
 import { extractLanguageAndCleanText, getLanguageName } from '@/utils/translationUtils';
 import { HistorySubTabs } from './HistorySubTabs';
+import { ManualTranslationModal } from './ManualTranslationModal';
 
 // Native language names mapping
 const NATIVE_LANGUAGE_NAMES: Record<string, string> = {
@@ -185,6 +186,8 @@ export const TranslationToolInterface = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [isEmailingSelf, setIsEmailingSelf] = useState(false);
   const [isEmailingPatient, setIsEmailingPatient] = useState(false);
+  const [isManualTranslationOpen, setIsManualTranslationOpen] = useState(false);
+  const [selectedManualLanguage, setSelectedManualLanguage] = useState<{code: string, name: string} | null>(null);
   const lastVolumeRef = useRef(0.8);
   const microphoneStreamRef = useRef<MediaStream | null>(null);
   
@@ -2563,18 +2566,58 @@ export const TranslationToolInterface = () => {
                 </Alert>
               )}
 
-              {/* Languages Available */}
+              {/* Languages Available Section - Updated to show both types */}
               <div className="mt-8">
                 <h3 className="text-2xl font-bold mb-6 text-center">Languages Available</h3>
-                <div className="flex flex-wrap gap-3 justify-center">
-                  {["Polish", "Urdu", "Bengali", "Arabic", "Spanish", "French", "Hindi", "Chinese", "German", "Italian", "Portuguese", "Ukrainian", "Hungarian", "Russian"].map((lang) => (
-                    <Badge key={lang} variant="outline" className="text-base px-4 py-2 font-semibold hover:bg-primary/10 transition-colors">
-                      {lang}
+                
+                {/* ElevenLabs AI Voice Languages */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold mb-3 text-center flex items-center justify-center gap-2">
+                    <Mic className="h-5 w-5 text-blue-600" />
+                    AI Voice Translation (ElevenLabs)
+                  </h4>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {HEALTHCARE_LANGUAGES
+                      .filter(lang => lang.hasElevenLabsVoice)
+                      .slice(0, 10)
+                      .map((lang) => (
+                        <Badge key={lang.code} variant="outline" className="text-base px-4 py-2 font-semibold hover:bg-primary/10 transition-colors cursor-pointer" 
+                               onClick={() => {
+                                 setSelectedManualLanguage({ code: lang.code, name: lang.name });
+                                 startTranslationService();
+                               }}>
+                          {lang.name}
+                        </Badge>
+                      ))}
+                    <Badge variant="secondary" className="text-base px-4 py-2 font-bold">
+                      + {HEALTHCARE_LANGUAGES.filter(lang => lang.hasElevenLabsVoice).length - 10} more
                     </Badge>
-                  ))}
-                  <Badge variant="secondary" className="text-base px-4 py-2 font-bold">
-                    + 50 more
-                  </Badge>
+                  </div>
+                </div>
+
+                {/* Manual Translation Languages */}
+                <div>
+                  <h4 className="text-lg font-semibold mb-3 text-center flex items-center justify-center gap-2">
+                    <Languages className="h-5 w-5 text-green-600" />
+                    Manual Translation (Text Display)
+                  </h4>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {HEALTHCARE_LANGUAGES
+                      .filter(lang => lang.manualTranslationOnly)
+                      .slice(0, 12)
+                      .map((lang) => (
+                        <Badge key={lang.code} variant="outline" className="text-base px-4 py-2 font-semibold hover:bg-green-100 transition-colors cursor-pointer border-green-200 text-green-700" 
+                               onClick={() => {
+                                 setSelectedManualLanguage({ code: lang.code, name: lang.name });
+                                 setIsManualTranslationOpen(true);
+                               }}>
+                          {lang.name}
+                        </Badge>
+                      ))}
+                    <Badge variant="secondary" className="text-base px-4 py-2 font-bold bg-green-100 text-green-800">
+                      + {HEALTHCARE_LANGUAGES.filter(lang => lang.manualTranslationOnly).length - 12} more
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -3775,6 +3818,17 @@ export const TranslationToolInterface = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Manual Translation Modal */}
+      <ManualTranslationModal
+        isOpen={isManualTranslationOpen}
+        onClose={() => {
+          setIsManualTranslationOpen(false);
+          setSelectedManualLanguage(null);
+        }}
+        initialLanguageCode={selectedManualLanguage?.code}
+        initialLanguageName={selectedManualLanguage?.name}
+      />
 
       {/* Translation History Sidebar */}
       {showHistorySidebar && (
