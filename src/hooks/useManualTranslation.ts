@@ -76,6 +76,13 @@ export const useManualTranslation = () => {
       console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName });
       setError(null);
       
+      // Stop any existing speech recognition first
+      if (speechRecognitionRef.current) {
+        console.log('🛑 Stopping existing speech recognition...');
+        speechRecognitionRef.current.stopRecognition();
+        setIsListening(false);
+      }
+      
       // Clear any previous session state
       setTranslations([]);
       exchangeCounterRef.current = 0;
@@ -179,10 +186,14 @@ export const useManualTranslation = () => {
   }, [currentSession]);
 
   const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
-    console.log('🔄 Processing speech result:', { text, isFinal, currentSession: !!currentSession });
+    console.log('🔄 Processing speech result:', { text, isFinal, currentSession: !!currentSession, languageDetector: !!languageDetectorRef.current });
     
     if (!currentSession || !languageDetectorRef.current || !text.trim()) {
-      console.log('⚠️ Skipping speech result - missing requirements');
+      console.log('⚠️ Skipping speech result - missing requirements:', {
+        hasCurrentSession: !!currentSession,
+        hasLanguageDetector: !!languageDetectorRef.current,
+        hasText: !!text.trim()
+      });
       return;
     }
 
