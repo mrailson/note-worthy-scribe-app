@@ -129,6 +129,11 @@ export const useManualTranslation = () => {
 
       console.log('✅ Session created:', sessionData);
 
+      // Initialize language detection FIRST
+      console.log('🔧 Initializing language detector...');
+      languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
+      console.log('✅ Language detector initialized');
+
       // Set current session state
       const newSession: ManualTranslationSession = {
         id: sessionData.id,
@@ -149,6 +154,26 @@ export const useManualTranslation = () => {
       };
 
       setCurrentSession(newSession);
+      setIsActive(true); // Set active BEFORE initializing speech recognition
+
+      // Initialize speech recognition with dependency on currentSession
+      console.log('🎙️ Initializing speech recognition...');
+      speechRecognitionRef.current = new BrowserSpeechRecognition(
+        (transcript: any) => {
+          console.log('📝 Speech recognition callback received:', transcript);
+          handleSpeechResult(transcript.text, transcript.isFinal);
+        },
+        (error: string) => {
+          console.error('❌ Speech recognition error:', error);
+          setError(`Speech recognition error: ${error}`);
+          setIsListening(false);
+        },
+        (status: string) => {
+          console.log('🎙️ Speech recognition status:', status);
+        }
+      );
+
+      console.log('✅ Speech recognition initialized');
 
       // Log consent to audit trail
       if (consentGiven) {
@@ -164,42 +189,23 @@ export const useManualTranslation = () => {
           }
         });
       }
-
-      // Initialize language detection
-      console.log('🔧 Initializing language detector...');
-      languageDetectorRef.current = new LanguageDetector(targetLanguageCode, targetLanguageName);
-      console.log('✅ Language detector initialized');
-
-      // Initialize speech recognition
-      console.log('🎙️ Initializing speech recognition...');
-      speechRecognitionRef.current = new BrowserSpeechRecognition(
-        (transcript: any) => handleSpeechResult(transcript.text, transcript.isFinal),
-        (error: string) => {
-          console.error('❌ Speech recognition error:', error);
-          setError(`Speech recognition error: ${error}`);
-          setIsListening(false);
-        },
-        (status: string) => {
-          console.log('Speech recognition status:', status);
-        }
-      );
-
-      console.log('✅ Speech recognition initialized');
       
-      setIsActive(true);
       console.log('🎉 Session started successfully!');
       
-      // Auto-start listening after session creation
+      // Auto-start listening after a brief delay to ensure all setup is complete
       setTimeout(() => {
-        startListening();
-      }, 500);
+        console.log('🎙️ Auto-starting listening...');
+        if (speechRecognitionRef.current && !isListening) {
+          startListening();
+        }
+      }, 1000); // Increased delay to ensure everything is ready
 
     } catch (error) {
-      console.error('Failed to start manual translation session:', error);
+      console.error('❌ Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
       toast.error('Failed to start translation session');
     }
-  }, []);
+  }, [isListening]);
 
   // Inline processing function to avoid dependency issues
   const processTranscript = useCallback(async (text: string, sessionState: ManualTranslationSession) => {
@@ -329,10 +335,28 @@ export const useManualTranslation = () => {
   }, []);
 
   const startListening = useCallback(async () => {
-    console.log('🎙️ Start listening called:', { currentSession: !!currentSession, speechRecognition: !!speechRecognitionRef.current });
+    console.log('🎙️ Start listening called:', { 
+      currentSession: !!currentSession, 
+      speechRecognition: !!speechRecognitionRef.current, 
+      isActive,
+      languageDetector: !!languageDetectorRef.current
+    });
     
-    if (!currentSession || !speechRecognitionRef.current) {
-      toast.error('No active session or speech recognition not available');
+    if (!isActive) {
+      console.log('❌ Cannot start listening - session not active');
+      toast.error('No active session');
+      return;
+    }
+    
+    if (!currentSession) {
+      console.log('❌ Cannot start listening - no current session');
+      toast.error('No active session');
+      return;
+    }
+    
+    if (!speechRecognitionRef.current) {
+      console.log('❌ Cannot start listening - speech recognition not initialized');
+      toast.error('Speech recognition not available');
       return;
     }
 
@@ -353,11 +377,12 @@ export const useManualTranslation = () => {
       await speechRecognitionRef.current.startRecognition();
       setIsListening(true);
       console.log('✅ Speech recognition started successfully');
+      toast.success('🎙️ Listening started');
     } catch (error) {
       console.error('❌ Failed to start listening:', error);
       toast.error('Failed to start speech recognition');
     }
-  }, [currentSession]);
+  }, [currentSession, isActive]);
 
   const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
     console.log('🔄 Processing speech result:', { 
@@ -367,21 +392,34 @@ export const useManualTranslation = () => {
       hasLanguageDetector: !!languageDetectorRef.current,
       hasText: !!text.trim(),
       sessionId: currentSession?.id,
-      targetLanguage: currentSession?.targetLanguageCode
+      targetLanguage: currentSession?.targetLanguageCode,
+      isActive
     });
     
-    if (!currentSession || !languageDetectorRef.current || !text.trim()) {
-      console.log('⚠️ Skipping speech result - missing requirements:', {
-        hasCurrentSession: !!currentSession,
-        hasLanguageDetector: !!languageDetectorRef.current,
-        hasText: !!text.trim()
-      });
+    // Enhanced requirement checking
+    if (!isActive) {
+      console.log('⚠️ Skipping speech result - session not active');
+      return;
+    }
+    
+    if (!currentSession) {
+      console.log('⚠️ Skipping speech result - no current session');
+      return;
+    }
+    
+    if (!languageDetectorRef.current) {
+      console.log('⚠️ Skipping speech result - language detector not initialized');
+      return;
+    }
+    
+    if (!text.trim()) {
+      console.log('⚠️ Skipping speech result - empty text');
       return;
     }
 
     // Only process final results
     if (!isFinal) {
-      console.log('📝 Interim result, skipping:', text);
+      console.log('📝 Interim result, skipping:', text.substring(0, 50));
       return;
     }
 
