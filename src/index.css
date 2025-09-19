@@ -474,7 +474,7 @@ tbody tr:hover {
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-0;
   }
 
   body {
