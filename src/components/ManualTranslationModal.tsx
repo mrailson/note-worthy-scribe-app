@@ -73,16 +73,30 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
   } = useManualTranslation();
 
   const handleStartSession = async () => {
+    console.log('🚀 Starting manual translation session:', { selectedLanguage, selectedLanguageName });
+    
     if (!selectedLanguage || !selectedLanguageName) {
       toast.error('Please select a language first');
       return;
     }
 
-    await startSession(selectedLanguage, selectedLanguageName);
+    try {
+      await startSession(selectedLanguage, selectedLanguageName);
+      console.log('✅ Session started successfully');
+    } catch (error) {
+      console.error('❌ Failed to start session:', error);
+      toast.error('Failed to start translation session');
+    }
   };
 
   const handleEndSession = async () => {
-    await endSession();
+    console.log('🛑 Ending manual translation session');
+    try {  
+      await endSession();
+      console.log('✅ Session ended successfully');
+    } catch (error) {
+      console.error('❌ Failed to end session:', error);
+    }
   };
 
   const handleClose = () => {

@@ -52,7 +52,14 @@ export const useManualTranslation = () => {
 
   // Initialize speech recognition
   useEffect(() => {
+    console.log('🔧 Initializing WebSpeechLanguageDetector...');
     webSpeechDetectorRef.current = new WebSpeechLanguageDetector();
+    console.log('✅ WebSpeechLanguageDetector initialized');
+    
+    // Check if speech recognition is supported
+    const isSupported = webSpeechDetectorRef.current?.isSupported();
+    console.log('🎙️ Speech recognition supported:', isSupported);
+    
     return () => {
       speechRecognitionRef.current?.stopRecognition();
     };
@@ -103,7 +110,10 @@ export const useManualTranslation = () => {
       // Initialize speech recognition
       if (webSpeechDetectorRef.current?.isSupported()) {
         speechRecognitionRef.current = new BrowserSpeechRecognition(
-          (transcript) => handleSpeechResult(transcript.text, transcript.isFinal),
+          (transcript) => {
+            console.log('🎤 Speech recognition result:', transcript);
+            handleSpeechResult(transcript.text, transcript.isFinal);
+          },
           (error) => {
             console.error('Speech recognition error:', error);
             toast.error('Speech recognition error: ' + error);
@@ -130,6 +140,8 @@ export const useManualTranslation = () => {
   }, []);
 
   const startListening = useCallback(async () => {
+    console.log('🎙️ Start listening called:', { currentSession: !!currentSession, speechRecognition: !!speechRecognitionRef.current });
+    
     if (!currentSession || !speechRecognitionRef.current) {
       toast.error('No active session or speech recognition not available');
       return;
@@ -137,34 +149,52 @@ export const useManualTranslation = () => {
 
     try {
       setError(null);
+      console.log('🚀 Starting speech recognition...');
       await speechRecognitionRef.current.startRecognition();
       setIsListening(true);
+      console.log('✅ Speech recognition started successfully');
     } catch (error) {
-      console.error('Failed to start listening:', error);
+      console.error('❌ Failed to start listening:', error);
       toast.error('Failed to start speech recognition');
     }
   }, [currentSession]);
 
   const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
+    console.log('🔄 Processing speech result:', { text, isFinal, currentSession: !!currentSession });
+    
     if (!currentSession || !languageDetectorRef.current || !text.trim()) {
+      console.log('⚠️ Skipping speech result - missing requirements');
       return;
     }
 
     // Only process final results
     if (!isFinal) {
+      console.log('📝 Interim result, skipping:', text);
       return;
     }
 
+    console.log('✅ Processing final speech result:', text);
     setIsProcessing(true);
     
     try {
+      console.log('🌐 Starting translation process...');
+      
       // Detect language and determine speaker
       const detection = languageDetectorRef.current.detectLanguage(text);
+      console.log('🔍 Language detection result:', detection);
+      
       const speaker = detection.suggestedSpeaker;
       const isToEnglish = detection.isEnglish ? false : true; // If detected English, translate to target language
       
       const sourceLanguage = detection.isEnglish ? 'en' : currentSession.targetLanguageCode;
       const targetLanguage = detection.isEnglish ? currentSession.targetLanguageCode : 'en';
+
+      console.log('📡 Calling translation service:', {
+        text: text.trim(),
+        sourceLanguage,
+        targetLanguage,
+        speaker
+      });
 
       // Call translation service
       const { data, error } = await supabase.functions.invoke('manual-translation-service', {
@@ -174,6 +204,8 @@ export const useManualTranslation = () => {
           sourceLanguage
         }
       });
+
+      console.log('📥 Translation service response:', { data, error });
 
       if (error) throw error;
 
@@ -233,10 +265,11 @@ export const useManualTranslation = () => {
       toast.success(`Translation: ${speaker === 'gp' ? '👨‍⚕️' : '👤'} ${text.substring(0, 30)}... → ${data.translatedText.substring(0, 30)}...`);
 
     } catch (error) {
-      console.error('Translation processing error:', error);
+      console.error('❌ Translation processing error:', error);
       setError(error instanceof Error ? error.message : 'Translation failed');
       toast.error('Translation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
+      console.log('✅ Translation processing completed');
       setIsProcessing(false);
     }
   }, [currentSession]);
