@@ -523,7 +523,6 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                       <li>• Patient has consented to translation assistance</li>
                       <li>• Sensitive medical information will be processed</li>
                       <li>• Translations are logged for quality assurance</li>
-                      <li>• This is a medical professional consultation tool</li>
                     </ul>
                     <p className="text-sm font-medium">
                       Target Language: <span className="text-primary">{selectedLanguageName}</span>
