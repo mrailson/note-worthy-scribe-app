@@ -24,6 +24,9 @@ export interface SessionMetadata {
     address: string;
     phone?: string;
   };
+  consentGiven?: boolean;
+  consentTimestamp?: Date;
+  consentLanguage?: string;
 }
 
 /**
@@ -229,6 +232,14 @@ export function generateDOCXContent(
       <!-- Session Metadata -->
       <div class="section-title">Session Information</div>
       <table class="metadata-table">
+        ${metadata.consentGiven ? `
+        <tr>
+          <th width="25%" style="background-color: #d4edda; color: #155724;">✓ Patient Consent</th>
+          <td style="background-color: #d4edda;">Obtained on ${metadata.consentTimestamp?.toLocaleDateString('en-GB')} at ${metadata.consentTimestamp?.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
+          <th width="25%" style="background-color: #d4edda; color: #155724;">Consent Language</th>
+          <td style="background-color: #d4edda;">${metadata.patientLanguage}</td>
+        </tr>
+        ` : ''}
         <tr>
           <th width="25%">Report Generated</th>
           <td>${new Date().toLocaleString('en-GB')}</td>
