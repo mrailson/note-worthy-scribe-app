@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -12,7 +13,9 @@ import {
   Shield, 
   BarChart3,
   RefreshCw,
-  Info
+  Info,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -65,6 +68,19 @@ export const TranslationVerificationModal: React.FC<TranslationVerificationModal
 }) => {
   const [verificationResults, setVerificationResults] = useState<VerificationResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [expandedProviders, setExpandedProviders] = useState<Set<number>>(new Set([0])); // First provider expanded by default
+
+  const toggleProvider = (index: number) => {
+    setExpandedProviders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   const startVerification = async () => {
     if (!translation) return;
@@ -207,7 +223,7 @@ export const TranslationVerificationModal: React.FC<TranslationVerificationModal
             )}
 
             {/* Verification Results */}
-            {verificationResults && (
+            {verificationResults && verificationResults.success && (
               <>
                 {/* Summary */}
                 <Card className={`border-2 ${getRatingColor(verificationResults.summary.overallRating)}`}>
@@ -245,88 +261,105 @@ export const TranslationVerificationModal: React.FC<TranslationVerificationModal
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Provider Analysis</h3>
                   {verificationResults.verificationResults.map((result, index) => (
-                    <Card key={index}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <span className="text-lg">{getProviderIcon(result.provider)}</span>
-                          {result.provider}
-                          {result.status === 'success' ? (
-                            <Badge className="bg-green-100 text-green-800">Success</Badge>
-                          ) : (
-                            <Badge variant="destructive">Error</Badge>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {result.status === 'success' ? (
-                          <div className="space-y-3">
-                            <div className="flex gap-4">
-                              <div className="text-center">
-                                <div className="text-xl font-bold">{result.accuracy}%</div>
-                                <div className="text-xs text-muted-foreground">Accuracy</div>
+                    <Collapsible 
+                      key={index} 
+                      open={expandedProviders.has(index)}
+                      onOpenChange={() => toggleProvider(index)}
+                    >
+                      <Card>
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <CardTitle className="flex items-center justify-between text-base">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{getProviderIcon(result.provider)}</span>
+                                {result.provider}
+                                {result.status === 'success' ? (
+                                  <Badge className="bg-green-100 text-green-800">Success</Badge>
+                                ) : (
+                                  <Badge variant="destructive">Error</Badge>
+                                )}
                               </div>
-                              <div className="text-center">
-                                <div className="text-xl font-bold">{result.confidence}%</div>
-                                <div className="text-xs text-muted-foreground">Confidence</div>
-                              </div>
-                            </div>
+                              {expandedProviders.has(index) ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </CardTitle>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent>
+                            {result.status === 'success' ? (
+                              <div className="space-y-3">
+                                <div className="flex gap-4">
+                                  <div className="text-center">
+                                    <div className="text-xl font-bold">{result.accuracy}%</div>
+                                    <div className="text-xs text-muted-foreground">Accuracy</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-xl font-bold">{result.confidence}%</div>
+                                    <div className="text-xs text-muted-foreground">Confidence</div>
+                                  </div>
+                                </div>
 
-                            {result.reasoning && (
-                              <div>
-                                <div className="text-sm font-medium mb-1">Analysis</div>
-                                <div className="text-sm text-muted-foreground">{result.reasoning}</div>
+                                {result.reasoning && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1">Analysis</div>
+                                    <div className="text-sm text-muted-foreground">{result.reasoning}</div>
+                                  </div>
+                                )}
+
+                                {result.assessment && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1">Assessment</div>
+                                    <div className="text-sm text-muted-foreground">{result.assessment}</div>
+                                  </div>
+                                )}
+
+                                {result.backTranslation && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1">Back-Translation</div>
+                                    <div className="text-sm p-2 bg-muted rounded">{result.backTranslation}</div>
+                                  </div>
+                                )}
+
+                                {result.issues && result.issues.length > 0 && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1 text-orange-600">Issues Found</div>
+                                    <ul className="text-sm space-y-1">
+                                      {result.issues.map((issue, i) => (
+                                        <li key={i} className="flex items-start gap-2">
+                                          <AlertTriangle className="h-3 w-3 mt-0.5 text-orange-500" />
+                                          {issue}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {result.strengths && result.strengths.length > 0 && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1 text-green-600">Strengths</div>
+                                    <ul className="text-sm space-y-1">
+                                      {result.strengths.map((strength, i) => (
+                                        <li key={i} className="flex items-start gap-2">
+                                          <CheckCircle className="h-3 w-3 mt-0.5 text-green-500" />
+                                          {strength}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-red-600">
+                                {result.error || 'Verification failed'}
                               </div>
                             )}
-
-                            {result.assessment && (
-                              <div>
-                                <div className="text-sm font-medium mb-1">Assessment</div>
-                                <div className="text-sm text-muted-foreground">{result.assessment}</div>
-                              </div>
-                            )}
-
-                            {result.backTranslation && (
-                              <div>
-                                <div className="text-sm font-medium mb-1">Back-Translation</div>
-                                <div className="text-sm p-2 bg-muted rounded">{result.backTranslation}</div>
-                              </div>
-                            )}
-
-                            {result.issues && result.issues.length > 0 && (
-                              <div>
-                                <div className="text-sm font-medium mb-1 text-orange-600">Issues Found</div>
-                                <ul className="text-sm space-y-1">
-                                  {result.issues.map((issue, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                      <AlertTriangle className="h-3 w-3 mt-0.5 text-orange-500" />
-                                      {issue}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {result.strengths && result.strengths.length > 0 && (
-                              <div>
-                                <div className="text-sm font-medium mb-1 text-green-600">Strengths</div>
-                                <ul className="text-sm space-y-1">
-                                  {result.strengths.map((strength, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                      <CheckCircle className="h-3 w-3 mt-0.5 text-green-500" />
-                                      {strength}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-red-600">
-                            Verification failed: {result.error}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
                   ))}
                 </div>
               </>
