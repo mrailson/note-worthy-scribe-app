@@ -284,32 +284,38 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
 
     try {
       // Convert manual translations to the format expected by downloadDOCX
-      const formattedTranslations = translations.map((translation) => ({
-        id: translation.id,
-        originalText: translation.originalText,
-        translatedText: translation.translatedText,
-        originalLanguage: translation.originalLanguageDetected,
-        targetLanguage: translation.targetLanguage,
-        timestamp: translation.timestamp,
-        speaker: translation.speaker,
-        accuracy: translation.translationAccuracy,
-        confidence: translation.translationConfidence,
-        safety: translation.safetyFlag,
-        medicalTerms: translation.medicalTermsDetected,
-        processingTime: translation.processingTimeMs,
-        exchange_number: translation.exchangeNumber,
-        original_text: translation.originalText,
-        translated_text: translation.translatedText,
-        original_language_detected: translation.originalLanguageDetected,
-        target_language: translation.targetLanguage,
-        detection_confidence: translation.detectionConfidence,
-        translation_accuracy: translation.translationAccuracy,
-        translation_confidence: translation.translationConfidence,
-        safety_flag: translation.safetyFlag,
-        medical_terms_detected: translation.medicalTermsDetected,
-        processing_time_ms: translation.processingTimeMs,
-        created_at: translation.timestamp.toISOString()
-      }));
+      // Use corrected translations when available
+      const formattedTranslations = translations.map((translation) => {
+        // Use corrected translation if it exists, otherwise use original
+        const finalTranslation = correctedTranslations[translation.id] || translation;
+        
+        return {
+          id: finalTranslation.id,
+          originalText: finalTranslation.originalText,
+          translatedText: finalTranslation.translatedText,
+          originalLanguage: finalTranslation.originalLanguageDetected,
+          targetLanguage: finalTranslation.targetLanguage,
+          timestamp: finalTranslation.timestamp,
+          speaker: finalTranslation.speaker, // This will now use the corrected speaker assignment
+          accuracy: finalTranslation.translationAccuracy,
+          confidence: finalTranslation.translationConfidence,
+          safety: finalTranslation.safetyFlag,
+          medicalTerms: finalTranslation.medicalTermsDetected,
+          processingTime: finalTranslation.processingTimeMs,
+          exchange_number: finalTranslation.exchangeNumber,
+          original_text: finalTranslation.originalText,
+          translated_text: finalTranslation.translatedText,
+          original_language_detected: finalTranslation.originalLanguageDetected,
+          target_language: finalTranslation.targetLanguage,
+          detection_confidence: finalTranslation.detectionConfidence,
+          translation_accuracy: finalTranslation.translationAccuracy,
+          translation_confidence: finalTranslation.translationConfidence,
+          safety_flag: finalTranslation.safetyFlag,
+          medical_terms_detected: finalTranslation.medicalTermsDetected,
+          processing_time_ms: finalTranslation.processingTimeMs,
+          created_at: finalTranslation.timestamp.toISOString()
+        };
+      });
 
       // Create session metadata
       const sessionStart = currentSession?.sessionStart || new Date();
