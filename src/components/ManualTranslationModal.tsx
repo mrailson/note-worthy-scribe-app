@@ -482,7 +482,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
               Manual Translation Service
             </DialogTitle>
             <DialogDescription>
-              Text-based translation with automatic language detection for GP-Patient communication
+              Text-based translation with automatic language detection for GP Practice-Patient communication
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -1021,7 +1021,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
                            <div className="flex items-center justify-between mb-2">
                              <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium">
-                                  {displaySpeaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
+                                  {displaySpeaker === 'gp' ? '👨‍⚕️ GP Practice' : '👤 Patient'}
                                 </span>
                                <Badge 
                                  variant="outline" 
