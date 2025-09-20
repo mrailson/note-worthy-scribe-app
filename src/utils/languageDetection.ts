@@ -108,6 +108,7 @@ export class LanguageDetector {
     
     // MUCH MORE AGGRESSIVE English detection - any sign of English = GP
     let isEnglishDetected = false;
+    let englishConfidence = 80; // base, will adjust below
     
     if (totalWords === 1) {
       // Single word - if it's English, it's definitely English
@@ -122,6 +123,29 @@ export class LanguageDetector {
       // Longer phrases - require at least 15% English content OR patterns
       isEnglishDetected = englishRatio >= 0.15 || combinedScore >= 0.2 || (englishWordCount >= 2 && patternMatches >= 1);
     }
+
+    // Fallback: Detect English spoken but transcribed in Hindi script (Devanagari)
+    if (!isEnglishDetected && this.targetLanguage === 'hi' && /[\u0900-\u097F]/.test(cleanText)) {
+      const translitEnglishPatterns: RegExp[] = [
+        /हेलो/g, /गुड/g, /मॉर्निंग/g, /ईवनिंग/g, /नाइट/g,
+        /हाउ/g, /आर/g, /यू/g, /कैन/g, /आई/g, /हेल्प/g,
+        /प्लीज़/g, /थैंक/g, /थैंक्स/g, /ओके/g, /राइट/g,
+        /टुडे/g, /टुमारो/g, /लॉन्ग/g, /दिस/g, /इज़/g,
+        /डॉक्टर/g, /पेशेंट/g
+      ];
+      let translitMatches = 0;
+      translitEnglishPatterns.forEach(p => {
+        const m = cleanText.match(p);
+        if (m) translitMatches += m.length;
+      });
+      const translitRatio = translitMatches / Math.max(totalWords, 1);
+      if (translitMatches >= 2 || translitRatio >= 0.25) {
+        console.log('🇬🇧 Detected English via Hindi-script transliteration, treating as GP', { translitMatches, translitRatio: translitRatio.toFixed(2) });
+        isEnglishDetected = true;
+        // Confidence weighted by transliteration ratio
+        englishConfidence = Math.min(95, Math.max(78, 75 + translitRatio * 20));
+      }
+    }
     
     console.log('🎯 Detection decision:', {
       isEnglishDetected,
@@ -133,7 +157,7 @@ export class LanguageDetector {
       console.log('✅ CONFIRMED: English detected -> GP speaking');
       return {
         detectedLanguage: 'en',
-        confidence: Math.min(95, Math.max(75, 60 + (combinedScore * 35))),
+        confidence: englishConfidence || Math.min(95, Math.max(75, 60 + (combinedScore * 35))),
         isEnglish: true,
         suggestedSpeaker: 'gp'
       };
@@ -256,8 +280,8 @@ export class WebSpeechLanguageDetector {
       this.stopListening();
     }
 
-    // Try English first
-    this.recognition.lang = 'en-US';
+    // Try English first (UK)
+    this.recognition.lang = 'en-GB';
     
     this.recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
