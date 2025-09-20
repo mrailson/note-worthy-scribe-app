@@ -596,7 +596,7 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
               )}
 
               {/* Session Controls */}
-              {isActive && currentSession && (
+              {isActive && currentSession && isListening && (
                 <Collapsible open={showActiveSession} onOpenChange={setShowActiveSession}>
                   <Card className="border-green-200 bg-green-50">
                     <CollapsibleTrigger asChild>
