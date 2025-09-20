@@ -21,17 +21,24 @@ export class LanguageDetector {
     const cleanText = text.trim().toLowerCase();
     console.log('🔍 Language detection for text:', cleanText.substring(0, 50), 'Target:', this.targetLanguageName);
     
+    // CRITICAL RULE: Any English text = GP speaker, Any other language = Patient speaker
+    
     // Comprehensive English detection with medical and common terms
     const commonEnglishWords = [
-      // Basic function words
+      // Basic function words (most common)
       'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had', 
-      'will', 'would', 'could', 'should', 'can', 'may', 'do', 'does', 'did',
+      'will', 'would', 'could', 'should', 'can', 'may', 'do', 'does', 'did', 'be', 'been',
       'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'these', 'those',
       'what', 'when', 'where', 'why', 'how', 'who', 'which', 'with', 'from', 'to', 'for',
+      'in', 'on', 'at', 'by', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'further',
+      'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both',
+      'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+      'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'just', 'don', 'now', 'd', 'll',
       
       // Common conversational words
-      'hello', 'hi', 'yes', 'no', 'please', 'thank', 'you', 'sorry', 'okay', 'right',
+      'hello', 'hi', 'yes', 'no', 'please', 'thank', 'thanks', 'sorry', 'okay', 'ok', 'right',
       'good', 'well', 'today', 'now', 'here', 'there', 'about', 'some', 'any', 'all',
+      'really', 'quite', 'very', 'much', 'many', 'little', 'big', 'small', 'new', 'old',
       
       // Medical/healthcare terms commonly used by GPs
       'pain', 'feel', 'feeling', 'hurt', 'hurts', 'take', 'taking', 'medication', 'medicine',
@@ -40,54 +47,100 @@ export class LanguageDetector {
       'blood', 'pressure', 'heart', 'breathing', 'chest', 'head', 'stomach', 'back',
       'better', 'worse', 'improving', 'getting', 'days', 'weeks', 'months', 'morning',
       'evening', 'night', 'before', 'after', 'during', 'since', 'started', 'stopped',
+      'hospital', 'clinic', 'appointment', 'visit', 'surgery', 'operation', 'scan', 'test',
       
       // GP consultation phrases
       'tell', 'me', 'let\'s', 'lets', 'see', 'check', 'examine', 'look', 'show', 'describe',
       'explain', 'understand', 'concerned', 'worry', 'worried', 'follow', 'up', 'appointment',
-      'next', 'come', 'back', 'contact', 'call', 'if', 'anything', 'changes'
+      'next', 'come', 'back', 'contact', 'call', 'if', 'anything', 'changes', 'continue',
+      'stop', 'start', 'increase', 'decrease', 'twice', 'once', 'daily', 'weekly', 'monthly',
+      
+      // Common question words and phrases
+      'what\'s', 'whats', 'how\'s', 'hows', 'where\'s', 'wheres', 'when\'s', 'whens',
+      'tell', 'say', 'said', 'ask', 'asked', 'think', 'thought', 'know', 'knew',
+      
+      // Time and frequency
+      'time', 'times', 'hour', 'hours', 'minute', 'minutes', 'day', 'night', 'week', 'month',
+      'year', 'today', 'yesterday', 'tomorrow', 'always', 'never', 'sometimes', 'often',
+      
+      // Numbers spelled out
+      'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+      'first', 'second', 'third', 'last', 'next'
+    ];
+    
+    // Additional English patterns for extra detection
+    const englishPatterns = [
+      /\b(ing|ed|er|est|ly|tion|sion|ness|ment|able|ible)\b/g, // English suffixes
+      /\b(un|re|pre|dis|over|under|out|up)\w+/g, // English prefixes
+      /\b\w+'(s|t|d|ll|ve|re|m)\b/g, // Contractions
+      /\b(th|ch|sh|wh|ph)\w+/g // Common English letter combinations
     ];
     
     const words = cleanText.split(/\s+/).filter(word => word.length > 0);
-    const englishWordCount = words.filter(word => commonEnglishWords.includes(word.replace(/[.,!?;:]/g, ''))).length;
     const totalWords = words.length;
-    const englishRatio = englishWordCount / Math.max(totalWords, 1);
     
-    console.log('📊 English detection:', { 
-      englishWordCount, 
-      totalWords, 
-      ratio: englishRatio,
-      detectedWords: words.filter(word => commonEnglishWords.includes(word.replace(/[.,!?;:]/g, '')))
+    // Count English words
+    const englishWordCount = words.filter(word => 
+      commonEnglishWords.includes(word.replace(/[.,!?;:'"]/g, ''))
+    ).length;
+    
+    // Count English patterns
+    let patternMatches = 0;
+    englishPatterns.forEach(pattern => {
+      const matches = cleanText.match(pattern);
+      if (matches) patternMatches += matches.length;
     });
     
-    // Enhanced English detection logic:
-    // 1. For short phrases (1-3 words): require at least 1 English word
-    // 2. For medium phrases (4-8 words): require at least 30% English words
-    // 3. For longer phrases (9+ words): require at least 25% English words
+    const englishRatio = englishWordCount / Math.max(totalWords, 1);
+    const patternRatio = patternMatches / Math.max(totalWords, 1);
+    const combinedScore = englishRatio + (patternRatio * 0.3); // Pattern matches contribute but less weight
+    
+    console.log('📊 Enhanced English detection:', { 
+      text: cleanText,
+      englishWordCount, 
+      totalWords, 
+      englishRatio: englishRatio.toFixed(2),
+      patternMatches,
+      patternRatio: patternRatio.toFixed(2),
+      combinedScore: combinedScore.toFixed(2),
+      detectedWords: words.filter(word => commonEnglishWords.includes(word.replace(/[.,!?;:'"]/g, '')))
+    });
+    
+    // MUCH MORE AGGRESSIVE English detection - any sign of English = GP
     let isEnglishDetected = false;
     
-    if (totalWords <= 3) {
-      // Short phrases - require at least 1 English word
-      isEnglishDetected = englishWordCount >= 1;
+    if (totalWords === 1) {
+      // Single word - if it's English, it's definitely English
+      isEnglishDetected = englishWordCount >= 1 || patternMatches >= 1;
+    } else if (totalWords <= 3) {
+      // Short phrases - require at least 1 English word OR English pattern
+      isEnglishDetected = englishWordCount >= 1 || patternMatches >= 1;
     } else if (totalWords <= 8) {
-      // Medium phrases - require at least 30% English content
-      isEnglishDetected = englishRatio >= 0.3 || englishWordCount >= 2;
+      // Medium phrases - require at least 20% English content OR significant patterns
+      isEnglishDetected = englishRatio >= 0.2 || combinedScore >= 0.25 || englishWordCount >= 2;
     } else {
-      // Longer phrases - require at least 25% English content and minimum 3 English words
-      isEnglishDetected = englishRatio >= 0.25 && englishWordCount >= 3;
+      // Longer phrases - require at least 15% English content OR patterns
+      isEnglishDetected = englishRatio >= 0.15 || combinedScore >= 0.2 || (englishWordCount >= 2 && patternMatches >= 1);
     }
     
+    console.log('🎯 Detection decision:', {
+      isEnglishDetected,
+      reasoning: isEnglishDetected ? 'English detected -> GP speaker' : 'Non-English detected -> Patient speaker'
+    });
+    
+    // EXPLICIT RULE: Any English = GP, Any other language = Patient
     if (isEnglishDetected) {
-      console.log('✅ Detected as English (GP speaking)');
+      console.log('✅ CONFIRMED: English detected -> GP speaking');
       return {
         detectedLanguage: 'en',
-        confidence: Math.min(95, 70 + (englishRatio * 25)),
+        confidence: Math.min(95, Math.max(75, 60 + (combinedScore * 35))),
         isEnglish: true,
         suggestedSpeaker: 'gp'
       };
     }
 
     // Otherwise, assume patient speaking in the target language
-    console.log('✅ Detected as', this.targetLanguageName, '(Patient speaking)');
+    console.log('✅ CONFIRMED: Non-English detected ->', this.targetLanguageName, '(Patient speaking)');
     return {
       detectedLanguage: this.targetLanguage,
       confidence: 85,

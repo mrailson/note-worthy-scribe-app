@@ -247,7 +247,16 @@ export const useManualTranslation = () => {
       const detection = languageDetectorRef.current!.detectLanguage(text);
       console.log('🔍 Language detection result:', detection);
       
-      const speaker = detection.suggestedSpeaker;
+      // EXPLICIT RULE: English = GP, Non-English = Patient (no exceptions)
+      const speaker = detection.isEnglish ? 'gp' : 'patient';
+      
+      console.log('👤 Speaker assignment:', {
+        detectedLanguage: detection.detectedLanguage,
+        isEnglish: detection.isEnglish,
+        suggestedSpeaker: detection.suggestedSpeaker,
+        finalSpeaker: speaker,
+        rule: detection.isEnglish ? 'English -> GP' : 'Non-English -> Patient'
+      });
       
       // Determine source and target languages
       const sourceLanguage = detection.isEnglish ? 'en' : sessionState.targetLanguageCode;
@@ -469,7 +478,16 @@ export const useManualTranslation = () => {
       const detection = languageDetectorRef.current.detectLanguage(text);
       console.log('🔍 Language detection result:', detection);
       
-      const speaker = detection.suggestedSpeaker;
+      // EXPLICIT RULE: English = GP, Non-English = Patient (no exceptions)
+      const speaker = detection.isEnglish ? 'gp' : 'patient';
+      
+      console.log('👤 Speaker assignment:', {
+        detectedLanguage: detection.detectedLanguage,
+        isEnglish: detection.isEnglish,
+        suggestedSpeaker: detection.suggestedSpeaker,
+        finalSpeaker: speaker,
+        rule: detection.isEnglish ? 'English -> GP' : 'Non-English -> Patient'
+      });
       const isToEnglish = detection.isEnglish ? false : true; // If detected English, translate to target language
       
       const sourceLanguage = detection.isEnglish ? 'en' : currentSession.targetLanguageCode;
