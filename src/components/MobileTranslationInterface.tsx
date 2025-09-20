@@ -216,7 +216,7 @@ export const MobileTranslationInterface = () => {
               </>
             ) : (
               <div className="space-y-4">
-                {currentSession && isListening && (
+                {currentSession && (
                   <div className="text-center space-y-2">
                     <div className="text-lg font-medium text-primary">
                       Active Session: {currentSession.targetLanguageName}

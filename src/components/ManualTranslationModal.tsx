@@ -596,16 +596,16 @@ export const ManualTranslationModal: React.FC<ManualTranslationModalProps> = ({
               )}
 
               {/* Session Controls */}
-              {isActive && currentSession && isListening && (
+              {isActive && currentSession && (
                 <Collapsible open={showActiveSession} onOpenChange={setShowActiveSession}>
                   <Card className="border-green-200 bg-green-50">
                     <CollapsibleTrigger asChild>
                       <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
                         <CardTitle className="text-lg flex items-center justify-between text-green-800">
-                          <div className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                            Active Session
-                          </div>
+                           <div className="flex items-center gap-2">
+                             {isListening && <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>}
+                             Active Session
+                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="bg-green-100 text-green-800 font-semibold">
                               English ↔ {currentSession.targetLanguageName}
