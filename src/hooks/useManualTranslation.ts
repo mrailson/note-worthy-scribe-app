@@ -58,7 +58,6 @@ export const useManualTranslation = () => {
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const webSpeechDetectorRef = useRef<WebSpeechLanguageDetector | null>(null);
   const exchangeCounterRef = useRef(0);
-  const isStartingSessionRef = useRef(false);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -77,12 +76,6 @@ export const useManualTranslation = () => {
 
   const startSession = useCallback(async (targetLanguageCode: string, targetLanguageName: string, consentGiven: boolean = false) => {
     try {
-      if (isStartingSessionRef.current) {
-        console.log('⏳ Session start already in progress, skipping');
-        return;
-      }
-      isStartingSessionRef.current = true;
-
       console.log('🚀 Starting session with language:', { targetLanguageCode, targetLanguageName, consentGiven });
       setError(null);
       setIsActive(false); // Reset first
@@ -92,7 +85,6 @@ export const useManualTranslation = () => {
       if (!session) {
         console.error('❌ No authenticated session - cannot start manual translation session');
         toast.error('Please sign in to start a translation session');
-        isStartingSessionRef.current = false;
         return;
       }
       
@@ -141,7 +133,6 @@ export const useManualTranslation = () => {
         console.error('❌ Error creating session:', sessionError || 'No session returned');
         setError('Failed to start translation session');
         toast.error('Unable to start session (authentication required)');
-        isStartingSessionRef.current = false;
         return;
       }
 
@@ -239,14 +230,10 @@ export const useManualTranslation = () => {
         }
       }, 1000); // Increased delay to ensure everything is ready
 
-      // Mark session-start flow complete
-      isStartingSessionRef.current = false;
-
     } catch (error) {
       console.error('❌ Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
       toast.error('Failed to start translation session');
-      isStartingSessionRef.current = false;
     }
   }, [isListening]);
 
