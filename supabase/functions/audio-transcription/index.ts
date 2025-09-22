@@ -55,6 +55,7 @@ serve(async (req) => {
     const whisperFormData = new FormData();
     whisperFormData.append('file', audioFile, 'audio.webm');
     whisperFormData.append('model', 'whisper-1');
+    whisperFormData.append('language', 'en'); // Force English transcription
     
     console.log('📤 Sending to OpenAI Whisper...');
     
