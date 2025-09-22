@@ -27,8 +27,11 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
     ].join('; ');
 
     // Apply CSP via meta tag (for development - in production this should be set via HTTP headers)
-    const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-    if (!existingCSP) {
+    const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]') as HTMLMetaElement | null;
+    if (existingCSP) {
+      // Update existing CSP to ensure it's not more restrictive
+      existingCSP.setAttribute('content', cspHeader);
+    } else {
       const cspMeta = document.createElement('meta');
       cspMeta.setAttribute('http-equiv', 'Content-Security-Policy');
       cspMeta.setAttribute('content', cspHeader);
