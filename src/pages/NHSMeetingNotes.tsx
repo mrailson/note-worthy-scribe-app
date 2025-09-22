@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { RealtimeTranscriptCard } from '@/components/RealtimeTranscriptCard';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { toast } from 'sonner';
-import { Mic, MicOff, RotateCcw, Clock, MessageSquare } from 'lucide-react';
+import { Mic, MicOff, RotateCcw, Clock, MessageSquare, Settings } from 'lucide-react';
 import MeetingNotesGenerator from '@/components/MeetingNotesGenerator';
+import { MeetingSetupTab } from '@/components/meeting-dashboard/tabs/MeetingSetupTab';
+import { DashboardProvider } from '@/components/meeting-dashboard/utils/DashboardContext';
 import { Helmet } from 'react-helmet-async';
 
 const NHSMeetingNotes = () => {
@@ -146,9 +148,13 @@ const NHSMeetingNotes = () => {
         </div>
 
         <Tabs defaultValue="live-recording" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="live-recording">Live Recording</TabsTrigger>
             <TabsTrigger value="generate-notes">Generate Notes</TabsTrigger>
+            <TabsTrigger value="meeting-settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Meeting Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="live-recording" className="space-y-4">
@@ -241,6 +247,12 @@ const NHSMeetingNotes = () => {
 
           <TabsContent value="generate-notes" className="space-y-4">
             <MeetingNotesGenerator />
+          </TabsContent>
+
+          <TabsContent value="meeting-settings" className="space-y-4">
+            <DashboardProvider>
+              <MeetingSetupTab />
+            </DashboardProvider>
           </TabsContent>
         </Tabs>
       </div>
