@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { RealtimeTranscriptCard } from '@/components/RealtimeTranscriptCard';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { toast } from 'sonner';
-import { Mic, MicOff, RotateCcw, Clock, MessageSquare, Settings } from 'lucide-react';
+import { Mic, MicOff, RotateCcw, Clock, MessageSquare, Settings, Upload, FileAudio } from 'lucide-react';
 import MeetingNotesGenerator from '@/components/MeetingNotesGenerator';
 import { MeetingSetupTab } from '@/components/meeting-dashboard/tabs/MeetingSetupTab';
 import { DashboardProvider } from '@/components/meeting-dashboard/utils/DashboardContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Helmet } from 'react-helmet-async';
 
 const NHSMeetingNotes = () => {
@@ -20,6 +21,11 @@ const NHSMeetingNotes = () => {
   const [transcriptSegments, setTranscriptSegments] = useState<TranscriptData[]>([]);
   const [wordCount, setWordCount] = useState(0);
   const [status, setStatus] = useState('Ready');
+
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedTranscript, setUploadedTranscript] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
 
   // Refs
   const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
@@ -135,6 +141,55 @@ const NHSMeetingNotes = () => {
     toast.success('Session cleared');
   };
 
+  // Handle audio file upload
+  const handleAudioUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'];
+    if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().match(/\.(mp3|wav)$/)) {
+      toast.error('Please upload an MP3 or WAV file');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus('Uploading and transcribing...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+
+      const { data, error } = await supabase.functions.invoke('audio-transcription', {
+        body: formData
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success) {
+        setUploadedTranscript(data.transcript);
+        setUploadStatus('Transcription completed successfully!');
+        toast.success(`Transcription completed! Generated ${data.transcript.split(' ').length} words`);
+      } else {
+        throw new Error(data?.error || 'Transcription failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus(`Error: ${error.message}`);
+      toast.error(`Transcription failed: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Clear uploaded transcript
+  const clearUploadedTranscript = () => {
+    setUploadedTranscript('');
+    setUploadStatus('');
+    toast.success('Uploaded transcript cleared');
+  };
+
   return (
     <>
       <Helmet>
@@ -148,12 +203,16 @@ const NHSMeetingNotes = () => {
         </div>
 
         <Tabs defaultValue="live-recording" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="live-recording">Live Recording</TabsTrigger>
             <TabsTrigger value="generate-notes">Generate Notes</TabsTrigger>
+            <TabsTrigger value="quick-actions" className="flex items-center gap-2">
+              <FileAudio className="h-4 w-4" />
+              Quick Actions
+            </TabsTrigger>
             <TabsTrigger value="meeting-settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Meeting Settings
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -247,6 +306,124 @@ const NHSMeetingNotes = () => {
 
           <TabsContent value="generate-notes" className="space-y-4">
             <MeetingNotesGenerator />
+          </TabsContent>
+
+          <TabsContent value="quick-actions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Audio File Transcription
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Upload Audio File</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload an MP3 or WAV audio file to generate a transcript using AI transcription.
+                    </p>
+                    
+                    <div className="flex items-center justify-center w-full">
+                      <label
+                        htmlFor="audio-upload"
+                        className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-accent/10 hover:bg-accent/20 border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors"
+                      >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <FileAudio className="w-8 h-8 mb-4 text-muted-foreground" />
+                          <p className="mb-2 text-sm text-muted-foreground">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-muted-foreground">MP3, WAV (MAX. 20MB)</p>
+                        </div>
+                        <input
+                          id="audio-upload"
+                          type="file"
+                          className="hidden"
+                          accept=".mp3,.wav,audio/mpeg,audio/wav"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleAudioUpload(file);
+                          }}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </div>
+
+                    {uploadStatus && (
+                      <div className="mt-4">
+                        <Badge variant={uploadStatus.includes('Error') ? 'destructive' : 'secondary'}>
+                          {uploadStatus}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {isUploading && (
+                      <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        Processing audio file...
+                      </div>
+                    )}
+                  </div>
+
+                  {uploadedTranscript && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Generated Transcript</h3>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {uploadedTranscript.split(' ').length} words
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearUploadedTranscript}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="rounded-lg border bg-muted/50 p-4 max-h-96 overflow-y-auto">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {uploadedTranscript}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(uploadedTranscript);
+                            toast.success('Transcript copied to clipboard');
+                          }}
+                        >
+                          Copy to Clipboard
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const blob = new Blob([uploadedTranscript], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'transcript.txt';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            toast.success('Transcript downloaded');
+                          }}
+                        >
+                          Download as TXT
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="meeting-settings" className="space-y-4">
