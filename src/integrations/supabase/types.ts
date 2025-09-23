@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_meetings_monitor: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_activity_at: string | null
+          last_processed_chunk_number: number | null
+          meeting_id: string
+          total_chunks_processed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_activity_at?: string | null
+          last_processed_chunk_number?: number | null
+          meeting_id: string
+          total_chunks_processed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_activity_at?: string | null
+          last_processed_chunk_number?: number | null
+          meeting_id?: string
+          total_chunks_processed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_meetings_monitor_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_4_pm_searches: {
         Row: {
           brief_overview: string | null
@@ -275,6 +319,48 @@ export type Database = {
           replacement_deadline?: string | null
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      chunk_cleaning_stats: {
+        Row: {
+          active_meetings_monitored: number | null
+          average_cleaning_time_ms: number | null
+          background_chunks_processed: number | null
+          created_at: string | null
+          date: string
+          failed_chunks: number | null
+          id: string
+          realtime_chunks_processed: number | null
+          total_chunks_processed: number | null
+          total_processing_time_ms: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_meetings_monitored?: number | null
+          average_cleaning_time_ms?: number | null
+          background_chunks_processed?: number | null
+          created_at?: string | null
+          date?: string
+          failed_chunks?: number | null
+          id?: string
+          realtime_chunks_processed?: number | null
+          total_chunks_processed?: number | null
+          total_processing_time_ms?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_meetings_monitored?: number | null
+          average_cleaning_time_ms?: number | null
+          background_chunks_processed?: number | null
+          created_at?: string | null
+          date?: string
+          failed_chunks?: number | null
+          id?: string
+          realtime_chunks_processed?: number | null
+          total_chunks_processed?: number | null
+          total_processing_time_ms?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -3149,6 +3235,10 @@ export type Database = {
         Row: {
           audio_backup_id: string | null
           chunk_number: number
+          cleaned_at: string | null
+          cleaned_text: string | null
+          cleaning_duration_ms: number | null
+          cleaning_status: string | null
           confidence: number | null
           created_at: string
           id: string
@@ -3165,6 +3255,10 @@ export type Database = {
         Insert: {
           audio_backup_id?: string | null
           chunk_number: number
+          cleaned_at?: string | null
+          cleaned_text?: string | null
+          cleaning_duration_ms?: number | null
+          cleaning_status?: string | null
           confidence?: number | null
           created_at?: string
           id?: string
@@ -3181,6 +3275,10 @@ export type Database = {
         Update: {
           audio_backup_id?: string | null
           chunk_number?: number
+          cleaned_at?: string | null
+          cleaned_text?: string | null
+          cleaning_duration_ms?: number | null
+          cleaning_status?: string | null
           confidence?: number | null
           created_at?: string
           id?: string
@@ -4915,11 +5013,14 @@ export type Database = {
       }
       transcript_cleaning_jobs: {
         Row: {
+          batch_id: string | null
+          chunk_id: string | null
           chunks_processed: number | null
           cleaned_transcript_length: number | null
           created_at: string
           error_message: string | null
           id: string
+          is_realtime_cleaning: boolean | null
           meeting_id: string | null
           original_transcript_length: number
           processing_duration_ms: number | null
@@ -4931,11 +5032,14 @@ export type Database = {
           word_count: number
         }
         Insert: {
+          batch_id?: string | null
+          chunk_id?: string | null
           chunks_processed?: number | null
           cleaned_transcript_length?: number | null
           created_at?: string
           error_message?: string | null
           id?: string
+          is_realtime_cleaning?: boolean | null
           meeting_id?: string | null
           original_transcript_length: number
           processing_duration_ms?: number | null
@@ -4947,11 +5051,14 @@ export type Database = {
           word_count: number
         }
         Update: {
+          batch_id?: string | null
+          chunk_id?: string | null
           chunks_processed?: number | null
           cleaned_transcript_length?: number | null
           created_at?: string
           error_message?: string | null
           id?: string
+          is_realtime_cleaning?: boolean | null
           meeting_id?: string | null
           original_transcript_length?: number
           processing_duration_ms?: number | null
@@ -4963,6 +5070,13 @@ export type Database = {
           word_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "transcript_cleaning_jobs_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_transcription_chunks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transcript_cleaning_jobs_meeting_id_fkey"
             columns: ["meeting_id"]
@@ -5486,6 +5600,16 @@ export type Database = {
           word_count: number
         }[]
       }
+      find_chunks_needing_realtime_cleaning: {
+        Args: { batch_size?: number }
+        Returns: {
+          chunk_id: string
+          chunk_number: number
+          meeting_id: string
+          transcription_text: string
+          word_count: number
+        }[]
+      }
       find_uncleaned_transcripts: {
         Args: { batch_size?: number }
         Returns: {
@@ -5903,6 +6027,15 @@ export type Database = {
       trigger_queue_processing: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_chunk_cleaning_stats: {
+        Args: {
+          p_chunks_processed?: number
+          p_failed_count?: number
+          p_is_realtime?: boolean
+          p_processing_time_ms?: number
+        }
+        Returns: undefined
       }
       update_session_activity: {
         Args: { p_session_id?: string; p_user_id: string }
