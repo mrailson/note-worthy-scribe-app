@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,14 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [transcriptionResult, setTranscriptionResult] = useState<string>("");
+  const [isMounted, setIsMounted] = useState(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -45,20 +53,52 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:audio/mpeg;base64,")
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = (error) => reject(error);
+      try {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          try {
+            if (!isMounted) {
+              reject(new Error('Component unmounted'));
+              return;
+            }
+            
+            const result = reader.result as string;
+            if (!result) {
+              reject(new Error('Failed to read file'));
+              return;
+            }
+            
+            // Remove the data URL prefix (e.g., "data:audio/mpeg;base64,")
+            const base64 = result.split(',')[1];
+            if (!base64) {
+              reject(new Error('Invalid file format'));
+              return;
+            }
+            
+            resolve(base64);
+          } catch (err) {
+            reject(new Error(`File processing error: ${err.message}`));
+          }
+        };
+        
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'));
+        };
+        
+        reader.onabort = () => {
+          reject(new Error('File reading was aborted'));
+        };
+        
+        reader.readAsDataURL(file);
+      } catch (err) {
+        reject(new Error(`File reader setup failed: ${err.message}`));
+      }
     });
   };
 
   const handleTranscribe = async () => {
-    if (!selectedFile) {
+    if (!selectedFile || !isMounted) {
       toast.error("No file selected");
       return;
     }
@@ -67,11 +107,15 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     setProgress(0);
 
     try {
+      if (!isMounted) return;
+      
       toast.info("Converting audio file...");
       setProgress(20);
 
-      // Convert file to base64
+      // Convert file to base64 with better error handling
       const base64Audio = await convertToBase64(selectedFile);
+      
+      if (!isMounted) return;
       
       setProgress(40);
       toast.info("Sending to transcription service...");
@@ -83,6 +127,8 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
           filename: selectedFile.name
         }
       });
+
+      if (!isMounted) return;
 
       setProgress(80);
 
@@ -99,6 +145,8 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         throw new Error('No transcription text received from service');
       }
 
+      if (!isMounted) return;
+
       setProgress(100);
       
       const transcript = data.text;
@@ -111,11 +159,15 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       
     } catch (error) {
       console.error('Transcription failed:', error);
+      if (!isMounted) return;
+      
       const errorMessage = error?.message || 'Unknown transcription error';
       toast.error(`Transcription failed: ${errorMessage}`);
       setProgress(0);
     } finally {
-      setIsTranscribing(false);
+      if (isMounted) {
+        setIsTranscribing(false);
+      }
     }
   };
 
