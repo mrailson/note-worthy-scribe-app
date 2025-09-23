@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { FileAudio, Upload, Trash2, Loader2 } from "lucide-react";
+import { FileAudio, Upload, Trash2, Loader2, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -293,13 +293,27 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         {/* Transcription Result Preview */}
         {transcriptionResult && (
           <div className="border-t pt-4">
-            <div className="text-sm font-medium mb-2">Transcription Preview:</div>
-            <div className="text-xs bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
-              {transcriptionResult.substring(0, 500)}
-              {transcriptionResult.length > 500 && "..."}
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-medium">Transcription Result:</div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(transcriptionResult);
+                    toast.success("Transcript copied to clipboard!");
+                  }}
+                >
+                  <Clipboard className="h-3 w-3 mr-1" />
+                  Copy Full Transcript
+                </Button>
+              </div>
+            </div>
+            <div className="text-xs bg-muted p-3 rounded-lg max-h-64 overflow-y-auto whitespace-pre-wrap">
+              {transcriptionResult}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {transcriptionResult.split(' ').length} words total
+              {transcriptionResult.split(' ').length} words • {transcriptionResult.length} characters
             </div>
           </div>
         )}
