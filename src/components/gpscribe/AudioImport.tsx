@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,12 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [transcriptionResult, setTranscriptionResult] = useState<string>("");
-  const [isMounted, setIsMounted] = useState(true);
+  const isMountedRef = useRef(true);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      setIsMounted(false);
+      isMountedRef.current = false;
     };
   }, []);
 
@@ -58,7 +58,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         
         reader.onload = () => {
           try {
-            if (!isMounted) {
+            if (!isMountedRef.current) {
               reject(new Error('Component unmounted'));
               return;
             }
@@ -98,7 +98,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   };
 
   const handleTranscribe = async () => {
-    if (!selectedFile || !isMounted) {
+    if (!selectedFile || !isMountedRef.current) {
       toast.error("No file selected");
       return;
     }
@@ -107,7 +107,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     setProgress(0);
 
     try {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       toast.info("Converting audio file...");
       setProgress(20);
@@ -115,7 +115,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       // Convert file to base64 with better error handling
       const base64Audio = await convertToBase64(selectedFile);
       
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       setProgress(40);
       toast.info("Sending to transcription service...");
@@ -128,7 +128,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         }
       });
 
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       setProgress(80);
 
@@ -145,7 +145,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         throw new Error('No transcription text received from service');
       }
 
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       setProgress(100);
       
@@ -159,13 +159,13 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       
     } catch (error) {
       console.error('Transcription failed:', error);
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       const errorMessage = error?.message || 'Unknown transcription error';
       toast.error(`Transcription failed: ${errorMessage}`);
       setProgress(0);
     } finally {
-      if (isMounted) {
+      if (isMountedRef.current) {
         setIsTranscribing(false);
       }
     }
