@@ -37,9 +37,9 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       return;
     }
 
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 10MB.");
+    // Check file size (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 20MB.");
       return;
     }
 
@@ -208,7 +208,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
         {/* File Upload */}
         <div className="space-y-3">
-          <Label>Select Audio File (Max 10MB)</Label>
+          <Label>Select Audio File (Max 20MB)</Label>
           
           <div className="flex flex-wrap gap-2">
             <div className="relative">
@@ -264,7 +264,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         )}
 
         {/* Transcribe Button */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <Button
             onClick={handleTranscribe}
             disabled={disabled || !selectedFile || isTranscribing}
@@ -283,6 +283,11 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
               </>
             )}
           </Button>
+          {!selectedFile && !isTranscribing && (
+            <div className="text-xs text-muted-foreground">
+              Select an audio file to enable transcription.
+            </div>
+          )}
         </div>
 
         {/* Transcription Result Preview */}
@@ -303,7 +308,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         <div className="border-t pt-4">
           <div className="text-xs text-muted-foreground">
             <strong>Supported formats:</strong> MP3, WAV, M4A<br/>
-            <strong>Max file size:</strong> 10MB<br/>
+            <strong>Max file size:</strong> 20MB<br/>
             <strong>Note:</strong> Transcription may take 1-2 minutes depending on audio length.
           </div>
         </div>
