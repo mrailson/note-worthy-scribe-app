@@ -12,195 +12,376 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('🤖 Enhanced Background Transcript Cleaner starting...');
+  
   try {
-    console.log('🤖 Background Transcript Cleaner starting...');
-    
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Get batch size from request or use default
-    const { batchSize = 5 } = await req.json().catch(() => ({}));
-    
-    // Find uncleaned transcripts
-    console.log(`🔍 Looking for uncleaned transcripts (batch size: ${batchSize})...`);
-    
-    const { data: uncleanedTranscripts, error: findError } = await supabase
-      .rpc('find_uncleaned_transcripts', { batch_size: batchSize });
-    
-    if (findError) {
-      throw new Error(`Failed to find uncleaned transcripts: ${findError.message}`);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
     }
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { batchSize = 10, scheduledRun = false, mode = 'hybrid' } = await req.json().catch(() => ({}));
+
+    console.log(`🔍 Enhanced cleaning mode: ${mode} (batch size: ${batchSize})...`);
+
+    // Phase 1: Handle failed realtime chunks (Priority 1)
+    const failedChunks = await handleFailedRealtimeChunks(supabase, openAIApiKey);
     
-    if (!uncleanedTranscripts || uncleanedTranscripts.length === 0) {
-      console.log('✅ No uncleaned transcripts found');
-      
-      // Update daily stats
-      await supabase.rpc('update_transcript_cleaning_stats');
-      
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'No uncleaned transcripts found',
-        processedCount: 0,
-        completedCount: 0,
-        failedCount: 0
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    console.log(`📋 Found ${uncleanedTranscripts.length} transcripts to clean`);
-    
-    let processedCount = 0;
-    let completedCount = 0;
-    let failedCount = 0;
-    
-    // Process each transcript
-    for (const transcript of uncleanedTranscripts) {
-      const { meeting_id, transcript_text, word_count } = transcript;
-      
-      console.log(`🧹 Processing transcript for meeting ${meeting_id} (${word_count} words)`);
-      
-      const processingStartTime = new Date();
-      
-      try {
-        // Create job record
-        const { data: job, error: jobError } = await supabase
-          .from('transcript_cleaning_jobs')
-          .insert({
-            meeting_id,
-            original_transcript_length: transcript_text.length,
-            word_count,
-            processing_status: 'processing',
-            processing_start_time: processingStartTime.toISOString()
-          })
-          .select()
-          .single();
-        
-        if (jobError) {
-          console.error(`❌ Failed to create job for meeting ${meeting_id}:`, jobError);
-          failedCount++;
-          continue;
-        }
-        
-        // Clean the transcript using the same function as the UI
-        console.log(`🔄 Calling gpt-clean-transcript for meeting ${meeting_id}...`);
-        
-        const { data: cleanResult, error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
-          body: { 
-            transcript: transcript_text,
-            chunkSize: 1000 // Default chunk size
-          }
-        });
-        
-        const processingEndTime = new Date();
-        const processingDuration = processingEndTime.getTime() - processingStartTime.getTime();
-        
-        if (cleanError || !cleanResult?.cleanedTranscript) {
-          console.error(`❌ Failed to clean transcript for meeting ${meeting_id}:`, cleanError);
-          
-          // Update job as failed
-          await supabase
-            .from('transcript_cleaning_jobs')
-            .update({
-              processing_status: 'failed',
-              processing_end_time: processingEndTime.toISOString(),
-              processing_duration_ms: processingDuration,
-              error_message: cleanError?.message || 'Unknown error during cleaning'
-            })
-            .eq('id', job.id);
-          
-          failedCount++;
-          continue;
-        }
-        
-        // Update the meeting with cleaned transcript
-        const { error: updateError } = await supabase
-          .from('meetings')
-          .update({
-            transcript: cleanResult.cleanedTranscript,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', meeting_id);
-        
-        if (updateError) {
-          console.error(`❌ Failed to update meeting ${meeting_id} with cleaned transcript:`, updateError);
-          
-          // Update job as failed
-          await supabase
-            .from('transcript_cleaning_jobs')
-            .update({
-              processing_status: 'failed',
-              processing_end_time: processingEndTime.toISOString(),
-              processing_duration_ms: processingDuration,
-              error_message: `Failed to update meeting: ${updateError.message}`
-            })
-            .eq('id', job.id);
-          
-          failedCount++;
-          continue;
-        }
-        
-        // Update job as completed
-        await supabase
-          .from('transcript_cleaning_jobs')
-          .update({
-            processing_status: 'completed',
-            cleaned_transcript_length: cleanResult.cleanedTranscript.length,
-            total_chunks: cleanResult.chunks || 1,
-            chunks_processed: cleanResult.chunks || 1,
-            processing_end_time: processingEndTime.toISOString(),
-            processing_duration_ms: processingDuration
-          })
-          .eq('id', job.id);
-        
-        console.log(`✅ Successfully cleaned transcript for meeting ${meeting_id} (${processingDuration}ms)`);
-        completedCount++;
-        
-      } catch (error) {
-        console.error(`❌ Error processing meeting ${meeting_id}:`, error);
-        failedCount++;
-      }
-      
-      processedCount++;
-      
-      // Add small delay between processing to avoid overwhelming the system
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    console.log(`📊 Background cleaning completed: ${processedCount} processed, ${completedCount} completed, ${failedCount} failed`);
-    
+    // Phase 2: Process uncleaned full transcripts (Priority 2)  
+    const fullTranscripts = await handleUncleanedFullTranscripts(supabase, openAIApiKey, batchSize);
+
+    // Phase 3: Consolidate cleaned chunks into full meeting transcripts
+    const consolidatedMeetings = await consolidateCleanedChunks(supabase, batchSize);
+
+    const totalProcessed = failedChunks.processed + fullTranscripts.processed;
+    const totalFailed = failedChunks.failed + fullTranscripts.failed;
+
     // Update daily statistics
     await supabase.rpc('update_transcript_cleaning_stats');
-    
+    await supabase.rpc('update_chunk_cleaning_stats', {
+      p_chunks_processed: failedChunks.processed,
+      p_is_realtime: false,
+      p_processing_time_ms: failedChunks.totalTime || 0,
+      p_failed_count: failedChunks.failed
+    });
+
+    console.log(`🎉 Enhanced background cleaning completed:`, {
+      failedChunks: failedChunks.processed,
+      fullTranscripts: fullTranscripts.processed,
+      consolidated: consolidatedMeetings.consolidated,
+      totalFailed
+    });
+
     return new Response(JSON.stringify({
       success: true,
-      message: 'Background transcript cleaning completed',
-      processedCount,
-      completedCount,
-      failedCount,
-      transcripts: uncleanedTranscripts.map(t => ({
-        meetingId: t.meeting_id,
-        wordCount: t.word_count
-      }))
+      message: `Enhanced cleaning completed`,
+      failedChunksProcessed: failedChunks.processed,
+      fullTranscriptsProcessed: fullTranscripts.processed,
+      consolidatedMeetings: consolidatedMeetings.consolidated,
+      totalProcessed,
+      totalFailed,
+      details: {
+        failedChunks: failedChunks.results,
+        fullTranscripts: fullTranscripts.results,
+        consolidations: consolidatedMeetings.results
+      }
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
-    
+
   } catch (error) {
-    console.error('❌ Background transcript cleaner error:', error);
-    return new Response(JSON.stringify({ 
+    console.error('❌ Enhanced background transcript cleaner error:', error);
+    
+    return new Response(JSON.stringify({
       success: false,
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
+
+// Handle failed realtime chunks (Priority 1)
+async function handleFailedRealtimeChunks(supabase: any, apiKey: string) {
+  console.log('🔧 Phase 1: Processing failed realtime chunks...');
+  
+  const { data: failedChunks, error } = await supabase
+    .from('meeting_transcription_chunks')
+    .select('id, meeting_id, transcription_text, word_count, chunk_number')
+    .eq('cleaning_status', 'failed')
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Last 24 hours
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error || !failedChunks?.length) {
+    console.log(`✅ No failed chunks found to retry`);
+    return { processed: 0, failed: 0, results: [] };
+  }
+
+  console.log(`🔄 Found ${failedChunks.length} failed chunks to retry`);
+  
+  const results = [];
+  let processed = 0;
+  let failed = 0;
+  const startTime = Date.now();
+
+  for (const chunk of failedChunks) {
+    try {
+      console.log(`🧹 Retrying chunk ${chunk.id}...`);
+      
+      // Update status to processing
+      await supabase
+        .from('meeting_transcription_chunks')
+        .update({ cleaning_status: 'processing' })
+        .eq('id', chunk.id);
+
+      // Clean the chunk
+      const cleanedText = await cleanTranscriptChunk(chunk.transcription_text, apiKey);
+      
+      // Update with cleaned text
+      await supabase
+        .from('meeting_transcription_chunks')
+        .update({
+          cleaned_text: cleanedText,
+          cleaning_status: 'completed',
+          cleaned_at: new Date().toISOString()
+        })
+        .eq('id', chunk.id);
+
+      results.push({ chunkId: chunk.id, status: 'completed' });
+      processed++;
+      
+    } catch (error) {
+      console.error(`❌ Failed to retry chunk ${chunk.id}:`, error);
+      
+      await supabase
+        .from('meeting_transcription_chunks')
+        .update({ cleaning_status: 'failed' })
+        .eq('id', chunk.id);
+      
+      results.push({ chunkId: chunk.id, status: 'failed', error: error.message });
+      failed++;
+    }
+  }
+
+  const totalTime = Date.now() - startTime;
+  console.log(`✅ Phase 1 completed: ${processed} retried, ${failed} failed`);
+  
+  return { processed, failed, totalTime, results };
+}
+
+// Handle uncleaned full transcripts (Priority 2)
+async function handleUncleanedFullTranscripts(supabase: any, apiKey: string, batchSize: number) {
+  console.log('📄 Phase 2: Processing uncleaned full transcripts...');
+  
+  // Find meetings with transcripts but no chunk-level cleaning
+  const { data: uncleanedMeetings, error } = await supabase.rpc('find_uncleaned_transcripts', {
+    batch_size: batchSize
+  });
+
+  if (error || !uncleanedMeetings?.length) {
+    console.log(`✅ No uncleaned full transcripts found`);
+    return { processed: 0, failed: 0, results: [] };
+  }
+
+  console.log(`📋 Found ${uncleanedMeetings.length} uncleaned full transcripts`);
+
+  const results = [];
+  let processed = 0;
+  let failed = 0;
+
+  for (const meeting of uncleanedMeetings) {
+    try {
+      console.log(`🧹 Cleaning full transcript for meeting ${meeting.meeting_id}...`);
+      
+      const startTime = Date.now();
+      
+      // Create cleaning job
+      const { data: jobData, error: jobError } = await supabase
+        .from('transcript_cleaning_jobs')
+        .insert({
+          meeting_id: meeting.meeting_id,
+          processing_status: 'processing',
+          is_realtime_cleaning: false,
+          word_count: meeting.word_count,
+          started_at: new Date().toISOString()
+        })
+        .select('id')
+        .single();
+
+      if (jobError) throw jobError;
+
+      // Clean using existing GPT function
+      const { data: cleanedData, error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
+        body: { 
+          transcript: meeting.transcript_text,
+          chunkSize: 2000 
+        }
+      });
+
+      if (cleanError || !cleanedData?.cleanedTranscript) {
+        throw new Error(`Cleaning failed: ${cleanError?.message || 'No cleaned transcript'}`);
+      }
+
+      // Update meeting
+      await supabase
+        .from('meetings')
+        .update({
+          transcript: cleanedData.cleanedTranscript,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meeting.meeting_id);
+
+      const processingDuration = Date.now() - startTime;
+
+      // Complete job
+      await supabase
+        .from('transcript_cleaning_jobs')
+        .update({
+          processing_status: 'completed',
+          completed_at: new Date().toISOString(),
+          processing_duration_ms: processingDuration
+        })
+        .eq('id', jobData.id);
+
+      results.push({ 
+        meetingId: meeting.meeting_id, 
+        status: 'completed',
+        processingDuration 
+      });
+      processed++;
+      
+    } catch (error) {
+      console.error(`❌ Failed to clean meeting ${meeting.meeting_id}:`, error);
+      
+      results.push({ 
+        meetingId: meeting.meeting_id, 
+        status: 'failed', 
+        error: error.message 
+      });
+      failed++;
+    }
+  }
+
+  console.log(`✅ Phase 2 completed: ${processed} processed, ${failed} failed`);
+  return { processed, failed, results };
+}
+
+// Consolidate cleaned chunks into full meeting transcripts
+async function consolidateCleanedChunks(supabase: any, batchSize: number) {
+  console.log('🔄 Phase 3: Consolidating cleaned chunks into full transcripts...');
+  
+  // Find meetings with cleaned chunks but outdated full transcripts
+  const { data: meetingsToConsolidate, error } = await supabase
+    .from('meetings')
+    .select(`
+      id,
+      transcript,
+      updated_at,
+      meeting_transcription_chunks!inner (
+        id,
+        cleaned_text,
+        chunk_number,
+        cleaning_status
+      )
+    `)
+    .eq('meeting_transcription_chunks.cleaning_status', 'completed')
+    .not('meeting_transcription_chunks.cleaned_text', 'is', null)
+    .limit(batchSize);
+
+  if (error || !meetingsToConsolidate?.length) {
+    console.log(`✅ No meetings found needing consolidation`);
+    return { consolidated: 0, results: [] };
+  }
+
+  console.log(`🔄 Found ${meetingsToConsolidate.length} meetings to consolidate`);
+
+  const results = [];
+  let consolidated = 0;
+
+  for (const meeting of meetingsToConsolidate) {
+    try {
+      // Get all cleaned chunks for this meeting
+      const { data: cleanedChunks, error: chunkError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('cleaned_text, chunk_number')
+        .eq('meeting_id', meeting.id)
+        .eq('cleaning_status', 'completed')
+        .not('cleaned_text', 'is', null)
+        .order('chunk_number');
+
+      if (chunkError || !cleanedChunks?.length) continue;
+
+      // Combine cleaned chunks into full transcript
+      const consolidatedTranscript = cleanedChunks
+        .map(chunk => chunk.cleaned_text)
+        .join(' ')
+        .trim();
+
+      if (!consolidatedTranscript) continue;
+
+      // Update meeting with consolidated transcript
+      await supabase
+        .from('meetings')
+        .update({
+          transcript: consolidatedTranscript,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meeting.id);
+
+      results.push({
+        meetingId: meeting.id,
+        chunksConsolidated: cleanedChunks.length,
+        transcriptLength: consolidatedTranscript.length
+      });
+      
+      consolidated++;
+      console.log(`✅ Consolidated ${cleanedChunks.length} chunks for meeting ${meeting.id}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to consolidate meeting ${meeting.id}:`, error);
+      results.push({
+        meetingId: meeting.id,
+        status: 'failed',
+        error: error.message
+      });
+    }
+  }
+
+  console.log(`✅ Phase 3 completed: ${consolidated} meetings consolidated`);
+  return { consolidated, results };
+}
+
+async function cleanTranscriptChunk(text: string, apiKey: string): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert transcript cleaner. Clean and improve transcribed text while preserving original meaning.
+
+TASKS: Fix speech-to-text errors, remove excessive filler words, fix punctuation/capitalization, resolve unclear words using context, keep medical terminology accurate.
+
+PRESERVE: All factual information, speaker's tone, technical terms, numbers/dates/proper nouns.
+
+Return ONLY the cleaned text.`
+        },
+        {
+          role: 'user',
+          content: `Clean this transcript:\n\n${text}`
+        }
+      ],
+      max_tokens: Math.min(Math.ceil(text.length * 1.5), 4000),
+      temperature: 0.3
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  return result.choices[0].message.content.trim();
+}
