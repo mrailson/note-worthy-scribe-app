@@ -16,6 +16,13 @@ export interface QuickAction {
 }
 
 export const quickActions: QuickAction[] = [
+  {
+    label: 'Audio Upload & Transcribe',
+    icon: Mic,
+    prompt: nhsSafetyPreamble + '\n\nUpload and transcribe audio files for consultation notes, meetings, or other practice needs.',
+    requiresFile: false,
+    action: 'open-audio-upload'
+  },
   { 
     label: 'NICE Guidance Finder',
     icon: BookOpen, 
@@ -136,13 +143,6 @@ export const quickActions: QuickAction[] = [
     icon: Settings, 
     prompt: nhsSafetyPreamble + '\n\nHelp find NHS policy and guidance on [practice management topic] including implementation requirements.',
     requiresFile: false 
-  },
-  {
-    label: 'Audio Upload & Transcribe',
-    icon: Mic,
-    prompt: nhsSafetyPreamble + '\n\nUpload and transcribe audio files for consultation notes, meetings, or other practice needs.',
-    requiresFile: false,
-    action: 'open-audio-upload'
   },
 ];
 
