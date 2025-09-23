@@ -137,6 +137,13 @@ export const quickActions: QuickAction[] = [
     prompt: nhsSafetyPreamble + '\n\nHelp find NHS policy and guidance on [practice management topic] including implementation requirements.',
     requiresFile: false 
   },
+  {
+    label: 'Audio Upload & Transcribe',
+    icon: Mic,
+    prompt: nhsSafetyPreamble + '\n\nUpload and transcribe audio files for consultation notes, meetings, or other practice needs.',
+    requiresFile: false,
+    action: 'open-audio-upload'
+  },
 ];
 
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";

@@ -9,6 +9,7 @@ import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
+import { AudioUploadModal } from '@/components/AudioUploadModal';
 import { useNavigate } from 'react-router-dom';
 
 interface QuickActionsPanelProps {
@@ -39,6 +40,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
   const [isPowerPointOpen, setIsPowerPointOpen] = useState(false);
   const [isQRCodeGeneratorOpen, setIsQRCodeGeneratorOpen] = useState(false);
+  const [isAudioUploadOpen, setIsAudioUploadOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
@@ -205,6 +207,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
               } else if (action.action === 'open-meeting-recorder') {
                 // Navigate to Meeting Recorder page (Index)
                 navigate('/');
+              } else if (action.action === 'open-audio-upload') {
+                setIsAudioUploadOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -257,10 +261,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                             // Navigate to test transcripts page with appropriate tab
                             const tab = subItem.action.replace('open-test-transcripts-', '');
                             window.open(`/test-transcripts#${tab}`, '_blank');
-                           } else if (subItem.action === 'open-meeting-recorder') {
-                             // Navigate to Meeting Recorder page (Index)
-                             navigate('/');
-                          } else {
+                            } else if (subItem.action === 'open-meeting-recorder') {
+                              // Navigate to Meeting Recorder page (Index)
+                              navigate('/');
+                            } else if (subItem.action === 'open-audio-upload') {
+                              setIsAudioUploadOpen(true);
+                            } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
                         }}
@@ -328,6 +334,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <QRCodeGeneratorModal
         open={isQRCodeGeneratorOpen}
         onOpenChange={setIsQRCodeGeneratorOpen}
+      />
+      
+      {/* Audio Upload Modal */}
+      <AudioUploadModal
+        open={isAudioUploadOpen}
+        onOpenChange={setIsAudioUploadOpen}
       />
     </>
   );
