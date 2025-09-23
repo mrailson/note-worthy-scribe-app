@@ -12,10 +12,9 @@ export const AudioUploadModal: React.FC<AudioUploadModalProps> = ({
   onOpenChange
 }) => {
   const handleTranscriptReady = (transcript: string) => {
-    // You can add additional logic here if needed
     console.log('Transcript ready:', transcript);
-    // Close modal after successful transcription
-    onOpenChange(false);
+    // Show success message but don't auto-close modal
+    // Let user decide when to close
   };
 
   return (

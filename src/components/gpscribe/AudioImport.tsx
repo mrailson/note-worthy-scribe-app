@@ -88,11 +88,15 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
       if (error) {
         console.error('Transcription error:', error);
-        throw error;
+        throw new Error(error.message || 'Transcription service error');
       }
 
-      if (!data || !data.text) {
-        throw new Error('No transcription received from service');
+      if (!data) {
+        throw new Error('No response received from transcription service');
+      }
+
+      if (!data.text) {
+        throw new Error('No transcription text received from service');
       }
 
       setProgress(100);
@@ -107,10 +111,11 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       
     } catch (error) {
       console.error('Transcription failed:', error);
-      toast.error(`Transcription failed: ${error.message || 'Unknown error'}`);
+      const errorMessage = error?.message || 'Unknown transcription error';
+      toast.error(`Transcription failed: ${errorMessage}`);
+      setProgress(0);
     } finally {
       setIsTranscribing(false);
-      setProgress(0);
     }
   };
 
