@@ -4913,6 +4913,107 @@ export type Database = {
         }
         Relationships: []
       }
+      transcript_cleaning_jobs: {
+        Row: {
+          chunks_processed: number | null
+          cleaned_transcript_length: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          meeting_id: string | null
+          original_transcript_length: number
+          processing_duration_ms: number | null
+          processing_end_time: string | null
+          processing_start_time: string | null
+          processing_status: string
+          total_chunks: number | null
+          updated_at: string
+          word_count: number
+        }
+        Insert: {
+          chunks_processed?: number | null
+          cleaned_transcript_length?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          meeting_id?: string | null
+          original_transcript_length: number
+          processing_duration_ms?: number | null
+          processing_end_time?: string | null
+          processing_start_time?: string | null
+          processing_status?: string
+          total_chunks?: number | null
+          updated_at?: string
+          word_count: number
+        }
+        Update: {
+          chunks_processed?: number | null
+          cleaned_transcript_length?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          meeting_id?: string | null
+          original_transcript_length?: number
+          processing_duration_ms?: number | null
+          processing_end_time?: string | null
+          processing_start_time?: string | null
+          processing_status?: string
+          total_chunks?: number | null
+          updated_at?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_cleaning_jobs_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcript_cleaning_stats: {
+        Row: {
+          average_processing_time_ms: number
+          created_at: string
+          date: string
+          id: string
+          total_jobs_completed: number
+          total_jobs_failed: number
+          total_jobs_processed: number
+          total_processing_time_ms: number
+          total_transcripts_cleaned: number
+          total_words_processed: number
+          updated_at: string
+        }
+        Insert: {
+          average_processing_time_ms?: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_jobs_completed?: number
+          total_jobs_failed?: number
+          total_jobs_processed?: number
+          total_processing_time_ms?: number
+          total_transcripts_cleaned?: number
+          total_words_processed?: number
+          updated_at?: string
+        }
+        Update: {
+          average_processing_time_ms?: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_jobs_completed?: number
+          total_jobs_failed?: number
+          total_jobs_processed?: number
+          total_processing_time_ms?: number
+          total_transcripts_cleaned?: number
+          total_words_processed?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transcription_chunks: {
         Row: {
           audio_chunk_id: string | null
@@ -5385,6 +5486,14 @@ export type Database = {
           word_count: number
         }[]
       }
+      find_uncleaned_transcripts: {
+        Args: { batch_size?: number }
+        Returns: {
+          meeting_id: string
+          transcript_text: string
+          word_count: number
+        }[]
+      }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -5797,6 +5906,10 @@ export type Database = {
       }
       update_session_activity: {
         Args: { p_session_id?: string; p_user_id: string }
+        Returns: undefined
+      }
+      update_transcript_cleaning_stats: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       update_user_session_activity: {

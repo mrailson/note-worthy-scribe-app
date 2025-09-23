@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TranscriptIntegrityManager from '@/components/TranscriptIntegrityManager';
 import AudioReprocessingPanel from '@/components/AudioReprocessingPanel';
+import TranscriptCleaningMonitor from '@/components/TranscriptCleaningMonitor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Shield, 
   AlertTriangle, 
@@ -11,10 +13,14 @@ import {
   FileAudio,
   Activity,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Bot,
+  Monitor
 } from 'lucide-react';
 
 const TranscriptIntegrityDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('integrity');
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Header */}
@@ -210,28 +216,49 @@ const TranscriptIntegrityDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Main Management Interfaces */}
-      <div className="space-y-8">
-        {/* Integrity Manager */}
-        <TranscriptIntegrityManager />
-        
-        {/* Audio Reprocessing Panel */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Audio Reprocessing & Recovery</CardTitle>
-            <CardDescription>
-              Tools to recover transcript data from audio backups when issues are detected
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AudioReprocessingPanel 
-              meetingId="example-meeting-id" 
-              userId="example-user-id" 
-              audioFilePath="example-audio.webm" 
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Management Interfaces Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="integrity" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Data Integrity
+          </TabsTrigger>
+          <TabsTrigger value="cleaning" className="flex items-center gap-2">  
+            <Bot className="h-4 w-4" />
+            Background Cleaner
+          </TabsTrigger>
+          <TabsTrigger value="recovery" className="flex items-center gap-2">
+            <FileAudio className="h-4 w-4" />
+            Audio Recovery
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="integrity" className="space-y-6">
+          <TranscriptIntegrityManager />
+        </TabsContent>
+
+        <TabsContent value="cleaning" className="space-y-6">
+          <TranscriptCleaningMonitor />
+        </TabsContent>
+
+        <TabsContent value="recovery" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Audio Reprocessing & Recovery</CardTitle>
+              <CardDescription>
+                Tools to recover transcript data from audio backups when issues are detected
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AudioReprocessingPanel 
+                meetingId="example-meeting-id" 
+                userId="example-user-id" 
+                audioFilePath="example-audio.webm" 
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Implementation Summary */}
       <Card>
