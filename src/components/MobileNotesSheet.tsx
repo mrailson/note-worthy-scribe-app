@@ -124,7 +124,60 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   // Open in new tab for full view
   const openInNewTab = () => {
     const content = getCurrentTabContent();
-    const blob = new Blob([content], { type: 'text/plain' });
+    const formattedContent = formatContent(content);
+    const title = meeting?.title || 'Meeting Notes';
+    const tabName = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title} - ${tabName}</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #1a1a1a;
+          }
+          h1, h2, h3 { margin-top: 24px; margin-bottom: 12px; }
+          h1 { font-size: 24px; color: #1a1a1a; }
+          h2 { font-size: 20px; color: #1a1a1a; }
+          h3 { font-size: 16px; color: #1a1a1a; }
+          p { margin-bottom: 12px; color: #1a1a1a; }
+          strong { font-weight: 600; color: #1a1a1a; }
+          em { color: #6b7280; }
+          .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 24px; }
+          .content { line-height: 1.7; }
+          .list-item { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0; }
+          .bullet { color: #3b82f6; font-weight: bold; }
+          @media (prefers-color-scheme: dark) {
+            body { background-color: #1a1a1a; color: #e5e7eb; }
+            h1, h2, h3, p, strong { color: #e5e7eb; }
+            em { color: #9ca3af; }
+            .header { border-bottom-color: #374151; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${title}</h1>
+          <p><strong>Type:</strong> ${tabName} Notes</p>
+          ${meeting?.start_time ? `<p><strong>Date:</strong> ${formatDate(meeting.start_time)}</p>` : ''}
+        </div>
+        <div class="content">
+          ${formattedContent}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 10000);
