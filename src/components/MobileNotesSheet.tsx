@@ -310,30 +310,23 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
       
       switch (noteType) {
         case 'brief':
-          // Use auto-generate-meeting-notes for standard notes
-          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
-            body: { meetingId: meeting.id, noteType: 'standard' }
-          });
-          break;
-          
         case 'detailed':
-          // Use auto-generate-meeting-notes for detailed notes
-          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
-            body: { meetingId: meeting.id, noteType: 'detailed' }
-          });
-          break;
-          
         case 'comprehensive':
-          // Use auto-generate-meeting-notes for comprehensive notes
-          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
-            body: { meetingId: meeting.id, noteType: 'comprehensive' }
-          });
-          break;
-          
         case 'executive':
-          // Use auto-generate-meeting-notes for executive notes
-          result = await supabase.functions.invoke('auto-generate-meeting-notes', {
-            body: { meetingId: meeting.id, noteType: 'executive' }
+          // Use generate-multi-type-notes for all note types except creative
+          const noteTypeMapping = {
+            'brief': 'brief',
+            'detailed': 'detailed', 
+            'comprehensive': 'very_detailed',
+            'executive': 'executive'
+          };
+          
+          result = await supabase.functions.invoke('generate-multi-type-notes', {
+            body: { 
+              meetingIds: [meeting.id],
+              noteTypes: [noteTypeMapping[noteType]],
+              forceRegenerate: true 
+            }
           });
           break;
           
@@ -353,7 +346,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
       // Reload the notes to get the updated content
       await loadExistingNoteStyles();
-      toast.success(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes regenerated successfully!`);
+      toast.success(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes generated successfully!`);
 
     } catch (error) {
       console.error(`Error regenerating ${noteType} notes:`, error);
