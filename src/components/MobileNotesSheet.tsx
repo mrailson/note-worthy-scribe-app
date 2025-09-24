@@ -244,19 +244,23 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     if (!content) return '';
     
     return content
-      // Convert headings to uppercase with spacing
-      .replace(/(^|\n)### ([^\n]+)/g, '$1\n$2\n' + '='.repeat(20) + '\n')
-      .replace(/(^|\n)## ([^\n]+)/g, '$1\n$2\n' + '='.repeat(30) + '\n')
-      .replace(/(^|\n)# ([^\n]+)/g, '$1\n$2\n' + '='.repeat(40) + '\n')
-      // Convert bold to UPPERCASE
+      // Remove all heading markers (# ## ###) and clean up
+      .replace(/^#{1,6}\s+(.+)$/gm, '$1')
+      .replace(/(\n)#{1,6}\s+(.+)$/gm, '$1$2')
+      // Remove bold markers completely
       .replace(/\*\*([^*]+)\*\*/g, '$1')
       // Remove italic markers
       .replace(/\*([^*]+)\*/g, '$1')
-      // Convert bullet points
-      .replace(/(^|\n)- ([^\n]+)/g, '$1• $2')
-      // Clean up extra newlines
+      // Convert bullet points to clean format
+      .replace(/^-\s+(.+)$/gm, '• $1')
+      .replace(/(\n)-\s+(.+)$/gm, '$1• $2')
+      // Clean up multiple consecutive newlines
       .replace(/\n{3,}/g, '\n\n')
-      // Trim whitespace
+      // Remove leading/trailing whitespace from each line
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n')
+      // Final cleanup
       .trim();
   };
 
