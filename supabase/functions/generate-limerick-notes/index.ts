@@ -103,16 +103,14 @@ Guidelines:
         const limerickNotes = openAIData.choices[0].message.content;
         console.log(`Generated limerick notes for meeting ${meetingId}`);
 
-        // Save limerick notes to meeting_notes_multi table
+        // Save limerick notes to meetings table (not meeting_notes_multi)
         const { error: saveError } = await supabase
-          .from('meeting_notes_multi')
-          .upsert({
-            meeting_id: meetingId,
-            notes_style_5: limerickNotes, // Style 5 is typically the "fun/creative" style
+          .from('meetings')
+          .update({
+            notes_style_5: limerickNotes, // Style 5 is the creative/limerick style
             updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'meeting_id'
-          });
+          })
+          .eq('id', meetingId);
 
         if (saveError) {
           console.error(`Failed to save limerick notes for meeting ${meetingId}:`, saveError);
