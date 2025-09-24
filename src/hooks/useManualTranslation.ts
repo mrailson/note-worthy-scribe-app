@@ -701,6 +701,12 @@ export const useManualTranslation = () => {
     console.log('✅ Session cleared completely');
   }, [currentSession, languageDetectorRef]);
 
+  const updateTranslation = useCallback((index: number, updates: Partial<ManualTranslationEntry>) => {
+    setTranslations(prev => prev.map((t, i) => 
+      i === index ? { ...t, ...updates } : t
+    ));
+  }, []);
+
   return {
     // Session state
     isActive,
@@ -716,6 +722,7 @@ export const useManualTranslation = () => {
     clearSession,
     startListening,
     stopListening,
+    updateTranslation,
 
     // Computed values
     sessionStats: currentSession ? {

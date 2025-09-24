@@ -41,7 +41,8 @@ export const MobileTranslationInterface = () => {
     endSession,
     clearSession,
     startListening,
-    stopListening
+    stopListening,
+    updateTranslation
   } = useManualTranslation();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -178,6 +179,63 @@ export const MobileTranslationInterface = () => {
     }
   };
 
+  const handleSpeakerChange = async (translationIndex: number, newSpeaker: 'gp' | 'patient') => {
+    if (!currentSession) return;
+    
+    const translation = translations[translationIndex];
+    if (!translation) return;
+
+    try {
+      // Determine new translation direction based on new speaker
+      const sourceLanguage = newSpeaker === 'gp' ? 'en' : currentSession.targetLanguageCode;
+      const targetLanguage = newSpeaker === 'gp' ? currentSession.targetLanguageCode : 'en';
+      
+      // Only retranslate if direction changed
+      let newTranslatedText = translation.translatedText;
+      if (sourceLanguage !== translation.originalLanguageDetected || 
+          targetLanguage !== translation.targetLanguage) {
+        
+        toast.info('Retranslating with corrected speaker...');
+        
+        const { data, error } = await supabase.functions.invoke('manual-translation-service', {
+          body: {
+            text: translation.originalText,
+            targetLanguage,
+            sourceLanguage
+          }
+        });
+
+        if (error) throw error;
+        newTranslatedText = data.translatedText;
+      }
+
+      // Update the translation in state
+      updateTranslation(translationIndex, {
+        speaker: newSpeaker,
+        translatedText: newTranslatedText,
+        originalLanguageDetected: sourceLanguage,
+        targetLanguage: targetLanguage
+      });
+
+      // Update in database
+      await supabase
+        .from('manual_translation_entries')
+        .update({
+          speaker: newSpeaker,
+          translated_text: newTranslatedText,
+          original_language_detected: sourceLanguage,
+          target_language: targetLanguage
+        })
+        .eq('session_id', currentSession.id)
+        .eq('exchange_number', translation.exchangeNumber);
+
+      toast.success(`Speaker changed to ${newSpeaker === 'gp' ? 'GP' : 'Patient'}`);
+    } catch (error) {
+      console.error('Error changing speaker:', error);
+      toast.error('Failed to change speaker');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 flex flex-col">
       <Card className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
@@ -198,7 +256,7 @@ export const MobileTranslationInterface = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {HEALTHCARE_LANGUAGES.filter(lang => 
-                        lang.code !== 'none' && lang.manualTranslationOnly
+                        lang.code !== 'none'
                       ).map((lang) => (
                         <SelectItem key={lang.code} value={lang.code} className="text-lg">
                           <div className="flex items-center gap-2">
@@ -312,9 +370,13 @@ export const MobileTranslationInterface = () => {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="font-medium text-sm">
-                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                    </div>
+                    <button 
+                      className="font-medium text-sm hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer"
+                      onClick={() => handleSpeakerChange(index, translation.speaker === 'gp' ? 'patient' : 'gp')}
+                      title="Click to change speaker and retranslate"
+                    >
+                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
+                    </button>
                     <div className="text-xs text-muted-foreground">
                       {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -388,9 +450,13 @@ export const MobileTranslationInterface = () => {
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="font-semibold text-lg">
-                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'}
-                    </div>
+                    <button 
+                      className="font-semibold text-lg hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer"
+                      onClick={() => handleSpeakerChange(index, translation.speaker === 'gp' ? 'patient' : 'gp')}
+                      title="Click to change speaker and retranslate"
+                    >
+                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
+                    </button>
                     <div className="text-sm text-muted-foreground">
                       {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
