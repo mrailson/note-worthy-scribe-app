@@ -289,11 +289,12 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-4 pb-3 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-4 h-9">
-                <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
-                <TabsTrigger value="comprehensive" className="text-xs px-1">Full</TabsTrigger>
+              <TabsList className="grid w-full max-w-lg grid-cols-5 h-9">
+                <TabsTrigger value="brief" className="text-xs px-1">Brief</TabsTrigger>
                 <TabsTrigger value="executive" className="text-xs px-1">Exec</TabsTrigger>
-                <TabsTrigger value="creative" className="text-xs px-1">Fun</TabsTrigger>
+                <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
+                <TabsTrigger value="comprehensive" className="text-xs px-1">V.Detail</TabsTrigger>
+                <TabsTrigger value="creative" className="text-xs px-1">Creative</TabsTrigger>
               </TabsList>
               
               <Button
@@ -311,7 +312,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                 <div className="p-4">
                   <TabsContent value="brief" className="mt-0">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-medium">Brief Notes</h3>
+                      <h3 className="text-sm font-medium">Brief Summary</h3>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -337,7 +338,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                         />
                       ) : (
                         <p className="text-muted-foreground text-center py-8">
-                          No brief notes available
+                          No brief summary available
                           <br />
                           <Button 
                             variant="outline" 
@@ -346,95 +347,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                             onClick={() => regenerateNotes('brief')}
                             disabled={regenerating.brief}
                           >
-                            Generate Brief Notes
-                          </Button>
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="detailed" className="mt-0">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-medium">Detailed Notes</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('detailed')}
-                        disabled={regenerating.detailed}
-                        className="h-8 px-2"
-                      >
-                        {regenerating.detailed ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1 text-xs">
-                          {regenerating.detailed ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      {notesStyle2 ? (
-                        <div 
-                          className="text-sm leading-relaxed space-y-3"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle2) }}
-                        />
-                      ) : (
-                        <p className="text-muted-foreground text-center py-8">
-                          No detailed notes available
-                          <br />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-2"
-                            onClick={() => regenerateNotes('detailed')}
-                            disabled={regenerating.detailed}
-                          >
-                            Generate Detailed Notes
-                          </Button>
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="comprehensive" className="mt-0">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-medium">Comprehensive Notes</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('comprehensive')}
-                        disabled={regenerating.comprehensive}
-                        className="h-8 px-2"
-                      >
-                        {regenerating.comprehensive ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1 text-xs">
-                          {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      {notesStyle3 ? (
-                        <div 
-                          className="text-sm leading-relaxed space-y-3"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
-                        />
-                      ) : (
-                        <p className="text-muted-foreground text-center py-8">
-                          No comprehensive notes available
-                          <br />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-2"
-                            onClick={() => regenerateNotes('comprehensive')}
-                            disabled={regenerating.comprehensive}
-                          >
-                            Generate Comprehensive Notes
+                            Generate Brief Summary
                           </Button>
                         </p>
                       )}
@@ -469,7 +382,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                         />
                       ) : (
                         <p className="text-muted-foreground text-center py-8">
-                          No executive notes available
+                          No executive summary available
                           <br />
                           <Button 
                             variant="outline" 
@@ -485,9 +398,97 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                     </div>
                   </TabsContent>
 
+                  <TabsContent value="detailed" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Detailed Minutes</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('detailed')}
+                        disabled={regenerating.detailed}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.detailed ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.detailed ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle2 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle2) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">
+                          No detailed minutes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('detailed')}
+                            disabled={regenerating.detailed}
+                          >
+                            Generate Detailed Minutes
+                          </Button>
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="comprehensive" className="mt-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-medium">Very Detailed</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateNotes('comprehensive')}
+                        disabled={regenerating.comprehensive}
+                        className="h-8 px-2"
+                      >
+                        {regenerating.comprehensive ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1 text-xs">
+                          {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
+                        </span>
+                      </Button>
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      {notesStyle3 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-3"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">
+                          No very detailed notes available
+                          <br />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => regenerateNotes('comprehensive')}
+                            disabled={regenerating.comprehensive}
+                          >
+                            Generate Very Detailed Notes
+                          </Button>
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="creative" className="mt-0">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-medium">Creative Notes (Limericks)</h3>
+                      <h3 className="text-sm font-medium">Creative Summary</h3>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -513,7 +514,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                         />
                       ) : (
                         <p className="text-muted-foreground text-center py-8">
-                          No creative notes available
+                          No creative summary available
                           <br />
                           <Button 
                             variant="outline" 
@@ -522,7 +523,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                             onClick={() => regenerateNotes('creative')}
                             disabled={regenerating.creative}
                           >
-                            Generate Limerick Notes
+                            Generate Creative Summary
                           </Button>
                         </p>
                       )}
