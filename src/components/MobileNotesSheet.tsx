@@ -239,23 +239,49 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     toast.success('Notes downloaded');
   };
 
+  // Format content for sharing (converts markdown to readable plain text)
+  const formatContentForSharing = (content: string) => {
+    if (!content) return '';
+    
+    return content
+      // Convert headings to uppercase with spacing
+      .replace(/(^|\n)### ([^\n]+)/g, '$1\n$2\n' + '='.repeat(20) + '\n')
+      .replace(/(^|\n)## ([^\n]+)/g, '$1\n$2\n' + '='.repeat(30) + '\n')
+      .replace(/(^|\n)# ([^\n]+)/g, '$1\n$2\n' + '='.repeat(40) + '\n')
+      // Convert bold to UPPERCASE
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      // Remove italic markers
+      .replace(/\*([^*]+)\*/g, '$1')
+      // Convert bullet points
+      .replace(/(^|\n)- ([^\n]+)/g, '$1• $2')
+      // Clean up extra newlines
+      .replace(/\n{3,}/g, '\n\n')
+      // Trim whitespace
+      .trim();
+  };
+
   // Share using Web Share API if available
   const shareNotes = async () => {
-    const content = getCurrentTabContent();
+    const rawContent = getCurrentTabContent();
+    const formattedContent = formatContentForSharing(rawContent);
+    const title = meeting?.title || 'Meeting Notes';
+    const tabName = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+    
+    const shareContent = `${title} - ${tabName} Notes\n${meeting?.start_time ? `Date: ${formatDate(meeting.start_time)}\n` : ''}\n${formattedContent}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${meeting?.title} - Notes`,
-          text: content,
+          title: `${title} - ${tabName} Notes`,
+          text: shareContent,
         });
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          copyToClipboard(content);
+          copyToClipboard(shareContent);
         }
       }
     } else {
-      copyToClipboard(content);
+      copyToClipboard(shareContent);
     }
   };
 
