@@ -52,7 +52,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   notes
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("brief");
+  const [activeTab, setActiveTab] = useState("executive");
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
@@ -289,8 +289,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-4 pb-3 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-5 h-9">
-                <TabsTrigger value="brief" className="text-xs px-1">Brief</TabsTrigger>
+              <TabsList className="grid w-full max-w-lg grid-cols-4 h-9">
                 <TabsTrigger value="executive" className="text-xs px-1">Exec</TabsTrigger>
                 <TabsTrigger value="detailed" className="text-xs px-1">Detail</TabsTrigger>
                 <TabsTrigger value="comprehensive" className="text-xs px-1">V.Detail</TabsTrigger>
@@ -310,50 +309,6 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4">
-                  <TabsContent value="brief" className="mt-0">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-medium">Brief Summary</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('brief')}
-                        disabled={regenerating.brief}
-                        className="h-8 px-2"
-                      >
-                        {regenerating.brief ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1 text-xs">
-                          {regenerating.brief ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      {notes ? (
-                        <div 
-                          className="text-sm leading-relaxed space-y-3"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notes) }}
-                        />
-                      ) : (
-                        <p className="text-muted-foreground text-center py-8">
-                          No brief summary available
-                          <br />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-2"
-                            onClick={() => regenerateNotes('brief')}
-                            disabled={regenerating.brief}
-                          >
-                            Generate Brief Summary
-                          </Button>
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
-
                   <TabsContent value="executive" className="mt-0">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-sm font-medium">Executive Summary</h3>
