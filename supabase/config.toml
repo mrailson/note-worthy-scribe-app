@@ -134,3 +134,6 @@ verify_jwt = true
 
 [functions.translation-verification-service]
 verify_jwt = true
+
+[functions.meeting-completion-processor]
+verify_jwt = false
