@@ -321,10 +321,10 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
             'executive': 'executive'
           };
           
-          result = await supabase.functions.invoke('generate-multi-type-notes', {
+          result = await supabase.functions.invoke('generate-notes-styles', {
             body: { 
               meetingIds: [meeting.id],
-              noteTypes: [noteTypeMapping[noteType]],
+              styles: [noteTypeMapping[noteType]],
               forceRegenerate: true 
             }
           });
