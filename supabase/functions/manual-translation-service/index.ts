@@ -81,7 +81,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07', // Updated to latest model for better accuracy
+        model: 'gpt-4o-mini', // Use real OpenAI model for translation
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: text }
