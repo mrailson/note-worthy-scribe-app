@@ -137,3 +137,6 @@ verify_jwt = true
 
 [functions.meeting-completion-processor]
 verify_jwt = false
+
+[functions.standalone-whisper]
+verify_jwt = false
