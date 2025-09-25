@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LanguageDetector, WebSpeechLanguageDetector } from '@/utils/languageDetection';
-import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
+import { EnhancedSpeechRecognition, TranscriptionService } from '@/utils/EnhancedSpeechRecognition';
 
 interface ManualTranslationEntry {
   id: string;
@@ -47,6 +47,7 @@ export const useManualTranslation = () => {
   const [translations, setTranslations] = useState<ManualTranslationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transcriptionService, setTranscriptionService] = useState<TranscriptionService>('browser');
   
   // Get speaker settings from localStorage
   const getSpeakerSettings = () => {
@@ -55,7 +56,7 @@ export const useManualTranslation = () => {
   };
   
   const languageDetectorRef = useRef<LanguageDetector | null>(null);
-  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const speechRecognitionRef = useRef<EnhancedSpeechRecognition | null>(null);
   const webSpeechDetectorRef = useRef<WebSpeechLanguageDetector | null>(null);
   const exchangeCounterRef = useRef(0);
 
@@ -165,15 +166,15 @@ export const useManualTranslation = () => {
       setCurrentSession(newSession);
       setIsActive(true); // Set active BEFORE initializing speech recognition
 
-      // Initialize speech recognition with dependency on currentSession
-      console.log('🎙️ Initializing speech recognition...');
+      // Initialize enhanced speech recognition with dependency on currentSession
+      console.log('🎙️ Initializing enhanced speech recognition...');
       const sessionSnapshot = newSession;
-      speechRecognitionRef.current = new BrowserSpeechRecognition(
-        (transcript: any) => {
-          console.log('📝 Speech recognition callback received:', transcript);
+      speechRecognitionRef.current = new EnhancedSpeechRecognition(
+        (transcript) => {
+          console.log('📝 Enhanced speech callback received:', transcript);
           try {
             const text = (transcript?.text || '').trim();
-            const isFinal = !!transcript?.isFinal;
+            const isFinal = !!transcript?.is_final;
             if (!text) {
               console.log('📝 Empty or whitespace transcript, ignoring');
               return;
@@ -193,16 +194,21 @@ export const useManualTranslation = () => {
           }
         },
         (error: string) => {
-          console.error('❌ Speech recognition error:', error);
+          console.error('❌ Enhanced speech recognition error:', error);
           setError(`Speech recognition error: ${error}`);
           setIsListening(false);
         },
         (status: string) => {
-          console.log('🎙️ Speech recognition status:', status);
+          console.log('🎙️ Enhanced speech recognition status:', status);
+        },
+        { 
+          service: transcriptionService, 
+          language: targetLanguageCode,
+          autoFallback: true 
         }
       );
 
-      console.log('✅ Speech recognition initialized');
+      console.log('✅ Enhanced speech recognition initialized');
       await speechRecognitionRef.current?.setLanguage(targetLanguageCode);
 
       // Log consent to audit trail
@@ -373,6 +379,17 @@ export const useManualTranslation = () => {
     setIsListening(false);
   }, []);
 
+  const switchTranscriptionService = useCallback(async (service: TranscriptionService) => {
+    console.log(`🔄 Switching transcription service to: ${service}`);
+    setTranscriptionService(service);
+    
+    if (speechRecognitionRef.current && isActive) {
+      await speechRecognitionRef.current.switchService(service);
+    }
+    
+    toast.success(`Switched to ${service === 'deepgram' ? 'Deepgram' : 'Browser'} transcription`);
+  }, [isActive]);
+
   const startListening = useCallback(async () => {
     console.log('🎙️ Start listening called:', { 
       currentSession: !!currentSession, 
@@ -418,11 +435,11 @@ export const useManualTranslation = () => {
         return;
       }
 
-      console.log('🚀 Starting speech recognition...');
+      console.log('🚀 Starting enhanced speech recognition...');
       await speechRecognitionRef.current.startRecognition();
       setIsListening(true);
-      console.log('✅ Speech recognition started successfully');
-      toast.success('🎙️ Listening started');
+      console.log('✅ Enhanced speech recognition started successfully');
+      toast.success(`🎙️ Listening started (${transcriptionService === 'deepgram' ? 'Deepgram' : 'Browser'})`);
     } catch (error) {
       console.error('❌ Failed to start listening:', error);
       toast.error('Failed to start speech recognition');
@@ -722,7 +739,11 @@ export const useManualTranslation = () => {
     clearSession,
     startListening,
     stopListening,
+    switchTranscriptionService,
     updateTranslation,
+
+    // Current service
+    transcriptionService,
 
     // Computed values
     sessionStats: currentSession ? {

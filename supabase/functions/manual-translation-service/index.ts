@@ -81,13 +81,12 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-5-mini-2025-08-07', // Updated to latest model for better accuracy
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: text }
         ],
-        temperature: 0.1, // Low temperature for consistent medical translations
-        max_tokens: 500
+        max_completion_tokens: 500 // Updated parameter name for newer models
       })
     });
 

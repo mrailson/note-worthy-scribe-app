@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff } from 'lucide-react';
+import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -42,7 +42,9 @@ export const MobileTranslationInterface = () => {
     clearSession,
     startListening,
     stopListening,
-    updateTranslation
+    updateTranslation,
+    transcriptionService,
+    switchTranscriptionService
   } = useManualTranslation();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -319,6 +321,10 @@ export const MobileTranslationInterface = () => {
                     {error}
                   </div>
                 )}
+                
+                <div className="text-center text-xs text-muted-foreground">
+                  Using: {transcriptionService === 'deepgram' ? 'Deepgram (High Accuracy)' : 'Browser Speech (Fast)'}
+                </div>
               </div>
             )}
           </div>
@@ -330,6 +336,34 @@ export const MobileTranslationInterface = () => {
             <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
               <h3 className="font-medium">Translation History</h3>
               <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title="Transcription service settings"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => switchTranscriptionService('browser')}
+                      className={transcriptionService === 'browser' ? 'bg-accent' : ''}
+                    >
+                      <Mic className="mr-2 h-4 w-4" />
+                      Browser Speech {transcriptionService === 'browser' && '✓'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => switchTranscriptionService('deepgram')}
+                      className={transcriptionService === 'deepgram' ? 'bg-accent' : ''}
+                    >
+                      <Volume2 className="mr-2 h-4 w-4" />
+                      Deepgram (Better Accuracy) {transcriptionService === 'deepgram' && '✓'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="ghost"
                   size="sm"
