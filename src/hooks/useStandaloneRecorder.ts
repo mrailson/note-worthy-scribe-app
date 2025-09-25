@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { StandaloneTranscriber } from '@/utils/StandaloneTranscriber';
+import { BrowserSpeechFallback } from '@/utils/BrowserSpeechFallback';
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 
@@ -19,11 +20,39 @@ export const useStandaloneRecorder = () => {
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   const transcriberRef = useRef<StandaloneTranscriber | null>(null);
+  const speechFallbackRef = useRef<BrowserSpeechFallback | null>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const volumeIntervalRef = useRef<NodeJS.Timeout>();
 
   const startRecording = useCallback(async () => {
     try {
+      // Start browser speech recognition as fallback for immediate feedback
+      speechFallbackRef.current = new BrowserSpeechFallback(
+        (text: string) => {
+          setTranscript(prev => {
+            // Don't duplicate if it's the same text
+            if (prev.includes(text.replace(' [processing...]', ''))) return prev;
+            
+            const newTranscript = prev + (prev ? ' ' : '') + text;
+            
+            // Apply NHS cleaning if enabled (only for final results)
+            if (cleaningEnabled && !text.includes('[processing...]')) {
+              const cleaned = cleanTranscript(newTranscript, NHS_DEFAULT_RULES);
+              setCleanedTranscript(cleaned.cleaned);
+            }
+            
+            return newTranscript;
+          });
+        },
+        (error: string) => {
+          console.log('Browser speech fallback error:', error);
+        }
+      );
+
+      if (speechFallbackRef.current.isSupported()) {
+        speechFallbackRef.current.start();
+      }
+
       transcriberRef.current = new StandaloneTranscriber({
         service: transcriptionService,
         onTranscript: (text: string) => {
@@ -65,7 +94,7 @@ export const useStandaloneRecorder = () => {
 
       toast({
         title: "Recording Started",
-        description: `Using ${transcriptionService.charAt(0).toUpperCase() + transcriptionService.slice(1)} for transcription`
+        description: `Using ${transcriptionService.charAt(0).toUpperCase() + transcriptionService.slice(1)} with browser speech fallback`
       });
 
     } catch (error) {
@@ -81,6 +110,11 @@ export const useStandaloneRecorder = () => {
     if (transcriberRef.current) {
       await transcriberRef.current.stop();
       transcriberRef.current = null;
+    }
+
+    if (speechFallbackRef.current) {
+      speechFallbackRef.current.stop();
+      speechFallbackRef.current = null;
     }
 
     if (timerRef.current) {
