@@ -47,7 +47,7 @@ export const useManualTranslation = () => {
   const [translations, setTranslations] = useState<ManualTranslationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transcriptionService, setTranscriptionService] = useState<TranscriptionService>('browser');
+  const [transcriptionService, setTranscriptionService] = useState<TranscriptionService>('whisper');
   
   // Get speaker settings from localStorage
   const getSpeakerSettings = () => {

@@ -144,9 +144,8 @@ export class EnhancedSpeechRecognition {
       }
     );
  
-    if (this.config.language) {
-      await this.browserRecognition.setLanguage(this.config.language);
-    }
+    // Always set browser recognition to British English for consistent results
+    await this.browserRecognition.setLanguage('en-GB');
  
     await this.browserRecognition.startRecognition();
     this.onStatusChange('Browser: Recording');
@@ -182,6 +181,11 @@ export class EnhancedSpeechRecognition {
     if (this.deepgramTranscriber) {
       this.deepgramTranscriber.stopTranscription();
       this.deepgramTranscriber = null;
+    }
+
+    if (this.whisperTranscriber) {
+      this.whisperTranscriber.stopTranscription();
+      this.whisperTranscriber = null;
     }
 
     if (this.browserRecognition) {
