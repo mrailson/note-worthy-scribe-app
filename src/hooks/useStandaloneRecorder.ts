@@ -1,0 +1,216 @@
+import { useState, useRef, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { StandaloneTranscriber } from '@/utils/StandaloneTranscriber';
+import { cleanTranscript } from '@/lib/transcriptCleaner';
+import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
+
+export const useStandaloneRecorder = () => {
+  const { toast } = useToast();
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [cleanedTranscript, setCleanedTranscript] = useState('');
+  const [showCleaned, setShowCleaned] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0);
+  const [transcriptionService, setTranscriptionService] = useState<'whisper' | 'deepgram'>('whisper');
+  const [cleaningEnabled, setCleaningEnabled] = useState(true);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const transcriberRef = useRef<StandaloneTranscriber | null>(null);
+  const timerRef = useRef<NodeJS.Timeout>();
+  const volumeIntervalRef = useRef<NodeJS.Timeout>();
+
+  const startRecording = useCallback(async () => {
+    try {
+      transcriberRef.current = new StandaloneTranscriber({
+        service: transcriptionService,
+        onTranscript: (text: string) => {
+          setTranscript(prev => {
+            const newTranscript = prev + (prev ? ' ' : '') + text;
+            
+            // Apply NHS cleaning if enabled
+            if (cleaningEnabled) {
+              const cleaned = cleanTranscript(newTranscript, NHS_DEFAULT_RULES);
+              setCleanedTranscript(cleaned.cleaned);
+            }
+            
+            return newTranscript;
+          });
+        },
+        onTranscribing: (transcribing: boolean) => {
+          setIsTranscribing(transcribing);
+        },
+        onError: (error: string) => {
+          toast({
+            title: "Transcription Error",
+            description: error,
+            variant: "destructive"
+          });
+        },
+        onVolumeChange: (vol: number) => {
+          setVolume(vol);
+        }
+      });
+
+      await transcriberRef.current.start();
+      setIsRecording(true);
+      setIsPaused(false);
+
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setDuration(prev => prev + 1);
+      }, 1000);
+
+      toast({
+        title: "Recording Started",
+        description: `Using ${transcriptionService.charAt(0).toUpperCase() + transcriptionService.slice(1)} for transcription`
+      });
+
+    } catch (error) {
+      toast({
+        title: "Recording Failed",
+        description: error instanceof Error ? error.message : "Failed to start recording",
+        variant: "destructive"
+      });
+    }
+  }, [transcriptionService, cleaningEnabled, toast]);
+
+  const stopRecording = useCallback(async () => {
+    if (transcriberRef.current) {
+      await transcriberRef.current.stop();
+      transcriberRef.current = null;
+    }
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    setIsRecording(false);
+    setIsPaused(false);
+    setIsTranscribing(false);
+    setVolume(0);
+
+    toast({
+      title: "Recording Stopped",
+      description: "Transcription completed"
+    });
+  }, [toast]);
+
+  const pauseRecording = useCallback(async () => {
+    if (transcriberRef.current) {
+      await transcriberRef.current.pause();
+    }
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    setIsPaused(true);
+    setVolume(0);
+  }, []);
+
+  const resumeRecording = useCallback(async () => {
+    if (transcriberRef.current) {
+      await transcriberRef.current.resume();
+    }
+
+    // Resume timer
+    timerRef.current = setInterval(() => {
+      setDuration(prev => prev + 1);
+    }, 1000);
+
+    setIsPaused(false);
+  }, []);
+
+  const toggleMute = useCallback(async () => {
+    if (transcriberRef.current) {
+      await transcriberRef.current.toggleMute();
+      setIsMuted(prev => !prev);
+    }
+  }, []);
+
+  const toggleTranscriptionService = useCallback(() => {
+    if (!isRecording) {
+      setTranscriptionService(prev => prev === 'whisper' ? 'deepgram' : 'whisper');
+    }
+  }, [isRecording]);
+
+  const toggleCleaning = useCallback(() => {
+    setCleaningEnabled(prev => !prev);
+    
+    // Re-clean current transcript if enabling
+    if (!cleaningEnabled && transcript) {
+      const cleaned = cleanTranscript(transcript, NHS_DEFAULT_RULES);
+      setCleanedTranscript(cleaned.cleaned);
+    }
+  }, [cleaningEnabled, transcript]);
+
+  const toggleShowCleaned = useCallback(() => {
+    setShowCleaned(prev => !prev);
+  }, []);
+
+  const exportTranscript = useCallback(() => {
+    const textToExport = showCleaned && cleaningEnabled ? cleanedTranscript : transcript;
+    
+    if (!textToExport.trim()) {
+      toast({
+        title: "No Content",
+        description: "No transcript available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const blob = new Blob([textToExport], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transcript-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Transcript Exported",
+      description: "File saved to downloads"
+    });
+  }, [transcript, cleanedTranscript, showCleaned, cleaningEnabled, toast]);
+
+  const clearTranscript = useCallback(() => {
+    setTranscript('');
+    setCleanedTranscript('');
+    setDuration(0);
+    
+    toast({
+      title: "Transcript Cleared",
+      description: "All content has been cleared"
+    });
+  }, [toast]);
+
+  return {
+    isRecording,
+    isPaused,
+    isMuted,
+    transcript,
+    cleanedTranscript,
+    showCleaned,
+    duration,
+    volume,
+    transcriptionService,
+    cleaningEnabled,
+    isTranscribing,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    toggleMute,
+    toggleTranscriptionService,
+    toggleCleaning,
+    toggleShowCleaned,
+    exportTranscript,
+    clearTranscript
+  };
+};

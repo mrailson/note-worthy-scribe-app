@@ -49,6 +49,7 @@ import TranslationTool from "./pages/TranslationTool";
 import MobileTranslation from "./pages/MobileTranslation";
 import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
+import NewRecorder from "./pages/NewRecorder";
 
 
 const App = () => {
@@ -112,6 +113,7 @@ const App = () => {
             <Route path="/patient-language-select" element={<PatientLanguageSelection />} />
             <Route path="/gp-genie" element={<GPGenie />} />
             <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
+            <Route path="/new-recorder" element={<NewRecorder />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             
