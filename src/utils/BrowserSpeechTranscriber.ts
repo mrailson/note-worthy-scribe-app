@@ -50,10 +50,7 @@ export class BrowserSpeechTranscriber {
       });
       
       if (!SpeechRecognition) {
-        if (isIOS) {
-          throw new Error('Speech recognition is not supported on iPhone/Safari. Please use your SmartPhone Notewell Version or Teams own recording service to record Teams meetings in the meantime');
-        }
-        throw new Error('Speech recognition not supported in this browser');
+        throw new Error('Speech recognition not supported in this browser. Please try Chrome, Edge, or Safari.');
       }
 
       this.onStatusChange('Connecting...');
@@ -92,39 +89,38 @@ export class BrowserSpeechTranscriber {
               const passesConfidence = meetsConfidenceThreshold(transcriptData.confidence, settings);
               const isHallucination = this.isLikelyHallucination(transcript.toLowerCase());
               
-              if (!isHallucination && passesConfidence) {
-                this.onTranscription(transcriptData);
-                
-                // Track successful chunk
-                this.onChunkTracked?.({
-                  timestamp: new Date(),
-                  text: transcript,
-                  confidence: transcriptData.confidence,
-                  status: 'success',
-                  speaker: transcriptData.speaker,
-                  isFinal: true
-                });
-                
-                // Send to summarizer
-                if (this.onSummary) {
-                  this.sendToSummarizer(transcript);
-                }
-              } else {
+              console.log('📊 Processing final transcript:', {
+                text: transcript.substring(0, 50) + '...',
+                confidence: transcriptData.confidence,
+                hallucination: isHallucination,
+                passesConfidence
+              });
+
+              // Always send transcription for better user experience
+              this.onTranscription(transcriptData);
+              
+              // Track all chunks
+              this.onChunkTracked?.({
+                timestamp: new Date(),
+                text: transcript,
+                confidence: transcriptData.confidence,
+                status: (!isHallucination && passesConfidence) ? 'success' : 
+                       (isHallucination ? 'filtered' : 'low_confidence'),
+                reason: isHallucination ? 'hallucination' : 
+                       (!passesConfidence ? 'low_confidence' : undefined),
+                speaker: transcriptData.speaker,
+                isFinal: true
+              });
+              
+              // Send to summarizer if quality is good
+              if (!isHallucination && passesConfidence && this.onSummary) {
+                this.sendToSummarizer(transcript);
+              }
+              
+              // Save problematic chunks for analysis
+              if (isHallucination || !passesConfidence) {
                 const reason = isHallucination ? 'hallucination' : 'low_confidence';
-                console.log('🗃️ Saving low-confidence chunk:', transcript, 'Confidence:', transcriptData.confidence);
-                
-                // Track filtered/low-confidence chunk
-                this.onChunkTracked?.({
-                  timestamp: new Date(),
-                  text: transcript,
-                  confidence: transcriptData.confidence,
-                  status: reason === 'hallucination' ? 'filtered' : 'low_confidence',
-                  reason: reason,
-                  speaker: transcriptData.speaker,
-                  isFinal: true
-                });
-                
-                // Save to low-confidence chunks instead of discarding
+                console.log('🗃️ Saving filtered chunk:', transcript, 'Confidence:', transcriptData.confidence);
                 this.saveLowConfidenceChunk(transcript, transcriptData.confidence, reason);
               }
             } else {
@@ -136,7 +132,7 @@ export class BrowserSpeechTranscriber {
       };
 
       this.recognition.onerror = (event) => {
-        console.error('❌ Speech recognition error:', event.error);
+        console.error('❌ Speech recognition error:', event.error, event.message);
         
         // Handle different error types
         if (event.error === 'aborted') {
@@ -147,9 +143,22 @@ export class BrowserSpeechTranscriber {
           return;
         }
         
-        // Don't treat "no-speech" as an actual error - it's normal during silence
-        if (event.error !== 'no-speech') {
-          this.onError(`Speech recognition error: ${event.error}`);
+        // Handle specific error cases more gracefully
+        switch (event.error) {
+          case 'no-speech':
+            console.log('⏸️ No speech detected - this is normal during silence');
+            break;
+          case 'audio-capture':
+            this.onError('Microphone access error - please check permissions');
+            break;
+          case 'not-allowed':
+            this.onError('Microphone permission denied - please allow microphone access');
+            break;
+          case 'network':
+            this.onError('Network error during speech recognition');
+            break;
+          default:
+            this.onError(`Speech recognition error: ${event.error}`);
         }
       };
 

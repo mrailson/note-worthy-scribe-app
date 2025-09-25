@@ -409,13 +409,21 @@ export class DesktopWhisperTranscriber {
           speaker: 'Speaker'
         };
 
-        // Phase 3: Apply confidence gating before sending to UI
-        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
-          console.log('✅ Desktop transcription:', cleanText);
-          this.onTranscription(transcriptData);
-        } else {
-          console.log(`🚫 Filtered low-confidence desktop transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
-          return; // Don't process further if filtered
+        // Phase 3: Apply confidence gating but always send to UI for user feedback
+        console.log('📊 Desktop transcription quality check:', {
+          text: cleanText.substring(0, 50) + '...',
+          confidence: transcriptData.confidence,
+          threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
+          meetsThreshold: meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)
+        });
+
+        // Always send transcription to UI for better user experience
+        console.log('✅ Desktop transcription sent to UI:', cleanText);
+        this.onTranscription(transcriptData);
+
+        // Log quality for analysis but don't block user interface
+        if (!meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          console.log(`ℹ️ Low-confidence desktop transcription (still shown to user): ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
         }
       }
 
