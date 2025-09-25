@@ -79,12 +79,12 @@ export class StandaloneTranscriber {
       this.isActive = true;
       this.mediaRecorder.start();
 
-      // Process chunks every 4 seconds for continuous transcription
+      // Process chunks every 2 seconds for more real-time transcription
       this.chunkInterval = setInterval(() => {
         if (this.isActive && !this.isPaused && this.audioChunks.length > 0) {
           this.processAudioChunk();
         }
-      }, 4000);
+      }, 2000);
 
     } catch (error) {
       this.options.onError(`Failed to start recording: ${error}`);
@@ -185,8 +185,13 @@ export class StandaloneTranscriber {
 
     const audioBlob = new Blob(chunks, { type: 'audio/webm' });
     
-    // Skip very small chunks (less than 1KB)
-    if (audioBlob.size < 1024) return;
+    // Skip very small chunks (less than 512 bytes for more responsive updates)
+    if (audioBlob.size < 512) {
+      console.log('Skipping small chunk:', audioBlob.size, 'bytes');
+      return;
+    }
+    
+    console.log('Processing audio chunk:', audioBlob.size, 'bytes');
 
     this.options.onTranscribing(true);
 
@@ -213,11 +218,18 @@ export class StandaloneTranscriber {
         const text = response.data.text.trim();
         const segmentId = this.generateSegmentId(text);
         
+        console.log('Received transcription:', text);
+        
         // Prevent duplicate processing
         if (!this.processedSegments.has(segmentId)) {
           this.processedSegments.add(segmentId);
+          console.log('Adding new transcript segment:', text);
           this.options.onTranscript(text);
+        } else {
+          console.log('Skipping duplicate segment:', text);
         }
+      } else {
+        console.log('No transcription text received');
       }
 
     } catch (error) {

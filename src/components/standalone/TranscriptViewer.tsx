@@ -23,6 +23,16 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
 }) => {
   const [isVisible, setIsVisible] = React.useState(true);
   const displayTranscript = showCleaned && cleaningEnabled ? cleanedTranscript : transcript;
+  
+  // Calculate word count and character count reactively
+  const stats = React.useMemo(() => {
+    if (!displayTranscript) return { words: 0, characters: 0 };
+    
+    const words = displayTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const characters = displayTranscript.length;
+    
+    return { words, characters };
+  }, [displayTranscript]);
 
   if (!isVisible) {
     return (
@@ -102,11 +112,16 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Words: {displayTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+              Words: {stats.words}
             </span>
             <span>
-              Characters: {displayTranscript.length}
+              Characters: {stats.characters}
             </span>
+            {isTranscribing && (
+              <Badge variant="secondary" className="animate-pulse">
+                Transcribing...
+              </Badge>
+            )}
           </div>
         </div>
       )}
