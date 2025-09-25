@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LanguageDetector, WebSpeechLanguageDetector } from '@/utils/languageDetection';
 import { EnhancedSpeechRecognition, TranscriptionService } from '@/utils/EnhancedSpeechRecognition';
+import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
 
 interface ManualTranslationEntry {
   id: string;
@@ -48,6 +49,21 @@ export const useManualTranslation = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcriptionService, setTranscriptionService] = useState<TranscriptionService>('whisper');
+  
+  // Initialize translation buffering for pause detection
+  const {
+    isAudioBuffering,
+    setIsAudioBuffering,
+    incompleteMessageBuffer,
+    setIncompleteMessageBuffer,
+    lastProcessingTime,
+    setLastProcessingTime,
+    lastProcessingTimeRef,
+    incompleteMessageBufferRef,
+    bufferTimerRef,
+    isCompleteSentence,
+    resetBuffer
+  } = useTranslationBuffering();
   
   // Get speaker settings from localStorage
   const getSpeakerSettings = () => {
@@ -175,20 +191,19 @@ export const useManualTranslation = () => {
           try {
             const text = (transcript?.text || '').trim();
             const isFinal = !!transcript?.is_final;
+            
             if (!text) {
               console.log('📝 Empty or whitespace transcript, ignoring');
               return;
             }
-            if (!isFinal) {
-              console.log('📝 Interim result, skipping:', text.substring(0, 50));
-              return;
-            }
+            
             if (!languageDetectorRef.current) {
               console.warn('⚠️ Language detector not ready yet, buffering ignored');
               return;
             }
-            // Use snapshot to avoid stale closure on currentSession
-            processTranscript(text, sessionSnapshot);
+
+            // Handle speech buffering with pause detection
+            handleSpeechBuffering(text, isFinal, sessionSnapshot);
           } catch (e) {
             console.error('❌ Error handling transcript:', e);
           }
@@ -374,10 +389,88 @@ export const useManualTranslation = () => {
     }
   }, []);
 
+  // Handle speech buffering with pause detection
+  const handleSpeechBuffering = useCallback((text: string, isFinal: boolean, sessionState: ManualTranslationSession) => {
+    console.log('🎙️ Speech buffering:', { text: text.substring(0, 50), isFinal, bufferLength: incompleteMessageBuffer.length });
+    
+    // Filter out very short or low-quality segments
+    if (text.length < 2) {
+      console.log('📝 Text too short, ignoring:', text);
+      return;
+    }
+    
+    // Filter out repetitive punctuation patterns
+    if (/^[.\s,!?]*$/.test(text)) {
+      console.log('📝 Only punctuation/whitespace, ignoring:', text);
+      return;
+    }
+    
+    const currentTime = Date.now();
+    lastProcessingTimeRef.current = currentTime;
+    setLastProcessingTime(currentTime);
+    
+    if (!isFinal) {
+      // For interim results, just log - don't process
+      console.log('📝 Interim result, not processing:', text.substring(0, 50));
+      return;
+    }
+    
+    console.log('📝 Final result received, checking for buffering:', text);
+    
+    // Check if this is a complete sentence or meaningful segment
+    const isComplete = isCompleteSentence(text);
+    console.log('📝 Complete sentence check:', { text: text.substring(0, 50), isComplete });
+    
+    if (isComplete) {
+      // Clear any existing timer
+      if (bufferTimerRef.current) {
+        clearTimeout(bufferTimerRef.current);
+        bufferTimerRef.current = null;
+      }
+      
+      // Combine with any buffered text
+      const finalText = incompleteMessageBuffer ? `${incompleteMessageBuffer} ${text}`.trim() : text;
+      console.log('✅ Processing complete segment immediately:', finalText.substring(0, 50));
+      
+      // Reset buffer and process
+      resetBuffer();
+      processTranscript(finalText, sessionState);
+    } else {
+      // Buffer incomplete segments
+      console.log('📝 Buffering incomplete segment:', text.substring(0, 50));
+      setIsAudioBuffering(true);
+      
+      const newBuffer = incompleteMessageBuffer ? `${incompleteMessageBuffer} ${text}`.trim() : text;
+      setIncompleteMessageBuffer(newBuffer);
+      incompleteMessageBufferRef.current = newBuffer;
+      
+      // Clear existing timer
+      if (bufferTimerRef.current) {
+        clearTimeout(bufferTimerRef.current);
+      }
+      
+      // Set timeout to process buffered content after pause
+      bufferTimerRef.current = setTimeout(() => {
+        console.log('⏰ Buffer timeout reached, processing buffered content:', incompleteMessageBufferRef.current.substring(0, 50));
+        
+        if (incompleteMessageBufferRef.current.trim().length > 1) {
+          const bufferedText = incompleteMessageBufferRef.current;
+          resetBuffer();
+          processTranscript(bufferedText, sessionState);
+        } else {
+          resetBuffer();
+        }
+      }, 2500) as unknown as number; // 2.5 second timeout for processing buffered speech
+    }
+  }, [incompleteMessageBuffer, isCompleteSentence, resetBuffer, setIsAudioBuffering, setIncompleteMessageBuffer, setLastProcessingTime, lastProcessingTimeRef, bufferTimerRef]);
+
   const stopListening = useCallback(() => {
     speechRecognitionRef.current?.stopRecognition();
     setIsListening(false);
-  }, []);
+    
+    // Clear any pending buffers when stopping
+    resetBuffer();
+  }, [resetBuffer]);
 
   const switchTranscriptionService = useCallback(async (service: TranscriptionService) => {
     console.log(`🔄 Switching transcription service to: ${service}`);
@@ -446,191 +539,8 @@ export const useManualTranslation = () => {
     }
   }, [currentSession, isActive, isListening]);
 
-  const handleSpeechResult = useCallback(async (text: string, isFinal: boolean) => {
-    console.log('🔄 Processing speech result:', { 
-      text, 
-      isFinal, 
-      hasCurrentSession: !!currentSession,
-      hasLanguageDetector: !!languageDetectorRef.current,
-      hasText: !!text.trim(),
-      sessionId: currentSession?.id,
-      targetLanguage: currentSession?.targetLanguageCode,
-      isActive
-    });
-    
-    // Enhanced requirement checking
-    if (!isActive) {
-      console.log('⚠️ Skipping speech result - session not active');
-      return;
-    }
-    
-    if (!currentSession) {
-      console.log('⚠️ Skipping speech result - no current session');
-      return;
-    }
-    
-    if (!languageDetectorRef.current) {
-      console.log('⚠️ Skipping speech result - language detector not initialized');
-      return;
-    }
-    
-    if (!text.trim()) {
-      console.log('⚠️ Skipping speech result - empty text');
-      return;
-    }
-
-    // Only process final results
-    if (!isFinal) {
-      console.log('📝 Interim result, skipping:', text.substring(0, 50));
-      return;
-    }
-
-    console.log('✅ Processing final speech result:', text);
-    setIsProcessing(true);
-    
-    try {
-      console.log('🌐 Starting translation process...');
-      
-      // Detect language and determine speaker
-      const detection = languageDetectorRef.current.detectLanguage(text);
-      console.log('🔍 Language detection result:', detection);
-      
-      // EXPLICIT RULE: English = GP, Non-English = Patient (no exceptions)
-      const speaker = detection.isEnglish ? 'gp' : 'patient';
-      
-      console.log('👤 Speaker assignment:', {
-        detectedLanguage: detection.detectedLanguage,
-        isEnglish: detection.isEnglish,
-        suggestedSpeaker: detection.suggestedSpeaker,
-        finalSpeaker: speaker,
-        rule: detection.isEnglish ? 'English -> GP' : 'Non-English -> Patient'
-      });
-      const isToEnglish = detection.isEnglish ? false : true; // If detected English, translate to target language
-      
-      const sourceLanguage = detection.isEnglish ? 'en' : currentSession.targetLanguageCode;
-      const targetLanguage = detection.isEnglish ? currentSession.targetLanguageCode : 'en';
-
-      console.log('📡 Calling translation service:', {
-        text: text.trim(),
-        sourceLanguage,
-        targetLanguage,
-        speaker
-      });
-
-      // Call translation service
-      const { data, error } = await supabase.functions.invoke('manual-translation-service', {
-        body: {
-          text: text.trim(),
-          targetLanguage,
-          sourceLanguage
-        }
-      });
-
-      console.log('📥 Translation service response:', { data, error });
-
-      if (error) throw error;
-
-      exchangeCounterRef.current++;
-
-      // Create translation entry
-      const entry: ManualTranslationEntry = {
-        id: crypto.randomUUID(),
-        exchangeNumber: exchangeCounterRef.current,
-        speaker,
-        originalText: text.trim(),
-        translatedText: data.translatedText,
-        originalLanguageDetected: sourceLanguage,
-        targetLanguage,
-        detectionConfidence: detection.confidence,
-        translationAccuracy: data.accuracy,
-        translationConfidence: data.confidence,
-        safetyFlag: data.safetyFlag,
-        medicalTermsDetected: data.medicalTermsDetected || [],
-        processingTimeMs: data.processingTimeMs || 1000,
-        timestamp: new Date()
-      };
-
-      // Save to database
-      const { error: insertError } = await supabase
-        .from('manual_translation_entries')
-        .insert({
-          session_id: currentSession.id,
-          exchange_number: entry.exchangeNumber,
-          speaker: entry.speaker,
-          original_text: entry.originalText,
-          translated_text: entry.translatedText,
-          original_language_detected: entry.originalLanguageDetected,
-          target_language: entry.targetLanguage,
-          detection_confidence: entry.detectionConfidence,
-          translation_accuracy: entry.translationAccuracy,
-          translation_confidence: entry.translationConfidence,
-          safety_flag: entry.safetyFlag,
-          medical_terms_detected: entry.medicalTermsDetected,
-          processing_time_ms: entry.processingTimeMs,
-        });
-
-      if (insertError) throw insertError;
-
-      // Update local state
-      setTranslations(prev => [...prev, entry]);
-
-      // Speak the translation using browser TTS with correct language
-      if ('speechSynthesis' in window && data.translatedText) {
-        const speakerSettings = getSpeakerSettings();
-        const shouldSpeak = (speaker === 'gp' && speakerSettings.gp) || (speaker === 'patient' && speakerSettings.patient);
-        
-        if (shouldSpeak) {
-          console.log('🗣️ Speaking translation in language:', targetLanguage, 'for speaker:', speaker);
-          const utterance = new SpeechSynthesisUtterance(data.translatedText);
-          
-          // Set correct language for TTS
-          if (targetLanguage === 'en') {
-            utterance.lang = 'en-GB'; // British English
-          } else {
-            // Map language codes to proper TTS language codes
-            const languageMap: Record<string, string> = {
-              'de': 'de-DE',
-              'fr': 'fr-FR', 
-              'es': 'es-ES',
-              'it': 'it-IT',
-              'pt': 'pt-PT',
-              'ru': 'ru-RU',
-              'zh': 'zh-CN',
-              'ar': 'ar-SA',
-              'hi': 'hi-IN',
-              'pl': 'pl-PL',
-              'tr': 'tr-TR',
-              'bn': 'bn-BD',
-              'ur': 'ur-PK'
-            };
-            utterance.lang = languageMap[targetLanguage] || targetLanguage;
-          }
-          
-          utterance.rate = 0.9;
-          utterance.pitch = 1;
-          utterance.volume = 0.8;
-          
-          // Stop any current speech before starting new one
-          speechSynthesis.cancel();
-          speechSynthesis.speak(utterance);
-          
-          console.log('🗣️ TTS started for language:', utterance.lang);
-        } else {
-          console.log('🔇 TTS disabled for speaker:', speaker);
-        }
-      }
-
-      toast.success(`Translation: ${speaker === 'gp' ? '👨‍⚕️' : '👤'} ${text.substring(0, 30)}... → ${data.translatedText.substring(0, 30)}...`);
-
-    } catch (error) {
-      console.error('❌ Translation processing error:', error);
-      setError(error instanceof Error ? error.message : 'Translation failed');
-      toast.error('Translation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      console.log('✅ Translation processing completed');
-      setIsProcessing(false);
-    }
-  }, [currentSession]);
+  // This function is kept for backwards compatibility but is no longer used
+  // Speech processing now goes through handleSpeechBuffering -> processTranscript
 
   const endSession = useCallback(async () => {
     if (!currentSession) return;
@@ -706,6 +616,9 @@ export const useManualTranslation = () => {
     setIsProcessing(false);
     exchangeCounterRef.current = 0;
     
+    // Clear buffering state
+    resetBuffer();
+    
     // Clean up speech recognition
     if (speechRecognitionRef.current) {
       speechRecognitionRef.current.stopRecognition();
@@ -716,7 +629,7 @@ export const useManualTranslation = () => {
     languageDetectorRef.current = null;
     
     console.log('✅ Session cleared completely');
-  }, [currentSession, languageDetectorRef]);
+  }, [resetBuffer]);
 
   const updateTranslation = useCallback((index: number, updates: Partial<ManualTranslationEntry>) => {
     setTranslations(prev => prev.map((t, i) => 
