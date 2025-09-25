@@ -58,6 +58,7 @@ export const RecorderInterface = () => {
           isPaused={isPaused}
           isMuted={isMuted}
           isTranscribing={isTranscribing}
+          transcript={transcript}
           onStart={startRecording}
           onStop={stopRecording}
           onPause={pauseRecording}

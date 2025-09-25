@@ -23,6 +23,21 @@ export class StandaloneTranscriber {
 
   constructor(private options: TranscriberOptions) {}
 
+  private generateSegmentId(text: string): string {
+    // Create a simple hash for deduplication
+    const firstWords = text.split(' ').slice(0, 5).join(' ');
+    return `${Date.now()}-${firstWords.slice(0, 20)}`;
+  }
+
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async start() {
     try {
       // Get microphone access
@@ -211,20 +226,5 @@ export class StandaloneTranscriber {
     } finally {
       this.options.onTranscribing(false);
     }
-  }
-
-  private generateSegmentId(text: string): string {
-    // Create a simple hash for deduplication
-    const firstWords = text.split(' ').slice(0, 5).join(' ');
-    return `${Date.now()}-${firstWords.slice(0, 20)}`;
-  }
-
-  private async blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   }
 }

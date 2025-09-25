@@ -17,6 +17,7 @@ interface RecorderControlsProps {
   isPaused: boolean;
   isMuted: boolean;
   isTranscribing: boolean;
+  transcript?: string;
   onStart: () => void;
   onStop: () => void;
   onPause: () => void;
@@ -31,6 +32,7 @@ export const RecorderControls: React.FC<RecorderControlsProps> = ({
   isPaused,
   isMuted,
   isTranscribing,
+  transcript,
   onStart,
   onStop,
   onPause,
