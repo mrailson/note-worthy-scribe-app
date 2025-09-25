@@ -20,6 +20,7 @@ export class StandaloneTranscriber {
   private isPaused = false;
   private isMuted = false;
   private processedSegments = new Set<string>();
+  private selectedMimeType: string | null = null;
 
   constructor(private options: TranscriberOptions) {}
 
@@ -36,6 +37,24 @@ export class StandaloneTranscriber {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  }
+
+  private getSupportedMimeType(): string | null {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/mp4',
+      'audio/mpeg'
+    ];
+    try {
+      for (const t of candidates) {
+        if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(t)) {
+          return t;
+        }
+      }
+    } catch {}
+    return null;
   }
 
   async start() {
@@ -62,9 +81,10 @@ export class StandaloneTranscriber {
       this.startVolumeMonitoring();
 
       // Set up MediaRecorder
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      const mimeType = this.getSupportedMimeType();
+      this.selectedMimeType = mimeType;
+      console.log('Using MediaRecorder mimeType:', mimeType || 'default');
+      this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : undefined as any);
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && !this.isPaused) {
@@ -77,7 +97,7 @@ export class StandaloneTranscriber {
       };
 
       this.isActive = true;
-      this.mediaRecorder.start();
+      this.mediaRecorder.start(1000); // Request data every second for Safari/iOS
 
       // Process chunks every 2 seconds for more real-time transcription
       this.chunkInterval = setInterval(() => {
