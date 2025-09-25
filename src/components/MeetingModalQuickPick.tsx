@@ -99,7 +99,7 @@ export function MeetingModalQuickPick({
       });
 
       const buffer = await Packer.toBuffer(doc);
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
       saveAs(blob, `meeting-notes-${Date.now()}.docx`);
       toast.success("Word document downloaded");
     } catch (error) {

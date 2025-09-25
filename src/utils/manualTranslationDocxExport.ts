@@ -569,7 +569,7 @@ export async function downloadManualTranslationDOCX(
 
     // Generate and download the file
     const buffer = await Packer.toBuffer(doc);
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     
     const fileName = `Manual_Translation_Session_${session.targetLanguageName.replace(/[^a-zA-Z0-9]/g, '_')}_${session.sessionStart.toISOString().split('T')[0]}.docx`;
     saveAs(blob, fileName);

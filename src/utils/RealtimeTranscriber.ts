@@ -128,7 +128,7 @@ export class RealtimeTranscriber {
       audioSource.connect(this.analyser);
       
       const bufferLength = this.analyser.frequencyBinCount;
-      this.dataArray = new Uint8Array(bufferLength);
+      this.dataArray = new Uint8Array(new ArrayBuffer(bufferLength));
 
       // Check supported MIME types for recording
       const supportedTypes = [

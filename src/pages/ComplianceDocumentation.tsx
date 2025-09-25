@@ -541,7 +541,7 @@ Contact: Notewell AI Technical Team for detailed technical specifications`,
       });
 
       const buffer = await Packer.toBuffer(doc);
-      const blob = new Blob([buffer], { 
+      const blob = new Blob([new Uint8Array(buffer)], { 
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
       });
       

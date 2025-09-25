@@ -1068,7 +1068,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                             });
                             
                             const buffer = await Packer.toBuffer(doc);
-                            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                            const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
                             saveAs(blob, `automatic-notes-v${liveNotesData.current_version}.docx`);
                             
                             toast({
