@@ -1,7 +1,8 @@
 import { DeepgramRealtimeTranscriber, TranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
+import { WhisperChunkTranscriber } from '@/utils/WhisperChunkTranscriber';
 
-export type TranscriptionService = 'browser' | 'deepgram';
+export type TranscriptionService = 'browser' | 'deepgram' | 'whisper';
 
 export interface EnhancedSpeechConfig {
   service: TranscriptionService;
@@ -12,6 +13,7 @@ export interface EnhancedSpeechConfig {
 export class EnhancedSpeechRecognition {
   private currentService: TranscriptionService;
   private deepgramTranscriber: DeepgramRealtimeTranscriber | null = null;
+  private whisperTranscriber: WhisperChunkTranscriber | null = null;
   private browserRecognition: BrowserSpeechRecognition | null = null;
   private isActive = false;
   private hasAutoFallback: boolean;
@@ -44,6 +46,8 @@ export class EnhancedSpeechRecognition {
     try {
       if (this.currentService === 'deepgram') {
         await this.startDeepgramRecognition();
+      } else if (this.currentService === 'whisper') {
+        await this.startWhisperRecognition();
       } else {
         await this.startBrowserRecognition();
       }
@@ -51,20 +55,35 @@ export class EnhancedSpeechRecognition {
       console.error(`❌ ${this.currentService} recognition failed:`, error);
       
       if (this.hasAutoFallback && this.currentService === 'deepgram') {
-        console.log('🔄 Falling back to browser recognition...');
-        this.currentService = 'browser';
+        console.log('🔄 Falling back to Whisper, then Browser...');
         try {
+          this.currentService = 'whisper';
+          await this.startWhisperRecognition();
+          return;
+        } catch {}
+        try {
+          this.currentService = 'browser';
           await this.startBrowserRecognition();
+        } catch (fallbackError) {
+          this.isActive = false;
+          this.onError(`All recognition services failed: ${fallbackError}`);
+          throw fallbackError;
+        }
+      } else if (this.hasAutoFallback && this.currentService === 'browser') {
+        console.log('🔄 Falling back to Whisper...');
+        this.currentService = 'whisper';
+        try {
+          await this.startWhisperRecognition();
         } catch (fallbackError) {
           this.isActive = false;
           this.onError(`Both recognition services failed: ${fallbackError}`);
           throw fallbackError;
         }
-      } else if (this.hasAutoFallback && this.currentService === 'browser') {
-        console.log('🔄 Falling back to Deepgram...');
-        this.currentService = 'deepgram';
+      } else if (this.hasAutoFallback && this.currentService === 'whisper') {
+        console.log('🔄 Falling back to Browser...');
+        this.currentService = 'browser';
         try {
-          await this.startDeepgramRecognition();
+          await this.startBrowserRecognition();
         } catch (fallbackError) {
           this.isActive = false;
           this.onError(`Both recognition services failed: ${fallbackError}`);
@@ -100,7 +119,7 @@ export class EnhancedSpeechRecognition {
     this.onStatusChange('Deepgram: Recording');
     console.log('✅ Deepgram recognition started');
   }
-
+ 
   private async startBrowserRecognition(): Promise<void> {
     this.onStatusChange('Starting browser recognition...');
     
@@ -124,16 +143,38 @@ export class EnhancedSpeechRecognition {
         this.onStatusChange(`Browser: ${status}`);
       }
     );
-
+ 
     if (this.config.language) {
       await this.browserRecognition.setLanguage(this.config.language);
     }
-
+ 
     await this.browserRecognition.startRecognition();
     this.onStatusChange('Browser: Recording');
     console.log('✅ Browser recognition started');
   }
 
+  private async startWhisperRecognition(): Promise<void> {
+    this.onStatusChange('Connecting to Whisper...');
+    this.whisperTranscriber = new WhisperChunkTranscriber(
+      (data: TranscriptData) => {
+        console.log('📝 Whisper transcript:', { text: data.text, isFinal: data.is_final });
+        this.onTranscript(data);
+      },
+      (error: string) => {
+        console.error('❌ Whisper error:', error);
+        this.onError(`Whisper error: ${error}`);
+      },
+      (status: string) => {
+        console.log('🎤 Whisper status:', status);
+        this.onStatusChange(`Whisper: ${status}`);
+      },
+      { language: this.config.language }
+    );
+
+    await this.whisperTranscriber.startTranscription();
+    this.onStatusChange('Whisper: Recording');
+    console.log('✅ Whisper recognition started');
+  }
   stopRecognition(): void {
     console.log('🛑 Stopping recognition...');
     this.isActive = false;
