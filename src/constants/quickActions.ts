@@ -16,13 +16,6 @@ export interface QuickAction {
 }
 
 export const quickActions: QuickAction[] = [
-  {
-    label: 'Audio Upload & Transcribe',
-    icon: Mic,
-    prompt: nhsSafetyPreamble + '\n\nUpload and transcribe audio files for consultation notes, meetings, or other practice needs.',
-    requiresFile: false,
-    action: 'open-audio-upload'
-  },
   { 
     label: 'NICE Guidance Finder',
     icon: BookOpen, 
@@ -149,6 +142,13 @@ export const quickActions: QuickAction[] = [
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
 
 export const practiceManagerQuickActions: QuickAction[] = [
+  {
+    label: 'Audio Transcribe',
+    icon: Mic,
+    prompt: pmSafetyPreamble + '\n\nUpload and transcribe audio files for meetings, consultations, or other practice documentation needs.',
+    requiresFile: false,
+    action: 'open-audio-upload'
+  },
   {
     label: 'Complaint Response Helper (PM)',
     icon: MessageSquare,
