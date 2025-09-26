@@ -263,6 +263,26 @@ export function VpnTroubleshootingGuide({
                   
                   <Card>
                     <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">IT Department Tools</h4>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open('/network-diagnostics', '_blank')}
+                          className="w-full justify-start"
+                        >
+                          <Network className="w-4 h-4 mr-2" />
+                          Run Comprehensive Network Diagnostics
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Opens detailed network testing tool for IT troubleshooting
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
                       <h4 className="font-medium mb-2">Alternative Access Methods</h4>
                       <ul className="text-sm space-y-2">
                         <li>• Use mobile data/hotspot temporarily</li>

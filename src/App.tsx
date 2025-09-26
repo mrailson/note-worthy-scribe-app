@@ -50,6 +50,7 @@ import MobileTranslation from "./pages/MobileTranslation";
 import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
+import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 
 
 const App = () => {
@@ -116,6 +117,7 @@ const App = () => {
             <Route path="/new-recorder" element={<NewRecorder />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

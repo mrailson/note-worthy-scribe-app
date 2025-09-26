@@ -8,6 +8,7 @@ import { Mail, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { VpnTroubleshootingGuide } from "./VpnTroubleshootingGuide";
+import { NetworkDiagnostics } from "./NetworkDiagnostics";
 
 export const SimpleLoginForm = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ export const SimpleLoginForm = () => {
   const [error, setError] = useState('');
   const [isValid, setIsValid] = useState(false);
   const [showVpnGuide, setShowVpnGuide] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [loginError, setLoginError] = useState<any>(null);
   
   const { signIn } = useAuth();
@@ -175,8 +177,8 @@ export const SimpleLoginForm = () => {
               Forgot your password?
             </Link>
             
-            {/* VPN Help Button */}
-            <div className="pt-2">
+            {/* VPN Help and Diagnostics Buttons */}
+            <div className="pt-2 space-y-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -185,6 +187,16 @@ export const SimpleLoginForm = () => {
               >
                 <HelpCircle className="h-3 w-3" />
                 Having trouble logging in? (VPN Help)
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDiagnostics(true)}
+                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                <HelpCircle className="h-3 w-3" />
+                Run Network Diagnostics (For IT)
               </Button>
             </div>
           </div>
@@ -197,6 +209,23 @@ export const SimpleLoginForm = () => {
         onClose={() => setShowVpnGuide(false)}
         loginError={loginError}
       />
+      
+      {/* Network Diagnostics Modal */}
+      {showDiagnostics && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Network Diagnostics</h2>
+                <Button variant="outline" onClick={() => setShowDiagnostics(false)}>
+                  Close
+                </Button>
+              </div>
+              <NetworkDiagnostics />
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
