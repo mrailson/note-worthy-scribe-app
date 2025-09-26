@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,17 +21,25 @@ interface EmailMeetingMinutesModalProps {
 export function EmailMeetingMinutesModal({
   isOpen,
   onOpenChange,
-  meetingId,
-  meetingTitle,
-  meetingNotes
+  meetingId = '',
+  meetingTitle = '',
+  meetingNotes = ''
 }: EmailMeetingMinutesModalProps) {
   const { profile } = useUserProfile();
   const [toEmail, setToEmail] = useState(profile?.email || "");
-  const [subject, setSubject] = useState(`Meeting Minutes - ${meetingTitle}`);
+  const [subject, setSubject] = useState(meetingTitle ? `Meeting Minutes - ${meetingTitle}` : 'Meeting Minutes');
   const [emailBody, setEmailBody] = useState(
-    `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`
+    `Dear recipient,\n\nPlease find attached the meeting minutes${meetingTitle ? ` for "${meetingTitle}"` : ''}.\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`
   );
   const [isSending, setIsSending] = useState(false);
+
+  // Reset form when modal opens with new meeting data
+  useEffect(() => {
+    if (isOpen && meetingTitle) {
+      setSubject(`Meeting Minutes - ${meetingTitle}`);
+      setEmailBody(`Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`);
+    }
+  }, [isOpen, meetingTitle, profile?.display_name]);
 
   const handleSendEmail = async () => {
     if (!toEmail.trim()) {

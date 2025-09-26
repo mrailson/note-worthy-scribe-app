@@ -1705,15 +1705,13 @@ export const MeetingHistoryList = ({
       )}
 
       {/* Email Meeting Minutes Modal */}
-      {selectedMeetingForEmail && (
-        <EmailMeetingMinutesModal
-          isOpen={emailModalOpen}
-          onOpenChange={setEmailModalOpen}
-          meetingId={selectedMeetingForEmail.id}
-          meetingTitle={selectedMeetingForEmail.title}
-          meetingNotes={selectedMeetingForEmail.meeting_summary || selectedMeetingForEmail.transcript || ''}
-        />
-      )}
+      <EmailMeetingMinutesModal
+        isOpen={emailModalOpen && selectedMeetingForEmail !== null}
+        onOpenChange={setEmailModalOpen}
+        meetingId={selectedMeetingForEmail?.id || ''}
+        meetingTitle={selectedMeetingForEmail?.title || ''}
+        meetingNotes={selectedMeetingForEmail?.meeting_summary || selectedMeetingForEmail?.transcript || ''}
+      />
     </div>
   );
 };
