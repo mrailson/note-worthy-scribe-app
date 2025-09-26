@@ -57,27 +57,45 @@ export const SimpleLoginForm = () => {
       const { error: signInError } = await signIn(email, password);
       
       if (signInError) {
-        const errorMessage = signInError.message || 'Login failed';
-        setError(errorMessage);
+        let errorMessage = signInError.message || 'Login failed';
         setLoginError(signInError);
         
-        // Automatically show VPN guide for VPN-related errors
+        // Check for VPN-related issues and make error more explicit
         const isVpnRelated = signInError.isVpnRelated || 
           errorMessage.toLowerCase().includes('network') ||
           errorMessage.toLowerCase().includes('timeout') ||
           errorMessage.toLowerCase().includes('connection') ||
           errorMessage.toLowerCase().includes('fetch') ||
           errorMessage.toLowerCase().includes('rate limit') ||
+          errorMessage.toLowerCase().includes('cors') ||
+          errorMessage.toLowerCase().includes('blocked') ||
           errorMessage.toLowerCase().includes('corporate');
           
         if (isVpnRelated) {
-          setTimeout(() => setShowVpnGuide(true), 1500);
+          // Make VPN-related errors more explicit for IT troubleshooting
+          errorMessage = `🔒 VPN/Network Issue Detected: ${errorMessage}. If you're using a corporate VPN, try turning it off temporarily. Click "VPN Help" below for more details.`;
+          setTimeout(() => setShowVpnGuide(true), 1000);
         }
+        
+        setError(errorMessage);
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      setError(errorMessage);
+      let errorMessage = error.message || 'An unexpected error occurred';
       setLoginError(error);
+      
+      // Check for VPN issues in catch block as well
+      const isVpnRelated = errorMessage.toLowerCase().includes('network') ||
+        errorMessage.toLowerCase().includes('timeout') ||
+        errorMessage.toLowerCase().includes('fetch') ||
+        errorMessage.toLowerCase().includes('cors') ||
+        errorMessage.toLowerCase().includes('blocked');
+        
+      if (isVpnRelated) {
+        errorMessage = `🔒 Network/VPN Issue: ${errorMessage}. Try disabling your VPN temporarily and retry login.`;
+        setTimeout(() => setShowVpnGuide(true), 1000);
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
