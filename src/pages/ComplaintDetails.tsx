@@ -867,9 +867,15 @@ const ComplaintDetails = () => {
       // Add mentioned staff with default email lookups
       if (complaint?.staff_mentioned) {
         for (const staff of complaint.staff_mentioned) {
-          let defaultEmail = '';
-          let defaultRole = 'Various';
+          // For demo purposes, only add Emma Thompson and auto-populate email
+          if (staff !== 'Emma Thompson') {
+            continue; // Skip all other staff members
+          }
           
+          let defaultEmail = 'malcolm.railson@nhs.net'; // Auto-populate for demo
+          let defaultRole = 'Receptionist';
+          
+          // Still try to get default contact but use demo email as fallback
           if (practiceId) {
             const { data: defaultContact } = await supabase
               .rpc('get_default_staff_contact', {
@@ -879,7 +885,7 @@ const ComplaintDetails = () => {
               });
             
             if (defaultContact && defaultContact.length > 0) {
-              defaultEmail = defaultContact[0].default_email;
+              // Use demo email instead of default contact for Emma Thompson
               defaultRole = staff;
             }
           }
