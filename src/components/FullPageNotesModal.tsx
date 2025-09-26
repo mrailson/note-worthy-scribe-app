@@ -220,44 +220,72 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      }
    };
 
-  // Load existing note styles from database
-  const loadExistingNoteStyles = async () => {
-    if (!meeting?.id) return;
+   const loadExistingNoteStyles = async () => {
+     if (!meeting?.id) {
+       console.error('❌ loadExistingNoteStyles called without meeting ID');
+       return;
+     }
 
-    try {
-      console.log('🔍 Loading existing note styles for meeting:', meeting.id);
-      
-      const { data: meetingData, error } = await supabase
-        .from('meetings')
-        .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
-        .eq('id', meeting.id)
-        .eq('user_id', user?.id)
-        .single();
+     // Validate meeting ID and user access before loading
+     if (typeof meeting.id !== 'string' || meeting.id.length !== 36 || !user?.id) {
+       console.error('❌ Invalid meeting ID or user in loadExistingNoteStyles');
+       return;
+     }
 
-      if (error) {
-        console.error('❌ Error loading note styles:', error);
-        return;
-      }
+     const currentMeetingId = meeting.id;
+     console.log('🔍 Loading existing note styles for meeting:', currentMeetingId, 'user:', user.id);
 
-      if (meetingData) {
-        if (meetingData.notes_style_2) {
-          setNotesStyle2(meetingData.notes_style_2);
-        }
-        if (meetingData.notes_style_3) {
-          setNotesStyle3(meetingData.notes_style_3);
-        }
-        if (meetingData.notes_style_4) {
-          setNotesStyle4(meetingData.notes_style_4);
-        }
-        if (meetingData.notes_style_5) {
-          setNotesStyle5(meetingData.notes_style_5);
-        }
-        console.log('✅ Loaded existing note styles');
-      }
-    } catch (error) {
-      console.error('Error loading note styles:', error);
-    }
-  };
+     try {
+       // Use validate_meeting_access function for security
+       const { data: accessCheck } = await supabase.rpc('validate_meeting_access', {
+         p_meeting_id: currentMeetingId,
+         p_user_id: user.id
+       });
+
+       if (!accessCheck) {
+         console.error('❌ User does not have access to meeting:', currentMeetingId);
+         toast.error('Access denied to meeting data');
+         onClose();
+         return;
+       }
+
+       const { data: meetingData, error } = await supabase
+         .from('meetings')
+         .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
+         .eq('id', currentMeetingId)
+         .eq('user_id', user.id)
+         .maybeSingle();
+
+       if (error) {
+         console.error('❌ Error loading note styles:', error);
+         return;
+       }
+
+       // Validate we're still on the same meeting before updating state
+       if (meeting?.id !== currentMeetingId) {
+         console.warn('⚠️ Meeting changed during note styles loading, discarding results');
+         return;
+       }
+
+       if (meetingData) {
+         if (meetingData.notes_style_2) {
+           setNotesStyle2(meetingData.notes_style_2);
+         }
+         if (meetingData.notes_style_3) {
+           setNotesStyle3(meetingData.notes_style_3);
+         }
+         if (meetingData.notes_style_4) {
+           setNotesStyle4(meetingData.notes_style_4);
+         }
+         if (meetingData.notes_style_5) {
+           setNotesStyle5(meetingData.notes_style_5);
+         }
+         console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
+       }
+     } catch (error) {
+       console.error('Error loading note styles:', error);
+     }
+   };
 
   // Call loadExistingNoteStyles when modal opens and meeting data is available
   useEffect(() => {
@@ -266,29 +294,60 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id, user?.id]);
 
-  // Save note style to database
-  const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
-    if (!meeting?.id || !user?.id || !content.trim()) return;
+   // Save note style to database with enhanced validation
+   const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
+     if (!meeting?.id || !user?.id || !content.trim()) {
+       console.error('❌ Invalid parameters for saveNoteStyleToDatabase');
+       return;
+     }
 
-    try {
-      const columnName = `notes_style_${styleNumber}`;
-      const { error } = await supabase
-        .from('meetings')
-        .update({ [columnName]: content })
-        .eq('id', meeting.id)
-        .eq('user_id', user.id);
+     // Validate meeting ID format and user access
+     if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+       console.error('❌ Invalid meeting ID format in saveNoteStyleToDatabase');
+       toast.error('Invalid meeting data');
+       return;
+     }
 
-      if (error) {
-        console.error(`❌ Error saving notes style ${styleNumber}:`, error);
-        toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
-      } else {
-        console.log(`✅ Meeting Notes Style ${styleNumber} saved to database`);
-      }
-    } catch (error) {
-      console.error(`Error saving notes style ${styleNumber}:`, error);
-      toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
-    }
-  };
+     const currentMeetingId = meeting.id;
+     console.log('💾 Saving note style', styleNumber, 'for meeting:', currentMeetingId);
+
+     try {
+       // Verify user still has access to this meeting
+       const { data: accessCheck } = await supabase.rpc('validate_meeting_access', {
+         p_meeting_id: currentMeetingId,
+         p_user_id: user.id
+       });
+
+       if (!accessCheck) {
+         console.error('❌ User lost access to meeting during save:', currentMeetingId);
+         toast.error('Access denied - cannot save notes');
+         return;
+       }
+
+       const columnName = `notes_style_${styleNumber}`;
+       const { error } = await supabase
+         .from('meetings')
+         .update({ [columnName]: content })
+         .eq('id', currentMeetingId)
+         .eq('user_id', user.id);
+
+       // Validate we're still on the same meeting after save
+       if (meeting?.id !== currentMeetingId) {
+         console.warn('⚠️ Meeting changed during save operation');
+         return;
+       }
+
+       if (error) {
+         console.error(`❌ Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
+         toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
+       } else {
+         console.log(`✅ Meeting Notes Style ${styleNumber} saved to database for meeting ${currentMeetingId}`);
+       }
+     } catch (error) {
+       console.error(`Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
+       toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
+     }
+   };
 
   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {

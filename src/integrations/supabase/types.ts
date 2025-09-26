@@ -5591,6 +5591,16 @@ export type Database = {
         Args: { seconds: number }
         Returns: undefined
       }
+      detect_meeting_data_crossover: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          last_updated: string
+          meeting_id: string
+          meeting_title: string
+          potential_crossover: boolean
+          summary_meeting_id: string
+        }[]
+      }
       emergency_detect_transcript_data_loss: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6072,6 +6082,10 @@ export type Database = {
       }
       validate_input_security: {
         Args: { input_text: string }
+        Returns: boolean
+      }
+      validate_meeting_access: {
+        Args: { p_meeting_id: string; p_user_id: string }
         Returns: boolean
       }
       validate_meeting_access_and_log: {
