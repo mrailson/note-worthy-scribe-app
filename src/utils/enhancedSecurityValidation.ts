@@ -15,7 +15,7 @@ class VpnFriendlyRateLimiter {
   
   constructor() {
     // More lenient limits for corporate networks
-    this.personalRateLimit = new RateLimiter(5, 300000); // 5 attempts per 5 minutes
+    this.personalRateLimit = new RateLimiter(10, 300000); // 10 attempts per 5 minutes
     this.corporateRateLimit = new RateLimiter(15, 300000); // 15 attempts per 5 minutes for corporate
     this.emergencyRateLimit = new RateLimiter(50, 300000); // Emergency bypass with high limit
   }
@@ -74,7 +74,7 @@ class VpnFriendlyRateLimiter {
     const allowed = rateLimiter.isAllowed(identifier);
     
     if (!allowed) {
-      const maxAttempts = isCorporate ? 15 : 5;
+      const maxAttempts = isCorporate ? 15 : 10;
       const windowMinutes = 5;
       
       return {
