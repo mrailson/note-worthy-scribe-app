@@ -501,14 +501,18 @@ export const MeetingHistoryList = ({
   // Handle email minutes click
   const handleEmailMinutesClick = async (meeting: Meeting) => {
     console.log('📧 Email button clicked for meeting:', meeting.id, meeting.title);
+    console.log('📧 Meeting data:', meeting);
     
     // Fetch the latest meeting notes/summary
     try {
+      console.log('📧 Fetching meeting summary...');
       const { data: summaryData, error } = await supabase
         .from('meeting_summaries')
         .select('summary')
         .eq('meeting_id', meeting.id)
         .maybeSingle();
+      
+      console.log('📧 Summary query result:', { summaryData, error });
       
       if (error) {
         console.error('Error fetching meeting summary:', error);
@@ -516,20 +520,24 @@ export const MeetingHistoryList = ({
       
       // Use existing summary from meeting object or fetched data, fallback to transcript
       const notes = summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
+      console.log('📧 Notes to send:', notes?.substring(0, 100) + '...');
       
       if (!notes.trim()) {
+        console.log('📧 No notes available - showing error');
         toast.error('No meeting notes available to email. Please generate notes first.');
         return;
       }
       
+      console.log('📧 Opening email modal...');
       // Update the meeting object with latest notes
       setSelectedMeetingForEmail({
         ...meeting,
         meeting_summary: notes
       });
       setEmailModalOpen(true);
+      console.log('📧 Email modal should be open now');
     } catch (error) {
-      console.error('Error preparing email:', error);
+      console.error('📧 Error preparing email:', error);
       toast.error('Failed to prepare email. Please try again.');
     }
   };
