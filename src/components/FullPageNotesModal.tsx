@@ -119,60 +119,106 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
 
-  // Fetch transcript when modal opens - defer during recording to prevent interference
-  useEffect(() => {
-    console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'isRecording:', isRecording);
-    if (isOpen && meeting?.id) {
-      if (isResourceOperationSafe()) {
-        console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
-        fetchTranscriptData();
-      } else {
-        console.log('⚠️ Deferring transcript fetch - recording in progress');
-        toast.info('Database operations paused during recording to prevent interference');
-        
-        // Set up a check for when recording stops
-        const checkRecordingComplete = setInterval(() => {
-          if (isResourceOperationSafe()) {
-            console.log('✅ Recording stopped, fetching deferred data');
-            fetchTranscriptData();
-            clearInterval(checkRecordingComplete);
-          }
-        }, 1000);
-        
-        return () => clearInterval(checkRecordingComplete);
-      }
-    }
-  }, [isOpen, meeting?.id, isResourceOperationSafe]);
+   // Fetch transcript when modal opens with enhanced validation
+   useEffect(() => {
+     console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'meeting?.title:', meeting?.title);
+     
+     // Enhanced validation before data fetching
+     if (isOpen && meeting?.id) {
+       // Validate meeting ID format
+       if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+         console.error('❌ Invalid meeting ID format:', meeting.id);
+         toast.error('Invalid meeting data - modal will close');
+         onClose();
+         return;
+       }
+       
+       // Validate meeting belongs to current user
+       if (!user?.id) {
+         console.error('❌ No authenticated user');
+         toast.error('Authentication required');
+         onClose();
+         return;
+       }
+       
+       console.log('✅ Meeting validation passed for:', meeting.title, 'ID:', meeting.id);
+       
+       if (isResourceOperationSafe()) {
+         console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
+         fetchTranscriptData();
+       } else {
+         console.log('⚠️ Deferring transcript fetch - recording in progress');
+         toast.info('Database operations paused during recording to prevent interference');
+         
+         // Set up a check for when recording stops
+         const checkRecordingComplete = setInterval(() => {
+           if (isResourceOperationSafe()) {
+             console.log('✅ Recording stopped, fetching deferred data for meeting:', meeting.id);
+             fetchTranscriptData();
+             clearInterval(checkRecordingComplete);
+           }
+         }, 1000);
+         
+         return () => clearInterval(checkRecordingComplete);
+       }
+     }
+   }, [isOpen, meeting?.id, meeting?.title, user?.id, isResourceOperationSafe]);
 
-  const fetchTranscriptData = async () => {
-    if (!meeting?.id) return;
-    
-    setIsLoadingTranscript(true);
-    try {
-      console.log('🔍 Fetching transcript data for meeting:', meeting.id);
-      
-      // Fetch processed transcript
-      const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
-        p_meeting_id: meeting.id
-      });
-      
-      if (transcriptError) {
-        console.error('❌ Error fetching transcript:', transcriptError);
-      } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-        console.log('✅ Transcript fetched:', transcriptData.length, 'segments');
-        // Combine all transcript segments
-        const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
-        setTranscript(fullTranscript);
-      } else {
-        console.log('📝 No transcript data found');
-      }
-      
-    } catch (error) {
-      console.error('Error fetching transcript data:', error);
-    } finally {
-      setIsLoadingTranscript(false);
-    }
-  };
+   const fetchTranscriptData = async () => {
+     if (!meeting?.id) {
+       console.error('❌ fetchTranscriptData called without meeting ID');
+       return;
+     }
+     
+     // Additional validation before database calls
+     if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+       console.error('❌ Invalid meeting ID format in fetchTranscriptData:', meeting.id);
+       return;
+     }
+     
+     const currentMeetingId = meeting.id;
+     console.log('🔍 Starting fetchTranscriptData for meeting:', currentMeetingId, 'title:', meeting.title);
+     
+     setIsLoadingTranscript(true);
+     try {
+       // Fetch processed transcript with explicit user validation
+       const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+         p_meeting_id: currentMeetingId
+       });
+       
+       // Validate we're still showing the same meeting (prevent race conditions)
+       if (meeting?.id !== currentMeetingId) {
+         console.warn('⚠️ Meeting ID changed during fetch, discarding results');
+         return;
+       }
+       
+       if (transcriptError) {
+         console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
+       } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+         console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
+         // Combine all transcript segments
+         const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
+         
+         // Final validation before setting state
+         if (meeting?.id === currentMeetingId) {
+           setTranscript(fullTranscript);
+         } else {
+           console.warn('⚠️ Meeting changed during transcript processing, discarding results');
+         }
+       } else {
+         console.log('📝 No transcript data found for meeting:', currentMeetingId);
+         setTranscript('');
+       }
+       
+     } catch (error) {
+       console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
+     } finally {
+       // Only update loading state if we're still on the same meeting
+       if (meeting?.id === currentMeetingId) {
+         setIsLoadingTranscript(false);
+       }
+     }
+   };
 
   // Load existing note styles from database
   const loadExistingNoteStyles = async () => {

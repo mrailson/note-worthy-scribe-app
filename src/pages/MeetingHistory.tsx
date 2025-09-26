@@ -280,24 +280,30 @@ const MeetingHistory = () => {
         }
       }
       
-      // Set all modal states together using React's batching
-      console.log('🔍 Setting modal states and opening modal...');
-      
-      // Use React 18's automatic batching by setting states in sequence
-      setModalMeeting(meeting);
-      setModalNotes(notesToShow);
-      
-      // Force state updates and open modal with better debugging
-      console.log('📝 About to open modal with meeting:', meeting?.title);
-      console.log('📝 Modal notes length:', notesToShow?.length);
-      console.log('📝 Current fullPageModalOpen state before:', fullPageModalOpen);
-      
-      // Set states with force re-render
-      setModalMeeting(meeting);
-      setModalNotes(notesToShow);
-      
-      // Force modal open with immediate state change
-      setFullPageModalOpen(true);
+       // Set modal states once with proper validation
+       console.log('🔍 Setting modal states and opening modal...');
+       console.log('📝 Meeting to display:', meeting?.title, 'ID:', meeting?.id);
+       console.log('📝 Modal notes preview:', notesToShow?.substring(0, 100) + '...');
+       
+       // Validate meeting ID format before setting state
+       if (!meeting?.id || typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+         console.error('❌ Invalid meeting ID format:', meeting?.id);
+         toast.error('Invalid meeting data - please refresh and try again');
+         return;
+       }
+       
+       // Clear existing state before setting new data
+       setModalMeeting(null);
+       setModalNotes('');
+       setFullPageModalOpen(false);
+       
+       // Small delay to ensure state clearing, then set new data
+       setTimeout(() => {
+         setModalMeeting(meeting);
+         setModalNotes(notesToShow);
+         setFullPageModalOpen(true);
+         console.log('✅ Modal opened with meeting:', meeting.title);
+       }, 10);
       
       console.log('📝 Modal state set to true');
       
