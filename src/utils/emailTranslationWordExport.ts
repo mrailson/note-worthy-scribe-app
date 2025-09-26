@@ -36,10 +36,10 @@ const getLanguageName = (code: string): string => {
 
 const getFontForLanguage = (languageCode: string) => {
   const fonts = {
-    // Arabic script languages
-    ar: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
-    fa: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
-    ur: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
+    // Arabic script languages - using Arial Unicode MS for better compatibility
+    ar: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
+    fa: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
+    ur: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
     
     // Chinese languages
     zh: { name: 'SimSun', eastAsia: 'SimSun', cs: 'Arial Unicode MS' },
@@ -229,7 +229,7 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: originalEmail.originalText,
                 italics: true,
-                font: getFontForLanguage(originalEmail.detectedLanguage),
+                font: getFontForLanguage(originalEmail.detectedLanguage).name,
                 rightToLeft: isRightToLeft(originalEmail.detectedLanguage)
               })
             ],
@@ -307,7 +307,7 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: emailReply.translatedText,
                 italics: true,
-                font: getFontForLanguage(emailReply.targetLanguage),
+                font: getFontForLanguage(emailReply.targetLanguage).name,
                 rightToLeft: isRightToLeft(emailReply.targetLanguage)
               })
             ],
@@ -481,7 +481,7 @@ export const downloadEmailTranslationProof = async (
                 new TextRun({
                   text: qualityAssessment.reverseTranslation,
                   italics: true,
-                  font: getFontForLanguage('en'), // Reverse translation is back to English
+                  font: getFontForLanguage('en').name, // Reverse translation is back to English
                   rightToLeft: false
                 })
               ],
