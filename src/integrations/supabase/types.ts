@@ -4413,6 +4413,7 @@ export type Database = {
       }
       shift_templates: {
         Row: {
+          allow_all_staff: boolean | null
           created_at: string
           day_of_week: number
           end_time: string
@@ -4425,6 +4426,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_all_staff?: boolean | null
           created_at?: string
           day_of_week: number
           end_time: string
@@ -4437,6 +4439,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_all_staff?: boolean | null
           created_at?: string
           day_of_week?: number
           end_time?: string

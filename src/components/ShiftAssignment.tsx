@@ -36,6 +36,7 @@ interface ShiftTemplate {
   end_time: string;
   location: 'remote' | 'kings_heath' | 'various_practices' | 'covid_vaccinations';
   required_role: string;
+  allow_all_staff?: boolean;
 }
 
 interface StaffAssignment {
@@ -89,7 +90,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     start_time: '',
     end_time: '',
     location: 'remote' as 'remote' | 'kings_heath' | 'various_practices' | 'covid_vaccinations',
-    required_role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist'
+    required_role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist',
+    allow_all_staff: false
   });
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -305,8 +307,10 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
 
   const getAvailableStaff = (requiredRole: string, day: Date, shiftTemplate: ShiftTemplate) => {
     const assignedStaffIds = getAssignmentsForDay(day, shiftTemplate).map(a => a.staff_member_id);
+    
+    // If allow_all_staff is true, return all staff types, otherwise filter by required role
     return staffMembers.filter(staff => 
-      staff.role === requiredRole && 
+      (shiftTemplate.allow_all_staff || staff.role.toLowerCase() === requiredRole.toLowerCase()) && 
       !assignedStaffIds.includes(staff.id)
     );
   };
@@ -562,6 +566,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
         end_time: newShift.end_time,
         location: newShift.location,
         required_role: newShift.required_role,
+        allow_all_staff: newShift.allow_all_staff,
         is_active: true
       };
 
@@ -579,7 +584,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
         start_time: '',
         end_time: '',
         location: 'remote',
-        required_role: 'gp'
+        required_role: 'gp',
+        allow_all_staff: false
       });
       fetchShiftTemplates();
       onAssignmentChange();
@@ -1272,6 +1278,19 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                   <SelectItem value="receptionist">Receptionist</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="allow-all-staff"
+                checked={newShift.allow_all_staff}
+                onChange={(e) => setNewShift(prev => ({ ...prev, allow_all_staff: e.target.checked }))}
+                className="rounded border-input"
+              />
+              <label htmlFor="allow-all-staff" className="text-sm font-medium">
+                Allow any staff to be assigned (GP, Nurse, HCA, etc.)
+              </label>
             </div>
             
             <div className="flex justify-end gap-2">
