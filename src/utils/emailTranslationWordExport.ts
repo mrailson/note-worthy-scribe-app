@@ -229,7 +229,7 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: originalEmail.originalText,
                 italics: true,
-                font: getFontForLanguage(originalEmail.detectedLanguage).name,
+                font: getFontForLanguage(originalEmail.detectedLanguage),
                 rightToLeft: isRightToLeft(originalEmail.detectedLanguage)
               })
             ],
@@ -307,7 +307,7 @@ export const downloadEmailTranslationProof = async (
               new TextRun({
                 text: emailReply.translatedText,
                 italics: true,
-                font: getFontForLanguage(emailReply.targetLanguage).name,
+                font: getFontForLanguage(emailReply.targetLanguage),
                 rightToLeft: isRightToLeft(emailReply.targetLanguage)
               })
             ],
@@ -481,7 +481,7 @@ export const downloadEmailTranslationProof = async (
                 new TextRun({
                   text: qualityAssessment.reverseTranslation,
                   italics: true,
-                  font: getFontForLanguage('en').name, // Reverse translation is back to English
+                  font: getFontForLanguage('en'), // Reverse translation is back to English
                   rightToLeft: false
                 })
               ],
