@@ -244,7 +244,8 @@ const EnhancedAccess = () => {
     const locationMap = {
       remote: 'Remote',
       kings_heath: 'Kings Heath',
-      various_practices: 'Various Practices'
+      various_practices: 'Various Practices',
+      covid_vaccinations: 'Covid Vaccinations'
     };
     return locationMap[location as keyof typeof locationMap] || location;
   };

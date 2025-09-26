@@ -6159,7 +6159,11 @@ export type Database = {
         | "nurse"
         | "paramedic"
         | "receptionist"
-      work_location: "remote" | "kings_heath" | "various_practices"
+      work_location:
+        | "remote"
+        | "kings_heath"
+        | "various_practices"
+        | "covid_vaccinations"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6372,7 +6376,12 @@ export const Constants = {
         "paramedic",
         "receptionist",
       ],
-      work_location: ["remote", "kings_heath", "various_practices"],
+      work_location: [
+        "remote",
+        "kings_heath",
+        "various_practices",
+        "covid_vaccinations",
+      ],
     },
   },
 } as const

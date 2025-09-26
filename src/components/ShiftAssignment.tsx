@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw, Copy, AlertTriangle } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw, Copy, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
@@ -34,7 +34,7 @@ interface ShiftTemplate {
   day_of_week: number;
   start_time: string;
   end_time: string;
-  location: 'remote' | 'kings_heath' | 'various_practices';
+  location: 'remote' | 'kings_heath' | 'various_practices' | 'covid_vaccinations';
   required_role: string;
 }
 
@@ -81,12 +81,14 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [isRemoveUnassignedOpen, setIsRemoveUnassignedOpen] = useState(false);
   const [isRemovingUnassigned, setIsRemovingUnassigned] = useState(false);
   const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
+  const [isDeleteShiftDialogOpen, setIsDeleteShiftDialogOpen] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState<ShiftTemplate | null>(null);
   const [newShift, setNewShift] = useState({
     name: '',
     day_of_week: 1,
     start_time: '',
     end_time: '',
-    location: 'remote' as 'remote' | 'kings_heath' | 'various_practices',
+    location: 'remote' as 'remote' | 'kings_heath' | 'various_practices' | 'covid_vaccinations',
     required_role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist'
   });
 
@@ -330,7 +332,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     const locationMap = {
       remote: 'Remote',
       kings_heath: 'Kings Heath',
-      various_practices: 'Various Practices'
+      various_practices: 'Various Practices',
+      covid_vaccinations: 'Covid Vaccinations'
     };
     return locationMap[location as keyof typeof locationMap] || location;
   };
@@ -582,6 +585,43 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
       onAssignmentChange();
     } catch (error) {
       toast.error('Failed to create shift template');
+      console.error('Error:', error);
+    }
+  };
+
+  const handleDeleteShift = (shift: ShiftTemplate) => {
+    setShiftToDelete(shift);
+    setIsDeleteShiftDialogOpen(true);
+  };
+
+  const confirmDeleteShift = async () => {
+    if (!shiftToDelete) return;
+
+    try {
+      // First, delete any assignments associated with this shift template
+      const { error: assignmentsError } = await supabase
+        .from('staff_assignments')
+        .delete()
+        .eq('shift_template_id', shiftToDelete.id);
+
+      if (assignmentsError) throw assignmentsError;
+
+      // Then delete the shift template itself
+      const { error: shiftError } = await supabase
+        .from('shift_templates')
+        .delete()
+        .eq('id', shiftToDelete.id);
+
+      if (shiftError) throw shiftError;
+
+      toast.success(`Shift template "${shiftToDelete.name}" deleted successfully`);
+      setIsDeleteShiftDialogOpen(false);
+      setShiftToDelete(null);
+      fetchShiftTemplates();
+      fetchAssignments();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to delete shift template');
       console.error('Error:', error);
     }
   };
@@ -858,7 +898,18 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
                            }`}
                           >
-                          <div className="font-medium">{shift.name}</div>
+                           <div className="font-medium flex items-center justify-between">
+                             <span>{shift.name}</span>
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               onClick={() => handleDeleteShift(shift)}
+                               className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
+                               title="Delete shift template"
+                             >
+                               <Trash2 className="h-3 w-3" />
+                             </Button>
+                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {shift.start_time} - {shift.end_time}
@@ -1185,7 +1236,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
               <label className="text-sm font-medium">Location</label>
               <Select 
                 value={newShift.location} 
-                onValueChange={(value: 'remote' | 'kings_heath' | 'various_practices') => 
+                onValueChange={(value: 'remote' | 'kings_heath' | 'various_practices' | 'covid_vaccinations') => 
                   setNewShift(prev => ({ ...prev, location: value }))
                 }
               >
@@ -1196,6 +1247,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                   <SelectItem value="remote">Remote</SelectItem>
                   <SelectItem value="kings_heath">Kings Heath</SelectItem>
                   <SelectItem value="various_practices">Various Practices</SelectItem>
+                  <SelectItem value="covid_vaccinations">Covid Vaccinations</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1228,6 +1280,44 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
               </Button>
               <Button onClick={handleAddShift}>
                 Add Shift
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Shift Dialog */}
+      <Dialog open={isDeleteShiftDialogOpen} onOpenChange={setIsDeleteShiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Shift Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 rounded-lg">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                Are you sure you want to delete this shift template?
+              </p>
+              {shiftToDelete && (
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                  <p><strong>Shift:</strong> {shiftToDelete.name}</p>
+                  <p><strong>Day:</strong> {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][shiftToDelete.day_of_week - 1]}</p>
+                  <p><strong>Time:</strong> {shiftToDelete.start_time} - {shiftToDelete.end_time}</p>
+                  <p><strong>Location:</strong> {getLocationDisplay(shiftToDelete.location)}</p>
+                </div>
+              )}
+              <p className="mt-2 text-sm text-red-700 dark:text-red-300">
+                <strong>Warning:</strong> This will also delete all assignments associated with this shift template. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsDeleteShiftDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteShift}
+              >
+                Delete Shift Template
               </Button>
             </div>
           </div>
