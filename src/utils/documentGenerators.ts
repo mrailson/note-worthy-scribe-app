@@ -3,6 +3,12 @@ import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import jsPDF from 'jspdf';
 
+// Detect if text contains right-to-left scripts (Arabic, Hebrew, etc.)
+const containsRTL = (text: string) => /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+
+const arabicRunFont = { ascii: 'Arial', hAnsi: 'Arial', eastAsia: 'Arial', cs: 'Arial' } as const;
+const defaultRunFont = { ascii: 'Arial', hAnsi: 'Arial', eastAsia: 'Arial', cs: 'Arial' } as const;
+
 // Function to clean markdown formatting from text
 const cleanMarkdown = (text: string): string => {
   return text
@@ -21,6 +27,9 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
     // Function to process text with inline formatting (bold, italic, code, links)
     const processFormattedText = (text: string) => {
       const children: any[] = [];
+
+      const rtl = containsRTL(text);
+      const baseRun = { size: 24, rightToLeft: rtl, font: rtl ? arabicRunFont : defaultRunFont } as const;
       
       // Clean the text first to remove any stray markdown
       const cleanedText = cleanMarkdown(text);
@@ -37,7 +46,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           if (plainText) {
             children.push(new TextRun({
               text: cleanMarkdown(plainText),
-              size: 24
+              ...baseRun,
             }));
           }
         }
@@ -49,9 +58,9 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           const content = matchedText.slice(3, -3);
           children.push(new TextRun({
             text: content,
-            size: 24,
+            ...baseRun,
             bold: true,
-            italics: true
+            italics: rtl ? false : true,
           }));
         }
         // Handle bold (**text**)
@@ -59,8 +68,8 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           const content = matchedText.slice(2, -2);
           children.push(new TextRun({
             text: content,
-            size: 24,
-            bold: true
+            ...baseRun,
+            bold: true,
           }));
         }
         // Handle italic (*text*)
@@ -68,8 +77,8 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           const content = matchedText.slice(1, -1);
           children.push(new TextRun({
             text: content,
-            size: 24,
-            italics: true
+            ...baseRun,
+            italics: rtl ? false : true,
           }));
         }
         // Handle code (`text`)
@@ -78,7 +87,8 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           children.push(new TextRun({
             text: content,
             size: 22,
-            font: "Courier New"
+            rightToLeft: false,
+            font: 'Courier New' as any,
           }));
         }
         // Handle URLs
@@ -86,8 +96,8 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           children.push(new ExternalHyperlink({
             children: [new TextRun({
               text: matchedText,
-              size: 24,
-              color: "0563C1",
+              ...baseRun,
+              color: '0563C1',
               underline: {}
             })],
             link: matchedText
@@ -103,12 +113,12 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
         if (remainingText) {
           children.push(new TextRun({
             text: cleanMarkdown(remainingText),
-            size: 24
+            ...baseRun,
           }));
         }
       }
       
-      return children.length > 0 ? children : [new TextRun({ text: cleanMarkdown(text), size: 24 })];
+      return children.length > 0 ? children : [new TextRun({ text: cleanMarkdown(text), ...baseRun })];
     };
 
     // Function to detect and create Word tables

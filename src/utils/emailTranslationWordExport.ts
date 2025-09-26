@@ -35,40 +35,41 @@ const getLanguageName = (code: string): string => {
 };
 
 const getFontForLanguage = (languageCode: string) => {
-  const fonts = {
-    // Arabic script languages - using Arial Unicode MS for better compatibility
-    ar: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
-    fa: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
-    ur: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' },
-    
+  const fonts: Record<string, { ascii: string; hAnsi?: string; eastAsia?: string; cs?: string }> = {
+    // Arabic script languages – use Tahoma for reliable Arabic glyphs on Windows
+    ar: { ascii: 'Tahoma', hAnsi: 'Tahoma', eastAsia: 'Tahoma', cs: 'Tahoma' },
+    fa: { ascii: 'Tahoma', hAnsi: 'Tahoma', eastAsia: 'Tahoma', cs: 'Tahoma' },
+    ur: { ascii: 'Tahoma', hAnsi: 'Tahoma', eastAsia: 'Tahoma', cs: 'Tahoma' },
+
     // Chinese languages
-    zh: { name: 'SimSun', eastAsia: 'SimSun', cs: 'Arial Unicode MS' },
-    'zh-cn': { name: 'SimSun', eastAsia: 'SimSun', cs: 'Arial Unicode MS' },
-    'zh-tw': { name: 'MingLiU', eastAsia: 'MingLiU', cs: 'Arial Unicode MS' },
-    
+    zh: { ascii: 'SimSun', eastAsia: 'SimSun', cs: 'Arial' },
+    'zh-cn': { ascii: 'SimSun', eastAsia: 'SimSun', cs: 'Arial' },
+    'zh-tw': { ascii: 'MingLiU', eastAsia: 'MingLiU', cs: 'Arial' },
+
     // Japanese
-    ja: { name: 'MS Gothic', eastAsia: 'MS Gothic', cs: 'Arial Unicode MS' },
-    
+    ja: { ascii: 'MS Gothic', eastAsia: 'MS Gothic', cs: 'Arial' },
+
     // Korean
-    ko: { name: 'Malgun Gothic', eastAsia: 'Malgun Gothic', cs: 'Arial Unicode MS' },
-    
+    ko: { ascii: 'Malgun Gothic', eastAsia: 'Malgun Gothic', cs: 'Arial' },
+
     // Hindi and other Devanagari scripts
-    hi: { name: 'Mangal', eastAsia: 'Mangal', cs: 'Arial Unicode MS' },
-    
+    hi: { ascii: 'Mangal', eastAsia: 'Mangal', cs: 'Arial' },
+
     // Thai
-    th: { name: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial Unicode MS' },
-    
+    th: { ascii: 'Tahoma', eastAsia: 'Tahoma', cs: 'Arial' },
+
     // Vietnamese
-    vi: { name: 'Times New Roman', eastAsia: 'Times New Roman', cs: 'Arial Unicode MS' },
-    
+    vi: { ascii: 'Times New Roman', hAnsi: 'Times New Roman', cs: 'Arial' },
+
     // English and European languages
-    en: { name: 'Times New Roman', eastAsia: 'Times New Roman', cs: 'Times New Roman' },
-    
-    // Default fallback with comprehensive Unicode support
-    default: { name: 'Arial Unicode MS', eastAsia: 'Arial Unicode MS', cs: 'Arial Unicode MS' }
+    en: { ascii: 'Times New Roman', hAnsi: 'Times New Roman', cs: 'Times New Roman' },
+
+    // Default fallback with comprehensive Unicode support on Windows
+    default: { ascii: 'Arial', hAnsi: 'Arial', eastAsia: 'Arial', cs: 'Arial' },
   };
 
-  return fonts[languageCode.toLowerCase()] || fonts.default;
+  const key = (languageCode || '').toLowerCase();
+  return fonts[key] || fonts.default;
 };
 
 const isRightToLeft = (languageCode: string): boolean => {
@@ -110,9 +111,10 @@ export const downloadEmailTranslationProof = async (
           document: {
             run: {
               font: {
-                name: 'Arial Unicode MS',
-                eastAsia: 'Arial Unicode MS',
-                cs: 'Arial Unicode MS'
+                ascii: 'Arial',
+                hAnsi: 'Arial',
+                eastAsia: 'Arial',
+                cs: 'Arial'
               }
             }
           }
@@ -228,7 +230,7 @@ export const downloadEmailTranslationProof = async (
             children: [
               new TextRun({
                 text: originalEmail.originalText,
-                italics: true,
+                italics: !isRightToLeft(originalEmail.detectedLanguage),
                 font: getFontForLanguage(originalEmail.detectedLanguage),
                 rightToLeft: isRightToLeft(originalEmail.detectedLanguage)
               })
@@ -306,7 +308,7 @@ export const downloadEmailTranslationProof = async (
             children: [
               new TextRun({
                 text: emailReply.translatedText,
-                italics: true,
+                italics: !isRightToLeft(emailReply.targetLanguage),
                 font: getFontForLanguage(emailReply.targetLanguage),
                 rightToLeft: isRightToLeft(emailReply.targetLanguage)
               })
