@@ -28,7 +28,8 @@ import {
   ExternalLink,
   MapPin,
   RefreshCw,
-  Bot
+  Bot,
+  Mail
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -67,6 +68,7 @@ import { MobileNotesSheet } from "@/components/MobileNotesSheet";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
+import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 
 
 interface Meeting {
@@ -204,6 +206,10 @@ export const MeetingHistoryList = ({
 
   // Add deduplication state for preventing duplicate modal opens
   const [lastActionTime, setLastActionTime] = useState<Record<string, number>>({});
+
+  // Email modal state
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedMeetingForEmail, setSelectedMeetingForEmail] = useState<Meeting | null>(null);
 
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
@@ -490,6 +496,42 @@ export const MeetingHistoryList = ({
     setSelectedMeetingForUpload(meeting);
     setSelectedFiles([]);
     setUploadDialogOpen(true);
+  };
+
+  // Handle email minutes click
+  const handleEmailMinutesClick = async (meeting: Meeting) => {
+    console.log('📧 Email button clicked for meeting:', meeting.id, meeting.title);
+    
+    // Fetch the latest meeting notes/summary
+    try {
+      const { data: summaryData, error } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meeting.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching meeting summary:', error);
+      }
+      
+      // Use existing summary from meeting object or fetched data, fallback to transcript
+      const notes = summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
+      
+      if (!notes.trim()) {
+        toast.error('No meeting notes available to email. Please generate notes first.');
+        return;
+      }
+      
+      // Update the meeting object with latest notes
+      setSelectedMeetingForEmail({
+        ...meeting,
+        meeting_summary: notes
+      });
+      setEmailModalOpen(true);
+    } catch (error) {
+      console.error('Error preparing email:', error);
+      toast.error('Failed to prepare email. Please try again.');
+    }
   };
 
   const uploadDocuments = async () => {
@@ -1338,6 +1380,17 @@ export const MeetingHistoryList = ({
                 )}
                 
                 
+                {/* Email Minutes Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEmailMinutesClick(meeting)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-blue-600 hover:text-blue-700"
+                >
+                  <Mail className="h-4 w-4" />
+                  <span>Email</span>
+                </Button>
+
                 {/* Upload Documents Button */}
                 <Button
                   variant="outline"
@@ -1640,6 +1693,17 @@ export const MeetingHistoryList = ({
           meeting={selectedMeetingForNotes}
           notes={meetingNotes}
           onNotesChange={setMeetingNotes}
+        />
+      )}
+
+      {/* Email Meeting Minutes Modal */}
+      {selectedMeetingForEmail && (
+        <EmailMeetingMinutesModal
+          isOpen={emailModalOpen}
+          onOpenChange={setEmailModalOpen}
+          meetingId={selectedMeetingForEmail.id}
+          meetingTitle={selectedMeetingForEmail.title}
+          meetingNotes={selectedMeetingForEmail.meeting_summary || selectedMeetingForEmail.transcript || ''}
         />
       )}
     </div>
