@@ -226,6 +226,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
   };
 
   const handleEmailNotes = () => {
+    console.log('🔵 MeetingSummary handleEmailNotes clicked');
     const subject = "Meeting Notes Summary";
     const body = encodeURIComponent(notes);
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
@@ -648,7 +649,10 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
                 variant="ghost"
                 size="sm"
                 className="touch-manipulation min-h-[44px] w-full sm:w-auto"
-                onClick={() => setIsEmailModalOpen(true)}
+                onClick={() => {
+                  console.log('🟢 MeetingSummary email modal button clicked');
+                  setIsEmailModalOpen(true);
+                }}
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Email
