@@ -528,7 +528,7 @@ export const MeetingHistoryList = ({
         console.error('Error fetching meeting summary:', error);
       }
       
-      // Priority order: detailed notes > brief notes > other types > summary > transcript
+      // Priority order: multi-type notes > meeting notes > summary > transcript
       let notes = '';
       
       if (multiNotesData && multiNotesData.length > 0) {
@@ -540,9 +540,16 @@ export const MeetingHistoryList = ({
         notes = detailedNote?.content || briefNote?.content || anyNote?.content || '';
         console.log('📧 Using multi-type notes:', notes?.substring(0, 100) + '...');
       } else {
-        // Fallback to summary or transcript
-        notes = summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
-        console.log('📧 Using fallback notes:', notes?.substring(0, 100) + '...');
+        // Check meeting's own note fields before falling back
+        const meetingData = meeting as any;
+        notes = meetingData.notes_style_2 || meetingData.notes_style_3 || meetingData.notes_style_1 || 
+                summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
+        
+        if (meetingData.notes_style_2 || meetingData.notes_style_3 || meetingData.notes_style_1) {
+          console.log('📧 Using meeting note fields:', notes?.substring(0, 100) + '...');
+        } else {
+          console.log('📧 Using fallback notes:', notes?.substring(0, 100) + '...');
+        }
       }
       
       if (!notes.trim()) {
