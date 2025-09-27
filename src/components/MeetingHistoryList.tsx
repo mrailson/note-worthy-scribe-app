@@ -503,24 +503,47 @@ export const MeetingHistoryList = ({
     console.log('📧 Email button clicked for meeting:', meeting.id, meeting.title);
     console.log('📧 Meeting data:', meeting);
     
-    // Fetch the latest meeting notes/summary
+    // Fetch the latest meeting notes/summary from multiple sources
     try {
-      console.log('📧 Fetching meeting summary...');
+      console.log('📧 Fetching meeting notes from all sources...');
+      
+      // 1. Check meeting_summaries table
       const { data: summaryData, error } = await supabase
         .from('meeting_summaries')
         .select('summary')
         .eq('meeting_id', meeting.id)
         .maybeSingle();
-      
+
+      // 2. Check meeting_notes_multi table for generated notes
+      const { data: multiNotesData } = await supabase
+        .from('meeting_notes_multi')
+        .select('content, note_type')
+        .eq('meeting_id', meeting.id)
+        .order('generated_at', { ascending: false });
+
       console.log('📧 Summary query result:', { summaryData, error });
+      console.log('📧 Multi notes query result:', { multiNotesData });
       
       if (error) {
         console.error('Error fetching meeting summary:', error);
       }
       
-      // Use existing summary from meeting object or fetched data, fallback to transcript
-      const notes = summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
-      console.log('📧 Notes to send:', notes?.substring(0, 100) + '...');
+      // Priority order: detailed notes > brief notes > other types > summary > transcript
+      let notes = '';
+      
+      if (multiNotesData && multiNotesData.length > 0) {
+        // Prefer detailed notes first, then brief, then any available
+        const detailedNote = multiNotesData.find(n => n.note_type === 'detailed');
+        const briefNote = multiNotesData.find(n => n.note_type === 'brief');
+        const anyNote = multiNotesData[0]; // First available (most recent)
+        
+        notes = detailedNote?.content || briefNote?.content || anyNote?.content || '';
+        console.log('📧 Using multi-type notes:', notes?.substring(0, 100) + '...');
+      } else {
+        // Fallback to summary or transcript
+        notes = summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
+        console.log('📧 Using fallback notes:', notes?.substring(0, 100) + '...');
+      }
       
       if (!notes.trim()) {
         console.log('📧 No notes available - showing error');
