@@ -1392,7 +1392,12 @@ export const MeetingHistoryList = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleEmailMinutesClick(meeting)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔴 BUTTON CLICKED - Testing click handler');
+                    handleEmailMinutesClick(meeting);
+                  }}
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-blue-600 hover:text-blue-700"
                 >
                   <Mail className="h-4 w-4" />
