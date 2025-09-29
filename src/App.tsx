@@ -81,6 +81,8 @@ const App = () => {
             <Route path="/practice-admin" element={<PracticeAdmin />} />
             <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
             <Route path="/fridge-temp/:fridgeId" element={<FridgeTemperatureEntry />} />
+            {/* Public route for QR code scanning - no authentication required */}
+            <Route path="/public/fridge-temp/:fridgeId" element={<FridgeTemperatureEntry />} />
             <Route path="/complaints" element={<ComplaintsSystem />} />
             <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
             <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />

@@ -22,6 +22,7 @@ export const FridgeTemperatureEntry = () => {
   const { fridgeId } = useParams<{ fridgeId: string }>();
   const navigate = useNavigate();
   const { user, hasModuleAccess } = useAuth();
+  const isPublicAccess = window.location.pathname.includes('/public/');
   const [fridge, setFridge] = useState<Fridge | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,14 +30,15 @@ export const FridgeTemperatureEntry = () => {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    if (!hasModuleAccess('fridge_monitoring_access')) {
+    // Skip access check for public QR code access
+    if (!isPublicAccess && !hasModuleAccess('fridge_monitoring_access')) {
       toast.error('You do not have access to fridge monitoring');
       navigate('/');
       return;
     }
-
+    
     loadFridge();
-  }, [fridgeId, hasModuleAccess, navigate]);
+  }, [fridgeId, hasModuleAccess, navigate, isPublicAccess]);
 
   const loadFridge = async () => {
     if (!fridgeId) return;
@@ -62,7 +64,10 @@ export const FridgeTemperatureEntry = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !fridge || !temperature) return;
+    if (!fridge || !temperature) return;
+    
+    // For public access, we don't require user authentication
+    if (!isPublicAccess && !user) return;
 
     setSubmitting(true);
     try {
@@ -80,7 +85,7 @@ export const FridgeTemperatureEntry = () => {
         .insert([{
           fridge_id: fridge.id,
           temperature_celsius: tempValue,
-          recorded_by: user.id,
+          recorded_by: user?.id || null, // Allow null for public access
           notes: notes.trim() || null,
           is_within_range: isWithinRange
         }]);
@@ -221,15 +226,17 @@ export const FridgeTemperatureEntry = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/dashboard')}
-                className="text-sm"
-              >
-                Back to Dashboard
-              </Button>
-            </div>
+            {!isPublicAccess && (
+              <div className="mt-6 text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/practice-admin/fridges')}
+                  className="text-sm"
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

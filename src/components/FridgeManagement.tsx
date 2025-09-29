@@ -91,7 +91,7 @@ export const FridgeManagement = () => {
 
   const generateQRCodeData = (fridgeId: string) => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}/fridge-temp/${fridgeId}`;
+    return `${baseUrl}/public/fridge-temp/${fridgeId}`;
   };
 
   const handleCreateFridge = async () => {
