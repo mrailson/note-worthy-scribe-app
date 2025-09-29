@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Thermometer, Refrigerator, AlertCircle, CheckCircle } from 'lucide-react';
+import { Thermometer, Refrigerator, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { addDays, getDay, format } from 'date-fns';
 
 interface Fridge {
   id: string;
@@ -44,6 +45,19 @@ export const FridgeTemperatureEntry = () => {
     
     loadFridge();
   }, [fridgeId, hasModuleAccess, navigate, isPublicAccess]);
+
+  const getNextWorkingDay = (fromDate: Date = new Date()): string => {
+    let nextDay = addDays(fromDate, 1);
+    let dayOfWeek = getDay(nextDay);
+    
+    // Skip weekends (0 = Sunday, 6 = Saturday)
+    while (dayOfWeek === 0 || dayOfWeek === 6) {
+      nextDay = addDays(nextDay, 1);
+      dayOfWeek = getDay(nextDay);
+    }
+    
+    return format(nextDay, 'EEEE, d MMMM yyyy');
+  };
 
   const loadFridge = async () => {
     if (!fridgeId) return;
@@ -174,7 +188,16 @@ export const FridgeTemperatureEntry = () => {
       <div className="min-h-screen bg-gradient-subtle p-4">
         <div className="max-w-md mx-auto">
           <Card>
-            <CardHeader className="text-center">
+            <CardHeader className="text-center relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRecordingSuccess(null)}
+                className="absolute right-2 top-2"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
               <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
@@ -203,6 +226,15 @@ export const FridgeTemperatureEntry = () => {
                     minute: '2-digit' 
                   })}</span>
                 </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4 rounded-lg text-center">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Next check due on
+                </p>
+                <p className="text-lg font-semibold text-blue-700 dark:text-blue-300 mt-1">
+                  {getNextWorkingDay(recordingSuccess.recordedAt)}
+                </p>
               </div>
 
               <div className="space-y-3">
