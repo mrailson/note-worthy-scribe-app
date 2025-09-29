@@ -65,19 +65,14 @@ export const FridgeTemperatureEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    toast.info('Processing temperature reading...');
+    
     if (!fridge || !temperature) {
       toast.error('Please enter a temperature value');
       return;
     }
-    
-    // For public access, we don't require user authentication
-    if (!isPublicAccess && !user) {
-      toast.error('Please log in to record temperatures');
-      return;
-    }
 
 
-    
     setSubmitting(true);
     
     try {
@@ -85,14 +80,13 @@ export const FridgeTemperatureEntry = () => {
       
       if (isNaN(tempValue)) {
         toast.error('Please enter a valid temperature');
-        setSubmitting(false);
         return;
       }
 
       const isWithinRange = tempValue >= fridge.min_temp_celsius && tempValue <= fridge.max_temp_celsius;
 
-      // For public access without user, we'll use a system user ID or handle differently
-      const recordedBy = user?.id || '00000000-0000-0000-0000-000000000000'; // Use system user for public access
+      // Use the authenticated user's ID if available, otherwise use a special public user
+      const recordedBy = user?.id || null;
 
       const { error } = await supabase
         .from('fridge_temperature_readings')
