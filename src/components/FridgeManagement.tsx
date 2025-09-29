@@ -281,7 +281,13 @@ export const FridgeManagement = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleCreateFridge} className="w-full">
+              <Button 
+                onClick={() => {
+                  console.log('Create button clicked!');
+                  handleCreateFridge();
+                }} 
+                className="w-full"
+              >
                 Create Fridge
               </Button>
             </div>
