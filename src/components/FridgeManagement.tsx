@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode-svg';
 
@@ -28,12 +29,24 @@ interface Fridge {
   alert_count?: number;
 }
 
+interface TemperatureReading {
+  id: string;
+  temperature_celsius: number;
+  recorded_at: string;
+  is_within_range: boolean;
+  notes?: string;
+  recorded_by?: string;
+  recorder_email?: string;
+}
+
 export const FridgeManagement = () => {
   const { user } = useAuth();
   const [fridges, setFridges] = useState<Fridge[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedFridge, setSelectedFridge] = useState<Fridge | null>(null);
+  const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [formData, setFormData] = useState({
     fridge_name: '',
     location: '',
@@ -119,6 +132,55 @@ export const FridgeManagement = () => {
       toast.error('Failed to load fridges');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTemperatureHistory = async (fridgeId: string) => {
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('fridge_temperature_readings')
+        .select(`
+          id,
+          temperature_celsius,
+          recorded_at,
+          is_within_range,
+          notes,
+          recorded_by
+        `)
+        .eq('fridge_id', fridgeId)
+        .order('recorded_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      // Get user emails for the recorded_by user IDs
+      const userIds = data?.map(r => r.recorded_by).filter(Boolean) || [];
+      let userEmails: { [key: string]: string } = {};
+      
+      if (userIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('user_id, email')
+          .in('user_id', userIds);
+        
+        userEmails = profileData?.reduce((acc, profile) => {
+          acc[profile.user_id] = profile.email;
+          return acc;
+        }, {} as { [key: string]: string }) || {};
+      }
+
+      const formattedData = data?.map(reading => ({
+        ...reading,
+        recorder_email: reading.recorded_by ? userEmails[reading.recorded_by] || 'Unknown' : 'Public Access'
+      })) || [];
+
+      setTemperatureHistory(formattedData);
+    } catch (error) {
+      console.error('Error loading temperature history:', error);
+      toast.error('Failed to load temperature history');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -390,7 +452,10 @@ export const FridgeManagement = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedFridge(fridge)}
+                  onClick={() => {
+                    setSelectedFridge(fridge);
+                    loadTemperatureHistory(fridge.id);
+                  }}
                   className="flex-1"
                 >
                   <Settings className="mr-2 h-4 w-4" />
@@ -401,6 +466,119 @@ export const FridgeManagement = () => {
           </Card>
         ))}
       </div>
+
+      {/* Details Modal */}
+      <Dialog open={!!selectedFridge} onOpenChange={(open) => !open && setSelectedFridge(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Refrigerator className="h-5 w-5" />
+              {selectedFridge?.fridge_name} - Temperature History
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedFridge && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <strong>Location:</strong> {selectedFridge.location}
+                </div>
+                <div>
+                  <strong>Temperature Range:</strong> {selectedFridge.min_temp_celsius}°C - {selectedFridge.max_temp_celsius}°C
+                </div>
+                <div>
+                  <strong>Created:</strong> {new Date(selectedFridge.created_at).toLocaleDateString('en-GB')}
+                </div>
+                <div>
+                  <strong>Status:</strong> {selectedFridge.is_active ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Recent Temperature Readings (Last 50)</h3>
+                {historyLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date & Time</TableHead>
+                          <TableHead>Temperature</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Recorded By</TableHead>
+                          <TableHead>Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {temperatureHistory.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              No temperature readings recorded yet
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          temperatureHistory.map((reading) => (
+                            <TableRow key={reading.id}>
+                              <TableCell>
+                                <div className="font-mono text-sm">
+                                  <div>{new Date(reading.recorded_at).toLocaleDateString('en-GB')}</div>
+                                  <div className="text-muted-foreground">
+                                    {new Date(reading.recorded_at).toLocaleTimeString('en-GB', { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Thermometer className="h-4 w-4" />
+                                  <span className={`font-mono ${reading.is_within_range ? 'text-green-600' : 'text-red-600'}`}>
+                                    {reading.temperature_celsius}°C
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={reading.is_within_range ? 'default' : 'destructive'} className="flex items-center gap-1 w-fit">
+                                  {reading.is_within_range ? (
+                                    <>
+                                      <CheckCircle className="h-3 w-3" />
+                                      In Range
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="h-3 w-3" />
+                                      Out of Range
+                                    </>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  {reading.recorder_email}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm text-muted-foreground">
+                                  {reading.notes || '-'}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {fridges.length === 0 && (
         <Card className="text-center py-8">
