@@ -43,6 +43,27 @@ export const FridgeManagement = () => {
 
   useEffect(() => {
     loadFridges();
+    
+    // Set up real-time subscription to refresh when new temperature readings are added
+    const channel = supabase
+      .channel('fridge-temperature-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'fridge_temperature_readings'
+        },
+        () => {
+          console.log('New temperature reading detected, refreshing fridge data...');
+          loadFridges();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadFridges = async () => {

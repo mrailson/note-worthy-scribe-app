@@ -123,6 +123,15 @@ export const FridgeTemperatureEntry = () => {
       setTemperature('');
       setNotes('');
       
+      // Add a small delay to ensure the user sees the success message
+      setTimeout(() => {
+        // Refresh the page or redirect back to main page if needed
+        if (isPublicAccess) {
+          // For public access, stay on the same page but show success
+          console.log('🎉 Temperature recorded successfully via QR code');
+        }
+      }, 1500);
+      
     } catch (error) {
       console.error('💥 Catch block error:', error);
       toast.error(`Error: ${error instanceof Error ? error.message : 'Failed to record temperature'}`);
@@ -236,7 +245,7 @@ export const FridgeTemperatureEntry = () => {
               <Button
                 type="submit"
                 className="w-full text-lg py-6"
-                disabled={submitting || !temperature}
+                disabled={submitting || !temperature.trim()}
               >
                 {submitting ? (
                   <>
