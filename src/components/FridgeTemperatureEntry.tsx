@@ -162,10 +162,7 @@ export const FridgeTemperatureEntry = () => {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={(e) => {
-              console.log('🟡 FORM SUBMIT EVENT FIRED!');
-              handleSubmit(e);
-            }} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="temperature" className="text-base font-semibold">
                   Temperature Reading
@@ -221,11 +218,6 @@ export const FridgeTemperatureEntry = () => {
 
               <Button
                 type="submit"
-                onClick={() => {
-                  console.log('🔴 BUTTON CLICKED DIRECTLY!');
-                  console.log('Temperature input value:', temperature);
-                  console.log('Submitting state:', submitting);
-                }}
                 className="w-full text-lg py-6"
                 disabled={submitting || !temperature}
               >
