@@ -74,7 +74,8 @@ export const PracticeUserManagement = () => {
       cqc_compliance_access: false,
       shared_drive_access: false,
       mic_test_service_access: false,
-      api_testing_service_access: false
+      api_testing_service_access: false,
+      fridge_monitoring_access: false
     }
   });
 
@@ -266,7 +267,8 @@ export const PracticeUserManagement = () => {
         cqc_compliance_access: user.cqc_compliance_access,
         shared_drive_access: user.shared_drive_access,
         mic_test_service_access: user.mic_test_service_access,
-        api_testing_service_access: user.api_testing_service_access
+        api_testing_service_access: user.api_testing_service_access,
+        fridge_monitoring_access: user.fridge_monitoring_access
       }
     });
     setShowUserModal(true);
@@ -288,7 +290,8 @@ export const PracticeUserManagement = () => {
         cqc_compliance_access: false,
         shared_drive_access: false,
         mic_test_service_access: false,
-        api_testing_service_access: false
+        api_testing_service_access: false,
+        fridge_monitoring_access: false
       }
     });
   };
@@ -401,6 +404,7 @@ export const PracticeUserManagement = () => {
                             {user.enhanced_access && <Badge variant="outline" className="text-xs">Enhanced</Badge>}
                             {user.cqc_compliance_access && <Badge variant="outline" className="text-xs">CQC</Badge>}
                             {user.shared_drive_access && <Badge variant="outline" className="text-xs">Drive</Badge>}
+                            {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge Monitor</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -537,6 +541,21 @@ export const PracticeUserManagement = () => {
                   />
                   <Label htmlFor="ai4gp_access" className="text-sm">
                     AI4GP
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="fridge_monitoring_access"
+                    checked={userFormData.module_access.fridge_monitoring_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, fridge_monitoring_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="fridge_monitoring_access" className="text-sm">
+                    Fridge Monitoring
                   </Label>
                 </div>
               </div>
