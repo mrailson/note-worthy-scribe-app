@@ -2087,6 +2087,104 @@ export type Database = {
         }
         Relationships: []
       }
+      fridge_temperature_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string
+          fridge_id: string
+          id: string
+          message: string
+          reading_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string
+          fridge_id: string
+          id?: string
+          message: string
+          reading_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          fridge_id?: string
+          id?: string
+          message?: string
+          reading_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fridge_temperature_alerts_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "practice_fridges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fridge_temperature_alerts_reading_id_fkey"
+            columns: ["reading_id"]
+            isOneToOne: false
+            referencedRelation: "fridge_temperature_readings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fridge_temperature_readings: {
+        Row: {
+          created_at: string
+          fridge_id: string
+          id: string
+          is_within_range: boolean
+          notes: string | null
+          recorded_at: string
+          recorded_by: string
+          temperature_celsius: number
+        }
+        Insert: {
+          created_at?: string
+          fridge_id: string
+          id?: string
+          is_within_range: boolean
+          notes?: string | null
+          recorded_at?: string
+          recorded_by: string
+          temperature_celsius: number
+        }
+        Update: {
+          created_at?: string
+          fridge_id?: string
+          id?: string
+          is_within_range?: boolean
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          temperature_celsius?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fridge_temperature_readings_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "practice_fridges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gp_practices: {
         Row: {
           address: string | null
@@ -3800,6 +3898,48 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_fridges: {
+        Row: {
+          created_at: string
+          created_by: string
+          fridge_name: string
+          id: string
+          is_active: boolean
+          location: string
+          max_temp_celsius: number
+          min_temp_celsius: number
+          practice_id: string
+          qr_code_data: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          fridge_name: string
+          id?: string
+          is_active?: boolean
+          location: string
+          max_temp_celsius?: number
+          min_temp_celsius?: number
+          practice_id: string
+          qr_code_data: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          fridge_name?: string
+          id?: string
+          is_active?: boolean
+          location?: string
+          max_temp_celsius?: number
+          min_temp_celsius?: number
+          practice_id?: string
+          qr_code_data?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       practice_neighbourhood_assignments: {
         Row: {
           created_at: string | null
@@ -5318,6 +5458,7 @@ export type Database = {
           cqc_compliance_access: boolean | null
           created_at: string | null
           enhanced_access: boolean | null
+          fridge_monitoring_access: boolean
           gp_scribe_access: boolean | null
           id: string
           meeting_notes_access: boolean | null
@@ -5339,6 +5480,7 @@ export type Database = {
           cqc_compliance_access?: boolean | null
           created_at?: string | null
           enhanced_access?: boolean | null
+          fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null
@@ -5360,6 +5502,7 @@ export type Database = {
           cqc_compliance_access?: boolean | null
           created_at?: string | null
           enhanced_access?: boolean | null
+          fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null

@@ -39,6 +39,7 @@ interface PracticeUser {
   shared_drive_access: boolean;
   mic_test_service_access: boolean;
   api_testing_service_access: boolean;
+  fridge_monitoring_access: boolean;
 }
 
 const practiceRoles = [

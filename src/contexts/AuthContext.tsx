@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mic_test_service_access: acc.mic_test_service_access || roleRecord.mic_test_service_access,
         api_testing_service_access: acc.api_testing_service_access || roleRecord.api_testing_service_access,
         translation_service_access: acc.translation_service_access || roleRecord.translation_service_access,
+        fridge_monitoring_access: acc.fridge_monitoring_access || roleRecord.fridge_monitoring_access,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
@@ -80,6 +81,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mic_test_service_access: false,
         api_testing_service_access: false,
         translation_service_access: false,
+        fridge_monitoring_access: false,
+        fridge_monitoring_access: false,
       });
       
       // Convert the aggregated access flags to module names array
@@ -93,6 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.mic_test_service_access) modules.push('mic_test_service_access');
       if (aggregatedAccess.api_testing_service_access) modules.push('api_testing_service');
       if (aggregatedAccess.translation_service_access) modules.push('translation_service');
+      if (aggregatedAccess.fridge_monitoring_access) modules.push('fridge_monitoring_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);
