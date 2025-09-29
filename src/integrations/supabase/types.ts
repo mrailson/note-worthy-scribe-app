@@ -5951,6 +5951,7 @@ export type Database = {
           cqc_compliance_access: boolean
           email: string
           enhanced_access: boolean
+          fridge_monitoring_access: boolean
           full_name: string
           gp_scribe_access: boolean
           last_login: string

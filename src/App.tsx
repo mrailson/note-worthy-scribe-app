@@ -13,6 +13,8 @@ import ConsultationSummary from "./pages/ConsultationSummary";
 import Settings from "./pages/Settings";
 import SystemAdmin from "./pages/SystemAdmin";
 import PracticeAdmin from "./pages/PracticeAdmin";
+import PracticeAdminFridges from "./pages/PracticeAdminFridges";
+import { FridgeTemperatureEntry } from "./components/FridgeTemperatureEntry";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
@@ -77,6 +79,8 @@ const App = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin" element={<SystemAdmin />} />
             <Route path="/practice-admin" element={<PracticeAdmin />} />
+            <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
+            <Route path="/fridge-temp/:fridgeId" element={<FridgeTemperatureEntry />} />
             <Route path="/complaints" element={<ComplaintsSystem />} />
             <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
             <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />

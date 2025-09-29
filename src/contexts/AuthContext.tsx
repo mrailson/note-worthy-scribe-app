@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -81,7 +81,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         mic_test_service_access: false,
         api_testing_service_access: false,
         translation_service_access: false,
-        fridge_monitoring_access: false,
         fridge_monitoring_access: false,
       });
       

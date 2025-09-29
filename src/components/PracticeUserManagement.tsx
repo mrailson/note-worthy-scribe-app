@@ -142,7 +142,10 @@ export const PracticeUserManagement = () => {
         .rpc('get_practice_users', { p_practice_id: practiceInfo.id });
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers(data?.map(user => ({
+        ...user,
+        fridge_monitoring_access: user.fridge_monitoring_access ?? false
+      })) || []);
     } catch (error) {
       console.error('Error loading practice users:', error);
       toast.error("Failed to load practice users");
