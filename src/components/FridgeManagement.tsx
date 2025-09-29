@@ -304,7 +304,15 @@ export const FridgeManagement = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Refrigerator className="h-5 w-5" />
-                  {fridge.fridge_name}
+                  <a 
+                    href={fridge.qr_code_data}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline cursor-pointer"
+                    title="Click to open temperature entry form"
+                  >
+                    {fridge.fridge_name}
+                  </a>
                 </CardTitle>
                 {fridge.alert_count > 0 && (
                   <Badge variant="destructive" className="flex items-center gap-1">
