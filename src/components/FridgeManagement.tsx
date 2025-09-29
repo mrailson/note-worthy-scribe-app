@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format, isToday, isYesterday, differenceInDays, getDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -264,6 +265,34 @@ export const FridgeManagement = () => {
     }
   };
 
+  const formatReadingDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const time = format(date, 'HH:mm');
+    
+    if (isToday(date)) {
+      return `Today ${time}`;
+    } else if (isYesterday(date)) {
+      return `Yesterday ${time}`;
+    } else {
+      return format(date, 'dd/MM/yyyy HH:mm');
+    }
+  };
+
+  const isReadingOverdue = (dateString: string) => {
+    const recordedDate = new Date(dateString);
+    const today = new Date();
+    const daysSince = differenceInDays(today, recordedDate);
+    const todayDayOfWeek = getDay(today); // 0 = Sunday, 1 = Monday, etc.
+    
+    // If today is Monday (1), allow up to 3 days ago (Friday)
+    if (todayDayOfWeek === 1) {
+      return daysSince > 3;
+    }
+    
+    // For any other day, anything beyond yesterday is overdue
+    return daysSince > 1;
+  };
+
   const generateQRCodeSVG = (qrCodeData: string) => {
     const qr = new QRCode({
       content: qrCodeData,
@@ -428,15 +457,26 @@ export const FridgeManagement = () => {
               </div>
 
               {fridge.latest_reading && (
-                <div className="flex items-center justify-between text-sm p-2 rounded bg-muted">
-                  <span>Latest:</span>
-                  <div className="flex items-center gap-2">
-                    <Thermometer className="h-4 w-4" />
-                    <span className={`font-mono ${fridge.latest_reading.is_within_range ? 'text-green-600' : 'text-red-600'}`}>
-                      {fridge.latest_reading.temperature_celsius}°C
+                <>
+                  <div className="flex items-center justify-between text-sm p-2 rounded bg-muted">
+                    <span>Latest:</span>
+                    <div className="flex items-center gap-2">
+                      <Thermometer className="h-4 w-4" />
+                      <span className={`font-mono ${fridge.latest_reading.is_within_range ? 'text-green-600' : 'text-red-600'}`}>
+                        {fridge.latest_reading.temperature_celsius}°C
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-center p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Last recorded: </span>
+                    <span className={`font-medium ${
+                      isReadingOverdue(fridge.latest_reading.recorded_at) ? 'text-red-600' : ''
+                    }`}>
+                      {formatReadingDateTime(fridge.latest_reading.recorded_at)}
                     </span>
                   </div>
-                </div>
+                </>
               )}
 
               <div className="flex gap-2">
