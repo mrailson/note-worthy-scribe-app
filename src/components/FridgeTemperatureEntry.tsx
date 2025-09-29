@@ -65,27 +65,22 @@ export const FridgeTemperatureEntry = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast.info('Processing temperature reading...');
-    
     if (!fridge || !temperature) {
       toast.error('Please enter a temperature value');
       return;
     }
 
+    const tempValue = parseFloat(temperature);
+    if (isNaN(tempValue)) {
+      toast.error('Please enter a valid temperature');
+      return;
+    }
 
     setSubmitting(true);
+    toast.info('Processing temperature reading...');
     
     try {
-      const tempValue = parseFloat(temperature);
-      
-      if (isNaN(tempValue)) {
-        toast.error('Please enter a valid temperature');
-        return;
-      }
-
       const isWithinRange = tempValue >= fridge.min_temp_celsius && tempValue <= fridge.max_temp_celsius;
-
-      // Use the authenticated user's ID if available, otherwise use a special public user
       const recordedBy = user?.id || null;
 
       const { error } = await supabase
@@ -99,9 +94,7 @@ export const FridgeTemperatureEntry = () => {
         }]);
 
       if (error) {
-        toast.error(`Failed to record temperature: ${error.message}`);
-        setSubmitting(false);
-        return;
+        throw new Error(error.message);
       }
       
       // Show success message
