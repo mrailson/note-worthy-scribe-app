@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,6 +215,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           >
                             <Languages className="h-4 w-4 mr-2" />
                             Translation Service
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('fridge_monitoring_access') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/practice-admin/fridges')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Thermometer className="h-4 w-4 mr-2" />
+                            Fridge Monitoring
                           </DropdownMenuItem>
                         )}
                   </DropdownMenuContent>
