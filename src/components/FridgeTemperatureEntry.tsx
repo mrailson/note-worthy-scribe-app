@@ -64,6 +64,7 @@ export const FridgeTemperatureEntry = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🟡 Form submitted!');
     
     if (!fridge || !temperature) {
       toast.error('Please enter a temperature value');
@@ -76,26 +77,40 @@ export const FridgeTemperatureEntry = () => {
       return;
     }
 
+    console.log('🟢 Starting database insert...');
     setSubmitting(true);
-    toast.info('Processing temperature reading...');
     
     try {
       const isWithinRange = tempValue >= fridge.min_temp_celsius && tempValue <= fridge.max_temp_celsius;
       const recordedBy = user?.id || null;
 
-      const { error } = await supabase
+      console.log('🔵 Inserting with data:', {
+        fridge_id: fridge.id,
+        temperature_celsius: tempValue,
+        recorded_by: recordedBy,
+        notes: notes.trim() || null,
+        is_within_range: isWithinRange
+      });
+
+      const { data, error } = await supabase
         .from('fridge_temperature_readings')
-        .insert([{
+        .insert({
           fridge_id: fridge.id,
           temperature_celsius: tempValue,
           recorded_by: recordedBy,
           notes: notes.trim() || null,
           is_within_range: isWithinRange
-        }]);
+        })
+        .select();
+
+      console.log('🟣 Database response:', { data, error });
 
       if (error) {
+        console.error('❌ Database error:', error);
         throw new Error(error.message);
       }
+      
+      console.log('✅ Success! Data inserted:', data);
       
       // Show success message
       if (isWithinRange) {
@@ -109,8 +124,10 @@ export const FridgeTemperatureEntry = () => {
       setNotes('');
       
     } catch (error) {
+      console.error('💥 Catch block error:', error);
       toast.error(`Error: ${error instanceof Error ? error.message : 'Failed to record temperature'}`);
     } finally {
+      console.log('🔄 Finally block - resetting submitting state');
       setSubmitting(false);
     }
   };
