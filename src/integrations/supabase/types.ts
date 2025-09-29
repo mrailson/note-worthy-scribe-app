@@ -2153,6 +2153,7 @@ export type Database = {
           notes: string | null
           recorded_at: string
           recorded_by: string | null
+          recorded_by_initials: string | null
           temperature_celsius: number
         }
         Insert: {
@@ -2163,6 +2164,7 @@ export type Database = {
           notes?: string | null
           recorded_at?: string
           recorded_by?: string | null
+          recorded_by_initials?: string | null
           temperature_celsius: number
         }
         Update: {
@@ -2173,6 +2175,7 @@ export type Database = {
           notes?: string | null
           recorded_at?: string
           recorded_by?: string | null
+          recorded_by_initials?: string | null
           temperature_celsius?: number
         }
         Relationships: [

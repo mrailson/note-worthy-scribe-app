@@ -28,11 +28,13 @@ export const FridgeTemperatureEntry = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [temperature, setTemperature] = useState('');
+  const [initials, setInitials] = useState('');
   const [notes, setNotes] = useState('');
   const [recordingSuccess, setRecordingSuccess] = useState<{
     temperature: number;
     fridgeName: string;
     recordedAt: Date;
+    initials?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -90,6 +92,16 @@ export const FridgeTemperatureEntry = () => {
       return;
     }
 
+    if (!initials.trim()) {
+      toast.error('Please enter your initials');
+      return;
+    }
+
+    if (initials.trim().length > 2) {
+      toast.error('Initials must be 2 characters or less');
+      return;
+    }
+
     const tempValue = parseFloat(temperature);
     if (isNaN(tempValue)) {
       toast.error('Please enter a valid temperature');
@@ -107,6 +119,7 @@ export const FridgeTemperatureEntry = () => {
         fridge_id: fridge.id,
         temperature_celsius: tempValue,
         recorded_by: recordedBy,
+        recorded_by_initials: initials.trim().toUpperCase(),
         notes: notes.trim() || null,
         is_within_range: isWithinRange
       });
@@ -117,6 +130,7 @@ export const FridgeTemperatureEntry = () => {
           fridge_id: fridge.id,
           temperature_celsius: tempValue,
           recorded_by: recordedBy,
+          recorded_by_initials: initials.trim().toUpperCase(),
           notes: notes.trim() || null,
           is_within_range: isWithinRange
         })
@@ -135,11 +149,13 @@ export const FridgeTemperatureEntry = () => {
       setRecordingSuccess({
         temperature: tempValue,
         fridgeName: fridge.fridge_name,
-        recordedAt: new Date()
+        recordedAt: new Date(),
+        initials: initials.trim().toUpperCase()
       });
 
       // Reset form
       setTemperature('');
+      setInitials('');
       setNotes('');
       
     } catch (error) {
@@ -215,6 +231,12 @@ export const FridgeTemperatureEntry = () => {
                   <span className="font-medium">Temperature:</span>
                   <span className="font-bold">{recordingSuccess.temperature}°C</span>
                 </div>
+                {recordingSuccess.initials && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">Recorded by:</span>
+                    <span className="font-bold">{recordingSuccess.initials}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="font-medium">Date:</span>
                   <span>{recordingSuccess.recordedAt.toLocaleDateString('en-GB')}</span>
@@ -318,6 +340,30 @@ export const FridgeTemperatureEntry = () => {
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="initials" className="text-base font-semibold">
+                  Your Initials
+                </Label>
+                <Input
+                  id="initials"
+                  type="text"
+                  value={initials}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    if (value.length <= 2) {
+                      setInitials(value);
+                    }
+                  }}
+                  placeholder="e.g., AB"
+                  maxLength={2}
+                  className="text-lg text-center uppercase"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter 2 characters maximum
+                </p>
               </div>
 
               <div className="space-y-2">

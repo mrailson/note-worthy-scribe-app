@@ -39,6 +39,7 @@ interface TemperatureReading {
   is_within_range: boolean;
   notes?: string;
   recorded_by?: string;
+  recorded_by_initials?: string;
   recorder_email?: string;
 }
 
@@ -155,7 +156,8 @@ export const FridgeManagement = () => {
           recorded_at,
           is_within_range,
           notes,
-          recorded_by
+          recorded_by,
+          recorded_by_initials
         `)
         .eq('fridge_id', fridgeId)
         .order('recorded_at', { ascending: false })
@@ -181,7 +183,9 @@ export const FridgeManagement = () => {
 
       const formattedData = data?.map(reading => ({
         ...reading,
-        recorder_email: reading.recorded_by ? userEmails[reading.recorded_by] || 'Unknown' : 'QR Scan and Input'
+        recorder_email: reading.recorded_by 
+          ? userEmails[reading.recorded_by] || 'Unknown' 
+          : (reading.recorded_by_initials ? `Initials: ${reading.recorded_by_initials}` : 'QR Scan and Input')
       })) || [];
 
       setTemperatureHistory(formattedData);
@@ -419,6 +423,10 @@ export const FridgeManagement = () => {
       // Add data rows
       temperatureHistory.forEach(reading => {
         const recordedDate = new Date(reading.recorded_at);
+        const recordedBy = reading.recorded_by 
+          ? (reading.recorder_email || 'Unknown User')
+          : (reading.recorded_by_initials ? `Initials: ${reading.recorded_by_initials}` : 'QR Scan');
+        
         tableRows.push(
           new DocxTableRow({
             children: [
@@ -435,7 +443,7 @@ export const FridgeManagement = () => {
                 children: [new Paragraph(reading.is_within_range ? 'In Range' : 'Out of Range')]
               }),
               new DocxTableCell({
-                children: [new Paragraph(reading.recorder_email || 'Unknown')]
+                children: [new Paragraph(recordedBy)]
               }),
               new DocxTableCell({
                 children: [new Paragraph(reading.notes || '-')]
