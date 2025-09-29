@@ -113,20 +113,22 @@ export const FridgeManagement = () => {
         return;
       }
 
-      // Get user's practice ID
+      // Get user's practice ID - find any role with a practice_id
       const { data: practiceData, error: practiceError } = await supabase
         .from('user_roles')
         .select('practice_id')
         .eq('user_id', user.id)
-        .limit(1)
-        .single();
+        .not('practice_id', 'is', null);
 
       console.log('Practice data:', practiceData, 'Error:', practiceError);
 
-      if (practiceError || !practiceData?.practice_id) {
+      if (practiceError || !practiceData || practiceData.length === 0) {
         toast.error('No practice found for user. Please contact your administrator.');
         return;
       }
+
+      // Use the first practice_id found
+      const practice_id = practiceData[0].practice_id;
 
       const fridgeId = crypto.randomUUID();
       const qrCodeData = generateQRCodeData(fridgeId);
@@ -137,7 +139,7 @@ export const FridgeManagement = () => {
         .from('practice_fridges')
         .insert([{
           id: fridgeId,
-          practice_id: practiceData.practice_id,
+          practice_id: practice_id,
           fridge_name: formData.fridge_name,
           location: formData.location,
           min_temp_celsius: formData.min_temp_celsius,
