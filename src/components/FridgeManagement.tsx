@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User } from 'lucide-react';
+import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode-svg';
 
@@ -47,6 +47,7 @@ export const FridgeManagement = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedFridge, setSelectedFridge] = useState<Fridge | null>(null);
   const [qrCodeFridge, setQrCodeFridge] = useState<Fridge | null>(null);
+  const [editFridge, setEditFridge] = useState<Fridge | null>(null);
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -54,6 +55,10 @@ export const FridgeManagement = () => {
     location: '',
     min_temp_celsius: 2.0,
     max_temp_celsius: 8.0
+  });
+  const [editFormData, setEditFormData] = useState({
+    fridge_name: '',
+    location: ''
   });
 
   useEffect(() => {
@@ -307,6 +312,39 @@ export const FridgeManagement = () => {
     return qr.svg();
   };
 
+  const handleEditFridge = async () => {
+    if (!editFridge) return;
+
+    try {
+      if (!editFormData.fridge_name.trim()) {
+        toast.error('Fridge name is required');
+        return;
+      }
+      if (!editFormData.location.trim()) {
+        toast.error('Location is required');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('practice_fridges')
+        .update({
+          fridge_name: editFormData.fridge_name,
+          location: editFormData.location
+        })
+        .eq('id', editFridge.id);
+
+      if (error) throw error;
+
+      toast.success('Fridge updated successfully');
+      setEditFridge(null);
+      setEditFormData({ fridge_name: '', location: '' });
+      loadFridges();
+    } catch (error) {
+      console.error('Error updating fridge:', error);
+      toast.error('Failed to update fridge');
+    }
+  };
+
   const printQRCode = (fridge: Fridge) => {
     const qrSvg = generateQRCodeSVG(fridge.qr_code_data);
     const printContent = `
@@ -440,6 +478,21 @@ export const FridgeManagement = () => {
                       {fridge.fridge_name}
                     </a>
                   </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditFridge(fridge);
+                      setEditFormData({
+                        fridge_name: fridge.fridge_name,
+                        location: fridge.location
+                      });
+                    }}
+                    className="h-8 w-8 p-0"
+                    title="Edit Fridge"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -629,6 +682,38 @@ export const FridgeManagement = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Fridge Modal */}
+      <Dialog open={!!editFridge} onOpenChange={(open) => !open && setEditFridge(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Fridge</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_fridge_name">Fridge Name</Label>
+              <Input
+                id="edit_fridge_name"
+                value={editFormData.fridge_name}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, fridge_name: e.target.value }))}
+                placeholder="e.g., Main Vaccine Fridge"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_location">Location</Label>
+              <Input
+                id="edit_location"
+                value={editFormData.location}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="e.g., Nurse Station Room 1"
+              />
+            </div>
+            <Button onClick={handleEditFridge} className="w-full">
+              Update Fridge
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
