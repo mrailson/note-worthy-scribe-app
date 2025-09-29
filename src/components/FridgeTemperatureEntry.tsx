@@ -64,31 +64,24 @@ export const FridgeTemperatureEntry = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 Record Temperature button clicked!');
-    console.log('Fridge:', fridge);
-    console.log('Temperature:', temperature);
-    console.log('User:', user);
-    console.log('Is Public Access:', isPublicAccess);
     
     if (!fridge || !temperature) {
-      console.log('❌ Missing fridge or temperature');
+      toast.error('Please enter a temperature value');
       return;
     }
     
     // For public access, we don't require user authentication
     if (!isPublicAccess && !user) {
-      console.log('❌ Not public access and no user authenticated');
+      toast.error('Please log in to record temperatures');
       return;
     }
 
-    console.log('✅ Validation passed, attempting to record temperature...');
+
     
     setSubmitting(true);
-
-
+    
     try {
       const tempValue = parseFloat(temperature);
-      console.log('Parsed temperature value:', tempValue);
       
       if (isNaN(tempValue)) {
         toast.error('Please enter a valid temperature');
@@ -97,48 +90,40 @@ export const FridgeTemperatureEntry = () => {
       }
 
       const isWithinRange = tempValue >= fridge.min_temp_celsius && tempValue <= fridge.max_temp_celsius;
-      console.log('Temperature is within range:', isWithinRange);
 
-      console.log('Attempting database insert with data:', {
-        fridge_id: fridge.id,
-        temperature_celsius: tempValue,
-        recorded_by: user?.id || null,
-        notes: notes.trim() || null,
-        is_within_range: isWithinRange
-      });
+      // For public access without user, we'll use a system user ID or handle differently
+      const recordedBy = user?.id || '00000000-0000-0000-0000-000000000000'; // Use system user for public access
 
       const { error } = await supabase
         .from('fridge_temperature_readings')
         .insert([{
           fridge_id: fridge.id,
           temperature_celsius: tempValue,
-          recorded_by: user?.id || null, // Allow null for public access
+          recorded_by: recordedBy,
           notes: notes.trim() || null,
           is_within_range: isWithinRange
         }]);
 
       if (error) {
-        console.error('❌ Supabase insert error:', error);
         toast.error(`Failed to record temperature: ${error.message}`);
+        setSubmitting(false);
         return;
       }
       
-      console.log('✅ Temperature recorded successfully to database');
-      
+      // Show success message
       if (isWithinRange) {
-        toast.success('Temperature recorded successfully');
+        toast.success('✅ Temperature recorded successfully!');
       } else {
-        toast.warning('Temperature recorded - Alert generated for out of range reading');
+        toast.warning('⚠️ Temperature recorded - Outside safe range!');
       }
 
       // Reset form
       setTemperature('');
       setNotes('');
+      
     } catch (error) {
-      console.error('❌ Error recording temperature:', error);
-      toast.error(`Failed to record temperature: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Error: ${error instanceof Error ? error.message : 'Failed to record temperature'}`);
     } finally {
-      console.log('🔄 Resetting submitting state to false');
       setSubmitting(false);
     }
   };
