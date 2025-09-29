@@ -82,18 +82,30 @@ export const FridgeTemperatureEntry = () => {
     }
 
     console.log('✅ Validation passed, attempting to record temperature...');
-
-
+    
     setSubmitting(true);
+
+
     try {
       const tempValue = parseFloat(temperature);
+      console.log('Parsed temperature value:', tempValue);
       
       if (isNaN(tempValue)) {
         toast.error('Please enter a valid temperature');
+        setSubmitting(false);
         return;
       }
 
       const isWithinRange = tempValue >= fridge.min_temp_celsius && tempValue <= fridge.max_temp_celsius;
+      console.log('Temperature is within range:', isWithinRange);
+
+      console.log('Attempting database insert with data:', {
+        fridge_id: fridge.id,
+        temperature_celsius: tempValue,
+        recorded_by: user?.id || null,
+        notes: notes.trim() || null,
+        is_within_range: isWithinRange
+      });
 
       const { error } = await supabase
         .from('fridge_temperature_readings')
@@ -107,7 +119,8 @@ export const FridgeTemperatureEntry = () => {
 
       if (error) {
         console.error('❌ Supabase insert error:', error);
-        throw error;
+        toast.error(`Failed to record temperature: ${error.message}`);
+        return;
       }
       
       console.log('✅ Temperature recorded successfully to database');
@@ -122,9 +135,10 @@ export const FridgeTemperatureEntry = () => {
       setTemperature('');
       setNotes('');
     } catch (error) {
-      console.error('Error recording temperature:', error);
-      toast.error('Failed to record temperature');
+      console.error('❌ Error recording temperature:', error);
+      toast.error(`Failed to record temperature: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
+      console.log('🔄 Resetting submitting state to false');
       setSubmitting(false);
     }
   };
