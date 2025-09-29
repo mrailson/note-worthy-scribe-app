@@ -64,10 +64,25 @@ export const FridgeTemperatureEntry = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fridge || !temperature) return;
+    console.log('🔵 Record Temperature button clicked!');
+    console.log('Fridge:', fridge);
+    console.log('Temperature:', temperature);
+    console.log('User:', user);
+    console.log('Is Public Access:', isPublicAccess);
+    
+    if (!fridge || !temperature) {
+      console.log('❌ Missing fridge or temperature');
+      return;
+    }
     
     // For public access, we don't require user authentication
-    if (!isPublicAccess && !user) return;
+    if (!isPublicAccess && !user) {
+      console.log('❌ Not public access and no user authenticated');
+      return;
+    }
+
+    console.log('✅ Validation passed, attempting to record temperature...');
+
 
     setSubmitting(true);
     try {
@@ -90,7 +105,12 @@ export const FridgeTemperatureEntry = () => {
           is_within_range: isWithinRange
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase insert error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Temperature recorded successfully to database');
       
       if (isWithinRange) {
         toast.success('Temperature recorded successfully');
