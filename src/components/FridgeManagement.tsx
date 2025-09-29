@@ -172,7 +172,7 @@ export const FridgeManagement = () => {
 
       const formattedData = data?.map(reading => ({
         ...reading,
-        recorder_email: reading.recorded_by ? userEmails[reading.recorded_by] || 'Unknown' : 'Public Access'
+        recorder_email: reading.recorded_by ? userEmails[reading.recorded_by] || 'Unknown' : 'QR Scan and Input'
       })) || [];
 
       setTemperatureHistory(formattedData);
