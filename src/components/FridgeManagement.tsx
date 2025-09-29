@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil } from 'lucide-react';
+import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'qrcode-svg';
+import { Document, Paragraph, TextRun, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, Packer, WidthType, AlignmentType, BorderStyle } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface Fridge {
   id: string;
@@ -345,6 +347,137 @@ export const FridgeManagement = () => {
     }
   };
 
+  const downloadTemperatureHistoryAsWord = async (fridge: Fridge) => {
+    if (temperatureHistory.length === 0) {
+      toast.error('No temperature readings to export');
+      return;
+    }
+
+    try {
+      // Create header section
+      const headerParagraphs = [
+        new Paragraph({
+          text: 'Fridge Temperature Monitoring Report',
+          heading: 'Heading1',
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: `Fridge Name: ${fridge.fridge_name}`,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: `Location: ${fridge.location}`,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: `Temperature Range: ${fridge.min_temp_celsius}°C - ${fridge.max_temp_celsius}°C`,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: `Report Generated: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: `Total Readings: ${temperatureHistory.length}`,
+          spacing: { after: 300 }
+        })
+      ];
+
+      // Create table header
+      const tableRows = [
+        new DocxTableRow({
+          children: [
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Date', bold: true })] })],
+              width: { size: 2000, type: WidthType.DXA }
+            }),
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Time', bold: true })] })],
+              width: { size: 1500, type: WidthType.DXA }
+            }),
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Temperature (°C)', bold: true })] })],
+              width: { size: 1800, type: WidthType.DXA }
+            }),
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Status', bold: true })] })],
+              width: { size: 1500, type: WidthType.DXA }
+            }),
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Recorded By', bold: true })] })],
+              width: { size: 2500, type: WidthType.DXA }
+            }),
+            new DocxTableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Notes', bold: true })] })],
+              width: { size: 3000, type: WidthType.DXA }
+            })
+          ]
+        })
+      ];
+
+      // Add data rows
+      temperatureHistory.forEach(reading => {
+        const recordedDate = new Date(reading.recorded_at);
+        tableRows.push(
+          new DocxTableRow({
+            children: [
+              new DocxTableCell({
+                children: [new Paragraph(recordedDate.toLocaleDateString('en-GB'))]
+              }),
+              new DocxTableCell({
+                children: [new Paragraph(recordedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }))]
+              }),
+              new DocxTableCell({
+                children: [new Paragraph(reading.temperature_celsius.toString())]
+              }),
+              new DocxTableCell({
+                children: [new Paragraph(reading.is_within_range ? 'In Range' : 'Out of Range')]
+              }),
+              new DocxTableCell({
+                children: [new Paragraph(reading.recorder_email || 'Unknown')]
+              }),
+              new DocxTableCell({
+                children: [new Paragraph(reading.notes || '-')]
+              })
+            ]
+          })
+        );
+      });
+
+      const table = new DocxTable({
+        rows: tableRows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 1 },
+          bottom: { style: BorderStyle.SINGLE, size: 1 },
+          left: { style: BorderStyle.SINGLE, size: 1 },
+          right: { style: BorderStyle.SINGLE, size: 1 },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+          insideVertical: { style: BorderStyle.SINGLE, size: 1 }
+        }
+      });
+
+      // Create document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [...headerParagraphs, table]
+        }]
+      });
+
+      // Generate and download
+      const blob = await Packer.toBlob(doc);
+      const fileName = `${fridge.fridge_name.replace(/[^a-z0-9]/gi, '_')}_Temperature_Log_${format(new Date(), 'dd-MM-yyyy')}.docx`;
+      saveAs(blob, fileName);
+      
+      toast.success('Temperature log downloaded successfully');
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      toast.error('Failed to generate document');
+    }
+  };
+
   const printQRCode = (fridge: Fridge) => {
     const qrSvg = generateQRCodeSVG(fridge.qr_code_data);
     const printContent = `
@@ -584,6 +717,18 @@ export const FridgeManagement = () => {
           
           {selectedFridge && (
             <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => downloadTemperatureHistoryAsWord(selectedFridge)}
+                  disabled={temperatureHistory.length === 0}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download as Word Document
+                </Button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                 <div>
                   <strong>Location:</strong> {selectedFridge.location}
