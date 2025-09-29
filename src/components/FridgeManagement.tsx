@@ -46,6 +46,7 @@ export const FridgeManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedFridge, setSelectedFridge] = useState<Fridge | null>(null);
+  const [qrCodeFridge, setQrCodeFridge] = useState<Fridge | null>(null);
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -426,18 +427,29 @@ export const FridgeManagement = () => {
           <Card key={fridge.id} className="relative">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Refrigerator className="h-5 w-5" />
-                  <a 
-                    href={fridge.qr_code_data}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline cursor-pointer"
-                    title="Click to open temperature entry form"
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Refrigerator className="h-5 w-5" />
+                    <a 
+                      href={fridge.qr_code_data}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline cursor-pointer"
+                      title="Click to open temperature entry form"
+                    >
+                      {fridge.fridge_name}
+                    </a>
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setQrCodeFridge(fridge)}
+                    className="h-8 w-8 p-0"
+                    title="Show QR Code"
                   >
-                    {fridge.fridge_name}
-                  </a>
-                </CardTitle>
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </div>
                 {fridge.alert_count > 0 && (
                   <Badge variant="destructive" className="flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
@@ -614,6 +626,47 @@ export const FridgeManagement = () => {
                     </Table>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={!!qrCodeFridge} onOpenChange={(open) => !open && setQrCodeFridge(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              QR Code - {qrCodeFridge?.fridge_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {qrCodeFridge && (
+            <div className="space-y-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">
+                  <strong>Location:</strong> {qrCodeFridge.location}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Temperature Range:</strong> {qrCodeFridge.min_temp_celsius}°C - {qrCodeFridge.max_temp_celsius}°C
+                </p>
+              </div>
+
+              <div 
+                className="bg-white p-6 rounded-lg flex items-center justify-center"
+                dangerouslySetInnerHTML={{ __html: generateQRCodeSVG(qrCodeFridge.qr_code_data) }}
+              />
+
+              <div className="text-center">
+                <p className="text-sm font-medium mb-2">Scan to record temperature</p>
+                <Button
+                  variant="outline"
+                  onClick={() => printQRCode(qrCodeFridge)}
+                  className="w-full"
+                >
+                  Print QR Code
+                </Button>
               </div>
             </div>
           )}
