@@ -28,6 +28,11 @@ export const FridgeTemperatureEntry = () => {
   const [submitting, setSubmitting] = useState(false);
   const [temperature, setTemperature] = useState('');
   const [notes, setNotes] = useState('');
+  const [recordingSuccess, setRecordingSuccess] = useState<{
+    temperature: number;
+    fridgeName: string;
+    recordedAt: Date;
+  } | null>(null);
 
   useEffect(() => {
     // Skip access check for public QR code access
@@ -112,25 +117,16 @@ export const FridgeTemperatureEntry = () => {
       
       console.log('✅ Success! Data inserted:', data);
       
-      // Show success message
-      if (isWithinRange) {
-        toast.success('✅ Temperature recorded successfully!');
-      } else {
-        toast.warning('⚠️ Temperature recorded - Outside safe range!');
-      }
+      // Show success screen with recorded data
+      setRecordingSuccess({
+        temperature: tempValue,
+        fridgeName: fridge.fridge_name,
+        recordedAt: new Date()
+      });
 
       // Reset form
       setTemperature('');
       setNotes('');
-      
-      // Add a small delay to ensure the user sees the success message
-      setTimeout(() => {
-        // Refresh the page or redirect back to main page if needed
-        if (isPublicAccess) {
-          // For public access, stay on the same page but show success
-          console.log('🎉 Temperature recorded successfully via QR code');
-        }
-      }, 1500);
       
     } catch (error) {
       console.error('💥 Catch block error:', error);
@@ -168,6 +164,68 @@ export const FridgeTemperatureEntry = () => {
             <p className="text-muted-foreground">The requested fridge could not be found or is not active.</p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show thank you screen after successful recording
+  if (recordingSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-4">
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <CardTitle className="text-xl text-green-700">Thank You!</CardTitle>
+              <p className="text-muted-foreground">Temperature recorded successfully</p>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg space-y-3">
+                <div className="flex justify-between">
+                  <span className="font-medium">Fridge:</span>
+                  <span>{recordingSuccess.fridgeName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Temperature:</span>
+                  <span className="font-bold">{recordingSuccess.temperature}°C</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Date:</span>
+                  <span>{recordingSuccess.recordedAt.toLocaleDateString('en-GB')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Time:</span>
+                  <span>{recordingSuccess.recordedAt.toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => setRecordingSuccess(null)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  Record Another Temperature
+                </Button>
+                
+                {!isPublicAccess && (
+                  <Button
+                    onClick={() => navigate('/practice-admin/fridges')}
+                    className="w-full"
+                  >
+                    Back to Dashboard
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
