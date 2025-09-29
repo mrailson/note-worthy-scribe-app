@@ -68,22 +68,34 @@ export const FridgeManagement = () => {
 
   const loadFridges = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all fridges
+      const { data: fridgeData, error: fridgeError } = await supabase
         .from('practice_fridges')
-        .select(`
-          *,
-          latest_reading:fridge_temperature_readings(
-            temperature_celsius,
-            recorded_at,
-            is_within_range
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fridgeError) throw fridgeError;
+
+      // Get the latest temperature reading for each fridge
+      const fridgesWithReadings = await Promise.all(
+        (fridgeData || []).map(async (fridge) => {
+          const { data: latestReading } = await supabase
+            .from('fridge_temperature_readings')
+            .select('temperature_celsius, recorded_at, is_within_range')
+            .eq('fridge_id', fridge.id)
+            .order('recorded_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          return {
+            ...fridge,
+            latest_reading: latestReading
+          };
+        })
+      );
 
       // Get alert counts for each fridge
-      const fridgeIds = data?.map(f => f.id) || [];
+      const fridgeIds = fridgeData?.map(f => f.id) || [];
       const { data: alertData } = await supabase
         .from('fridge_temperature_alerts')
         .select('fridge_id')
@@ -95,13 +107,13 @@ export const FridgeManagement = () => {
         return acc;
       }, {}) || {};
 
-      const fridgesWithAlerts = data?.map(fridge => ({
+      const fridgesWithAlerts = fridgesWithReadings.map(fridge => ({
         ...fridge,
-        latest_reading: fridge.latest_reading?.[0] || null,
         alert_count: alertCounts[fridge.id] || 0
-      })) || [];
+      }));
 
       setFridges(fridgesWithAlerts);
+      console.log('Fridges loaded with latest readings:', fridgesWithAlerts);
     } catch (error) {
       console.error('Error loading fridges:', error);
       toast.error('Failed to load fridges');
