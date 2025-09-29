@@ -95,24 +95,43 @@ export const FridgeManagement = () => {
   };
 
   const handleCreateFridge = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    console.log('Creating fridge with data:', formData);
 
     try {
+      // Validate form data
+      if (!formData.fridge_name.trim()) {
+        toast.error('Fridge name is required');
+        return;
+      }
+      if (!formData.location.trim()) {
+        toast.error('Location is required');
+        return;
+      }
+
       // Get user's practice ID
-      const { data: practiceData } = await supabase
+      const { data: practiceData, error: practiceError } = await supabase
         .from('user_roles')
         .select('practice_id')
         .eq('user_id', user.id)
         .limit(1)
         .single();
 
-      if (!practiceData?.practice_id) {
-        toast.error('No practice found for user');
+      console.log('Practice data:', practiceData, 'Error:', practiceError);
+
+      if (practiceError || !practiceData?.practice_id) {
+        toast.error('No practice found for user. Please contact your administrator.');
         return;
       }
 
       const fridgeId = crypto.randomUUID();
       const qrCodeData = generateQRCodeData(fridgeId);
+
+      console.log('Inserting fridge with ID:', fridgeId);
 
       const { error } = await supabase
         .from('practice_fridges')
@@ -127,8 +146,12 @@ export const FridgeManagement = () => {
           created_by: user.id
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
 
+      console.log('Fridge created successfully');
       toast.success('Fridge created successfully');
       setIsCreateModalOpen(false);
       setFormData({
@@ -140,7 +163,7 @@ export const FridgeManagement = () => {
       loadFridges();
     } catch (error) {
       console.error('Error creating fridge:', error);
-      toast.error('Failed to create fridge');
+      toast.error(`Failed to create fridge: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
