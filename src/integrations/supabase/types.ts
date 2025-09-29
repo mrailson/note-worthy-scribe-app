@@ -2152,7 +2152,7 @@ export type Database = {
           is_within_range: boolean
           notes: string | null
           recorded_at: string
-          recorded_by: string
+          recorded_by: string | null
           temperature_celsius: number
         }
         Insert: {
@@ -2162,7 +2162,7 @@ export type Database = {
           is_within_range: boolean
           notes?: string | null
           recorded_at?: string
-          recorded_by: string
+          recorded_by?: string | null
           temperature_celsius: number
         }
         Update: {
@@ -2172,7 +2172,7 @@ export type Database = {
           is_within_range?: boolean
           notes?: string | null
           recorded_at?: string
-          recorded_by?: string
+          recorded_by?: string | null
           temperature_celsius?: number
         }
         Relationships: [
