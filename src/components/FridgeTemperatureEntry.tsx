@@ -72,12 +72,25 @@ export const FridgeTemperatureEntry = () => {
         .eq('is_active', true)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading fridge:', error);
+        // Check if fridge exists but is inactive
+        const { data: inactiveFridge } = await supabase
+          .from('practice_fridges')
+          .select('fridge_name, is_active')
+          .eq('id', fridgeId)
+          .single();
+        
+        if (inactiveFridge && !inactiveFridge.is_active) {
+          toast.error(`Fridge "${inactiveFridge.fridge_name}" is inactive`);
+        } else {
+          toast.error(`Fridge not found. The QR code may be outdated. ID: ${fridgeId}`);
+        }
+        throw error;
+      }
       setFridge(data);
     } catch (error) {
       console.error('Error loading fridge:', error);
-      toast.error('Fridge not found or not accessible');
-      navigate('/');
     } finally {
       setLoading(false);
     }
@@ -186,12 +199,21 @@ export const FridgeTemperatureEntry = () => {
 
   if (!fridge) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
           <CardContent className="text-center py-8">
             <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
             <h3 className="text-lg font-semibold mb-2">Fridge Not Found</h3>
-            <p className="text-muted-foreground">The requested fridge could not be found or is not active.</p>
+            <p className="text-muted-foreground mb-4">
+              The requested fridge could not be found or is not active.
+            </p>
+            <div className="bg-muted p-3 rounded-lg text-xs text-left space-y-1">
+              <p><strong>QR Code Fridge ID:</strong></p>
+              <p className="font-mono break-all">{fridgeId}</p>
+              <p className="text-muted-foreground mt-2">
+                This QR code may be outdated. Please print a new QR code from the Fridge Management dashboard.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
