@@ -760,14 +760,25 @@ export const FridgeManagement = () => {
                   </div>
                 </>
               ) : (
-                <div className="text-xs text-center p-2 rounded bg-muted/50">
-                  <span className="text-muted-foreground">No readings recorded yet</span>
-                  <br />
-                  <span className="text-muted-foreground">Created: </span>
-                  <span className="font-medium">
-                    {formatReadingDateTime(fridge.created_at)}
-                  </span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between text-sm p-2 rounded bg-muted">
+                    <div className="flex items-center gap-2">
+                      <span>Latest:</span>
+                      <div 
+                        className="w-3 h-3 rounded-full bg-red-500" 
+                        title="No readings recorded yet"
+                      />
+                    </div>
+                    <span className="text-sm text-muted-foreground">No readings</span>
+                  </div>
+                  
+                  <div className="text-xs text-center p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Created: </span>
+                    <span className="font-medium">
+                      {formatReadingDateTime(fridge.created_at)}
+                    </span>
+                  </div>
+                </>
               )}
 
               <div className="flex gap-2">
