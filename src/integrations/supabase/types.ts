@@ -2087,6 +2087,44 @@ export type Database = {
         }
         Relationships: []
       }
+      fridge_status_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          fridge_id: string
+          id: string
+          new_status: boolean
+          notes: string | null
+          previous_status: boolean
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          fridge_id: string
+          id?: string
+          new_status: boolean
+          notes?: string | null
+          previous_status: boolean
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          fridge_id?: string
+          id?: string
+          new_status?: boolean
+          notes?: string | null
+          previous_status?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fridge_status_changes_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "practice_fridges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fridge_temperature_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -3908,6 +3946,7 @@ export type Database = {
           fridge_name: string
           id: string
           is_active: boolean
+          is_online: boolean
           location: string
           max_temp_celsius: number
           min_temp_celsius: number
@@ -3921,6 +3960,7 @@ export type Database = {
           fridge_name: string
           id?: string
           is_active?: boolean
+          is_online?: boolean
           location: string
           max_temp_celsius?: number
           min_temp_celsius?: number
@@ -3934,6 +3974,7 @@ export type Database = {
           fridge_name?: string
           id?: string
           is_active?: boolean
+          is_online?: boolean
           location?: string
           max_temp_celsius?: number
           min_temp_celsius?: number

@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil, Download } from 'lucide-react';
+import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil, Download, Wifi, WifiOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import QRCode from 'qrcode-svg';
 import { Document, Paragraph, TextRun, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, Packer, WidthType, AlignmentType, BorderStyle } from 'docx';
@@ -23,6 +24,7 @@ interface Fridge {
   max_temp_celsius: number;
   qr_code_data: string;
   is_active: boolean;
+  is_online: boolean;
   created_at: string;
   latest_reading?: {
     temperature_celsius: number;
@@ -352,6 +354,42 @@ export const FridgeManagement = () => {
     }
   };
 
+  const toggleFridgeStatus = async (fridge: Fridge, newStatus: boolean) => {
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
+
+    try {
+      // Update fridge status
+      const { error: updateError } = await supabase
+        .from('practice_fridges')
+        .update({ is_online: newStatus })
+        .eq('id', fridge.id);
+
+      if (updateError) throw updateError;
+
+      // Log the status change
+      const { error: logError } = await supabase
+        .from('fridge_status_changes')
+        .insert({
+          fridge_id: fridge.id,
+          changed_by: user.id,
+          previous_status: fridge.is_online,
+          new_status: newStatus,
+          notes: `Status changed from ${fridge.is_online ? 'Online' : 'Offline'} to ${newStatus ? 'Online' : 'Offline'}`
+        });
+
+      if (logError) throw logError;
+
+      toast.success(`Fridge is now ${newStatus ? 'online' : 'offline'}`);
+      loadFridges();
+    } catch (error) {
+      console.error('Error toggling fridge status:', error);
+      toast.error('Failed to update fridge status');
+    }
+  };
+
   const downloadTemperatureHistoryAsWord = async (fridge: Fridge) => {
     if (temperatureHistory.length === 0) {
       toast.error('No temperature readings to export');
@@ -604,7 +642,7 @@ export const FridgeManagement = () => {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {fridges.map((fridge) => (
-          <Card key={fridge.id} className="relative">
+          <Card key={fridge.id} className={`relative ${!fridge.is_online ? 'opacity-75 border-dashed' : ''}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -656,6 +694,26 @@ export const FridgeManagement = () => {
             </CardHeader>
             
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded bg-muted/50 border">
+                <div className="flex items-center gap-2">
+                  {fridge.is_online ? (
+                    <Wifi className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-red-600" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {fridge.is_online ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Recording:</span>
+                  <Switch
+                    checked={fridge.is_online}
+                    onCheckedChange={(checked) => toggleFridgeStatus(fridge, checked)}
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center justify-between text-sm">
                 <span>Range:</span>
                 <span className="font-mono">
