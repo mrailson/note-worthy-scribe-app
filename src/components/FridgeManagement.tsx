@@ -663,7 +663,7 @@ export const FridgeManagement = () => {
                 </span>
               </div>
 
-              {fridge.latest_reading && (
+              {fridge.latest_reading ? (
                 <>
                   <div className="flex items-center justify-between text-sm p-2 rounded bg-muted">
                     <span>Latest:</span>
@@ -684,6 +684,15 @@ export const FridgeManagement = () => {
                     </span>
                   </div>
                 </>
+              ) : (
+                <div className="text-xs text-center p-2 rounded bg-muted/50">
+                  <span className="text-muted-foreground">No readings recorded yet</span>
+                  <br />
+                  <span className="text-muted-foreground">Created: </span>
+                  <span className="font-medium">
+                    {formatReadingDateTime(fridge.created_at)}
+                  </span>
+                </div>
               )}
 
               <div className="flex gap-2">
