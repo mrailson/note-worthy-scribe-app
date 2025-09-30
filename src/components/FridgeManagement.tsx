@@ -666,7 +666,22 @@ export const FridgeManagement = () => {
               {fridge.latest_reading ? (
                 <>
                   <div className="flex items-center justify-between text-sm p-2 rounded bg-muted">
-                    <span>Latest:</span>
+                    <div className="flex items-center gap-2">
+                      <span>Latest:</span>
+                      {(() => {
+                        const isOverdue = isReadingOverdue(fridge.latest_reading.recorded_at);
+                        const isWithinRange = fridge.latest_reading.is_within_range;
+                        const statusColor = !isOverdue && isWithinRange ? 'bg-green-500' : 'bg-red-500';
+                        const statusTitle = !isOverdue && isWithinRange 
+                          ? 'Checked within 24hrs & within range' 
+                          : isOverdue 
+                            ? 'Not checked within 24hrs' 
+                            : 'Out of range';
+                        return (
+                          <div className={`w-3 h-3 rounded-full ${statusColor}`} title={statusTitle} />
+                        );
+                      })()}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Thermometer className="h-4 w-4" />
                       <span className={`font-mono ${fridge.latest_reading.is_within_range ? 'text-green-600' : 'text-red-600'}`}>
