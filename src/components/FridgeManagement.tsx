@@ -727,13 +727,15 @@ export const FridgeManagement = () => {
                     <div className="flex items-center gap-2">
                       <span>Latest:</span>
                       {(() => {
-                        const isOverdue = isReadingOverdue(fridge.latest_reading.recorded_at);
+                        const recordedDate = new Date(fridge.latest_reading.recorded_at);
+                        const today = new Date();
+                        const isRecordedToday = recordedDate.toDateString() === today.toDateString();
                         const isWithinRange = fridge.latest_reading.is_within_range;
-                        const statusColor = !isOverdue && isWithinRange ? 'bg-green-500' : 'bg-red-500';
-                        const statusTitle = !isOverdue && isWithinRange 
-                          ? 'Checked within 24hrs & within range' 
-                          : isOverdue 
-                            ? 'Not checked within 24hrs' 
+                        const statusColor = isRecordedToday && isWithinRange ? 'bg-green-500' : 'bg-red-500';
+                        const statusTitle = isRecordedToday && isWithinRange 
+                          ? 'Recorded today & within range' 
+                          : !isRecordedToday 
+                            ? 'No reading recorded today' 
                             : 'Out of range';
                         return (
                           <div className={`w-3 h-3 rounded-full ${statusColor}`} title={statusTitle} />
