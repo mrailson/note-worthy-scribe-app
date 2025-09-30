@@ -946,6 +946,30 @@ export const FridgeManagement = () => {
                 placeholder="e.g., Nurse Station Room 1"
               />
             </div>
+            
+            {/* Online/Offline Toggle */}
+            {editFridge && (
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+                <div className="flex items-center gap-3">
+                  {editFridge.is_online ? (
+                    <Wifi className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <WifiOff className="h-5 w-5 text-red-600" />
+                  )}
+                  <div>
+                    <Label className="text-base font-medium">Recording Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {editFridge.is_online ? 'Temperature recording is enabled' : 'Temperature recording is disabled'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={editFridge.is_online}
+                  onCheckedChange={(checked) => toggleFridgeStatus(editFridge, checked)}
+                />
+              </div>
+            )}
+            
             <Button onClick={handleEditFridge} className="w-full">
               Update Fridge
             </Button>
