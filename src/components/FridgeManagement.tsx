@@ -198,6 +198,7 @@ export const FridgeManagement = () => {
   };
 
   const generateQRCodeData = (fridgeId: string) => {
+    // Always use current origin to ensure QR codes work after deployment/domain changes
     const baseUrl = window.location.origin;
     return `${baseUrl}/public/fridge-temp/${fridgeId}`;
   };
@@ -487,7 +488,7 @@ export const FridgeManagement = () => {
   };
 
   const printQRCode = (fridge: Fridge) => {
-    const qrSvg = generateQRCodeSVG(fridge.qr_code_data);
+    const qrSvg = generateQRCodeSVG(generateQRCodeData(fridge.id));
     const printContent = `
       <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
         <h2>${fridge.fridge_name}</h2>
@@ -610,7 +611,7 @@ export const FridgeManagement = () => {
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Refrigerator className="h-5 w-5" />
                     <a 
-                      href={fridge.qr_code_data}
+                      href={generateQRCodeData(fridge.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline cursor-pointer"
@@ -893,7 +894,7 @@ export const FridgeManagement = () => {
 
               <div 
                 className="bg-white p-6 rounded-lg flex items-center justify-center"
-                dangerouslySetInnerHTML={{ __html: generateQRCodeSVG(qrCodeFridge.qr_code_data) }}
+                dangerouslySetInnerHTML={{ __html: generateQRCodeSVG(generateQRCodeData(qrCodeFridge.id)) }}
               />
 
               <div className="text-center">
