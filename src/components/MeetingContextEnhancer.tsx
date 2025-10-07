@@ -35,7 +35,7 @@ interface MeetingContextEnhancerProps {
   currentMeeting?: {
     title: string;
     agenda?: string;
-    attendees?: string[];
+    participants?: string[];
     meeting_location?: string;
     meeting_format?: string;
   };
@@ -50,7 +50,7 @@ export function MeetingContextEnhancer({
   const [agenda, setAgenda] = useState(currentMeeting?.agenda || "");
   const [additionalContext, setAdditionalContext] = useState("");
   const [additionalTranscript, setAdditionalTranscript] = useState("");
-  const [attendees, setAttendees] = useState((currentMeeting?.attendees || []).join(", "));
+  const [attendees, setAttendees] = useState((currentMeeting?.participants || []).join(", "));
   const [meetingLocation, setMeetingLocation] = useState(currentMeeting?.meeting_location || "");
   const [meetingFormat, setMeetingFormat] = useState(currentMeeting?.meeting_format || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -163,8 +163,8 @@ export function MeetingContextEnhancer({
         updateData.agenda = agenda;
       }
       
-      if (attendees !== (currentMeeting?.attendees || []).join(", ")) {
-        updateData.attendees = attendees.split(",").map(a => a.trim()).filter(a => a);
+      if (attendees !== (currentMeeting?.participants || []).join(", ")) {
+        updateData.participants = attendees.split(",").map(a => a.trim()).filter(a => a);
       }
       
       if (meetingLocation !== (currentMeeting?.meeting_location || "")) {
@@ -262,7 +262,7 @@ export function MeetingContextEnhancer({
 
   const hasChanges = () => {
     return agenda !== (currentMeeting?.agenda || "") ||
-           attendees !== (currentMeeting?.attendees || []).join(", ") ||
+           attendees !== (currentMeeting?.participants || []).join(", ") ||
            meetingLocation !== (currentMeeting?.meeting_location || "") ||
            meetingFormat !== (currentMeeting?.meeting_format || "") ||
            additionalContext.trim() !== "" ||

@@ -34,7 +34,7 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get meeting details
+    // Get meeting details including context fields
     const { data: meetingData, error: meetingError } = await supabase
       .from('meetings')
       .select(`
@@ -43,6 +43,11 @@ serve(async (req) => {
         start_time,
         end_time,
         created_at,
+        agenda,
+        participants,
+        meeting_context,
+        meeting_location,
+        meeting_format,
         profiles!inner(email, full_name)
       `)
       .eq('id', meetingId)
@@ -69,6 +74,13 @@ serve(async (req) => {
 
     console.log('Transcript length:', fullTranscript.length);
 
+    // Build context information from meeting metadata
+    const contextInfo = `**MEETING CONTEXT:**
+${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}${meetingData.participants?.length ? `- Attendees: ${meetingData.participants.join(', ')}\n` : ''}${meetingData.meeting_location ? `- Location: ${meetingData.meeting_location}\n` : ''}${meetingData.meeting_format ? `- Format: ${meetingData.meeting_format}\n` : ''}${meetingData.meeting_context ? `- Additional Context: ${JSON.stringify(meetingData.meeting_context)}\n` : ''}
+**IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
+
+`;
+
     // Generate structured meeting minutes
     const prompt = `Please analyze this meeting transcript and create detailed, professional meeting minutes for an informal partners meeting. Structure the minutes with the following sections:
 
@@ -78,6 +90,7 @@ serve(async (req) => {
 - Attendees: ${meetingData.profiles.full_name} (${meetingData.profiles.email})
 - Meeting Type: Informal Partners Meeting
 
+${contextInfo}
 **TRANSCRIPT TO ANALYZE:**
 ${fullTranscript}
 

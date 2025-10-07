@@ -136,10 +136,10 @@ serve(async (req) => {
     const maxRetries = 3;
     
     while (retryCount < maxRetries) {
-      // Get meeting details with retry logic
+      // Get meeting details with retry logic - explicitly select context fields
       const { data: meetingData, error: meetingError } = await supabase
         .from('meetings')
-        .select('*')
+        .select('*, agenda, participants, meeting_context, meeting_location, meeting_format')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -351,10 +351,18 @@ Make the executive summary rich in detail and context. Focus on creating a narra
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
 
+    // Build context information from meeting metadata
+    const contextInfo = `**MEETING CONTEXT:**
+${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${meeting.participants?.length ? `- Attendees: ${meeting.participants.join(', ')}\n` : ''}${meeting.meeting_location ? `- Location: ${meeting.meeting_location}\n` : ''}${meeting.meeting_format ? `- Format: ${meeting.meeting_format}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
+**IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
+
+`;
+
     const userPrompt = `Meeting Title: ${meeting.title}
 Meeting Date: ${formattedDate}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
+${contextInfo}
 Transcript:
 ${cleanedTranscript}`;
 

@@ -3293,7 +3293,7 @@ ${transcript}`;
                         currentMeeting={{
                           title: meeting?.title || '',
                           agenda: '',
-                          attendees: [],
+                          participants: [],
                           meeting_location: '',
                           meeting_format: ''
                         }}
