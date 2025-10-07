@@ -156,7 +156,7 @@ serve(async (req) => {
       retryCount++;
       if (retryCount < maxRetries) {
         console.log(`⏳ Meeting not found, retrying in 2s (${retryCount}/${maxRetries})`);
-        await new Timeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       } else {
         console.error('❌ Meeting not found after all retries:', meetingId);
         throw new Error(`Meeting not found with ID: ${meetingId}`);
