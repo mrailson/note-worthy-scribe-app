@@ -218,22 +218,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
   }
 
   if (!documents || documents.length === 0) {
-    return (
-      <Card className={className}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Meeting Documents (0)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex items-center justify-center p-4 text-sm text-muted-foreground border border-dashed rounded-lg">
-            <FileText className="h-4 w-4 mr-2" />
-            No documents uploaded yet
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
