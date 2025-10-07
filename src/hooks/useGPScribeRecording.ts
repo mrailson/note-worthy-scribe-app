@@ -29,6 +29,7 @@ export const useGPScribeRecording = () => {
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const chromiumTranscriberRef = useRef<ChromiumMicTranscriber | null>(null);
   const wakeLockRef = useRef<any>(null);
+  const meetingIdRef = useRef<string | null>(null); // Store meeting ID for status updates
 
   // Natural pause detection based on transcript activity
   useEffect(() => {
@@ -267,6 +268,33 @@ export const useGPScribeRecording = () => {
       setConnectionStatus("Connecting...");
       setHasUnsavedEdits(false); // Clear unsaved edits flag when starting new recording
       
+      // Create meeting record in database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: meetingData, error: meetingError } = await supabase
+            .from('meetings')
+            .insert({
+              user_id: user.id,
+              title: 'GP Consultation',
+              meeting_type: 'consultation',
+              status: 'recording',
+              start_time: new Date().toISOString()
+            })
+            .select('id')
+            .single();
+          
+          if (!meetingError && meetingData) {
+            meetingIdRef.current = meetingData.id;
+            console.log('✅ Created meeting record:', meetingData.id);
+          } else {
+            console.error('Failed to create meeting record:', meetingError);
+          }
+        }
+      } catch (error) {
+        console.error('Error creating meeting record:', error);
+      }
+      
       // Request wake lock to prevent device sleep
       await requestWakeLock();
 
@@ -423,6 +451,35 @@ export const useGPScribeRecording = () => {
       setIsPaused(false);
       setConnectionStatus("Disconnected");
       setHasUnsavedEdits(false); // Clear unsaved edits flag when stopping
+      
+      // Update meeting status to completed
+      if (meetingIdRef.current) {
+        try {
+          const { error: updateError } = await supabase
+            .from('meetings')
+            .update({
+              status: 'completed',
+              end_time: new Date().toISOString(),
+              transcript: transcript.trim(),
+              word_count: wordCount,
+              duration_minutes: Math.floor(duration / 60)
+            })
+            .eq('id', meetingIdRef.current);
+          
+          if (updateError) {
+            console.error('Failed to update meeting status:', updateError);
+            // Try again with just status update as fallback
+            await supabase
+              .from('meetings')
+              .update({ status: 'completed', end_time: new Date().toISOString() })
+              .eq('id', meetingIdRef.current);
+          } else {
+            console.log('✅ Meeting marked as completed:', meetingIdRef.current);
+          }
+        } catch (error) {
+          console.error('Error updating meeting status:', error);
+        }
+      }
       
       // Release wake lock
       releaseWakeLock();

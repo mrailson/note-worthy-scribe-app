@@ -50,7 +50,7 @@ import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import {
@@ -210,6 +210,66 @@ export const MeetingHistoryList = ({
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedMeetingForEmail, setSelectedMeetingForEmail] = useState<Meeting | null>(null);
+
+  // Status recovery state
+  const [recoveringMeetings, setRecoveringMeetings] = useState<Set<string>>(new Set());
+
+  // Auto-recover stuck meetings after 2 minutes
+  useEffect(() => {
+    const stuckMeetings = meetings.filter(m => 
+      m.status === 'recording' && isStuckMeeting(m) && !recoveringMeetings.has(m.id)
+    );
+    
+    stuckMeetings.forEach(meeting => {
+      const startTime = new Date(meeting.start_time).getTime();
+      const now = Date.now();
+      const minutesRecording = (now - startTime) / (1000 * 60);
+      
+      // Auto-recover if stuck for more than 2 minutes
+      if (minutesRecording > 2) {
+        console.log('🔧 Auto-recovering stuck meeting:', meeting.id, meeting.title);
+        recoverStuckMeeting(meeting.id);
+      }
+    });
+  }, [meetings]);
+
+  // Function to recover stuck meetings
+  const recoverStuckMeeting = async (meetingId: string) => {
+    setRecoveringMeetings(prev => new Set(prev).add(meetingId));
+    
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ 
+          status: 'completed',
+          end_time: new Date().toISOString()
+        })
+        .eq('id', meetingId);
+      
+      if (error) throw error;
+      
+      toast.success('Meeting status recovered successfully');
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error('Error recovering meeting:', error);
+      toast.error('Failed to recover meeting status');
+    } finally {
+      setRecoveringMeetings(prev => {
+        const updated = new Set(prev);
+        updated.delete(meetingId);
+        return updated;
+      });
+    }
+  };
+
+  // Check if meeting is stuck (in recording status for >1 minute)
+  const isStuckMeeting = (meeting: Meeting) => {
+    if (meeting.status !== 'recording') return false;
+    const startTime = new Date(meeting.start_time).getTime();
+    const now = Date.now();
+    const minutesRecording = (now - startTime) / (1000 * 60);
+    return minutesRecording > 1;
+  };
 
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
@@ -1291,12 +1351,24 @@ export const MeetingHistoryList = ({
                               {meeting.status === 'recording' && (
                                 <span className="text-green-600 font-medium"> (Recording Now)</span>
                               )}
+                              {isStuckMeeting(meeting) && (
+                                <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Recovery in progress
+                                </Badge>
+                              )}
                             </>
                           ) : (
                             <>
                               N/A words
                               {meeting.status === 'recording' && (
                                 <span className="text-green-600 font-medium"> (Recording Now)</span>
+                              )}
+                              {isStuckMeeting(meeting) && (
+                                <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Recovery in progress
+                                </Badge>
                               )}
                             </>
                           )}

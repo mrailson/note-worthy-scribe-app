@@ -31,9 +31,9 @@ serve(async (req) => {
 
     console.log('🔄 Starting auto-close check for inactive meetings...');
 
-    // Calculate 5 minutes ago timestamp
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    console.log('⏰ Checking for meetings inactive since:', fiveMinutesAgo);
+    // Calculate cutoff time (2 minutes ago for faster recovery)
+    const cutoffTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    console.log('⏰ Checking for meetings inactive since:', cutoffTime);
 
     // Find meetings that are in recording status and not paused
     const { data: recordingMeetings, error: meetingsError } = await supabase
@@ -78,7 +78,7 @@ serve(async (req) => {
         .from('meeting_transcription_chunks')
         .select('created_at')
         .eq('meeting_id', meeting.id)
-        .gte('created_at', fiveMinutesAgo)
+        .gte('created_at', cutoffTime)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -95,7 +95,7 @@ serve(async (req) => {
           .from('meeting_transcripts')
           .select('created_at')
           .eq('meeting_id', meeting.id)
-          .gte('created_at', fiveMinutesAgo)
+          .gte('created_at', cutoffTime)
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -113,7 +113,7 @@ serve(async (req) => {
           .from('transcription_chunks')
           .select('created_at')
           .eq('meeting_id', meeting.id)
-          .gte('created_at', fiveMinutesAgo)
+          .gte('created_at', cutoffTime)
           .order('created_at', { ascending: false })
           .limit(1);
 
