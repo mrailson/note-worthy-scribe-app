@@ -526,8 +526,6 @@ export const useGPScribeRecording = () => {
         };
 
         // Auto-generate Meeting Style 2 (Clear & Direct format)
-        toast.info("Generating meeting notes with Style 2 format...");
-        
         try {
           const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
             body: {
@@ -550,7 +548,6 @@ export const useGPScribeRecording = () => {
           if (!error && data?.success && data?.meetingMinutes) {
             // Include the generated notes in the meeting data
             meetingData.generatedNotes = data.meetingMinutes;
-            toast.success("Meeting notes generated successfully with Style 2 format!");
           } else {
             console.error('Failed to generate meeting notes:', error || data?.error);
             toast.warning("Recording saved but notes generation failed - you can generate them manually");
