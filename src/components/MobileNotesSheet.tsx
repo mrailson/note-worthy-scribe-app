@@ -57,7 +57,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
   const [notesStyle5, setNotesStyle5] = useState("");
+  const [transcript, setTranscript] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [regenerating, setRegenerating] = useState<{
     brief: boolean;
     detailed: boolean;
@@ -103,12 +105,38 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     }
   };
 
-  // Load notes when sheet opens
+  // Load notes and transcript when sheet opens
   useEffect(() => {
     if (isOpen && meeting?.id && user?.id) {
       loadExistingNoteStyles();
+      fetchTranscriptData();
     }
   }, [isOpen, meeting?.id, user?.id]);
+
+  // Fetch transcript data
+  const fetchTranscriptData = async () => {
+    if (!meeting?.id) return;
+    
+    setIsLoadingTranscript(true);
+    try {
+      const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+        p_meeting_id: meeting.id
+      });
+      
+      if (transcriptError) {
+        console.error('Error fetching transcript:', transcriptError);
+      } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+        const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
+        setTranscript(fullTranscript);
+      } else {
+        setTranscript('');
+      }
+    } catch (error) {
+      console.error('Error fetching transcript:', error);
+    } finally {
+      setIsLoadingTranscript(false);
+    }
+  };
 
   // Copy text to clipboard
   const copyToClipboard = async (text: string) => {
@@ -196,6 +224,8 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
         return notesStyle4;
       case "creative":
         return notesStyle5;
+      case "transcript":
+        return transcript;
       default:
         return notes;
     }
@@ -374,11 +404,12 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-3 pb-2 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-4 h-10">
-                <TabsTrigger value="executive" className="text-xs px-2 font-medium">Exec</TabsTrigger>
-                <TabsTrigger value="detailed" className="text-xs px-2 font-medium">Detail</TabsTrigger>
-                <TabsTrigger value="comprehensive" className="text-xs px-2 font-medium">V.Detail</TabsTrigger>
-                <TabsTrigger value="creative" className="text-xs px-2 font-medium">Creative</TabsTrigger>
+              <TabsList className="grid w-full max-w-lg grid-cols-5 h-10">
+                <TabsTrigger value="executive" className="text-[10px] px-1 font-medium">Exec</TabsTrigger>
+                <TabsTrigger value="detailed" className="text-[10px] px-1 font-medium">Detail</TabsTrigger>
+                <TabsTrigger value="comprehensive" className="text-[10px] px-1 font-medium">V.Detail</TabsTrigger>
+                <TabsTrigger value="creative" className="text-[10px] px-1 font-medium">Creative</TabsTrigger>
+                <TabsTrigger value="transcript" className="text-[10px] px-1 font-medium">Transcript</TabsTrigger>
               </TabsList>
               
               <Button
@@ -569,6 +600,46 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                           >
                             Generate Creative Summary
                           </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="transcript" className="mt-0">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-semibold text-foreground">Meeting Transcript</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={fetchTranscriptData}
+                        disabled={isLoadingTranscript}
+                        className="h-8 px-2 text-xs"
+                      >
+                        {isLoadingTranscript ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                        <span className="ml-1">
+                          {isLoadingTranscript ? 'Loading...' : 'Refresh'}
+                        </span>
+                      </Button>
+                    </div>
+                    <div className="bg-card rounded-lg border p-4">
+                      {isLoadingTranscript ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span className="text-sm text-muted-foreground">Loading transcript...</span>
+                        </div>
+                      ) : transcript ? (
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                          {transcript}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground text-sm">
+                            No transcript available for this meeting
+                          </p>
                         </div>
                       )}
                     </div>
