@@ -120,28 +120,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 Meeting Transcript
               </div>
               <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowContextDialog(true);
-                        }}
-                      >
-                        <FilePlus2 className="h-4 w-4" />
-                        Add Context
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add meeting agendas, attendee lists, or presentations</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
@@ -271,6 +249,37 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
         
         <CollapsibleContent>
           <CardContent>
+            <div className="flex items-center justify-end gap-2 mb-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => setShowContextDialog(true)}
+                    >
+                      <FilePlus2 className="h-4 w-4" />
+                      Add Context
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add meeting agendas, attendee lists, or presentations</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => onCopy(meetingData.transcript)}
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
+            
             <div className="p-4 border rounded-lg bg-muted/20 max-h-96 overflow-y-auto">
               <pre className="whitespace-pre-wrap text-sm font-mono text-foreground">
                 {meetingData.transcript}
