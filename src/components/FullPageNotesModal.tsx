@@ -2903,26 +2903,41 @@ ${transcript}`;
                       <div className="flex items-center justify-between pb-4 flex-shrink-0">
                         <h3 className="text-lg font-semibold">Meeting Notes</h3>
                         <div className="flex items-center gap-2">
-                          <Button
-                            onClick={handleUndo}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={notesVersions.length === 0}
-                            title={`Undo (${notesVersions.length} versions available)`}
-                          >
-                            <Undo2 className="h-4 w-4" />
-                            Undo
-                          </Button>
-                          <Button
-                            onClick={handleEditToggle}
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                            {isEditing ? 'Save' : 'Edit'}
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleUndo}
+                                  variant="outline"
+                                  size="icon"
+                                  disabled={notesVersions.length === 0}
+                                  title={`Undo (${notesVersions.length} versions available)`}
+                                >
+                                  <Undo2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Undo ({notesVersions.length} versions available)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={handleEditToggle}
+                                  variant="outline"
+                                  size="icon"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{isEditing ? 'Save' : 'Edit'} notes</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           {/* Action buttons for each tab when content exists */}
                           {(() => {
                             const getTabContent = () => {
@@ -2977,61 +2992,92 @@ ${transcript}`;
                             return content ? (
                               <>
                                 {activeNotesStyleTab === 'style1' && (
-                                  <Button
-                                    onClick={() => setEnhancementDialogOpen(true)}
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2"
-                                  >
-                                    <Wand2 className="h-4 w-4" />
-                                    Enhance
-                                  </Button>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          onClick={() => setEnhancementDialogOpen(true)}
+                                          variant="outline"
+                                          size="icon"
+                                        >
+                                          <Wand2 className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Enhance notes</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
-                                <Button
-                                  onClick={() => {
-                                    if (content) {
-                                      generateAdvancedWordDocument(content, tabName);
-                                    }
-                                  }}
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-2"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  Word
-                                </Button>
-                                <Button
-                                  onClick={async () => {
-                                    if (content) {
-                                      const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
-                                      if (success) {
-                                        toast.success(`${tabName} copied to clipboard`);
-                                      } else {
-                                        toast.error('Failed to copy to clipboard');
-                                      }
-                                    }
-                                  }}
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-2"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  Copy
-                                </Button>
-                                <Button
-                                  onClick={generateFunction}
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isCurrentlyGenerating}
-                                  className="gap-2"
-                                >
-                                  {isCurrentlyGenerating ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="h-4 w-4" />
-                                  )}
-                                  Regenerate
-                                </Button>
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={() => {
+                                          if (content) {
+                                            generateAdvancedWordDocument(content, tabName);
+                                          }
+                                        }}
+                                        variant="outline"
+                                        size="icon"
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Download as Word</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={async () => {
+                                          if (content) {
+                                            const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
+                                            if (success) {
+                                              toast.success(`${tabName} copied to clipboard`);
+                                            } else {
+                                              toast.error('Failed to copy to clipboard');
+                                            }
+                                          }
+                                        }}
+                                        variant="outline"
+                                        size="icon"
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Copy to clipboard</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={generateFunction}
+                                        variant="outline"
+                                        size="icon"
+                                        disabled={isCurrentlyGenerating}
+                                      >
+                                        {isCurrentlyGenerating ? (
+                                          <RefreshCw className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{isCurrentlyGenerating ? 'Regenerating...' : 'Regenerate notes'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </>
                             ) : null;
                           })()}
