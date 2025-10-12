@@ -3323,24 +3323,26 @@ ${transcript}`;
                          </Tooltip>
                        </TooltipProvider>
 
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               onClick={handleUndo}
-                               variant="outline"
-                               size="icon"
-                               disabled={transcriptVersions.length === 0}
-                               title={`Undo (${transcriptVersions.length} versions available)`}
-                             >
-                               <Undo2 className="h-4 w-4" />
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>Undo ({transcriptVersions.length} versions available)</p>
-                           </TooltipContent>
-                         </Tooltip>
-                       </TooltipProvider>
+                       {isEditing && (
+                         <TooltipProvider>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button
+                                 onClick={handleUndo}
+                                 variant="outline"
+                                 size="icon"
+                                 disabled={transcriptVersions.length === 0}
+                                 title={`Undo (${transcriptVersions.length} versions available)`}
+                               >
+                                 <Undo2 className="h-4 w-4" />
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent>
+                               <p>Undo ({transcriptVersions.length} versions available)</p>
+                             </TooltipContent>
+                           </Tooltip>
+                         </TooltipProvider>
+                       )}
 
                        <TooltipProvider>
                          <Tooltip>
