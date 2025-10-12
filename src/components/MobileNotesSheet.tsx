@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { mergeLive } from "@/utils/TranscriptMerge";
 import { 
   Copy, 
   FileText, 
@@ -119,15 +120,22 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     
     setIsLoadingTranscript(true);
     try {
-      const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
-        p_meeting_id: meeting.id
-      });
-      
-      if (transcriptError) {
-        console.error('Error fetching transcript:', transcriptError);
-      } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-        const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
-        setTranscript(fullTranscript);
+      // Fetch chunks directly and apply mergeLive for deduplication
+      const { data: chunks, error } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text, chunk_number')
+        .eq('meeting_id', meeting.id)
+        .order('chunk_number', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching transcript chunks:', error);
+      } else if (chunks && chunks.length > 0) {
+        // Apply mergeLive deduplication to chunks
+        const deduplicatedTranscript = chunks.reduce((accumulated, chunk) => {
+          return mergeLive(accumulated, chunk.transcription_text || '');
+        }, '');
+        
+        setTranscript(deduplicatedTranscript || '');
       } else {
         setTranscript('');
       }
