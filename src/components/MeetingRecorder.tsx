@@ -57,6 +57,8 @@ import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
+import { mergeLive } from '@/utils/TranscriptMerge';
+import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
 
 interface TranscriptData {
@@ -942,6 +944,7 @@ export const MeetingRecorder = ({
         // Process transcription result
         const transcriptionText = data.text || '';
         const confidence = data.confidence || 0;
+        const segments = data.segments || [];
         
         console.log(`✅ Chunk ${chunkId} transcribed:`, {
           text: transcriptionText.substring(0, 50) + '...',
@@ -1073,10 +1076,12 @@ export const MeetingRecorder = ({
             }
           }
 
-          // Update the main transcript with immediate state update
+          // Update the main transcript using smart merge to eliminate duplicates
           setTranscript(prev => {
-            const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
-            console.log(`📝 Transcript updated: ${newTranscript.length} chars, chunk ${chunkId}`);
+            // Use mergeLive to detect and remove overlapping text sections
+            const newTranscript = mergeLive(prev, transcriptionText);
+            const addedLength = newTranscript.length - prev.length;
+            console.log(`📝 Transcript updated: ${newTranscript.length} chars (added ${addedLength}), chunk ${chunkId}`);
             onTranscriptUpdate(newTranscript);
             return newTranscript;
           });
