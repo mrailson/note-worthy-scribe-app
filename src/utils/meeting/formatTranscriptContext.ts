@@ -4,31 +4,35 @@ import { UploadedFile } from '@/types/ai4gp';
  * Format uploaded context content with appropriate headings for transcript integration
  */
 export const formatTranscriptContext = (
-  contextType: 'agenda' | 'attendees' | 'presentation' | 'other',
+  contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
   files: UploadedFile[],
   customLabel?: string
 ): string => {
   if (files.length === 0) return '';
 
-  // Determine the heading based on context type
-  let heading = '';
-  switch (contextType) {
-    case 'agenda':
-      heading = 'MEETING AGENDA';
-      break;
-    case 'attendees':
-      heading = 'ATTENDEE LIST';
-      break;
-    case 'presentation':
-      heading = files.length === 1 ? `PRESENTATION: ${files[0].name}` : 'PRESENTATIONS';
-      break;
-    case 'other':
-      heading = customLabel?.toUpperCase() || 'ADDITIONAL CONTEXT';
-      break;
-  }
+  // Determine the heading(s) based on context types
+  let headings: string[] = [];
+  contextTypes.forEach(contextType => {
+    switch (contextType) {
+      case 'agenda':
+        headings.push('MEETING AGENDA');
+        break;
+      case 'attendees':
+        headings.push('ATTENDEE LIST');
+        break;
+      case 'presentation':
+        headings.push(files.length === 1 ? `PRESENTATION: ${files[0].name}` : 'PRESENTATIONS');
+        break;
+      case 'other':
+        headings.push(customLabel?.toUpperCase() || 'ADDITIONAL CONTEXT');
+        break;
+    }
+  });
 
+  const heading = headings.join(' & ');
+  
   // Create decorative separator
-  const separator = '═'.repeat(heading.length + 20);
+  const separator = '═'.repeat(Math.max(heading.length + 20, 60));
 
   // Build the formatted content
   let formattedContent = '\n\n';

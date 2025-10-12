@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 interface TranscriptContextDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddContext: (contextType: 'agenda' | 'attendees' | 'presentation' | 'other', files: UploadedFile[], customLabel?: string) => void;
+  onAddContext: (contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other'>, files: UploadedFile[], customLabel?: string) => void;
 }
 
 export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = ({
@@ -26,10 +26,18 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
 }) => {
   const { processFiles, isProcessing } = useFileUpload();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [contextType, setContextType] = useState<'agenda' | 'attendees' | 'presentation' | 'other'>('agenda');
+  const [selectedTypes, setSelectedTypes] = useState<Array<'agenda' | 'attendees' | 'presentation' | 'other'>>(['agenda']);
   const [customLabel, setCustomLabel] = useState('');
   const [textContent, setTextContent] = useState('');
   const [activeTab, setActiveTab] = useState<'file' | 'image' | 'text'>('file');
+
+  const toggleContextType = (type: 'agenda' | 'attendees' | 'presentation' | 'other') => {
+    setSelectedTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -72,18 +80,23 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
   };
 
   const handleAddToTranscript = () => {
+    if (selectedTypes.length === 0) {
+      toast.error('Please select at least one context type');
+      return;
+    }
+
     if (activeTab === 'text' && textContent.trim()) {
       // Create a text file from the pasted content
       const textFile: UploadedFile = {
-        name: `Pasted ${contextType} content`,
+        name: `Pasted ${selectedTypes.join(', ')} content`,
         type: 'text/plain',
         content: textContent,
         size: textContent.length,
         isLoading: false
       };
-      onAddContext(contextType, [textFile], customLabel);
+      onAddContext(selectedTypes, [textFile], customLabel);
     } else if (uploadedFiles.length > 0) {
-      onAddContext(contextType, uploadedFiles, customLabel);
+      onAddContext(selectedTypes, uploadedFiles, customLabel);
     } else {
       toast.error('Please add some content before adding to transcript');
       return;
@@ -93,7 +106,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
     setUploadedFiles([]);
     setTextContent('');
     setCustomLabel('');
-    setContextType('agenda');
+    setSelectedTypes(['agenda']);
     onOpenChange(false);
   };
 
@@ -101,7 +114,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
     setUploadedFiles([]);
     setTextContent('');
     setCustomLabel('');
-    setContextType('agenda');
+    setSelectedTypes(['agenda']);
     onOpenChange(false);
   };
 
@@ -118,27 +131,43 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
         <div className="space-y-4">
           {/* Context Type Selection */}
           <div className="space-y-2">
-            <Label>Context Type</Label>
-            <RadioGroup value={contextType} onValueChange={(value: any) => setContextType(value)}>
+            <Label>Context Type (select one or more)</Label>
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="agenda" id="agenda" />
+                <Checkbox 
+                  id="agenda" 
+                  checked={selectedTypes.includes('agenda')}
+                  onCheckedChange={() => toggleContextType('agenda')}
+                />
                 <Label htmlFor="agenda" className="cursor-pointer">Meeting Agenda</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="attendees" id="attendees" />
+                <Checkbox 
+                  id="attendees" 
+                  checked={selectedTypes.includes('attendees')}
+                  onCheckedChange={() => toggleContextType('attendees')}
+                />
                 <Label htmlFor="attendees" className="cursor-pointer">Attendee List</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="presentation" id="presentation" />
+                <Checkbox 
+                  id="presentation" 
+                  checked={selectedTypes.includes('presentation')}
+                  onCheckedChange={() => toggleContextType('presentation')}
+                />
                 <Label htmlFor="presentation" className="cursor-pointer">Presentation</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="other" />
+                <Checkbox 
+                  id="other" 
+                  checked={selectedTypes.includes('other')}
+                  onCheckedChange={() => toggleContextType('other')}
+                />
                 <Label htmlFor="other" className="cursor-pointer">Other</Label>
               </div>
-            </RadioGroup>
+            </div>
 
-            {contextType === 'other' && (
+            {selectedTypes.includes('other') && (
               <Input
                 placeholder="Enter custom label (e.g., 'Background Documents')"
                 value={customLabel}
@@ -220,7 +249,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
             {/* Text Paste Tab */}
             <TabsContent value="text" className="space-y-4">
               <Textarea
-                placeholder={`Paste your ${contextType} content here...\n\nExample:\n• Dr. Sarah Johnson - GP Partner\n• Michael Chen - Practice Manager\n• Jane Smith - Reception Lead`}
+                placeholder={`Paste your ${selectedTypes.join(', ')} content here...\n\nExample:\n• Dr. Sarah Johnson - GP Partner\n• Michael Chen - Practice Manager\n• Jane Smith - Reception Lead`}
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
                 className="min-h-[200px] font-mono text-sm"

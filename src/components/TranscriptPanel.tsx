@@ -91,7 +91,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   };
 
   const handleAddContext = (
-    contextType: 'agenda' | 'attendees' | 'presentation' | 'other',
+    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
     files: UploadedFile[],
     customLabel?: string
   ) => {
@@ -101,7 +101,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
       content: extractCleanContent(file.content || '')
     }));
 
-    const formattedContext = formatTranscriptContext(contextType, cleanedFiles, customLabel);
+    const formattedContext = formatTranscriptContext(contextTypes, cleanedFiles, customLabel);
     const updatedTranscript = meetingData.transcript + formattedContext;
     
     if (onUpdateTranscript) {

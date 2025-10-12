@@ -3437,9 +3437,9 @@ ${transcript}`;
             console.log('🟢 Dialog open state changed to:', open);
             setShowContextDialog(open);
           }}
-          onAddContext={(contextType, files, customLabel) => {
-            console.log('🟡 Adding context:', { contextType, filesCount: files.length, customLabel });
-            const formattedContext = formatTranscriptContext(contextType, files, customLabel);
+          onAddContext={(contextTypes, files, customLabel) => {
+            console.log('🟡 Adding context:', { contextTypes, filesCount: files.length, customLabel });
+            const formattedContext = formatTranscriptContext(contextTypes, files, customLabel);
             const currentTranscript = transcript || '';
             const updatedTranscript = currentTranscript + formattedContext;
             setTranscript(updatedTranscript);
