@@ -25,6 +25,7 @@ export class iPhoneWhisperTranscriber {
   private chunkCounter = 0;
   private totalWordCount = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
+  private dbAccumulated = ''; // Track what we've saved to DB to store only deltas
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -270,27 +271,38 @@ export class iPhoneWhisperTranscriber {
           this.totalWordCount += t.split(/\s+/).filter(Boolean).length;
         } catch {}
 
-        // Persist chunk to DB for later full transcript assembly
+        // Persist chunk to DB for later full transcript assembly - SAVE ONLY DELTA
         try {
           this.chunkCounter += 1;
           const currentChunkNumber = this.chunkCounter;
           const user = (await supabase.auth.getUser()).data.user?.id;
           if (this.meetingId && this.sessionId && user) {
-            const { error: dbError } = await supabase
-              .from('meeting_transcription_chunks')
-              .insert({
-                meeting_id: this.meetingId,
-                session_id: this.sessionId,
-                chunk_number: currentChunkNumber,
-                transcription_text: t,
-                confidence: transcriptData.confidence,
-                is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
-                user_id: user,
-              });
-            if (dbError) {
-              console.warn('⚠️ Failed to store iPhone chunk:', dbError);
+            // Calculate delta: simple overlap merge, then save only the new portion
+            const merged = this.simpleSmartMerge(this.dbAccumulated, t);
+            const delta = merged.slice(this.dbAccumulated.length).trim();
+            
+            console.log(`🔍 iPhone chunk ${currentChunkNumber} - prev DB: ${this.dbAccumulated.length}, merged: ${merged.length}, delta: ${delta.length}`);
+            
+            if (delta.length > 0) {
+              const { error: dbError } = await supabase
+                .from('meeting_transcription_chunks')
+                .insert({
+                  meeting_id: this.meetingId,
+                  session_id: this.sessionId,
+                  chunk_number: currentChunkNumber,
+                  transcription_text: delta, // Store only delta
+                  confidence: transcriptData.confidence,
+                  is_final: true,
+                  user_id: user,
+                });
+              if (dbError) {
+                console.warn('⚠️ Failed to store iPhone chunk:', dbError);
+              } else {
+                this.dbAccumulated = merged; // Update accumulated DB text
+                console.log(`💾 Stored iPhone chunk #${currentChunkNumber} delta (${delta.length} chars)`);
+              }
             } else {
-              console.log(`💾 Stored iPhone chunk #${currentChunkNumber}`);
+              console.log(`⏭️ Skipping iPhone chunk ${currentChunkNumber} - no new content`);
             }
           } else {
             console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
@@ -303,6 +315,59 @@ export class iPhoneWhisperTranscriber {
       console.error('❌ Error processing audio:', error);
       this.onError('Failed to process audio');
     }
+  }
+
+  private simpleSmartMerge(oldText: string, newText: string): string {
+    if (!oldText) return newText;
+    if (!newText) return oldText;
+    
+    // Simple tail overlap detection (12-20 words)
+    const oldWords = oldText.trim().split(/\s+/);
+    const newWords = newText.trim().split(/\s+/);
+    const checkLength = Math.min(20, oldWords.length, newWords.length);
+    
+    for (let i = checkLength; i >= 3; i--) {
+      const lastOld = oldWords.slice(-i).join(' ').toLowerCase();
+      const firstNew = newWords.slice(0, i).join(' ').toLowerCase();
+      
+      // Simple similarity check
+      if (lastOld === firstNew || this.fuzzyMatch(lastOld, firstNew)) {
+        return oldText + " " + newWords.slice(i).join(' ');
+      }
+    }
+    
+    return oldText + " " + newText;
+  }
+
+  private fuzzyMatch(str1: string, str2: string): boolean {
+    if (str1.length === 0 || str2.length === 0) return false;
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    const editDistance = this.levenshteinDistance(longer, shorter);
+    const similarity = (longer.length - editDistance) / longer.length;
+    return similarity > 0.7;
+  }
+
+  private levenshteinDistance(str1: string, str2: string): number {
+    const m = str1.length;
+    const n = str2.length;
+    const d: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    
+    for (let i = 0; i <= m; i++) d[i][0] = i;
+    for (let j = 0; j <= n; j++) d[0][j] = j;
+    
+    for (let j = 1; j <= n; j++) {
+      for (let i = 1; i <= m; i++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(
+          d[i - 1][j] + 1,
+          d[i][j - 1] + 1,
+          d[i - 1][j - 1] + cost
+        );
+      }
+    }
+    
+    return d[m][n];
   }
 
   private isLikelyRepetitiveNoise(text: string): boolean {

@@ -47,6 +47,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunkIndexRef = useRef(0);
+  const prevAssemblyTranscriptRef = useRef(''); // Track previous transcript for delta calculation
 
   const updateState = useCallback((updates: Partial<DualTranscriptionState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -179,9 +180,22 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
               };
             });
             
-            // Save to database
+            // Save to database - ONLY DELTA when final
             if (data.is_final) {
-              saveTranscriptChunk(data.text, data.confidence, true, 'assembly');
+              // Calculate delta: what's new since last save
+              setState(prev => {
+                const delta = prev.assemblyTranscript.slice(prevAssemblyTranscriptRef.current.length).trim();
+                
+                if (delta.length > 0) {
+                  console.log(`💾 Assembly delta: ${delta.length} chars (prev: ${prevAssemblyTranscriptRef.current.length}, current: ${prev.assemblyTranscript.length})`);
+                  saveTranscriptChunk(delta, data.confidence, true, 'assembly');
+                  prevAssemblyTranscriptRef.current = prev.assemblyTranscript;
+                } else {
+                  console.log('⏭️ Skipping Assembly save - no new content');
+                }
+                
+                return prev;
+              });
             }
           },
           (error: string) => {

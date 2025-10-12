@@ -21,6 +21,7 @@ export class DesktopWhisperTranscriber {
   private sessionId: string; // Unique session ID for this recording
   private meetingId: string | null = null; // Meeting ID to associate chunks
   private finalTranscript = ''; // Accumulated final transcript with smart merging
+  private dbAccumulated = ''; // Track what we've saved to DB to store only deltas
   
   // Early transcription mode for first minute
   private earlyTranscriptionMode = true;
@@ -375,27 +376,36 @@ export class DesktopWhisperTranscriber {
         console.log(`📝 Stored transcription ${this.allTranscriptions.length}: "${cleanText.substring(0, 100)}..."`);
         console.log(`📝 Final transcript length: ${this.finalTranscript.length} chars`);
         
-        // Store in database if meeting ID is set
+        // Store in database if meeting ID is set - SAVE ONLY DELTA
         if (this.meetingId) {
           try {
-            console.log(`🔍 DEBUG: Storing chunk ${currentChunkNumber}`);
+            // Calculate delta: merge with dbAccumulated, then save only the new portion
+            const merged = this.smartMerge(this.dbAccumulated, cleanText);
+            const delta = merged.slice(this.dbAccumulated.length).trim();
             
-            const { error: dbError } = await supabase
-              .from('meeting_transcription_chunks')
-              .insert({
-                meeting_id: this.meetingId,
-                session_id: this.sessionId,
-                chunk_number: currentChunkNumber,
-                transcription_text: cleanText,
-                confidence: data.confidence || 0.9, // Use actual confidence from API
-                is_final: true, // 🔥 CRITICAL FIX: Set is_final to enable real-time processing
-                user_id: (await supabase.auth.getUser()).data.user?.id
-              });
+            console.log(`🔍 DEBUG: Chunk ${currentChunkNumber} - prev DB length: ${this.dbAccumulated.length}, merged: ${merged.length}, delta: ${delta.length}`);
+            
+            if (delta.length > 0) {
+              const { error: dbError } = await supabase
+                .from('meeting_transcription_chunks')
+                .insert({
+                  meeting_id: this.meetingId,
+                  session_id: this.sessionId,
+                  chunk_number: currentChunkNumber,
+                  transcription_text: delta, // Store only delta, not full chunk
+                  confidence: data.confidence || 0.9,
+                  is_final: true,
+                  user_id: (await supabase.auth.getUser()).data.user?.id
+                });
 
-            if (dbError) {
-              console.error('❌ Failed to store chunk in database:', dbError);
+              if (dbError) {
+                console.error('❌ Failed to store chunk in database:', dbError);
+              } else {
+                this.dbAccumulated = merged; // Update accumulated DB text
+                console.log(`💾 Chunk ${currentChunkNumber} stored delta (${delta.length} chars) in database`);
+              }
             } else {
-              console.log(`💾 Chunk ${currentChunkNumber} stored in database`);
+              console.log(`⏭️ Skipping chunk ${currentChunkNumber} - no new content (delta empty)`);
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);
