@@ -1,3 +1,4 @@
+import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
+  const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -1080,6 +1082,37 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setVersions(prev => prev.slice(0, -1));
     
     toast.success(`Restored previous ${activeTab === 'notes' ? 'notes' : 'transcript'} version`);
+  };
+
+  const handleEnhanced = async (enhancedContent: string) => {
+    if (!meeting?.id) return;
+
+    try {
+      // Save version before updating
+      const version: ContentVersion = {
+        content: notesStyle3,
+        timestamp: Date.now(),
+        contentType: 'notes',
+        actionType: 'AI Enhancement'
+      };
+      setNotesVersions(prev => [...prev.slice(-9), version]);
+      
+      // Update the content
+      setNotesStyle3(enhancedContent);
+      
+      // Save to database
+      const { error } = await supabase
+        .from('meetings')
+        .update({ notes_style_3: enhancedContent })
+        .eq('id', meeting.id);
+
+      if (error) throw error;
+
+      toast.success('Notes enhanced successfully!');
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast.error('Failed to update notes');
+    }
   };
 
   const clearVersionHistory = (contentType?: 'notes' | 'transcript') => {
@@ -2493,15 +2526,23 @@ ${transcript}`;
   if (!meeting) return null;
 
   return (
-    <Dialog 
-      open={isOpen} 
-      onOpenChange={(open) => {
-        console.log('📱 Dialog onOpenChange called with:', open);
-        if (!open) {
-          onClose();
-        }
-      }}
-    >
+    <>
+      <NoteEnhancementDialog
+        open={enhancementDialogOpen}
+        onOpenChange={setEnhancementDialogOpen}
+        originalContent={notesStyle3}
+        onEnhanced={handleEnhanced}
+      />
+      
+      <Dialog 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          console.log('📱 Dialog onOpenChange called with:', open);
+          if (!open) {
+            onClose();
+          }
+        }}
+      >
       <DialogContent 
         className={`${isMobile 
           ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
@@ -2932,6 +2973,17 @@ ${transcript}`;
                             
                             return content ? (
                               <>
+                                {activeNotesStyleTab === 'style1' && (
+                                  <Button
+                                    onClick={() => setEnhancementDialogOpen(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                  >
+                                    <Wand2 className="h-4 w-4" />
+                                    Enhance
+                                  </Button>
+                                )}
                                 <Button
                                   onClick={() => {
                                     if (content) {
@@ -3320,5 +3372,6 @@ ${transcript}`;
         />
 
       </Dialog>
-    );
-  };
+    </>
+  );
+};
