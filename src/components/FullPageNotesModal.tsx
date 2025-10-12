@@ -3266,16 +3266,19 @@ ${transcript}`;
                        <TooltipProvider>
                          <Tooltip>
                            <TooltipTrigger asChild>
-                             <Button
-                               onClick={() => setShowContextDialog(true)}
-                               variant="outline"
-                               size="sm"
-                               className="gap-2"
-                               title="Add context like agendas, attendee lists, or presentations"
-                             >
-                               <FilePlus2 className="h-4 w-4" />
-                               Add Context
-                             </Button>
+                              <Button
+                                onClick={() => {
+                                  console.log('🔵 Add Context button clicked, opening dialog');
+                                  setShowContextDialog(true);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                                title="Add context like agendas, attendee lists, or presentations"
+                              >
+                                <FilePlus2 className="h-4 w-4" />
+                                Add Context
+                              </Button>
                            </TooltipTrigger>
                            <TooltipContent>
                              <p>Add meeting agendas, attendee lists, or presentations</p>
@@ -3400,8 +3403,12 @@ ${transcript}`;
         {/* Transcript Context Dialog */}
         <TranscriptContextDialog
           open={showContextDialog}
-          onOpenChange={setShowContextDialog}
+          onOpenChange={(open) => {
+            console.log('🟢 Dialog open state changed to:', open);
+            setShowContextDialog(open);
+          }}
           onAddContext={(contextType, files, customLabel) => {
+            console.log('🟡 Adding context:', { contextType, filesCount: files.length, customLabel });
             const formattedContext = formatTranscriptContext(contextType, files, customLabel);
             const currentTranscript = transcript || '';
             const updatedTranscript = currentTranscript + formattedContext;
