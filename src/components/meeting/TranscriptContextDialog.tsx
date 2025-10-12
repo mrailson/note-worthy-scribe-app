@@ -107,7 +107,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] z-[110]">
         <DialogHeader>
           <DialogTitle>Add Context to Transcript</DialogTitle>
           <DialogDescription>
