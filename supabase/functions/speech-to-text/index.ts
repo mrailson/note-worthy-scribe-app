@@ -145,6 +145,21 @@ serve(async (req) => {
     }
 
     console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence);
+    
+    // DIAGNOSTIC FIX: Ensure segments always exists
+    let segments = result.segments || [];
+    if (segments.length === 0 && result.text) {
+      console.log('⚠️ SPEECH-TO-TEXT: No segments from Whisper, creating synthetic segment');
+      segments = [{
+        start: 0,
+        end: result.duration || 1,
+        text: result.text,
+        avg_logprob: avg_logprob,
+        no_speech_prob: no_speech_prob
+      }];
+    }
+    
+    console.log('📦 SPEECH-TO-TEXT: Returning', segments.length, 'segments');
 
     return new Response(
       JSON.stringify({ 
@@ -154,7 +169,7 @@ serve(async (req) => {
         no_speech_prob: no_speech_prob,
         duration: result.duration,
         language: result.language,
-        segments: result.segments || []
+        segments: segments
       }),
       { 
         headers: { 

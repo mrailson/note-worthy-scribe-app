@@ -260,17 +260,30 @@ export class iPhoneWhisperTranscriber {
           this.chunkCounter += 1;
           const currentChunkNumber = this.chunkCounter;
           const user = (await supabase.auth.getUser()).data.user?.id;
-          if (this.meetingId && this.sessionId && user && data.segments && data.segments.length > 0) {
+          if (this.meetingId && this.sessionId && user) {
+            // DIAGNOSTIC FIX: Create synthetic segment if missing
+            if (!data.segments || data.segments.length === 0) {
+              console.log('⚠️ No segments from API, creating synthetic segment');
+              data.segments = [{
+                start: this.lastSegmentEndTime,
+                end: this.lastSegmentEndTime + 1,
+                text: t
+              }];
+            }
+            
+            console.log(`📦 iPhone received ${data.segments.length} segments from API`);
+            
             // Filter segments that are after our last stored end time
+            // For first chunk (lastSegmentEndTime === 0), accept all segments
             const newSegments = data.segments
-              .filter((seg: any) => seg.end > this.lastSegmentEndTime)
+              .filter((seg: any) => this.lastSegmentEndTime === 0 || seg.end > this.lastSegmentEndTime)
               .map((seg: any) => ({
                 start: seg.start,
                 end: seg.end,
                 text: seg.text.trim()
               }));
             
-            console.log(`⏱️ iPhone chunk ${currentChunkNumber} - lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, new segments: ${newSegments.length}/${data.segments.length}`);
+            console.log(`⏱️ iPhone chunk ${currentChunkNumber} - lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, filtered segments: ${newSegments.length}/${data.segments.length}`);
             
             if (newSegments.length > 0) {
               const { error: dbError } = await supabase

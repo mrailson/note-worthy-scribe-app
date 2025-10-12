@@ -135,9 +135,19 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
           try {
             // Try to parse as segments JSON
             const parsed = JSON.parse(chunk.transcription_text || '[]');
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            // Fallback: if it's plain text, treat as single segment
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+            // DIAGNOSTIC: Empty array or not an array, fallback to text
+            console.log('⚠️ Chunk has no segments, using text fallback');
+            return chunk.transcription_text ? [{
+              start: 0,
+              end: 1,
+              text: chunk.transcription_text
+            }] : [];
+          } catch (e) {
+            // DIAGNOSTIC: Parse error, fallback to plain text
+            console.warn('⚠️ Failed to parse chunk segments:', e);
             return chunk.transcription_text ? [{
               start: 0,
               end: 1,
@@ -151,7 +161,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
         const mergedSegments = mergeByTimestamps([], allSegments);
         const finalTranscript = segmentsToPlainText(mergedSegments);
         
-        console.log(`📊 Transcript reconstruction: ${chunks.length} chunks → ${allSegments.length} segments → ${mergedSegments.length} merged segments`);
+        console.log(`📊 Transcript reconstruction: ${chunks.length} chunks → ${allSegments.length} raw segments → ${mergedSegments.length} deduplicated segments`);
         setTranscript(finalTranscript || '');
       } else {
         setTranscript('');
