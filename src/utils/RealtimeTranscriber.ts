@@ -6,7 +6,7 @@ export class RealtimeTranscriber {
   private chunkCounter = 0;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private dataArray: Uint8Array | null = null;
+  private dataArray: Uint8Array<ArrayBuffer> | null = null;
   private silenceThreshold = 30; // Minimum volume threshold
   private hasDetectedSpeech = false;
   
@@ -128,7 +128,7 @@ export class RealtimeTranscriber {
       audioSource.connect(this.analyser);
       
       const bufferLength = this.analyser.frequencyBinCount;
-      this.dataArray = new Uint8Array(new ArrayBuffer(bufferLength));
+      this.dataArray = new Uint8Array(bufferLength);
 
       // Check supported MIME types for recording
       const supportedTypes = [

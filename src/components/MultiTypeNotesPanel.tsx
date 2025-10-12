@@ -4,8 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll } from 'lucide-react';
+import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2 } from 'lucide-react';
 import { useMultiTypeNotes, type MultiTypeNote } from '@/hooks/useMultiTypeNotes';
+import { NoteEnhancementDialog } from './meeting/NoteEnhancementDialog';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Import the generateAdvancedWordDocument function from FullPageNotesModal
 // We'll create a simpler version for now
@@ -94,6 +97,8 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
   } = useMultiTypeNotes(meetingId);
 
   const [activeTab, setActiveTab] = useState<string>('brief');
+  const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
+  const [currentEnhancingNote, setCurrentEnhancingNote] = useState<MultiTypeNote | null>(null);
 
   const handleDownload = async (note: MultiTypeNote) => {
     try {
@@ -103,6 +108,36 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
       );
     } catch (error) {
       console.error('Error downloading document:', error);
+    }
+  };
+
+  const handleEnhanceClick = (note: MultiTypeNote) => {
+    setCurrentEnhancingNote(note);
+    setEnhancementDialogOpen(true);
+  };
+
+  const handleEnhanced = async (enhancedContent: string) => {
+    if (!currentEnhancingNote) return;
+
+    try {
+      // Update the note in the database
+      const { error } = await supabase
+        .from('meeting_notes_queue')
+        .update({
+          content: enhancedContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentEnhancingNote.id);
+
+      if (error) throw error;
+
+      toast.success('Note updated successfully!');
+      
+      // Refresh the notes by triggering a re-fetch
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
     }
   };
 
@@ -162,14 +197,26 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
               {note.token_count} tokens • {Math.round(note.processing_time_ms / 1000)}s • {note.model_used}
             </span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDownload(note)}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download
-          </Button>
+          <div className="flex items-center gap-2">
+            {noteType === 'detailed' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEnhanceClick(note)}
+              >
+                <Wand2 className="h-4 w-4 mr-2" />
+                Enhance
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownload(note)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
         </div>
         
         <div className="prose max-w-none">
@@ -202,9 +249,17 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
   const completionPercentage = getCompletionPercentage();
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <>
+      <NoteEnhancementDialog
+        open={enhancementDialogOpen}
+        onOpenChange={setEnhancementDialogOpen}
+        originalContent={currentEnhancingNote?.content || ''}
+        onEnhanced={handleEnhanced}
+      />
+      
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
@@ -307,5 +362,6 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
         </Tabs>
       </CardContent>
     </Card>
+    </>
   );
 }
