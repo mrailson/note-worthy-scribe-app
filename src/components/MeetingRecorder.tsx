@@ -847,12 +847,6 @@ export const MeetingRecorder = ({
           const currentLength = transcript.length;
           const currentWords = wordCount;
           
-          // More frequent visual feedback
-          toast.info(`🎙️ Recording`, {
-            description: `${currentWords} words • ${Math.floor(currentLength/100)} paragraphs`,
-            duration: 2000
-          });
-          
           console.log(`💓 Heartbeat: ${currentWords} words, ${currentLength} chars transcribed`);
         } else {
           clearInterval(heartbeatInterval);
@@ -3006,7 +3000,6 @@ export const MeetingRecorder = ({
       // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
       
-      toast.success(`Recording stopped. Meeting was too short (${wordCount} words) to generate notes.`);
       return;
     }
     
@@ -3185,7 +3178,6 @@ export const MeetingRecorder = ({
     localStorage.removeItem('unsaved_meeting');
     
     console.log('Recording stopped');
-    toast.success('Recording stopped');
     
     console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', wordCount);
     
