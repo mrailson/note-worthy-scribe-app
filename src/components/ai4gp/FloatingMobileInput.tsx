@@ -183,29 +183,9 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
     }
   };
 
-  // Floating toggle button
+  // Expanded input interface always shown
   if (!isExpanded) {
-    return (
-      <div 
-        className={cn(
-          "fixed z-[9999]",
-          device.hasNotch ? "iphone-notch-safe" : ""
-        )}
-        style={{
-          bottom: `calc(16px + var(--mobile-safe-area-bottom))`,
-          right: `calc(16px + var(--iphone-safe-area-right))`
-        }}
-      >
-        <Button
-          onClick={toggleExpanded}
-          size="lg"
-          className="h-14 w-14 rounded-full shadow-strong bg-primary hover:bg-primary-hover text-primary-foreground mobile-touch-target transition-all duration-200 hover:scale-105"
-          disabled={isLoading}
-        >
-          <MessageSquare className="w-6 h-6" />
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   // Expanded input interface
