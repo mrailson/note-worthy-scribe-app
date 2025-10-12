@@ -2889,10 +2889,7 @@ export const MeetingRecorder = ({
         generateLiveNotes();
       }, 5 * 60 * 1000); // 5 minutes
 
-      const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
-                      useScreenShare ? `microphone + screen audio (${isChrome ? 'Chrome' : 'Edge'})` : 'microphone + system audio';
-      const successMessage = `Recording started with ${modeText}!`;
-      toast.success(successMessage);
+      // Toast notification removed per user request
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
