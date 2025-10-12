@@ -248,11 +248,9 @@ export const MeetingHistoryList = ({
       
       if (error) throw error;
       
-      toast.success('Meeting status recovered successfully');
       if (onRefresh) onRefresh();
     } catch (error) {
       console.error('Error recovering meeting:', error);
-      toast.error('Failed to recover meeting status');
     } finally {
       setRecoveringMeetings(prev => {
         const updated = new Set(prev);
@@ -353,7 +351,6 @@ export const MeetingHistoryList = ({
 
   const handleSaveTitle = async (meetingId: string) => {
     if (!editingTitle.trim()) {
-      toast.error("Meeting name cannot be empty");
       return;
     }
 
@@ -365,7 +362,6 @@ export const MeetingHistoryList = ({
 
       if (error) throw error;
 
-      toast.success("Meeting name updated successfully");
       setEditingMeetingId(null);
       setEditingTitle("");
       
@@ -375,7 +371,6 @@ export const MeetingHistoryList = ({
       }
     } catch (error) {
       console.error('Error updating meeting title:', error);
-      toast.error("Failed to update meeting name");
     }
   };
 

@@ -83,20 +83,15 @@ export const MeetingRecoveryHelper = () => {
       
       if (error) {
         console.error('Force stop failed:', error);
-        toast.error('Failed to stop meeting');
         return;
       }
       
       if (data?.success) {
-        toast.success('Meeting stopped successfully!');
         // Remove from stuck meetings list
         setStuckMeetings(prev => prev.filter(m => m.id !== meetingId));
-      } else {
-        toast.error(data?.error || 'Failed to stop meeting');
       }
     } catch (error) {
       console.error('Force stop error:', error);
-      toast.error('Failed to stop meeting');
     } finally {
       setRecovering(null);
     }

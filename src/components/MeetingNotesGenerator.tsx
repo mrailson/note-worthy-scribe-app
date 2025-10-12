@@ -164,11 +164,9 @@ export default function MeetingNotesGenerator() {
       }
 
       setResult(data as ApiResponse);
-      toast.success("Meeting notes generated successfully");
     } catch (e: any) {
       console.error('Generation error:', e);
       setError(e?.message || "Unexpected error");
-      toast.error("Failed to generate meeting notes");
     } finally {
       setLoading(false);
     }

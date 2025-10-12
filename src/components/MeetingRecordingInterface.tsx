@@ -174,7 +174,6 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
 
       console.log('🎬 Recording started successfully, state:', mediaRecorder.state);
       intervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-      toast({ title: "Recording started", description: "Meeting is now visible in your history" });
 
     } catch (error) {
       console.error('❌ Error starting recording:', error);

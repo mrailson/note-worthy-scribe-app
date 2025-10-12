@@ -165,12 +165,10 @@ export const MeetingOverviewEditor = ({
         if (error) throw error;
       }
 
-      toast.success("Meeting overview saved successfully");
       setIsEditing(false);
       onOverviewChange?.(overview.trim());
     } catch (error: any) {
       console.error("Error saving overview:", error);
-      toast.error("Failed to save overview");
     } finally {
       setSaving(false);
     }

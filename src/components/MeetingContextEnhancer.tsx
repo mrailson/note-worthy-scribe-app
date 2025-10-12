@@ -149,7 +149,6 @@ export function MeetingContextEnhancer({
 
   const saveContextChanges = async () => {
     if (!meetingId) {
-      toast.error("No meeting ID provided");
       return;
     }
 
@@ -214,8 +213,6 @@ export function MeetingContextEnhancer({
         
         if (transcriptError) console.warn('Failed to save additional transcript:', transcriptError);
       }
-
-      toast.success("Meeting context updated successfully");
       
       if (onMeetingUpdate) {
         onMeetingUpdate({
@@ -230,7 +227,6 @@ export function MeetingContextEnhancer({
       
     } catch (error) {
       console.error('Error updating meeting context:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update meeting context');
     } finally {
       setIsSaving(false);
     }
@@ -238,7 +234,6 @@ export function MeetingContextEnhancer({
 
   const regenerateNotesWithContext = async () => {
     if (!meetingId) {
-      toast.error("No meeting ID provided");
       return;
     }
 

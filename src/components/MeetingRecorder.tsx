@@ -2335,8 +2335,6 @@ export const MeetingRecorder = ({
               addDebugLog('📋 Meeting summary generated - check console for details');
             }
             
-            toast.success('Meeting processed! Check transcript below.');
-            
           } else {
             throw new Error(data.error || 'Processing failed');
           }
@@ -2810,7 +2808,6 @@ export const MeetingRecorder = ({
         sessionStorage.setItem('currentMeetingId', realMeetingId);
       } catch (error) {
         console.error('❌ Failed to create meeting:', error);
-        toast.error('Failed to create meeting record');
         throw error;
       }
       
@@ -3409,7 +3406,6 @@ export const MeetingRecorder = ({
     
     // Check if user is authenticated
     if (!user?.id) {
-      toast.error('User not authenticated - cannot save meeting');
       throw new Error('User not authenticated - cannot save meeting');
     }
     
@@ -3496,8 +3492,6 @@ export const MeetingRecorder = ({
             confidence_score: 1.0
           });
       }
-
-      toast.success('Meeting saved successfully!');
 
       // Show success immediately
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
@@ -3587,8 +3581,6 @@ export const MeetingRecorder = ({
 
       // Start background processing without awaiting
       backgroundProcessing();
-      
-      toast.success('Meeting saved! AI notes will be generated in the background.');
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
@@ -3599,7 +3591,6 @@ export const MeetingRecorder = ({
         stage: 'processing',
         savedData: null
       });
-      toast.error('Failed to save meeting to database');
     }
   };
 
@@ -3647,7 +3638,6 @@ export const MeetingRecorder = ({
       savedData: null
     });
     setModalAutoCloseCountdown(null);
-    toast.success('Modal closed - meeting was saved successfully');
   };
 
   // Enhanced auto-close with countdown
@@ -3694,18 +3684,8 @@ export const MeetingRecorder = ({
           
           if (payload.new.notes_generation_status === 'completed') {
             console.log('✅ AI notes completed in background');
-            // Optional: Show subtle toast notification
-            toast.success('🤖 AI meeting notes are ready!', {
-              description: 'Check your Meeting History to view the generated notes.',
-              duration: 4000
-            });
           } else if (payload.new.notes_generation_status === 'error') {
             console.log('❌ AI processing failed in background');
-            // Optional: Show error notification
-            toast.error('AI note generation encountered an error', {
-              description: 'Your meeting transcript is still saved and accessible.',
-              duration: 3000
-            });
           }
         }
       )
@@ -4030,11 +4010,9 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      toast.success('Meeting deleted successfully');
       loadMeetingHistory(); // Reload the list
     } catch (error) {
       console.error('Error deleting meeting:', error);
-      toast.error('Failed to delete meeting');
     }
   };
 
@@ -4062,8 +4040,6 @@ export const MeetingRecorder = ({
       });
 
       if (error) throw error;
-
-      toast.success(`${selectedMeetings.length} meetings merged successfully into "${data.meeting.title}"`);
       
       // Navigate to the merged meeting's notes
       navigate(`/meeting-summary/${data.meeting.id}`);
@@ -4073,7 +4049,6 @@ export const MeetingRecorder = ({
       loadMeetingHistory();
     } catch (error: any) {
       console.error("Error merging meetings:", error.message);
-      toast.error("Failed to merge meetings: " + error.message);
     }
   };
 
@@ -4086,15 +4061,12 @@ export const MeetingRecorder = ({
         .eq('user_id', user?.id);
 
       if (error) throw error;
-
-      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
       
       setSelectedMeetings([]);
       setIsSelectMode(false);
       loadMeetingHistory();
     } catch (error: any) {
       console.error("Error deleting selected meetings:", error.message);
-      toast.error("Failed to delete selected meetings");
     }
   };
 
@@ -4106,8 +4078,6 @@ export const MeetingRecorder = ({
         .eq('user_id', user?.id);
 
       if (error) throw error;
-
-      toast.success("All meetings deleted successfully");
       
       setDeleteConfirmation("");
       setSelectedMeetings([]);
@@ -4115,14 +4085,12 @@ export const MeetingRecorder = ({
       loadMeetingHistory();
     } catch (error: any) {
       console.error("Error deleting all meetings:", error.message);
-      toast.error("Failed to delete all meetings");
     }
   };
 
   // Save meeting title function
   const handleSaveTitle = async (meetingId: string) => {
     if (!editingTitle.trim() || editingTitle.length > 100) {
-      toast.error("Meeting title must be between 1 and 100 characters");
       return;
     }
 
@@ -4145,10 +4113,8 @@ export const MeetingRecorder = ({
       
       setEditingMeetingId(null);
       setEditingTitle("");
-      toast.success("Meeting title updated successfully");
     } catch (error: any) {
       console.error("Error updating meeting title:", error.message);
-      toast.error("Failed to update meeting title");
     } finally {
       setIsSavingTitle(false);
     }
