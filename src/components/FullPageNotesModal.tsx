@@ -2586,28 +2586,10 @@ ${transcript}`;
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI Enhance
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <ClaudeEnhancementModal
-                        originalContent={getCurrentContent()}
-                        onEnhancedContent={(enhancedContent) => {
-                          setCurrentContent(enhancedContent);
-                          if (activeTab === "notes") {
-                            saveSummaryToDatabase(enhancedContent);
-                          }
-                        }}
-                      >
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Make More Detailed
-                        </DropdownMenuItem>
-                      </ClaudeEnhancementModal>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
+                  <DropdownMenuItem onClick={() => setEnhancementDialogOpen(true)}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Enhance
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
