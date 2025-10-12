@@ -81,8 +81,15 @@ serve(async (req) => {
         break;
 
       case 'custom':
-        systemPrompt = `You are an expert meeting minutes enhancer. Your task is to modify meeting minutes according to specific user requests while maintaining professionalism and accuracy.`;
-        userPrompt = `Please modify the following meeting minutes according to this specific request: "${specificRequest}"\n\nOriginal content:\n${originalContent}`;
+        systemPrompt = `You are an expert meeting minutes enhancer. Your task is to modify meeting minutes according to specific user requests while maintaining professionalism and accuracy. 
+
+CRITICAL: If the original content contains HTML markup with CSS classes (such as prose, text-foreground, mb-3, font-semibold, etc.), you MUST preserve ALL HTML tags, CSS classes, and styling exactly as they appear in the original. Only modify the text content itself whilst keeping the entire HTML structure, class names, and formatting intact.`;
+        userPrompt = `Please modify the following meeting minutes according to this specific request: "${specificRequest}"
+
+IMPORTANT: The content below contains HTML markup with CSS classes. You must preserve ALL HTML tags, class attributes, and styling exactly as they appear. Only modify the text content whilst maintaining the complete HTML structure.
+
+Original content:
+${originalContent}`;
         break;
 
       default:
