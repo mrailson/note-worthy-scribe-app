@@ -320,14 +320,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
 
           {/* Mobile menu - upgraded to full-height Drawer */}
           <div className="sm:hidden flex items-center gap-2">
-            <Button 
-              onClick={() => navigate('/new-recorder')}
-              variant="secondary"
-              size="sm"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-8 px-3"
-            >
-              Test
-            </Button>
             <Drawer>
               <DrawerTrigger asChild>
                 <Button 
