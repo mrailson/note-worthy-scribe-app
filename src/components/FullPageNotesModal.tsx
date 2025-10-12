@@ -25,7 +25,6 @@ import { UploadedFile } from "@/types/ai4gp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -131,45 +130,42 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
    useEffect(() => {
      console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'meeting?.title:', meeting?.title);
      
-     // Enhanced validation before data fetching
-     if (isOpen && meeting?.id) {
-       // Validate meeting ID format
-       if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
-         console.error('❌ Invalid meeting ID format:', meeting.id);
-         toast.error('Invalid meeting data - modal will close');
-         onClose();
-         return;
-       }
-       
-       // Validate meeting belongs to current user
-       if (!user?.id) {
-         console.error('❌ No authenticated user');
-         toast.error('Authentication required');
-         onClose();
-         return;
-       }
-       
-       console.log('✅ Meeting validation passed for:', meeting.title, 'ID:', meeting.id);
-       
-       if (isResourceOperationSafe()) {
-         console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
-         fetchTranscriptData();
-       } else {
-         console.log('⚠️ Deferring transcript fetch - recording in progress');
-         toast.info('Database operations paused during recording to prevent interference');
-         
-         // Set up a check for when recording stops
-         const checkRecordingComplete = setInterval(() => {
-           if (isResourceOperationSafe()) {
-             console.log('✅ Recording stopped, fetching deferred data for meeting:', meeting.id);
-             fetchTranscriptData();
-             clearInterval(checkRecordingComplete);
-           }
-         }, 1000);
-         
-         return () => clearInterval(checkRecordingComplete);
-       }
-     }
+      // Enhanced validation before data fetching
+      if (isOpen && meeting?.id) {
+        // Validate meeting ID format
+        if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+          console.error('❌ Invalid meeting ID format:', meeting.id);
+          onClose();
+          return;
+        }
+        
+        // Validate meeting belongs to current user
+        if (!user?.id) {
+          console.error('❌ No authenticated user');
+          onClose();
+          return;
+        }
+        
+        console.log('✅ Meeting validation passed for:', meeting.title, 'ID:', meeting.id);
+        
+        if (isResourceOperationSafe()) {
+          console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
+          fetchTranscriptData();
+        } else {
+          console.log('⚠️ Deferring transcript fetch - recording in progress');
+          
+          // Set up a check for when recording stops
+          const checkRecordingComplete = setInterval(() => {
+            if (isResourceOperationSafe()) {
+              console.log('✅ Recording stopped, fetching deferred data for meeting:', meeting.id);
+              fetchTranscriptData();
+              clearInterval(checkRecordingComplete);
+            }
+          }, 1000);
+          
+          return () => clearInterval(checkRecordingComplete);
+        }
+      }
    }, [isOpen, meeting?.id, meeting?.title, user?.id, isResourceOperationSafe]);
 
    const fetchTranscriptData = async () => {
@@ -250,12 +246,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          p_user_id: user.id
        });
 
-       if (!accessCheck) {
-         console.error('❌ User does not have access to meeting:', currentMeetingId);
-         toast.error('Access denied to meeting data');
-         onClose();
-         return;
-       }
+        if (!accessCheck) {
+          console.error('❌ User does not have access to meeting:', currentMeetingId);
+          onClose();
+          return;
+        }
 
        const { data: meetingData, error } = await supabase
          .from('meetings')
@@ -309,12 +304,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
        return;
      }
 
-     // Validate meeting ID format and user access
-     if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
-       console.error('❌ Invalid meeting ID format in saveNoteStyleToDatabase');
-       toast.error('Invalid meeting data');
-       return;
-     }
+      // Validate meeting ID format and user access
+      if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
+        console.error('❌ Invalid meeting ID format in saveNoteStyleToDatabase');
+        return;
+      }
 
      const currentMeetingId = meeting.id;
      console.log('💾 Saving note style', styleNumber, 'for meeting:', currentMeetingId);
@@ -326,11 +320,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          p_user_id: user.id
        });
 
-       if (!accessCheck) {
-         console.error('❌ User lost access to meeting during save:', currentMeetingId);
-         toast.error('Access denied - cannot save notes');
-         return;
-       }
+        if (!accessCheck) {
+          console.error('❌ User lost access to meeting during save:', currentMeetingId);
+          return;
+        }
 
        const columnName = `notes_style_${styleNumber}`;
        const { error } = await supabase
@@ -345,16 +338,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          return;
        }
 
-       if (error) {
-         console.error(`❌ Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
-         toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
-       } else {
-         console.log(`✅ Meeting Notes Style ${styleNumber} saved to database for meeting ${currentMeetingId}`);
-       }
-     } catch (error) {
-       console.error(`Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
-       toast.error(`Failed to save Meeting Notes Style ${styleNumber}`);
-     }
+        if (error) {
+          console.error(`❌ Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
+        } else {
+          console.log(`✅ Meeting Notes Style ${styleNumber} saved to database for meeting ${currentMeetingId}`);
+        }
+      } catch (error) {
+        console.error(`Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, error);
+      }
    };
 
   // Create a mock meeting data object for the export hook
@@ -390,7 +381,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const generateAdvancedWordDocument = async (content: string, title: string) => {
     try {
       console.log('🔍 Generating full-featured Word document with formatting!');
-      toast.info('Generating Word document...');
       
       const { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType } = await import('docx');
       
@@ -711,18 +701,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.log('🔍 Document created, converting to blob...');
       const blob = await Packer.toBlob(doc);
       saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`);
-      toast.success('Word document downloaded successfully!');
       
     } catch (error) {
       console.error('Word generation error:', error);
-      toast.error('Failed to generate Word document');
     }
   };
 
   const generatePDF = (content: string, title: string) => {
     try {
       console.log('🔍 Generating clean PDF document...');
-      toast.info('Generating PDF document...');
       
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -848,12 +835,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
       
       doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.pdf`);
-      toast.success('Clean PDF generated successfully!');
       console.log('🔍 Clean PDF generation completed!');
       
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast.error('Failed to generate PDF');
     }
   };
 
@@ -906,7 +891,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     } catch (error) {
       console.error('🚨 CRITICAL: Error fetching transcript:', error);
-      toast.error('Failed to load transcript');
       setTranscript('');
     } finally {
       setIsLoadingTranscript(false);
@@ -1069,7 +1053,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     const setVersions = activeTab === 'notes' ? setNotesVersions : setTranscriptVersions;
     
     if (versions.length === 0) {
-      toast.error('No previous versions available');
       return;
     }
     
@@ -1086,8 +1069,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     // Remove the restored version from history
     setVersions(prev => prev.slice(0, -1));
-    
-    toast.success(`Restored previous ${activeTab === 'notes' ? 'notes' : 'transcript'} version`);
   };
 
   const handleEnhanced = async (enhancedContent: string) => {
@@ -1114,10 +1095,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (error) throw error;
 
-      toast.success('Notes enhanced successfully!');
     } catch (error) {
       console.error('Error updating notes:', error);
-      toast.error('Failed to update notes');
     }
   };
 
@@ -1325,7 +1304,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
       setEditingContent(""); // Clear editing content
       setEditingTab(""); // Clear editing tab
-      toast.success("Changes saved successfully!");
     }
     setIsEditing(!isEditing);
   };
@@ -1356,7 +1334,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Handle full audio reprocessing with Whisper
   const handleReprocessAudio = async () => {
     if (!meeting?.id) {
-      toast.error('No meeting selected');
       return;
     }
 
@@ -1365,11 +1342,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsLoadingTranscript(true);
     
     try {
-      toast.info('🎙️ Getting audio data from meeting...');
       
       await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for UX
       
-      toast.info('🔄 Processing audio with Whisper AI...');
 
       const { data, error } = await supabase.functions.invoke('reprocess-meeting-audio', {
         body: { meetingId: meeting.id },
@@ -1377,18 +1352,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (error) {
         console.error('Audio reprocessing error:', error);
-        toast.error('Failed to reprocess audio: ' + error.message);
         return;
       }
 
-      toast.info('📝 Storing new transcript...');
       
       setTranscript(data.transcript);
-      toast.success(`✅ Audio reprocessed successfully! Generated ${data.length} characters of transcript.`);
       
     } catch (error) {
       console.error('Error reprocessing audio:', error);
-      toast.error('Failed to reprocess audio');
     } finally {
       setIsLoadingTranscript(false);
     }
@@ -1397,7 +1368,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Handle GPT-based transcript cleaning
   const handleGPTCleanTranscript = async () => {
     if (!transcript || transcript.trim().length === 0) {
-      toast.error('No transcript content to clean');
       return;
     }
 
@@ -1406,7 +1376,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsLoadingTranscript(true);
     
     try {
-      toast.info('🤖 Analyzing transcript with AI...');
       
       const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
         body: { 
@@ -1423,12 +1392,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       if (error) {
         console.error('GPT cleaning error:', error);
-        toast.error('Failed to clean transcript with GPT: ' + error.message);
         return;
       }
 
       if (!data?.cleanedTranscript) {
-        toast.error('Cleaner returned empty response - please check configuration');
         return;
       }
 
@@ -1436,16 +1403,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Persist immediately so the deep-cleaned version is kept when navigating away
       await saveTranscriptToDatabase(data.cleanedTranscript);
       
-      // Enhanced success message with custom corrections info
-      const customCorrectionsText = data.appliedCustomCorrections > 0 
-        ? ` Applied ${data.appliedCustomCorrections} custom corrections.` 
-        : '';
-      
-      toast.success(`✅ Transcript cleaned and saved! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.${customCorrectionsText}`);
-      
     } catch (error) {
       console.error('Error cleaning transcript:', error);
-      toast.error('Failed to clean transcript');
     } finally {
       setIsLoadingTranscript(false);
     }
@@ -1454,7 +1413,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Handle transcript cleaning to remove duplicates
   const handleCleanTranscript = () => {
     if (!transcript || transcript.trim().length === 0) {
-      toast.error('No transcript content to clean');
       return;
     }
 
@@ -1464,21 +1422,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     try {
       const cleanedTranscript = cleanTranscript(transcript);
       setTranscript(cleanedTranscript);
-      toast.success('Transcript cleaned successfully!');
       
     } catch (error) {
       console.error('Error cleaning transcript:', error);
-      toast.error('Failed to clean transcript');
     }
   };
 
   const copyToClipboard = async (content: string) => {
     const success = await copyPlainTextToClipboard(content, 'Content copied to clipboard');
-    if (success) {
-      toast.success('Content copied to clipboard!');
-    } else {
-      toast.error('Failed to copy to clipboard');
-    }
   };
 
   const handleDownloadText = () => {
@@ -1548,7 +1499,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    toast.success("Clean plain text downloaded successfully!");
   };
 
   const saveSummaryToDatabase = async (content: string) => {
@@ -1569,7 +1519,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         });
 
       if (error) throw error;
-      toast.success("Notes saved successfully!");
     } catch (error) {
       console.error('Error saving summary:', error);
       if (error.code === '23505') {
@@ -1581,13 +1530,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             .eq('meeting_id', meeting.id);
           
           if (updateError) throw updateError;
-          toast.success("Notes updated successfully!");
         } catch (updateError) {
           console.error('Error updating summary:', updateError);
-          toast.error("Failed to save notes");
         }
-      } else {
-        toast.error("Failed to save notes");
       }
     }
   };
@@ -1618,19 +1563,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         
       if (insertError) {
         console.error('Error saving transcript:', insertError);
-        toast.error('Failed to save transcript to database');
-      } else {
-        toast.success('Transcript saved successfully!');
       }
     } catch (error) {
       console.error('Error saving transcript:', error);
-      toast.error('Failed to save transcript changes');
     }
   };
 
   const handleRegenerateNotes = async () => {
     if (!meeting?.id || !transcript) {
-      toast.error("No transcript available to generate notes from");
       return;
     }
 
@@ -1663,12 +1603,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         
         // Generate and save meeting overview for the history view
         await generateAndSaveOverview(data.meetingMinutes);
-        
-        toast.success("Meeting notes and overview regenerated successfully!");
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
-      toast.error("Failed to regenerate meeting notes");
     } finally {
       setIsGenerating(false);
     }
@@ -1679,7 +1616,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Very Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
-      toast.error("No transcript available to generate notes");
       return;
     }
 
@@ -1788,15 +1724,11 @@ ${transcript}`;
         
         // Save to database
         await saveNoteStyleToDatabase(2, generatedContent);
-        
-        toast.success("Minutes - Brief generated and saved successfully!");
       } else {
         console.error('❌ No content in Brief response:', data);
-        toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('❌ Error generating Brief notes:', error);
-      toast.error("Failed to generate Minutes - Brief");
     } finally {
       console.log('🏁 Brief generation finished');
       setIsGeneratingStyle2(false);
@@ -1808,7 +1740,6 @@ ${transcript}`;
     
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Standard:', { meetingId: meeting?.id, hasTranscript: !!transcript });
-      toast.error("No transcript available to generate notes");
       return;
     }
 
@@ -1987,15 +1918,11 @@ ${transcript}`;
         
         // Save to database
         await saveNoteStyleToDatabase(3, generatedContent);
-        
-        toast.success("Meeting Notes Style 3 generated and saved successfully!");
       } else {
         console.error('❌ No content in Detailed response:', data);
-        toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('❌ Error generating Standard notes:', error);
-      toast.error("Failed to generate Minutes - Standard");
     } finally {
       console.log('🏁 Standard generation finished');
       setIsGeneratingStyle3(false);
@@ -2007,7 +1934,6 @@ ${transcript}`;
     
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Executive:', { meetingId: meeting?.id, hasTranscript: !!transcript });
-      toast.error("No transcript available to generate notes");
       return;
     }
 
@@ -2114,15 +2040,11 @@ ${transcript}`;
         
         // Save to database
         await saveNoteStyleToDatabase(4, generatedContent);
-        
-        toast.success("Minutes - Executive generated and saved successfully!");
       } else {
         console.error('❌ No content in Executive response:', data);
-        toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('❌ Error generating Executive notes:', error);
-      toast.error("Failed to generate Minutes - Executive");
     } finally {
       console.log('🏁 Executive generation finished');
       setIsGeneratingStyle4(false);
@@ -2134,7 +2056,6 @@ ${transcript}`;
     
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data:', { meetingId: meeting?.id, hasTranscript: !!transcript });
-      toast.error("No transcript available to generate notes");
       return;
     }
 
@@ -2229,15 +2150,11 @@ ${transcript}`;
         
         // Save to database
         await saveNoteStyleToDatabase(5, generatedContent);
-        
-        toast.success("Minutes - Limerick generated and saved successfully!");
       } else {
         console.error('❌ No content in response:', data);
-        toast.error("No content generated - please try again");
       }
     } catch (error) {
       console.error('❌ Error generating limerick:', error);
-      toast.error("Failed to generate Minutes - Limerick");
     } finally {
       console.log('🏁 Limerick generation finished');
       setIsGeneratingStyle5(false);
@@ -2336,7 +2253,6 @@ ${transcript}`;
 
   const handleCustomInstructionSubmit = async () => {
     if (!customInstruction.trim() || !meeting?.id) {
-      toast.error("Please enter custom instructions");
       return;
     }
 
@@ -2359,11 +2275,9 @@ ${transcript}`;
         saveSummaryToDatabase(data.enhancedContent);
         setCustomInstruction("");
         setShowCustomInstruction(false);
-        toast.success("Meeting notes enhanced with custom instructions!");
       }
     } catch (error) {
       console.error('Error applying custom instructions:', error);
-      toast.error("Failed to apply custom instructions");
     } finally {
       setIsGenerating(false);
     }
@@ -2374,10 +2288,8 @@ ${transcript}`;
       const cleanContent = stripMarkdown(content);
       const blob = new Blob([cleanContent], { type: 'text/plain;charset=utf-8' });
       saveAs(blob, `${filename}.txt`);
-      toast.success("Text file downloaded");
     } catch (error) {
       console.error('Text export failed:', error);
-      toast.error("Failed to export text file");
     }
   };
 
@@ -2412,7 +2324,6 @@ ${transcript}`;
       if (activeTab === "notes") {
         onNotesChange(result);
       }
-      toast.success(`Applied ${action.replace('-', ' ')}`);
     }
   };
 
@@ -2420,7 +2331,6 @@ ${transcript}`;
   const handleAIEnhancement = async (enhanceType: string) => {
     const currentContent = getCurrentContent();
     if (!currentContent.trim()) {
-      toast.error("No content to enhance");
       return;
     }
 
@@ -2449,10 +2359,8 @@ ${transcript}`;
       if (data.error) throw new Error(data.error);
 
       onNotesChange(data.enhancedContent);
-      toast.success(`Applied ${enhanceType.replace('-', ' ')} enhancement`);
     } catch (error) {
       console.error('Enhancement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Enhancement failed');
     } finally {
       setIsGenerating(false);
     }
@@ -2462,7 +2370,6 @@ ${transcript}`;
   const handleCustomAISubmit = async (prompt: string) => {
     const currentContent = getCurrentContent();
     if (!currentContent.trim() || !prompt.trim()) {
-      toast.error("Please provide content and a custom prompt");
       return;
     }
 
@@ -2482,11 +2389,9 @@ ${transcript}`;
       if (data.error) throw new Error(data.error);
 
       onNotesChange(data.enhancedContent);
-      toast.success("Applied custom AI enhancement");
       setShowCustomAIModal(false);
     } catch (error) {
       console.error('Custom enhancement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Custom enhancement failed');
     } finally {
       setIsGenerating(false);
     }
@@ -2496,7 +2401,6 @@ ${transcript}`;
   const handleFindReplaceSubmit = (findText: string, replaceText: string, options: { caseSensitive: boolean; wholeWords: boolean; }) => {
     const currentContent = getCurrentContent();
     if (!findText) {
-      toast.error("Please enter text to find");
       return;
     }
 
@@ -2518,14 +2422,10 @@ ${transcript}`;
       
       if (matchCount > 0) {
         onNotesChange(newContent);
-        toast.success(`Replaced ${matchCount} occurrence${matchCount > 1 ? 's' : ''}`);
         setShowFindReplace(false);
-      } else {
-        toast.info("No matches found");
       }
     } catch (error) {
       console.error('Find and replace failed:', error);
-      toast.error("Find and replace operation failed");
     }
   };
 
@@ -2660,10 +2560,9 @@ ${transcript}`;
                          element.href = URL.createObjectURL(file);
                          element.download = `${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${activeTab}.txt`;
                          document.body.appendChild(element);
-                         element.click();
-                         document.body.removeChild(element);
-                         toast.success("Clean plain text downloaded successfully!");
-                       }}>
+                          element.click();
+                          document.body.removeChild(element);
+                        }}>
                         <Type className="h-4 w-4 mr-2" />
                         Download as Plain Text
                       </DropdownMenuItem>
@@ -2740,7 +2639,6 @@ ${transcript}`;
                   if (activeTab === "notes") {
                     saveSummaryToDatabase(updatedText);
                   }
-                  toast.success("Text replaced successfully!");
                 }}
               />
             </div>
@@ -2780,7 +2678,6 @@ ${transcript}`;
                 <Button
                   onClick={async () => {
                     if (!customInstruction.trim() || !meeting?.id) {
-                      toast.error("Please enter custom instructions");
                       return;
                     }
 
@@ -2808,11 +2705,9 @@ ${transcript}`;
                         }
                         setCustomInstruction("");
                         setShowCustomInstruction(false);
-                        toast.success(`${activeTab === "notes" ? "Meeting notes" : "Transcript"} enhanced with custom instructions!`);
                       }
                     } catch (error) {
                       console.error('Error applying custom instructions:', error);
-                      toast.error("Failed to apply custom instructions");
                     } finally {
                       setIsGenerating(false);
                     }
@@ -2868,7 +2763,6 @@ ${transcript}`;
                 setIsEditing(false);
                 setEditingContent("");
                 setEditingTab("");
-                toast.success("Changes saved automatically!");
               }
               setActiveTab(value);
             }} className="h-full flex flex-col">
@@ -3040,11 +2934,6 @@ ${transcript}`;
                                         onClick={async () => {
                                           if (content) {
                                             const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
-                                            if (success) {
-                                              toast.success(`${tabName} copied to clipboard`);
-                                            } else {
-                                              toast.error('Failed to copy to clipboard');
-                                            }
                                           }
                                         }}
                                         variant="outline"
@@ -3459,7 +3348,6 @@ ${transcript}`;
             const currentTranscript = transcript || '';
             const updatedTranscript = currentTranscript + formattedContext;
             setTranscript(updatedTranscript);
-            toast.success('Context added to transcript');
           }}
         />
 
