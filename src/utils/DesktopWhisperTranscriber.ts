@@ -22,6 +22,7 @@ export class DesktopWhisperTranscriber {
   private meetingId: string | null = null; // Meeting ID to associate chunks
   private finalTranscript = ''; // Accumulated final transcript with smart merging
   private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
+  private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
   
   // Early transcription mode for first minute
   private earlyTranscriptionMode = true;
@@ -382,17 +383,23 @@ export class DesktopWhisperTranscriber {
             
             console.log(`📦 Desktop received ${data.segments.length} segments from API`);
             
+            // Calculate time offset - segments from Whisper are relative to the chunk, not the recording
+            const timeOffset = this.totalProcessedDuration;
+            console.log(`⏰ Applying time offset: ${timeOffset.toFixed(2)}s to ${data.segments.length} segments`);
+            
+            // Apply time offset to all segments
+            const offsetSegments = data.segments.map((seg: any) => ({
+              start: seg.start + timeOffset,
+              end: seg.end + timeOffset,
+              text: seg.text.trim()
+            }));
+            
             // Filter segments that are after our last stored end time
             // For first chunk (lastSegmentEndTime === 0), accept all segments
-            const newSegments = data.segments
-              .filter((seg: any) => this.lastSegmentEndTime === 0 || seg.end > this.lastSegmentEndTime)
-              .map((seg: any) => ({
-                start: seg.start,
-                end: seg.end,
-                text: seg.text.trim()
-              }));
+            const newSegments = offsetSegments
+              .filter((seg: any) => this.lastSegmentEndTime === 0 || seg.end > this.lastSegmentEndTime);
             
-            console.log(`⏱️ Desktop chunk ${currentChunkNumber} - lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, filtered segments: ${newSegments.length}/${data.segments.length}`);
+            console.log(`⏱️ Desktop chunk ${currentChunkNumber} - offset: ${timeOffset.toFixed(2)}s, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, filtered segments: ${newSegments.length}/${data.segments.length}`);
             
             if (newSegments.length > 0) {
               const { error: dbError } = await supabase
@@ -412,7 +419,10 @@ export class DesktopWhisperTranscriber {
               } else {
                 // Update last end time to the latest segment
                 this.lastSegmentEndTime = Math.max(...newSegments.map((s: any) => s.end));
-                console.log(`💾 Stored ${newSegments.length} segments in chunk ${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s`);
+                // Update total processed duration (add the duration of this chunk)
+                const chunkDuration = Math.max(...offsetSegments.map((s: any) => s.end)) - timeOffset;
+                this.totalProcessedDuration += chunkDuration;
+                console.log(`💾 Stored ${newSegments.length} segments in chunk ${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s, totalDuration: ${this.totalProcessedDuration.toFixed(2)}s`);
               }
             } else {
               console.log(`⏭️ Skipping chunk ${currentChunkNumber} - all segments already stored`);
