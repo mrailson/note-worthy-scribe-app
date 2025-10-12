@@ -3233,8 +3233,11 @@ export const MeetingRecorder = ({
             .order('chunk_number');
 
           if (!error && data && data.length > 0) {
-            finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
-            console.log(`🔍 DEBUG: Database transcript: ${finalTranscript.length} chars from ${data.length} chunks`);
+            // Apply mergeLive to deduplicate chunks (same logic as during live recording)
+            finalTranscript = data.reduce((accumulated, chunk) => {
+              return mergeLive(accumulated, chunk.transcription_text);
+            }, '').trim();
+            console.log(`🔍 DEBUG: Database transcript (deduplicated): ${finalTranscript.length} chars from ${data.length} chunks`);
           }
         } catch (dbError) {
           console.error('❌ Database query failed:', dbError);
