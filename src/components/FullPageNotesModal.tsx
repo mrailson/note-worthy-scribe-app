@@ -3397,6 +3397,19 @@ ${transcript}`;
           currentText={getCurrentContent()}
         />
 
+        {/* Transcript Context Dialog */}
+        <TranscriptContextDialog
+          open={showContextDialog}
+          onOpenChange={setShowContextDialog}
+          onAddContext={(contextType, files, customLabel) => {
+            const formattedContext = formatTranscriptContext(contextType, files, customLabel);
+            const currentTranscript = transcript || '';
+            const updatedTranscript = currentTranscript + formattedContext;
+            setTranscript(updatedTranscript);
+            toast.success('Context added to transcript');
+          }}
+        />
+
       </Dialog>
     </>
   );
