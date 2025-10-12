@@ -3260,7 +3260,7 @@ ${transcript}`;
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                    <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-4">
                       <h3 className="text-lg font-semibold">Meeting Transcript</h3>
                     </div>
                      <div className="flex items-center gap-2">
@@ -3273,12 +3273,10 @@ ${transcript}`;
                                   setShowContextDialog(true);
                                 }}
                                 variant="outline"
-                                size="sm"
-                                className="gap-2"
+                                size="icon"
                                 title="Add context like agendas, attendee lists, or presentations"
                               >
                                 <FilePlus2 className="h-4 w-4" />
-                                Add Context
                               </Button>
                            </TooltipTrigger>
                            <TooltipContent>
@@ -3287,49 +3285,80 @@ ${transcript}`;
                          </Tooltip>
                        </TooltipProvider>
 
-                       <Button
-                         onClick={() => copyToClipboard(transcript || '')}
-                         variant="outline"
-                         size="sm"
-                         className="gap-2"
-                         disabled={!transcript || transcript.trim().length === 0}
-                         title="Copy transcript to clipboard"
-                       >
-                         <Copy className="h-4 w-4" />
-                         Copy
-                       </Button>
-                       <Button
-                         onClick={handleGPTCleanTranscript}
-                         variant="outline"
-                         size="sm"
-                         className="gap-2"
-                         disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
-                         title="Deep clean transcript using GPT to remove duplicates and improve formatting"
-                       >
-                         <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
-                         {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
-                       </Button>
-                       <Button
-                         onClick={handleUndo}
-                         variant="outline"
-                         size="sm"
-                         className="gap-2"
-                         disabled={transcriptVersions.length === 0}
-                         title={`Undo (${transcriptVersions.length} versions available)`}
-                       >
-                         <Undo2 className="h-4 w-4" />
-                         Undo
-                       </Button>
-                       <Button
-                         onClick={handleEditToggle}
-                         variant="outline"
-                         size="sm"
-                         className="gap-2"
-                       >
-                         <Edit3 className="h-4 w-4" />
-                         {isEditing ? 'Save' : 'Edit'}
-                       </Button>
-                     </div>
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               onClick={() => copyToClipboard(transcript || '')}
+                               variant="outline"
+                               size="icon"
+                               disabled={!transcript || transcript.trim().length === 0}
+                               title="Copy transcript to clipboard"
+                             >
+                               <Copy className="h-4 w-4" />
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>Copy transcript to clipboard</p>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               onClick={handleGPTCleanTranscript}
+                               variant="outline"
+                               size="icon"
+                               disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
+                               title="Deep clean transcript using GPT to remove duplicates and improve formatting"
+                             >
+                               <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>{isLoadingTranscript ? 'AI Processing...' : 'Deep clean transcript using GPT'}</p>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               onClick={handleUndo}
+                               variant="outline"
+                               size="icon"
+                               disabled={transcriptVersions.length === 0}
+                               title={`Undo (${transcriptVersions.length} versions available)`}
+                             >
+                               <Undo2 className="h-4 w-4" />
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>Undo ({transcriptVersions.length} versions available)</p>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               onClick={handleEditToggle}
+                               variant="outline"
+                               size="icon"
+                             >
+                               <Edit3 className="h-4 w-4" />
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>{isEditing ? 'Save' : 'Edit'} transcript</p>
+                           </TooltipContent>
+                         </Tooltip>
+                        </TooltipProvider>
+                      </div>
                   </div>
                   
                   <div className="flex-1 overflow-auto p-6 pt-0">
