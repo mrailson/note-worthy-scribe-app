@@ -4,6 +4,7 @@ import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { ChromiumMicTranscriber, ChromiumTranscriptData } from '@/utils/ChromiumMicTranscriber';
+import { mergeLive } from "@/utils/TranscriptMerge";
 import { toast } from "sonner";
 import { bus } from "@/lib/bus";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,7 +189,8 @@ export const useGPScribeRecording = () => {
       if (newTranscriptData.isFinal && newTranscriptData.text.trim()) {
         const finalText = newTranscriptData.text.trim();
         setTranscript(prevTranscript => {
-          const newTranscript = prevTranscript ? `${prevTranscript} ${finalText}` : finalText;
+          // Use mergeLive to detect and remove overlapping text sections
+          const newTranscript = mergeLive(prevTranscript, finalText);
           setWordCount(newTranscript.split(' ').filter(word => word.trim()).length);
           
           // Create translation request for each final transcript segment
