@@ -22,11 +22,34 @@ export const ManualNoteGenerationButton = ({
       setIsGenerating(true);
       console.log('🔄 Manually triggering note generation for:', meetingId);
 
+      // First verify the meeting exists and user has access
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('id, user_id, word_count')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (meetingError) {
+        throw new Error(`Database error: ${meetingError.message}`);
+      }
+
+      if (!meeting) {
+        throw new Error('Meeting not found or you do not have access to it');
+      }
+
+      if (!meeting.word_count || meeting.word_count === 0) {
+        throw new Error('This meeting has no transcript content to generate notes from');
+      }
+
       // Update meeting status to indicate manual generation
-      await supabase
+      const { error: updateError } = await supabase
         .from('meetings')
         .update({ notes_generation_status: 'queued' })
         .eq('id', meetingId);
+
+      if (updateError) {
+        throw new Error(`Failed to update meeting status: ${updateError.message}`);
+      }
 
       // Call the auto-generate function
       const { error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
