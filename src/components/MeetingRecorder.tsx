@@ -3496,43 +3496,34 @@ export const MeetingRecorder = ({
 
       toast.success('Meeting saved successfully!');
 
-      // Step 3: Complete - Show "Nearly There" for maximum 3 seconds
-      setSavingSteps({ saving: true, securing: true, complete: true, aiProcessing: false, aiComplete: false });
+      // Show success immediately
+      const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
       
-      // Start 3-second timeout for "Nearly There" stage
-      console.log('⏰ Starting 3-second "Nearly There" timeout');
-      setTimeout(() => {
-        console.log('✅ Moving to success stage after 3-second "Nearly There" timeout');
-        
-        // Show success immediately - user doesn't need to wait for AI processing
-        const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-        
-        setMeetingEndModal({
-          isOpen: true,
-          stage: 'success',
-          savedData: {
-            title: formattedTitle,
-            duration: formatDuration(duration),
-            wordCount: wordCount,
-            id: savedMeeting.id
-          }
-        });
+      setMeetingEndModal({
+        isOpen: true,
+        stage: 'success',
+        savedData: {
+          title: formattedTitle,
+          duration: formatDuration(duration),
+          wordCount: wordCount,
+          id: savedMeeting.id
+        }
+      });
 
-        // Clear all existing timeouts
-        clearModalTimeout();
-        
-        // Use a simple setTimeout for auto-close
-        console.log('⏰ Setting 5-second auto-close timer');
-        setTimeout(() => {
-          console.log('🔄 Auto-closing modal after 5 seconds');
-          setMeetingEndModal({
-            isOpen: false,
-            stage: 'processing',
-            savedData: null
-          });
-          setModalAutoCloseCountdown(null);
-        }, 5000);
-      }, 3000);
+      // Clear all existing timeouts
+      clearModalTimeout();
+      
+      // Use a simple setTimeout for auto-close
+      console.log('⏰ Setting 5-second auto-close timer');
+      setTimeout(() => {
+        console.log('🔄 Auto-closing modal after 5 seconds');
+        setMeetingEndModal({
+          isOpen: false,
+          stage: 'processing',
+          savedData: null
+        });
+        setModalAutoCloseCountdown(null);
+      }, 5000);
 
       // Start background processing immediately (don't block UI)
       console.log('🤖 Starting background processing (notes generation, cleanup)...');
@@ -5164,17 +5155,6 @@ export const MeetingRecorder = ({
                         Securing your data...
                       </span>
                     </div>
-
-                    {savingSteps.complete && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary">
-                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                        </div>
-                         <span className="text-sm text-foreground font-medium">
-                          Nearly There.... (max one minute)
-                         </span>
-                      </div>
-                    )}
                   </div>
                 </>
               )}
