@@ -59,52 +59,52 @@ serve(async (req) => {
     switch (enhancementType) {
       case 'make_detailed':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to take existing meeting minutes and make them more detailed and comprehensive while maintaining accuracy. Add relevant context, expand on key points, and provide more thorough explanations. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please make the following meeting minutes more detailed and comprehensive using British English spelling. Expand on key points, add relevant context, and provide more thorough explanations:\n\n${originalContent}`;
+        userPrompt = `Please make the following meeting minutes more detailed and comprehensive using British English spelling. Expand on key points, add relevant context, and provide more thorough explanations:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'add_quotes':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to enhance meeting minutes by adding realistic and appropriate direct quotes where they would naturally occur. The quotes should be professional, contextually appropriate, and enhance the clarity of decisions and discussions. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please enhance the following meeting minutes by adding realistic direct quotes where appropriate using British English spelling. The quotes should sound natural and professional:\n\n${originalContent}`;
+        userPrompt = `Please enhance the following meeting minutes by adding realistic direct quotes where appropriate using British English spelling. The quotes should sound natural and professional:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'replace_content':
         systemPrompt = `You are an expert meeting minutes editor. Your task is to make specific replacements or modifications to meeting minutes based on user requests while maintaining the overall structure and professionalism of the document. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please modify the following meeting minutes according to this request using British English spelling: "${specificRequest}"\n\nOriginal content:\n${originalContent}`;
+        userPrompt = `Please modify the following meeting minutes according to this request using British English spelling: "${specificRequest}"\n\nOriginal content:\n${originalContent}${transcriptContext}`;
         break;
 
       case 'improve_clarity':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to improve the clarity and readability of meeting minutes while maintaining all the original information. Make the content more professional, well-organised, and easier to understand. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please improve the clarity and readability of the following meeting minutes using British English spelling. Make them more professional and well-organised:\n\n${originalContent}`;
+        userPrompt = `Please improve the clarity and readability of the following meeting minutes using British English spelling. Make them more professional and well-organised:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'add_structure':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to improve the structure and organisation of meeting minutes by adding proper headings, sections, and formatting while maintaining all original content. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please improve the structure and organisation of the following meeting minutes by adding proper headings, sections, and formatting using British English spelling:\n\n${originalContent}`;
+        userPrompt = `Please improve the structure and organisation of the following meeting minutes by adding proper headings, sections, and formatting using British English spelling:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'make_professional':
         systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting minutes into highly professional, formal business documents suitable for board meetings or official records. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please transform the following meeting minutes into a highly professional, formal business document using British English spelling:\n\n${originalContent}`;
+        userPrompt = `Please transform the following meeting minutes into a highly professional, formal business document using British English spelling:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'make_concise':
         systemPrompt = `You are an expert meeting minutes enhancer. Your task is to make meeting minutes more concise and to-the-point while retaining all critical information and decisions. ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please make the following meeting minutes more concise while retaining all critical information using British English spelling:\n\n${originalContent}`;
+        userPrompt = `Please make the following meeting minutes more concise while retaining all critical information using British English spelling:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'add_action_items':
         systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organising them clearly. Use "Matters to Revisit" for any deferred or unresolved items (never use "Parking Lot"). ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please identify and clearly organise all action items, decisions, follow-up tasks, and matters to revisit from these meeting minutes using British English spelling:\n\n${originalContent}`;
+        userPrompt = `Please identify and clearly organise all action items, decisions, follow-up tasks, and matters to revisit from these meeting minutes using British English spelling:\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'nhs_format':
         systemPrompt = `You are an expert in NHS meeting documentation standards. Format meeting minutes according to NHS governance and documentation standards with proper clinical and administrative structure. Use "Matters to Revisit" for deferred items, never "Parking Lot". ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please format the following meeting minutes according to NHS governance standards using British English spelling, ensuring any deferred items are listed under "Matters to Revisit":\n\n${originalContent}`;
+        userPrompt = `Please format the following meeting minutes according to NHS governance standards using British English spelling, ensuring any deferred items are listed under "Matters to Revisit":\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'board_ready':
         systemPrompt = `You are an expert meeting minutes enhancer. Transform meeting content into board-ready format with executive summaries, key decisions highlighted, and professional presentation. Use "Matters to Revisit" for any deferred or follow-up items (never use "Parking Lot"). ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please transform the following meeting minutes into board-ready format using British English spelling, ensuring deferred items are under "Matters to Revisit":\n\n${originalContent}`;
+        userPrompt = `Please transform the following meeting minutes into board-ready format using British English spelling, ensuring deferred items are under "Matters to Revisit":\n\n${originalContent}${transcriptContext}`;
         break;
 
       case 'custom':
