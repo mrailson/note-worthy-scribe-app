@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { TranscriptCleaner } from "@/utils/TranscriptCleaner";
 import { getActiveMinConfidence, meetsConfidenceThreshold, withDefaultThresholds } from "@/utils/confidenceGating";
 import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
+import { segmentsToPlainText, type Segment } from "@/lib/segmentMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -459,11 +460,27 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             processedSeqRef.current.add(r.seq);
           }
 
+          // Parse segment JSON if available, otherwise use plain text
+          let textForDisplay = r.transcription_text;
+          
+          try {
+            // Try to parse as JSON segments
+            const parsed = JSON.parse(r.transcription_text);
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+              // It's segment JSON - convert to plain text
+              textForDisplay = segmentsToPlainText(parsed);
+              console.log("📦 Parsed segment JSON:", parsed.length, "segments ->", textForDisplay.length, "chars");
+            }
+          } catch {
+            // Not JSON, use as-is (legacy plain text chunks)
+            console.log("📝 Using plain text chunk");
+          }
+          
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
-          console.log("🔗 Accumulating raw transcript chunk:", r.transcription_text?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
+          console.log("🔗 Accumulating transcript chunk:", textForDisplay?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
           setLiveTranscriptText(prev => {
             const chunk: LiveChunk = {
-              text: r.transcription_text,
+              text: textForDisplay,
               isFinal: r.is_final,
               seq: r.seq,
               source: r.source || 'unknown'
@@ -473,8 +490,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             return merged;
           });
 
-          // Apply lightweight cleaning for real-time processing
-          const cleanedChunk = lightCleanChunk(r.transcription_text);
+          // Apply lightweight cleaning for real-time processing (use parsed text)
+          const cleanedChunk = lightCleanChunk(textForDisplay);
           const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
 
           // Enhanced final chunk handling with better deduplication (Phase 1 fix)

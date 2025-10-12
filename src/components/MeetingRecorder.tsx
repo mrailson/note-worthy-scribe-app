@@ -3230,11 +3230,37 @@ export const MeetingRecorder = ({
             .order('chunk_number');
 
           if (!error && data && data.length > 0) {
-            // Apply mergeLive to deduplicate chunks (same logic as during live recording)
-            finalTranscript = data.reduce((accumulated, chunk) => {
-              return mergeLive(accumulated, chunk.transcription_text);
-            }, '').trim();
-            console.log(`🔍 DEBUG: Database transcript (deduplicated): ${finalTranscript.length} chars from ${data.length} chunks`);
+            console.log(`🔍 Reconstructing from ${data.length} chunks with segment JSON parsing...`);
+            
+            // Collect all segments from chunks
+            let allSegments: Segment[] = [];
+            
+            for (const chunk of data) {
+              try {
+                // Try to parse as JSON segments
+                const parsed = JSON.parse(chunk.transcription_text);
+                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+                  allSegments = mergeByTimestamps(allSegments, parsed);
+                  console.log(`📦 Parsed ${parsed.length} segments from chunk`);
+                } else {
+                  // Not segment JSON, treat as plain text (legacy)
+                  console.log('📝 Legacy plain text chunk, using mergeLive');
+                  finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+                }
+              } catch {
+                // Parse failed, treat as plain text (legacy)
+                console.log('📝 Legacy plain text chunk, using mergeLive');
+                finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+              }
+            }
+            
+            // If we collected segments, convert to plain text
+            if (allSegments.length > 0) {
+              finalTranscript = segmentsToPlainText(allSegments);
+              console.log(`✅ Reconstructed from segments: ${finalTranscript.length} chars from ${allSegments.length} segments`);
+            }
+            
+            console.log(`🔍 DEBUG: Database transcript (reconstructed): ${finalTranscript.length} chars from ${data.length} chunks`);
           }
         } catch (dbError) {
           console.error('❌ Database query failed:', dbError);

@@ -81,14 +81,54 @@ const Index = () => {
 
       if (meetingError) throw meetingError;
 
-      // Load transcripts
-      const { data: transcripts, error: transcriptError } = await supabase
-        .from('meeting_transcripts')
-        .select('*')
+      // Load transcripts - try chunks first (higher fidelity), then fallback to meeting_transcripts
+      let fullTranscript = "";
+      
+      // Try to reconstruct from chunks
+      const { data: chunks, error: chunksError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text')
         .eq('meeting_id', meetingId)
-        .order('timestamp_seconds', { ascending: true });
+        .order('chunk_number', { ascending: true });
+      
+      if (!chunksError && chunks && chunks.length > 0) {
+        console.log(`📦 Reconstructing from ${chunks.length} chunks...`);
+        
+        // Import segment merge utilities
+        const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
+        let allSegments: any[] = [];
+        
+        for (const chunk of chunks) {
+          try {
+            // Try to parse as JSON segments
+            const parsed = JSON.parse(chunk.transcription_text);
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+              allSegments = mergeByTimestamps(allSegments, parsed);
+            }
+          } catch {
+            // Legacy plain text - append directly
+            fullTranscript = fullTranscript + (fullTranscript ? ' ' : '') + chunk.transcription_text;
+          }
+        }
+        
+        // Convert segments to text if we have any
+        if (allSegments.length > 0) {
+          fullTranscript = segmentsToPlainText(allSegments);
+          console.log(`✅ Reconstructed from ${allSegments.length} segments`);
+        }
+      }
+      
+      // Fallback to meeting_transcripts if chunks didn't work
+      if (!fullTranscript) {
+        const { data: transcripts, error: transcriptError } = await supabase
+          .from('meeting_transcripts')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('timestamp_seconds', { ascending: true });
 
-      if (transcriptError) throw transcriptError;
+        if (transcriptError) throw transcriptError;
+        fullTranscript = transcripts?.map(t => t.content).join('\n') || "";
+      }
 
       // Load summary
       const { data: summary, error: summaryError } = await supabase
@@ -110,8 +150,7 @@ const Index = () => {
       setCurrentMeetingId(meetingId);
       setDuration(meeting.duration_minutes ? `${Math.floor(meeting.duration_minutes / 60).toString().padStart(2, '0')}:${(meeting.duration_minutes % 60).toString().padStart(2, '0')}` : "00:00");
       
-      // Reconstruct transcript
-      const fullTranscript = transcripts?.map(t => t.content).join('\n') || "";
+      // Set reconstructed transcript
       setTranscript(fullTranscript);
       setWordCount(fullTranscript.split(' ').filter(word => word.length > 0).length);
 
