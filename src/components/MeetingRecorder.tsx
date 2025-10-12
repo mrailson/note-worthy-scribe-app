@@ -130,6 +130,11 @@ export const MeetingRecorder = ({
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
+  
+  // Early word count progress display (first 20 seconds)
+  const [showEarlyWordCount, setShowEarlyWordCount] = useState(false);
+  const [earlyWordCountValue, setEarlyWordCountValue] = useState(0);
+  const earlyWordCountTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Recording protection hook - after variable declarations
   const {
@@ -297,6 +302,15 @@ export const MeetingRecorder = ({
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
+    
+    // Clear early word count display
+    if (earlyWordCountTimeoutRef.current) {
+      clearTimeout(earlyWordCountTimeoutRef.current);
+      earlyWordCountTimeoutRef.current = null;
+    }
+    setShowEarlyWordCount(false);
+    setEarlyWordCountValue(0);
+    
     updateMeetingSettings({
       title: "General Meeting",
       description: "",
@@ -2858,6 +2872,21 @@ export const MeetingRecorder = ({
           const seconds = newDuration % 60;
           const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
           onDurationUpdate(timeString);
+          
+          // Display word count at 5, 10, 15, 20 seconds
+          if (newDuration <= 20 && [5, 10, 15, 20].includes(newDuration)) {
+            setEarlyWordCountValue(wordCount);
+            setShowEarlyWordCount(true);
+            
+            // Hide after 2 seconds
+            if (earlyWordCountTimeoutRef.current) {
+              clearTimeout(earlyWordCountTimeoutRef.current);
+            }
+            earlyWordCountTimeoutRef.current = setTimeout(() => {
+              setShowEarlyWordCount(false);
+            }, 2000);
+          }
+          
           return newDuration;
         });
       }, 1000);
@@ -4499,7 +4528,23 @@ export const MeetingRecorder = ({
                         </div>
                       )}
                       
-                         <Button 
+                      {/* Early word count progress display (first 20 seconds) */}
+                      {showEarlyWordCount && duration <= 20 && (
+                        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2">
+                          <Card className="border-primary/50 bg-primary/5">
+                            <CardContent className="p-3">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-medium">
+                                  {earlyWordCountValue} {earlyWordCountValue === 1 ? 'word' : 'words'} captured
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+                      
+                         <Button
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
                           size="lg"
