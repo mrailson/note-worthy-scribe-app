@@ -2468,6 +2468,7 @@ ${transcript}`;
           notesStyle3
         }
         onEnhanced={handleEnhanced}
+        meetingId={meeting.id}
       />
       
       <Dialog 

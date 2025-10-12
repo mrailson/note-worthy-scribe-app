@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,10 +22,34 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { originalContent, enhancementType, specificRequest, context } = await req.json();
+    const { originalContent, enhancementType, specificRequest, context, useTranscript, meetingId } = await req.json();
 
     if (!originalContent || !enhancementType) {
       throw new Error('Missing required fields: originalContent and enhancementType');
+    }
+
+    let transcriptContext = '';
+    
+    // Fetch meeting transcript if requested and meeting ID is provided
+    if (useTranscript && meetingId && supabaseUrl && supabaseServiceKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Use the get_meeting_full_transcript function
+        const { data: transcriptData, error: transcriptError } = await supabase
+          .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+
+        if (!transcriptError && transcriptData && transcriptData.length > 0) {
+          const transcript = transcriptData[0].transcript;
+          if (transcript && transcript.trim()) {
+            transcriptContext = `\n\nMEETING TRANSCRIPT FOR REFERENCE:\n${transcript}`;
+            console.log('Successfully fetched meeting transcript for enhancement');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching transcript:', error);
+        // Continue without transcript if there's an error
+      }
     }
 
     let systemPrompt = "";
@@ -89,7 +116,7 @@ CRITICAL: If the original content contains HTML markup with CSS classes (such as
 IMPORTANT: The content below contains HTML markup with CSS classes. You must preserve ALL HTML tags, class attributes, and styling exactly as they appear. Only modify the text content whilst maintaining the complete HTML structure.
 
 Original content:
-${originalContent}`;
+${originalContent}${transcriptContext}`;
         break;
 
       default:

@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Loader2, Wand2 } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,16 +21,19 @@ interface NoteEnhancementDialogProps {
   onOpenChange: (open: boolean) => void;
   originalContent: string;
   onEnhanced: (enhancedContent: string) => void;
+  meetingId?: string;
 }
 
 export function NoteEnhancementDialog({
   open,
   onOpenChange,
   originalContent,
-  onEnhanced
+  onEnhanced,
+  meetingId
 }: NoteEnhancementDialogProps) {
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [useTranscript, setUseTranscript] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleTranscription = (text: string) => {
@@ -47,7 +52,9 @@ export function NoteEnhancementDialog({
         body: {
           originalContent,
           enhancementType: 'custom',
-          specificRequest: prompt
+          specificRequest: prompt,
+          useTranscript,
+          meetingId
         }
       });
 
@@ -106,6 +113,21 @@ export function NoteEnhancementDialog({
             <p className="text-xs text-muted-foreground">
               Examples: "Add time estimates to action items", "Include specific quotes", "Make it more concise"
             </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="use-transcript"
+              checked={useTranscript}
+              onCheckedChange={(checked) => setUseTranscript(checked as boolean)}
+              disabled={isProcessing}
+            />
+            <Label
+              htmlFor="use-transcript"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Use Meeting Transcript
+            </Label>
           </div>
         </div>
 
