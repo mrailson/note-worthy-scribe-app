@@ -18,6 +18,10 @@ import { MeetingContextEnhancer } from "@/components/MeetingContextEnhancer";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
+import { formatTranscriptContext, extractCleanContent } from "@/utils/meeting/formatTranscriptContext";
+import { UploadedFile } from "@/types/ai4gp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,7 +49,8 @@ import {
   ChevronUp,
   ChevronDown as ChevronDownIcon,
   Undo2,
-  FolderOpen
+  FolderOpen,
+  FilePlus2
 } from "lucide-react";
 
 interface Meeting {
@@ -110,6 +115,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
   const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
+  const [showContextDialog, setShowContextDialog] = useState(false);
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -3257,6 +3263,26 @@ ${transcript}`;
                       <h3 className="text-lg font-semibold">Meeting Transcript</h3>
                     </div>
                      <div className="flex items-center gap-2">
+                       <TooltipProvider>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               onClick={() => setShowContextDialog(true)}
+                               variant="outline"
+                               size="sm"
+                               className="gap-2"
+                               title="Add context like agendas, attendee lists, or presentations"
+                             >
+                               <FilePlus2 className="h-4 w-4" />
+                               Add Context
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent>
+                             <p>Add meeting agendas, attendee lists, or presentations</p>
+                           </TooltipContent>
+                         </Tooltip>
+                       </TooltipProvider>
+
                        <Button
                          onClick={() => copyToClipboard(transcript || '')}
                          variant="outline"
