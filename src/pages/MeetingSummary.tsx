@@ -106,7 +106,22 @@ export default function MeetingSummary() {
 
   // Handle location state data on mount
   useEffect(() => {
+    // Clear stale meeting data when switching meetings
     const data = location.state as MeetingDataFromState;
+    const params = new URLSearchParams(window.location.search);
+    const paramId = params.get('id') || params.get('meeting_id');
+    const newMeetingId = data?.id || paramId;
+    
+    // If switching to a different meeting, clear all state
+    if (newMeetingId && meetingData?.id && newMeetingId !== meetingData.id) {
+      console.log('🔄 Switching meetings - clearing stale state', {
+        from: meetingData.id,
+        to: newMeetingId
+      });
+      setMeetingData(null);
+      setClaudeNotes('');
+    }
+    
     if (data && !isSaved && !isSaving && !meetingData?.id) {
       console.log('MeetingSummary useEffect triggered with data:', data.title, data.startTime);
       

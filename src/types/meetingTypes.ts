@@ -23,6 +23,13 @@ export interface MeetingData {
   meetingContext?: any;
   attendees?: string[];
   liveTranscriptText?: string; // Live transcript shown during meeting
+  notesStyle1?: string;
+  notesStyle2?: string;
+  notesStyle3?: string;
+  notesStyle4?: string;
+  notesStyle5?: string;
+  notesStyle6?: string;
+  notesStyle7?: string;
 }
 
 export interface MeetingSettingsState {
