@@ -5198,8 +5198,8 @@ export const MeetingRecorder = ({
            </div>
          )}
 
-          {/* Full Page Notes Modal */}
-          {fullPageModalOpen && modalMeeting && !detectDevice().isIOS && (
+          {/* Full Page Notes Modal - now available on all devices including iPhone */}
+          {fullPageModalOpen && modalMeeting && (
            <FullPageNotesModal
              isOpen={fullPageModalOpen}
              onClose={() => {
@@ -5211,7 +5211,7 @@ export const MeetingRecorder = ({
              notes={modalNotes}
              onNotesChange={setModalNotes}
            />
-         )}
+          )}
 
       {/* Transcript Modal */}
       {transcriptModalOpen && currentMeetingForTranscript && (
