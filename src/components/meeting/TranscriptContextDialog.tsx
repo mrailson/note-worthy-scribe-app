@@ -1,0 +1,251 @@
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { FileUploadArea } from '@/components/ai4gp/FileUploadArea';
+import { UploadedFile } from '@/types/ai4gp';
+import { Upload, FileText, Image as ImageIcon, Type } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
+
+interface TranscriptContextDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAddContext: (contextType: 'agenda' | 'attendees' | 'presentation' | 'other', files: UploadedFile[], customLabel?: string) => void;
+}
+
+export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = ({
+  open,
+  onOpenChange,
+  onAddContext
+}) => {
+  const { processFiles, isProcessing } = useFileUpload();
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [contextType, setContextType] = useState<'agenda' | 'attendees' | 'presentation' | 'other'>('agenda');
+  const [customLabel, setCustomLabel] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [activeTab, setActiveTab] = useState<'file' | 'image' | 'text'>('file');
+
+  const onDrop = async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    
+    try {
+      const fileList = {
+        length: acceptedFiles.length,
+        item: (index: number) => acceptedFiles[index],
+        [Symbol.iterator]: function* () {
+          for (let i = 0; i < acceptedFiles.length; i++) {
+            yield acceptedFiles[i];
+          }
+        }
+      } as FileList;
+
+      const processed = await processFiles(fileList);
+      setUploadedFiles([...uploadedFiles, ...processed]);
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast.error('Failed to process some files');
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+      'text/plain': ['.txt']
+    },
+    maxSize: 20 * 1024 * 1024 // 20MB
+  });
+
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
+  };
+
+  const handleAddToTranscript = () => {
+    if (activeTab === 'text' && textContent.trim()) {
+      // Create a text file from the pasted content
+      const textFile: UploadedFile = {
+        name: `Pasted ${contextType} content`,
+        type: 'text/plain',
+        content: textContent,
+        size: textContent.length,
+        isLoading: false
+      };
+      onAddContext(contextType, [textFile], customLabel);
+    } else if (uploadedFiles.length > 0) {
+      onAddContext(contextType, uploadedFiles, customLabel);
+    } else {
+      toast.error('Please add some content before adding to transcript');
+      return;
+    }
+
+    // Reset state
+    setUploadedFiles([]);
+    setTextContent('');
+    setCustomLabel('');
+    setContextType('agenda');
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    setUploadedFiles([]);
+    setTextContent('');
+    setCustomLabel('');
+    setContextType('agenda');
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Add Context to Transcript</DialogTitle>
+          <DialogDescription>
+            Upload meeting agendas, attendee lists, presentations, or paste text to add context to your transcript.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Context Type Selection */}
+          <div className="space-y-2">
+            <Label>Context Type</Label>
+            <RadioGroup value={contextType} onValueChange={(value: any) => setContextType(value)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="agenda" id="agenda" />
+                <Label htmlFor="agenda" className="cursor-pointer">Meeting Agenda</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="attendees" id="attendees" />
+                <Label htmlFor="attendees" className="cursor-pointer">Attendee List</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="presentation" id="presentation" />
+                <Label htmlFor="presentation" className="cursor-pointer">Presentation</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="other" id="other" />
+                <Label htmlFor="other" className="cursor-pointer">Other</Label>
+              </div>
+            </RadioGroup>
+
+            {contextType === 'other' && (
+              <Input
+                placeholder="Enter custom label (e.g., 'Background Documents')"
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                className="mt-2"
+              />
+            )}
+          </div>
+
+          {/* Tabs for different input methods */}
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="file">
+                <FileText className="h-4 w-4 mr-2" />
+                File Upload
+              </TabsTrigger>
+              <TabsTrigger value="image">
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Image Upload
+              </TabsTrigger>
+              <TabsTrigger value="text">
+                <Type className="h-4 w-4 mr-2" />
+                Paste Text
+              </TabsTrigger>
+            </TabsList>
+
+            {/* File Upload Tab */}
+            <TabsContent value="file" className="space-y-4">
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isDragActive ? 'Drop files here...' : 'Drag and drop files here, or click to browse'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supports Word, Excel, PDF, and images (max 20MB)
+                </p>
+              </div>
+
+              {uploadedFiles.length > 0 && (
+                <FileUploadArea
+                  uploadedFiles={uploadedFiles}
+                  onRemoveFile={handleRemoveFile}
+                />
+              )}
+            </TabsContent>
+
+            {/* Image Upload Tab */}
+            <TabsContent value="image" className="space-y-4">
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+              >
+                <input {...getInputProps()} accept="image/*" />
+                <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  {isDragActive ? 'Drop images here...' : 'Drag and drop images here, or click to browse'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supports PNG, JPG, JPEG, GIF, WebP (max 20MB)
+                </p>
+              </div>
+
+              {uploadedFiles.length > 0 && (
+                <FileUploadArea
+                  uploadedFiles={uploadedFiles}
+                  onRemoveFile={handleRemoveFile}
+                />
+              )}
+            </TabsContent>
+
+            {/* Text Paste Tab */}
+            <TabsContent value="text" className="space-y-4">
+              <Textarea
+                placeholder={`Paste your ${contextType} content here...\n\nExample:\n• Dr. Sarah Johnson - GP Partner\n• Michael Chen - Practice Manager\n• Jane Smith - Reception Lead`}
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                className="min-h-[200px] font-mono text-sm"
+              />
+              {textContent && (
+                <p className="text-xs text-muted-foreground">
+                  {textContent.length} characters
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAddToTranscript}
+            disabled={isProcessing || (uploadedFiles.length === 0 && !textContent.trim())}
+          >
+            {isProcessing ? 'Processing...' : 'Add to Transcript'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

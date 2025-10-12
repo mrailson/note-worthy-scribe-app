@@ -3,9 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingData } from "@/types/meetingTypes";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
+import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
+import { formatTranscriptContext, extractCleanContent } from "@/utils/meeting/formatTranscriptContext";
+import { UploadedFile } from "@/types/ai4gp";
 import { 
   FileText, 
   ChevronDown, 
@@ -25,7 +29,8 @@ import {
   AlignLeft,
   Languages,
   Palette,
-  Zap
+  Zap,
+  FilePlus2
 } from "lucide-react";
 
 interface TranscriptPanelProps {
@@ -53,6 +58,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
 }) => {
   const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
+  const [showContextDialog, setShowContextDialog] = useState(false);
 
   if (!meetingData?.transcript) return null;
 
@@ -81,6 +87,25 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
 
     if (onUpdateTranscript && updatedContent !== meetingData.transcript) {
       onUpdateTranscript(updatedContent);
+    }
+  };
+
+  const handleAddContext = (
+    contextType: 'agenda' | 'attendees' | 'presentation' | 'other',
+    files: UploadedFile[],
+    customLabel?: string
+  ) => {
+    // Clean the content from file processors
+    const cleanedFiles = files.map(file => ({
+      ...file,
+      content: extractCleanContent(file.content || '')
+    }));
+
+    const formattedContext = formatTranscriptContext(contextType, cleanedFiles, customLabel);
+    const updatedTranscript = meetingData.transcript + formattedContext;
+    
+    if (onUpdateTranscript) {
+      onUpdateTranscript(updatedTranscript);
     }
   };
 
@@ -140,6 +165,22 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                       
+                      <DropdownMenuSeparator />
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuItem onClick={() => setShowContextDialog(true)}>
+                              <FilePlus2 className="h-4 w-4 mr-2" />
+                              Add Context
+                            </DropdownMenuItem>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            <p>Add meeting agendas, attendee lists, or presentations</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
                       <DropdownMenuSeparator />
                       
                       <DropdownMenuSub>
@@ -261,6 +302,13 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
           }
         }}
         currentText={meetingData?.transcript || ''}
+      />
+
+      {/* Add Context Dialog */}
+      <TranscriptContextDialog
+        open={showContextDialog}
+        onOpenChange={setShowContextDialog}
+        onAddContext={handleAddContext}
       />
     </Card>
   );
