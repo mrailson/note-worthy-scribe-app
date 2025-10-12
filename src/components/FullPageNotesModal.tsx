@@ -1075,9 +1075,34 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     if (!meeting?.id) return;
 
     try {
+      // Determine which notes style to update based on active tab
+      let currentContent = '';
+      let updateColumn = '';
+      let setStateFunction: (content: string) => void = () => {};
+      
+      switch (activeNotesStyleTab) {
+        case 'style1':
+          currentContent = notesStyle3;
+          updateColumn = 'notes_style_3';
+          setStateFunction = setNotesStyle3;
+          break;
+        case 'style4':
+          currentContent = notesStyle4;
+          updateColumn = 'notes_style_4';
+          setStateFunction = setNotesStyle4;
+          break;
+        case 'style5':
+          currentContent = notesStyle5;
+          updateColumn = 'notes_style_5';
+          setStateFunction = setNotesStyle5;
+          break;
+        default:
+          return;
+      }
+
       // Save version before updating
       const version: ContentVersion = {
-        content: notesStyle3,
+        content: currentContent,
         timestamp: Date.now(),
         contentType: 'notes',
         actionType: 'AI Enhancement'
@@ -1085,12 +1110,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setNotesVersions(prev => [...prev.slice(-9), version]);
       
       // Update the content
-      setNotesStyle3(enhancedContent);
+      setStateFunction(enhancedContent);
       
       // Save to database
       const { error } = await supabase
         .from('meetings')
-        .update({ notes_style_3: enhancedContent })
+        .update({ [updateColumn]: enhancedContent })
         .eq('id', meeting.id);
 
       if (error) throw error;
@@ -2436,7 +2461,12 @@ ${transcript}`;
       <NoteEnhancementDialog
         open={enhancementDialogOpen}
         onOpenChange={setEnhancementDialogOpen}
-        originalContent={notesStyle3}
+        originalContent={
+          activeNotesStyleTab === 'style1' ? notesStyle3 :
+          activeNotesStyleTab === 'style4' ? notesStyle4 :
+          activeNotesStyleTab === 'style5' ? notesStyle5 :
+          notesStyle3
+        }
         onEnhanced={handleEnhanced}
       />
       
@@ -2862,7 +2892,7 @@ ${transcript}`;
                             
                             return content ? (
                               <>
-                                {activeNotesStyleTab === 'style1' && (
+                                {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
