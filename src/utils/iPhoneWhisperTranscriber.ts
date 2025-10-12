@@ -25,7 +25,8 @@ export class iPhoneWhisperTranscriber {
   private chunkCounter = 0;
   private totalWordCount = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
-  private dbAccumulated = ''; // Track what we've saved to DB to store only deltas
+  private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
+  private finalTranscript = ''; // Accumulated transcript for UI
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -176,32 +177,12 @@ export class iPhoneWhisperTranscriber {
     if (this.audioChunks.length === 0) return;
 
     try {
-      const elapsed = Date.now() - this.recordingStartTime;
-      // In the first minute, don't use overlap to keep latency low
-      let currentChunks: Blob[];
-      if (elapsed >= 10000) {
-        // Enable small overlap after 10s for stability
-        currentChunks = [...this.overlapBuffer, ...this.audioChunks];
-      } else {
-        currentChunks = [...this.audioChunks];
-      }
-      
-      // Combine chunks
-      const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
-      
-      // Update overlap buffer only for longer segments
-      if (elapsed >= 10000) {
-        // Dynamic small overlap: ~1–2s depending on current interval
-        let overlapFraction = 0.08; // ~2.4s for 30s chunks
-        if (this.lastIntervalMs <= 5000) overlapFraction = 0.2; // ~1s for 5s chunks
-        else if (this.lastIntervalMs <= 10000) overlapFraction = 0.1; // ~1s for 10s chunks
-        const overlapSize = Math.max(1, Math.ceil(this.audioChunks.length * overlapFraction));
-        this.overlapBuffer = this.audioChunks.slice(-overlapSize);
-      } else {
-        this.overlapBuffer = [];
-      }
+      // No overlap buffer - process chunks as-is for timestamp-based deduplication
+      const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
       
       this.audioChunks = []; // Clear current chunks after processing
+      
+      const elapsed = Date.now() - this.recordingStartTime;
 
       // Skip very small audio chunks, but allow smaller ones early for quick feedback
       const minSize = elapsed < 20000 ? 5000 : elapsed < 60000 ? 12000 : 40000; // bytes
@@ -250,6 +231,9 @@ export class iPhoneWhisperTranscriber {
           return;
         }
 
+        // Update live transcript for UI
+        this.finalTranscript = this.simpleSmartMerge(this.finalTranscript, t);
+
         const transcriptData: TranscriptData = {
           text: t,
           is_final: true,
@@ -271,44 +255,50 @@ export class iPhoneWhisperTranscriber {
           this.totalWordCount += t.split(/\s+/).filter(Boolean).length;
         } catch {}
 
-        // Persist chunk to DB for later full transcript assembly - SAVE ONLY DELTA
+        // Store segments with timestamps in DB
         try {
           this.chunkCounter += 1;
           const currentChunkNumber = this.chunkCounter;
           const user = (await supabase.auth.getUser()).data.user?.id;
-          if (this.meetingId && this.sessionId && user) {
-            // Calculate delta: simple overlap merge, then save only the new portion
-            const merged = this.simpleSmartMerge(this.dbAccumulated, t);
-            const delta = merged.slice(this.dbAccumulated.length).trim();
+          if (this.meetingId && this.sessionId && user && data.segments && data.segments.length > 0) {
+            // Filter segments that are after our last stored end time
+            const newSegments = data.segments
+              .filter((seg: any) => seg.end > this.lastSegmentEndTime)
+              .map((seg: any) => ({
+                start: seg.start,
+                end: seg.end,
+                text: seg.text.trim()
+              }));
             
-            console.log(`🔍 iPhone chunk ${currentChunkNumber} - prev DB: ${this.dbAccumulated.length}, merged: ${merged.length}, delta: ${delta.length}`);
+            console.log(`⏱️ iPhone chunk ${currentChunkNumber} - lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, new segments: ${newSegments.length}/${data.segments.length}`);
             
-            if (delta.length > 0) {
+            if (newSegments.length > 0) {
               const { error: dbError } = await supabase
                 .from('meeting_transcription_chunks')
                 .insert({
                   meeting_id: this.meetingId,
                   session_id: this.sessionId,
                   chunk_number: currentChunkNumber,
-                  transcription_text: delta, // Store only delta
+                  transcription_text: JSON.stringify(newSegments), // Store segments as JSON
                   confidence: transcriptData.confidence,
                   is_final: true,
                   user_id: user,
                 });
               if (dbError) {
-                console.warn('⚠️ Failed to store iPhone chunk:', dbError);
+                console.warn('⚠️ Failed to store iPhone segments:', dbError);
               } else {
-                this.dbAccumulated = merged; // Update accumulated DB text
-                console.log(`💾 Stored iPhone chunk #${currentChunkNumber} delta (${delta.length} chars)`);
+                // Update last end time to the latest segment
+                this.lastSegmentEndTime = Math.max(...newSegments.map((s: any) => s.end));
+                console.log(`💾 Stored ${newSegments.length} segments in iPhone chunk #${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s`);
               }
             } else {
-              console.log(`⏭️ Skipping iPhone chunk ${currentChunkNumber} - no new content`);
+              console.log(`⏭️ Skipping iPhone chunk ${currentChunkNumber} - all segments already stored`);
             }
           } else {
-            console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
+            console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user or no segments');
           }
         } catch (e) {
-          console.warn('⚠️ Error while saving iPhone chunk to DB:', e);
+          console.warn('⚠️ Error while saving iPhone segments to DB:', e);
         }
         }
     } catch (error) {

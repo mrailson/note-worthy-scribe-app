@@ -129,15 +129,18 @@ serve(async (req) => {
 
     // Calculate real confidence from segments
     let confidence = 0.5; // Default fallback
+    let avg_logprob = -0.3;
+    let no_speech_prob = 0.3;
+    
     if (result.segments && result.segments.length > 0) {
-      const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+      avg_logprob = result.segments.reduce((sum: number, seg: any) => 
         sum + (seg.avg_logprob || -2), 0) / result.segments.length;
-      const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+      no_speech_prob = result.segments.reduce((sum: number, seg: any) => 
         sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
       
       // Convert log probability and no-speech probability to confidence score
       confidence = Math.max(0, Math.min(1, 
-        (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
+        (avg_logprob + 1) / 1 * (1 - no_speech_prob)
       ));
     }
 
@@ -147,6 +150,8 @@ serve(async (req) => {
       JSON.stringify({ 
         text: result.text || '',
         confidence: confidence, // Real confidence from Whisper segments
+        avg_logprob: avg_logprob,
+        no_speech_prob: no_speech_prob,
         duration: result.duration,
         language: result.language,
         segments: result.segments || []

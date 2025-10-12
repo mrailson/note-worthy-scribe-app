@@ -21,7 +21,7 @@ export class DesktopWhisperTranscriber {
   private sessionId: string; // Unique session ID for this recording
   private meetingId: string | null = null; // Meeting ID to associate chunks
   private finalTranscript = ''; // Accumulated final transcript with smart merging
-  private dbAccumulated = ''; // Track what we've saved to DB to store only deltas
+  private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
   
   // Early transcription mode for first minute
   private earlyTranscriptionMode = true;
@@ -271,18 +271,9 @@ export class DesktopWhisperTranscriber {
       const currentChunkNumber = chunkNumber ?? this.chunkCount;
       console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
       
-      // Create overlap: keep last portion of previous chunk for continuity
-      const currentChunks = [...this.overlapBuffer, ...this.audioChunks];
-      
-      // Combine all chunks including overlap
-      const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
+      // No overlap buffer - process chunks as-is for timestamp-based deduplication
+      const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
       console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
-      
-      // ChatGPT recommended: 2.0s overlap (approximately 10-15% of chunk)
-      // Calculate overlap as portion of audio that represents ~2 seconds
-      const overlapSize = Math.ceil(this.audioChunks.length * 0.15); // 15% overlap for 2s
-      this.overlapBuffer = this.audioChunks.slice(-overlapSize);
-      console.log(`🔄 Storing overlap buffer: ${overlapSize} chunks (${(overlapSize/this.audioChunks.length*100).toFixed(1)}%)`);
       
       this.audioChunks = []; // Clear current chunks after processing
 
@@ -376,36 +367,42 @@ export class DesktopWhisperTranscriber {
         console.log(`📝 Stored transcription ${this.allTranscriptions.length}: "${cleanText.substring(0, 100)}..."`);
         console.log(`📝 Final transcript length: ${this.finalTranscript.length} chars`);
         
-        // Store in database if meeting ID is set - SAVE ONLY DELTA
-        if (this.meetingId) {
+        // Store in database if meeting ID is set - use timestamp-based segments
+        if (this.meetingId && data.segments && data.segments.length > 0) {
           try {
-            // Calculate delta: merge with dbAccumulated, then save only the new portion
-            const merged = this.smartMerge(this.dbAccumulated, cleanText);
-            const delta = merged.slice(this.dbAccumulated.length).trim();
+            // Filter segments that are after our last stored end time
+            const newSegments = data.segments
+              .filter((seg: any) => seg.end > this.lastSegmentEndTime)
+              .map((seg: any) => ({
+                start: seg.start,
+                end: seg.end,
+                text: seg.text.trim()
+              }));
             
-            console.log(`🔍 DEBUG: Chunk ${currentChunkNumber} - prev DB length: ${this.dbAccumulated.length}, merged: ${merged.length}, delta: ${delta.length}`);
+            console.log(`⏱️ Desktop chunk ${currentChunkNumber} - lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, new segments: ${newSegments.length}/${data.segments.length}`);
             
-            if (delta.length > 0) {
+            if (newSegments.length > 0) {
               const { error: dbError } = await supabase
                 .from('meeting_transcription_chunks')
                 .insert({
                   meeting_id: this.meetingId,
                   session_id: this.sessionId,
                   chunk_number: currentChunkNumber,
-                  transcription_text: delta, // Store only delta, not full chunk
+                  transcription_text: JSON.stringify(newSegments), // Store segments as JSON
                   confidence: data.confidence || 0.9,
                   is_final: true,
                   user_id: (await supabase.auth.getUser()).data.user?.id
                 });
 
               if (dbError) {
-                console.error('❌ Failed to store chunk in database:', dbError);
+                console.error('❌ Failed to store segments in database:', dbError);
               } else {
-                this.dbAccumulated = merged; // Update accumulated DB text
-                console.log(`💾 Chunk ${currentChunkNumber} stored delta (${delta.length} chars) in database`);
+                // Update last end time to the latest segment
+                this.lastSegmentEndTime = Math.max(...newSegments.map((s: any) => s.end));
+                console.log(`💾 Stored ${newSegments.length} segments in chunk ${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s`);
               }
             } else {
-              console.log(`⏭️ Skipping chunk ${currentChunkNumber} - no new content (delta empty)`);
+              console.log(`⏭️ Skipping chunk ${currentChunkNumber} - all segments already stored`);
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);

@@ -130,12 +130,29 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
       if (error) {
         console.error('Error fetching transcript chunks:', error);
       } else if (chunks && chunks.length > 0) {
-        // Apply mergeLive deduplication to chunks
-        const deduplicatedTranscript = chunks.reduce((accumulated, chunk) => {
-          return mergeLive(accumulated, chunk.transcription_text || '');
-        }, '');
+        // Parse segments from each chunk and use timestamp-based deduplication
+        const allSegments = chunks.flatMap(chunk => {
+          try {
+            // Try to parse as segments JSON
+            const parsed = JSON.parse(chunk.transcription_text || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            // Fallback: if it's plain text, treat as single segment
+            return chunk.transcription_text ? [{
+              start: 0,
+              end: 1,
+              text: chunk.transcription_text
+            }] : [];
+          }
+        });
         
-        setTranscript(deduplicatedTranscript || '');
+        // Use timestamp-based merging from segmentMerge.ts
+        const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
+        const mergedSegments = mergeByTimestamps([], allSegments);
+        const finalTranscript = segmentsToPlainText(mergedSegments);
+        
+        console.log(`📊 Transcript reconstruction: ${chunks.length} chunks → ${allSegments.length} segments → ${mergedSegments.length} merged segments`);
+        setTranscript(finalTranscript || '');
       } else {
         setTranscript('');
       }
