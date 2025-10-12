@@ -2875,7 +2875,7 @@ ${transcript}`;
               <div className="px-6 pt-4 flex-shrink-0">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
-                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                  <TabsTrigger value="transcript">Meeting Transcript</TabsTrigger>
                 </TabsList>
               </div>
               
