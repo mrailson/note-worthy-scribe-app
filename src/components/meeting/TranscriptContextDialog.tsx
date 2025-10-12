@@ -234,16 +234,24 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
           </Tabs>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleAddToTranscript}
-            disabled={isProcessing || (uploadedFiles.length === 0 && !textContent.trim())}
-          >
-            {isProcessing ? 'Processing...' : 'Add to Transcript'}
-          </Button>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {(uploadedFiles.length === 0 && !textContent.trim()) && (
+            <p className="text-xs text-muted-foreground text-left w-full">
+              Please upload a file or paste text content before adding to transcript
+            </p>
+          )}
+          <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddToTranscript}
+              disabled={isProcessing || (uploadedFiles.length === 0 && !textContent.trim())}
+              className="relative"
+            >
+              {isProcessing ? 'Processing...' : 'Add to Transcript'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
