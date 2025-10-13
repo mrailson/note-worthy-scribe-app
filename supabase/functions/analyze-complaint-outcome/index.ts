@@ -61,6 +61,8 @@ Analyze the complaint and provide:
 5. LEARNING OPPORTUNITIES: Suggestions for service improvement
 6. RISK ASSESSMENT: Potential clinical or reputational risks
 
+⚠️ CRITICAL: Base your analysis ONLY on the information provided. DO NOT invent or assume medical conditions, emergencies, clinical details, or events not explicitly mentioned in the complaint details, staff responses, or investigation notes.
+
 Be objective, thorough, and focus on patient safety and quality of care.`;
 
     const staffResponses = complaint.complaint_involved_parties

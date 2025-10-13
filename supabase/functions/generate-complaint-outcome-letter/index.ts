@@ -82,6 +82,14 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
 6. Provides contact information for queries
 7. Is empathetic, professional, and clear${toneInstruction}
 
+⚠️ CRITICAL - NO FABRICATION RULES:
+- DO NOT invent, fabricate, or assume ANY events, medical details, or circumstances not explicitly provided
+- DO NOT add specific medical conditions, emergencies, or clinical details unless stated in the complaint description
+- ONLY use information explicitly provided in the complaint details, outcome summary, and questionnaire data
+- If information is missing, acknowledge it generically without inventing specifics
+- Keep descriptions factual and based ONLY on provided information
+- Do NOT elaborate beyond what is given - stick to the facts provided
+
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start directly with the date, do NOT include any practice headers, letterhead references, or "---NHS Practice" at the top
 - Do NOT include any blank lines at the beginning of the letter
@@ -166,6 +174,13 @@ Include escalation information: ${escalationText}
 
 Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". 
 
+⚠️ CRITICAL REMINDER - DO NOT FABRICATE:
+- Use ONLY the information provided above
+- DO NOT invent medical emergencies, specific conditions, clinical details, or events
+- DO NOT add specifics that weren't explicitly mentioned in the complaint description
+- Keep your response based strictly on the facts provided
+- If details are vague, keep them vague - do not add specificity
+
 IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks. If practice phone number is available, include it in the practice contact details.
 
 CRITICAL: Never include personal email addresses or direct contact details in the signature. ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
@@ -182,7 +197,7 @@ CRITICAL: Never include personal email addresses or direct contact details in th
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
+        temperature: 0.2,  // Low temperature to prevent fabrication/hallucination
         max_tokens: 2000,
       }),
     });
