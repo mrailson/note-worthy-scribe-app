@@ -58,6 +58,11 @@ import { InvestigationDecisionAndLearning } from "@/components/InvestigationDeci
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { CQCReportModal } from "@/components/CQCReportModal";
 import { ComplaintOutcomeQuestionnaire } from "@/components/ComplaintOutcomeQuestionnaire";
+import RichTextEditor, { EditorCommands } from "@/components/RichTextEditor";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import FindReplacePanel from "@/components/FindReplacePanel";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-react";
 
 interface Complaint {
   id: string;
@@ -114,6 +119,13 @@ const ComplaintDetails = () => {
   const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
   const [isEditingAcknowledgement, setIsEditingAcknowledgement] = useState(false);
   const [editedAcknowledgementContent, setEditedAcknowledgementContent] = useState("");
+  const [editorMode, setEditorMode] = useState<'split' | 'edit' | 'preview'>('split');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingModalClose, setPendingModalClose] = useState(false);
+  const [editorApi, setEditorApi] = useState<EditorCommands | null>(null);
+  const [showFindReplace, setShowFindReplace] = useState(false);
   const [complianceChecks, setComplianceChecks] = useState<any[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -883,9 +895,88 @@ const ComplaintDetails = () => {
   };
 
   const handleOpenAcknowledgementModal = () => {
-    setEditedAcknowledgementContent(acknowledgementLetter);
+    // Try to restore draft from localStorage
+    const draftKey = `ack_draft_${complaintId}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        const draftTime = new Date(draft.timestamp).getTime();
+        const letterTime = acknowledgementDate ? new Date(acknowledgementDate).getTime() : 0;
+        
+        if (draftTime > letterTime) {
+          // Ask user if they want to restore
+          if (window.confirm('A newer draft was found. Would you like to restore it?')) {
+            setEditedAcknowledgementContent(draft.content);
+          } else {
+            setEditedAcknowledgementContent(acknowledgementLetter);
+            localStorage.removeItem(draftKey);
+          }
+        } else {
+          setEditedAcknowledgementContent(acknowledgementLetter);
+          localStorage.removeItem(draftKey);
+        }
+      } catch (e) {
+        setEditedAcknowledgementContent(acknowledgementLetter);
+      }
+    } else {
+      setEditedAcknowledgementContent(acknowledgementLetter);
+    }
+    
     setIsEditingAcknowledgement(false);
+    setEditorMode('split');
+    setIsFullscreen(false);
+    setHasUnsavedChanges(false);
+    setShowFindReplace(false);
     setShowAcknowledgementModal(true);
+  };
+
+  const handleCloseAcknowledgementModal = (force = false) => {
+    if (!force && hasUnsavedChanges) {
+      setPendingModalClose(true);
+      setShowUnsavedDialog(true);
+      return;
+    }
+    
+    setShowAcknowledgementModal(false);
+    setHasUnsavedChanges(false);
+    setPendingModalClose(false);
+  };
+
+  const handleDiscardChanges = () => {
+    const draftKey = `ack_draft_${complaintId}`;
+    localStorage.removeItem(draftKey);
+    setShowUnsavedDialog(false);
+    if (pendingModalClose) {
+      setShowAcknowledgementModal(false);
+      setPendingModalClose(false);
+    } else {
+      setIsEditingAcknowledgement(false);
+      setEditedAcknowledgementContent(acknowledgementLetter);
+    }
+    setHasUnsavedChanges(false);
+  };
+
+  const handleEditorChange = (content: string) => {
+    setEditedAcknowledgementContent(content);
+    setHasUnsavedChanges(true);
+    
+    // Autosave to localStorage
+    const draftKey = `ack_draft_${complaintId}`;
+    localStorage.setItem(draftKey, JSON.stringify({
+      content,
+      timestamp: new Date().toISOString(),
+    }));
+  };
+
+  const insertPlaceholder = (placeholder: string) => {
+    if (editorApi) {
+      editorApi.insertText(placeholder);
+      editorApi.focus();
+    } else {
+      toast.error('Editor not ready');
+    }
   };
 
   // Investigation workflow functions
@@ -2738,115 +2829,274 @@ I am committed to ensuring that all patients receive the care and service they d
       </div>
 
       {/* Acknowledgement Letter Modal */}
-      <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
-        <DialogContent className="p-0 max-w-6xl w-[90vw] max-h-[80vh] resize border-2 border-gray-300 flex flex-col m-4 my-8" style={{ resize: 'both', minWidth: '600px', minHeight: '400px' }}>
+      <Dialog open={showAcknowledgementModal} onOpenChange={(open) => !open && handleCloseAcknowledgementModal()}>
+        <DialogContent className={`p-0 flex flex-col ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[98vh]' : 'max-w-6xl w-[90vw] max-h-[85vh]'}`}>
           <div className="flex flex-col h-full min-h-0">
-            <DialogHeader className="flex-shrink-0 p-6 border-b">
-              <DialogTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Acknowledgement Letter - {complaint?.reference_number}
-              </DialogTitle>
-              <DialogDescription>
-                View, edit, download, or regenerate the acknowledgement letter for this complaint
-              </DialogDescription>
+            <DialogHeader className="flex-shrink-0 p-4 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Acknowledgement Letter - {complaint?.reference_number}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs mt-1">
+                    {isEditingAcknowledgement ? 'Edit and format your letter with rich text controls' : 'View, edit, download, or regenerate the acknowledgement letter'}
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="ml-2"
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </div>
             </DialogHeader>
             
-            <div className="flex flex-col gap-4 flex-1 min-h-0 p-6">
-              {/* Action buttons */}
-              <div className="flex gap-2 justify-end border-b pb-4 flex-shrink-0">
-                {!isEditingAcknowledgement ? (
-                  <>
+            <div className="flex flex-col gap-3 flex-1 min-h-0 p-4">
+              {/* Action bar */}
+              <div className="flex items-center justify-between gap-2 pb-3 border-b flex-shrink-0">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await handleDownloadAcknowledgementLetter();
+                        toast.success('Letter downloaded');
+                      } catch (error) {
+                        console.error('Download failed:', error);
+                        toast.error(`Download failed: ${error.message}`);
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      handleCloseAcknowledgementModal(true);
+                      handleGenerateAcknowledgement(complaint.id);
+                    }}
+                    disabled={submitting}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    {submitting ? 'Regenerating...' : 'Regenerate'}
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isEditingAcknowledgement && (
+                    <>
+                      {/* View mode toggles */}
+                      <div className="flex gap-1 border rounded-md p-1">
+                        <Button
+                          variant={editorMode === 'edit' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setEditorMode('edit')}
+                          className="h-7 px-2"
+                        >
+                          <FileEdit className="h-3.5 w-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant={editorMode === 'split' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setEditorMode('split')}
+                          className="h-7 px-2"
+                        >
+                          <Columns className="h-3.5 w-3.5 mr-1" />
+                          Split
+                        </Button>
+                        <Button
+                          variant={editorMode === 'preview' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setEditorMode('preview')}
+                          className="h-7 px-2"
+                        >
+                          <EyeIcon className="h-3.5 w-3.5 mr-1" />
+                          Preview
+                        </Button>
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (hasUnsavedChanges) {
+                            setShowUnsavedDialog(true);
+                          } else {
+                            setIsEditingAcknowledgement(false);
+                            setEditedAcknowledgementContent(acknowledgementLetter);
+                          }
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          await handleSaveAcknowledgementLetter();
+                          const draftKey = `ack_draft_${complaintId}`;
+                          localStorage.removeItem(draftKey);
+                          setHasUnsavedChanges(false);
+                        }}
+                        disabled={submitting || !editedAcknowledgementContent.trim()}
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        {submitting ? 'Saving...' : 'Save Letter'}
+                      </Button>
+                    </>
+                  )}
+                  
+                  {!isEditingAcknowledgement && (
                     <Button
                       variant="outline"
+                      size="sm"
                       onClick={() => setIsEditingAcknowledgement(true)}
-                      className="flex items-center gap-2"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 mr-1" />
                       Edit Letter
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        console.log('=== ACKNOWLEDGEMENT LETTER DOWNLOAD DEBUG ===');
-                        console.log('acknowledgementLetter length:', acknowledgementLetter?.length);
-                        console.log('complaint reference:', complaint?.reference_number);
-                        try {
-                          await handleDownloadAcknowledgementLetter();
-                          console.log('Acknowledgement download completed successfully');
-                        } catch (error) {
-                          console.error('Acknowledgement download failed:', error);
-                          toast.error(`Download failed: ${error.message}`);
-                        }
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download DOCX
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        setShowAcknowledgementModal(false);
-                        handleGenerateAcknowledgement(complaint.id);
-                      }}
-                      disabled={submitting}
-                    >
-                      {submitting ? 'Regenerating...' : 'Regenerate Letter'}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditingAcknowledgement(false);
-                        setEditedAcknowledgementContent(acknowledgementLetter);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSaveAcknowledgementLetter}
-                      disabled={submitting || !editedAcknowledgementContent.trim()}
-                      className="flex items-center gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      {submitting ? 'Saving...' : 'Save Letter'}
-                    </Button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
               
+              {/* Placeholder helper (only in edit mode) */}
+              {isEditingAcknowledgement && (
+                <div className="flex flex-wrap gap-1 pb-2 border-b flex-shrink-0">
+                  <span className="text-xs text-muted-foreground mr-2 self-center">Insert placeholders:</span>
+                  {[
+                    { label: 'Date', value: '{{date_today}}' },
+                    { label: 'Ref', value: '{{reference_number}}' },
+                    { label: 'Patient Name', value: '{{patient_name}}' },
+                    { label: 'Patient Address', value: '{{patient_address}}' },
+                    { label: 'Complaint Title', value: '{{complaint_title}}' },
+                    { label: 'Practice Name', value: '{{practice_name}}' },
+                    { label: 'Practice Address', value: '{{practice_address}}' },
+                    { label: 'Sender Name', value: '{{sender_name}}' },
+                    { label: 'Sender Role', value: '{{sender_role}}' },
+                  ].map((ph) => (
+                    <Button
+                      key={ph.value}
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => insertPlaceholder(ph.value)}
+                    >
+                      {ph.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              
               {/* Letter content */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex-1 min-h-0">
                 {!isEditingAcknowledgement ? (
-                  <div className="bg-gray-50 p-4 rounded-lg min-h-full">
-                    <div className="max-w-none">
+                  <div className="bg-muted/30 p-6 rounded-lg h-full overflow-y-auto">
+                    <div className="max-w-none bg-background p-8 rounded shadow-sm">
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full flex flex-col min-h-0">
-                    <Textarea
-                      value={editedAcknowledgementContent}
-                      onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
-                      className="flex-1 min-h-0 font-mono text-sm resize-none border focus:ring-2 p-4 bg-white text-black overflow-y-auto"
-                      placeholder="Edit the acknowledgement letter content..."
-                    />
+                  <div className="h-full flex flex-col gap-3 min-h-0">
+                    {editorMode === 'split' && (
+                      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 border rounded-lg">
+                        <ResizablePanel defaultSize={50} minSize={30}>
+                          <div className="h-full overflow-hidden flex flex-col">
+                            <RichTextEditor
+                              content={editedAcknowledgementContent}
+                              onChange={handleEditorChange}
+                              placeholder="Edit the acknowledgement letter..."
+                              className="flex-1 overflow-y-auto"
+                              onReady={setEditorApi}
+                              showStatus
+                            />
+                          </div>
+                        </ResizablePanel>
+                        <ResizableHandle withHandle />
+                        <ResizablePanel defaultSize={50} minSize={30}>
+                          <div className="h-full overflow-y-auto bg-muted/30 p-4">
+                            <div className="bg-background p-6 rounded shadow-sm">
+                              <FormattedLetterContent content={editedAcknowledgementContent} />
+                            </div>
+                          </div>
+                        </ResizablePanel>
+                      </ResizablePanelGroup>
+                    )}
+                    
+                    {editorMode === 'edit' && (
+                      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
+                        <RichTextEditor
+                          content={editedAcknowledgementContent}
+                          onChange={handleEditorChange}
+                          placeholder="Edit the acknowledgement letter..."
+                          className="h-full"
+                          onReady={setEditorApi}
+                          showStatus
+                        />
+                      </div>
+                    )}
+                    
+                    {editorMode === 'preview' && (
+                      <div className="flex-1 min-h-0 overflow-y-auto bg-muted/30 p-6 rounded-lg border">
+                        <div className="bg-background p-8 rounded shadow-sm max-w-4xl mx-auto">
+                          <FormattedLetterContent content={editedAcknowledgementContent} />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Find & Replace panel */}
+                    <Collapsible open={showFindReplace} onOpenChange={setShowFindReplace} className="flex-shrink-0">
+                      <div className="border rounded-lg">
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="w-full justify-between h-8 px-3">
+                            <span className="text-xs font-medium">Find & Replace</span>
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFindReplace ? 'rotate-180' : ''}`} />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="p-3 border-t">
+                            <FindReplacePanel
+                              getCurrentText={() => editedAcknowledgementContent}
+                              onApply={(updatedText) => {
+                                setEditedAcknowledgementContent(updatedText);
+                                setHasUnsavedChanges(true);
+                                toast.success('Replacements applied');
+                              }}
+                            />
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
                   </div>
                 )}
               </div>
             </div>
-            {/* Resize indicator */}
-            <div className="absolute bottom-0 right-0 w-4 h-4 cursor-nw-resize opacity-50 hover:opacity-75">
-              <svg width="16" height="16" viewBox="0 0 16 16" className="text-gray-400">
-                <path d="M16 0v16H0z" fill="none"/>
-                <path d="M16 16l-6-6M16 12l-2-2M16 8l-2-2" stroke="currentColor" strokeWidth="1" fill="none"/>
-              </svg>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Unsaved changes dialog */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to the acknowledgement letter. If you continue, your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardChanges}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Outcome Questionnaire Modal */}
       {complaint && (

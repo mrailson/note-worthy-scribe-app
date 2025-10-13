@@ -30,11 +30,20 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
+export interface EditorCommands {
+  insertText: (text: string) => void;
+  setContent: (content: string) => void;
+  getContent: () => string;
+  focus: () => void;
+}
+
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  onReady?: (commands: EditorCommands) => void;
+  showStatus?: boolean;
 }
 
 const colorOptions = [
@@ -62,8 +71,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   content,
   onChange,
   placeholder = "Start typing...",
-  className = ""
+  className = "",
+  onReady,
+  showStatus = false,
 }) => {
+  const [wordCount, setWordCount] = React.useState(0);
+  const [charCount, setCharCount] = React.useState(0);
   // Convert markdown to HTML for TipTap
   const convertMarkdownToHtml = (text: string): string => {
     if (!text) return '';
@@ -164,10 +177,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ],
     content: processedContent,
     onUpdate: ({ editor }) => {
-      // Convert HTML back to markdown-like format to preserve original structure
       const htmlContent = editor.getHTML();
       const convertedContent = convertHtmlToMarkdown(htmlContent);
       onChange(convertedContent);
+      
+      // Update status counts
+      if (showStatus) {
+        const text = editor.getText();
+        setCharCount(text.length);
+        setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+      }
+    },
+    onCreate: ({ editor }) => {
+      // Initialize counts
+      if (showStatus) {
+        const text = editor.getText();
+        setCharCount(text.length);
+        setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+      }
+      
+      // Expose command API
+      if (onReady) {
+        onReady({
+          insertText: (text: string) => {
+            editor.chain().focus().insertContent(text).run();
+          },
+          setContent: (content: string) => {
+            const htmlContent = convertMarkdownToHtml(content);
+            const sanitizedContent = DOMPurify.sanitize(htmlContent, {
+              ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a', 'span'],
+              ALLOWED_ATTR: ['style', 'class', 'href', 'target']
+            });
+            editor.commands.setContent(sanitizedContent);
+          },
+          getContent: () => {
+            const html = editor.getHTML();
+            return convertHtmlToMarkdown(html);
+          },
+          focus: () => {
+            editor.chain().focus().run();
+          },
+        });
+      }
     },
     editorProps: {
       attributes: {
@@ -381,6 +432,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           className="focus:outline-none"
         />
       </div>
+      
+      {showStatus && (
+        <div className="border-t px-4 py-2 text-xs text-muted-foreground flex gap-4">
+          <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
+          <span>{charCount} {charCount === 1 ? 'character' : 'characters'}</span>
+        </div>
+      )}
     </div>
   );
 };
