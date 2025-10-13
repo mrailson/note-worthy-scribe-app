@@ -232,34 +232,6 @@ export const MeetingRecorder = ({
   
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
-  // Combined modal state for end-of-meeting process
-  const [meetingEndModal, setMeetingEndModal] = useState<{
-    isOpen: boolean;
-    stage: 'processing' | 'saving' | 'ai-processing' | 'success' | 'timeout';
-    savedData?: any;
-    progress?: {
-      currentStep: string;
-      estimatedTimeRemaining?: number;
-      startTime?: Date;
-    };
-  }>({
-    isOpen: false,
-    stage: 'processing',
-    savedData: null
-  });
-  const [processingDots, setProcessingDots] = useState('');
-  const [savingSteps, setSavingSteps] = useState({
-    saving: false,
-    securing: false,
-    complete: false,
-    aiProcessing: false,
-    aiComplete: false
-  });
-
-  // Modal timeout and close management
-  const modalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const modalStartTimeRef = useRef<Date | null>(null);
-  const [modalAutoCloseCountdown, setModalAutoCloseCountdown] = useState<number | null>(null);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -3031,60 +3003,11 @@ export const MeetingRecorder = ({
       return;
     }
     
-    // Show combined modal starting with processing stage
-    setMeetingEndModal({
-      isOpen: true,
-      stage: 'processing',
-      savedData: null,
-      progress: {
-        currentStep: 'Processing transcript...',
-        startTime: new Date()
-      }
-    });
+    // Show toast notification that processing is starting
+    toast.info("Saving meeting...");
     
-    // Timeout protection is now handled by simple 5-second close after save
-    
-    // Track initial transcript length
-    const initialTranscriptLength = transcript?.length || 0;
-    
-    // Phase 1: Continue recording while processing (4 seconds)
-    setProcessingDots('');
-    const phase1Interval = setInterval(() => {
-      setProcessingDots(prev => {
-        if (prev.length >= 3) return '';
-        return prev + '.';
-      });
-    }, 500);
-    
-     // Wait 1 second while still recording to capture final chunks
-     await new Promise(resolve => setTimeout(resolve, 1000));
-    clearInterval(phase1Interval);
-    
-    // Phase 2: Finalizing transcription (3 seconds)
-    setProcessingDots('');
-    const phase2Interval = setInterval(() => {
-      setProcessingDots(prev => {
-        if (prev.length >= 3) return '';
-        return prev + '.';
-      });
-    }, 500);
-    
-     // Wait additional 2 seconds for final processing
-     await new Promise(resolve => setTimeout(resolve, 2000));
-    clearInterval(phase2Interval);
-    
-    // Check final transcript length
-    const finalTranscriptLength = transcript?.length || 0;
-    
-    // Move to saving stage
-    setMeetingEndModal(prev => ({
-      ...prev,
-      stage: 'saving',
-      progress: {
-        ...prev.progress,
-        currentStep: 'Saving meeting data...'
-      }
-    }));
+    // Wait 3 seconds to capture final audio chunks
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // NOW stop the transcribers after the processing delay
     
@@ -3480,10 +3403,6 @@ export const MeetingRecorder = ({
     
     try {
       
-      // Step 1: Saving
-      setSavingSteps({ saving: true, securing: false, complete: false, aiProcessing: false, aiComplete: false });
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
     console.log('🚨 User ID:', user?.id);
@@ -3562,10 +3481,6 @@ export const MeetingRecorder = ({
 
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
 
-      // Step 2: Securing data
-      setSavingSteps({ saving: true, securing: true, complete: false, aiProcessing: false, aiComplete: false });
-      await new Promise(resolve => setTimeout(resolve, 150));
-
       // 2. Save transcript
       if (meetingData.transcript) {
         await supabase
@@ -3579,34 +3494,9 @@ export const MeetingRecorder = ({
           });
       }
 
-      // Show success immediately
+      // Show success toast
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-      
-      setMeetingEndModal({
-        isOpen: true,
-        stage: 'success',
-        savedData: {
-          title: formattedTitle,
-          duration: formatDuration(duration),
-          wordCount: wordCount,
-          id: savedMeeting.id
-        }
-      });
-
-      // Clear all existing timeouts
-      clearModalTimeout();
-      
-      // Use a simple setTimeout for auto-close
-      console.log('⏰ Setting 5-second auto-close timer');
-      setTimeout(() => {
-        console.log('🔄 Auto-closing modal after 5 seconds');
-        setMeetingEndModal({
-          isOpen: false,
-          stage: 'processing',
-          savedData: null
-        });
-        setModalAutoCloseCountdown(null);
-      }, 5000);
+      toast.success(`Meeting saved: ${formattedTitle}`);
 
       // Start background processing immediately (don't block UI)
       console.log('🤖 Starting background processing (notes generation, cleanup)...');
@@ -3670,84 +3560,8 @@ export const MeetingRecorder = ({
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
-      
-      // Close modal on error
-      setMeetingEndModal({
-        isOpen: false,
-        stage: 'processing',
-        savedData: null
-      });
+      toast.error('Failed to save meeting');
     }
-  };
-
-  // Modal timeout and close management functions
-  const startModalTimeout = () => {
-    console.log('⏰ Starting modal timeout protection (3 minutes)');
-    modalStartTimeRef.current = new Date();
-    
-    // Clear any existing timeout
-    if (modalTimeoutRef.current) {
-      clearTimeout(modalTimeoutRef.current);
-    }
-    
-    // Set 3-minute timeout
-    modalTimeoutRef.current = setTimeout(() => {
-      console.log('⏰ Modal timeout reached - force closing');
-      setMeetingEndModal(prev => {
-        if (prev.isOpen) {
-          toast.error('Processing timeout - modal closed automatically');
-          return {
-            isOpen: false,
-            stage: 'timeout',
-            savedData: prev.savedData
-          };
-        }
-        return prev;
-      });
-    }, 180000); // 3 minutes
-  };
-
-  const clearModalTimeout = () => {
-    if (modalTimeoutRef.current) {
-      clearTimeout(modalTimeoutRef.current);
-      modalTimeoutRef.current = null;
-    }
-    modalStartTimeRef.current = null;
-  };
-
-  const forceCloseModal = () => {
-    console.log('🔒 Force closing modal - user initiated');
-    clearModalTimeout();
-    setMeetingEndModal({
-      isOpen: false,
-      stage: 'processing',
-      savedData: null
-    });
-    setModalAutoCloseCountdown(null);
-  };
-
-  // Enhanced auto-close with countdown
-  const startAutoCloseCountdown = (delay: number = 10) => {
-    console.log(`⏰ Starting auto-close countdown: ${delay} seconds`);
-    setModalAutoCloseCountdown(delay);
-    
-    const countdownInterval = setInterval(() => {
-      setModalAutoCloseCountdown(prev => {
-        if (prev === null || prev <= 1) {
-          clearInterval(countdownInterval);
-          // Auto-close the modal
-          setMeetingEndModal(prev => {
-            if (prev.isOpen && prev.stage === 'success') {
-              console.log('🔄 Auto-closing modal after countdown');
-              return { isOpen: false, stage: 'processing', savedData: null };
-            }
-            return prev;
-          });
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
   // Optional: Background notification when AI notes complete
@@ -3781,13 +3595,6 @@ export const MeetingRecorder = ({
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      clearModalTimeout();
-    };
-  }, []);
 
   const getConnectionStatusIcon = () => {
     switch (connectionStatus) {
@@ -4566,11 +4373,11 @@ export const MeetingRecorder = ({
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
                           size="lg"
-                           disabled={isStoppingRecording || meetingEndModal.isOpen}
+                           disabled={isStoppingRecording}
                           className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
                           <Square className="h-5 w-5 mr-2" />
-                          {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
+                          {isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording")}
                         </Button>
                        </div>
                     )}
@@ -4700,7 +4507,7 @@ export const MeetingRecorder = ({
                      <button
                        type="button"
                        onClick={() => { 
-                         if (!isStoppingRecording && !meetingEndModal.isOpen) {
+                         if (!isStoppingRecording) {
                            if (isRecording) {
                              handleDoubleClickProtection();
                            } else {
@@ -4708,7 +4515,7 @@ export const MeetingRecorder = ({
                            }
                          }
                        }}
-                       disabled={isStoppingRecording || meetingEndModal.isOpen}
+                       disabled={isStoppingRecording}
                        className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                          doubleClickProtection 
                            ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
@@ -5144,145 +4951,6 @@ export const MeetingRecorder = ({
         wordCount={wordCount}
       />
 
-      {/* Combined End-of-Meeting Modal */}
-      {meetingEndModal.isOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-md w-full mx-4 border border-border animate-scale-in">
-            <div className="p-6 space-y-6">
-              
-              {/* Processing Stage */}
-              {meetingEndModal.stage === 'processing' && (
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Finalizing your transcription{processingDots}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 opacity-75">
-                    Capturing final audio segments...
-                  </p>
-                </div>
-              )}
-
-              {/* Saving Stage */}
-              {meetingEndModal.stage === 'saving' && (
-                <>
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Sparkles className="w-6 h-6 text-primary-foreground animate-pulse" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">Processing Your Meeting</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                      }`}>
-                        {savingSteps.saving ? (
-                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                        ) : (
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                        )}
-                      </div>
-                      <span className={`text-sm transition-colors duration-300 ${
-                        savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
-                      }`}>
-                        Saving the meeting...
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                      }`}>
-                        {savingSteps.securing ? (
-                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                        ) : (
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                        )}
-                      </div>
-                      <span className={`text-sm transition-colors duration-300 ${
-                        savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
-                      }`}>
-                        Securing your data...
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Success Stage */}
-              {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
-                <div className="animate-fade-in">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
-                      <CheckSquare className="w-6 h-6 text-primary-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
-                  </div>
-                  
-                  <div className="space-y-3 text-sm">
-                    <div className="flex flex-col gap-2 py-2 border-b border-border">
-                      <span className="text-muted-foreground">Meeting Name:</span>
-                      <span className="font-medium text-foreground text-wrap break-words">{meetingEndModal.savedData.title}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b border-border">
-                      <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium text-foreground">{meetingEndModal.savedData.duration}</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center py-2 border-b border-border">
-                      <span className="text-muted-foreground">Words Transcribed:</span>
-                      <span className="font-medium text-foreground">{meetingEndModal.savedData.wordCount}</span>
-                    </div>
-                    
-                    <div className="pt-2 text-center text-xs text-muted-foreground">
-                      This meeting is now available in your<br />
-                      <span className="font-medium">Meeting History</span> tab as:<br />
-                      <span className="font-medium text-primary">"{meetingEndModal.savedData.title}"</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={() => {
-                      // Reset all meeting state for a fresh start
-                      setDuration(0);
-                      setTranscript("");
-                      setRealtimeTranscripts([]);
-                      setWordCount(0);
-                      setChunkCounter(0);
-                      setConnectionStatus("Disconnected");
-                      setSpeakerCount(0);
-                      setLastPhrase("");
-                      setTranscriptSnippet("");
-                      setShowTranscriptSnippet(false);
-                      setFirstTranscriptionReceived(false);
-                      
-                      // Reset the modal
-                      setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null });
-                      
-                      // Call parent callbacks to reset UI
-                      onTranscriptUpdate("");
-                      onDurationUpdate("00:00");
-                      onWordCountUpdate(0);
-                      
-                      toast.success("Ready for new meeting!");
-                    }}
-                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-                  >
-                     Continue
-                   </button>
-                  </div>
-                )}
-               
-               </div>
-             </div>
-           </div>
-         )}
 
           {/* Full Page Notes Modal - now available on all devices including iPhone */}
           {fullPageModalOpen && modalMeeting && (
