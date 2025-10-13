@@ -16,6 +16,7 @@ interface ChunkSaveStatus {
   confidence: number;
   startTime?: number; // in seconds
   endTime?: number; // in seconds
+  mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
 }
 
 interface ChunkSaveStatusProps {
@@ -209,6 +210,11 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
                               "{chunk.text}"
                             </div>
+                            {chunk.mergeRejectionReason && (
+                              <div className="text-xs text-destructive font-semibold mt-1 p-1 bg-destructive/10 rounded">
+                                ⚠️ Not merged: {chunk.mergeRejectionReason}
+                              </div>
+                            )}
                           </div>
                         </div>
                         

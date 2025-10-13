@@ -1181,16 +1181,30 @@ export const MeetingRecorder = ({
             const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
             const addedLength = newTranscript.length - prev.length;
             
-            // Log merge results for debugging
+            // Track merge success/failure and update chunk status with reason
+            let rejectionReason: string | undefined;
             if (addedLength > 0) {
               console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
             } else if (transcriptionText.length > 10) {
+              rejectionReason = `Duplicate content detected (0 chars added from ${transcriptionText.length} char chunk)`;
               console.error(`❌ Chunk ${chunkId} was NOT merged to transcript!`, {
                 chunkNumber: currentChunkNumber,
                 chunkLength: transcriptionText.length,
                 chunkPreview: transcriptionText.substring(0, 100),
-                prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 200))
+                prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 200)),
+                reason: rejectionReason
               });
+            } else if (transcriptionText.length <= 10) {
+              rejectionReason = `Chunk too short (${transcriptionText.length} chars)`;
+            }
+            
+            // Update chunk status with rejection reason if not merged
+            if (rejectionReason) {
+              setChunkSaveStatuses(prevStatuses => prevStatuses.map(chunk => 
+                chunk.id === uniqueChunkId 
+                  ? { ...chunk, mergeRejectionReason: rejectionReason }
+                  : chunk
+              ));
             }
             
             console.log(`📝 Transcript updated: ${newTranscript.length} chars (added ${addedLength}), chunk ${chunkId}`);
