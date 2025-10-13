@@ -919,15 +919,8 @@ const ComplaintDetails = () => {
         const letterTime = acknowledgementDate ? new Date(acknowledgementDate).getTime() : 0;
         
         if (draftTime > letterTime) {
-          // Ask user if they want to restore
-          if (window.confirm('A newer draft was found. Would you like to restore it?')) {
-            setEditedAcknowledgementContent(draft.content);
-          } else {
-            // Remove logo comment for editing, we'll add it back on save
-            const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
-            setEditedAcknowledgementContent(contentWithoutLogo);
-            localStorage.removeItem(draftKey);
-          }
+          // Auto-restore newer draft
+          setEditedAcknowledgementContent(draft.content);
         } else {
           const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
           setEditedAcknowledgementContent(contentWithoutLogo);
