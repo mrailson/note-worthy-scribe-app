@@ -8,24 +8,45 @@ export function extractSegmentsFromMixed(input: string): Segment[] {
   
   const segments: Segment[] = [];
   
-  // More robust regex to find all JSON arrays, including those separated by spaces
-  const arrayPattern = /\[\s*\{[^\]]*"start"[^\]]*\}\s*\]/g;
-  const matches = input.match(arrayPattern);
-  
-  if (matches) {
-    for (const match of matches) {
-      try {
-        const parsed = JSON.parse(match);
-        if (Array.isArray(parsed)) {
-          for (const s of parsed) {
-            if (s && typeof s.start === 'number' && typeof s.end === 'number' && typeof s.text === 'string') {
-              segments.push({ start: s.start, end: s.end, text: s.text });
+  // Use bracket matching to find complete JSON arrays
+  let i = 0;
+  while (i < input.length) {
+    // Find next opening bracket
+    const start = input.indexOf('[', i);
+    if (start === -1) break;
+    
+    // Find matching closing bracket
+    let depth = 0;
+    let end = start;
+    for (let j = start; j < input.length; j++) {
+      if (input[j] === '[') depth++;
+      if (input[j] === ']') depth--;
+      if (depth === 0) {
+        end = j + 1;
+        break;
+      }
+    }
+    
+    if (end > start) {
+      const candidate = input.substring(start, end);
+      // Only process if it looks like it contains segment data
+      if (candidate.includes('"start"') && candidate.includes('"end"') && candidate.includes('"text"')) {
+        try {
+          const parsed = JSON.parse(candidate);
+          if (Array.isArray(parsed)) {
+            for (const s of parsed) {
+              if (s && typeof s.start === 'number' && typeof s.end === 'number' && typeof s.text === 'string') {
+                segments.push({ start: s.start, end: s.end, text: s.text });
+              }
             }
           }
+        } catch (e) {
+          console.warn('Failed to parse JSON array segment:', candidate.substring(0, 100));
         }
-      } catch (e) {
-        console.warn('Failed to parse JSON array segment:', match.substring(0, 100));
       }
+      i = end;
+    } else {
+      i++;
     }
   }
   
