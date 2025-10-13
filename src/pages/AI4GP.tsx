@@ -42,26 +42,27 @@ const AI4GP = () => {
     }
   };
   
-  // Trigger regeneration for the General Meeting (one-time demo)
-  useEffect(() => {
-    const triggerRegeneration = async () => {
-      try {
-        toast.info('🔄 Regenerating meeting notes with British English formatting...');
-        await regenerateMeetingNotes('77b6b634-4946-4d96-a403-7bf1b641cb89');
-        toast.success('✅ Meeting notes regenerated successfully! Check your meetings list.');
-      } catch (error) {
-        console.error('Failed to regenerate notes:', error);
-        toast.error('❌ Failed to regenerate meeting notes');
-      }
-    };
-    
-    // Only run once per session
-    const hasRun = sessionStorage.getItem('notes-regenerated-demo');
-    if (!hasRun && user) {
-      triggerRegeneration();
-      sessionStorage.setItem('notes-regenerated-demo', 'true');
-    }
-  }, [user]);
+  // DISABLED: Demo feature for regenerating meeting notes
+  // Uncomment to test British English formatting on a specific meeting
+  // useEffect(() => {
+  //   const triggerRegeneration = async () => {
+  //     try {
+  //       toast.info('🔄 Regenerating meeting notes with British English formatting...');
+  //       await regenerateMeetingNotes('YOUR_MEETING_ID_HERE');
+  //       toast.success('✅ Meeting notes regenerated successfully! Check your meetings list.');
+  //     } catch (error) {
+  //       console.error('Failed to regenerate notes:', error);
+  //       toast.error('❌ Failed to regenerate meeting notes');
+  //     }
+  //   };
+  //   
+  //   // Only run once per session
+  //   const hasRun = sessionStorage.getItem('notes-regenerated-demo');
+  //   if (!hasRun && user) {
+  //     triggerRegeneration();
+  //     sessionStorage.setItem('notes-regenerated-demo', 'true');
+  //   }
+  // }, [user]);
   
 
 
