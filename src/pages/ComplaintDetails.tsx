@@ -1875,7 +1875,11 @@ I am committed to ensuring that all patients receive the care and service they d
                     )}
                     <div>
                       <Label className="font-medium">Created By</Label>
-                      <p className="text-sm text-muted-foreground font-mono">{complaint.created_by}</p>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        {complaint.created_by === '00000000-0000-0000-0000-000000000000' 
+                          ? 'Notewell AI system' 
+                          : complaint.created_by}
+                      </p>
                     </div>
                     {complaint.data_retention_date && (
                       <div>
