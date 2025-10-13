@@ -10,7 +10,8 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const JACCARD_THRESHOLD = 0.95; // only filter truly identical sentences (reduced from 0.75)
+const STITCH_SIM_THRESHOLD = 0.95; // similarity to consider head/tail overlap
+const DEDUPE_SIM_THRESHOLD = 0.98; // be less aggressive when filtering duplicates
 const DEDUPE_WINDOW = 5;        // compare against last 5 sentences only (reduced from 15)
 
 const norm = (s: string) =>
@@ -52,7 +53,7 @@ function stitchWithOverlap(prev: string, next: string) {
     const pre = b.slice(0, k);
     const similarity = sim(suf, pre);
     
-    if (similarity >= JACCARD_THRESHOLD) {
+    if (similarity >= STITCH_SIM_THRESHOLD) {
       console.log(`🔗 Detected overlap (${k} chars, similarity: ${similarity.toFixed(3)}), merging without duplication`);
       return prev + next.slice(k);
     }
@@ -100,11 +101,11 @@ function dedupeTail(text: string) {
   const out: string[] = [];
   for (const s of sents) {
     const recent = out.slice(-DEDUPE_WINDOW);
-    const dup = recent.some(r => sim(r, s) >= JACCARD_THRESHOLD);
+    const dup = recent.some(r => sim(r, s) >= DEDUPE_SIM_THRESHOLD);
     if (!dup) {
       out.push(s);
     } else {
-      console.warn(`🚫 Filtered DUPLICATE sentence (${(sim(s, recent.find(r => sim(r, s) >= JACCARD_THRESHOLD)!) * 100).toFixed(1)}% similar): "${s.substring(0, 80)}..."`);
+      console.warn(`🚫 Filtered DUPLICATE sentence (${(sim(s, recent.find(r => sim(r, s) >= DEDUPE_SIM_THRESHOLD)!) * 100).toFixed(1)}% similar): "${s.substring(0, 80)}..."`);
     }
   }
   return out.join(" ");
@@ -171,6 +172,11 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
       originalChunk: chunk.text,
       prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300))
     });
+    // Fallback: if it's not an exact substring, append anyway to avoid data loss
+    if (!prev.includes(next)) {
+      console.warn('✳️ Forced-append fallback engaged (not an exact substring of transcript)');
+      return prev + (/[.!?…]$/.test(prev) ? ' ' : ' ') + next;
+    }
   }
   
   return deduped;

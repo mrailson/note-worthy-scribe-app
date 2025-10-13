@@ -395,6 +395,7 @@ export const MeetingRecorder = ({
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
   const isRecordingRef = useRef<boolean>(false);
   const recordingStartTimeRef = useRef<Date | null>(null);
+  const recordingStartMonotonicRef = useRef<number | null>(null);
   // Progressive pre-summaries ingestion state
   const ingestedKeysRef = useRef<Set<string>>(new Set());
   // Audio backup recording refs
@@ -760,6 +761,9 @@ export const MeetingRecorder = ({
           if (!recordingStartTimeRef.current) {
             recordingStartTimeRef.current = new Date();
           }
+          if (recordingStartMonotonicRef.current == null) {
+            recordingStartMonotonicRef.current = performance.now();
+          }
           chunkStartTimes.current.set(currentChunkId, new Date());
 
           // Create new recorder for this chunk using the SAME stream
@@ -898,16 +902,21 @@ export const MeetingRecorder = ({
         recordingStartTimeRef.current = startTime;
       }
       
-      const chunkStartSeconds = recordingStartTimeRef.current
+      const wallClockStartSeconds = recordingStartTimeRef.current
         ? (startTime.getTime() - recordingStartTimeRef.current.getTime()) / 1000 
         : 0;
+      const monotonicStartSeconds = recordingStartMonotonicRef.current != null
+        ? (performance.now() - recordingStartMonotonicRef.current) / 1000
+        : null;
+      const chunkStartSeconds = (monotonicStartSeconds ?? wallClockStartSeconds);
       
       console.log(`⏱️ Chunk ${chunkId} START time:`, {
         recordingStartSet: !!recordingStartTimeRef.current,
         recordingStart: recordingStartTimeRef.current?.toISOString(),
         chunkStart: startTime.toISOString(),
         chunkStartSeconds,
-        calculationValid: chunkStartSeconds >= 0
+        calculationValid: chunkStartSeconds >= 0,
+        timingMode: monotonicStartSeconds != null ? 'monotonic' : 'wallclock'
       });
       
       const chunkProcessTime = new Date();
@@ -998,9 +1007,13 @@ export const MeetingRecorder = ({
           });
         }
         
-        const chunkEndSeconds = recordingStart 
+        const wallClockEndSeconds = recordingStart 
           ? (endTime.getTime() - recordingStart.getTime()) / 1000 
           : 0;
+        const monotonicEndSeconds = recordingStartMonotonicRef.current != null
+          ? (performance.now() - recordingStartMonotonicRef.current) / 1000
+          : null;
+        const chunkEndSeconds = (monotonicEndSeconds ?? wallClockEndSeconds);
           
         console.log(`⏱️ Chunk ${chunkId} END timing:`, {
           chunkStartSeconds: chunkStartSeconds,
@@ -1008,7 +1021,8 @@ export const MeetingRecorder = ({
           duration: chunkEndSeconds - chunkStartSeconds,
           recordingStartSet: !!recordingStart,
           recordingStart: recordingStart?.toISOString(),
-          chunkEnd: endTime.toISOString()
+          chunkEnd: endTime.toISOString(),
+          timingMode: monotonicEndSeconds != null ? 'monotonic' : 'wallclock'
         });
         
         setChunkSaveStatuses(prev => prev.map(chunk => 
@@ -2947,6 +2961,7 @@ export const MeetingRecorder = ({
         // CRITICAL: Set recording start time IMMEDIATELY after meeting creation
         // This must happen BEFORE any chunk recording starts
         recordingStartTimeRef.current = new Date();
+        recordingStartMonotonicRef.current = performance.now();
         console.log(`⏱️ Recording start time set: ${recordingStartTimeRef.current.toISOString()}`);
         
         // Store both session ID and meeting ID as the same value
