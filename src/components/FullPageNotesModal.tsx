@@ -30,6 +30,7 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import stringSimilarity from "string-similarity";
 import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
+import { toast } from 'sonner';
 import { 
   Bot, 
   ChevronDown, 
@@ -49,7 +50,8 @@ import {
   ChevronDown as ChevronDownIcon,
   Undo2,
   FolderOpen,
-  FilePlus2
+  FilePlus2,
+  AlignJustify
 } from "lucide-react";
 
 interface Meeting {
@@ -111,6 +113,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [isFormattingParagraphs, setIsFormattingParagraphs] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
   const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
@@ -1446,6 +1449,45 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.error('Error cleaning transcript:', error);
     } finally {
       setIsLoadingTranscript(false);
+    }
+  };
+
+  // Handle formatting transcript into paragraphs
+  const handleFormatParagraphs = async () => {
+    if (!transcript || transcript.trim().length === 0) {
+      return;
+    }
+
+    // Save current version before formatting
+    saveCurrentVersion('format-paragraphs', 'transcript');
+    setIsFormattingParagraphs(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
+        body: { transcript },
+      });
+
+      if (error) {
+        console.error('Formatting error:', error);
+        toast.error('Failed to format transcript');
+        return;
+      }
+
+      if (!data?.formattedTranscript) {
+        toast.error('No formatted transcript returned');
+        return;
+      }
+
+      setTranscript(data.formattedTranscript);
+      // Persist immediately
+      await saveTranscriptToDatabase(data.formattedTranscript);
+      toast.success('Transcript formatted into paragraphs');
+      
+    } catch (error) {
+      console.error('Error formatting transcript:', error);
+      toast.error('Error formatting transcript');
+    } finally {
+      setIsFormattingParagraphs(false);
     }
   };
 
@@ -3167,12 +3209,33 @@ ${transcript}`;
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                      <div className="flex items-center gap-4">
-                      <h3 className="text-lg font-semibold">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
                         Meeting Transcript
                         {transcript && (
-                          <span className="ml-2 text-sm font-normal text-muted-foreground">
-                            ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length} words)
-                          </span>
+                          <>
+                            <span className="text-sm font-normal text-muted-foreground">
+                              ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length} words)
+                            </span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    onClick={handleFormatParagraphs}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    disabled={!transcript || transcript.trim().length === 0 || isFormattingParagraphs}
+                                    title="Format transcript into neat paragraphs"
+                                  >
+                                    <AlignJustify className={`h-4 w-4 ${isFormattingParagraphs ? 'animate-pulse' : ''}`} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{isFormattingParagraphs ? 'Formatting...' : 'Format into paragraphs'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </>
                         )}
                       </h3>
                     </div>
