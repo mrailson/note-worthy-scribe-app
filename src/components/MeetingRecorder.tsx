@@ -876,7 +876,13 @@ export const MeetingRecorder = ({
       console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
       
       // Add chunk to status tracking immediately with timestamps
-      const currentChunkNumber = chunkCounter + 1;
+      // Use functional setState to get atomic chunk number assignment
+      let currentChunkNumber = 0;
+      setChunkCounter(prev => {
+        currentChunkNumber = prev + 1;
+        return currentChunkNumber;
+      });
+      
       const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
       
       // Calculate chunk timing relative to recording start
@@ -896,7 +902,6 @@ export const MeetingRecorder = ({
         endTime: chunkStartSeconds // Will be updated when chunk completes
       };
       
-      setChunkCounter(prev => prev + 1);
       setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
       
       // Create blob from chunks
@@ -1700,7 +1705,13 @@ export const MeetingRecorder = ({
     if (!data.text || !data.text.trim()) return;
     
     // Add chunk status tracking for iPhone/mobile transcription with timestamps
-    const currentChunkNumber = chunkCounter + 1;
+    // Use functional setState to get atomic chunk number assignment
+    let currentChunkNumber = 0;
+    setChunkCounter(prev => {
+      currentChunkNumber = prev + 1;
+      return currentChunkNumber;
+    });
+    
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
     const chunkStartSeconds = duration; // Current recording duration when chunk arrives
@@ -1717,7 +1728,6 @@ export const MeetingRecorder = ({
       endTime: chunkStartSeconds // End time is when chunk arrives
     };
     
-    setChunkCounter(prev => prev + 1);
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
     // Simulate database save for iPhone chunks (iPhone transcriber handles actual saving)
