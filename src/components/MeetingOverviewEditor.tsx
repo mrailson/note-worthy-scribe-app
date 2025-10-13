@@ -55,7 +55,10 @@ export const MeetingOverviewEditor = ({
           .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
         
         if (transcriptData?.[0]?.transcript) {
-          notesToUse = transcriptData[0].transcript;
+          // Normalise transcript to clean plain text
+          const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+          const normalised = normaliseTranscript(transcriptData[0].transcript);
+          notesToUse = normalised.plain;
         }
       }
       

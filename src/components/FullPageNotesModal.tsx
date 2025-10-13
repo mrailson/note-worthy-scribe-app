@@ -201,11 +201,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
        } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
          console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
          // Combine all transcript segments
-         const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
+         const rawTranscript = transcriptData.map(segment => segment.transcript).join(' ');
+         
+         // Import normaliser at the top of file
+         const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+         
+         // Normalise the transcript to clean paragraphs
+         const normalised = normaliseTranscript(rawTranscript);
+         console.log(`📝 Transcript normalised using ${normalised.used} approach`);
          
          // Final validation before setting state
          if (meeting?.id === currentMeetingId) {
-           setTranscript(fullTranscript);
+           setTranscript(normalised.html);
          } else {
            console.warn('⚠️ Meeting changed during transcript processing, discarding results');
          }

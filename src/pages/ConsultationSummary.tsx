@@ -155,7 +155,10 @@ export default function ConsultationSummary() {
           if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
             const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
             if (row?.transcript && row.transcript.trim().length > 0) {
-              fullTranscript = row.transcript;
+              // Normalise transcript to clean paragraphs
+              const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+              const normalised = normaliseTranscript(row.transcript);
+              fullTranscript = normalised.plain;
               setTranscriptMeta({ source: row.source, itemCount: row.item_count });
             }
           }
@@ -172,7 +175,11 @@ export default function ConsultationSummary() {
               .eq('meeting_id', meetingId)
               .order('chunk_number', { ascending: true });
             if (!mtcError && mtc && mtc.length > 0) {
-              fullTranscript = (mtc as any[]).map(c => c.transcription_text).join(' ');
+              const rawTranscript = (mtc as any[]).map(c => c.transcription_text).join(' ');
+              // Normalise the chunks transcript
+              const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+              const normalised = normaliseTranscript(rawTranscript);
+              fullTranscript = normalised.plain;
             }
           } catch (e) {
             console.warn('meeting_transcription_chunks not available or not accessible');

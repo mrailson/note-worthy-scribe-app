@@ -325,7 +325,11 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           return;
         }
 
-        await copyToClipboard(transcriptContent);
+        // Normalise transcript to clean plain text for copying
+        const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+        const normalised = normaliseTranscript(transcriptContent);
+        
+        await copyToClipboard(normalised.plain);
         toast({
           title: "Transcript Copied",
           description: "Meeting transcript has been copied to your clipboard.",

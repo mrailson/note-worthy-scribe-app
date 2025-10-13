@@ -1395,7 +1395,16 @@ const MeetingHistory = () => {
             return { meetingId, transcript: '', wordCount: 0 };
           }
           
-          const transcript = data?.[0]?.transcript || '';
+          const rawTranscript = data?.[0]?.transcript || '';
+          
+          // Normalise transcript to clean paragraphs
+          let transcript = rawTranscript;
+          if (rawTranscript) {
+            const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+            const normalised = normaliseTranscript(rawTranscript);
+            transcript = normalised.plain;
+          }
+          
           const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
           
           return { meetingId, transcript, wordCount };
