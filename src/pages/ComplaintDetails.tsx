@@ -1976,7 +1976,11 @@ I am committed to ensuring that all patients receive the care and service they d
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-green-800">
                       <FileText className="h-5 w-5" />
-                      Outcome Letter - Complaint {existingOutcome.outcome_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      Outcome Letter - Complaint {
+                        existingOutcome.outcome_type === 'upheld' ? 'Upheld' :
+                        existingOutcome.outcome_type === 'partially_upheld' ? 'Partially Upheld' :
+                        'Not Upheld'
+                      }
                     </CardTitle>
                     <CardDescription className="text-green-700">
                       The final outcome letter for this complaint has been generated and is ready to view or download
@@ -1987,7 +1991,11 @@ I am committed to ensuring that all patients receive the care and service they d
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
                           <Badge variant="default" className="bg-green-600 text-white">
-                            Outcome: {existingOutcome.outcome_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            Outcome: {
+                              existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
+                              existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                              'Complaint Not Upheld'
+                            }
                           </Badge>
                           {existingOutcome.decided_at && (
                             <div className="text-sm text-green-700">
