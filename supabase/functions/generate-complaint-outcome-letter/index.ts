@@ -29,10 +29,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch complaint details
+    // Fetch complaint details with related investigation data
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select('*')
+      .select(`
+        *,
+        complaint_investigation_findings(findings_text, investigation_summary, evidence_notes),
+        complaint_investigation_decisions(decision_reasoning, corrective_actions, lessons_learned),
+        complaint_involved_parties(staff_name, staff_role, response_text),
+        complaint_notes!inner(note, is_internal)
+      `)
       .eq('id', complaintId)
       .single();
 
@@ -83,12 +89,21 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
 7. Is empathetic, professional, and clear${toneInstruction}
 
 ⚠️ CRITICAL - NO FABRICATION RULES:
-- DO NOT invent, fabricate, or assume ANY events, medical details, or circumstances not explicitly provided
-- DO NOT add specific medical conditions, emergencies, or clinical details unless stated in the complaint description
-- ONLY use information explicitly provided in the complaint details, outcome summary, and questionnaire data
-- If information is missing, acknowledge it generically without inventing specifics
-- Keep descriptions factual and based ONLY on provided information
-- Do NOT elaborate beyond what is given - stick to the facts provided
+- DO NOT invent, fabricate, or assume ANY events, medical details, or circumstances not explicitly provided below
+- DO NOT add specific medical conditions, emergencies, or clinical details unless stated in the complaint description or investigation findings
+- ONLY reference information explicitly provided in: complaint description, investigation findings, staff responses, and questionnaire data
+- If a detail is vague or missing, keep it vague - DO NOT add specificity or invent examples
+- Do NOT elaborate with scenarios, examples, or "what might have happened"
+- Use ONLY the exact facts provided - nothing more, nothing less
+- When explaining your reasoning, base it ONLY on the information provided below
+
+EXAMPLES OF WHAT NOT TO DO:
+❌ "The patient experienced a medical emergency..." (unless explicitly stated)
+❌ "During the consultation, the doctor failed to..." (unless explicitly stated)
+❌ "The patient was left waiting in severe pain..." (unless explicitly stated)
+✅ "Based on the complaint received regarding appointment delays..."
+✅ "The investigation found that..." (only if in investigation findings)
+✅ "As stated in the original complaint..."
 
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start directly with the date, do NOT include any practice headers, letterhead references, or "---NHS Practice" at the top
@@ -125,6 +140,18 @@ You should contact the Ombudsman within one year of the events you want to compl
       year: 'numeric'
     });
 
+    // Build investigation data context
+    const investigationFindings = (complaint as any).complaint_investigation_findings?.[0];
+    const investigationDecision = (complaint as any).complaint_investigation_decisions?.[0];
+    const staffResponses = (complaint as any).complaint_involved_parties
+      ?.filter((p: any) => p.response_text)
+      ?.map((p: any) => `${p.staff_name} (${p.staff_role}): ${p.response_text}`)
+      ?.join('\n\n');
+    const internalNotes = (complaint as any).complaint_notes
+      ?.filter((n: any) => n.is_internal)
+      ?.map((n: any) => n.note)
+      ?.join('\n\n');
+
     // Build additional context from questionnaire
     const questionnaireContext = questionnaireData ? `
 
@@ -140,16 +167,58 @@ ${questionnaireData.improvements_made ? `Improvements Made: ${questionnaireData.
 ${questionnaireData.additional_context ? `Additional Context: ${questionnaireData.additional_context}` : ''}
 ` : '';
 
-    const userPrompt = `Generate an outcome letter for this complaint:
+    const investigationContext = `
+${investigationFindings ? `
+INVESTIGATION FINDINGS:
+${investigationFindings.investigation_summary || ''}
+${investigationFindings.findings_text || ''}
+${investigationFindings.evidence_notes ? `Evidence: ${investigationFindings.evidence_notes}` : ''}
+` : ''}
 
+${investigationDecision ? `
+INVESTIGATION DECISION:
+Reasoning: ${investigationDecision.decision_reasoning || ''}
+${investigationDecision.corrective_actions ? `Corrective Actions: ${investigationDecision.corrective_actions}` : ''}
+${investigationDecision.lessons_learned ? `Lessons Learned: ${investigationDecision.lessons_learned}` : ''}
+` : ''}
+
+${staffResponses ? `
+STAFF RESPONSES:
+${staffResponses}
+` : ''}
+
+${internalNotes ? `
+INTERNAL INVESTIGATION NOTES:
+${internalNotes}
+` : ''}
+`;
+
+    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below:
+
+========== COMPLAINT INFORMATION ==========
 Reference: ${complaint.reference_number}
 Patient: ${complaint.patient_name}
 Patient Address: ${complaint.patient_address || 'Not provided'}
-Original Complaint: ${complaint.complaint_description}
+Incident Date: ${complaint.incident_date}
+Category: ${complaint.category}
+${complaint.subcategory ? `Subcategory: ${complaint.subcategory}` : ''}
+${complaint.location_service ? `Location/Service: ${complaint.location_service}` : ''}
+${complaint.staff_mentioned?.length ? `Staff Mentioned: ${complaint.staff_mentioned.join(', ')}` : ''}
+
+ORIGINAL COMPLAINT DESCRIPTION (USE EXACT WORDING):
+${complaint.complaint_description}
+
+========== OUTCOME DECISION ==========
 Outcome: ${outcomeType}
 Outcome Summary: ${outcomeSummary}
 Date: ${currentDate}
+
+========== INVESTIGATION INFORMATION ==========
+${investigationContext}
+
 ${questionnaireContext}
+
+========== PRACTICE & SIGNATURE DETAILS ==========
 
 Signature Details:
 ${signatureDetails ? `
@@ -170,18 +239,24 @@ Footer Text: ${practiceDetails.footer_text || ''}
 Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 ` : ''}
 
-Include escalation information: ${escalationText}
+========== LETTER GENERATION INSTRUCTIONS ==========
+Generate a professional outcome letter that:
+1. Uses ONLY the facts provided in the sections above
+2. References the original complaint description verbatim where appropriate
+3. Clearly states the outcome decision
+4. Explains the reasoning based ONLY on investigation findings and questionnaire data provided
+5. Includes escalation information if applicable
 
-Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". 
+Include the date at the top of the letter as "${currentDate}". 
 
-⚠️ CRITICAL REMINDER - DO NOT FABRICATE:
-- Use ONLY the information provided above
-- DO NOT invent medical emergencies, specific conditions, clinical details, or events
-- DO NOT add specifics that weren't explicitly mentioned in the complaint description
-- Keep your response based strictly on the facts provided
-- If details are vague, keep them vague - do not add specificity
+⚠️ FINAL REMINDER - ABSOLUTE TRUTH ONLY:
+- Every statement in the letter must be traceable to information provided above
+- If you don't have specific information, use general language
+- DO NOT assume, imagine, or infer details not explicitly stated
+- When in doubt, be more vague rather than more specific
+- Quote or paraphrase from the complaint description rather than inventing new details
 
-IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks. If practice phone number is available, include it in the practice contact details.
+IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks.
 
 CRITICAL: Never include personal email addresses or direct contact details in the signature. ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
 
