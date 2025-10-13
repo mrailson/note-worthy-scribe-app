@@ -161,6 +161,9 @@ const ComplaintsSystem = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [complianceAuditLogs, setComplianceAuditLogs] = useState<any[]>([]);
   const [auditSearchTerm, setAuditSearchTerm] = useState("");
+  const [auditCurrentPage, setAuditCurrentPage] = useState(1);
+  const AUDIT_ITEMS_PER_PAGE = 20;
+  const MAX_AUDIT_PAGES = 20;
   
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -939,6 +942,18 @@ const ComplaintsSystem = () => {
     
     return matchesSearch && matchesAction;
   }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Pagination calculations for audit logs
+  const totalAuditPages = Math.min(Math.ceil(filteredAuditLogs.length / AUDIT_ITEMS_PER_PAGE), MAX_AUDIT_PAGES);
+  const auditStartIndex = (auditCurrentPage - 1) * AUDIT_ITEMS_PER_PAGE;
+  const auditEndIndex = auditStartIndex + AUDIT_ITEMS_PER_PAGE;
+  const paginatedAuditLogs = filteredAuditLogs.slice(auditStartIndex, auditEndIndex);
+  const maxDisplayableRecords = MAX_AUDIT_PAGES * AUDIT_ITEMS_PER_PAGE;
+  
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setAuditCurrentPage(1);
+  }, [auditSearchTerm, auditActionFilter]);
 
   const addInvolvedParty = () => {
     if (!newParty.staffName || !newParty.staffEmail) {
@@ -2791,68 +2806,154 @@ const ComplaintsSystem = () => {
                             <p className="mt-2 text-muted-foreground">Loading audit logs...</p>
                           </div>
                         ) : (
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {filteredAuditLogs.length === 0 ? (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>No audit logs found for this complaint</p>
-                              </div>
-                            ) : (
-                              filteredAuditLogs.map((log) => (
-                                <div key={`${log.id}-${log.created_at}`} className="border rounded-lg p-3 bg-gray-50">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <Badge variant={
-                                          log.action_type === 'create' ? 'default' :
-                                          log.action_type === 'status_change' ? 'secondary' :
-                                          log.action_type === 'compliance_change' ? 'outline' :
-                                          'secondary'
-                                        }>
-                                          {log.action_type?.replace('_', ' ').toUpperCase() || 'ACTION'}
-                                        </Badge>
-                                        <span className="text-sm font-medium">
-                                          {log.profiles?.full_name || log.user_email || 'System User'}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground mb-2">
-                                        {log.action_description || log.compliance_item}
-                                      </p>
-                                      
-                                      {/* Display context for VIEW actions */}
-                                      {log.action_type === 'VIEW' && log.new_values?.contexts && (
-                                        <div className="text-xs text-muted-foreground mb-2">
-                                          <span className="font-medium">Tabs viewed: </span>
-                                          {log.new_values.contexts.map((ctx: string) => 
-                                            ctx.replace(/_/g, ' ').replace(/complaint|details|page/gi, '').trim()
-                                          ).filter(Boolean).join(', ') || 'Details page'}
-                                        </div>
-                                      )}
-                                      
-                                      {/* Display old and new values if available (excluding VIEW contexts) */}
-                                      {((log.old_values && Object.keys(log.old_values).length > 0) || 
-                                        (log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0)) && (
-                                        <div className="text-xs text-muted-foreground">
-                                          {log.old_values && Object.keys(log.old_values).length > 0 && (
-                                            <div>Previous: {JSON.stringify(log.old_values)}</div>
-                                          )}
-                                          {log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0 && (
-                                            <div>New: {JSON.stringify(log.new_values)}</div>
-                                          )}
-                                          {log.previous_status !== undefined && log.new_status !== undefined && (
-                                            <div>Changed from {log.previous_status ? 'Complete' : 'Incomplete'} to {log.new_status ? 'Complete' : 'Incomplete'}</div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground text-right">
-                                      {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
-                                    </div>
-                                  </div>
+                          <>
+                            <div className="space-y-3">
+                              {paginatedAuditLogs.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                  <p>No audit logs found for this complaint</p>
                                 </div>
-                              ))
-                            )}
-                          </div>
+                              ) : (
+                                <>
+                                  {/* Results summary */}
+                                  <div className="text-sm text-muted-foreground">
+                                    Showing {auditStartIndex + 1}-{Math.min(auditEndIndex, filteredAuditLogs.length)} of {filteredAuditLogs.length} records
+                                    {filteredAuditLogs.length > maxDisplayableRecords && (
+                                      <span className="ml-2 text-amber-600">
+                                        (Limited to first {maxDisplayableRecords} records)
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {paginatedAuditLogs.map((log) => (
+                                    <div key={`${log.id}-${log.created_at}`} className="border rounded-lg p-3 bg-gray-50">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <Badge variant={
+                                              log.action_type === 'create' ? 'default' :
+                                              log.action_type === 'status_change' ? 'secondary' :
+                                              log.action_type === 'compliance_change' ? 'outline' :
+                                              'secondary'
+                                            }>
+                                              {log.action_type?.replace('_', ' ').toUpperCase() || 'ACTION'}
+                                            </Badge>
+                                            <span className="text-sm font-medium">
+                                              {log.profiles?.full_name || log.user_email || 'System User'}
+                                            </span>
+                                          </div>
+                                          <p className="text-sm text-muted-foreground mb-2">
+                                            {log.action_description || log.compliance_item}
+                                          </p>
+                                          
+                                          {/* Display context for VIEW actions */}
+                                          {log.action_type === 'VIEW' && log.new_values?.contexts && (
+                                            <div className="text-xs text-muted-foreground mb-2">
+                                              <span className="font-medium">Tabs viewed: </span>
+                                              {log.new_values.contexts.map((ctx: string) => 
+                                                ctx.replace(/_/g, ' ').replace(/complaint|details|page/gi, '').trim()
+                                              ).filter(Boolean).join(', ') || 'Details page'}
+                                            </div>
+                                          )}
+                                          
+                                          {/* Display old and new values if available (excluding VIEW contexts) */}
+                                          {((log.old_values && Object.keys(log.old_values).length > 0) || 
+                                            (log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0)) && (
+                                            <div className="text-xs text-muted-foreground">
+                                              {log.old_values && Object.keys(log.old_values).length > 0 && (
+                                                <div>Previous: {JSON.stringify(log.old_values)}</div>
+                                              )}
+                                              {log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0 && (
+                                                <div>New: {JSON.stringify(log.new_values)}</div>
+                                              )}
+                                              {log.previous_status !== undefined && log.new_status !== undefined && (
+                                                <div>Changed from {log.previous_status ? 'Complete' : 'Incomplete'} to {log.new_status ? 'Complete' : 'Incomplete'}</div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground text-right">
+                                          {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  {/* Pagination Controls */}
+                                  {totalAuditPages > 1 && (
+                                    <Pagination className="mt-4">
+                                      <PaginationContent>
+                                        <PaginationItem>
+                                          <PaginationPrevious 
+                                            onClick={() => setAuditCurrentPage(prev => Math.max(1, prev - 1))}
+                                            className={auditCurrentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                          />
+                                        </PaginationItem>
+                                        
+                                        {/* First page */}
+                                        {auditCurrentPage > 3 && (
+                                          <>
+                                            <PaginationItem>
+                                              <PaginationLink onClick={() => setAuditCurrentPage(1)} className="cursor-pointer">
+                                                1
+                                              </PaginationLink>
+                                            </PaginationItem>
+                                            <PaginationItem>
+                                              <PaginationEllipsis />
+                                            </PaginationItem>
+                                          </>
+                                        )}
+                                        
+                                        {/* Current page and surrounding pages */}
+                                        {Array.from({ length: totalAuditPages }, (_, i) => i + 1)
+                                          .filter(page => {
+                                            return page === auditCurrentPage || 
+                                                   page === auditCurrentPage - 1 || 
+                                                   page === auditCurrentPage + 1 ||
+                                                   (page === 1 && auditCurrentPage <= 3) ||
+                                                   (page === 2 && auditCurrentPage <= 3) ||
+                                                   (page === totalAuditPages && auditCurrentPage >= totalAuditPages - 2) ||
+                                                   (page === totalAuditPages - 1 && auditCurrentPage >= totalAuditPages - 2);
+                                          })
+                                          .map(page => (
+                                            <PaginationItem key={page}>
+                                              <PaginationLink
+                                                onClick={() => setAuditCurrentPage(page)}
+                                                isActive={auditCurrentPage === page}
+                                                className="cursor-pointer"
+                                              >
+                                                {page}
+                                              </PaginationLink>
+                                            </PaginationItem>
+                                          ))}
+                                        
+                                        {/* Last page */}
+                                        {auditCurrentPage < totalAuditPages - 2 && (
+                                          <>
+                                            <PaginationItem>
+                                              <PaginationEllipsis />
+                                            </PaginationItem>
+                                            <PaginationItem>
+                                              <PaginationLink onClick={() => setAuditCurrentPage(totalAuditPages)} className="cursor-pointer">
+                                                {totalAuditPages}
+                                              </PaginationLink>
+                                            </PaginationItem>
+                                          </>
+                                        )}
+                                        
+                                        <PaginationItem>
+                                          <PaginationNext 
+                                            onClick={() => setAuditCurrentPage(prev => Math.min(totalAuditPages, prev + 1))}
+                                            className={auditCurrentPage === totalAuditPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                          />
+                                        </PaginationItem>
+                                      </PaginationContent>
+                                    </Pagination>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </>
                         )}
                       </CardContent>
                     </Card>
