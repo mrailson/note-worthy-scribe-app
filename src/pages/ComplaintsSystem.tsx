@@ -2333,14 +2333,42 @@ const ComplaintsSystem = () => {
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
                             <Badge variant="default">Letter Generated</Badge>
-                            <div className="space-x-2">
+                            <div className="flex gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowAcknowledgementLetter(!showAcknowledgementLetter)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
-                                {showAcknowledgementLetter ? 'Hide' : 'View'} Letter
+                                View Letter
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const doc = await createLetterDocument(
+                                      acknowledgementLetter,
+                                      'acknowledgement',
+                                      selectedComplaint.reference_number
+                                    );
+                                    
+                                    const blob = await Packer.toBlob(doc);
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `acknowledgement-letter-${selectedComplaint.reference_number}.docx`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                    toast.success('Letter downloaded successfully');
+                                  } catch (error) {
+                                    console.error('Error downloading letter:', error);
+                                    toast.error('Failed to download letter');
+                                  }
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
                               </Button>
                               <Button 
                                 variant="outline"
@@ -2626,15 +2654,43 @@ const ComplaintsSystem = () => {
                                 onClick={() => setShowOutcomeLetter(!showOutcomeLetter)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
-                                {showOutcomeLetter ? 'Hide' : 'View'} Letter
+                                View Letter
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setEditingOutcome(!editingOutcome)}
+                                onClick={async () => {
+                                  try {
+                                    const doc = await createLetterDocument(
+                                      outcomeLetter,
+                                      'outcome',
+                                      selectedComplaint.reference_number
+                                    );
+                                    
+                                    const blob = await Packer.toBlob(doc);
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `outcome-letter-${selectedComplaint.reference_number}.docx`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                    toast.success('Letter downloaded successfully');
+                                  } catch (error) {
+                                    console.error('Error downloading letter:', error);
+                                    toast.error('Failed to download letter');
+                                  }
+                                }}
                               >
-                                <Edit className="h-4 w-4 mr-1" />
-                                {editingOutcome ? 'Cancel' : 'Edit'}
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGenerateOutcomeLetter(selectedComplaint.id)}
+                                disabled={submitting}
+                              >
+                                Regenerate Letter
                               </Button>
                             </div>
                           </div>
