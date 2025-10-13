@@ -258,11 +258,47 @@ const ComplaintDetails = () => {
       const { data: checks, error: checksError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
-        .eq('complaint_id', complaintId)
-        .order('created_at', { ascending: true });
+        .eq('complaint_id', complaintId);
 
       if (checksError) throw checksError;
-      setComplianceChecks(checks || []);
+      
+      // Define standard complaint handling order
+      const standardOrder = [
+        'Acknowledgement sent within 3 working days',
+        'Investigation completed within 20 working days',
+        'NHS Constitution pledge - may be extended with good reason',
+        'Complainant informed of investigation timeline',
+        'All relevant staff interviewed',
+        'Medical records reviewed',
+        'Evidence collected and documented',
+        'Investigation findings documented',
+        'Response letter drafted',
+        'Response reviewed by appropriate authority',
+        'Final response sent to complainant',
+        'Complaint outcome recorded',
+        'Learning points identified',
+        'Action plan created if needed',
+        'Complainant satisfaction checked'
+      ];
+      
+      // Sort checks by the standard order
+      const sortedChecks = (checks || []).sort((a, b) => {
+        const indexA = standardOrder.indexOf(a.compliance_item);
+        const indexB = standardOrder.indexOf(b.compliance_item);
+        
+        // If both items are in the standard order, sort by that
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        // If only A is in standard order, put it first
+        if (indexA !== -1) return -1;
+        // If only B is in standard order, put it first
+        if (indexB !== -1) return 1;
+        // If neither is in standard order, keep original order
+        return 0;
+      });
+      
+      setComplianceChecks(sortedChecks);
 
       // Get compliance summary
       const { data: summary, error: summaryError } = await supabase
@@ -2834,8 +2870,8 @@ I am committed to ensuring that all patients receive the care and service they d
                     {complianceChecks.map((check) => (
                       <Card 
                         key={check.id} 
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          check.is_compliant ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                        className={`cursor-pointer transition-colors hover:shadow-md ${
+                          check.is_compliant ? 'border-green-500 bg-green-50' : 'border-gray-200'
                         }`}
                         onClick={() => updateComplianceCheck(check.id, !check.is_compliant)}
                       >
@@ -2848,18 +2884,18 @@ I am committed to ensuring that all patients receive the care and service they d
                                 e.stopPropagation();
                                 updateComplianceCheck(check.id, e.target.checked);
                               }}
-                              className="mt-1 rounded"
+                              className="mt-1 rounded accent-green-600"
                               tabIndex={-1}
                             />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <h4 className={`font-medium ${
-                                  check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'
+                                  check.is_compliant ? 'text-green-700' : 'text-foreground'
                                 }`}>
                                   {check.compliance_item}
                                 </h4>
                                 {check.is_compliant && (
-                                  <Badge variant="default">
+                                  <Badge className="bg-green-600 hover:bg-green-700">
                                     <CheckCircle className="h-3 w-3 mr-1" />
                                     Complete
                                   </Badge>
