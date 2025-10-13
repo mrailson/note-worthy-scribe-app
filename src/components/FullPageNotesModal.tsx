@@ -20,7 +20,7 @@ import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
-import { formatTranscriptContext, extractCleanContent } from "@/utils/meeting/formatTranscriptContext";
+import { formatTranscriptContext, extractCleanContent, addMeetingMetadataToTranscript } from "@/utils/meeting/formatTranscriptContext";
 import { UploadedFile } from "@/types/ai4gp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
@@ -60,6 +60,9 @@ interface Meeting {
   title: string;
   start_time: string;
   created_at: string;
+  end_time?: string | null;
+  duration_minutes?: number | null;
+  duration?: string;
   notes_style_2?: string;
   notes_style_3?: string;
   notes_style_4?: string;
@@ -1638,9 +1641,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         minute: '2-digit' 
       }) : '';
 
+      // Add meeting metadata to transcript
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          transcript: transcript,
+          transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: meetingDate,
           meetingTime: meetingTime,
@@ -1752,9 +1762,16 @@ ${transcript}`;
       console.log('📝 Very Detailed prompt created, length:', style2Prompt.length);
       console.log('🚀 Calling Very Detailed generation...');
 
+      // Add meeting metadata to transcript
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          transcript: transcript,
+          transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: new Date().toLocaleDateString('en-GB'),
           meetingTime: new Date().toLocaleTimeString('en-GB', { 
@@ -1932,9 +1949,16 @@ ${transcript}`;
       console.log('📝 Detailed prompt created, length:', style3Prompt.length);
       console.log('🚀 Calling Detailed generation...');
 
+      // Add meeting metadata to transcript
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          transcript: transcript,
+          transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: meetingDate,
           meetingTime: meetingTime,
@@ -2068,9 +2092,16 @@ ${transcript}`;
       console.log('📝 Executive prompt created, length:', style4Prompt.length);
       console.log('🚀 Calling Executive generation...');
 
+      // Add meeting metadata to transcript
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          transcript: transcript,
+          transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: new Date().toLocaleDateString('en-GB'),
           meetingTime: new Date().toLocaleTimeString('en-GB', { 
@@ -2173,9 +2204,16 @@ ${transcript}`;
       console.log('📝 Limerick prompt created, length:', style5Prompt.length);
       console.log('🚀 Calling Supabase function...');
 
+      // Add meeting metadata to transcript
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+        startTime: meeting.start_time,
+        endTime: meeting.end_time || undefined,
+        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
-          transcript: transcript,
+          transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
           meetingDate: new Date().toLocaleDateString('en-GB'),
           meetingTime: new Date().toLocaleTimeString('en-GB', { 

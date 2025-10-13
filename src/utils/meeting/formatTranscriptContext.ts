@@ -1,6 +1,78 @@
 import { UploadedFile } from '@/types/ai4gp';
 
 /**
+ * Add meeting metadata header to transcript
+ */
+export const addMeetingMetadataToTranscript = (
+  transcript: string,
+  meetingData: {
+    startTime?: string;
+    endTime?: string;
+    duration?: string;
+  }
+): string => {
+  if (!meetingData.startTime) {
+    return transcript;
+  }
+
+  const startDate = new Date(meetingData.startTime);
+  const meetingDate = startDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  const startTimeFormatted = startDate.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  // Calculate end time and duration
+  let endTimeFormatted = '';
+  let durationFormatted = '';
+  
+  if (meetingData.endTime) {
+    const endDate = new Date(meetingData.endTime);
+    endTimeFormatted = endDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    // Calculate duration in hours and minutes
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      durationFormatted = `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    } else {
+      durationFormatted = `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+  } else if (meetingData.duration) {
+    // Use existing duration string if available
+    durationFormatted = meetingData.duration;
+  }
+
+  const separator = '═'.repeat(60);
+  let metadata = '\n' + separator + '\n';
+  metadata += 'MEETING METADATA\n';
+  metadata += separator + '\n';
+  metadata += `Transcript Date: ${meetingDate}\n`;
+  metadata += `Transcript Start Time: ${startTimeFormatted}\n`;
+  
+  if (endTimeFormatted) {
+    metadata += `Meeting End Time: ${endTimeFormatted}\n`;
+  }
+  
+  if (durationFormatted) {
+    metadata += `Total Meeting Length: ${durationFormatted}\n`;
+  }
+  
+  metadata += separator + '\n\n';
+
+  return metadata + transcript;
+};
+
+/**
  * Format uploaded context content with appropriate headings for transcript integration
  */
 export const formatTranscriptContext = (
