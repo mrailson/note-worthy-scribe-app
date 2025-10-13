@@ -380,7 +380,21 @@ const ComplaintDetails = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAuditLogs(logs || []);
+      
+      // Deduplicate VIEW events - keep only one per minute
+      const deduplicatedLogs = (logs || []).reduce((acc: any[], log: any) => {
+        if (log.action_type === 'VIEW') {
+          const logMinute = new Date(log.created_at).toISOString().slice(0, 16);
+          const existingViewInMinute = acc.find(
+            l => l.action_type === 'VIEW' && 
+            new Date(l.created_at).toISOString().slice(0, 16) === logMinute
+          );
+          if (existingViewInMinute) return acc;
+        }
+        return [...acc, log];
+      }, []);
+      
+      setAuditLogs(deduplicatedLogs);
 
       const { data: complianceLogs, error: complianceError } = await supabase
         .from('complaint_compliance_audit')

@@ -767,6 +767,40 @@ const ComplaintsSystem = () => {
         `)
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false });
+      
+      if (generalError) {
+        console.error('Error fetching audit logs:', generalError);
+        setAuditLogs([]);
+        return;
+      }
+      
+      // Deduplicate VIEW events - keep only one per minute with combined context
+      const deduplicatedLogs = (generalLogs || []).reduce((acc: any[], log: any) => {
+        if (log.action_type === 'VIEW') {
+          const logMinute = new Date(log.created_at).toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+          const existingViewInMinute = acc.find(
+            l => l.action_type === 'VIEW' && 
+            new Date(l.created_at).toISOString().slice(0, 16) === logMinute
+          );
+          
+          if (existingViewInMinute) {
+            // Add context to existing entry
+            const existingContext = existingViewInMinute.new_values?.context || '';
+            const newContext = log.new_values?.context || '';
+            if (newContext && !existingContext.includes(newContext)) {
+              existingViewInMinute.action_description = 'Viewed complaint (multiple tabs)';
+              existingViewInMinute.new_values = {
+                ...existingViewInMinute.new_values,
+                contexts: [...(existingViewInMinute.new_values?.contexts || [existingContext]), newContext]
+              };
+            }
+            return acc;
+          }
+        }
+        return [...acc, log];
+      }, []);
+      
+      setAuditLogs(deduplicatedLogs);
 
       if (generalError) {
         console.error('Error fetching general audit logs:', generalError);
@@ -2784,10 +2818,27 @@ const ComplaintsSystem = () => {
                                       <p className="text-sm text-muted-foreground mb-2">
                                         {log.action_description || log.compliance_item}
                                       </p>
-                                      {(log.old_values || log.new_values) && (
+                                      
+                                      {/* Display context for VIEW actions */}
+                                      {log.action_type === 'VIEW' && log.new_values?.contexts && (
+                                        <div className="text-xs text-muted-foreground mb-2">
+                                          <span className="font-medium">Tabs viewed: </span>
+                                          {log.new_values.contexts.map((ctx: string) => 
+                                            ctx.replace(/_/g, ' ').replace(/complaint|details|page/gi, '').trim()
+                                          ).filter(Boolean).join(', ') || 'Details page'}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Display old and new values if available (excluding VIEW contexts) */}
+                                      {((log.old_values && Object.keys(log.old_values).length > 0) || 
+                                        (log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0)) && (
                                         <div className="text-xs text-muted-foreground">
-                                          {log.old_values && <div>Previous: {JSON.stringify(log.old_values)}</div>}
-                                          {log.new_values && <div>New: {JSON.stringify(log.new_values)}</div>}
+                                          {log.old_values && Object.keys(log.old_values).length > 0 && (
+                                            <div>Previous: {JSON.stringify(log.old_values)}</div>
+                                          )}
+                                          {log.new_values && log.action_type !== 'VIEW' && Object.keys(log.new_values).length > 0 && (
+                                            <div>New: {JSON.stringify(log.new_values)}</div>
+                                          )}
                                           {log.previous_status !== undefined && log.new_status !== undefined && (
                                             <div>Changed from {log.previous_status ? 'Complete' : 'Incomplete'} to {log.new_status ? 'Complete' : 'Incomplete'}</div>
                                           )}
