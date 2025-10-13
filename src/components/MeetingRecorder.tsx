@@ -1791,7 +1791,10 @@ export const MeetingRecorder = ({
     
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
-    const chunkStartSeconds = duration; // Current recording duration when chunk arrives
+    const approxNowSeconds = recordingStartMonotonicRef.current != null
+      ? (performance.now() - recordingStartMonotonicRef.current) / 1000
+      : duration;
+    const chunkStartSeconds = approxNowSeconds;
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,

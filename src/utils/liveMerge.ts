@@ -172,11 +172,9 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
       originalChunk: chunk.text,
       prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300))
     });
-    // Fallback: if it's not an exact substring, append anyway to avoid data loss
-    if (!prev.includes(next)) {
-      console.warn('✳️ Forced-append fallback engaged (not an exact substring of transcript)');
-      return prev + (/[.!?…]$/.test(prev) ? ' ' : ' ') + next;
-    }
+    // Fallback: append anyway to avoid data loss (may produce near-duplicates we can clean later)
+    console.warn('✳️ Forced-append fallback engaged');
+    return prev + (/[.!?…]$/.test(prev) ? ' ' : ' ') + next;
   }
   
   return deduped;
