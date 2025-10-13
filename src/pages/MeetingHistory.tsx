@@ -852,7 +852,7 @@ const MeetingHistory = () => {
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: cleanedTranscript ? "AI-Enhanced Transcript" : "Meeting Transcript",
+                    text: cleanedTranscript ? "Cleaned Transcript" : "Meeting Transcript",
                     bold: true,
                     size: 24,
                   }),

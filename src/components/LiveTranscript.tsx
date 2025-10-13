@@ -353,7 +353,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       const cleanedChunk = lightCleanChunk(pendingRef.current);
       const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
         if (dedupedChunk) {
-          console.log("📝 Debounce processed chunk into AI-Enhanced Transcript");
+          console.log("📝 Debounce processed chunk into cleaned transcript");
           setCleanedTranscript(prev => {
             const chunk: LiveChunk = {
               text: dedupedChunk,
@@ -497,8 +497,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
           // Enhanced final chunk handling with better deduplication (Phase 1 fix)
           if (typeof r.is_final === "boolean") {
             console.log("✅ Chunk has is_final field:", r.is_final);
-            if (r.is_final && dedupedChunk) {
-              console.log("🔥 Processing FINAL chunk immediately into AI-Enhanced Transcript");
+          if (r.is_final && dedupedChunk) {
+              console.log("🔥 Processing FINAL chunk immediately into cleaned transcript");
               setCleanedTranscript(prev => {
                 const chunk: LiveChunk = {
                   text: dedupedChunk,
@@ -507,7 +507,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                   source: r.source || 'unknown'
                 };
                 const merged = mergeLive(prev, chunk);
-                console.log("📝 AI-Enhanced Transcript updated, length:", merged.length);
+                console.log("📝 Cleaned transcript updated, length:", merged.length);
                 return merged;
               });
             } else if (dedupedChunk) {
@@ -760,7 +760,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       .split("\n\n")
       .map((p) => `<p>${p.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)  
       .join("");
-    return `<article><h2>AI-Enhanced Transcript</h2>${paras}</article>`;
+    return `<article><h2>Cleaned Transcript</h2>${paras}</article>`;
   };
 
   const handleCopyCleaned = async () => {
@@ -836,11 +836,30 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Cleaned Meeting Transcript
+                  <span>Cleaned Meeting Transcript</span>
+                  {cleanedTranscript && (
+                    <Badge variant="secondary" className="text-xs">
+                      {cleanedTranscript.trim().split(/\s+/).filter(w => w.length > 0).length} words
+                    </Badge>
+                  )}
                 </div>
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform ${isTranscriptOpen ? 'rotate-180' : ''}`}
-                />
+                <div className="flex items-center gap-2">
+                  {cleanedTranscript && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsLiveTranscriptModalOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <ChevronDown 
+                    className={`h-4 w-4 transition-transform ${isTranscriptOpen ? 'rotate-180' : ''}`}
+                  />
+                </div>
               </CardTitle>
             </CardHeader>
           </CollapsibleTrigger>
@@ -1026,8 +1045,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                   </div>
                 </div>
 
-                {/* Conditional display: Automatic Notes OR AI-Enhanced Transcript */}
-                {liveNotesData ? (
+                {/* Conditional display: Automatic Notes */}
+                {liveNotesData && (
                   /* Automatic Notes – Generated every 10 minutes during meeting */
                   <div className="p-4 bg-gradient-to-br from-emerald-50/50 to-blue-50/50 rounded-lg border border-emerald-200/50">
                     <div className="flex items-center gap-2 mb-2">
@@ -1122,97 +1141,6 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                       AI-generated meeting notes updated automatically every 10 minutes during recording sessions.
                     </div>
                   </div>
-                ) : (
-                  /* AI-Enhanced Transcript – Live sentence-by-sentence display */
-                  <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground uppercase tracking-wide">
-                        AI-Enhanced Transcript
-                      </span>
-                      <Badge variant="default" className="text-xs">Live cleaning</Badge>
-                    </div>
-
-                     <div className="mb-2 flex items-center gap-2 flex-wrap">
-                       <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
-                         Copy
-                       </Button>
-                       <Button size="sm" variant="outline" onClick={handleDownloadWord}>
-                         Download Word
-                       </Button>
-                       <Button 
-                         size="sm" 
-                         variant="outline" 
-                         onClick={() => setTextAlignment(prev => prev === 'left' ? 'center' : 'left')}
-                         title={`Switch to ${textAlignment === 'left' ? 'center' : 'left'} alignment`}
-                       >
-                         {textAlignment === 'left' ? 'Center Text' : 'Left Align'}
-                       </Button>
-                      {cleanedTranscript && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={async () => {
-                            try {
-                              const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
-                                body: { transcript: cleanedTranscript }
-                              });
-                              
-                              if (error) throw error;
-                              
-                              if (data?.cleanedTranscript) {
-                                setCleanedTranscript(data.cleanedTranscript);
-                                toast({
-                                  title: "Deep Clean Complete",
-                                  description: `Processed ${data.originalLength} → ${data.cleanedLength} characters`
-                                });
-                              }
-                            } catch (error) {
-                              toast({
-                                title: "Deep Clean Failed",
-                                description: "Could not clean transcript. Please try again.",
-                                variant: "destructive"
-                              });
-                            }
-                          }}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Deep Clean
-                        </Button>
-                      )}
-                    </div>
-
-                    <div
-                      className="text-sm leading-relaxed min-h-[220px] max-h-[80vh] overflow-y-auto p-3 bg-background/80 rounded-md border scroll-smooth"
-                      style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
-                      onMouseUp={handleTextSelection}
-                    >
-                      {cleanedTranscript ? (
-                        <div className="space-y-2">
-                          {cleanedTranscript
-                            .split(/(?<=[.!?])\s+/) // sentence boundaries
-                            .filter(sentence => sentence.trim().length > 0) // filter empty sentences
-                            .map((sentence, idx) => (
-                               <p key={idx} className={`leading-relaxed text-foreground ${textAlignment === 'center' ? 'text-center' : 'text-left'}`}>
-                                 {sentence.trim()}
-                               </p>
-                            ))}
-                        </div>
-                      ) : (
-                        <div className="text-muted-foreground italic">
-                          <div>AI-enhanced transcript will appear here sentence by sentence…</div>
-                          <div className="text-xs text-muted-foreground mt-2">
-                            Real-time cleaning and NHS term standardisation active.
-                            Sentences appear as they're finalised.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Live-cleaned transcript with NHS term corrections. Updated continuously during meetings.
-                    </div>
-                  </div>
                 )}
 
                 {/* Find & Replace Panel for Clean Transcript */}
@@ -1249,7 +1177,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       <LiveTranscriptModal 
         isOpen={isLiveTranscriptModalOpen}
         onOpenChange={setIsLiveTranscriptModalOpen}
-        transcriptText={liveTranscriptText}
+        transcriptText={cleanedTranscript}
       />
     </div>
   );
