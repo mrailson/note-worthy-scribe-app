@@ -16,14 +16,19 @@ serve(async (req) => {
     
     const { audio, meetingId, sessionId, chunkNumber } = await req.json();
     
+    console.log(`📦 Request details: meetingId=${meetingId}, sessionId=${sessionId}, chunk=${chunkNumber}, audioLength=${audio?.length || 0}`);
+    
     if (!audio) {
       throw new Error('No audio data provided');
     }
 
     const DEEPGRAM_API_KEY = Deno.env.get('DEEPGRAM_API_KEY');
     if (!DEEPGRAM_API_KEY) {
+      console.error('❌ DEEPGRAM_API_KEY not configured');
       throw new Error('DEEPGRAM_API_KEY not configured');
     }
+
+    console.log(`✅ Deepgram API key found (length: ${DEEPGRAM_API_KEY.length})`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -36,26 +41,19 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
+      console.error('❌ Authentication failed:', userError);
       throw new Error('Authentication failed');
     }
 
+    console.log(`✅ User authenticated: ${user.id}`);
     console.log(`📦 Processing chunk ${chunkNumber} for meeting ${meetingId}`);
 
     // Convert base64 to binary
     const binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+    console.log(`📦 Converted audio to binary: ${binaryAudio.length} bytes`);
     
-    // Prepare multipart form data for Deepgram
-    const boundary = '----WebKitFormBoundary' + Math.random().toString(36);
-    const formData = [
-      `--${boundary}`,
-      `Content-Disposition: form-data; name="file"; filename="audio.webm"`,
-      `Content-Type: audio/webm`,
-      ``,
-      new TextDecoder().decode(binaryAudio),
-      `--${boundary}--`
-    ].join('\r\n');
-
     // Send to Deepgram API
+    console.log('🌐 Sending to Deepgram API...');
     const deepgramResponse = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false', {
       method: 'POST',
       headers: {
@@ -65,22 +63,26 @@ serve(async (req) => {
       body: binaryAudio,
     });
 
+    console.log(`📡 Deepgram API response status: ${deepgramResponse.status}`);
+
     if (!deepgramResponse.ok) {
       const errorText = await deepgramResponse.text();
       console.error('❌ Deepgram API error:', deepgramResponse.status, errorText);
-      throw new Error(`Deepgram API error: ${deepgramResponse.status}`);
+      throw new Error(`Deepgram API error: ${deepgramResponse.status} - ${errorText}`);
     }
 
     const deepgramResult = await deepgramResponse.json();
+    console.log('📊 Deepgram result structure:', JSON.stringify(deepgramResult, null, 2).substring(0, 500));
     
     // Extract transcript and confidence
     const transcript = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
     const confidence = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
     const words = deepgramResult.results?.channels?.[0]?.alternatives?.[0]?.words || [];
 
-    console.log(`✅ Deepgram transcription: "${transcript.substring(0, 50)}..." (confidence: ${confidence})`);
+    console.log(`✅ Deepgram transcription: "${transcript.substring(0, 100)}..." (confidence: ${confidence}, words: ${words.length})`);
 
     // Save to database
+    console.log('💾 Saving to database...');
     const { error: dbError } = await supabase
       .from('deepgram_transcriptions')
       .insert({
@@ -115,6 +117,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Deepgram transcription error:', error);
+    console.error('❌ Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         error: error.message,

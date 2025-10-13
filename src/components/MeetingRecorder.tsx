@@ -1096,7 +1096,8 @@ export const MeetingRecorder = ({
 
           // Send to Deepgram for backup transcription (fire and forget)
           sendToDeepgram(chunkBlob, meetingId, currentChunkNumber).catch(err => {
-            console.error('⚠️ Deepgram backup failed:', err);
+            console.error('⚠️ Deepgram backup failed for chunk', currentChunkNumber, ':', err);
+            console.error('⚠️ Error details:', JSON.stringify(err, null, 2));
           });
 
           // Update word count with immediate feedback
@@ -1177,7 +1178,7 @@ export const MeetingRecorder = ({
       const sessionId = sessionStorage.getItem('currentMeetingId') || meetingId;
       const base64Audio = await convertBlobToBase64(audioBlob);
       
-      console.log(`🌊 Sending chunk ${chunkNumber} to Deepgram backup...`);
+      console.log(`🌊 Deepgram: Sending chunk ${chunkNumber} (audio size: ${audioBlob.size} bytes, base64: ${base64Audio.length} chars)`);
       
       const { data, error } = await supabase.functions.invoke('deepgram-transcribe', {
         body: {
@@ -1188,23 +1189,29 @@ export const MeetingRecorder = ({
         }
       });
 
+      console.log(`🌊 Deepgram response for chunk ${chunkNumber}:`, { data, error });
+
       if (error) {
-        console.error('❌ Deepgram error:', error);
+        console.error(`❌ Deepgram error for chunk ${chunkNumber}:`, error);
         return;
       }
 
       if (data?.text) {
-        console.log(`✅ Deepgram: "${data.text.substring(0, 50)}..." (${data.confidence})`);
+        console.log(`✅ Deepgram chunk ${chunkNumber}: "${data.text.substring(0, 50)}..." (confidence: ${data.confidence})`);
         
         setDeepgramTranscript(prev => {
           const newText = prev + (prev ? ' ' : '') + data.text;
           const words = newText.trim().split(/\s+/).length;
           setDeepgramWordCount(words);
+          console.log(`📊 Deepgram transcript updated: ${words} words total`);
           return newText;
         });
+      } else {
+        console.warn(`⚠️ No text in Deepgram response for chunk ${chunkNumber}:`, data);
       }
     } catch (err) {
-      console.error('⚠️ Deepgram failed:', err);
+      console.error(`⚠️ Deepgram exception for chunk ${chunkNumber}:`, err);
+      console.error('⚠️ Stack:', err instanceof Error ? err.stack : String(err));
     }
   };
 
