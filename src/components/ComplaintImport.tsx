@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -110,9 +112,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   };
 
-  const downloadExample = async () => {
+  const downloadExample = async (exampleNumber: number, exampleName: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-example-complaint');
+      const { data, error } = await supabase.functions.invoke('generate-example-complaint', {
+        body: { exampleNumber }
+      });
       
       if (error) throw error;
       
@@ -121,13 +125,13 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'example-complaint.txt';
+      a.download = `example-complaint-${exampleNumber}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       
-      toast.success('Example complaint downloaded');
+      toast.success(`Downloaded: ${exampleName}`);
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download example');
@@ -149,10 +153,46 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={downloadExample}>
-                <Download className="h-4 w-4 mr-1" />
-                Download Example
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    Download Examples
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuItem onClick={() => downloadExample(1, "High Priority - Clinical Care & Staff Attitude")}>
+                    Example 1: High Priority - Clinical Care & Staff Attitude
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(2, "Medium Priority - Appointment Delays")}>
+                    Example 2: Medium Priority - Appointment Delays
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(3, "High Priority - Medication Error")}>
+                    Example 3: High Priority - Medication Error
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(4, "Low Priority - Facility & Cleanliness")}>
+                    Example 4: Low Priority - Facility & Cleanliness
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(5, "Medium Priority - Test Results Delay")}>
+                    Example 5: Medium Priority - Test Results Delay
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(6, "High Priority - Misdiagnosis Concern")}>
+                    Example 6: High Priority - Misdiagnosis Concern
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(7, "Medium Priority - Discrimination")}>
+                    Example 7: Medium Priority - Discrimination & Accessibility
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(8, "Low Priority - Administrative Error")}>
+                    Example 8: Low Priority - Administrative Error
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(9, "High Priority - Child Safeguarding")}>
+                    Example 9: High Priority - Child Safeguarding Concern
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(10, "Medium Priority - Prescription Error")}>
+                    Example 10: Medium Priority - Prescription Error
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" onClick={onClose}>
                 Close
               </Button>
