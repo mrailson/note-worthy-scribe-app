@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { AssemblyAISpeechToText } from '@/components/AssemblyAISpeechToText';
+import { SimpleBrowserMic } from '@/components/ai4gp/SimpleBrowserMic';
 
 interface ComplaintDetails {
   complaint_id: string;
@@ -213,11 +213,11 @@ export default function ComplaintResponse() {
                   />
                   {!complaint.response_submitted && (
                     <div className="flex justify-start">
-                      <AssemblyAISpeechToText
-                        onTranscription={(text) => {
+                      <SimpleBrowserMic
+                        onTranscriptUpdate={(text) => {
                           setResponse(prev => prev + (prev ? '\n\n' : '') + text);
                         }}
-                        size="sm"
+                        disabled={complaint.response_submitted}
                         className="text-sm"
                       />
                     </div>
