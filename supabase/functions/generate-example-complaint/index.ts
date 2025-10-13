@@ -10,7 +10,7 @@ const exampleComplaints = {
     name: "High Priority - Clinical Care & Staff Attitude",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 28th October 2025
 
 Dear Complaints Manager,
 
@@ -23,7 +23,7 @@ Email: sarah.johnson@email.com
 
 COMPLAINT REFERENCE: Unprofessional Staff Behavior and Inadequate Clinical Care
 
-I am writing to formally complain about the unacceptable treatment I received during my visit to Oak Lane Practice on 23rd October 2024.
+I am writing to formally complain about the unacceptable treatment I received during my visit to Oak Lane Practice on 23rd October 2025.
 
 INCIDENT DETAILS:
 I arrived punctually for my appointment with Dr. Sarah Smith but was kept waiting for over 45 minutes without explanation. When I politely approached reception, the receptionist Emma Thompson was extremely rude and dismissive, telling me to "just wait like everyone else" and rolling her eyes.
@@ -51,7 +51,7 @@ Sarah Johnson`
     name: "Medium Priority - Appointment Delays & Communication",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 27th October 2025
 
 Dear Complaints Manager,
 
@@ -67,7 +67,7 @@ COMPLAINT REFERENCE: Repeated Appointment Cancellations and Poor Communication
 I am writing to complain about the ongoing issues with appointment cancellations at Oak Lane Practice over the past three months.
 
 INCIDENT DETAILS:
-Since August 2024, I have had four scheduled appointments cancelled at short notice (less than 24 hours). On two occasions, I only found out about the cancellation when I arrived at the practice. This has caused significant disruption to my work schedule as I arrange time off in advance.
+Since August 2025, I have had four scheduled appointments cancelled at short notice (less than 24 hours). On two occasions, I only found out about the cancellation when I arrived at the practice. This has caused significant disruption to my work schedule as I arrange time off in advance.
 
 COMMUNICATION ISSUES:
 The practice failed to notify me promptly about cancellations via text or phone. When I complained to the practice manager, I was told they would improve their systems, but the problem has continued.
@@ -88,7 +88,7 @@ James Williams`
     name: "High Priority - Medication Error",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 26th October 2025
 
 Dear Complaints Manager,
 
@@ -101,7 +101,7 @@ Email: patricia.davies@email.com
 
 COMPLAINT REFERENCE: Serious Medication Dispensing Error
 
-I am writing to formally complain about a serious medication error that occurred at Oak Lane Practice on 15th October 2024.
+I am writing to formally complain about a serious medication error that occurred at Oak Lane Practice on 15th October 2025.
 
 INCIDENT DETAILS:
 I collected my regular prescription for blood pressure medication (Amlodipine 5mg). When I arrived home and checked the medication, I discovered I had been given the wrong dosage - 10mg instead of 5mg. I had taken one tablet before noticing the error.
@@ -128,7 +128,7 @@ Patricia Davies`
     name: "Low Priority - Facility & Cleanliness",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 25th October 2025
 
 Dear Complaints Manager,
 
@@ -144,7 +144,7 @@ COMPLAINT REFERENCE: Poor Hygiene Standards in Waiting Area
 I am writing to raise concerns about the cleanliness and hygiene standards at Oak Lane Practice.
 
 INCIDENT DETAILS:
-During my visit on 18th October 2024 at 10:00 AM, I noticed that the waiting room was not properly cleaned. There were used tissues on chairs, the floor hadn't been vacuumed, and the toilets were in an unacceptable state with no soap or paper towels available.
+During my visit on 18th October 2025 at 10:00 AM, I noticed that the waiting room was not properly cleaned. There were used tissues on chairs, the floor hadn't been vacuumed, and the toilets were in an unacceptable state with no soap or paper towels available.
 
 CONCERNS:
 As a healthcare facility, maintaining high hygiene standards is essential to prevent infection spread. The state of the facilities on multiple recent visits suggests this is an ongoing issue rather than a one-off problem.
@@ -165,7 +165,7 @@ David Thompson`
     name: "Medium Priority - Test Results Delay",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 24th October 2025
 
 Dear Complaints Manager,
 
@@ -181,7 +181,7 @@ COMPLAINT REFERENCE: Delayed Blood Test Results and Lack of Follow-up
 I am writing to complain about the significant delay in receiving my blood test results from Oak Lane Practice.
 
 INCIDENT DETAILS:
-I had blood tests taken on 25th September 2024 for ongoing fatigue and dizziness. I was told results would be available within 7 days. Despite calling the practice repeatedly over three weeks, I received conflicting information - first that results weren't back, then that they couldn't find them in the system.
+I had blood tests taken on 25th September 2025 for ongoing fatigue and dizziness. I was told results would be available within 7 days. Despite calling the practice repeatedly over three weeks, I received conflicting information - first that results weren't back, then that they couldn't find them in the system.
 
 CONSEQUENCE:
 I finally received my results on 20th October (25 days later) showing I have significantly low iron levels requiring immediate treatment. The delay has prolonged my symptoms and caused unnecessary anxiety.
@@ -205,7 +205,7 @@ Emma Richardson`
     name: "High Priority - Misdiagnosis Concern",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 23rd October 2025
 
 Dear Complaints Manager,
 
@@ -218,7 +218,7 @@ Email: robert.mitchell@email.com
 
 COMPLAINT REFERENCE: Potential Misdiagnosis of Chest Pain
 
-I am writing to formally complain about concerning clinical care I received at Oak Lane Practice on 5th October 2024.
+I am writing to formally complain about concerning clinical care I received at Oak Lane Practice on 5th October 2025.
 
 INCIDENT DETAILS:
 I visited Dr. Michael Anderson with severe chest pain, shortness of breath, and pain radiating down my left arm. I specifically mentioned my family history of heart disease (father died of heart attack aged 55).
@@ -248,7 +248,7 @@ Robert Mitchell`
     name: "Medium Priority - Discrimination & Accessibility",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 22nd October 2025
 
 Dear Complaints Manager,
 
@@ -264,7 +264,7 @@ COMPLAINT REFERENCE: Discrimination and Inadequate Accessibility Support
 I am writing to complain about discriminatory treatment and lack of accessibility support at Oak Lane Practice.
 
 INCIDENT DETAILS:
-On 12th October 2024, I attended an appointment using my wheelchair. The accessible toilet was being used as a storage room, making it impossible for me to use the facilities during my visit. When I mentioned this to reception staff, I was told "we don't have many wheelchair users, so we needed the space".
+On 12th October 2025, I attended an appointment using my wheelchair. The accessible toilet was being used as a storage room, making it impossible for me to use the facilities during my visit. When I mentioned this to reception staff, I was told "we don't have many wheelchair users, so we needed the space".
 
 FURTHER ISSUES:
 During my consultation with Dr. Helen Carter, she spoke to my husband rather than directly to me, despite me being the patient. When I tried to explain my symptoms, she repeatedly asked my husband to "explain what she means".
@@ -285,7 +285,7 @@ Amara Okoye`
     name: "Low Priority - Administrative Error",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 21st October 2025
 
 Dear Complaints Manager,
 
@@ -301,13 +301,13 @@ COMPLAINT REFERENCE: Incorrect Medical Records and Administrative Errors
 I am writing to complain about errors in my medical records at Oak Lane Practice.
 
 INCIDENT DETAILS:
-In September 2024, I requested access to my medical records and discovered multiple inaccuracies:
+In September 2025, I requested access to my medical records and discovered multiple inaccuracies:
 - Incorrect home address (showing my previous address from 5 years ago)
 - Test results from another patient (Sarah Baker) incorrectly filed in my records
-- Missing consultation notes from my visit in July 2024
+- Missing consultation notes from my visit in July 2025
 
 ATTEMPTS TO RESOLVE:
-I reported these errors to the practice manager on 1st October. Despite assurances they would be corrected within one week, the errors remain unfixed as of today (22nd October).
+I reported these errors to the practice manager on 1st October. Despite assurances they would be corrected within one week, the errors remain unfixed as of today (20th October).
 
 IMPACT:
 These errors could lead to serious clinical mistakes. I am concerned about data protection and the accuracy of other patients' records if mine contains such significant errors.
@@ -325,7 +325,7 @@ Christopher Baker`
     name: "High Priority - Child Safeguarding Concern",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 20th October 2025
 
 Dear Complaints Manager,
 
@@ -339,10 +339,10 @@ Email: sophie.turner@email.com
 
 COMPLAINT REFERENCE: Failure to Act on Safeguarding Concerns
 
-I am writing to formally complain about the practice's failure to properly respond to safeguarding concerns regarding my son Joshua, aged 9.
+I am writing to formally complain about the practice's failure to properly respond to safeguarding concerns regarding my son Joshua, aged 10.
 
 INCIDENT DETAILS:
-On 2nd October 2024, I brought Joshua to see Dr. Rachel Hughes. He had unexplained bruising on his arms and had become withdrawn at school. I expressed concerns about his father's boyfriend who had recently moved into their home following our separation.
+On 2nd October 2025, I brought Joshua to see Dr. Rachel Hughes. He had unexplained bruising on his arms and had become withdrawn at school. I expressed concerns about his father's boyfriend who had recently moved into their home following our separation.
 
 CLINICAL RESPONSE:
 Dr. Hughes examined Joshua but did not ask to speak with him privately. She documented the bruising as "consistent with normal childhood play" without proper inquiry into the circumstances or my expressed concerns.
@@ -369,7 +369,7 @@ Sophie Turner`
     name: "Medium Priority - Prescription Error & Follow-up",
     content: `NHS FORMAL COMPLAINT LETTER
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: 19th October 2025
 
 Dear Complaints Manager,
 
@@ -388,13 +388,13 @@ INCIDENT DETAILS:
 I have been on the same medications for diabetes and high blood pressure for over three years without a medication review, despite NHS guidance recommending annual reviews for patients with multiple chronic conditions.
 
 PRESCRIPTION ERROR:
-On 8th October 2024, I requested my repeat prescription through the online system. When I collected it from the pharmacy, my diabetes medication (Metformin) was missing. The pharmacy contacted the practice, and I was told it had been discontinued in error during a system update in August.
+On 8th October 2025, I requested my repeat prescription through the online system. When I collected it from the pharmacy, my diabetes medication (Metformin) was missing. The pharmacy contacted the practice, and I was told it had been discontinued in error during a system update in August.
 
 CONSEQUENCE:
 I went without my diabetes medication for two days until this was resolved. My blood sugar levels became dangerously high, and I felt very unwell. Nobody from the practice contacted me proactively about this medication being stopped.
 
 IMPACT:
-This error put my health at serious risk. As an 79-year-old patient with multiple conditions, proper medication management is essential for my wellbeing.
+This error put my health at serious risk. As an 80-year-old patient with multiple conditions, proper medication management is essential for my wellbeing.
 
 CATEGORY: Medication Management
 PRIORITY: Medium
