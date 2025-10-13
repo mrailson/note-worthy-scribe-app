@@ -152,7 +152,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                     {isRecording ? "📱 Listening for speech chunks..." : "No chunks processed yet"}
                   </div>
                 ) : (
-                  chunks.slice(-10).reverse().map((chunk) => {
+                  chunks.slice().reverse().map((chunk) => {
                     const chunkWords = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
                     const inTranscript = isChunkInTranscript(chunk.text);
                     return (
