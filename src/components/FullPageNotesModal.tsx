@@ -1401,8 +1401,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsFormattingParagraphs(true);
     
     try {
+      // Strip HTML tags to get plain text for formatting
+      const plainTranscript = transcript
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/p>/gi, "\n\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      
+      console.log('📝 Sending plain text to formatter, length:', plainTranscript.length);
+      
       const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
-        body: { transcript },
+        body: { transcript: plainTranscript },
       });
 
       if (error) {
@@ -1416,9 +1426,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         return;
       }
 
-      setTranscript(data.formattedTranscript);
+      // Convert the formatted plain text back to HTML for display
+      const { toHtmlParagraphs } = await import('@/lib/transcriptNormaliser');
+      const htmlTranscript = toHtmlParagraphs(data.formattedTranscript);
+      
+      setTranscript(htmlTranscript);
       // Persist immediately
-      await saveTranscriptToDatabase(data.formattedTranscript);
+      await saveTranscriptToDatabase(htmlTranscript);
       toast.success('Transcript formatted into paragraphs');
       
     } catch (error) {
