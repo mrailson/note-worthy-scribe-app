@@ -10,8 +10,8 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const JACCARD_THRESHOLD = 0.75; // balanced duplicate detection
-const DEDUPE_WINDOW = 15;       // compare against last N sentences (increased window)
+const JACCARD_THRESHOLD = 0.95; // only filter truly identical sentences (reduced from 0.75)
+const DEDUPE_WINDOW = 5;        // compare against last 5 sentences only (reduced from 15)
 
 const norm = (s: string) =>
   s.replace(/\u2026/g, "...")      // normalize ellipsis
@@ -104,7 +104,7 @@ function dedupeTail(text: string) {
     if (!dup) {
       out.push(s);
     } else {
-      console.log(`🚫 Filtered duplicate sentence: "${s.substring(0, 50)}..."`);
+      console.warn(`🚫 Filtered DUPLICATE sentence (${(sim(s, recent.find(r => sim(r, s) >= JACCARD_THRESHOLD)!) * 100).toFixed(1)}% similar): "${s.substring(0, 80)}..."`);
     }
   }
   return out.join(" ");
@@ -118,11 +118,11 @@ function dedupeTail(text: string) {
  */
 export function mergeLive(prevText: string, chunk: LiveChunk): string {
   // Safety logging to catch incorrect function calls
-  console.log(`🔍 mergeLive called with:`, {
+  console.log(`🔍 mergeLive called:`, {
     prevLength: prevText.length,
-    chunkType: typeof chunk,
-    chunkTextPreview: chunk?.text?.substring(0, 50) || '(no text)',
-    isFinal: chunk?.isFinal !== undefined ? chunk.isFinal : 'N/A'
+    chunkTextPreview: chunk?.text?.substring(0, 80) || '(no text)',
+    chunkLength: chunk?.text?.length || 0,
+    isFinal: chunk?.isFinal
   });
   
   if (!chunk?.text || !chunk.text.trim()) {
@@ -135,17 +135,28 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
     return prevText; // ignore interim by default
   }
 
-  console.log(`✅ Processing final chunk: "${chunk.text.substring(0, 50)}..." (${chunk.text.length} chars)`);
+  console.log(`✅ Processing final chunk: "${chunk.text.substring(0, 80)}..." (${chunk.text.length} chars)`);
 
   const prev = norm(prevText);
   const next = norm(chunk.text);
 
   // stitch with overlap removal
   const stitched = stitchWithOverlap(prev, next);
+  const afterStitch = stitched.length - prev.length;
+  
+  if (afterStitch === 0 && next.length > 10) {
+    console.warn(`⚠️ NO TEXT ADDED after stitchWithOverlap! Chunk may be duplicate.`);
+  }
 
   // run a small dedupe window on the tail
   const deduped = dedupeTail(stitched);
+  const afterDedupe = deduped.length - prevText.length;
 
-  console.log(`🔄 Live merge complete: ${prevText.length} -> ${deduped.length} chars`);
+  console.log(`🔄 Live merge complete: ${prevText.length} -> ${deduped.length} chars (stitch: +${afterStitch}, dedupe: +${afterDedupe})`);
+  
+  if (afterDedupe === 0 && chunk.text.length > 10) {
+    console.error(`❌ CHUNK REJECTED: No text added to transcript despite ${chunk.text.length} char input!`);
+  }
+  
   return deduped;
 }
