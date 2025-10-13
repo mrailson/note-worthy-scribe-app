@@ -30,10 +30,25 @@ serve(async (req) => {
 
     console.log('Processing request for complaint:', complaintId, 'with', involvedParties.length, 'parties');
 
-    // Initialize Supabase client
+    // Initialize Supabase clients
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Use the caller's auth context for DB writes so triggers (auth.uid()) get a value
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
 
     // Fetch complaint details
@@ -65,7 +80,7 @@ serve(async (req) => {
     const involvedPartiesData = [];
     
     for (const party of involvedParties) {
-      const { data: insertedParty, error: insertError } = await supabase
+      const { data: insertedParty, error: insertError } = await supabaseUser
         .from('complaint_involved_parties')
         .insert({
           complaint_id: complaintId,
