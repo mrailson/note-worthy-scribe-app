@@ -21,6 +21,7 @@ interface ChunkSaveStatus {
 interface ChunkSaveStatusProps {
   chunks: ChunkSaveStatus[];
   isRecording: boolean;
+  mainTranscript: string;
 }
 
 const getStatusIcon = (status: string) => {
@@ -52,7 +53,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording }) => {
+export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript }) => {
   const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   
   const savedChunks = chunks.filter(c => c.saveStatus === 'saved').length;
@@ -60,6 +61,20 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
   const pendingChunks = chunks.filter(c => c.saveStatus === 'saving' || c.saveStatus === 'retrying').length;
   
   const successRate = chunks.length > 0 ? Math.round((savedChunks / chunks.length) * 100) : 0;
+  
+  // Check if at least 80% of chunk text appears in main transcript
+  const isChunkInTranscript = (chunkText: string): boolean => {
+    if (!chunkText || !mainTranscript) return false;
+    
+    const chunkWords = chunkText.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+    if (chunkWords.length === 0) return false;
+    
+    const transcriptLower = mainTranscript.toLowerCase();
+    const matchedWords = chunkWords.filter(word => transcriptLower.includes(word));
+    
+    const matchPercentage = (matchedWords.length / chunkWords.length) * 100;
+    return matchPercentage >= 80;
+  };
   
   // Calculate total words transcribed from all chunks
   const totalWords = chunks.reduce((total, chunk) => {
@@ -139,6 +154,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                 ) : (
                   chunks.slice(-10).reverse().map((chunk) => {
                     const chunkWords = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
+                    const inTranscript = isChunkInTranscript(chunk.text);
                     return (
                       <div
                         key={chunk.id}
@@ -149,6 +165,11 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                               <span>Chunk #{chunk.chunkNumber}</span>
+                              {inTranscript && (
+                                <span className="inline-flex items-center" title="80%+ of chunk text appears in main transcript">
+                                  <CheckCircle className="h-4 w-4 text-success" />
+                                </span>
+                              )}
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
                                 <span className="text-xs text-primary font-mono">
                                   {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(1).padStart(4, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(1).padStart(4, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s)

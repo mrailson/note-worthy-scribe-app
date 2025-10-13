@@ -4820,6 +4820,7 @@ export const MeetingRecorder = ({
           <ChunkSaveStatus 
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
+            mainTranscript={transcript}
           />
         </TabsContent>
 
