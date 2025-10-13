@@ -839,10 +839,19 @@ const ComplaintDetails = () => {
     
     setSubmitting(true);
     try {
+      // Extract logo URL from original acknowledgement letter
+      const logoMatch = acknowledgementLetter.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
+      
+      // Prepare content to save - add logo comment back if it existed
+      let contentToSave = editedAcknowledgementContent;
+      if (logoMatch && !editedAcknowledgementContent.includes('<!-- logo_url:')) {
+        contentToSave = `${logoMatch[0]}\n${editedAcknowledgementContent}`;
+      }
+      
       const { error } = await supabase
         .from('complaint_acknowledgements')
         .update({ 
-          acknowledgement_letter: editedAcknowledgementContent,
+          acknowledgement_letter: contentToSave,
           sent_at: new Date().toISOString()
         })
         .eq('complaint_id', complaint.id);
@@ -864,7 +873,7 @@ const ComplaintDetails = () => {
         // Don't throw error here, acknowledgement letter was still saved successfully
       }
 
-      setAcknowledgementLetter(editedAcknowledgementContent);
+      setAcknowledgementLetter(contentToSave);
       setIsEditingAcknowledgement(false);
       toast.success("Acknowledgement letter updated successfully");
     } catch (error) {
@@ -899,6 +908,10 @@ const ComplaintDetails = () => {
     const draftKey = `ack_draft_${complaintId}`;
     const savedDraft = localStorage.getItem(draftKey);
     
+    // Extract and preserve logo URL from acknowledgement letter
+    const logoMatch = acknowledgementLetter.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
+    const logoUrl = logoMatch ? logoMatch[0] : null;
+    
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
@@ -910,18 +923,24 @@ const ComplaintDetails = () => {
           if (window.confirm('A newer draft was found. Would you like to restore it?')) {
             setEditedAcknowledgementContent(draft.content);
           } else {
-            setEditedAcknowledgementContent(acknowledgementLetter);
+            // Remove logo comment for editing, we'll add it back on save
+            const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+            setEditedAcknowledgementContent(contentWithoutLogo);
             localStorage.removeItem(draftKey);
           }
         } else {
-          setEditedAcknowledgementContent(acknowledgementLetter);
+          const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+          setEditedAcknowledgementContent(contentWithoutLogo);
           localStorage.removeItem(draftKey);
         }
       } catch (e) {
-        setEditedAcknowledgementContent(acknowledgementLetter);
+        const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+        setEditedAcknowledgementContent(contentWithoutLogo);
       }
     } else {
-      setEditedAcknowledgementContent(acknowledgementLetter);
+      // Remove logo comment for editing, we'll add it back on save
+      const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+      setEditedAcknowledgementContent(contentWithoutLogo);
     }
     
     setIsEditingAcknowledgement(false);
