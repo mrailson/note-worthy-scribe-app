@@ -19,14 +19,26 @@ serve(async (req) => {
     }
 
     const { complaintId, outcomeType, outcomeSummary, questionnaireData } = await req.json();
+    console.log('generate-complaint-outcome-letter request', {
+      complaintId,
+      hasOutcomeType: !!outcomeType,
+      hasOutcomeSummary: !!outcomeSummary,
+    });
     if (!complaintId || !outcomeType || !outcomeSummary) {
       throw new Error('Complaint ID, outcome type, and summary are required');
     }
 
     // Initialize Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase env vars', { hasUrl: !!SUPABASE_URL, hasService: !!SUPABASE_SERVICE_ROLE_KEY });
+      throw new Error('Server misconfiguration: Supabase credentials missing');
+    }
+
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY
     );
 
     // Fetch complaint details with related investigation data
