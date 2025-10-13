@@ -3423,7 +3423,7 @@ ${transcript}`;
             console.log('🟡 Adding context:', { contextTypes, filesCount: files.length, customLabel });
             const formattedContext = formatTranscriptContext(contextTypes, files, customLabel);
             const currentTranscript = transcript || '';
-            const updatedTranscript = currentTranscript + formattedContext;
+            const updatedTranscript = formattedContext + currentTranscript;
             setTranscript(updatedTranscript);
             saveTranscriptToDatabase(updatedTranscript);
             toast.success('Context added and saved to transcript');

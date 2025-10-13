@@ -102,7 +102,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
     }));
 
     const formattedContext = formatTranscriptContext(contextTypes, cleanedFiles, customLabel);
-    const updatedTranscript = meetingData.transcript + formattedContext;
+    const updatedTranscript = formattedContext + meetingData.transcript;
     
     if (onUpdateTranscript) {
       onUpdateTranscript(updatedTranscript);
