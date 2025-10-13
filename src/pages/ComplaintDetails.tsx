@@ -1295,7 +1295,7 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
               <div className="mt-4">
                 <strong>Description:</strong>
-                <p className="mt-1 text-sm text-muted-foreground">{complaint.complaint_description}</p>
+                <p className="mt-1 text-base text-muted-foreground">{complaint.complaint_description}</p>
               </div>
             </CardContent>
           </Card>
@@ -1589,7 +1589,7 @@ I am committed to ensuring that all patients receive the care and service they d
                   <div>
                     <Label className="font-medium">Complaint Description</Label>
                     <div className="mt-1 p-3 bg-gray-50 rounded-lg border">
-                      <p className="text-sm text-foreground whitespace-pre-line">{complaint.complaint_description}</p>
+                      <p className="text-base text-foreground whitespace-pre-line">{complaint.complaint_description}</p>
                     </div>
                   </div>
                 </CardContent>
