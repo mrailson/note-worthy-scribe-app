@@ -752,13 +752,17 @@ export const MeetingRecorder = ({
 
       let chunkId = 0;
       
-      const startNewChunk = () => {
-        const currentChunkId = chunkId++;
-        const chunks: Blob[] = [];
-        chunkData.current.set(currentChunkId, chunks);
-        chunkStartTimes.current.set(currentChunkId, new Date());
+        const startNewChunk = () => {
+          const currentChunkId = chunkId++;
+          const chunks: Blob[] = [];
+          chunkData.current.set(currentChunkId, chunks);
+          // Ensure we have a stable absolute recording start time before any chunk timing math
+          if (!recordingStartTimeRef.current) {
+            recordingStartTimeRef.current = new Date();
+          }
+          chunkStartTimes.current.set(currentChunkId, new Date());
 
-        // Create new recorder for this chunk using the SAME stream
+          // Create new recorder for this chunk using the SAME stream
         const recorder = new MediaRecorder(chunksStream, {
           mimeType: 'audio/webm;codecs=opus'
         });
@@ -959,7 +963,7 @@ export const MeetingRecorder = ({
 
         // Update chunk status with transcription data and end time
         const recordingStart = recordingStartTimeRef.current || startTime;
-        const chunkEndSeconds = (chunkProcessTime.getTime() - recordingStart.getTime()) / 1000;
+        const chunkEndSeconds = (endTime.getTime() - recordingStart.getTime()) / 1000;
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
