@@ -3295,10 +3295,44 @@ export const MeetingRecorder = ({
     }
     
     // Clean the final transcript
-    const currentTranscript = finalTranscript
+    let currentTranscript = finalTranscript
       .replace(/Thank you for watching\.?\s*/gi, '')
       .replace(/Thanks for watching\.?\s*/gi, '')
       .trim();
+    
+    // Safety check: ensure transcript is plain text, not JSON segments
+    try {
+      if (currentTranscript.startsWith('[{') && currentTranscript.includes('"start"')) {
+        console.warn('⚠️ Detected JSON segments in final transcript, converting to plain text');
+        // Try to parse as segment JSON and convert
+        const parsed = JSON.parse(currentTranscript);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          currentTranscript = segmentsToPlainText(parsed);
+          console.log('✅ Converted JSON segments to plain text:', currentTranscript.length, 'chars');
+        }
+      }
+    } catch (e) {
+      // If it contains multiple JSON arrays concatenated, split and convert each
+      try {
+        const jsonArrays = currentTranscript.match(/\[{[^\]]+}\]/g);
+        if (jsonArrays && jsonArrays.length > 0) {
+          console.warn('⚠️ Detected multiple JSON segment arrays, converting to plain text');
+          const allSegments: Segment[] = [];
+          for (const jsonStr of jsonArrays) {
+            const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed)) {
+              allSegments.push(...parsed);
+            }
+          }
+          if (allSegments.length > 0) {
+            currentTranscript = segmentsToPlainText(allSegments);
+            console.log('✅ Converted multiple JSON arrays to plain text:', currentTranscript.length, 'chars');
+          }
+        }
+      } catch (e2) {
+        console.error('❌ Failed to convert JSON segments:', e2);
+      }
+    }
     
     console.log('🔍 DEBUG: After cleaning - currentTranscript length:', currentTranscript.length, 'chars');
     
