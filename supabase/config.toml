@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.format-transcript-paragraphs]
 verify_jwt = false
+
+[functions.extract-document-text]
+verify_jwt = false

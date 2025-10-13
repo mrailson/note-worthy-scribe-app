@@ -47,18 +47,9 @@ export const formatTranscriptContext = (
       formattedContent += `--- ${file.name} ---\n\n`;
     }
 
-    // Extract and format the content
+    // The content should already be extracted text from the file processors
     let content = file.content || '';
     
-    // Remove data URL prefixes if present (for images)
-    if (content.startsWith('IMAGE_DATA_URL:')) {
-      content = '[Image content - visual context added to transcript]';
-    } else if (content.startsWith('PDF_DATA_URL:')) {
-      content = '[PDF content - document added to transcript]';
-    } else if (content.startsWith('POWERPOINT_DATA_URL:')) {
-      content = '[PowerPoint content - presentation added to transcript]';
-    }
-
     formattedContent += content.trim();
     
     if (index < files.length - 1) {
