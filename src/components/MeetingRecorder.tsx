@@ -889,12 +889,27 @@ export const MeetingRecorder = ({
       const recordingStart = recordingStartTimeRef.current;
       
       if (!recordingStart) {
-        console.error('⚠️ Recording start time not set! Using chunk start as fallback.');
+        console.error('❌ CRITICAL: Recording start time not set when processing chunk!', {
+          chunkId,
+          startTime: startTime.toISOString(),
+          recordingStartTimeRefExists: !!recordingStartTimeRef.current
+        });
+        // Fallback: Use first chunk as recording start
+        recordingStartTimeRef.current = startTime;
       }
       
-      const chunkStartSeconds = recordingStart 
-        ? (startTime.getTime() - recordingStart.getTime()) / 1000 
+      const chunkStartSeconds = recordingStartTimeRef.current
+        ? (startTime.getTime() - recordingStartTimeRef.current.getTime()) / 1000 
         : 0;
+      
+      console.log(`⏱️ Chunk ${chunkId} START time:`, {
+        recordingStartSet: !!recordingStartTimeRef.current,
+        recordingStart: recordingStartTimeRef.current?.toISOString(),
+        chunkStart: startTime.toISOString(),
+        chunkStartSeconds,
+        calculationValid: chunkStartSeconds >= 0
+      });
+      
       const chunkProcessTime = new Date();
       
       const newChunkStatus: ChunkSaveStatus = {
@@ -977,18 +992,23 @@ export const MeetingRecorder = ({
         const recordingStart = recordingStartTimeRef.current;
         
         if (!recordingStart) {
-          console.error('⚠️ Recording start time not set when updating chunk end time!');
+          console.error('❌ CRITICAL: Recording start time not set when updating chunk end time!', {
+            chunkId,
+            endTime: endTime.toISOString()
+          });
         }
         
         const chunkEndSeconds = recordingStart 
           ? (endTime.getTime() - recordingStart.getTime()) / 1000 
           : 0;
           
-        console.log(`⏱️ Chunk ${chunkId} timing:`, {
+        console.log(`⏱️ Chunk ${chunkId} END timing:`, {
           chunkStartSeconds: chunkStartSeconds,
           chunkEndSeconds: chunkEndSeconds,
           duration: chunkEndSeconds - chunkStartSeconds,
-          recordingStartSet: !!recordingStart
+          recordingStartSet: !!recordingStart,
+          recordingStart: recordingStart?.toISOString(),
+          chunkEnd: endTime.toISOString()
         });
         
         setChunkSaveStatuses(prev => prev.map(chunk => 
@@ -1117,6 +1137,14 @@ export const MeetingRecorder = ({
 
           // Update the main transcript using smart merge to eliminate duplicates
           setTranscript(prev => {
+            console.log(`🔄 Attempting to merge chunk ${chunkId}:`, {
+              prevTranscriptLength: prev.length,
+              prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 100)),
+              newChunkLength: transcriptionText.length,
+              newChunkStart: transcriptionText.substring(0, 100),
+              confidence: Math.round(confidence * 100)
+            });
+            
             // Use mergeLive to detect and remove overlapping text sections
             const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
             const addedLength = newTranscript.length - prev.length;
@@ -1125,9 +1153,11 @@ export const MeetingRecorder = ({
             if (addedLength > 0) {
               console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
             } else if (transcriptionText.length > 10) {
-              console.warn(`⚠️ Chunk ${chunkId} was NOT merged to transcript!`, {
+              console.error(`❌ Chunk ${chunkId} was NOT merged to transcript!`, {
+                chunkNumber: currentChunkNumber,
                 chunkLength: transcriptionText.length,
-                chunkPreview: transcriptionText.substring(0, 100)
+                chunkPreview: transcriptionText.substring(0, 100),
+                prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 200))
               });
             }
             
