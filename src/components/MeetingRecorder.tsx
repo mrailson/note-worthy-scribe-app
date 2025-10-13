@@ -58,7 +58,7 @@ import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
-import { mergeLive } from '@/utils/TranscriptMerge';
+import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
 
@@ -1096,8 +1096,17 @@ export const MeetingRecorder = ({
           // Update the main transcript using smart merge to eliminate duplicates
           setTranscript(prev => {
             // Use mergeLive to detect and remove overlapping text sections
-            const newTranscript = mergeLive(prev, transcriptionText);
+            const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
             const addedLength = newTranscript.length - prev.length;
+            
+            // Validation: warn if chunk wasn't added when it should have been
+            if (addedLength === 0 && transcriptionText.length > 10) {
+              console.warn(`⚠️ Chunk ${chunkId} was not added to transcript!`, {
+                chunkLength: transcriptionText.length,
+                chunkPreview: transcriptionText.substring(0, 100)
+              });
+            }
+            
             console.log(`📝 Transcript updated: ${newTranscript.length} chars (added ${addedLength}), chunk ${chunkId}`);
             onTranscriptUpdate(newTranscript);
             return newTranscript;
@@ -3285,13 +3294,13 @@ export const MeetingRecorder = ({
               } else {
                 // Not segment JSON, treat as plain text (legacy)
                 console.log(`📝 Legacy plain text in chunk ${chunk.chunk_number}`);
-                finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+                finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true });
                 lastChunkText = chunk.transcription_text;
               }
             } catch {
               // Parse failed, treat as plain text (legacy)
               console.log(`📝 Plain text chunk ${chunk.chunk_number}`);
-              finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+              finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true });
               lastChunkText = chunk.transcription_text;
             }
           }

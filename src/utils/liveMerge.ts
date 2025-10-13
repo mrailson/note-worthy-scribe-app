@@ -59,10 +59,11 @@ function stitchWithOverlap(prev: string, next: string) {
   }
   
   // Additional check for large block duplicates
-  if (hasLargeBlockOverlap(prev, next)) {
-    console.log(`🚫 Large block overlap detected, skipping duplicate content`);
-    return prev; // Don't add the duplicate content
-  }
+  // TEMPORARILY DISABLED - may be too aggressive for medical terminology
+  // if (hasLargeBlockOverlap(prev, next)) {
+  //   console.log(`🚫 Large block overlap detected, skipping duplicate content`);
+  //   return prev; // Don't add the duplicate content
+  // }
   
   return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
 }
@@ -116,6 +117,14 @@ function dedupeTail(text: string) {
  * - sliding-window dedupe
  */
 export function mergeLive(prevText: string, chunk: LiveChunk): string {
+  // Safety logging to catch incorrect function calls
+  console.log(`🔍 mergeLive called with:`, {
+    prevLength: prevText.length,
+    chunkType: typeof chunk,
+    chunkTextPreview: chunk?.text?.substring(0, 50) || '(no text)',
+    isFinal: chunk?.isFinal !== undefined ? chunk.isFinal : 'N/A'
+  });
+  
   if (!chunk?.text || !chunk.text.trim()) {
     console.log(`📝 Ignoring empty chunk`);
     return prevText;
