@@ -1976,7 +1976,7 @@ I am committed to ensuring that all patients receive the care and service they d
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-green-800">
                       <FileText className="h-5 w-5" />
-                      Outcome Letter Available
+                      Outcome Letter
                     </CardTitle>
                     <CardDescription className="text-green-700">
                       The final outcome letter for this complaint has been generated and is ready to view or download

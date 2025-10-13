@@ -147,9 +147,23 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (outcomeError) throw outcomeError;
 
+      // Update complaint status to closed
+      const { error: statusError } = await supabase
+        .from('complaints')
+        .update({ 
+          status: 'closed',
+          closed_at: new Date().toISOString()
+        })
+        .eq('id', complaintId);
+
+      if (statusError) {
+        console.error('Failed to update complaint status:', statusError);
+        // Don't fail the main process, outcome letter was still saved
+      }
+
       toast({
         title: 'Success',
-        description: 'Outcome letter generated successfully!',
+        description: 'Outcome letter generated and complaint closed successfully!',
       });
 
       onSuccess();
