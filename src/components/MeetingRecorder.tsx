@@ -263,6 +263,7 @@ export const MeetingRecorder = ({
     
     setIsRecording(false);
     isRecordingRef.current = false;
+    recordingStartTimeRef.current = null; // Reset recording start time
     setDuration(0);
     setTranscript("");
     setRealtimeTranscripts([]);
@@ -393,6 +394,7 @@ export const MeetingRecorder = ({
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
   const isRecordingRef = useRef<boolean>(false);
+  const recordingStartTimeRef = useRef<Date | null>(null);
   // Progressive pre-summaries ingestion state
   const ingestedKeysRef = useRef<Set<string>>(new Set());
   // Audio backup recording refs
@@ -872,7 +874,12 @@ export const MeetingRecorder = ({
       // Add chunk to status tracking immediately with timestamps
       const currentChunkNumber = chunkCounter + 1;
       const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
-      const chunkStartSeconds = (new Date().getTime() - startTime.getTime()) / 1000;
+      
+      // Calculate chunk timing relative to recording start
+      const recordingStart = recordingStartTimeRef.current || startTime;
+      const chunkStartSeconds = (startTime.getTime() - recordingStart.getTime()) / 1000;
+      const chunkProcessTime = new Date();
+      
       const newChunkStatus: ChunkSaveStatus = {
         id: uniqueChunkId,
         chunkNumber: currentChunkNumber,
@@ -951,7 +958,8 @@ export const MeetingRecorder = ({
         });
 
         // Update chunk status with transcription data and end time
-        const chunkEndSeconds = (new Date().getTime() - startTime.getTime()) / 1000;
+        const recordingStart = recordingStartTimeRef.current || startTime;
+        const chunkEndSeconds = (chunkProcessTime.getTime() - recordingStart.getTime()) / 1000;
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
@@ -1684,7 +1692,7 @@ export const MeetingRecorder = ({
     const currentChunkNumber = chunkCounter + 1;
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
-    const chunkStartSeconds = duration; // Current recording duration
+    const chunkStartSeconds = duration; // Current recording duration when chunk arrives
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
@@ -1694,8 +1702,8 @@ export const MeetingRecorder = ({
       saveStatus: 'saving',
       retryCount: 0,
       confidence: data.confidence || 0.9,
-      startTime: chunkStartSeconds,
-      endTime: chunkStartSeconds + 3 // Approximate 3-second chunk duration
+      startTime: Math.max(0, chunkStartSeconds - 2), // Approximate start (2 seconds before arrival)
+      endTime: chunkStartSeconds // End time is when chunk arrives
     };
     
     setChunkCounter(prev => prev + 1);
@@ -2465,6 +2473,7 @@ export const MeetingRecorder = ({
       // Reset recording state
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
       setConnectionStatus('Error');
       
       throw error;
@@ -2535,6 +2544,7 @@ export const MeetingRecorder = ({
       toast.error(error.message || 'Failed to start test recording');
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
       setConnectionStatus("Error");
     }
   };
@@ -2583,6 +2593,7 @@ export const MeetingRecorder = ({
       
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
       setConnectionStatus("Disconnected");
       addDebugLog('✅ Test recording stopped');
       toast.success('Test recording stopped successfully');
@@ -2883,6 +2894,7 @@ export const MeetingRecorder = ({
       
       setIsRecording(true);
       isRecordingRef.current = true;
+      recordingStartTimeRef.current = new Date(); // Store absolute recording start time
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
       setSpeakerCount(1);
@@ -2969,6 +2981,7 @@ export const MeetingRecorder = ({
       
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
       setConnectionStatus("Error");
     }
   };
@@ -3054,6 +3067,7 @@ export const MeetingRecorder = ({
       
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
       setIsStoppingRecording(false);
       setConnectionStatus("Disconnected");
       
@@ -3182,6 +3196,7 @@ export const MeetingRecorder = ({
     
       setIsRecording(false);
       isRecordingRef.current = false;
+      recordingStartTimeRef.current = null; // Reset recording start time
     setIsStoppingRecording(false);
     setConnectionStatus("Disconnected");
     
