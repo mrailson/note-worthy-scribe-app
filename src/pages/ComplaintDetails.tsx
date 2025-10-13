@@ -2830,8 +2830,8 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={(open) => !open && handleCloseAcknowledgementModal()}>
-        <DialogContent className={`p-0 flex flex-col ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[98vh]' : 'max-w-6xl w-[90vw] max-h-[85vh]'}`}>
-          <div className="flex flex-col h-full min-h-0">
+        <DialogContent className={`p-0 flex flex-col overflow-hidden ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[95vh]' : 'max-w-5xl w-[85vw] h-[80vh]'}`}>
+          <div className="flex flex-col h-full overflow-hidden">
             <DialogHeader className="flex-shrink-0 p-4 border-b">
               <div className="flex items-center justify-between">
                 <div>
@@ -2854,9 +2854,9 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
             </DialogHeader>
             
-            <div className="flex flex-col gap-3 flex-1 min-h-0 p-4">
+            <div className="flex flex-col gap-2 flex-1 overflow-hidden p-3">
               {/* Action bar */}
-              <div className="flex items-center justify-between gap-2 pb-3 border-b flex-shrink-0">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b flex-shrink-0">
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -2967,8 +2967,8 @@ I am committed to ensuring that all patients receive the care and service they d
               
               {/* Placeholder helper (only in edit mode) */}
               {isEditingAcknowledgement && (
-                <div className="flex flex-wrap gap-1 pb-2 border-b flex-shrink-0">
-                  <span className="text-xs text-muted-foreground mr-2 self-center">Insert placeholders:</span>
+                <div className="flex flex-wrap gap-1 pb-1.5 border-b flex-shrink-0 max-h-24 overflow-y-auto">
+                  <span className="text-xs text-muted-foreground mr-1 self-center shrink-0">Placeholders:</span>
                   {[
                     { label: 'Date', value: '{{date_today}}' },
                     { label: 'Ref', value: '{{reference_number}}' },
@@ -2994,24 +2994,24 @@ I am committed to ensuring that all patients receive the care and service they d
               )}
               
               {/* Letter content */}
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 overflow-hidden">
                 {!isEditingAcknowledgement ? (
-                  <div className="bg-muted/30 p-6 rounded-lg h-full overflow-y-auto">
+                  <div className="bg-muted/30 p-4 rounded-lg h-full overflow-y-auto">
                     <div className="max-w-none bg-background p-8 rounded shadow-sm">
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
                   </div>
                 ) : (
-                  <div className="h-full flex flex-col gap-3 min-h-0">
+                  <div className="h-full flex flex-col gap-2 overflow-hidden">
                     {editorMode === 'split' && (
-                      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0 border rounded-lg">
+                      <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden border rounded-lg">
                         <ResizablePanel defaultSize={50} minSize={30}>
-                          <div className="h-full overflow-hidden flex flex-col">
+                          <div className="h-full overflow-hidden">
                             <RichTextEditor
                               content={editedAcknowledgementContent}
                               onChange={handleEditorChange}
                               placeholder="Edit the acknowledgement letter..."
-                              className="flex-1 overflow-y-auto"
+                              className="h-full"
                               onReady={setEditorApi}
                               showStatus
                             />
@@ -3019,8 +3019,8 @@ I am committed to ensuring that all patients receive the care and service they d
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={50} minSize={30}>
-                          <div className="h-full overflow-y-auto bg-muted/30 p-4">
-                            <div className="bg-background p-6 rounded shadow-sm">
+                          <div className="h-full overflow-y-auto bg-muted/30 p-3">
+                            <div className="bg-background p-4 rounded shadow-sm">
                               <FormattedLetterContent content={editedAcknowledgementContent} />
                             </div>
                           </div>
@@ -3029,7 +3029,7 @@ I am committed to ensuring that all patients receive the care and service they d
                     )}
                     
                     {editorMode === 'edit' && (
-                      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
+                      <div className="flex-1 overflow-hidden border rounded-lg">
                         <RichTextEditor
                           content={editedAcknowledgementContent}
                           onChange={handleEditorChange}
@@ -3042,24 +3042,24 @@ I am committed to ensuring that all patients receive the care and service they d
                     )}
                     
                     {editorMode === 'preview' && (
-                      <div className="flex-1 min-h-0 overflow-y-auto bg-muted/30 p-6 rounded-lg border">
-                        <div className="bg-background p-8 rounded shadow-sm max-w-4xl mx-auto">
+                      <div className="flex-1 overflow-y-auto bg-muted/30 p-4 rounded-lg border">
+                        <div className="bg-background p-6 rounded shadow-sm max-w-4xl mx-auto">
                           <FormattedLetterContent content={editedAcknowledgementContent} />
                         </div>
                       </div>
                     )}
                     
                     {/* Find & Replace panel */}
-                    <Collapsible open={showFindReplace} onOpenChange={setShowFindReplace} className="flex-shrink-0">
+                    <Collapsible open={showFindReplace} onOpenChange={setShowFindReplace} className="flex-shrink-0 max-h-48 overflow-y-auto">
                       <div className="border rounded-lg">
                         <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="w-full justify-between h-8 px-3">
+                          <Button variant="ghost" size="sm" className="w-full justify-between h-7 px-2">
                             <span className="text-xs font-medium">Find & Replace</span>
-                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFindReplace ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`h-3 w-3 transition-transform ${showFindReplace ? 'rotate-180' : ''}`} />
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="p-3 border-t">
+                          <div className="p-2 border-t max-h-40 overflow-y-auto">
                             <FindReplacePanel
                               getCurrentText={() => editedAcknowledgementContent}
                               onApply={(updatedText) => {

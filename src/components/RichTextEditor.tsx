@@ -222,7 +222,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4',
+        class: 'prose prose-sm max-w-none focus:outline-none p-4 h-full',
       },
     },
   });
@@ -255,9 +255,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   );
 
   return (
-    <div className={`border rounded-lg overflow-hidden bg-white ${className}`}>
+    <div className={`flex flex-col overflow-hidden bg-white ${className}`}>
       {/* Toolbar */}
-      <div className="border-b bg-gray-50 p-2 flex flex-wrap gap-1 items-center">
+      <div className="border-b bg-gray-50 p-1.5 flex flex-wrap gap-1 items-center flex-shrink-0">
         {/* History */}
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
@@ -426,15 +426,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
       
       {/* Editor Content */}
-      <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         <EditorContent 
           editor={editor} 
-          className="focus:outline-none"
+          className="focus:outline-none h-full"
         />
       </div>
       
       {showStatus && (
-        <div className="border-t px-4 py-2 text-xs text-muted-foreground flex gap-4">
+        <div className="border-t px-3 py-1.5 text-xs text-muted-foreground flex gap-4 flex-shrink-0">
           <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
           <span>{charCount} {charCount === 1 ? 'character' : 'characters'}</span>
         </div>
