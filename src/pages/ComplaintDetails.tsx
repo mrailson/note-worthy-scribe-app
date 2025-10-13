@@ -2894,21 +2894,19 @@ I am committed to ensuring that all patients receive the care and service they d
                                 }`}>
                                   {check.compliance_item}
                                 </h4>
-                                {check.is_compliant && (
-                                  <Badge className="bg-green-600 hover:bg-green-700">
+                                <div className="w-28 flex justify-end">
+                                  <Badge className={`bg-green-600 hover:bg-green-700 transition-none ${check.is_compliant ? 'opacity-100' : 'opacity-0'}`}>
                                     <CheckCircle className="h-3 w-3 mr-1" />
                                     Complete
                                   </Badge>
-                                )}
+                                </div>
                               </div>
                               {check.notes && (
                                 <p className="text-sm text-muted-foreground mt-2">{check.notes}</p>
                               )}
-                              {check.checked_at && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {check.is_compliant ? 'Completed' : 'Last updated'}: {format(new Date(check.checked_at), 'dd/MM/yyyy HH:mm')}
-                                </p>
-                              )}
+                              <p className="text-xs text-muted-foreground mt-1 min-h-5">
+                                {check.checked_at ? `${check.is_compliant ? 'Completed' : 'Last updated'}: ${format(new Date(check.checked_at), 'dd/MM/yyyy HH:mm')}` : '\u00A0'}
+                              </p>
                             </div>
                           </div>
                         </CardContent>
