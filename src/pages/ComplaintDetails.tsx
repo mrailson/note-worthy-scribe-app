@@ -2851,8 +2851,8 @@ I am committed to ensuring that all patients receive the care and service they d
       <Dialog open={showAcknowledgementModal} onOpenChange={(open) => !open && handleCloseAcknowledgementModal()}>
         <DialogContent className={`p-0 flex flex-col overflow-hidden ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[95vh]' : 'max-w-5xl w-[85vw] h-[80vh]'}`}>
           <div className="flex flex-col h-full overflow-hidden">
-            <DialogHeader className="flex-shrink-0 p-4 border-b">
-              <div className="flex items-start justify-between gap-3">
+            <DialogHeader className="flex-shrink-0 p-4 pr-14 border-b">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <DialogTitle className="flex items-center gap-2">
                     <Mail className="h-5 w-5 flex-shrink-0" />
@@ -2862,17 +2862,15 @@ I am committed to ensuring that all patients receive the care and service they d
                     {isEditingAcknowledgement ? 'Edit and format your letter with rich text controls' : 'View, edit, download, or regenerate the acknowledgement letter'}
                   </DialogDescription>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="h-8 w-8 p-0"
-                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                  >
-                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="h-8 w-8 p-0 -mt-1"
+                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
               </div>
             </DialogHeader>
             
