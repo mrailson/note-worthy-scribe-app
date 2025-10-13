@@ -3167,7 +3167,14 @@ ${transcript}`;
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                      <div className="flex items-center gap-4">
-                      <h3 className="text-lg font-semibold">Meeting Transcript</h3>
+                      <h3 className="text-lg font-semibold">
+                        Meeting Transcript
+                        {transcript && (
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length} words)
+                          </span>
+                        )}
+                      </h3>
                     </div>
                      <div className="flex items-center gap-2">
                        <TooltipProvider>
