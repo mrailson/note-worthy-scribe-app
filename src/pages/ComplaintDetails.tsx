@@ -1917,7 +1917,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="flex items-center gap-2">
                           <Brain className="h-5 w-5" />
                           <div>
-                            <CardTitle className="text-left">Investigation Workflow</CardTitle>
+                            <CardTitle className="text-left">Detailed Investigation Workflow</CardTitle>
                             <CardDescription className="text-left">
                               Determine how the complaint will be investigated and who needs to provide input
                             </CardDescription>

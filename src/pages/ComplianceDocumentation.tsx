@@ -1044,7 +1044,7 @@ Approval Signatures Required:
                           <li>• Full NHS complaints procedure compliance</li>
                           <li>• Automated 20-day tracking and alerts</li>
                           <li>• Comprehensive audit trails</li>
-                          <li>• Investigation workflow management</li>
+                          <li>• Detailed investigation workflow management</li>
                           <li>• Staff response coordination</li>
                           <li>• Document management and evidence storage</li>
                           <li>• Automated acknowledgment letters</li>
