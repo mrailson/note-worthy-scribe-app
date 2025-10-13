@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { createLetterDocument } from '@/utils/letterFormatter';
 
 interface InvestigationDecisionProps {
   complaintId: string;
@@ -531,42 +532,6 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       console.log('Letter content length:', outcomeLetter.length);
       console.log('Letter content preview:', outcomeLetter.substring(0, 100) + '...');
       
-      // Simple DOCX creation with better error handling
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              text: 'Outcome Letter',
-              heading: HeadingLevel.HEADING_1,
-            }),
-            new Paragraph({
-              text: `Generated: ${new Date().toLocaleDateString()}`,
-              spacing: { after: 200 },
-            }),
-            new Paragraph({
-              text: `Complaint ID: ${complaintId}`,
-              spacing: { after: 200 },
-            }),
-            ...outcomeLetter.split('\n').filter(line => line !== null && line !== undefined).map(line => 
-              new Paragraph({
-                children: [new TextRun(line || ' ')],
-                spacing: { after: 120 },
-              })
-            ),
-          ],
-        }],
-      });
-
-      console.log('Document structure created successfully');
-      
-      const buffer = await Packer.toBlob(doc);
-      console.log('Document converted to blob, size:', buffer.size, 'bytes');
-      
-      if (buffer.size === 0) {
-        throw new Error('Generated document is empty');
-      }
-      
       // Get complaint details for filename
       console.log('Fetching complaint reference...');
       const { data: complaint, error: complaintError } = await supabase
@@ -581,6 +546,17 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       const referenceNumber = complaint?.reference_number || complaintId;
       console.log('Using reference number:', referenceNumber);
+      
+      // Use the proper letter formatting function that handles logos
+      const doc = await createLetterDocument(outcomeLetter, 'outcome', referenceNumber);
+      console.log('Document structure created successfully with logo support');
+      
+      const buffer = await Packer.toBlob(doc);
+      console.log('Document converted to blob, size:', buffer.size, 'bytes');
+      
+      if (buffer.size === 0) {
+        throw new Error('Generated document is empty');
+      }
 
       // Create and trigger download
       const url = URL.createObjectURL(buffer);
