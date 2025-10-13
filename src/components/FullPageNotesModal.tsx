@@ -3339,6 +3339,8 @@ ${transcript}`;
             const currentTranscript = transcript || '';
             const updatedTranscript = currentTranscript + formattedContext;
             setTranscript(updatedTranscript);
+            saveTranscriptToDatabase(updatedTranscript);
+            toast.success('Context added and saved to transcript');
           }}
         />
 
