@@ -138,6 +138,7 @@ const ComplaintDetails = () => {
   const emailUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [questionnaireHistory, setQuestionnaireHistory] = useState<any[]>([]);
+  const [outcomeQuestionnaireData, setOutcomeQuestionnaireData] = useState<any>(null);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -165,6 +166,19 @@ const ComplaintDetails = () => {
         setOutcomeType(outcomeData.outcome_type);
         setOutcomeSummary(outcomeData.outcome_summary);
         setOutcomeLetter(outcomeData.outcome_letter || "");
+        
+        // Fetch the questionnaire data used to generate this outcome
+        const { data: questionnaireData } = await supabase
+          .from('complaint_outcome_questionnaires')
+          .select('*')
+          .eq('complaint_id', complaintId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (questionnaireData) {
+          setOutcomeQuestionnaireData(questionnaireData.questionnaire_data);
+        }
         
         // If there's outcome data but no investigation method set yet, 
         // we'll check later if it should be "direct-investigation"
@@ -1845,6 +1859,66 @@ I am committed to ensuring that all patients receive the care and service they d
                           </Button>
                         </div>
                       </div>
+                      
+                      {/* Questionnaire Responses Section */}
+                      {outcomeQuestionnaireData && (
+                        <div className="p-4 bg-green-100 rounded border border-green-200">
+                          <h4 className="font-medium text-green-800 mb-3 flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Questionnaire Responses (Used to Generate Letter)
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            {outcomeQuestionnaireData.investigation_complete !== undefined && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">All items investigated:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.investigation_complete ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.parties_consulted !== undefined && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">All parties consulted:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.parties_consulted ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.fair_consideration !== undefined && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Fair consideration given:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.fair_consideration ? 'Yes - CQC compliant' : 'No'}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.tone && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Letter tone:</span>
+                                <span className="text-green-900 capitalize">{outcomeQuestionnaireData.tone}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.is_vexatious && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Vexatious complaint:</span>
+                                <span className="text-green-900">Yes</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.actions_taken && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Actions taken:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.actions_taken}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.improvements_made && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Improvements made:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.improvements_made}</span>
+                              </div>
+                            )}
+                            {outcomeQuestionnaireData.additional_context && (
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-green-700 min-w-[200px]">Additional context:</span>
+                                <span className="text-green-900">{outcomeQuestionnaireData.additional_context}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Green tick if sent within 20 working days */}
                       {existingOutcome.decided_at && complaint.created_at && (() => {
