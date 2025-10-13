@@ -6184,8 +6184,16 @@ export type Database = {
         Returns: boolean
       }
       log_complaint_action: {
-        Args: { p_action: string; p_complaint_id: string; p_details?: Json }
-        Returns: string
+        Args:
+          | { p_action: string; p_complaint_id: string; p_details?: Json }
+          | {
+              p_action_description: string
+              p_action_type: string
+              p_complaint_id: string
+              p_new_values?: Json
+              p_old_values?: Json
+            }
+        Returns: undefined
       }
       log_complaint_activity: {
         Args: {
@@ -6208,7 +6216,7 @@ export type Database = {
       }
       log_complaint_view: {
         Args: { p_complaint_id: string; p_view_context?: string }
-        Returns: string
+        Returns: undefined
       }
       log_compliance_change: {
         Args: {
