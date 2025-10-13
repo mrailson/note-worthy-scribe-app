@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 
 interface ChunkSaveStatus {
+  id: string;
   chunkNumber: number;
   text: string;
   chunkLength: number;
@@ -138,7 +139,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                     const chunkWords = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
                     return (
                       <div
-                        key={chunk.chunkNumber}
+                        key={chunk.id}
                         className="flex items-start justify-between p-2 sm:p-3 rounded-lg border bg-card/50"
                       >
                         <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
@@ -150,8 +151,8 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                             <div className="text-xs text-muted-foreground">
                               {chunk.chunkLength} chars • {chunkWords} words • {Math.round(chunk.confidence * 100)}% conf
                             </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              "{chunk.text.substring(0, 30)}..."
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                              "{chunk.text}"
                             </div>
                           </div>
                         </div>

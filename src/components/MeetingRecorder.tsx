@@ -75,6 +75,7 @@ interface TranscriptData {
 }
 
 interface ChunkSaveStatus {
+  id: string;
   chunkNumber: number;
   text: string;
   chunkLength: number;
@@ -865,7 +866,9 @@ export const MeetingRecorder = ({
       
       // Add chunk to status tracking immediately
       const currentChunkNumber = chunkCounter + 1;
+      const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
       const newChunkStatus: ChunkSaveStatus = {
+        id: uniqueChunkId,
         chunkNumber: currentChunkNumber,
         text: "",
         chunkLength: 0,
@@ -874,6 +877,7 @@ export const MeetingRecorder = ({
         confidence: 0
       };
       
+      setChunkCounter(prev => prev + 1);
       setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
       
       // Create blob from chunks
@@ -889,7 +893,7 @@ export const MeetingRecorder = ({
         
         // Update status to failed
         setChunkSaveStatuses(prev => prev.map(chunk => 
-          chunk.chunkNumber === currentChunkNumber 
+          chunk.id === uniqueChunkId 
             ? { ...chunk, saveStatus: 'failed' as const }
             : chunk
         ));
@@ -917,7 +921,7 @@ export const MeetingRecorder = ({
           
           // Update status to failed
           setChunkSaveStatuses(prev => prev.map(chunk => 
-            chunk.chunkNumber === currentChunkNumber 
+            chunk.id === uniqueChunkId 
               ? { ...chunk, saveStatus: 'failed' as const, text: 'Transcription failed' }
               : chunk
           ));
@@ -940,7 +944,7 @@ export const MeetingRecorder = ({
 
         // Update chunk status with transcription data
         setChunkSaveStatuses(prev => prev.map(chunk => 
-          chunk.chunkNumber === currentChunkNumber 
+          chunk.id === uniqueChunkId 
             ? { 
                 ...chunk, 
                 text: transcriptionText, 
@@ -977,7 +981,7 @@ export const MeetingRecorder = ({
                 
                 // Update status to failed and increment retry count
                 setChunkSaveStatuses(prev => prev.map(chunk => 
-                  chunk.chunkNumber === currentChunkNumber 
+                  chunk.id === uniqueChunkId 
                     ? { 
                         ...chunk, 
                         saveStatus: 'failed' as const,
@@ -990,7 +994,7 @@ export const MeetingRecorder = ({
                 if (newChunkStatus.retryCount < 3) {
                   setTimeout(async () => {
                     setChunkSaveStatuses(prev => prev.map(chunk => 
-                      chunk.chunkNumber === currentChunkNumber 
+                      chunk.id === uniqueChunkId 
                         ? { ...chunk, saveStatus: 'retrying' as const }
                         : chunk
                     ));
@@ -1008,7 +1012,7 @@ export const MeetingRecorder = ({
 
                       if (retryError) {
                         setChunkSaveStatuses(prev => prev.map(chunk => 
-                          chunk.chunkNumber === currentChunkNumber 
+                          chunk.id === uniqueChunkId 
                             ? { 
                                 ...chunk, 
                                 saveStatus: 'failed' as const,
@@ -1018,7 +1022,7 @@ export const MeetingRecorder = ({
                         ));
                       } else {
                         setChunkSaveStatuses(prev => prev.map(chunk => 
-                          chunk.chunkNumber === currentChunkNumber 
+                          chunk.id === uniqueChunkId 
                             ? { 
                                 ...chunk, 
                                 saveStatus: 'saved' as const,
@@ -1031,7 +1035,7 @@ export const MeetingRecorder = ({
                     } catch (retryError) {
                       console.error('Retry failed:', retryError);
                       setChunkSaveStatuses(prev => prev.map(chunk => 
-                        chunk.chunkNumber === currentChunkNumber 
+                        chunk.id === uniqueChunkId 
                           ? { ...chunk, saveStatus: 'failed' as const }
                           : chunk
                       ));
@@ -1043,7 +1047,7 @@ export const MeetingRecorder = ({
                 
                 // Update status to saved with timestamp
                 setChunkSaveStatuses(prev => prev.map(chunk => 
-                  chunk.chunkNumber === currentChunkNumber 
+                  chunk.id === uniqueChunkId 
                     ? { 
                         ...chunk, 
                         saveStatus: 'saved' as const,
@@ -1055,7 +1059,7 @@ export const MeetingRecorder = ({
             } catch (saveError) {
               console.error('Database save error:', saveError);
               setChunkSaveStatuses(prev => prev.map(chunk => 
-                chunk.chunkNumber === currentChunkNumber 
+                chunk.id === uniqueChunkId 
                   ? { ...chunk, saveStatus: 'failed' as const }
                   : chunk
               ));
@@ -1628,8 +1632,10 @@ export const MeetingRecorder = ({
     // Add chunk status tracking for iPhone/mobile transcription
     const currentChunkNumber = chunkCounter + 1;
     const chunkLength = data.text.trim().length;
+    const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
     
     const newChunkStatus: ChunkSaveStatus = {
+      id: uniqueChunkId,
       chunkNumber: currentChunkNumber,
       text: data.text.trim(),
       chunkLength: chunkLength,
@@ -1638,13 +1644,13 @@ export const MeetingRecorder = ({
       confidence: data.confidence || 0.9
     };
     
-    setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     setChunkCounter(prev => prev + 1);
+    setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
     // Simulate database save for iPhone chunks (iPhone transcriber handles actual saving)
     setTimeout(() => {
       setChunkSaveStatuses(prev => prev.map(chunk => 
-        chunk.chunkNumber === currentChunkNumber 
+        chunk.id === uniqueChunkId 
           ? { 
               ...chunk, 
               saveStatus: 'saved' as const,
