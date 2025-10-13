@@ -149,9 +149,9 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
           </div>
           
           {/* Mobile-friendly status indicator - Always visible */}
-          <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
+          <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-foreground">
             📊 <strong>Total:</strong> {chunks.length} chunks • 
-            <span className="text-accent ml-1">📝 {totalWords} words</span> • 
+            <span className="ml-1">📝 {totalWords} words</span> • 
             <span className="text-success ml-1">✅ {savedChunks}</span> • 
             <span className="text-warning ml-1">⏳ {pendingChunks}</span>
             {failedChunks > 0 && <span className="text-destructive ml-1">❌ {failedChunks}</span>}
