@@ -1865,7 +1865,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="p-4 bg-green-100 rounded border border-green-200">
                           <h4 className="font-medium text-green-800 mb-3 flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            Questionnaire Responses (Used to Investigate and Complete response to Complaint)
+                            Questionnaire Responses (used to investigate and complete response to complaint)
                           </h4>
                           <div className="space-y-2 text-sm">
                             {outcomeQuestionnaireData.investigation_complete !== undefined && (
