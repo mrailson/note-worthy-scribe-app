@@ -1376,12 +1376,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
 
       if (!data?.cleanedTranscript) {
+        toast.error('No cleaned transcript returned');
         return;
       }
 
       setTranscript(data.cleanedTranscript);
       // Persist immediately so the deep-cleaned version is kept when navigating away
       await saveTranscriptToDatabase(data.cleanedTranscript);
+      toast.success('Transcript deep cleaned and saved');
       
     } catch (error) {
       console.error('Error cleaning transcript:', error);
