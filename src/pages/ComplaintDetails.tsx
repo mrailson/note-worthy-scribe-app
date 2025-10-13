@@ -1920,6 +1920,7 @@ I am committed to ensuring that all patients receive the care and service they d
                             <CardTitle className="text-left">Detailed Investigation Workflow</CardTitle>
                             <CardDescription className="text-left">
                               Determine how the complaint will be investigated and who needs to provide input
+                              <span className="block mt-1 text-xs italic">(For Complex/Detailed Complaints requiring evidence and feedback from multiple areas)</span>
                             </CardDescription>
                           </div>
                         </div>
