@@ -38,20 +38,21 @@ serve(async (req) => {
 FORMATTING RULES:
 1. Group related thoughts and topics into distinct paragraphs
 2. Add proper line breaks between paragraphs (use double newlines)
-3. Preserve all original content - do not remove, summarize, or add information
-4. Maintain speaker attributions if present (e.g., "Speaker 1:", "John:")
-5. Keep timestamps if they exist
-6. Fix obvious punctuation issues for readability
-7. Capitalize the start of sentences
-8. Create natural paragraph breaks at topic transitions or speaker changes
+3. Add EXTRA spacing (triple or quadruple newlines) between major sections or topic transitions
+4. Preserve all original content - do not remove, summarize, or add information
+5. Maintain speaker attributations if present (e.g., "Speaker 1:", "John:")
+6. Keep timestamps if they exist
+7. Fix obvious punctuation issues for readability
+8. Capitalise the start of sentences
+9. Create natural paragraph breaks at topic transitions or speaker changes
 
 DO NOT:
-- Summarize or condense content
+- Summarise or condense content
 - Remove any spoken words or phrases
 - Add content that wasn't in the original
 - Change the meaning or order of information
 
-Return ONLY the formatted transcript text with proper paragraphs and spacing.`;
+Return ONLY the formatted transcript text with proper paragraphs and extra spacing between major sections.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
