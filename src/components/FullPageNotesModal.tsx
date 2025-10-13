@@ -1575,10 +1575,27 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const saveTranscriptToDatabase = async (content: string) => {
     if (!meeting?.id) return;
     
-    // Don't save formatted transcripts back to the database
-    // This would overwrite the original transcript chunks with timing data
-    // The transcript is automatically formatted each time the modal opens
-    console.log('⚠️ Skipping transcript save to preserve original data');
+    try {
+      console.log('💾 Saving formatted transcript to database...');
+      
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update({ 
+          transcript: content,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meeting.id);
+      
+      if (updateError) {
+        console.error('Error saving transcript:', updateError);
+        throw updateError;
+      }
+      
+      console.log('✅ Transcript saved successfully');
+    } catch (error) {
+      console.error('Failed to save transcript:', error);
+      toast.error('Failed to save transcript changes');
+    }
   };
 
   const handleRegenerateNotes = async () => {
