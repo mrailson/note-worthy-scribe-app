@@ -3164,63 +3164,89 @@ export const MeetingRecorder = ({
     // STOP all real-time processing immediately to prevent interference
     setRealtimeTranscripts([]); // Clear any pending real-time transcripts
     
-    // Simplified transcript handling - use state first, then database as fallback
-    console.log('🔍 DEBUG: Using simplified transcript handling...');
-    let finalTranscript = transcript.trim();
+    // ALWAYS rebuild transcript from chunks for completeness
+    console.log('🔄 Rebuilding transcript from all saved chunks...');
+    let finalTranscript = '';
+    let lastChunkText = '';
+    const meetingId = sessionStorage.getItem('currentMeetingId') || '';
     
-    console.log(`🔍 DEBUG: State transcript: ${finalTranscript.length} chars`);
-    
-    // Only try database if state transcript is empty
-    if (!finalTranscript) {
-      console.log('🔍 DEBUG: State transcript empty, trying database...');
-      const meetingId = sessionStorage.getItem('currentMeetingId') || ''; // Use meeting ID instead of session ID
-      
-      if (meetingId && user?.id) {
-        try {
-          const { data, error } = await supabase
-            .from('meeting_transcription_chunks')
-            .select('transcription_text')
-            .eq('meeting_id', meetingId) // Query by meeting_id since both are now the same
-            .eq('user_id', user.id)
-            .order('chunk_number');
+    if (meetingId && user?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('transcription_text, chunk_number')
+          .eq('meeting_id', meetingId)
+          .eq('user_id', user.id)
+          .order('chunk_number');
 
-          if (!error && data && data.length > 0) {
-            console.log(`🔍 Reconstructing from ${data.length} chunks with segment JSON parsing...`);
-            
-            // Collect all segments from chunks
-            let allSegments: Segment[] = [];
-            
-            for (const chunk of data) {
-              try {
-                // Try to parse as JSON segments
-                const parsed = JSON.parse(chunk.transcription_text);
-                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
-                  allSegments = mergeByTimestamps(allSegments, parsed);
-                  console.log(`📦 Parsed ${parsed.length} segments from chunk`);
-                } else {
-                  // Not segment JSON, treat as plain text (legacy)
-                  console.log('📝 Legacy plain text chunk, using mergeLive');
-                  finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
-                }
-              } catch {
-                // Parse failed, treat as plain text (legacy)
-                console.log('📝 Legacy plain text chunk, using mergeLive');
+        if (!error && data && data.length > 0) {
+          console.log(`📦 Rebuilding from ${data.length} chunks...`);
+          
+          // Collect all segments from chunks
+          let allSegments: Segment[] = [];
+          
+          for (const chunk of data) {
+            try {
+              // Try to parse as JSON segments
+              const parsed = JSON.parse(chunk.transcription_text);
+              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+                allSegments = mergeByTimestamps(allSegments, parsed);
+                console.log(`✅ Parsed ${parsed.length} segments from chunk ${chunk.chunk_number}`);
+              } else {
+                // Not segment JSON, treat as plain text (legacy)
+                console.log(`📝 Legacy plain text in chunk ${chunk.chunk_number}`);
                 finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+                lastChunkText = chunk.transcription_text;
               }
+            } catch {
+              // Parse failed, treat as plain text (legacy)
+              console.log(`📝 Plain text chunk ${chunk.chunk_number}`);
+              finalTranscript = mergeLive(finalTranscript, chunk.transcription_text);
+              lastChunkText = chunk.transcription_text;
             }
-            
-            // If we collected segments, convert to plain text
-            if (allSegments.length > 0) {
-              finalTranscript = segmentsToPlainText(allSegments);
-              console.log(`✅ Reconstructed from segments: ${finalTranscript.length} chars from ${allSegments.length} segments`);
-            }
-            
-            console.log(`🔍 DEBUG: Database transcript (reconstructed): ${finalTranscript.length} chars from ${data.length} chunks`);
           }
-        } catch (dbError) {
-          console.error('❌ Database query failed:', dbError);
+          
+          // If we collected segments, convert to plain text
+          if (allSegments.length > 0) {
+            finalTranscript = segmentsToPlainText(allSegments);
+            // Extract last segment text for integrity check
+            if (allSegments.length > 0) {
+              lastChunkText = allSegments[allSegments.length - 1].text;
+            }
+            console.log(`✅ Reconstructed: ${finalTranscript.length} chars from ${allSegments.length} segments`);
+          }
+          
+          // INTEGRITY CHECK: Verify last chunk is present in final transcript
+          if (lastChunkText && lastChunkText.trim()) {
+            const lastWords = lastChunkText.trim().split(/\s+/).slice(-20).join(' ').toLowerCase();
+            const transcriptTail = finalTranscript.slice(-500).toLowerCase();
+            
+            if (!transcriptTail.includes(lastWords.slice(0, 50))) {
+              console.warn('⚠️ Integrity check failed - appending missing tail');
+              finalTranscript = finalTranscript + ' ' + lastChunkText.trim();
+              toast.info('Final content appended to ensure completeness');
+            } else {
+              console.log('✅ Integrity check passed - last chunk present in transcript');
+            }
+          }
+          
+          console.log(`✅ Final rebuild: ${finalTranscript.length} chars from ${data.length} chunks`);
+        } else if (error) {
+          console.error('❌ Chunk query error:', error);
+          // Fallback to state transcript
+          finalTranscript = transcript.trim();
+          console.log('⚠️ Using state transcript as fallback');
         }
+      } catch (dbError) {
+        console.error('❌ Rebuild failed:', dbError);
+        // Fallback to state transcript
+        finalTranscript = transcript.trim();
+        console.log('⚠️ Using state transcript as fallback');
       }
+    } else {
+      // No meeting ID, use state transcript
+      finalTranscript = transcript.trim();
+      console.log('⚠️ No meeting ID - using state transcript');
     }
     
     // Clean the final transcript
@@ -3487,9 +3513,9 @@ export const MeetingRecorder = ({
 
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
 
-      // 2. Save transcript
+      // 2. Save transcript with post-save validation
       if (meetingData.transcript) {
-        await supabase
+        const { error: transcriptError } = await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: savedMeeting.id,
@@ -3498,6 +3524,58 @@ export const MeetingRecorder = ({
             timestamp_seconds: 0,
             confidence_score: 1.0
           });
+          
+        if (transcriptError) {
+          console.error('❌ Transcript save error:', transcriptError);
+          toast.error('Failed to save transcript - retrying...');
+          
+          // Retry once after brief delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const { error: retryError } = await supabase
+            .from('meeting_transcripts')
+            .insert({
+              meeting_id: savedMeeting.id,
+              speaker_name: 'Meeting Recording',
+              content: meetingData.transcript,
+              timestamp_seconds: 0,
+              confidence_score: 1.0
+            });
+            
+          if (retryError) {
+            console.error('❌ Transcript save retry failed:', retryError);
+            toast.error('Transcript save failed - check Meeting History');
+          } else {
+            console.log('✅ Transcript saved on retry');
+            toast.success('Transcript saved successfully');
+          }
+        } else {
+          console.log('✅ Transcript saved successfully');
+          
+          // POST-SAVE VALIDATION: Verify saved transcript
+          setTimeout(async () => {
+            const { data: savedTranscript, error: validateError } = await supabase
+              .from('meeting_transcripts')
+              .select('content')
+              .eq('meeting_id', savedMeeting.id)
+              .single();
+              
+            if (validateError || !savedTranscript) {
+              console.error('❌ Post-save validation failed:', validateError);
+              toast.error('Transcript validation failed - may need manual check');
+            } else {
+              const savedLength = savedTranscript.content.length;
+              const originalLength = meetingData.transcript.length;
+              const lengthRatio = savedLength / originalLength;
+              
+              if (lengthRatio < 0.95 || lengthRatio > 1.05) {
+                console.warn(`⚠️ Saved transcript length mismatch: ${savedLength} vs ${originalLength}`);
+                toast.warning('Transcript may be incomplete - check Meeting History');
+              } else {
+                console.log(`✅ Validation passed: ${savedLength} chars saved correctly`);
+              }
+            }
+          }, 1000);
+        }
       }
 
       // Show success toast
