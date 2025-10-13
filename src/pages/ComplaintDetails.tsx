@@ -1767,7 +1767,7 @@ I am committed to ensuring that all patients receive the care and service they d
                             ? 'text-orange-600 font-bold' 
                             : 'text-muted-foreground'
                       }`}>
-                        {previousComplaintsCount} {previousComplaintsCount === 1 ? 'complaint' : 'complaints'}
+                        {previousComplaintsCount} Previous
                       </p>
                     </div>
                     <div>
