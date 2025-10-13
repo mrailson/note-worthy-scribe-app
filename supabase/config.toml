@@ -1,7 +1,7 @@
 project_id = "dphcnbricafkbtizkoal"
 
 [functions.assemblyai-realtime]
-verify_jwt = true
+verify_jwt = false
 
 [functions.assemblyai-realtime-token]
 verify_jwt = false
@@ -73,9 +73,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.comprehensive-drug-lookup]
-verify_jwt = true
-
-[functions.drug-vocabulary]
 verify_jwt = true
 
 [functions.import-prior-approval-data]

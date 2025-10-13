@@ -35,6 +35,9 @@ serve(async (req) => {
     const cutoffTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     console.log('⏰ Checking for meetings inactive since:', cutoffTime);
 
+    // Also compute a 5-minute window reference used elsewhere
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
     // Find meetings that are in recording status and not paused
     const { data: recordingMeetings, error: meetingsError } = await supabase
       .from('meetings')
