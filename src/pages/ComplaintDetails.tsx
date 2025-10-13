@@ -96,6 +96,10 @@ interface Complaint {
   updated_at: string;
   practice_id: string | null;
   data_retention_date: string | null;
+  creator?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 const ComplaintDetails = () => {
@@ -170,7 +174,15 @@ const ComplaintDetails = () => {
         .single();
 
       if (error) throw error;
-      setComplaint(data);
+      
+      // Fetch creator profile
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', data.created_by)
+        .maybeSingle();
+      
+      setComplaint({ ...data, creator: creatorProfile });
 
       // Fetch existing outcome if available
       const { data: outcomeData } = await supabase
@@ -1875,10 +1887,8 @@ I am committed to ensuring that all patients receive the care and service they d
                     )}
                     <div>
                       <Label className="font-medium">Created By</Label>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {complaint.created_by === '00000000-0000-0000-0000-000000000000' 
-                          ? 'Notewell AI system' 
-                          : complaint.created_by}
+                      <p className="text-sm text-muted-foreground">
+                        {complaint.creator?.full_name || complaint.creator?.email || 'Notewell AI system'}
                       </p>
                     </div>
                     {complaint.data_retention_date && (
