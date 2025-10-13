@@ -63,6 +63,8 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import FindReplacePanel from "@/components/FindReplacePanel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-react";
+import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
+
 
 interface Complaint {
   id: string;
@@ -151,6 +153,10 @@ const ComplaintDetails = () => {
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [questionnaireHistory, setQuestionnaireHistory] = useState<any[]>([]);
   const [outcomeQuestionnaireData, setOutcomeQuestionnaireData] = useState<any>(null);
+  const [showOutcomeAIEdit, setShowOutcomeAIEdit] = useState(false);
+  const [aiEditInstructions, setAiEditInstructions] = useState("");
+  const [isRegeneratingWithAI, setIsRegeneratingWithAI] = useState(false);
+
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -881,6 +887,47 @@ const ComplaintDetails = () => {
       toast.error("Failed to save acknowledgement letter");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRegenerateOutcomeWithAI = async (instructions: string) => {
+    if (!complaint || !instructions.trim()) return;
+    
+    setIsRegeneratingWithAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('regenerate-outcome-letter', {
+        body: {
+          complaintId: complaint.id,
+          currentLetter: outcomeLetter,
+          instructions: instructions,
+          complaintDescription: complaint.complaint_description,
+          referenceNumber: complaint.reference_number
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.regeneratedLetter) {
+        setOutcomeLetter(data.regeneratedLetter);
+        
+        // Update the database with the new letter
+        const { error: updateError } = await supabase
+          .from('complaint_outcomes')
+          .update({ 
+            outcome_letter: data.regeneratedLetter,
+            updated_at: new Date().toISOString()
+          })
+          .eq('complaint_id', complaint.id);
+
+        if (updateError) throw updateError;
+
+        toast.success('Outcome letter regenerated with AI');
+      }
+    } catch (error) {
+      console.error('Error regenerating outcome letter with AI:', error);
+      toast.error('Failed to regenerate outcome letter');
+    } finally {
+      setIsRegeneratingWithAI(false);
     }
   };
 
@@ -2132,20 +2179,68 @@ I am committed to ensuring that all patients receive the care and service they d
                       </div>
                     </div>
                     
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-between gap-2">
                       <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
                         Close
                       </Button>
-                      <Button onClick={() => {
-                        navigator.clipboard.writeText(outcomeLetter);
-                        toast.success('Letter copied to clipboard');
-                      }}>
-                        Copy to Clipboard
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              const doc = await createLetterDocument(
+                                outcomeLetter,
+                                'outcome',
+                                complaint?.reference_number || 'OUTCOME'
+                              );
+                              const blob = await Packer.toBlob(doc);
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.docx`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                              toast.success('Outcome letter downloaded');
+                            } catch (error) {
+                              console.error('Error downloading outcome letter:', error);
+                              toast.error('Failed to download outcome letter');
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            setShowOutcomeAIEdit(true);
+                          }}
+                        >
+                          <Brain className="h-4 w-4 mr-1" />
+                          AI Edit
+                        </Button>
+                        <Button onClick={() => {
+                          navigator.clipboard.writeText(outcomeLetter);
+                          toast.success('Letter copied to clipboard');
+                        }}>
+                          Copy to Clipboard
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </DialogContent>
               </Dialog>
+              
+              {/* AI Edit Outcome Letter Dialog */}
+              <AIEditLetterDialog
+                open={showOutcomeAIEdit}
+                onOpenChange={setShowOutcomeAIEdit}
+                currentLetter={outcomeLetter}
+                onRegenerateWithAI={handleRegenerateOutcomeWithAI}
+                letterType="outcome"
+                isRegenerating={isRegeneratingWithAI}
+              />
+              
               {acknowledgementLetter && (
                 <Collapsible open={isWorkflowOpen} onOpenChange={setIsWorkflowOpen}>
                   <Card>
