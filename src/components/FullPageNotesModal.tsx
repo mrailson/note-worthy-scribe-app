@@ -3224,7 +3224,7 @@ ${transcript}`;
                         {transcript && (
                           <>
                             <span className="text-sm font-normal text-muted-foreground">
-                              ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length} words)
+                              ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
                             </span>
                             <TooltipProvider>
                               <Tooltip>
