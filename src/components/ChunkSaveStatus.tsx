@@ -192,7 +192,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                               )}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {chunk.chunkLength} chars • {chunkWords} words • {Math.round(chunk.confidence * 100)}% conf
+                              {chunkWords} words • {Math.round(chunk.confidence * 100)}% conf
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
                               "{chunk.text}"
