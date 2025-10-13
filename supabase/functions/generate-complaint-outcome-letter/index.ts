@@ -191,17 +191,43 @@ You should contact the Ombudsman within one year of the events you want to compl
       year: 'numeric'
     });
 
-    // Build investigation data context
-    const investigationFindings = (complaint as any).complaint_investigation_findings?.[0];
-    const investigationDecision = (complaint as any).complaint_investigation_decisions?.[0];
-    const staffResponses = (complaint as any).complaint_involved_parties
-      ?.filter((p: any) => p.response_text)
-      ?.map((p: any) => `${p.staff_name} (${p.staff_role}): ${p.response_text}`)
-      ?.join('\n\n');
-    const internalNotes = (complaint as any).complaint_notes
-      ?.filter((n: any) => n.is_internal)
-      ?.map((n: any) => n.note)
-      ?.join('\n\n');
+    // Build investigation data context (fetch related data separately to avoid relationship issues)
+    const { data: findings } = await supabase
+      .from('complaint_investigation_findings')
+      .select('investigation_summary, findings_text, evidence_notes, created_at')
+      .eq('complaint_id', complaintId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: decisionData } = await supabase
+      .from('complaint_investigation_decisions')
+      .select('decision_reasoning, corrective_actions, lessons_learned, created_at')
+      .eq('complaint_id', complaintId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: parties } = await supabase
+      .from('complaint_involved_parties')
+      .select('staff_name, staff_role, response_text')
+      .eq('complaint_id', complaintId);
+
+    const { data: notes } = await supabase
+      .from('complaint_notes')
+      .select('note, is_internal')
+      .eq('complaint_id', complaintId);
+
+    const investigationFindings = findings || null;
+    const investigationDecision = decisionData || null;
+    const staffResponses = (parties || [])
+      .filter((p: any) => p.response_text)
+      .map((p: any) => `${p.staff_name} (${p.staff_role}): ${p.response_text}`)
+      .join('\n\n');
+    const internalNotes = (notes || [])
+      .filter((n: any) => n.is_internal)
+      .map((n: any) => n.note)
+      .join('\n\n');
 
     // Build additional context from questionnaire
     const questionnaireContext = questionnaireData ? `
