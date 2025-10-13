@@ -83,6 +83,8 @@ interface ChunkSaveStatus {
   saveTimestamp?: string;
   retryCount: number;
   confidence: number;
+  startTime?: number; // in seconds
+  endTime?: number; // in seconds
 }
 
 interface MeetingRecorderProps {
@@ -864,9 +866,10 @@ export const MeetingRecorder = ({
 
       console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
       
-      // Add chunk to status tracking immediately
+      // Add chunk to status tracking immediately with timestamps
       const currentChunkNumber = chunkCounter + 1;
       const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
+      const chunkStartSeconds = (new Date().getTime() - startTime.getTime()) / 1000;
       const newChunkStatus: ChunkSaveStatus = {
         id: uniqueChunkId,
         chunkNumber: currentChunkNumber,
@@ -874,7 +877,9 @@ export const MeetingRecorder = ({
         chunkLength: 0,
         saveStatus: 'saving',
         retryCount: 0,
-        confidence: 0
+        confidence: 0,
+        startTime: chunkStartSeconds,
+        endTime: chunkStartSeconds // Will be updated when chunk completes
       };
       
       setChunkCounter(prev => prev + 1);
@@ -942,14 +947,16 @@ export const MeetingRecorder = ({
           duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
         });
 
-        // Update chunk status with transcription data
+        // Update chunk status with transcription data and end time
+        const chunkEndSeconds = (new Date().getTime() - startTime.getTime()) / 1000;
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
                 ...chunk, 
                 text: transcriptionText, 
                 chunkLength: transcriptionText.length,
-                confidence: confidence
+                confidence: confidence,
+                endTime: chunkEndSeconds
               }
             : chunk
         ));
@@ -1629,10 +1636,11 @@ export const MeetingRecorder = ({
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
-    // Add chunk status tracking for iPhone/mobile transcription
+    // Add chunk status tracking for iPhone/mobile transcription with timestamps
     const currentChunkNumber = chunkCounter + 1;
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
+    const chunkStartSeconds = duration; // Current recording duration
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
@@ -1641,7 +1649,9 @@ export const MeetingRecorder = ({
       chunkLength: chunkLength,
       saveStatus: 'saving',
       retryCount: 0,
-      confidence: data.confidence || 0.9
+      confidence: data.confidence || 0.9,
+      startTime: chunkStartSeconds,
+      endTime: chunkStartSeconds + 3 // Approximate 3-second chunk duration
     };
     
     setChunkCounter(prev => prev + 1);

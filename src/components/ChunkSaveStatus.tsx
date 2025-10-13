@@ -14,6 +14,8 @@ interface ChunkSaveStatus {
   saveTimestamp?: string;
   retryCount: number;
   confidence: number;
+  startTime?: number; // in seconds
+  endTime?: number; // in seconds
 }
 
 interface ChunkSaveStatusProps {
@@ -142,11 +144,16 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                         key={chunk.id}
                         className="flex items-start justify-between p-2 sm:p-3 rounded-lg border bg-card/50"
                       >
-                        <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                           {getStatusIcon(chunk.saveStatus)}
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium">
-                              Chunk #{chunk.chunkNumber}
+                            <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                              <span>Chunk #{chunk.chunkNumber}</span>
+                              {chunk.startTime !== undefined && chunk.endTime !== undefined && (
+                                <span className="text-xs text-primary font-mono">
+                                  {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(1).padStart(4, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(1).padStart(4, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s)
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {chunk.chunkLength} chars • {chunkWords} words • {Math.round(chunk.confidence * 100)}% conf
