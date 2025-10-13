@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.standalone-whisper]
 verify_jwt = false
+
+[functions.deepgram-transcribe]
+verify_jwt = true

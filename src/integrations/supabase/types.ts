@@ -2069,6 +2069,48 @@ export type Database = {
         }
         Relationships: []
       }
+      deepgram_transcriptions: {
+        Row: {
+          chunk_number: number
+          confidence: number | null
+          created_at: string
+          id: string
+          is_final: boolean | null
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          chunk_number: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          chunk_number?: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          meeting_id?: string
+          session_id?: string
+          transcription_text?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       drug_synonyms: {
         Row: {
           created_at: string

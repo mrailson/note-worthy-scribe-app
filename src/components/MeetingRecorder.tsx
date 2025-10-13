@@ -39,6 +39,7 @@ import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
+import { DeepgramTranscriptCard } from "@/components/DeepgramTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
@@ -116,6 +117,8 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [deepgramTranscript, setDeepgramTranscript] = useState(""); // Deepgram backup transcript
+  const [deepgramWordCount, setDeepgramWordCount] = useState(0);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
@@ -1083,6 +1086,11 @@ export const MeetingRecorder = ({
             return newTranscript;
           });
 
+          // Send to Deepgram for backup transcription (fire and forget)
+          sendToDeepgram(chunkBlob, meetingId, currentChunkNumber).catch(err => {
+            console.error('⚠️ Deepgram backup failed:', err);
+          });
+
           // Update word count with immediate feedback
           const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
           setWordCount(prev => {
@@ -1147,13 +1155,49 @@ export const MeetingRecorder = ({
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
         const base64 = result.split(',')[1];
         resolve(base64);
       };
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  };
+
+  // Send audio to Deepgram for backup transcription
+  const sendToDeepgram = async (audioBlob: Blob, meetingId: string, chunkNumber: number) => {
+    try {
+      const sessionId = sessionStorage.getItem('currentMeetingId') || meetingId;
+      const base64Audio = await convertBlobToBase64(audioBlob);
+      
+      console.log(`🌊 Sending chunk ${chunkNumber} to Deepgram backup...`);
+      
+      const { data, error } = await supabase.functions.invoke('deepgram-transcribe', {
+        body: {
+          audio: base64Audio,
+          meetingId: meetingId,
+          sessionId: sessionId,
+          chunkNumber: chunkNumber
+        }
+      });
+
+      if (error) {
+        console.error('❌ Deepgram error:', error);
+        return;
+      }
+
+      if (data?.text) {
+        console.log(`✅ Deepgram: "${data.text.substring(0, 50)}..." (${data.confidence})`);
+        
+        setDeepgramTranscript(prev => {
+          const newText = prev + (prev ? ' ' : '') + data.text;
+          const words = newText.trim().split(/\s+/).length;
+          setDeepgramWordCount(words);
+          return newText;
+        });
+      }
+    } catch (err) {
+      console.error('⚠️ Deepgram failed:', err);
+    }
   };
 
   const stopOverlappingChunks = async () => {
@@ -4698,6 +4742,13 @@ export const MeetingRecorder = ({
             wordCount={wordCount}
             confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
             className="border-accent/30"
+          />
+          
+          {/* Deepgram Backup Transcript */}
+          <DeepgramTranscriptCard
+            transcript={deepgramTranscript}
+            wordCount={deepgramWordCount}
+            isRecording={isRecording}
           />
           
           <Card className="border-accent/30">
