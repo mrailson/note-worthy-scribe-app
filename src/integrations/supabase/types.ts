@@ -988,6 +988,41 @@ export type Database = {
           },
         ]
       }
+      complaint_outcome_questionnaires: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          created_by: string
+          id: string
+          questionnaire_data: Json
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          questionnaire_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          questionnaire_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_outcome_questionnaires_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_outcomes: {
         Row: {
           complaint_id: string

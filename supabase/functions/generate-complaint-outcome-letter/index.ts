@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { complaintId, outcomeType, outcomeSummary } = await req.json();
+    const { complaintId, outcomeType, outcomeSummary, questionnaireData } = await req.json();
     if (!complaintId || !outcomeType || !outcomeSummary) {
       throw new Error('Complaint ID, outcome type, and summary are required');
     }
@@ -62,6 +62,16 @@ serve(async (req) => {
       .single();
     signatureDetails = signature;
 
+    // Build tone instruction based on questionnaire
+    const toneInstruction = questionnaireData?.tone ? `
+Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' :
+         questionnaireData.tone === 'empathetic' ? 'Warm and empathetic, showing understanding' :
+         questionnaireData.tone === 'apologetic' ? 'Apologetic and acknowledging concerns' :
+         questionnaireData.tone === 'factual' ? 'Strictly factual and objective' :
+         questionnaireData.tone === 'strong' ? 'Firm and assertive, appropriate for vexatious complaints' :
+         questionnaireData.tone === 'firm' ? 'Firm but fair, addressing unreasonable behaviour' :
+         'Professional'}` : '';
+
     const systemPrompt = `You are a professional NHS complaints officer writing outcome letters. Generate a formal outcome letter for a patient complaint that:
 
 1. References the original complaint and investigation
@@ -70,7 +80,7 @@ serve(async (req) => {
 4. Includes any actions taken or improvements made
 5. Explains the escalation process to Parliamentary and Health Service Ombudsman
 6. Provides contact information for queries
-7. Is empathetic, professional, and clear
+7. Is empathetic, professional, and clear${toneInstruction}
 
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start directly with the date, do NOT include any practice headers, letterhead references, or "---NHS Practice" at the top
@@ -107,6 +117,21 @@ You should contact the Ombudsman within one year of the events you want to compl
       year: 'numeric'
     });
 
+    // Build additional context from questionnaire
+    const questionnaireContext = questionnaireData ? `
+
+INVESTIGATION VALIDATION (CQC Compliance):
+- All complaint items thoroughly investigated: ${questionnaireData.investigation_complete ? 'Yes' : 'No'}
+- All parties consulted: ${questionnaireData.parties_consulted ? 'Yes' : 'No'}
+- Fair consideration confirmed: ${questionnaireData.fair_consideration ? 'Yes - CQC compliant' : 'No'}
+${questionnaireData.is_vexatious ? '\n⚠️ Note: This complaint has been identified as vexatious or unreasonable' : ''}
+
+KEY DETAILS PROVIDED:
+${questionnaireData.actions_taken ? `Actions Taken: ${questionnaireData.actions_taken}` : ''}
+${questionnaireData.improvements_made ? `Improvements Made: ${questionnaireData.improvements_made}` : ''}
+${questionnaireData.additional_context ? `Additional Context: ${questionnaireData.additional_context}` : ''}
+` : '';
+
     const userPrompt = `Generate an outcome letter for this complaint:
 
 Reference: ${complaint.reference_number}
@@ -116,6 +141,7 @@ Original Complaint: ${complaint.complaint_description}
 Outcome: ${outcomeType}
 Outcome Summary: ${outcomeSummary}
 Date: ${currentDate}
+${questionnaireContext}
 
 Signature Details:
 ${signatureDetails ? `

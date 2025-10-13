@@ -57,6 +57,7 @@ import { InvestigationDecisionAndLearning } from "@/components/InvestigationDeci
 
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { CQCReportModal } from "@/components/CQCReportModal";
+import { ComplaintOutcomeQuestionnaire } from "@/components/ComplaintOutcomeQuestionnaire";
 
 interface Complaint {
   id: string;
@@ -134,6 +135,8 @@ const ComplaintDetails = () => {
   const [editingEmailValue, setEditingEmailValue] = useState<string>('');
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(true);
   const emailUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [questionnaireHistory, setQuestionnaireHistory] = useState<any[]>([]);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -2408,12 +2411,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <p className="text-sm text-blue-700 mt-1">Skip directly to creating the final complaint outcome letter for the patient</p>
                       </div>
                       <Button
-                        onClick={() => {
-                          const element = document.getElementById('outcome-letter-section');
-                          if (element) {
-                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }
-                        }}
+                        onClick={() => setShowQuestionnaireModal(true)}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         <FileText className="h-4 w-4 mr-2" />
@@ -2712,6 +2710,24 @@ I am committed to ensuring that all patients receive the care and service they d
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Outcome Questionnaire Modal */}
+      {complaint && (
+        <ComplaintOutcomeQuestionnaire
+          open={showQuestionnaireModal}
+          onOpenChange={setShowQuestionnaireModal}
+          complaintId={complaint.id}
+          complaintData={{
+            reference_number: complaint.reference_number,
+            complaint_description: complaint.complaint_description,
+            category: complaint.category,
+          }}
+          onSuccess={() => {
+            fetchComplaintDetails();
+            toast.success('Outcome letter created successfully!');
+          }}
+        />
+      )}
     </div>
   );
 };
