@@ -15,7 +15,7 @@ interface QuestionnaireData {
   investigation_complete: boolean;
   parties_consulted: boolean;
   fair_consideration: boolean;
-  outcome_type: 'upheld' | 'partially_upheld' | 'rejected' | '';
+  outcome_type: 'upheld' | 'partially_upheld' | 'not_upheld' | '';
   tone: 'professional' | 'empathetic' | 'apologetic' | 'factual' | 'strong' | 'firm';
   key_findings: string;
   actions_taken: string;
@@ -244,9 +244,9 @@ export const ComplaintOutcomeQuestionnaire = ({
                   <SelectValue placeholder="Select outcome..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="upheld">Upheld</SelectItem>
-                  <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="upheld">Complaint Upheld</SelectItem>
+                  <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
+                  <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
                 </SelectContent>
               </Select>
             </div>
