@@ -2999,16 +2999,14 @@ I am committed to ensuring that all patients receive the care and service they d
                       <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden border rounded-lg">
                         <ResizablePanel defaultSize={50} minSize={30}>
                           <div className="h-full overflow-y-auto bg-background">
-                            <div className="p-8">
-                              <RichTextEditor
-                                content={editedAcknowledgementContent}
-                                onChange={handleEditorChange}
-                                placeholder="Edit the acknowledgement letter..."
-                                className="h-full border-0"
-                                onReady={setEditorApi}
-                                showStatus
-                              />
-                            </div>
+                            <RichTextEditor
+                              content={editedAcknowledgementContent}
+                              onChange={handleEditorChange}
+                              placeholder="Edit the acknowledgement letter..."
+                              className="h-full border-0"
+                              onReady={setEditorApi}
+                              showStatus
+                            />
                           </div>
                         </ResizablePanel>
                         <ResizableHandle withHandle />

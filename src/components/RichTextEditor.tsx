@@ -426,7 +426,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
       
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-8">
         <EditorContent 
           editor={editor} 
           className="focus:outline-none h-full"
