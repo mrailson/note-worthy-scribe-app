@@ -1692,6 +1692,73 @@ export const MeetingRecorder = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Merge unmerged chunks into the main transcript
+  const handleMergeUnmergedChunks = () => {
+    if (!transcriptHandler.current) {
+      console.warn('❌ Transcript handler not initialized');
+      toast.error('Cannot merge chunks - transcript handler not ready');
+      return;
+    }
+
+    // Helper function to check if chunk is in transcript (same logic as ChunkSaveStatus)
+    const isChunkInTranscript = (chunkText: string): boolean => {
+      if (!chunkText || !transcript) return false;
+      
+      const chunkWords = chunkText.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+      if (chunkWords.length === 0) return false;
+      
+      const transcriptLower = transcript.toLowerCase();
+      const matchedWords = chunkWords.filter(word => transcriptLower.includes(word));
+      
+      const matchPercentage = (matchedWords.length / chunkWords.length) * 100;
+      return matchPercentage >= 80;
+    };
+
+    // Find chunks that are not merged
+    const unmergedChunks = chunkSaveStatuses.filter(chunk => 
+      chunk.text && 
+      chunk.text.trim().length > 0 && 
+      !isChunkInTranscript(chunk.text)
+    );
+
+    if (unmergedChunks.length === 0) {
+      toast.info('All chunks are already merged into the transcript');
+      return;
+    }
+
+    console.log(`🔗 Merging ${unmergedChunks.length} unmerged chunks into transcript`);
+
+    // Sort chunks by start time
+    const sortedChunks = [...unmergedChunks].sort((a, b) => {
+      const timeA = a.startTime ?? 0;
+      const timeB = b.startTime ?? 0;
+      return timeA - timeB;
+    });
+
+    // Add each unmerged chunk to the transcript handler
+    let mergedCount = 0;
+    sortedChunks.forEach(chunk => {
+      const incrementalData: IncrementalTranscriptData = {
+        text: chunk.text,
+        is_final: true,
+        confidence: chunk.confidence,
+        timestamp: new Date().toISOString(),
+        speaker: 'merged_chunk',
+        segment_id: `merged_${chunk.id}`
+      };
+
+      if (transcriptHandler.current) {
+        transcriptHandler.current.processTranscript(incrementalData);
+        mergedCount++;
+      }
+    });
+
+    if (mergedCount > 0) {
+      toast.success(`✅ Merged ${mergedCount} chunk${mergedCount !== 1 ? 's' : ''} into transcript`);
+      console.log(`✅ Successfully merged ${mergedCount} chunks`);
+    }
+  };
+
   // Initialize transcript handler
   useEffect(() => {
     transcriptHandler.current = new IncrementalTranscriptHandler(
@@ -4946,6 +5013,7 @@ export const MeetingRecorder = ({
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
             mainTranscript={transcript}
+            onMergeUnmergedChunks={handleMergeUnmergedChunks}
           />
         </TabsContent>
 

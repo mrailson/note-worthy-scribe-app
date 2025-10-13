@@ -23,6 +23,7 @@ interface ChunkSaveStatusProps {
   chunks: ChunkSaveStatus[];
   isRecording: boolean;
   mainTranscript: string;
+  onMergeUnmergedChunks?: () => void;
 }
 
 const getStatusIcon = (status: string) => {
@@ -54,7 +55,12 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript }) => {
+export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ 
+  chunks, 
+  isRecording, 
+  mainTranscript, 
+  onMergeUnmergedChunks 
+}) => {
   const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   
   const savedChunks = chunks.filter(c => c.saveStatus === 'saved').length;
@@ -157,7 +163,13 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
             </Badge>
             <Badge 
               variant="outline" 
-              className={`${chunksMergedToTranscript === chunksRecorded ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-xs`}
+              className={`${chunksMergedToTranscript === chunksRecorded ? "bg-success/10 text-success" : "bg-warning/10 text-warning hover:bg-warning/30"} text-xs ${onMergeUnmergedChunks && chunksMergedToTranscript < chunksRecorded ? "cursor-pointer" : ""}`}
+              onClick={() => {
+                if (onMergeUnmergedChunks && chunksMergedToTranscript < chunksRecorded) {
+                  onMergeUnmergedChunks();
+                }
+              }}
+              title={chunksMergedToTranscript < chunksRecorded ? "Click to merge unmerged chunks into transcript" : "All chunks merged"}
             >
               🔗 Merged: {chunksMergedToTranscript}/{chunksRecorded}
             </Badge>
