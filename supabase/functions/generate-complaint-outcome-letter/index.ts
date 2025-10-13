@@ -32,17 +32,12 @@ serve(async (req) => {
     // Fetch complaint details with related investigation data
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        complaint_investigation_findings(findings_text, investigation_summary, evidence_notes),
-        complaint_investigation_decisions(decision_reasoning, corrective_actions, lessons_learned),
-        complaint_involved_parties(staff_name, staff_role, response_text),
-        complaint_notes(note, is_internal)
-      `)
+      .select('*')
       .eq('id', complaintId)
-      .single();
+      .maybeSingle();
 
     if (complaintError || !complaint) {
+      console.error('Complaint fetch error:', complaintError);
       throw new Error('Complaint not found');
     }
 
