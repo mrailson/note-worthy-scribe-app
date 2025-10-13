@@ -3006,21 +3006,23 @@ I am committed to ensuring that all patients receive the care and service they d
                     {editorMode === 'split' && (
                       <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden border rounded-lg">
                         <ResizablePanel defaultSize={50} minSize={30}>
-                          <div className="h-full overflow-hidden">
-                            <RichTextEditor
-                              content={editedAcknowledgementContent}
-                              onChange={handleEditorChange}
-                              placeholder="Edit the acknowledgement letter..."
-                              className="h-full"
-                              onReady={setEditorApi}
-                              showStatus
-                            />
+                          <div className="h-full overflow-y-auto bg-background">
+                            <div className="p-8">
+                              <RichTextEditor
+                                content={editedAcknowledgementContent}
+                                onChange={handleEditorChange}
+                                placeholder="Edit the acknowledgement letter..."
+                                className="h-full border-0"
+                                onReady={setEditorApi}
+                                showStatus
+                              />
+                            </div>
                           </div>
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={50} minSize={30}>
-                          <div className="h-full overflow-y-auto bg-muted/30 p-3">
-                            <div className="bg-background p-4 rounded shadow-sm">
+                          <div className="h-full overflow-y-auto bg-muted/30 p-4">
+                            <div className="bg-background p-8 rounded shadow-sm">
                               <FormattedLetterContent content={editedAcknowledgementContent} />
                             </div>
                           </div>

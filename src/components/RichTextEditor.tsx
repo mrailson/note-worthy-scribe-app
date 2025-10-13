@@ -222,7 +222,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none p-4 h-full',
+        class: 'prose prose-sm max-w-none focus:outline-none h-full',
       },
     },
   });
@@ -255,9 +255,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   );
 
   return (
-    <div className={`flex flex-col overflow-hidden bg-white ${className}`}>
+    <div className={`flex flex-col overflow-hidden bg-transparent ${className}`}>
       {/* Toolbar */}
-      <div className="border-b bg-gray-50 p-1.5 flex flex-wrap gap-1 items-center flex-shrink-0">
+      <div className="border-b bg-gray-50/50 p-1.5 flex flex-wrap gap-1 items-center flex-shrink-0 sticky top-0 z-10">
         {/* History */}
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
