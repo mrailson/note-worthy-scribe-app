@@ -177,7 +177,22 @@ const ComplaintDetails = () => {
           .maybeSingle();
         
         if (questionnaireData) {
-          setOutcomeQuestionnaireData(questionnaireData.questionnaire_data);
+          // Fetch the user profile for the person who created the questionnaire
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('user_id', questionnaireData.created_by)
+            .single();
+          
+          const questionnaireContent = typeof questionnaireData.questionnaire_data === 'object' 
+            ? questionnaireData.questionnaire_data 
+            : {};
+          
+          setOutcomeQuestionnaireData({
+            ...questionnaireContent,
+            created_by_name: profileData?.full_name || 'Unknown User',
+            created_at: questionnaireData.created_at
+          });
         }
         
         // If there's outcome data but no investigation method set yet, 
@@ -1867,6 +1882,27 @@ I am committed to ensuring that all patients receive the care and service they d
                             <FileText className="h-4 w-4" />
                             Questionnaire Responses (used to investigate and complete response to complaint)
                           </h4>
+                          
+                          {/* Submission Details */}
+                          <div className="mb-3 pb-3 border-b border-green-200">
+                            <div className="flex items-center gap-4 text-sm text-green-700">
+                              <span className="font-medium">Completed by:</span>
+                              <span className="text-green-900">{outcomeQuestionnaireData.created_by_name}</span>
+                              <span className="text-green-600">•</span>
+                              <span className="text-green-900">
+                                {outcomeQuestionnaireData.created_at 
+                                  ? new Date(outcomeQuestionnaireData.created_at).toLocaleString('en-GB', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : 'Unknown date'}
+                              </span>
+                            </div>
+                          </div>
+                          
                           <div className="space-y-2 text-sm">
                             {outcomeQuestionnaireData.investigation_complete !== undefined && (
                               <div className="flex items-start gap-2">
