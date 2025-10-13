@@ -187,12 +187,9 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
                               )}
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
                                 <span className="text-xs text-primary font-mono">
-                                  {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(1).padStart(4, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(1).padStart(4, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s)
+                                  {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(1).padStart(4, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(1).padStart(4, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s) ({chunkWords} words) {Math.round(chunk.confidence * 100)}% conf
                                 </span>
                               )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {chunkWords} words • {Math.round(chunk.confidence * 100)}% conf
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
                               "{chunk.text}"
