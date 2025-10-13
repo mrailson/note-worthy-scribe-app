@@ -37,7 +37,7 @@ serve(async (req) => {
         complaint_investigation_findings(findings_text, investigation_summary, evidence_notes),
         complaint_investigation_decisions(decision_reasoning, corrective_actions, lessons_learned),
         complaint_involved_parties(staff_name, staff_role, response_text),
-        complaint_notes!inner(note, is_internal)
+        complaint_notes(note, is_internal)
       `)
       .eq('id', complaintId)
       .single();
@@ -46,17 +46,68 @@ serve(async (req) => {
       throw new Error('Complaint not found');
     }
 
-    // Get practice details if practice_id exists
+    // Get practice details - try user profile (user_roles) first, then complaint.practice_id, then fallback by name
     let practiceDetails = null;
     let signatureDetails = null;
-    
-    if (complaint.practice_id) {
+
+    console.log('Fetching practice details from user profile first');
+
+    const { data: userPractice, error: userPracticeError } = await supabase
+      .from('user_roles')
+      .select(`
+        practice_id,
+        practice_details (
+          practice_name,
+          address,
+          phone,
+          email,
+          logo_url,
+          practice_logo_url,
+          footer_text,
+          website,
+          show_page_numbers
+        )
+      `)
+      .eq('user_id', complaint.created_by)
+      .not('practice_id', 'is', null)
+      .limit(1)
+      .single();
+
+    console.log('User practice query result:', { userPractice, userPracticeError });
+
+    if (userPractice && userPractice.practice_details) {
+      practiceDetails = userPractice.practice_details;
+      console.log('Retrieved practice details from user profile:', practiceDetails);
+    } else if (complaint.practice_id) {
+      console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
         .from('practice_details')
         .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
+      console.log('Retrieved practice details from complaint:', practiceDetails);
+    } else {
+      console.log('Final fallback: fetching practice details directly by practice name');
+      const { data: directPractice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
+        .eq('practice_name', 'Oak Lane Medical Practice')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (directPractice) {
+        practiceDetails = directPractice;
+        console.log('Retrieved practice details directly (latest):', {
+          practice_name: practiceDetails.practice_name,
+          logo_url: practiceDetails.logo_url,
+          practice_logo_url: practiceDetails.practice_logo_url,
+          updated_at: practiceDetails.updated_at
+        });
+      } else {
+        console.log('No practice details found by name');
+      }
     }
 
     // Get signature details for the user who created the complaint
@@ -272,8 +323,7 @@ CRITICAL: Never include personal email addresses or direct contact details in th
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.2,  // Low temperature to prevent fabrication/hallucination
-        max_tokens: 2000,
+        max_completion_tokens: 2000,
       }),
     });
 
