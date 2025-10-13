@@ -8,25 +8,28 @@ export function extractSegmentsFromMixed(input: string): Segment[] {
   
   const segments: Segment[] = [];
   
-  // Try to find all JSON arrays in the input
-  const arrays = input.match(/\[\s*\{[\s\S]*?\}\s*\]/g) || 
-                 (input.trim().startsWith('[{') ? [input] : []);
+  // More robust regex to find all JSON arrays, including those separated by spaces
+  const arrayPattern = /\[\s*\{[^\]]*"start"[^\]]*\}\s*\]/g;
+  const matches = input.match(arrayPattern);
   
-  for (const arr of arrays) {
-    try {
-      const parsed = JSON.parse(arr);
-      if (Array.isArray(parsed)) {
-        for (const s of parsed) {
-          if (s && typeof s.start === 'number' && typeof s.end === 'number' && typeof s.text === 'string') {
-            segments.push({ start: s.start, end: s.end, text: s.text });
+  if (matches) {
+    for (const match of matches) {
+      try {
+        const parsed = JSON.parse(match);
+        if (Array.isArray(parsed)) {
+          for (const s of parsed) {
+            if (s && typeof s.start === 'number' && typeof s.end === 'number' && typeof s.text === 'string') {
+              segments.push({ start: s.start, end: s.end, text: s.text });
+            }
           }
         }
+      } catch (e) {
+        console.warn('Failed to parse JSON array segment:', match.substring(0, 100));
       }
-    } catch (e) {
-      // Skip invalid JSON
     }
   }
   
+  console.log(`📊 Extracted ${segments.length} segments from input`);
   return segments;
 }
 
