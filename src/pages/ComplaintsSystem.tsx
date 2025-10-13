@@ -472,11 +472,21 @@ const ComplaintsSystem = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('complaints')
-        .select('*')
+        .select(`
+          *,
+          complaint_outcomes(outcome_letter)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setComplaints(data || []);
+      
+      // Map complaints and update status to 'closed' if outcome letter exists
+      const mappedComplaints = (data || []).map(complaint => ({
+        ...complaint,
+        status: complaint.complaint_outcomes?.[0]?.outcome_letter ? 'closed' : complaint.status
+      }));
+      
+      setComplaints(mappedComplaints);
     } catch (error) {
       console.error('Error fetching complaints:', error);
       toast.error("Failed to fetch complaints");
