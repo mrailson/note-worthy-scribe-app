@@ -22,8 +22,6 @@ interface ChunkSaveStatusProps {
   chunks: ChunkSaveStatus[];
   isRecording: boolean;
   mainTranscript: string;
-  chunksRecorded: number;
-  chunksMergedToTranscript: number;
 }
 
 const getStatusIcon = (status: string) => {
@@ -55,7 +53,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript, chunksRecorded, chunksMergedToTranscript }) => {
+export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript }) => {
   const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   
   const savedChunks = chunks.filter(c => c.saveStatus === 'saved').length;
@@ -78,19 +76,28 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
     return matchPercentage >= 80;
   };
   
+  // Calculate chunks that were merged into main transcript
+  const chunksMergedToTranscript = chunks.filter(chunk => 
+    chunk.text && chunk.text.trim().length > 0 && isChunkInTranscript(chunk.text)
+  ).length;
+  
+  const chunksRecorded = chunks.length;
+  
   // Calculate total words transcribed from all chunks
   const totalWords = chunks.reduce((total, chunk) => {
     const wordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
     return total + wordCount;
   }, 0);
   
-  // Add console logging for debugging on mobile
+  // Add console logging for debugging
   console.log('📊 ChunkSaveStatus render:', { 
     totalChunks: chunks.length, 
     savedChunks, 
     pendingChunks, 
     failedChunks, 
     totalWords,
+    chunksMergedToTranscript,
+    chunksRecorded,
     isRecording 
   });
 

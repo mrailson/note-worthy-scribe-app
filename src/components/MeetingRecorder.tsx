@@ -199,10 +199,6 @@ export const MeetingRecorder = ({
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
   
-  // Chunk tracking state
-  const [chunksRecorded, setChunksRecorded] = useState(0);
-  const [chunksMergedToTranscript, setChunksMergedToTranscript] = useState(0);
-  
   // Auto-clean state
   const [isAutoCleaningTranscript, setIsAutoCleaningTranscript] = useState(false);
   const [lastAutoCleanTime, setLastAutoCleanTime] = useState<Date | null>(null);
@@ -1097,18 +1093,14 @@ export const MeetingRecorder = ({
             }
           }
 
-          // Track that we recorded a chunk
-          setChunksRecorded(prev => prev + 1);
-          
           // Update the main transcript using smart merge to eliminate duplicates
           setTranscript(prev => {
             // Use mergeLive to detect and remove overlapping text sections
             const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
             const addedLength = newTranscript.length - prev.length;
             
-            // Track if chunk was successfully merged
+            // Log merge results for debugging
             if (addedLength > 0) {
-              setChunksMergedToTranscript(prevCount => prevCount + 1);
               console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
             } else if (transcriptionText.length > 10) {
               console.warn(`⚠️ Chunk ${chunkId} was NOT merged to transcript!`, {
@@ -2867,10 +2859,6 @@ export const MeetingRecorder = ({
       if (transcriptHandler.current) {
         transcriptHandler.current.clear();
       }
-      
-      // Reset chunk tracking counters
-      setChunksRecorded(0);
-      setChunksMergedToTranscript(0);
 
       // Create meeting record FIRST to get real meeting ID
       let realMeetingId: string;
@@ -4844,8 +4832,6 @@ export const MeetingRecorder = ({
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
             mainTranscript={transcript}
-            chunksRecorded={chunksRecorded}
-            chunksMergedToTranscript={chunksMergedToTranscript}
           />
         </TabsContent>
 
