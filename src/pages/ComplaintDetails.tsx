@@ -281,22 +281,21 @@ const ComplaintDetails = () => {
         'Complainant satisfaction checked'
       ];
       
-      // Sort checks by the standard order
-      const sortedChecks = (checks || []).sort((a, b) => {
-        const indexA = standardOrder.indexOf(a.compliance_item);
-        const indexB = standardOrder.indexOf(b.compliance_item);
-        
-        // If both items are in the standard order, sort by that
-        if (indexA !== -1 && indexB !== -1) {
-          return indexA - indexB;
-        }
-        // If only A is in standard order, put it first
-        if (indexA !== -1) return -1;
-        // If only B is in standard order, put it first
-        if (indexB !== -1) return 1;
-        // If neither is in standard order, keep original order
-        return 0;
-      });
+      // Sort checks by the standard order with stable tie-breakers so items never jump
+      const orderMap = new Map(standardOrder.map((item, i) => [item, i]));
+      const sortedChecks = (checks || [])
+        .map((c: any, idx: number) => ({ ...c, _orig: idx }))
+        .sort((a: any, b: any) => {
+          const rankA = orderMap.has(a.compliance_item) ? orderMap.get(a.compliance_item)! : 1000;
+          const rankB = orderMap.has(b.compliance_item) ? orderMap.get(b.compliance_item)! : 1000;
+          if (rankA !== rankB) return rankA - rankB;
+          // Tie-breakers to keep order fixed on update
+          const da = a.created_at || '';
+          const db = b.created_at || '';
+          if (da !== db) return da.localeCompare(db);
+          return a._orig - b._orig;
+        })
+        .map(({ _orig, ...c }: any) => c);
       
       setComplianceChecks(sortedChecks);
 
