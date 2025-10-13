@@ -264,6 +264,7 @@ export const MeetingRecorder = ({
     setIsRecording(false);
     isRecordingRef.current = false;
     recordingStartTimeRef.current = null; // Reset recording start time
+    lastChunkEndTime.current = null; // Reset chunk timing
     setDuration(0);
     setTranscript("");
     setRealtimeTranscripts([]);
@@ -429,6 +430,7 @@ export const MeetingRecorder = ({
   const chunkData = useRef<Map<number, Blob[]>>(new Map());
   const chunkIntervals = useRef<Map<number, NodeJS.Timeout>>(new Map());
   const chunkStartTimes = useRef<Map<number, Date>>(new Map());
+  const lastChunkEndTime = useRef<number | null>(null); // Track last chunk's end time in seconds
   
   // Stereo audio capture ref
   const stereoAudioCapture = useRef(new StereoAudioCapture());
@@ -764,7 +766,19 @@ export const MeetingRecorder = ({
           if (recordingStartMonotonicRef.current == null) {
             recordingStartMonotonicRef.current = performance.now();
           }
-          chunkStartTimes.current.set(currentChunkId, new Date());
+          
+          // Use last chunk's end time as this chunk's start time for continuous timeline
+          if (lastChunkEndTime.current !== null) {
+            // Calculate the wall clock time that corresponds to the last chunk's end time
+            const lastEndWallClock = new Date(
+              recordingStartTimeRef.current.getTime() + (lastChunkEndTime.current * 1000)
+            );
+            chunkStartTimes.current.set(currentChunkId, lastEndWallClock);
+            console.log(`⏱️ Using previous chunk end time as start: ${lastChunkEndTime.current}s`);
+          } else {
+            // First chunk - use current time
+            chunkStartTimes.current.set(currentChunkId, new Date());
+          }
 
           // Create new recorder for this chunk using the SAME stream
         const recorder = new MediaRecorder(chunksStream, {
@@ -1014,6 +1028,9 @@ export const MeetingRecorder = ({
           ? (performance.now() - recordingStartMonotonicRef.current) / 1000
           : null;
         const chunkEndSeconds = (monotonicEndSeconds ?? wallClockEndSeconds);
+        
+        // Store this chunk's end time for the next chunk to use as its start time
+        lastChunkEndTime.current = chunkEndSeconds;
           
         console.log(`⏱️ Chunk ${chunkId} END timing:`, {
           chunkStartSeconds: chunkStartSeconds,
@@ -1022,7 +1039,8 @@ export const MeetingRecorder = ({
           recordingStartSet: !!recordingStart,
           recordingStart: recordingStart?.toISOString(),
           chunkEnd: endTime.toISOString(),
-          timingMode: monotonicEndSeconds != null ? 'monotonic' : 'wallclock'
+          timingMode: monotonicEndSeconds != null ? 'monotonic' : 'wallclock',
+          savedForNextChunk: lastChunkEndTime.current
         });
         
         setChunkSaveStatuses(prev => prev.map(chunk => 
@@ -1804,9 +1822,12 @@ export const MeetingRecorder = ({
       saveStatus: 'saving',
       retryCount: 0,
       confidence: data.confidence || 0.9,
-      startTime: Math.max(0, chunkStartSeconds - 2), // Approximate start (2 seconds before arrival)
+      startTime: lastChunkEndTime.current || Math.max(0, chunkStartSeconds - 2), // Use previous end or approximate
       endTime: chunkStartSeconds // End time is when chunk arrives
     };
+    
+    // Update last chunk end time for iPhone chunks
+    lastChunkEndTime.current = chunkStartSeconds;
     
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
@@ -2575,6 +2596,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus('Error');
       
       throw error;
@@ -2646,6 +2668,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus("Error");
     }
   };
@@ -2695,6 +2718,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus("Disconnected");
       addDebugLog('✅ Test recording stopped');
       toast.success('Test recording stopped successfully');
@@ -3089,6 +3113,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus("Error");
     }
   };
@@ -3175,6 +3200,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
       setIsStoppingRecording(false);
       setConnectionStatus("Disconnected");
       
@@ -3304,6 +3330,7 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
+      lastChunkEndTime.current = null; // Reset chunk timing
     setIsStoppingRecording(false);
     setConnectionStatus("Disconnected");
     
