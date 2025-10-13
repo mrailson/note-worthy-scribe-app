@@ -2985,34 +2985,6 @@ I am committed to ensuring that all patients receive the care and service they d
                 </div>
               </div>
               
-              {/* Placeholder helper (only in edit mode) */}
-              {isEditingAcknowledgement && (
-                <div className="flex flex-wrap gap-1 pb-1.5 border-b flex-shrink-0 max-h-24 overflow-y-auto">
-                  <span className="text-xs text-muted-foreground mr-1 self-center shrink-0">Placeholders:</span>
-                  {[
-                    { label: 'Date', value: '{{date_today}}' },
-                    { label: 'Ref', value: '{{reference_number}}' },
-                    { label: 'Patient Name', value: '{{patient_name}}' },
-                    { label: 'Patient Address', value: '{{patient_address}}' },
-                    { label: 'Complaint Title', value: '{{complaint_title}}' },
-                    { label: 'Practice Name', value: '{{practice_name}}' },
-                    { label: 'Practice Address', value: '{{practice_address}}' },
-                    { label: 'Sender Name', value: '{{sender_name}}' },
-                    { label: 'Sender Role', value: '{{sender_role}}' },
-                  ].map((ph) => (
-                    <Button
-                      key={ph.value}
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-xs px-2"
-                      onClick={() => insertPlaceholder(ph.value)}
-                    >
-                      {ph.label}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              
               {/* Letter content */}
               <div className="flex-1 overflow-hidden">
                 {!isEditingAcknowledgement ? (
