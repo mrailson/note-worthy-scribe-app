@@ -8,19 +8,33 @@ export function extractSegmentsFromMixed(input: string): Segment[] {
   
   const segments: Segment[] = [];
   
+  // First, try to clean up the input if it looks like escaped or malformed JSON
+  let cleanedInput = input;
+  
+  // Check if input looks like stringified JSON that needs unescaping
+  if (input.includes('\\"start\\"') || input.includes('\\"text\\"')) {
+    try {
+      // Try to parse if it's a double-encoded string
+      cleanedInput = JSON.parse(input);
+      console.log('📝 Unescaped stringified JSON input');
+    } catch (e) {
+      // Not double-encoded, continue with original
+    }
+  }
+  
   // Use bracket matching to find complete JSON arrays
   let i = 0;
-  while (i < input.length) {
+  while (i < cleanedInput.length) {
     // Find next opening bracket
-    const start = input.indexOf('[', i);
+    const start = cleanedInput.indexOf('[', i);
     if (start === -1) break;
     
     // Find matching closing bracket
     let depth = 0;
     let end = start;
-    for (let j = start; j < input.length; j++) {
-      if (input[j] === '[') depth++;
-      if (input[j] === ']') depth--;
+    for (let j = start; j < cleanedInput.length; j++) {
+      if (cleanedInput[j] === '[') depth++;
+      if (cleanedInput[j] === ']') depth--;
       if (depth === 0) {
         end = j + 1;
         break;
@@ -28,7 +42,7 @@ export function extractSegmentsFromMixed(input: string): Segment[] {
     }
     
     if (end > start) {
-      const candidate = input.substring(start, end);
+      const candidate = cleanedInput.substring(start, end);
       // Only process if it looks like it contains segment data
       if (candidate.includes('"start"') && candidate.includes('"end"') && candidate.includes('"text"')) {
         try {

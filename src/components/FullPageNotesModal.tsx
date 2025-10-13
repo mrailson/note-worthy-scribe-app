@@ -1621,33 +1621,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const saveTranscriptToDatabase = async (content: string) => {
     if (!meeting?.id) return;
     
-    try {
-      // Delete existing transcript entries for this meeting
-      const { error: deleteError } = await supabase
-        .from('meeting_transcripts')
-        .delete()
-        .eq('meeting_id', meeting.id);
-
-      if (deleteError) {
-        console.error('Error deleting old transcript:', deleteError);
-      }
-
-      // Insert the updated transcript
-      const { error: insertError } = await supabase
-        .from('meeting_transcripts')
-        .insert({
-          meeting_id: meeting.id,
-          content: content,
-          speaker_name: 'Updated Transcript',
-          confidence_score: 1.0
-        });
-        
-      if (insertError) {
-        console.error('Error saving transcript:', insertError);
-      }
-    } catch (error) {
-      console.error('Error saving transcript:', error);
-    }
+    // Don't save formatted transcripts back to the database
+    // This would overwrite the original transcript chunks with timing data
+    // The transcript is automatically formatted each time the modal opens
+    console.log('⚠️ Skipping transcript save to preserve original data');
   };
 
   const handleRegenerateNotes = async () => {
