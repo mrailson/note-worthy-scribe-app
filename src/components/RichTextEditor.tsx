@@ -148,8 +148,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       // Remove any remaining HTML tags
       .replace(/<[^>]*>/g, '')
       // Clean up extra whitespace but preserve intentional spacing
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+      .replace(/\n{3,}/g, '\n\n');
   };
 
   // Clean and convert content
@@ -164,17 +163,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ALLOWED_ATTR: ['class', 'style'],
     KEEP_CONTENT: true
   });
+
+  // Memoise extensions to avoid re-initialising the editor on rerenders
+  const extensions = React.useMemo(() => [
+    StarterKit,
+    Underline,
+    TextStyle,
+    Color,
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+    }),
+    FontFamily,
+  ], []);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextStyle,
-      Color,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      FontFamily,
-    ],
+    extensions,
+
     content: processedContent,
     onUpdate: ({ editor }) => {
       const htmlContent = editor.getHTML();
