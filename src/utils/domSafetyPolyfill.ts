@@ -180,6 +180,31 @@ export const getSafeDOMObserver = (): SafeDOMObserver => {
 };
 
 /**
+ * Install a global safeguard so Node subclasses (e.g. Text, Comment) safely respond to hasAttribute()
+ * Prevents third-party MutationObserver handlers from throwing when they call node.hasAttribute on non-Elements
+ */
+export const installHasAttributeSafeguard = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    const NodeProto: any = (window as any).Node?.prototype;
+    if (NodeProto && typeof NodeProto.hasAttribute !== 'function') {
+      Object.defineProperty(NodeProto, 'hasAttribute', {
+        value: function (_name: string) {
+          // Non-Element nodes never have attributes
+          return false;
+        },
+        writable: false,
+        configurable: true,
+        enumerable: false,
+      });
+      console.log('✅ DOM Safety: Installed Node.prototype.hasAttribute safeguard');
+    }
+  } catch (e) {
+    console.error('🚨 DOM Safety: Failed to install hasAttribute safeguard', e);
+  }
+};
+
+/**
  * Utility function to safely check if a node is an Element
  */
 export const isElement = (node: Node | null | undefined): node is Element => {

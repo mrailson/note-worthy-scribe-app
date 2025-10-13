@@ -23,6 +23,9 @@ import StaffFeedback from "./pages/StaffFeedback";
 import SharedDrive from "./pages/SharedDrive";
 import Auth from "./pages/Auth";
 
+import { useEffect } from 'react';
+import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSafetyPolyfill';
+
 import AI4PMService from "./pages/AI4PMService";
 import EnhancedAccess from "./pages/EnhancedAccess";
 import CQCCompliance from "./pages/CQCCompliance";
@@ -58,6 +61,14 @@ import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 const App = () => {
   // Track user session activity
   useSessionActivity();
+
+  // Install DOM safety polyfill and start global safe observer once
+  useEffect(() => {
+    installHasAttributeSafeguard();
+    const observer = getSafeDOMObserver();
+    observer.start();
+    return () => observer.destroy();
+  }, []);
 
   return (
   <HelmetProvider>
