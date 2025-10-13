@@ -10,7 +10,6 @@ import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCir
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ComplaintData {
   patient_name?: string;
