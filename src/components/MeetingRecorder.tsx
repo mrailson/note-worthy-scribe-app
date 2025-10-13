@@ -4562,22 +4562,6 @@ export const MeetingRecorder = ({
                         </div>
                       )}
                       
-                      {/* Early word count progress display (first 20 seconds) */}
-                      {showEarlyWordCount && duration <= 20 && (
-                        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2">
-                          <Card className="border-primary/50 bg-primary/5">
-                            <CardContent className="p-3">
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-medium">
-                                  {earlyWordCountValue} {earlyWordCountValue === 1 ? 'word' : 'words'} captured
-                                </span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-                      
                          <Button
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
