@@ -199,6 +199,10 @@ export const MeetingRecorder = ({
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
   
+  // Chunk tracking state
+  const [chunksRecorded, setChunksRecorded] = useState(0);
+  const [chunksMergedToTranscript, setChunksMergedToTranscript] = useState(0);
+  
   // Auto-clean state
   const [isAutoCleaningTranscript, setIsAutoCleaningTranscript] = useState(false);
   const [lastAutoCleanTime, setLastAutoCleanTime] = useState<Date | null>(null);
@@ -1093,15 +1097,21 @@ export const MeetingRecorder = ({
             }
           }
 
+          // Track that we recorded a chunk
+          setChunksRecorded(prev => prev + 1);
+          
           // Update the main transcript using smart merge to eliminate duplicates
           setTranscript(prev => {
             // Use mergeLive to detect and remove overlapping text sections
             const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
             const addedLength = newTranscript.length - prev.length;
             
-            // Validation: warn if chunk wasn't added when it should have been
-            if (addedLength === 0 && transcriptionText.length > 10) {
-              console.warn(`⚠️ Chunk ${chunkId} was not added to transcript!`, {
+            // Track if chunk was successfully merged
+            if (addedLength > 0) {
+              setChunksMergedToTranscript(prevCount => prevCount + 1);
+              console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
+            } else if (transcriptionText.length > 10) {
+              console.warn(`⚠️ Chunk ${chunkId} was NOT merged to transcript!`, {
                 chunkLength: transcriptionText.length,
                 chunkPreview: transcriptionText.substring(0, 100)
               });
@@ -2857,6 +2867,10 @@ export const MeetingRecorder = ({
       if (transcriptHandler.current) {
         transcriptHandler.current.clear();
       }
+      
+      // Reset chunk tracking counters
+      setChunksRecorded(0);
+      setChunksMergedToTranscript(0);
 
       // Create meeting record FIRST to get real meeting ID
       let realMeetingId: string;
@@ -4394,6 +4408,20 @@ export const MeetingRecorder = ({
                     </div>
                     <div className="text-xs font-medium text-muted-foreground">
                       {showLastPhrase ? "Last Phrase (click for count)" : "Meeting Word Count"}
+                    </div>
+                  </div>
+                  
+                  {/* Chunk Status */}
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                    <div className="text-2xl font-bold mb-1">
+                      <span className={chunksMergedToTranscript === chunksRecorded ? "text-green-500" : "text-amber-500"}>
+                        {chunksMergedToTranscript}
+                      </span>
+                      <span className="text-muted-foreground text-lg"> / </span>
+                      <span className="text-primary">{chunksRecorded}</span>
+                    </div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Chunks Saved / Recorded
                     </div>
                   </div>
                   
