@@ -358,7 +358,7 @@ const ComplaintsSystem = () => {
     location_service: "",
     staff_mentioned: "",
     priority: "medium",
-    consent_given: false,
+    consent_given: true,
     consent_details: "",
     complaint_on_behalf: false,
   });
