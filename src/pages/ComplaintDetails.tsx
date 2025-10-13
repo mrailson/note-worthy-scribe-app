@@ -1305,7 +1305,29 @@ const ComplaintDetails = () => {
         }
       });
 
+      console.log('Edge function response:', { data, error });
+
       if (error) throw error;
+
+      // Check if emails were actually sent
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      // Check email results
+      const emailResults = data?.emailResults || [];
+      const failedEmails = emailResults.filter((result: any) => result.status === 'failed');
+      
+      if (failedEmails.length > 0) {
+        console.error('Failed emails:', failedEmails);
+        toast.error(`${failedEmails.length} emails failed to send. Check console for details.`);
+      }
+
+      const successfulEmails = emailResults.filter((result: any) => result.status === 'sent');
+      
+      if (successfulEmails.length === 0) {
+        throw new Error('No emails were sent successfully. Please check EmailJS configuration.');
+      }
 
       // Update local state with sent requests - but don't mark as completed yet
       const newInputRequests = involvedParties.map(party => ({
@@ -1318,10 +1340,15 @@ const ComplaintDetails = () => {
       }));
 
       setInputRequests(newInputRequests);
-      toast.success(`Input requests sent to ${involvedParties.length} staff members`);
+      
+      if (successfulEmails.length === involvedParties.length) {
+        toast.success(`Input requests sent to ${successfulEmails.length} staff members`);
+      } else {
+        toast.success(`${successfulEmails.length} of ${involvedParties.length} emails sent successfully`);
+      }
       
       // Log the activity
-      console.log('Email results:', data?.emailResults);
+      console.log('Email results:', emailResults);
       
     } catch (error) {
       console.error('Error sending input requests:', error);
