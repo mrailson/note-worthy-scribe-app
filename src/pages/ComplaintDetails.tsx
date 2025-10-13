@@ -1796,13 +1796,22 @@ I am committed to ensuring that all patients receive the care and service they d
                             <Eye className="h-4 w-4 mr-1" />
                             View Letter
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadAcknowledgementLetter}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
                           <Button 
                             variant="outline"
                             size="sm"
                             onClick={() => handleGenerateAcknowledgement(complaint.id)}
                             disabled={submitting}
                           >
-                            {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Regenerate Letter
                           </Button>
                         </div>
                       </div>
