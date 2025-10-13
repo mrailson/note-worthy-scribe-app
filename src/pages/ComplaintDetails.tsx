@@ -2392,12 +2392,37 @@ I am committed to ensuring that all patients receive the care and service they d
                          </div>
                       </div>
                      )}
-                      </CardContent>
+                       </CardContent>
                     </CollapsibleContent>
                   </Card>
                 </Collapsible>
               )}
 
+              {/* Direct link to outcome letter creation */}
+              {acknowledgementLetter && !existingOutcome && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-blue-900">Ready to Create Outcome Letter?</h3>
+                        <p className="text-sm text-blue-700 mt-1">Skip directly to creating the final complaint outcome letter for the patient</p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          const element = document.getElementById('outcome-letter-section');
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Create Outcome Letter
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             </TabsContent>
 
