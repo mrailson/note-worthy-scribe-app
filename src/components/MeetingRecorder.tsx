@@ -2944,6 +2944,11 @@ export const MeetingRecorder = ({
         realMeetingId = savedMeeting.id;
         console.log(`✅ Created meeting record: ${realMeetingId}`);
         
+        // CRITICAL: Set recording start time IMMEDIATELY after meeting creation
+        // This must happen BEFORE any chunk recording starts
+        recordingStartTimeRef.current = new Date();
+        console.log(`⏱️ Recording start time set: ${recordingStartTimeRef.current.toISOString()}`);
+        
         // Store both session ID and meeting ID as the same value
         sessionStorage.setItem('currentSessionId', realMeetingId);
         sessionStorage.setItem('currentMeetingId', realMeetingId);
@@ -2978,7 +2983,7 @@ export const MeetingRecorder = ({
       
       setIsRecording(true);
       isRecordingRef.current = true;
-      recordingStartTimeRef.current = new Date(); // Store absolute recording start time
+      // Recording start time already set earlier - don't reset it here
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
       setSpeakerCount(1);

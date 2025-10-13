@@ -120,7 +120,8 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
   // Safety logging to catch incorrect function calls
   console.log(`🔍 mergeLive called:`, {
     prevLength: prevText.length,
-    chunkTextPreview: chunk?.text?.substring(0, 80) || '(no text)',
+    prevEnd: prevText.substring(Math.max(0, prevText.length - 150)),
+    chunkTextPreview: chunk?.text?.substring(0, 100) || '(no text)',
     chunkLength: chunk?.text?.length || 0,
     isFinal: chunk?.isFinal
   });
@@ -139,23 +140,37 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
 
   const prev = norm(prevText);
   const next = norm(chunk.text);
+  
+  console.log(`🔄 Normalized text:`, {
+    prevEnd: prev.substring(Math.max(0, prev.length - 150)),
+    nextStart: next.substring(0, 150)
+  });
 
   // stitch with overlap removal
   const stitched = stitchWithOverlap(prev, next);
   const afterStitch = stitched.length - prev.length;
   
   if (afterStitch === 0 && next.length > 10) {
-    console.warn(`⚠️ NO TEXT ADDED after stitchWithOverlap! Chunk may be duplicate.`);
+    console.error(`⚠️ NO TEXT ADDED after stitchWithOverlap!`, {
+      chunkLength: next.length,
+      prevEnd: prev.substring(Math.max(0, prev.length - 200)),
+      chunkText: next
+    });
+  } else if (afterStitch > 0) {
+    console.log(`📝 Stitched: +${afterStitch} chars from ${next.length} char chunk`);
   }
 
   // run a small dedupe window on the tail
   const deduped = dedupeTail(stitched);
   const afterDedupe = deduped.length - prevText.length;
 
-  console.log(`🔄 Live merge complete: ${prevText.length} -> ${deduped.length} chars (stitch: +${afterStitch}, dedupe: +${afterDedupe})`);
+  console.log(`🔄 Live merge complete: ${prevText.length} -> ${deduped.length} chars (stitch: +${afterStitch}, dedupe final: +${afterDedupe})`);
   
   if (afterDedupe === 0 && chunk.text.length > 10) {
-    console.error(`❌ CHUNK REJECTED: No text added to transcript despite ${chunk.text.length} char input!`);
+    console.error(`❌ CHUNK COMPLETELY REJECTED: No text added despite ${chunk.text.length} char input!`, {
+      originalChunk: chunk.text,
+      prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300))
+    });
   }
   
   return deduped;
