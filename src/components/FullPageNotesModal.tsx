@@ -1581,7 +1581,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const { error: updateError } = await supabase
         .from('meetings')
         .update({ 
-          transcript: content,
+          live_transcript_text: content,
           updated_at: new Date().toISOString()
         })
         .eq('id', meeting.id);

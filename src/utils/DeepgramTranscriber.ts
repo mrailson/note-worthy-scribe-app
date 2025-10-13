@@ -97,15 +97,24 @@ export class DeepgramTranscriber {
 
   private async connectToDeepgram(): Promise<void> {
     try {
+      console.log('🔗 Requesting Deepgram connection URL...');
+      
       // Get Deepgram API key from Supabase secrets
       const { data, error } = await supabase.functions.invoke('deepgram-realtime', {
         body: { action: 'connect' }
       });
 
       if (error) {
-        throw new Error('Failed to get Deepgram connection');
+        console.error('❌ Deepgram connection error:', error);
+        throw new Error(`Failed to get Deepgram connection: ${error.message || 'Unknown error'}`);
       }
 
+      if (!data || !data.websocketUrl) {
+        console.error('❌ No websocket URL returned from Deepgram function');
+        throw new Error('No websocket URL returned from Deepgram');
+      }
+
+      console.log('✅ Received Deepgram connection URL');
       const websocketUrl = data.websocketUrl;
       
       return new Promise((resolve, reject) => {
