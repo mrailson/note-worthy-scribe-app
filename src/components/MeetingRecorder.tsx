@@ -3669,11 +3669,9 @@ export const MeetingRecorder = ({
             console.error('❌ Error checking queue:', queueError);
           } else if (queueCheck && queueCheck.length > 0) {
             console.log('✅ Auto-generation triggered! Queued note types:', queueCheck);
-            toast.success(`Auto-generation started - ${queueCheck.length} note types queued`);
           } else {
             console.log('⚠️ No queue entries found - auto-generation may not have triggered');
             console.log('🔍 Possible reasons: No transcript content, trigger disabled, or error in trigger function');
-            toast.info('Check Multi-Type Notes Panel for auto-generation status');
           }
         } catch (checkError) {
           console.error('❌ Error checking auto-generation status:', checkError);
