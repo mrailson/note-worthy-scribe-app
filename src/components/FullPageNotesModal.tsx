@@ -859,61 +859,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  // Fetch transcript when modal opens - SECURE VERSION using RPC
-  const fetchTranscript = async () => {
-    if (!meeting?.id) return; // Only skip if no meeting ID
-    
-    setIsLoadingTranscript(true);
-    try {
-      console.log('🔍 Fetching transcript for meeting:', meeting.id);
-      
-      // Use secure RPC function that validates user access
-      const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { 
-        p_meeting_id: meeting.id 
-      });
-      
-      if (rpcError) {
-        console.error('RPC error:', rpcError);
-        throw rpcError;
-      }
-      
-      if (Array.isArray(rpcRows) && rpcRows.length > 0) {
-        const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
-        if (row?.transcript && row.transcript.trim().length > 0) {
-          console.log('🔍 Transcript loaded from source:', row.source, 'Items:', row.item_count);
-          setTranscript(row.transcript);
-        } else {
-          console.log('🔍 No transcript content found');
-          setTranscript('');
-        }
-      } else {
-        console.log('🔍 No transcript data returned');
-        setTranscript('');
-      }
-
-      // Also fetch raw chunks from meeting_transcription_chunks
-      const { data: chunksData, error: chunksError } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('chunk_number, transcription_text, created_at')
-        .eq('meeting_id', meeting.id)
-        .order('chunk_number', { ascending: true });
-
-      if (chunksError) {
-        console.error('Error fetching raw chunks:', chunksError);
-      } else if (chunksData && chunksData.length > 0) {
-        console.log('🔍 Raw chunks found but not using them');
-      } else {
-        console.log('🔍 No raw chunks found');
-      }
-
-    } catch (error) {
-      console.error('🚨 CRITICAL: Error fetching transcript:', error);
-      setTranscript('');
-    } finally {
-      setIsLoadingTranscript(false);
-    }
-  };
-
   // Search functionality for transcript
   const performSearch = React.useCallback(() => {
     if (!searchTerm || !transcript) {
@@ -986,13 +931,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       clearVersionHistory();
     }
   }, [meeting?.id]);
-
-  // Fetch transcript when modal opens
-  React.useEffect(() => {
-    if (isOpen && meeting) {
-      fetchTranscript();
-    }
-  }, [isOpen, meeting?.id]);
 
   // Get current content based on active tab and sub-tab
   const getCurrentContent = () => {
