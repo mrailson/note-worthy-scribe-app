@@ -886,8 +886,15 @@ export const MeetingRecorder = ({
       const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
       
       // Calculate chunk timing relative to recording start
-      const recordingStart = recordingStartTimeRef.current || startTime;
-      const chunkStartSeconds = (startTime.getTime() - recordingStart.getTime()) / 1000;
+      const recordingStart = recordingStartTimeRef.current;
+      
+      if (!recordingStart) {
+        console.error('⚠️ Recording start time not set! Using chunk start as fallback.');
+      }
+      
+      const chunkStartSeconds = recordingStart 
+        ? (startTime.getTime() - recordingStart.getTime()) / 1000 
+        : 0;
       const chunkProcessTime = new Date();
       
       const newChunkStatus: ChunkSaveStatus = {
@@ -967,8 +974,23 @@ export const MeetingRecorder = ({
         });
 
         // Update chunk status with transcription data and end time
-        const recordingStart = recordingStartTimeRef.current || startTime;
-        const chunkEndSeconds = (endTime.getTime() - recordingStart.getTime()) / 1000;
+        const recordingStart = recordingStartTimeRef.current;
+        
+        if (!recordingStart) {
+          console.error('⚠️ Recording start time not set when updating chunk end time!');
+        }
+        
+        const chunkEndSeconds = recordingStart 
+          ? (endTime.getTime() - recordingStart.getTime()) / 1000 
+          : 0;
+          
+        console.log(`⏱️ Chunk ${chunkId} timing:`, {
+          chunkStartSeconds: chunkStartSeconds,
+          chunkEndSeconds: chunkEndSeconds,
+          duration: chunkEndSeconds - chunkStartSeconds,
+          recordingStartSet: !!recordingStart
+        });
+        
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
