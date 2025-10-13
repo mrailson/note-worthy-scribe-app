@@ -586,7 +586,7 @@ export type Database = {
           details?: Json | null
           id?: string
           performed_at?: string | null
-          performed_by: string
+          performed_by?: string
         }
         Update: {
           action?: string
