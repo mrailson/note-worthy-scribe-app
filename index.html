@@ -49,6 +49,8 @@
 
   <body>
     <div id="root"></div>
+    <!-- Early DOM safety module must load before the app to patch prototypes in time -->
+    <script type="module" src="/src/polyfills/dom-safety-init.ts"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
