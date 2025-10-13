@@ -109,6 +109,7 @@ const ComplaintDetails = () => {
   
   // All state hooks must be called before any conditional returns
   const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [previousComplaintsCount, setPreviousComplaintsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("workflow");
   const [involvedParties, setInvolvedParties] = useState<Array<{staffName: string; staffEmail: string; staffRole: string}>>([]);
@@ -183,6 +184,20 @@ const ComplaintDetails = () => {
         .maybeSingle();
       
       setComplaint({ ...data, creator: creatorProfile });
+      
+      // Count previous complaints from the same patient in last 12 months
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      
+      const { count: prevComplaintsCount } = await supabase
+        .from('complaints')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_name', data.patient_name)
+        .eq('practice_id', data.practice_id)
+        .neq('id', complaintId)
+        .gte('created_at', twelveMonthsAgo.toISOString());
+      
+      setPreviousComplaintsCount(prevComplaintsCount || 0);
 
       // Fetch existing outcome if available
       const { data: outcomeData } = await supabase
@@ -1744,11 +1759,25 @@ I am committed to ensuring that all patients receive the care and service they d
                   )}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                     <div>
+                      <Label className="font-medium">Previous Complaints (12 months)</Label>
+                      <p className={`text-sm ${
+                        previousComplaintsCount > 3 
+                          ? 'text-red-600 font-bold' 
+                          : previousComplaintsCount > 2 
+                            ? 'text-orange-600 font-bold' 
+                            : 'text-muted-foreground'
+                      }`}>
+                        {previousComplaintsCount} {previousComplaintsCount === 1 ? 'complaint' : 'complaints'}
+                      </p>
+                    </div>
+                    <div>
                       <Label className="font-medium">Complaint Made On Behalf</Label>
                       <p className="text-sm text-muted-foreground">
                         {complaint.complaint_on_behalf ? 'Yes' : 'No'}
                       </p>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="font-medium">Consent Given</Label>
                       <p className="text-sm text-muted-foreground">
