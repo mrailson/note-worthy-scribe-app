@@ -119,7 +119,7 @@ export function normaliseTranscript(input: string): {
     return { plain, html: input, used: 'text' };
   }
   
-  // Fallback: treat as plain text and add light paragraphing
+  // Fallback: treat as plain text and add intelligent paragraphing
   const sentences = input
     .replace(/\s+/g, " ")
     .trim()
@@ -127,13 +127,26 @@ export function normaliseTranscript(input: string): {
   
   const paras: string[] = [];
   let acc: string[] = [];
+  let charCount = 0;
   
   for (const s of sentences) {
+    const sentenceLength = s.length;
     acc.push(s);
-    // Group ~3 sentences or 400 chars per paragraph
-    if (acc.join(" ").length > 400 || acc.length >= 3) {
+    charCount += sentenceLength;
+    
+    // Create paragraph breaks based on:
+    // - After 4-6 sentences (natural conversation flow)
+    // - Or when we've accumulated 350-450 characters (readable chunks)
+    // - But always wait for at least 3 sentences to avoid tiny paragraphs
+    const shouldBreak = 
+      (acc.length >= 4 && charCount > 300) ||
+      (acc.length >= 6) ||
+      (charCount > 450 && acc.length >= 3);
+    
+    if (shouldBreak) {
       paras.push(acc.join(" "));
       acc = [];
+      charCount = 0;
     }
   }
   
