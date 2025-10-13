@@ -22,6 +22,8 @@ interface ChunkSaveStatusProps {
   chunks: ChunkSaveStatus[];
   isRecording: boolean;
   mainTranscript: string;
+  chunksRecorded: number;
+  chunksMergedToTranscript: number;
 }
 
 const getStatusIcon = (status: string) => {
@@ -53,7 +55,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript }) => {
+export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isRecording, mainTranscript, chunksRecorded, chunksMergedToTranscript }) => {
   const [isOpen, setIsOpen] = useState(false); // Collapsed by default
   
   const savedChunks = chunks.filter(c => c.saveStatus === 'saved').length;
@@ -130,6 +132,12 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
             </Badge>
             <Badge variant="outline" className="bg-accent/10 text-accent-foreground text-xs">
               📝 Words: {totalWords}
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className={`${chunksMergedToTranscript === chunksRecorded ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-xs`}
+            >
+              🔗 Merged: {chunksMergedToTranscript}/{chunksRecorded}
             </Badge>
           </div>
           

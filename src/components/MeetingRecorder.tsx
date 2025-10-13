@@ -4411,20 +4411,6 @@ export const MeetingRecorder = ({
                     </div>
                   </div>
                   
-                  {/* Chunk Status */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
-                    <div className="text-2xl font-bold mb-1">
-                      <span className={chunksMergedToTranscript === chunksRecorded ? "text-green-500" : "text-amber-500"}>
-                        {chunksMergedToTranscript}
-                      </span>
-                      <span className="text-muted-foreground text-lg"> / </span>
-                      <span className="text-primary">{chunksRecorded}</span>
-                    </div>
-                    <div className="text-xs font-medium text-muted-foreground">
-                      Chunks Saved / Recorded
-                    </div>
-                  </div>
-                  
                   {/* Connection Status */}
                   <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50 hidden">
                     <div className="flex items-center justify-center mb-1">
@@ -4858,6 +4844,8 @@ export const MeetingRecorder = ({
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
             mainTranscript={transcript}
+            chunksRecorded={chunksRecorded}
+            chunksMergedToTranscript={chunksMergedToTranscript}
           />
         </TabsContent>
 
