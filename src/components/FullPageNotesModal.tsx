@@ -188,50 +188,73 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      console.log('🔍 Starting fetchTranscriptData for meeting:', currentMeetingId, 'title:', meeting.title);
      
      setIsLoadingTranscript(true);
-     try {
-       // Fetch processed transcript with explicit user validation
-       const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
-         p_meeting_id: currentMeetingId
-       });
-       
-       // Validate we're still showing the same meeting (prevent race conditions)
-       if (meeting?.id !== currentMeetingId) {
-         console.warn('⚠️ Meeting ID changed during fetch, discarding results');
-         return;
-       }
-       
-       if (transcriptError) {
-         console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
-       } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-         console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
-         
-         // Import normaliser
-         const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
-         
-         // Combine and normalise each segment first to avoid concatenation issues
-         const allSegments = transcriptData
-           .map(segment => segment.transcript)
-           .join(' '); // This will join multiple JSON arrays if present
-         
-         console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
-         
-         // Normalise the combined transcript
-         const normalised = normaliseTranscript(allSegments);
-         console.log(`📝 Transcript normalised using ${normalised.used} approach`);
-         console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
-         
-         // Final validation before setting state
-         if (meeting?.id === currentMeetingId) {
-           // Use HTML for display
-           setTranscript(normalised.html);
-         } else {
-           console.warn('⚠️ Meeting changed during transcript processing, discarding results');
+       try {
+         // First, prefer any manually saved transcript on the meeting record
+         const { data: manualData, error: manualError } = await supabase
+           .from('meetings')
+           .select('live_transcript_text')
+           .eq('id', currentMeetingId)
+           .eq('user_id', user!.id)
+           .maybeSingle();
+ 
+         if (manualError) {
+           console.error('❌ Error checking manually saved transcript:', manualError);
+         } else if (
+           manualData?.live_transcript_text &&
+           manualData.live_transcript_text.trim().length > 0
+         ) {
+           // Use the saved manual/edited transcript as source of truth
+           console.log('✅ Using manually saved transcript from meetings.live_transcript_text');
+           if (meeting?.id === currentMeetingId) {
+             setTranscript(manualData.live_transcript_text);
+             setIsLoadingTranscript(false);
+           }
+           return; // Skip RPC fallback
          }
-       } else {
-         console.log('📝 No transcript data found for meeting:', currentMeetingId);
-         setTranscript('');
-       }
-       
+ 
+         // Fallback: Fetch processed transcript with explicit user validation
+         const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+           p_meeting_id: currentMeetingId
+         });
+         
+         // Validate we're still showing the same meeting (prevent race conditions)
+         if (meeting?.id !== currentMeetingId) {
+           console.warn('⚠️ Meeting ID changed during fetch, discarding results');
+           return;
+         }
+         
+         if (transcriptError) {
+           console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
+         } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+           console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
+           
+           // Import normaliser
+           const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+           
+           // Combine and normalise each segment first to avoid concatenation issues
+           const allSegments = transcriptData
+             .map(segment => segment.transcript)
+             .join(' '); // This will join multiple JSON arrays if present
+           
+           console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
+           
+           // Normalise the combined transcript
+           const normalised = normaliseTranscript(allSegments);
+           console.log(`📝 Transcript normalised using ${normalised.used} approach`);
+           console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
+           
+           // Final validation before setting state
+           if (meeting?.id === currentMeetingId) {
+             // Use HTML for display
+             setTranscript(normalised.html);
+           } else {
+             console.warn('⚠️ Meeting changed during transcript processing, discarding results');
+           }
+         } else {
+           console.log('📝 No transcript data found for meeting:', currentMeetingId);
+           setTranscript('');
+         }
+        
      } catch (error) {
        console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
      } finally {
