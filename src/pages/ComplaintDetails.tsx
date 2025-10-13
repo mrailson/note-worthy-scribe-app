@@ -122,6 +122,7 @@ const ComplaintDetails = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [countdown, setCountdown] = useState(10);
   const [isGeneratingAcknowledgement, setIsGeneratingAcknowledgement] = useState(false);
+  const [isRegeneratingOutcome, setIsRegeneratingOutcome] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showOutstandingOnly, setShowOutstandingOnly] = useState(false);
   
@@ -713,7 +714,7 @@ const ComplaintDetails = () => {
     }
 
     try {
-      setSubmitting(true);
+      setIsRegeneratingOutcome(true);
       console.log('Regenerating outcome letter for complaint:', complaint.id);
 
       const { data, error } = await supabase.functions.invoke('generate-complaint-outcome-letter', {
@@ -750,7 +751,7 @@ const ComplaintDetails = () => {
       console.error('Error regenerating outcome letter:', error);
       toast.error("Failed to regenerate outcome letter");
     } finally {
-      setSubmitting(false);
+      setIsRegeneratingOutcome(false);
     }
   };
 
@@ -1836,11 +1837,11 @@ I am committed to ensuring that all patients receive the care and service they d
                             variant="outline"
                             size="sm"
                             onClick={handleRegenerateOutcomeLetter}
-                            disabled={submitting}
+                            disabled={isRegeneratingOutcome}
                             className="border-green-600 text-green-700 hover:bg-green-100"
                           >
                             <RefreshCw className="h-4 w-4 mr-1" />
-                            {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+                            {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
                         </div>
                       </div>
