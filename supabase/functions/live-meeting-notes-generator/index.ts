@@ -120,12 +120,22 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-Format the notes as a clean, Portrait A4-sized document with:
-1. **Meeting Overview** (brief summary of what's being discussed)
-2. **Key Discussion Points** (main topics covered so far)
-3. **Action Items** (any actions or tasks mentioned)
-4. **Decisions Made** (any conclusions or decisions)
-5. **Next Steps** (upcoming items or future actions mentioned)
+CRITICAL FORMATTING: Use markdown headers (## for sections) to ensure proper styling with blue headings:
+
+## Meeting Overview
+(brief summary of what's being discussed)
+
+## Key Discussion Points
+(main topics covered so far)
+
+## Action Items
+(any actions or tasks mentioned)
+
+## Decisions Made
+(any conclusions or decisions)
+
+## Next Steps
+(upcoming items or future actions mentioned)
 
 Keep the notes concise but comprehensive. Focus on the most important information. This is version ${newVersionNumber} of the notes, so build upon the conversation so far.
 

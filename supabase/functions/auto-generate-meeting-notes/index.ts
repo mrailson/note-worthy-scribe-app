@@ -296,9 +296,9 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (using professional business formatting, no emojis):
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (using professional business formatting with markdown headers for proper styling):
 
-**EXECUTIVE SUMMARY**
+## EXECUTIVE SUMMARY
 Write 2-3 substantial paragraphs that capture the essence of the content. Include:
 - Main focus areas, initiatives, or programmes discussed  
 - Key decisions made and their context
@@ -307,30 +307,30 @@ Write 2-3 substantial paragraphs that capture the essence of the content. Includ
 - Specific details that make this content memorable and distinguishable
 - Financial, operational, or strategic implications discussed
 
-**ATTENDEES**
+## ATTENDEES
 - List all participants, speakers, or individuals mentioned
 
-**KEY DISCUSSION POINTS**
+## KEY DISCUSSION POINTS
 1. Detailed breakdown of main topics with context and outcomes
 
 2. Important themes, initiatives, or programmes covered
 
 3. Educational content or knowledge shared
 
-**DECISIONS MADE**
+## DECISIONS MADE
 - Specific decisions reached or recommendations made with reasoning
 - Strategic directions or policy changes discussed
 
-**ACTION ITEMS**
+## ACTION ITEMS
 - Specific tasks, assignments, and next steps with responsible parties and deadlines
 - Follow-up activities or commitments identified
 
-**MATTERS TO REVISIT**
+## MATTERS TO REVISIT
 - Items deferred or requiring future consideration with context and timelines
 - Outstanding issues or unresolved questions that need follow-up
 - Strategic considerations for future meetings or decisions
 
-**NEXT STEPS & FOLLOW-UP**
+## NEXT STEPS & FOLLOW-UP
 - Any scheduled follow-up meetings, review dates, or important future milestones
 - Planned activities or continuation of programmes
 
