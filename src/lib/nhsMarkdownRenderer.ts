@@ -85,6 +85,13 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // SOAP note sections (handle first to avoid bullet point processing)
     .replace(/^[-•]?\s*(Subjective|Objective|Assessment|Plan):\s*/gm, '<div class="bg-primary/20 border-l-4 border-primary p-3 my-4 rounded-r-lg text-white"><strong class="text-white font-bold text-lg block mb-2 bg-primary px-2 py-1 rounded">$1:</strong>')
     
+    // Meeting notes sections (Outcome, Background, Key Points, etc.)
+    .replace(/^(Outcome|Background|Key Points?|Conclusion|Decision|Action Items?|Next Steps?):\s*(.+)$/gm, (match, label, content) => {
+      const textColor = isUserMessage ? 'text-white' : 'text-primary';
+      console.log('🔍 FOUND SECTION LABEL:', label);
+      return `<div class="mb-4"><h4 class="text-base font-semibold ${textColor} mb-2">${label}:</h4><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${content}</p></div>`;
+    })
+    
     // Headers - Process headers at start of lines
     .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
       const level = hashes.length;
@@ -99,6 +106,18 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
       };
       console.log(`🔍 FOUND H${level}:`, match.trim(), '→', content.trim());
       return `<h${level} class="${classMap[level]}">${content.trim()}</h${level}>`;
+    })
+    
+    // Detect standalone section headings (without # symbols)
+    // Pattern: Lines that are title-cased or have colons, followed by content
+    .replace(/^([A-Z][A-Za-z\s&,'-]+(?::|$))$/gm, (match, heading) => {
+      // Only treat as heading if it's relatively short (not a full sentence)
+      if (heading.length < 100 && !heading.match(/^(Outcome|Background|Key Points?|Note|Caution|Warning|Important):/)) {
+        const textColor = isUserMessage ? 'text-white' : 'text-primary';
+        console.log('🔍 FOUND STANDALONE HEADING:', heading.trim());
+        return `<h3 class="text-lg font-semibold ${textColor} mb-3 mt-4">${heading.trim()}</h3>`;
+      }
+      return match;
     })
     
     // Caution/Warning sections
