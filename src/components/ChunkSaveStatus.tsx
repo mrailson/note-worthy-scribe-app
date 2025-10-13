@@ -89,6 +89,20 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
     return total + wordCount;
   }, 0);
   
+  // Calculate total time from all chunks
+  const totalTimeSeconds = chunks.reduce((total, chunk) => {
+    if (chunk.startTime !== undefined && chunk.endTime !== undefined) {
+      return total + (chunk.endTime - chunk.startTime);
+    }
+    return total;
+  }, 0);
+  
+  // Format total time as H:MM:SS
+  const hours = Math.floor(totalTimeSeconds / 3600);
+  const minutes = Math.floor((totalTimeSeconds % 3600) / 60);
+  const seconds = Math.floor(totalTimeSeconds % 60);
+  const formattedTotalTime = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  
   // Add console logging for debugging
   console.log('📊 ChunkSaveStatus render:', { 
     totalChunks: chunks.length, 
@@ -151,6 +165,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ chunks, isReco
           {/* Mobile-friendly status indicator - Always visible */}
           <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-foreground">
             📊 <strong>Total:</strong> {chunks.length} chunks • 
+            <span className="ml-1">⏱️ {formattedTotalTime}</span> • 
             <span className="ml-1">📝 {totalWords} words</span> • 
             <span className="text-success ml-1">✅ {savedChunks}</span> • 
             <span className="text-warning ml-1">⏳ {pendingChunks}</span>
