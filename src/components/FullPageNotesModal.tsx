@@ -49,6 +49,7 @@ import {
   ChevronUp,
   ChevronDown as ChevronDownIcon,
   Undo2,
+  Save,
   FolderOpen,
   FilePlus2,
   AlignJustify
@@ -3226,9 +3227,33 @@ ${transcript}`;
                              <p>Copy transcript to clipboard</p>
                            </TooltipContent>
                          </Tooltip>
-                       </TooltipProvider>
-
-                       <TooltipProvider>
+                        </TooltipProvider>
+ 
+                        {/* Save transcript button */}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={async () => {
+                                  if (!transcript || transcript.trim().length === 0) return;
+                                  await saveTranscriptToDatabase(transcript);
+                                  toast.success('Transcript saved');
+                                }}
+                                variant="outline"
+                                size="icon"
+                                disabled={!transcript || transcript.trim().length === 0}
+                                title="Save transcript to this meeting"
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Save transcript</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+ 
+                        <TooltipProvider>
                          <Tooltip>
                            <TooltipTrigger asChild>
                              <Button
