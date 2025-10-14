@@ -22,6 +22,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true; // Reset on mount
     return () => {
       isMountedRef.current = false;
     };
@@ -104,11 +105,6 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     if (!selectedFile) {
       console.error('❌ No file selected');
       showToast.error("No file selected", { section: 'ai4gp' });
-      return;
-    }
-
-    if (!isMountedRef.current) {
-      console.warn('⚠️ Component unmounted, aborting');
       return;
     }
 
