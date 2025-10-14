@@ -4,11 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2, MoreVertical, Copy, Mail } from 'lucide-react';
 import { useMultiTypeNotes, type MultiTypeNote } from '@/hooks/useMultiTypeNotes';
 import { NoteEnhancementDialog } from './meeting/NoteEnhancementDialog';
+import { EmailMeetingMinutesModal } from './EmailMeetingMinutesModal';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
 // Import the generateAdvancedWordDocument function from FullPageNotesModal
 // We'll create a simpler version for now
@@ -99,6 +102,8 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
   const [activeTab, setActiveTab] = useState<string>('brief');
   const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
   const [currentEnhancingNote, setCurrentEnhancingNote] = useState<MultiTypeNote | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [currentNoteForEmail, setCurrentNoteForEmail] = useState<MultiTypeNote | null>(null);
 
   const handleDownload = async (note: MultiTypeNote) => {
     try {
@@ -139,6 +144,20 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
       console.error('Error updating note:', error);
       toast.error('Failed to update note');
     }
+  };
+
+  const handleCopy = async (note: MultiTypeNote) => {
+    const success = await copyPlainTextToClipboard(note.content);
+    if (success) {
+      toast.success('Notes copied to clipboard!');
+    } else {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const handleEmailClick = (note: MultiTypeNote) => {
+    setCurrentNoteForEmail(note);
+    setEmailModalOpen(true);
   };
 
   const renderNoteContent = (noteType: keyof typeof noteTypeConfig) => {
@@ -208,14 +227,27 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
                 Enhance
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload(note)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload(note)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Word
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopy(note)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleEmailClick(note)}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
@@ -255,6 +287,14 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
         onOpenChange={setEnhancementDialogOpen}
         originalContent={currentEnhancingNote?.content || ''}
         onEnhanced={handleEnhanced}
+      />
+      
+      <EmailMeetingMinutesModal
+        isOpen={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        meetingId={meetingId}
+        meetingTitle={currentNoteForEmail ? `${meetingTitle} - ${noteTypeConfig[currentNoteForEmail.note_type].label}` : meetingTitle}
+        meetingNotes={currentNoteForEmail?.content || ''}
       />
       
       <Card>
