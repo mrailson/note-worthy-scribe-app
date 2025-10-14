@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { FileAudio, Upload, Trash2, Loader2, Clipboard, Download, Mail } from "lucide-react";
+import { FileAudio, Upload, Trash2, Loader2, Clipboard, Download, Mail, Maximize2, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { Document, Paragraph, TextRun, Packer } from "docx";
@@ -22,6 +23,8 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   const [transcriptionResult, setTranscriptionResult] = useState<string>("");
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [fontSize, setFontSize] = useState(16); // Base font size in pixels
   const isMountedRef = useRef(true);
 
   // Cleanup on unmount
@@ -348,6 +351,34 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     }
   };
 
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, 32)); // Max 32px
+  };
+
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 12)); // Min 12px
+  };
+
+  const renderTranscriptionContent = () => {
+    // Split transcription into sentences and group into natural paragraphs
+    const sentences = transcriptionResult.match(/[^.!?]+[.!?]+/g) || [transcriptionResult];
+    const paragraphGroups = [];
+    
+    // Group sentences into paragraphs (approximately 3-5 sentences per paragraph)
+    for (let i = 0; i < sentences.length; i += 4) {
+      const paragraphText = sentences.slice(i, i + 4).join(' ').trim();
+      if (paragraphText) {
+        paragraphGroups.push(paragraphText);
+      }
+    }
+    
+    return paragraphGroups.map((paragraph, idx) => (
+      <p key={idx} className="mb-6 last:mb-0" style={{ fontSize: `${fontSize}px` }}>
+        {paragraph}
+      </p>
+    ));
+  };
+
   const handleDownloadWord = async () => {
     try {
       const wordCount = transcriptionResult.split(' ').length;
@@ -552,14 +583,46 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         {/* Transcription Result Preview */}
         {transcriptionResult && (
           <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div className="text-base font-medium flex items-center gap-2">
                 Transcription Result
                 <span className="text-sm text-muted-foreground font-normal">
                   ({transcriptionResult.split(' ').length} words)
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-1 border rounded-md">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={decreaseFontSize}
+                    title="Decrease font size"
+                    className="h-8 px-2"
+                  >
+                    <ZoomOut className="h-3 w-3" />
+                  </Button>
+                  <div className="flex items-center px-2 text-xs text-muted-foreground border-x">
+                    {fontSize}px
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={increaseFontSize}
+                    title="Increase font size"
+                    className="h-8 px-2"
+                  >
+                    <ZoomIn className="h-3 w-3" />
+                  </Button>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsFullScreen(true)}
+                  title="Expand to full screen"
+                >
+                  <Maximize2 className="h-3 w-3 mr-1" />
+                  Expand
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -569,7 +632,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                   }}
                 >
                   <Clipboard className="h-3 w-3 mr-1" />
-                  Copy Transcript
+                  Copy
                 </Button>
                 <Button
                   size="sm"
@@ -577,7 +640,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                   onClick={handleDownloadWord}
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  Download Word
+                  Word
                 </Button>
                 <Button
                   size="sm"
@@ -594,32 +657,94 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                 </Button>
               </div>
             </div>
-            <div className="text-base bg-muted p-6 rounded-lg overflow-y-auto leading-relaxed" style={{ maxHeight: '60vh', lineHeight: '1.8' }}>
-              {(() => {
-                // Split transcription into sentences and group into natural paragraphs
-                const sentences = transcriptionResult.match(/[^.!?]+[.!?]+/g) || [transcriptionResult];
-                const paragraphGroups = [];
-                
-                // Group sentences into paragraphs (approximately 3-5 sentences per paragraph)
-                for (let i = 0; i < sentences.length; i += 4) {
-                  const paragraphText = sentences.slice(i, i + 4).join(' ').trim();
-                  if (paragraphText) {
-                    paragraphGroups.push(paragraphText);
-                  }
-                }
-                
-                return paragraphGroups.map((paragraph, idx) => (
-                  <p key={idx} className="mb-6 last:mb-0">
-                    {paragraph}
-                  </p>
-                ));
-              })()}
+            <div className="bg-muted p-6 rounded-lg overflow-y-auto leading-relaxed" style={{ maxHeight: '60vh', lineHeight: '1.8' }}>
+              {renderTranscriptionContent()}
             </div>
             <div className="text-sm text-muted-foreground mt-3">
               {transcriptionResult.length} characters
             </div>
           </div>
         )}
+
+        {/* Full Screen Dialog */}
+        <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="flex items-center gap-2">
+                  <FileAudio className="h-5 w-5" />
+                  Transcription Result
+                  <span className="text-sm text-muted-foreground font-normal">
+                    ({transcriptionResult.split(' ').length} words)
+                  </span>
+                </DialogTitle>
+                <div className="flex gap-2 items-center">
+                  <div className="flex gap-1 border rounded-md">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={decreaseFontSize}
+                      title="Decrease font size"
+                      className="h-8 px-2"
+                    >
+                      <ZoomOut className="h-3 w-3" />
+                    </Button>
+                    <div className="flex items-center px-2 text-xs text-muted-foreground border-x">
+                      {fontSize}px
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={increaseFontSize}
+                      title="Increase font size"
+                      className="h-8 px-2"
+                    >
+                      <ZoomIn className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(transcriptionResult);
+                      showToast.success("Transcript copied to clipboard!", { section: 'ai4gp' });
+                    }}
+                  >
+                    <Clipboard className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDownloadWord}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Word
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail}
+                  >
+                    {isSendingEmail ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Mail className="h-3 w-3 mr-1" />
+                    )}
+                    Email
+                  </Button>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto bg-muted p-6 rounded-lg leading-relaxed mt-4" style={{ lineHeight: '1.8' }}>
+              {renderTranscriptionContent()}
+            </div>
+            <div className="text-sm text-muted-foreground mt-3 flex-shrink-0">
+              {transcriptionResult.length} characters • File: {selectedFile?.name || 'Unknown'}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Sample Files Note */}
         <div className="border-t pt-4">
