@@ -7,7 +7,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings, ArrowLeft, Home, ChevronDown, ChevronUp, LayoutList, Layout } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { downloadManualTranslationDOCX } from '@/utils/manualTranslationDocxExport';
 import { useDeviceInfo } from '@/hooks/use-mobile';
@@ -33,7 +32,7 @@ export const MobileTranslationInterface = () => {
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-  const [viewMode, setViewMode] = useState<'timeline' | 'single'>('timeline');
+  const [viewMode, setViewMode] = useState<'timeline' | 'single'>('single');
   
   // Use the manual translation hook
   const {
@@ -66,15 +65,14 @@ export const MobileTranslationInterface = () => {
   const handleLanguageSelect = async (languageCode: string) => {
     setSelectedLanguage(languageCode);
     
-    // Start session directly without consent
+    // Start session directly without consent and set to single view
     const lang = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
     if (lang) {
       try {
+        setViewMode('single'); // Set to single translation view
         await startSession(lang.code, lang.name, false); // No consent required
-        await startListening();
-        toast.success(`Translation session started for ${lang.name}`);
+        await startListening(); // Automatically start listening
       } catch (error) {
-        toast.error('Failed to start translation session');
         console.error('Error starting session:', error);
       }
     }
@@ -83,16 +81,13 @@ export const MobileTranslationInterface = () => {
   const handleEndSession = async () => {
     try {
       await endSession();
-      toast.success('Translation session ended');
     } catch (error) {
-      toast.error('Error ending session');
       console.error('Error ending session:', error);
     }
   };
 
   const handleDownloadWord = async () => {
     if (!currentSession || translations.length === 0) {
-      toast.error('No translation data available');
       return;
     }
 
@@ -134,21 +129,17 @@ export const MobileTranslationInterface = () => {
       };
 
       await downloadManualTranslationDOCX(session, translationEntries);
-      toast.success('Translation document downloaded successfully');
     } catch (error) {
-      toast.error('Failed to download document');
       console.error('Error downloading document:', error);
     }
   };
 
   const handleEmailToMe = async () => {
     if (!currentSession || translations.length === 0) {
-      toast.error('No translation data available');
       return;
     }
 
     if (!user?.email) {
-      toast.error('User email not found');
       return;
     }
 
@@ -228,16 +219,13 @@ export const MobileTranslationInterface = () => {
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
-
-      toast.success(`Translation report sent to ${user.email}`);
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Failed to send translation report');
     }
   };
 
   const handleEmailToPatient = () => {
-    toast.info('Email to patient feature coming soon');
+    // Email to patient feature coming soon
   };
 
   const toggleListening = () => {
@@ -252,10 +240,8 @@ export const MobileTranslationInterface = () => {
     setIsMuted(!isMuted);
     if (!isMuted) {
       stopListening();
-      toast.info('Microphone muted');
     } else {
       startListening();
-      toast.info('Microphone unmuted');
     }
   };
 
@@ -274,8 +260,6 @@ export const MobileTranslationInterface = () => {
       let newTranslatedText = translation.translatedText;
       if (sourceLanguage !== translation.originalLanguageDetected || 
           targetLanguage !== translation.targetLanguage) {
-        
-        toast.info('Retranslating with corrected speaker...');
         
         const { data, error } = await supabase.functions.invoke('manual-translation-service', {
           body: {
@@ -308,11 +292,8 @@ export const MobileTranslationInterface = () => {
         })
         .eq('session_id', currentSession.id)
         .eq('exchange_number', translation.exchangeNumber);
-
-      toast.success(`Speaker changed to ${newSpeaker === 'gp' ? 'GP' : 'Patient'}`);
     } catch (error) {
       console.error('Error changing speaker:', error);
-      toast.error('Failed to change speaker');
     }
   };
 
