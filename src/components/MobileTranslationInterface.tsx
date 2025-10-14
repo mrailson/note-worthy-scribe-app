@@ -65,18 +65,14 @@ export const MobileTranslationInterface = () => {
   const handleLanguageSelect = async (languageCode: string) => {
     setSelectedLanguage(languageCode);
     
-    // Start session directly without consent and set to single view
+    // Start session and immediately begin listening within user gesture
     const lang = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
     if (lang) {
       try {
-        setViewMode('single'); // Set to single translation view
-        setIsHeaderCollapsed(true); // Auto-collapse header
-        await startSession(lang.code, lang.name, false); // No consent required
-        
-        // Give session time to initialize before starting listening
-        setTimeout(async () => {
-          await startListening();
-        }, 1500);
+        setViewMode('single');
+        setIsHeaderCollapsed(true);
+        await startSession(lang.code, lang.name, true);
+        await startListening();
       } catch (error) {
         console.error('Error starting session:', error);
       }
