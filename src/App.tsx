@@ -56,6 +56,7 @@ import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
 import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
+import CSOReport from "./pages/CSOReport";
 
 
 const App = () => {
@@ -132,6 +133,7 @@ const App = () => {
             <Route path="/gp-genie" element={<GPGenie />} />
             <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
             <Route path="/new-recorder" element={<NewRecorder />} />
+            <Route path="/cso" element={<CSOReport />} />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
