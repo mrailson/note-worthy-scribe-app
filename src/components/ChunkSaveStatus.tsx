@@ -130,7 +130,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             <div className="flex items-center justify-between">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                📱 Chunk Save Status
+                📱 Audio Chunking Live Overview
               </CardTitle>
               {isOpen ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />

@@ -4995,7 +4995,7 @@ export const MeetingRecorder = ({
             </CardContent>
           </Card>
 
-          {/* Chunk Save Status - Show real-time chunk confirmations */}
+          {/* Audio Chunking Live Overview - Show real-time chunk confirmations */}
           <ChunkSaveStatus 
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
