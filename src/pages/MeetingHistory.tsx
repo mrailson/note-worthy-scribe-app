@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
-import { MeetingCrossoverMonitor } from "@/components/MeetingCrossoverMonitor";
+
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { useRecording } from "@/contexts/RecordingContext";
@@ -1704,9 +1704,6 @@ const MeetingHistory = () => {
       <Header />
       
        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
-         {/* Meeting Data Integrity Monitor */}
-         <MeetingCrossoverMonitor />
-         
          {/* Header Section */}
          <div className="flex items-center gap-3">
            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
