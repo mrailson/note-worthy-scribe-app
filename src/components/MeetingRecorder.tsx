@@ -4966,34 +4966,30 @@ export const MeetingRecorder = ({
             isRecording={isRecording}
           />
           
-          <Card className="border-accent/30">
-              <CardContent className="space-y-4">
-              {/* Live Transcript with Enhanced Two-Section Layout */}
-              <LiveTranscript
-                ref={liveTranscriptRef}
-                transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
-                confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
-                showTimestamps={showTimestamps}
-                onTimestampsToggle={handleTimestampsToggle}
-                attendees={""}
-                meetingSettings={{
-                  practiceId: (meetingSettings as any)?.practiceId || "",
-                  meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
-                  transcriberService: (meetingSettings as any)?.transcriberService || "whisper",
-                  transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.30, deepgram: 0.30 }
-                }}
-                onMeetingSettingsChange={(settings) => {
-                  updateMeetingSettings(prev => ({
-                    ...prev,
-                    practiceId: settings.practiceId,
-                    meetingFormat: settings.meetingFormat,
-                    transcriberService: settings.transcriberService || prev.transcriberService,
-                    transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
-                  }));
-                }}
-              />
-            </CardContent>
-          </Card>
+          {/* Live Transcript with Enhanced Two-Section Layout */}
+          <LiveTranscript
+            ref={liveTranscriptRef}
+            transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
+            confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+            showTimestamps={showTimestamps}
+            onTimestampsToggle={handleTimestampsToggle}
+            attendees={""}
+            meetingSettings={{
+              practiceId: (meetingSettings as any)?.practiceId || "",
+              meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
+              transcriberService: (meetingSettings as any)?.transcriberService || "whisper",
+              transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.30, deepgram: 0.30 }
+            }}
+            onMeetingSettingsChange={(settings) => {
+              updateMeetingSettings(prev => ({
+                ...prev,
+                practiceId: settings.practiceId,
+                meetingFormat: settings.meetingFormat,
+                transcriberService: settings.transcriberService || prev.transcriberService,
+                transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
+              }));
+            }}
+          />
 
           {/* Audio Chunking Live Overview - Show real-time chunk confirmations */}
           <ChunkSaveStatus 
