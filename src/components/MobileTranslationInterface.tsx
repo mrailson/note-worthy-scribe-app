@@ -8,12 +8,12 @@ import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, U
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ConsentModal } from '@/components/ConsentModal';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { downloadManualTranslationDOCX } from '@/utils/manualTranslationDocxExport';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TranslationEntry {
   id: string;
@@ -28,9 +28,8 @@ interface TranslationEntry {
 export const MobileTranslationInterface = () => {
   const deviceInfo = useDeviceInfo();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedLanguage, setSelectedLanguage] = useState('fr');
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
@@ -64,40 +63,21 @@ export const MobileTranslationInterface = () => {
     }
   }, [translations]);
 
-  const handleLanguageSelect = (languageCode: string) => {
+  const handleLanguageSelect = async (languageCode: string) => {
     setSelectedLanguage(languageCode);
     
-    // Auto-start session flow
+    // Start session directly without consent
     const lang = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
     if (lang) {
-      setPendingLanguage({
-        code: lang.code,
-        name: lang.name
-      });
-      setShowConsentModal(true);
+      try {
+        await startSession(lang.code, lang.name, false); // No consent required
+        await startListening();
+        toast.success(`Translation session started for ${lang.name}`);
+      } catch (error) {
+        toast.error('Failed to start translation session');
+        console.error('Error starting session:', error);
+      }
     }
-  };
-
-  const handleConsentGiven = async () => {
-    if (!pendingLanguage) return;
-    
-    setShowConsentModal(false);
-    try {
-      await startSession(pendingLanguage.code, pendingLanguage.name, true);
-      // Start listening immediately on user gesture; startSession also has a fallback auto-start
-      await startListening();
-      toast.success(`Translation session started with consent for ${pendingLanguage.name}`);
-    } catch (error) {
-      toast.error('Failed to start translation session');
-      console.error('Error starting session:', error);
-    }
-    setPendingLanguage(null);
-  };
-
-  const handleConsentDenied = () => {
-    setShowConsentModal(false);
-    setPendingLanguage(null);
-    toast.info('Translation session cancelled - consent not given');
   };
 
   const handleEndSession = async () => {
@@ -161,8 +141,48 @@ export const MobileTranslationInterface = () => {
     }
   };
 
-  const handleEmailToMe = () => {
-    toast.info('Email to practitioner feature coming soon');
+  const handleEmailToMe = async () => {
+    if (!currentSession || translations.length === 0) {
+      toast.error('No translation data available');
+      return;
+    }
+
+    if (!user?.email) {
+      toast.error('User email not found');
+      return;
+    }
+
+    try {
+      const sessionDuration = currentSession.sessionStart ? 
+        Math.floor((new Date().getTime() - currentSession.sessionStart.getTime()) / 1000) : 0;
+      
+      const minutes = Math.floor(sessionDuration / 60);
+      const seconds = sessionDuration % 60;
+      const durationString = `${minutes} minutes ${seconds} seconds`;
+
+      const { error } = await supabase.functions.invoke('send-translation-report', {
+        body: {
+          recipientEmail: user.email,
+          sessionTitle: `Translation Session - ${currentSession.targetLanguageName}`,
+          targetLanguage: currentSession.targetLanguageName,
+          translations: translations.map(t => ({
+            speaker: t.speaker,
+            originalText: t.originalText,
+            translatedText: t.translatedText,
+            timestamp: t.timestamp.toISOString()
+          })),
+          sessionStart: currentSession.sessionStart?.toISOString() || new Date().toISOString(),
+          sessionDuration: durationString
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Translation report sent to ${user.email}`);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send translation report');
+    }
   };
 
   const handleEmailToPatient = () => {
@@ -357,14 +377,6 @@ export const MobileTranslationInterface = () => {
                     )}>
                       Active Session: {currentSession.targetLanguageName}
                     </div>
-                    {currentSession.consentGiven && (
-                      <div className={cn(
-                        "text-green-600 bg-green-50 rounded-lg p-2",
-                        deviceInfo.isIPhone ? "text-xs" : "text-sm"
-                      )}>
-                        ✓ Patient consent obtained at {currentSession.consentTimestamp?.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    )}
                   </div>
                 )}
                 
@@ -632,14 +644,6 @@ export const MobileTranslationInterface = () => {
         )}
       </Card>
 
-      {/* Consent Modal */}
-      <ConsentModal
-        open={showConsentModal}
-        onConsentGiven={handleConsentGiven}
-        onConsentDenied={handleConsentDenied}
-        languageCode={pendingLanguage?.code || ''}
-        languageName={pendingLanguage?.name || ''}
-      />
 
       {/* Full Screen Translation History Modal */}
       <Dialog open={showFullScreen} onOpenChange={setShowFullScreen}>
