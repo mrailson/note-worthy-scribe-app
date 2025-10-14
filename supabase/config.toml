@@ -168,3 +168,6 @@ verify_jwt = true
 [functions.send-welcome-email]
 verify_jwt = false
 
+[functions.standalone-deepgram]
+verify_jwt = false
+
