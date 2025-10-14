@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { mergeLive } from "@/utils/TranscriptMerge";
+import { detectDevice } from "@/utils/DeviceDetection";
 import { 
   Copy, 
   FileText, 
@@ -57,6 +58,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("comprehensive");
+  const isIOS = detectDevice().isIOS;
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
@@ -191,7 +193,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Notes copied to clipboard');
+      if (!isIOS) {
+        toast.success('Notes copied to clipboard');
+      }
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error('Failed to copy notes');
@@ -315,7 +319,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Notes downloaded');
+    if (!isIOS) {
+      toast.success('Notes downloaded');
+    }
   };
 
   // Format content for sharing (converts markdown to readable plain text)
@@ -451,7 +457,9 @@ ${formattedContent}
         throw new Error(data?.error || 'Failed to send email');
       }
 
-      toast.success(`${tabName} sent to ${user.email}`);
+      if (!isIOS) {
+        toast.success(`${tabName} sent to ${user.email}`);
+      }
     } catch (error: any) {
       console.error('Error sending email:', error);
       toast.error(error.message || 'Failed to send email. Please try again.');
@@ -507,7 +515,9 @@ ${formattedContent}
 
       // Reload the notes to get the updated content
       await loadExistingNoteStyles();
-      toast.success(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes generated successfully!`);
+      if (!isIOS) {
+        toast.success(`${noteType.charAt(0).toUpperCase() + noteType.slice(1)} notes generated successfully!`);
+      }
 
     } catch (error) {
       console.error(`Error regenerating ${noteType} notes:`, error);
