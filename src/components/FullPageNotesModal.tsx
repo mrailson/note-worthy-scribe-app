@@ -127,6 +127,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [showContextDialog, setShowContextDialog] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailModalContent, setEmailModalContent] = useState({ title: '', notes: '' });
+  useEffect(() => { console.log('📧 Email modal open state:', emailModalOpen); }, [emailModalOpen]);
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -3016,7 +3017,8 @@ ${transcript}`;
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
                                       onClick={() => {
-                                        setEmailModalContent({ title: tabName, notes: content });
+                                        console.log('📧 Send Email clicked from dropdown', { tabName, hasContent: !!content });
+                                        setEmailModalContent({ title: tabName, notes: content || '' });
                                         setEmailModalOpen(true);
                                       }}
                                     >
