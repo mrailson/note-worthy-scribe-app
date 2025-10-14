@@ -25,7 +25,8 @@ import {
   RefreshCw,
   Share,
   RotateCcw,
-  Loader2
+  Loader2,
+  Mail
 } from "lucide-react";
 
 interface Meeting {
@@ -75,6 +76,17 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     comprehensive: false,
     executive: false,
     creative: false,
+  });
+  const [sendingEmail, setSendingEmail] = useState<{
+    executive: boolean;
+    comprehensive: boolean;
+    creative: boolean;
+    transcript: boolean;
+  }>({
+    executive: false,
+    comprehensive: false,
+    creative: false,
+    transcript: false,
   });
 
   // Load existing note styles from database
@@ -357,13 +369,92 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Send email for specific tab
+  const sendTabEmail = async (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript') => {
+    if (!user?.email) {
+      toast.error('User email not found');
+      return;
+    }
+
+    const content = getCurrentTabContent();
+    if (!content || content.trim().length === 0) {
+      toast.error('No content available to send');
+      return;
+    }
+
+    setSendingEmail(prev => ({ ...prev, [tabType]: true }));
+
+    try {
+      const tabNames = {
+        executive: 'Executive Summary',
+        comprehensive: 'Very Detailed Minutes',
+        creative: 'Creative Summary',
+        transcript: 'Meeting Transcript'
+      };
+
+      const tabName = tabNames[tabType];
+      const emailSubject = `${tabName} - ${meeting?.title || 'Meeting Notes'}`;
+
+      // Format content for email
+      const formattedContent = content
+        .replace(/## /g, '\n\n')
+        .replace(/### /g, '\n')
+        .replace(/\*\*/g, '')
+        .replace(/^- /gm, '  • ')
+        .replace(/^\d+\. /gm, (match) => `  ${match}`)
+        .trim();
+
+      const emailBody = `Dear ${user.email},\n\nPlease find below the ${tabName.toLowerCase()}${meeting?.title ? ` for "${meeting.title}"` : ''}.\n\nKind regards,\nNotewell AI`;
+
+      const emailData = {
+        to_email: user.email,
+        subject: emailSubject,
+        message: `${emailBody}
+
+════════════════════════════════════════════════════════════════
+
+${tabName.toUpperCase()}
+
+${formattedContent}
+
+════════════════════════════════════════════════════════════════`,
+        template_type: 'meeting_minutes',
+        from_name: 'Notewell AI - Meeting Notes',
+        reply_to: 'noreply@notewell.co.uk',
+        meeting_title: meeting?.title || 'Meeting Notes',
+        meeting_id: meeting?.id || ''
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
+      });
+
+      if (error) {
+        console.error('Email sending error:', error);
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      if (!data?.success) {
+        console.error('EmailJS error:', data);
+        throw new Error(data?.error || 'Failed to send email');
+      }
+
+      toast.success(`${tabName} sent to ${user.email}`);
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error(error.message || 'Failed to send email. Please try again.');
+    } finally {
+      setSendingEmail(prev => ({ ...prev, [tabType]: false }));
+    }
   };
 
   // Regenerate notes functions
@@ -464,22 +555,38 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                   <TabsContent value="executive" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Executive Summary</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('executive')}
-                        disabled={regenerating.executive}
-                        className="h-8 px-2 text-xs"
-                      >
-                        {regenerating.executive ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1">
-                          {regenerating.executive ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('executive')}
+                          disabled={sendingEmail.executive || !notesStyle4}
+                          className="h-8 px-2 text-xs"
+                          title="Email this summary"
+                        >
+                          {sendingEmail.executive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => regenerateNotes('executive')}
+                          disabled={regenerating.executive}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {regenerating.executive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {regenerating.executive ? 'Generating...' : 'Regenerate'}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-card rounded-lg border p-4">
                       {notesStyle4 ? (
@@ -554,22 +661,38 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                   <TabsContent value="comprehensive" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Very Detailed</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('comprehensive')}
-                        disabled={regenerating.comprehensive}
-                        className="h-8 px-2 text-xs"
-                      >
-                        {regenerating.comprehensive ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1">
-                          {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('comprehensive')}
+                          disabled={sendingEmail.comprehensive || !notesStyle3}
+                          className="h-8 px-2 text-xs"
+                          title="Email this summary"
+                        >
+                          {sendingEmail.comprehensive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => regenerateNotes('comprehensive')}
+                          disabled={regenerating.comprehensive}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {regenerating.comprehensive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-card rounded-lg border p-4">
                       {notesStyle3 ? (
@@ -599,22 +722,38 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                   <TabsContent value="creative" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Creative Summary</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('creative')}
-                        disabled={regenerating.creative}
-                        className="h-8 px-2 text-xs"
-                      >
-                        {regenerating.creative ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1">
-                          {regenerating.creative ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('creative')}
+                          disabled={sendingEmail.creative || !notesStyle5}
+                          className="h-8 px-2 text-xs"
+                          title="Email this summary"
+                        >
+                          {sendingEmail.creative ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => regenerateNotes('creative')}
+                          disabled={regenerating.creative}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {regenerating.creative ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {regenerating.creative ? 'Generating...' : 'Regenerate'}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-card rounded-lg border p-4">
                       {notesStyle5 ? (
@@ -644,22 +783,38 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                   <TabsContent value="transcript" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Meeting Transcript</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={fetchTranscriptData}
-                        disabled={isLoadingTranscript}
-                        className="h-8 px-2 text-xs"
-                      >
-                        {isLoadingTranscript ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1">
-                          {isLoadingTranscript ? 'Loading...' : 'Refresh'}
-                        </span>
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('transcript')}
+                          disabled={sendingEmail.transcript || !transcript}
+                          className="h-8 px-2 text-xs"
+                          title="Email this transcript"
+                        >
+                          {sendingEmail.transcript ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={fetchTranscriptData}
+                          disabled={isLoadingTranscript}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {isLoadingTranscript ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {isLoadingTranscript ? 'Loading...' : 'Refresh'}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                     {transcript && (
                       <div className="flex gap-4 mb-3 text-xs text-muted-foreground">
