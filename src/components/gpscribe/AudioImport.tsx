@@ -99,15 +99,20 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   };
 
   const handleTranscribe = async () => {
+    console.log('🎵 Transcribe button clicked!', { selectedFile: selectedFile?.name, isTranscribing });
+    
     if (!selectedFile) {
+      console.error('❌ No file selected');
       showToast.error("No file selected", { section: 'ai4gp' });
       return;
     }
 
     if (!isMountedRef.current) {
+      console.warn('⚠️ Component unmounted, aborting');
       return;
     }
 
+    console.log('✅ Starting transcription process...');
     setIsTranscribing(true);
     setProgress(0);
     setProgressLabel("Preparing...");
