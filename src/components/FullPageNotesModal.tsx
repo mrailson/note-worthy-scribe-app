@@ -2997,7 +2997,11 @@ ${transcript}`;
                                       <MoreVertical className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48 bg-background z-50">
+                                  <DropdownMenuContent 
+                                    align="end" 
+                                    className="w-48 bg-popover border shadow-md" 
+                                    style={{ zIndex: 150 }}
+                                  >
                                     <DropdownMenuItem 
                                       onClick={() => {
                                         if (content) {
