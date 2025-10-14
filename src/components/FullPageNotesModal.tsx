@@ -3644,37 +3644,39 @@ ${transcript}`;
                             </div>
                           </div>
                           
-                          <div className="overflow-auto">
-                            {isLoadingBackupTranscript ? (
-                              <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                <span className="ml-2">Loading backup transcript...</span>
-                              </div>
-                            ) : isEditing && editingTab === "backup-transcript" ? (
-                              <Textarea
-                                value={editingContent}
-                                onChange={(e) => setEditingContent(e.target.value)}
-                                className="h-full w-full font-mono text-sm resize-none"
-                                placeholder="Backup transcript will appear here..."
-                              />
-                            ) : !backupTranscript || backupTranscript.trim().length === 0 ? (
-                              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground space-y-2">
-                                <p>No backup transcript available.</p>
-                                <p className="text-xs">Assembly AI backup transcripts are saved during recording.</p>
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                                  <p className="font-medium mb-1">About this transcript:</p>
-                                  <p>This is a real-time backup transcript captured by Assembly AI during the meeting for comparison and redundancy purposes.</p>
+                          <ScrollArea className="flex-1 max-h-[600px]">
+                            <div className="pr-4">
+                              {isLoadingBackupTranscript ? (
+                                <div className="flex items-center justify-center h-32">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                  <span className="ml-2">Loading backup transcript...</span>
                                 </div>
-                                <div 
-                                  className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                                  dangerouslySetInnerHTML={{ __html: backupTranscript }}
+                              ) : isEditing && editingTab === "backup-transcript" ? (
+                                <Textarea
+                                  value={editingContent}
+                                  onChange={(e) => setEditingContent(e.target.value)}
+                                  className="min-h-[500px] w-full font-mono text-sm resize-none"
+                                  placeholder="Backup transcript will appear here..."
                                 />
-                              </div>
-                            )}
-                          </div>
+                              ) : !backupTranscript || backupTranscript.trim().length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground space-y-2">
+                                  <p>No backup transcript available.</p>
+                                  <p className="text-xs">Assembly AI backup transcripts are saved during recording.</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-4">
+                                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-200">
+                                    <p className="font-medium mb-1">About this transcript:</p>
+                                    <p>This is a real-time backup transcript captured by Assembly AI during the meeting for comparison and redundancy purposes.</p>
+                                  </div>
+                                  <div 
+                                    className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                                    dangerouslySetInnerHTML={{ __html: backupTranscript }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </ScrollArea>
                         </div>
                       </TabsContent>
                     </Tabs>
