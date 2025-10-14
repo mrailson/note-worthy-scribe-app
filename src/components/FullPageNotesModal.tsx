@@ -3268,7 +3268,7 @@ ${transcript}`;
                           Primary Transcript
                         </TabsTrigger>
                         <TabsTrigger value="backup" className="text-xs sm:text-sm">
-                          Backup Transcript (Assembly AI)
+                          Backup Meeting Transcript
                         </TabsTrigger>
                       </TabsList>
 
@@ -3482,7 +3482,7 @@ ${transcript}`;
                           <div className="flex items-center justify-between pb-4 flex-shrink-0">
                             <div className="flex items-center gap-4">
                               <h3 className="text-lg font-semibold flex items-center gap-2">
-                                Backup Transcript (Assembly AI)
+                                Backup Meeting Transcript
                                 {backupTranscript && (
                                   <>
                                     <span className="text-sm font-normal text-muted-foreground">
