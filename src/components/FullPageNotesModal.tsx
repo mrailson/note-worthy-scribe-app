@@ -3664,16 +3664,10 @@ ${transcript}`;
                                   <p className="text-xs">Assembly AI backup transcripts are saved during recording.</p>
                                 </div>
                               ) : (
-                                <div className="space-y-4">
-                                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-200">
-                                    <p className="font-medium mb-1">About this transcript:</p>
-                                    <p>This is a real-time backup transcript captured by Assembly AI during the meeting for comparison and redundancy purposes.</p>
-                                  </div>
-                                  <div 
-                                    className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                                    dangerouslySetInnerHTML={{ __html: backupTranscript }}
-                                  />
-                                </div>
+                                <div 
+                                  className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                                  dangerouslySetInnerHTML={{ __html: backupTranscript }}
+                                />
                               )}
                             </div>
                           </ScrollArea>
