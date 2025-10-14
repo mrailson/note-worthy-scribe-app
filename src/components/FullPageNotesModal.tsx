@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
@@ -3272,9 +3273,9 @@ ${transcript}`;
                         </TabsTrigger>
                       </TabsList>
 
-                      {/* Primary Transcript Tab */}
-                      <TabsContent value="primary" className="flex-1 overflow-hidden mt-0">
-                        <Collapsible open={isTranscriptExpanded} onOpenChange={setIsTranscriptExpanded}>
+{/* Primary Transcript Tab */}
+                      <TabsContent value="primary" className="flex-1 mt-0 flex flex-col">
+                        <Collapsible open={isTranscriptExpanded} onOpenChange={setIsTranscriptExpanded} className="flex-1 flex flex-col overflow-hidden">
                           <div className="h-full flex flex-col">
                             <CollapsibleTrigger className="w-full">
                               <div className="flex items-center justify-between pb-4 flex-shrink-0 hover:bg-accent/50 transition-colors rounded-lg p-2 -m-2">
@@ -3298,7 +3299,7 @@ ${transcript}`;
                               </div>
                             </CollapsibleTrigger>
                             
-                            <CollapsibleContent>
+                            <CollapsibleContent className="flex-1 overflow-hidden flex flex-col">
                               <div className="flex items-center justify-between pb-4 flex-shrink-0">
                                 <div className="flex items-center gap-4">
                                   {transcript && (
@@ -3447,30 +3448,32 @@ ${transcript}`;
                                 </div>
                               </div>
                               
-                              <div className="flex-1 overflow-auto pt-0">
-                                {isLoadingTranscript ? (
-                                  <div className="flex items-center justify-center h-32">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                    <span className="ml-2">Loading transcript...</span>
-                                  </div>
-                                ) : isEditing && editingTab === "transcript" ? (
-                                  <Textarea
-                                    value={editingContent}
-                                    onChange={(e) => setEditingContent(e.target.value)}
-                                    className="h-full w-full font-mono text-sm resize-none"
-                                    placeholder="Meeting transcript will appear here..."
-                                  />
-                                ) : !transcript ? (
-                                  <div className="flex items-center justify-center h-32 text-muted-foreground">
-                                    No transcript available for this meeting.
-                                  </div>
-                                ) : (
-                                  <div 
-                                    className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                                    dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
-                                  />
-                                )}
-                              </div>
+                              <ScrollArea className="flex-1 h-full">
+                                <div className="pr-4">
+                                  {isLoadingTranscript ? (
+                                    <div className="flex items-center justify-center h-32">
+                                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                      <span className="ml-2">Loading transcript...</span>
+                                    </div>
+                                  ) : isEditing && editingTab === "transcript" ? (
+                                    <Textarea
+                                      value={editingContent}
+                                      onChange={(e) => setEditingContent(e.target.value)}
+                                      className="min-h-[500px] w-full font-mono text-sm resize-none"
+                                      placeholder="Meeting transcript will appear here..."
+                                    />
+                                  ) : !transcript ? (
+                                    <div className="flex items-center justify-center h-32 text-muted-foreground">
+                                      No transcript available for this meeting.
+                                    </div>
+                                  ) : (
+                                    <div 
+                                      className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                                      dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
+                                    />
+                                  )}
+                                </div>
+                              </ScrollArea>
                             </CollapsibleContent>
                           </div>
                         </Collapsible>
