@@ -411,7 +411,8 @@ export class DesktopWhisperTranscriber {
                   transcription_text: JSON.stringify(newSegments), // Store segments as JSON
                   confidence: data.confidence || 0.9,
                   is_final: true,
-                  user_id: (await supabase.auth.getUser()).data.user?.id
+                  user_id: (await supabase.auth.getUser()).data.user?.id,
+                  merge_rejection_reason: null
                 });
 
               if (dbError) {
@@ -425,7 +426,23 @@ export class DesktopWhisperTranscriber {
                 console.log(`💾 Stored ${newSegments.length} segments in chunk ${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s, totalDuration: ${this.totalProcessedDuration.toFixed(2)}s`);
               }
             } else {
-              console.log(`⏭️ Skipping chunk ${currentChunkNumber} - all segments already stored`);
+              const filteredCount = data.segments.length - newSegments.length;
+              const rejectionReason = `All segments already processed (filtered ${filteredCount} duplicate${filteredCount !== 1 ? 's' : ''})`;
+              console.log(`⏭️ Chunk ${currentChunkNumber}: ${rejectionReason}`);
+              
+              // Save the chunk with rejection reason for tracking
+              await supabase
+                .from('meeting_transcription_chunks')
+                .insert({
+                  meeting_id: this.meetingId,
+                  session_id: this.sessionId,
+                  chunk_number: currentChunkNumber,
+                  transcription_text: JSON.stringify([]), // Empty segments array
+                  confidence: data.confidence || 0.9,
+                  is_final: true,
+                  user_id: (await supabase.auth.getUser()).data.user?.id,
+                  merge_rejection_reason: rejectionReason
+                });
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);

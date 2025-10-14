@@ -3460,6 +3460,7 @@ export type Database = {
           id: string
           is_final: boolean | null
           meeting_id: string
+          merge_rejection_reason: string | null
           seq: number | null
           session_id: string
           transcriber_type: string | null
@@ -3480,6 +3481,7 @@ export type Database = {
           id?: string
           is_final?: boolean | null
           meeting_id: string
+          merge_rejection_reason?: string | null
           seq?: number | null
           session_id: string
           transcriber_type?: string | null
@@ -3500,6 +3502,7 @@ export type Database = {
           id?: string
           is_final?: boolean | null
           meeting_id?: string
+          merge_rejection_reason?: string | null
           seq?: number | null
           session_id?: string
           transcriber_type?: string | null

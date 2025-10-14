@@ -3446,7 +3446,7 @@ export const MeetingRecorder = ({
       try {
         const { data, error } = await supabase
           .from('meeting_transcription_chunks')
-          .select('transcription_text, chunk_number')
+          .select('transcription_text, chunk_number, merge_rejection_reason')
           .eq('meeting_id', meetingId)
           .eq('user_id', user.id)
           .order('chunk_number');

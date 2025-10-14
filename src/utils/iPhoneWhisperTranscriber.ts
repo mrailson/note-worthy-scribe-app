@@ -307,6 +307,7 @@ export class iPhoneWhisperTranscriber {
                   confidence: transcriptData.confidence,
                   is_final: true,
                   user_id: user,
+                  merge_rejection_reason: null
                 });
               if (dbError) {
                 console.warn('⚠️ Failed to store iPhone segments:', dbError);
@@ -319,7 +320,23 @@ export class iPhoneWhisperTranscriber {
                 console.log(`💾 Stored ${newSegments.length} segments in iPhone chunk #${currentChunkNumber}, lastEndTime now: ${this.lastSegmentEndTime.toFixed(2)}s, totalDuration: ${this.totalProcessedDuration.toFixed(2)}s`);
               }
             } else {
-              console.log(`⏭️ Skipping iPhone chunk ${currentChunkNumber} - all segments already stored`);
+              const filteredCount = data.segments.length - newSegments.length;
+              const rejectionReason = `All segments already processed (filtered ${filteredCount} duplicate${filteredCount !== 1 ? 's' : ''})`;
+              console.log(`⏭️ iPhone chunk ${currentChunkNumber}: ${rejectionReason}`);
+              
+              // Save the chunk with rejection reason for tracking
+              await supabase
+                .from('meeting_transcription_chunks')
+                .insert({
+                  meeting_id: this.meetingId,
+                  session_id: this.sessionId,
+                  chunk_number: currentChunkNumber,
+                  transcription_text: JSON.stringify([]), // Empty segments array
+                  confidence: transcriptData.confidence,
+                  is_final: true,
+                  user_id: user,
+                  merge_rejection_reason: rejectionReason
+                });
             }
           } else {
             console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user or no segments');
