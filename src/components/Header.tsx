@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { ConsultationSummaryPreview } from "@/components/ConsultationSummaryPreview";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import notewellLogo from "@/assets/notewell-logo.png";
 interface HeaderProps {
   onNewMeeting?: () => void;
@@ -30,6 +31,10 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [coreServicesOpen, setCoreServicesOpen] = useState(false);
+  const [managementOpen, setManagementOpen] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -343,8 +348,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   <DrawerTitle>Menu</DrawerTitle>
                   <DrawerDescription>Quick access to services</DrawerDescription>
                 </DrawerHeader>
-                <div className="px-4 pb-4 space-y-1">
-                  <nav className="grid gap-1">
+                <div className="px-4 pb-4 space-y-2">
+                  <nav className="grid gap-2">
                     <DrawerClose asChild>
                        <Button 
                          variant="ghost" 
@@ -372,162 +377,233 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       {/* Main Services */}
                       {user && (
                         <>
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                               <Sparkles className="h-4 w-4 mr-2" />
-                               AI4GP Service
-                             </Button>
-                           </DrawerClose>
-                           {hasModuleAccess('meeting_recorder') && (
-                             <DrawerClose asChild>
-                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
-                                 <FileText className="h-4 w-4 mr-2" />
-                                 Meeting Notes
-                               </Button>
-                             </DrawerClose>
-                           )}
-                           {hasModuleAccess('gp_scribe') && (
-                             <DrawerClose asChild>
-                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
-                                 <Stethoscope className="h-4 w-4 mr-2" />
-                                 GP Scribe
-                               </Button>
-                             </DrawerClose>
-                           )}
-                         {hasModuleAccess('complaints_system') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
-                               <MessageSquareWarning className="h-4 w-4 mr-2" />
-                               Complaints System
-                             </Button>
-                           </DrawerClose>
-                         )}
-                         {hasModuleAccess('ai_4_pm') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai-4-pm')}>
-                               <Sparkles className="h-4 w-4 mr-2" />
-                               AI 4 PM Assistant
-                             </Button>
-                           </DrawerClose>
+                          {/* Core Services Collapsible */}
+                          <Collapsible open={coreServicesOpen} onOpenChange={setCoreServicesOpen}>
+                            <CollapsibleTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                className="justify-between w-full font-semibold"
+                              >
+                                <span className="flex items-center">
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  Core Services
+                                </span>
+                                <ChevronRight className={`h-4 w-4 transition-transform ${coreServicesOpen ? 'rotate-90' : ''}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp')}>
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  AI4GP Service
+                                </Button>
+                              </DrawerClose>
+                              {hasModuleAccess('meeting_recorder') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/')}> 
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Meeting Notes
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('gp_scribe') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/gp-scribe')}>
+                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                    GP Scribe
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          {/* Management Tools Collapsible */}
+                          <Collapsible open={managementOpen} onOpenChange={setManagementOpen}>
+                            <CollapsibleTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                className="justify-between w-full font-semibold"
+                              >
+                                <span className="flex items-center">
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Management Tools
+                                </span>
+                                <ChevronRight className={`h-4 w-4 transition-transform ${managementOpen ? 'rotate-90' : ''}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                              {hasModuleAccess('complaints_system') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/complaints')}>
+                                    <MessageSquareWarning className="h-4 w-4 mr-2" />
+                                    Complaints System
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('ai_4_pm') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai-4-pm')}>
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    AI 4 PM Assistant
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('enhanced_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/enhanced-access')}>
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Enhanced Access
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('cqc_compliance_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/cqc-compliance')}>
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    CQC Compliance
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('practice_manager_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Practice Management
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          {/* Resources Collapsible */}
+                          <Collapsible open={resourcesOpen} onOpenChange={setResourcesOpen}>
+                            <CollapsibleTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                className="justify-between w-full font-semibold"
+                              >
+                                <span className="flex items-center">
+                                  <FolderOpen className="h-4 w-4 mr-2" />
+                                  Resources
+                                </span>
+                                <ChevronRight className={`h-4 w-4 transition-transform ${resourcesOpen ? 'rotate-90' : ''}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                              {hasModuleAccess('shared_drive_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/shared-drive')}>
+                                    <FolderOpen className="h-4 w-4 mr-2" />
+                                    Shared Drive
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('translation_service') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => {
+                                    const isMobileScreen = window.innerWidth < 768;
+                                    const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                                    
+                                    if (isMobileScreen || isMobileUserAgent) {
+                                      navigate('/mobile-translate');
+                                    } else {
+                                      navigate('/translation-tool');
+                                    }
+                                  }}>
+                                    <Languages className="h-4 w-4 mr-2" />
+                                    Translation Service
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('fridge_monitoring_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin/fridges')}>
+                                    <Thermometer className="h-4 w-4 mr-2" />
+                                    Fridge Monitoring
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                              {hasModuleAccess('mic_test_service_access') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/meetings')}>
+                                    <Wrench className="h-4 w-4 mr-2" />
+                                    Mic Test Service
+                                  </Button>
+                                </DrawerClose>
+                              )}
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          {/* Admin Tools (if system admin) */}
+                          {isSystemAdmin && (
+                            <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
+                              <CollapsibleTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  className="justify-between w-full font-semibold"
+                                >
+                                  <span className="flex items-center">
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Admin Tools
+                                  </span>
+                                  <ChevronRight className={`h-4 w-4 transition-transform ${adminOpen ? 'rotate-90' : ''}`} />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin')}>
+                                    <Wrench className="h-4 w-4 mr-2" />
+                                    Admin Dashboard
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/security-compliance')}>
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Security Docs
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/transcription-comparison')}>
+                                    <Mic className="h-4 w-4 mr-2" />
+                                    Mic & Transcript Lab
+                                  </Button>
+                                </DrawerClose>
+                              </CollapsibleContent>
+                            </Collapsible>
                           )}
-                           {hasModuleAccess('enhanced_access') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
-                               <Clock className="h-4 w-4 mr-2" />
-                               Enhanced Access
-                             </Button>
-                           </DrawerClose>
-                         )}
-                          {hasModuleAccess('cqc_compliance_access') && (
+
+                          {/* Account Section - Always visible */}
+                          <div className="border-t pt-2 mt-2 space-y-1">
                             <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
+                              <Button variant="ghost" className="justify-start w-full" onClick={() => setShowProfileModal(true)}>
+                                <User className="h-4 w-4 mr-2" />
+                                My Profile
+                              </Button>
+                            </DrawerClose>
+
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/settings')}>
+                                <Settings className="h-4 w-4 mr-2" />
+                                User Settings
+                              </Button>
+                            </DrawerClose>
+
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso')}>
                                 <Shield className="h-4 w-4 mr-2" />
-                                CQC Compliance
+                                CSO Report
                               </Button>
                             </DrawerClose>
-                          )}
-                          {hasModuleAccess('shared_drive_access') && (
+
                             <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
-                                <FolderOpen className="h-4 w-4 mr-2" />
-                                Shared Drive
+                              <Button variant="destructive" className="justify-start w-full" onClick={signOut}>
+                                <LogOut className="h-4 w-4 mr-2" />
+                                Logout
                               </Button>
                             </DrawerClose>
-                          )}
-                           {hasModuleAccess('mic_test_service_access') && (
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
-                                  <Wrench className="h-4 w-4 mr-2" />
-                                  Mic Test Service
-                                </Button>
-                              </DrawerClose>
-                            )}
-                            {hasModuleAccess('translation_service') && (
-                              <DrawerClose asChild>
-                                <Button variant="ghost" className="justify-start" onClick={() => {
-                                  // Check if mobile and redirect accordingly
-                                  const isMobileScreen = window.innerWidth < 768;
-                                  const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                                  
-                                  if (isMobileScreen || isMobileUserAgent) {
-                                    navigate('/mobile-translate');
-                                  } else {
-                                    navigate('/translation-tool');
-                                  }
-                                }}>
-                                  <Languages className="h-4 w-4 mr-2" />
-                                  Translation Service
-                                </Button>
-                              </DrawerClose>
-                            )}
+                          </div>
                         </>
                       )}
-
-                     {/* Settings and Admin */}
-                    {user && (
-                      <>
-                         {/* Practice Manager Menu - Mobile */}
-                         {hasModuleAccess('practice_manager_access') && (
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/practice-admin')}>
-                               <Users className="h-4 w-4 mr-2" />
-                               Practice Management
-                             </Button>
-                           </DrawerClose>
-                         )}
-                         
-                           {isSystemAdmin && (
-                             <>
-                               <DrawerClose asChild>
-                                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
-                                   <Wrench className="h-4 w-4 mr-2" />
-                                   Admin Dashboard
-                                 </Button>
-                               </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" className="justify-start" onClick={() => navigate('/security-compliance')}>
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Security Documentation
-                                  </Button>
-                                </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" className="justify-start" onClick={() => navigate('/transcription-comparison')}>
-                                    <Mic className="h-4 w-4 mr-2" />
-                                    Mic and Transcript Lab
-                                  </Button>
-                                </DrawerClose>
-                             </>
-                            )}
-
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
-                              <User className="h-4 w-4 mr-2" />
-                              My Profile
-                            </Button>
-                          </DrawerClose>
-
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
-                               <Settings className="h-4 w-4 mr-2" />
-                               User Settings
-                             </Button>
-                           </DrawerClose>
-
-                           <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/cso')}>
-                               <Shield className="h-4 w-4 mr-2" />
-                               CSO Report
-                             </Button>
-                           </DrawerClose>
-
-                          <DrawerClose asChild>
-                           <Button variant="destructive" className="justify-start" onClick={signOut}>
-                             <LogOut className="h-4 w-4 mr-2" />
-                             Logout
-                           </Button>
-                         </DrawerClose>
-                      </>
-                    )}
                   </nav>
                 </div>
                 <DrawerFooter className="pt-0">
