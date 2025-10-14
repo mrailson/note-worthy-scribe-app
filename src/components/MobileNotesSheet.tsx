@@ -486,7 +486,7 @@ ${formattedContent}
           const noteTypeMapping = {
             'brief': 'brief',
             'detailed': 'detailed', 
-            'comprehensive': 'very_detailed',
+            'comprehensive': 'comprehensive',
             'executive': 'executive'
           };
           
