@@ -16,6 +16,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
   const [transcriptionResult, setTranscriptionResult] = useState<string>("");
   const isMountedRef = useRef(true);
 
@@ -109,20 +110,43 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
     setIsTranscribing(true);
     setProgress(0);
+    setProgressLabel("Preparing...");
 
     try {
       if (!isMountedRef.current) return;
       
+      setProgressLabel("Converting audio file...");
+      setProgress(10);
       showToast.info("Converting audio file...", { section: 'ai4gp' });
-      setProgress(20);
 
       // Convert file to base64 with better error handling
       const base64Audio = await convertToBase64(selectedFile);
       
       if (!isMountedRef.current) return;
       
-      setProgress(40);
-      showToast.info("Sending to transcription service...", { section: 'ai4gp' });
+      setProgress(30);
+      setProgressLabel("Uploading...");
+
+      // Simulate upload progress
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (!isMountedRef.current) return;
+      setProgress(60);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (!isMountedRef.current) return;
+      setProgress(90);
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      if (!isMountedRef.current) return;
+      setProgress(100);
+      setProgressLabel("Uploaded");
+      showToast.success("File uploaded successfully", { section: 'ai4gp' });
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!isMountedRef.current) return;
+      
+      setProgressLabel("Transcribing...");
+      showToast.info("Transcribing audio...", { section: 'ai4gp' });
 
       // Send to transcription edge function
       const { data, error } = await supabase.functions.invoke('mp3-transcription', {
@@ -133,8 +157,6 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       });
 
       if (!isMountedRef.current) return;
-
-      setProgress(80);
 
       if (error) {
         console.error('Transcription error:', error);
@@ -151,7 +173,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
 
       if (!isMountedRef.current) return;
 
-      setProgress(100);
+      setProgressLabel("Complete");
       
       const transcript = data.text;
       setTranscriptionResult(transcript);
@@ -168,6 +190,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       const errorMessage = error?.message || 'Unknown transcription error';
       showToast.error(`Transcription failed: ${errorMessage}`, { section: 'ai4gp' });
       setProgress(0);
+      setProgressLabel("");
     } finally {
       if (isMountedRef.current) {
         setIsTranscribing(false);
@@ -179,6 +202,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     setSelectedFile(null);
     setTranscriptionResult("");
     setProgress(0);
+    setProgressLabel("");
     showToast.info("Audio file cleared", { section: 'ai4gp' });
   };
 
@@ -260,8 +284,8 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         {isTranscribing && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span>Transcribing audio...</span>
-              <span>{progress}%</span>
+              <span className="font-medium">{progressLabel}</span>
+              <span className="text-muted-foreground">{progress}%</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
