@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings } from 'lucide-react';
+import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings, ArrowLeft, Home } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { downloadManualTranslationDOCX } from '@/utils/manualTranslationDocxExport';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface TranslationEntry {
   id: string;
@@ -26,6 +27,7 @@ interface TranslationEntry {
 
 export const MobileTranslationInterface = () => {
   const deviceInfo = useDeviceInfo();
+  const navigate = useNavigate();
   const [selectedLanguage, setSelectedLanguage] = useState('fr');
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
@@ -254,6 +256,19 @@ export const MobileTranslationInterface = () => {
           "bg-background",
           deviceInfo.isIPhone ? "p-4 sticky top-0 z-10 border-b" : "p-6"
         )}>
+          {deviceInfo.isIPhone && (
+            <div className="mb-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Home
+              </Button>
+            </div>
+          )}
           <div className="text-center space-y-4">
             <div className={cn(
               "flex items-center justify-center gap-2 font-bold text-primary",
