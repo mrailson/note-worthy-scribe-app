@@ -343,7 +343,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                   <Textarea
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="min-h-[300px] resize-vertical"
+                    className="min-h-[60vh] resize-vertical"
                     placeholder="Edit your transcript here..."
                   />
                   <div className="flex gap-2">

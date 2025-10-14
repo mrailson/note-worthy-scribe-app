@@ -259,7 +259,7 @@ export const EnhancedTranscriptDisplay: React.FC<EnhancedTranscriptDisplayProps>
               <Textarea
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
-                className="min-h-[200px] font-mono text-sm"
+                className="min-h-[60vh] font-mono text-sm"
                 placeholder="Edit the transcript..."
               />
               <div className="flex justify-end gap-2">
