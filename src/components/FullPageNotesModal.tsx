@@ -211,25 +211,29 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            .eq('user_id', user!.id)
            .maybeSingle();
  
-         if (manualError) {
-           console.error('❌ Error checking manually saved transcript:', manualError);
-         } else if (
-           manualData?.live_transcript_text &&
-           manualData.live_transcript_text.trim().length > 0
-         ) {
-           // Use the saved manual/edited transcript as source of truth
-           console.log('✅ Using manually saved transcript from meetings.live_transcript_text');
-           if (meeting?.id === currentMeetingId) {
-             setTranscript(manualData.live_transcript_text);
-             // Also load backup transcript if available
-             if (manualData.assembly_ai_transcript) {
-               setBackupTranscript(manualData.assembly_ai_transcript);
-               console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
-             }
-             setIsLoadingTranscript(false);
-           }
-           return; // Skip RPC fallback
-         }
+      if (manualError) {
+        console.error('❌ Error checking manually saved transcript:', manualError);
+      } else {
+        // Always load backup transcript if available
+        if (manualData?.assembly_ai_transcript) {
+          setBackupTranscript(manualData.assembly_ai_transcript);
+          console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
+        }
+        
+        // Check if we have a manually saved primary transcript
+        if (
+          manualData?.live_transcript_text &&
+          manualData.live_transcript_text.trim().length > 0
+        ) {
+          // Use the saved manual/edited transcript as source of truth
+          console.log('✅ Using manually saved transcript from meetings.live_transcript_text');
+          if (meeting?.id === currentMeetingId) {
+            setTranscript(manualData.live_transcript_text);
+            setIsLoadingTranscript(false);
+          }
+          return; // Skip RPC fallback
+        }
+      }
  
          // Fallback: Fetch processed transcript with explicit user validation
          const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
