@@ -32,6 +32,7 @@ export function EmailMeetingMinutesModal({
     `Dear recipient,\n\nPlease find attached the meeting minutes${meetingTitle ? ` for "${meetingTitle}"` : ''}.\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`
   );
   const [isSending, setIsSending] = useState(false);
+  const [includeTranscript, setIncludeTranscript] = useState(false);
 
   // Reset form when modal opens with new meeting data
   useEffect(() => {
@@ -78,6 +79,31 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
+      // Generate transcript txt attachment if requested
+      let transcriptAttachment = null;
+      if (includeTranscript) {
+        try {
+          const transcriptBlob = new Blob([meetingNotes], { type: 'text/plain' });
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(transcriptBlob);
+          const base64Content = await base64Promise;
+          
+          transcriptAttachment = {
+            content: base64Content,
+            filename: `${meetingTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_transcript.txt`,
+            type: 'text/plain'
+          };
+        } catch (txtError) {
+          console.warn('Transcript text file generation failed:', txtError);
+        }
+      }
+
       // Format meeting notes for better readability
       const formattedNotes = meetingNotes
         .replace(/## /g, '\n\n')
@@ -104,6 +130,7 @@ ${formattedNotes}
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
         word_attachment: wordAttachment,
+        transcript_attachment: transcriptAttachment,
         meeting_title: meetingTitle,
         meeting_id: meetingId
       };
@@ -191,11 +218,27 @@ ${formattedNotes}
             />
           </div>
           
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="include-transcript"
+                checked={includeTranscript}
+                onChange={(e) => setIncludeTranscript(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="include-transcript" className="text-sm font-normal cursor-pointer">
+                Include transcript as .txt attachment
+              </Label>
+            </div>
+          </div>
+
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border">
             <p className="font-medium mb-1">What will be sent:</p>
             <ul className="text-xs space-y-1">
               <li>• Word document with meeting minutes attached</li>
               <li>• Meeting minutes included in email body</li>
+              {includeTranscript && <li>• Transcript as .txt file attachment</li>}
               <li>• Professional email formatting</li>
             </ul>
           </div>
