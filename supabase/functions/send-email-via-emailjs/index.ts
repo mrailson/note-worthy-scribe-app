@@ -28,6 +28,11 @@ interface EmailRequest {
     filename: string;
     type: string;
   };
+  transcript_attachment?: {
+    content: string;
+    filename: string;
+    type: string;
+  };
   
   // Welcome email fields
   user_name?: string;
@@ -394,6 +399,12 @@ const handler = async (req: Request): Promise<Response> => {
       templateParams.attachment_type = emailData.word_attachment.type;
     }
     
+    if (emailData.transcript_attachment) {
+      templateParams.attachment2_name = emailData.transcript_attachment.filename;
+      templateParams.attachment2_content = emailData.transcript_attachment.content;
+      templateParams.attachment2_type = emailData.transcript_attachment.type;
+    }
+    
     // Helper function to calculate payload size
     const getPayloadSize = (data: any) => {
       return new TextEncoder().encode(JSON.stringify(data)).length;
@@ -506,7 +517,9 @@ const handler = async (req: Request): Promise<Response> => {
       meeting_title: emailData.meeting_title,
       subject: emailData.subject,
       has_attachment: !!emailData.word_attachment,
-      attachment_filename: emailData.word_attachment?.filename
+      attachment_filename: emailData.word_attachment?.filename,
+      has_transcript_attachment: !!emailData.transcript_attachment,
+      transcript_filename: emailData.transcript_attachment?.filename
     });
 
     // Send email via EmailJS API
