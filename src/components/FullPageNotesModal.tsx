@@ -2889,14 +2889,7 @@ ${transcript}`;
               <div className="px-6 pt-4 flex-shrink-0">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
-                  <TabsTrigger value="transcript" className="flex items-center justify-center gap-2">
-                    <span>Meeting Transcript</span>
-                    {transcript && (
-                      <span className="text-xs font-normal text-muted-foreground">
-                        ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
-                      </span>
-                    )}
-                  </TabsTrigger>
+                  <TabsTrigger value="transcript">Meeting Transcript</TabsTrigger>
                 </TabsList>
               </div>
               
