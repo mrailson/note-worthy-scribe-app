@@ -253,12 +253,6 @@ export const RealtimeTranscriptCard = ({
               </div>
             )}
           </div>
-          
-          {!isIOS && (
-            <div className="text-xs text-muted-foreground italic border-t pt-2">
-              Raw Transcript – early view only, duplicates auto-removed later.
-            </div>
-          )}
         </div>
 
         <div className="flex items-center justify-between mb-2">
