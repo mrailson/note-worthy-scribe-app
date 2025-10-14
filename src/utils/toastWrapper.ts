@@ -4,6 +4,14 @@ import { type ToastSection } from '@/hooks/useToastPreferences';
 
 const STORAGE_KEY = 'toast_preferences';
 
+// Define extended options that include all sonner toast options
+interface ToastOptions {
+  section?: ToastSection;
+  duration?: number;
+  id?: string | number;
+  description?: string;
+}
+
 // Helper to check if a section is enabled
 const isSectionEnabled = (section?: ToastSection): boolean => {
   if (!section) return true; // If no section specified, always show
@@ -22,24 +30,28 @@ const isSectionEnabled = (section?: ToastSection): boolean => {
 
 // Sonner toast wrapper
 export const showToast = {
-  success: (message: string, options?: { section?: ToastSection; duration?: number; id?: string }) => {
+  success: (message: string, options?: ToastOptions) => {
     if (!isSectionEnabled(options?.section)) return;
-    return sonnerToast.success(message, { duration: options?.duration });
+    const { section, ...sonnerOptions } = options || {};
+    return sonnerToast.success(message, sonnerOptions);
   },
 
-  error: (message: string, options?: { section?: ToastSection; duration?: number }) => {
+  error: (message: string, options?: ToastOptions) => {
     if (!isSectionEnabled(options?.section)) return;
-    return sonnerToast.error(message, { duration: options?.duration });
+    const { section, ...sonnerOptions } = options || {};
+    return sonnerToast.error(message, sonnerOptions);
   },
 
-  info: (message: string, options?: { section?: ToastSection; duration?: number }) => {
+  info: (message: string, options?: ToastOptions) => {
     if (!isSectionEnabled(options?.section)) return;
-    return sonnerToast.info(message, { duration: options?.duration });
+    const { section, ...sonnerOptions } = options || {};
+    return sonnerToast.info(message, sonnerOptions);
   },
 
-  warning: (message: string, options?: { section?: ToastSection; duration?: number }) => {
+  warning: (message: string, options?: ToastOptions) => {
     if (!isSectionEnabled(options?.section)) return;
-    return sonnerToast.warning(message, { duration: options?.duration });
+    const { section, ...sonnerOptions } = options || {};
+    return sonnerToast.warning(message, sonnerOptions);
   },
 
   dismiss: (toastId?: string | number) => {

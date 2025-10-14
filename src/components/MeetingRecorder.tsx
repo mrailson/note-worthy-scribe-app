@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -561,7 +562,7 @@ export const MeetingRecorder = ({
           return newWordCount;
         });
         
-        toast.success('Transcript auto-cleaned successfully', { id: 'auto-clean' });
+        showToast.success('Transcript auto-cleaned successfully', { section: 'meeting_manager', id: 'auto-clean' });
         console.log('✅ Auto Deep Clean completed');
       } else {
         toast.dismiss('auto-clean');
@@ -569,7 +570,7 @@ export const MeetingRecorder = ({
       }
     } catch (error) {
       console.error('❌ Auto Deep Clean failed:', error);
-      toast.error('Auto clean failed - continuing with original transcript', { id: 'auto-clean' });
+      showToast.error('Auto clean failed - continuing with original transcript', { section: 'meeting_manager', id: 'auto-clean' });
     } finally {
       setIsAutoCleaningTranscript(false);
     }
@@ -615,7 +616,7 @@ export const MeetingRecorder = ({
 
       if (data?.success) {
         console.log(`✅ Live Notes generated: Version ${data.version} (${data.wordCount} words processed)`);
-        toast.success(`Live notes updated - Version ${data.version}`, { duration: 3000 });
+        showToast.success(`Live notes updated - Version ${data.version}`, { section: 'meeting_manager', duration: 3000 });
       } else {
         console.log('📝 Live notes generation skipped:', data?.message);
       }
@@ -737,7 +738,7 @@ export const MeetingRecorder = ({
           
           if (silentCounters >= 3) {
             console.log('🔄 Audio stream appears silent, this might indicate a browser audio issue');
-            toast.warning("Low audio detected - check microphone settings or browser permissions");
+            showToast.warning("Low audio detected - check microphone settings or browser permissions", { section: 'meeting_manager' });
           }
         } else {
           silentCounters = 0; // Reset counter on good audio
@@ -828,7 +829,7 @@ export const MeetingRecorder = ({
           startNewChunk();
           
           // Force UI update to show transcription is active
-          toast.info(`Recording chunk ${chunkId + 1}`, {
+          showToast.info(`Recording chunk ${chunkId + 1}`, { section: 'meeting_manager',
             description: `Continuous transcription active`,
             duration: 1500
           });
@@ -1244,7 +1245,7 @@ export const MeetingRecorder = ({
           });
 
           // Show user feedback for EVERY chunk to ensure visibility
-          toast.success(`New transcription`, {
+          showToast.success(`New transcription`, { section: 'meeting_manager',
             description: `"${transcriptionText.substring(0, 50)}${transcriptionText.length > 50 ? '...' : ''}"`,
             duration: 2000
           });
@@ -1696,7 +1697,7 @@ export const MeetingRecorder = ({
   const handleMergeUnmergedChunks = () => {
     if (!transcriptHandler.current) {
       console.warn('❌ Transcript handler not initialized');
-      toast.error('Cannot merge chunks - transcript handler not ready');
+      showToast.error('Cannot merge chunks - transcript handler not ready', { section: 'meeting_manager' });
       return;
     }
 
@@ -1722,7 +1723,7 @@ export const MeetingRecorder = ({
     );
 
     if (unmergedChunks.length === 0) {
-      toast.info('All chunks are already merged into the transcript');
+      showToast.info('All chunks are already merged into the transcript', { section: 'meeting_manager' });
       return;
     }
 
@@ -1754,7 +1755,7 @@ export const MeetingRecorder = ({
     });
 
     if (mergedCount > 0) {
-      toast.success(`✅ Merged ${mergedCount} chunk${mergedCount !== 1 ? 's' : ''} into transcript`);
+      showToast.success(`✅ Merged ${mergedCount} chunk${mergedCount !== 1 ? 's' : ''} into transcript`, { section: 'meeting_manager' });
       console.log(`✅ Successfully merged ${mergedCount} chunks`);
     }
   };
@@ -1960,7 +1961,7 @@ export const MeetingRecorder = ({
   const handleLiveSummary = (summary: string) => {
     setLiveSummary(summary);
     addDebugLog(`📄 Summary generated (${summary.length} chars)`);
-    toast.success("Live summary updated!");
+    showToast.success("Live summary updated!", { section: 'meeting_manager' });
   };
 
 
@@ -2598,7 +2599,7 @@ export const MeetingRecorder = ({
 
         } catch (uploadError) {
           addDebugLog(`❌ Upload/Processing failed: ${uploadError.message}`);
-          toast.error(`Processing failed: ${uploadError.message}`);
+          showToast.error(`Processing failed: ${uploadError.message}`, { section: 'meeting_manager' });
         }
       };
 
@@ -2641,7 +2642,7 @@ export const MeetingRecorder = ({
       // Try fallback to microphone-only mode
       if (error.name === 'NotSupportedError' || error.message.includes('not supported')) {
         addDebugLog('🔄 Attempting fallback to microphone-only recording...');
-        toast.info('Dual audio not supported. Falling back to microphone-only recording.');
+        showToast.info('Dual audio not supported. Falling back to microphone-only recording.', { section: 'meeting_manager' });
         
         try {
           // Fallback to simple microphone recording
@@ -2656,21 +2657,21 @@ export const MeetingRecorder = ({
       
       // Provide specific, helpful error messages
       if (error.name === 'NotAllowedError') {
-        toast.error('Permission denied. Please allow screen sharing and microphone access when prompted.');
+        showToast.error('Permission denied. Please allow screen sharing and microphone access when prompted.', { section: 'meeting_manager' });
         addDebugLog('💡 Tip: Click the address bar and enable camera/microphone permissions for this site');
       } else if (error.name === 'NotFoundError') {
-        toast.error('No audio source found. Please ensure your microphone is connected and working.');
+        showToast.error('No audio source found. Please ensure your microphone is connected and working.', { section: 'meeting_manager' });
       } else if (error.name === 'NotSupportedError') {
-        toast.error('Screen audio capture not supported in this browser. Please try Chrome or Edge, or use microphone-only mode.');
+        showToast.error('Screen audio capture not supported in this browser. Please try Chrome or Edge, or use microphone-only mode.', { section: 'meeting_manager' });
         addDebugLog('💡 Tip: Try using the regular "Microphone Only" recording mode instead');
       } else if (error.name === 'AbortError') {
-        toast.error('Recording was cancelled. Please try again and select a window/tab to share.');
+        showToast.error('Recording was cancelled. Please try again and select a window/tab to share.', { section: 'meeting_manager' });
       } else if (error.message.includes('audio')) {
-        toast.error('Audio capture failed. Please check your audio settings and try again.');
+        showToast.error('Audio capture failed. Please check your audio settings and try again.', { section: 'meeting_manager' });
       } else if (error.message.includes('browser')) {
-        toast.error(error.message);
+        showToast.error(error.message, { section: 'meeting_manager' });
       } else {
-        toast.error(`Recording failed: ${error.message}`);
+        showToast.error(`Recording failed: ${error.message}`, { section: 'meeting_manager' });
       }
       
       // Reset recording state
@@ -2741,11 +2742,11 @@ export const MeetingRecorder = ({
       }, 1000);
 
       const successMessage = 'Test recording started with microphone!';
-      toast.success(successMessage);
+      showToast.success(successMessage, { section: 'meeting_manager' });
     } catch (error: any) {
       console.error('Failed to start test recording:', error);
       addDebugLog(`❌ Failed to start test: ${error.message}`);
-      toast.error(error.message || 'Failed to start test recording');
+      showToast.error(error.message || 'Failed to start test recording', { section: 'meeting_manager' });
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
@@ -2802,12 +2803,12 @@ export const MeetingRecorder = ({
       lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus("Disconnected");
       addDebugLog('✅ Test recording stopped');
-      toast.success('Test recording stopped successfully');
+      showToast.success('Test recording stopped successfully', { section: 'meeting_manager' });
       
     } catch (error: any) {
       console.error('Failed to stop test recording:', error);
       addDebugLog(`❌ Failed to stop test: ${error.message}`);
-      toast.error('Failed to stop test recording');
+      showToast.error('Failed to stop test recording', { section: 'meeting_manager' });
     }
   };
 
@@ -3186,9 +3187,9 @@ export const MeetingRecorder = ({
       
       if (useScreenShare && recordingMode === 'mic-and-system') {
         const browserName = isChrome ? 'Chrome' : 'Edge';
-        toast.error(`Please allow screen sharing permission in ${browserName} to capture meeting audio. Try again and select a window/tab to share.`);
+        showToast.error(`Please allow screen sharing permission in ${browserName} to capture meeting audio. Try again and select a window/tab to share.`, { section: 'meeting_manager' });
       } else {
-        toast.error(error.message || 'Failed to start recording');
+        showToast.error(error.message || 'Failed to start recording', { section: 'meeting_manager' });
       }
       
       setIsRecording(false);
@@ -3292,7 +3293,7 @@ export const MeetingRecorder = ({
     }
     
     // Show toast notification that processing is starting
-    const savingToastId = toast.info("Saving meeting...", { duration: Infinity });
+    const savingToastId = showToast.info("Saving meeting...", { section: 'meeting_manager', duration: Infinity });
     
     // Wait 3 seconds to capture final audio chunks
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -3425,14 +3426,14 @@ export const MeetingRecorder = ({
     // Relaxed validation - only require 5 seconds and any transcript content
     if (duration < 5) {
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
-      toast.error('Recording too short. Minimum 5 seconds required.');
+      showToast.error('Recording too short. Minimum 5 seconds required.', { section: 'meeting_manager' });
       return;
     }
 
     // For iPhone compatibility - accept any transcript content
     if (!transcript && wordCount < 5) {
       console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount });
-      toast.error('No transcript content detected.');
+      showToast.error('No transcript content detected.', { section: 'meeting_manager' });
       return;
     }
     
@@ -3508,7 +3509,7 @@ export const MeetingRecorder = ({
             if (!transcriptTail.includes(lastWords.slice(0, 50))) {
               console.warn('⚠️ Integrity check failed - appending missing tail');
               finalTranscript = finalTranscript + ' ' + lastChunkText.trim();
-              toast.info('Final content appended to ensure completeness');
+              showToast.info('Final content appended to ensure completeness', { section: 'meeting_manager' });
             } else {
               console.log('✅ Integrity check passed - last chunk present in transcript');
             }
@@ -3809,7 +3810,7 @@ export const MeetingRecorder = ({
           
         if (transcriptError) {
           console.error('❌ Transcript save error:', transcriptError);
-          toast.error('Failed to save transcript - retrying...');
+          showToast.error('Failed to save transcript - retrying...', { section: 'meeting_manager' });
           
           // Retry once after brief delay
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -3825,10 +3826,10 @@ export const MeetingRecorder = ({
             
           if (retryError) {
             console.error('❌ Transcript save retry failed:', retryError);
-            toast.error('Transcript save failed - check Meeting History');
+            showToast.error('Transcript save failed - check Meeting History', { section: 'meeting_manager' });
           } else {
             console.log('✅ Transcript saved on retry');
-            toast.success('Transcript saved successfully');
+            showToast.success('Transcript saved successfully', { section: 'meeting_manager' });
           }
         } else {
           console.log('✅ Transcript saved successfully');
@@ -3843,7 +3844,7 @@ export const MeetingRecorder = ({
               
             if (validateError || !savedTranscript) {
               console.error('❌ Post-save validation failed:', validateError);
-              toast.error('Transcript validation failed - may need manual check');
+              showToast.error('Transcript validation failed - may need manual check', { section: 'meeting_manager' });
             } else {
               const savedLength = savedTranscript.content.length;
               const originalLength = meetingData.transcript.length;
@@ -3851,7 +3852,7 @@ export const MeetingRecorder = ({
               
               if (lengthRatio < 0.95 || lengthRatio > 1.05) {
                 console.warn(`⚠️ Saved transcript length mismatch: ${savedLength} vs ${originalLength}`);
-                toast.warning('Transcript may be incomplete - check Meeting History');
+                showToast.warning('Transcript may be incomplete - check Meeting History', { section: 'meeting_manager' });
               } else {
                 console.log(`✅ Validation passed: ${savedLength} chars saved correctly`);
               }
@@ -3861,9 +3862,9 @@ export const MeetingRecorder = ({
       }
 
       // Dismiss the saving toast and show success
-      toast.dismiss(savingToastId);
+      showToast.dismiss(savingToastId);
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-      toast.success(`Meeting saved: ${formattedTitle}`);
+      showToast.success(`Meeting saved: ${formattedTitle}`, { section: 'meeting_manager' });
 
       // Start background processing immediately (don't block UI)
       console.log('🤖 Starting background processing (notes generation, cleanup)...');
@@ -3927,8 +3928,8 @@ export const MeetingRecorder = ({
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
-      toast.dismiss(savingToastId);
-      toast.error('Failed to save meeting');
+      showToast.dismiss(savingToastId);
+      showToast.error('Failed to save meeting', { section: 'meeting_manager' });
     }
   };
 
@@ -4120,7 +4121,7 @@ export const MeetingRecorder = ({
       setMeetings(meetingsWithCounts);
     } catch (error) {
       console.error('Error loading meeting history:', error);
-      toast.error('Failed to load meeting history');
+      showToast.error('Failed to load meeting history', { section: 'meeting_manager' });
     } finally {
       setLoadingHistory(false);
     }
@@ -4151,7 +4152,7 @@ export const MeetingRecorder = ({
           console.log('🔄 New meeting inserted, refreshing history...', payload);
           // Refresh meeting history when a new meeting is added
           loadMeetingHistory();
-          toast.success('Meeting history updated automatically');
+          showToast.success('Meeting history updated automatically', { section: 'meeting_manager' });
         }
       )
       .on(
@@ -4203,7 +4204,7 @@ export const MeetingRecorder = ({
   const handleViewTranscript = (meetingId: string) => {
     // Block operation during recording to prevent interference
     if (!isResourceOperationSafe()) {
-      toast.error("Cannot view transcript while recording is active. This prevents audio interference.");
+      showToast.error("Cannot view transcript while recording is active. This prevents audio interference.", { section: 'meeting_manager' });
       return;
     }
     
@@ -4215,7 +4216,7 @@ export const MeetingRecorder = ({
       }
     } catch (error: any) {
       console.error("Error viewing transcript:", error.message);
-      toast.error("Failed to load transcript");
+      showToast.error("Failed to load transcript", { section: 'meeting_manager' });
     }
   };
 
@@ -4400,7 +4401,7 @@ export const MeetingRecorder = ({
     
     // Block operation during recording to prevent interference
     if (!isResourceOperationSafe()) {
-      toast.error("Cannot view notes while recording is active. This prevents audio interference.");
+      showToast.error("Cannot view notes while recording is active. This prevents audio interference.", { section: 'meeting_manager' });
       return;
     }
     
@@ -4437,7 +4438,7 @@ export const MeetingRecorder = ({
       
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error.message);
-      toast.error("Failed to load meeting notes");
+      showToast.error("Failed to load meeting notes", { section: 'meeting_manager' });
     }
   };
 
@@ -4474,10 +4475,10 @@ export const MeetingRecorder = ({
       }
       
       addDebugLog('⏸️ Recording paused - audio muted and transcription stopped');
-      toast.success("Recording paused");
+      showToast.success("Recording paused", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error pausing recording:', error);
-      toast.error("Failed to pause recording");
+      showToast.error("Failed to pause recording", { section: 'meeting_manager' });
     }
   };
 
@@ -4514,10 +4515,10 @@ export const MeetingRecorder = ({
       }
       
       addDebugLog('▶️ Recording resumed - audio unmuted and transcription restarted');
-      toast.success("Recording resumed");
+      showToast.success("Recording resumed", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error unpausing recording:', error);
-      toast.error("Failed to resume recording");
+      showToast.error("Failed to resume recording", { section: 'meeting_manager' });
     }
   };
 
