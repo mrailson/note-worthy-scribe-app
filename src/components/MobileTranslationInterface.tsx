@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { ConsentModal } from '@/components/ConsentModal';
 import { useManualTranslation } from '@/hooks/useManualTranslation';
 import { downloadManualTranslationDOCX } from '@/utils/manualTranslationDocxExport';
+import { useDeviceInfo } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface TranslationEntry {
   id: string;
@@ -23,6 +25,7 @@ interface TranslationEntry {
 }
 
 export const MobileTranslationInterface = () => {
+  const deviceInfo = useDeviceInfo();
   const [selectedLanguage, setSelectedLanguage] = useState('fr');
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
@@ -239,37 +242,64 @@ export const MobileTranslationInterface = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 flex flex-col">
-      <Card className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
-        <div className="p-6 bg-background">
+    <div className={cn(
+      "min-h-screen bg-gradient-to-br from-background to-muted flex flex-col",
+      deviceInfo.isIPhone ? "p-2 pb-safe" : "p-4"
+    )}>
+      <Card className={cn(
+        "flex-1 flex flex-col w-full",
+        deviceInfo.isIPhone ? "max-w-full" : "max-w-2xl mx-auto"
+      )}>
+        <div className={cn(
+          "bg-background",
+          deviceInfo.isIPhone ? "p-4 sticky top-0 z-10 border-b" : "p-6"
+        )}>
           <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 text-2xl font-bold text-primary">
-              <Languages className="w-8 h-8" />
-              Manual Translation Service
+            <div className={cn(
+              "flex items-center justify-center gap-2 font-bold text-primary",
+              deviceInfo.isIPhone ? "text-xl" : "text-2xl"
+            )}>
+              <Languages className={cn(deviceInfo.isIPhone ? "w-6 h-6" : "w-8 h-8")} />
+              {deviceInfo.isIPhone ? "Translation" : "Manual Translation Service"}
             </div>
             
             {!isActive ? (
               <>
                 <div className="space-y-4">
-                  <div className="text-lg font-medium">Select Patient Language to Begin</div>
+                  <div className={cn(
+                    "font-medium",
+                    deviceInfo.isIPhone ? "text-base" : "text-lg"
+                  )}>Select Patient Language to Begin</div>
                   <Select value={selectedLanguage} onValueChange={handleLanguageSelect}>
-                    <SelectTrigger className="text-lg h-12">
+                    <SelectTrigger className={cn(
+                      "text-lg",
+                      deviceInfo.isIPhone ? "h-14" : "h-12"
+                    )}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {HEALTHCARE_LANGUAGES.filter(lang => 
                         lang.code !== 'none'
                       ).map((lang) => (
-                        <SelectItem key={lang.code} value={lang.code} className="text-lg">
+                        <SelectItem 
+                          key={lang.code} 
+                          value={lang.code} 
+                          className={cn(
+                            deviceInfo.isIPhone ? "text-base py-3" : "text-lg"
+                          )}
+                        >
                           <div className="flex items-center gap-2">
-                            <span className="text-xl">{lang.flag}</span>
+                            <span className={cn(deviceInfo.isIPhone ? "text-2xl" : "text-xl")}>{lang.flag}</span>
                             <span>{lang.name}</span>
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <div className="text-sm text-muted-foreground text-center">
+                  <div className={cn(
+                    "text-muted-foreground text-center",
+                    deviceInfo.isIPhone ? "text-xs" : "text-sm"
+                  )}>
                     Selecting a language will start the translation session
                   </div>
                 </div>
@@ -278,11 +308,17 @@ export const MobileTranslationInterface = () => {
               <div className="space-y-4">
                 {currentSession && (
                   <div className="text-center space-y-2">
-                    <div className="text-lg font-medium text-primary">
+                    <div className={cn(
+                      "font-medium text-primary",
+                      deviceInfo.isIPhone ? "text-base" : "text-lg"
+                    )}>
                       Active Session: {currentSession.targetLanguageName}
                     </div>
                     {currentSession.consentGiven && (
-                      <div className="text-sm text-green-600 bg-green-50 rounded-lg p-2">
+                      <div className={cn(
+                        "text-green-600 bg-green-50 rounded-lg p-2",
+                        deviceInfo.isIPhone ? "text-xs" : "text-sm"
+                      )}>
                         ✓ Patient consent obtained at {currentSession.consentTimestamp?.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     )}
@@ -294,35 +330,59 @@ export const MobileTranslationInterface = () => {
                     onClick={toggleListening}
                     size="lg"
                     variant={isListening ? "destructive" : "default"}
-                    className="flex items-center gap-2 h-14 px-8"
+                    className={cn(
+                      "flex items-center gap-2",
+                      deviceInfo.isIPhone ? "h-16 px-10 text-lg" : "h-14 px-8"
+                    )}
                   >
                     {isListening ? (
                       <>
-                        <Square className="w-6 h-6" />
+                        <Square className={cn(deviceInfo.isIPhone ? "w-7 h-7" : "w-6 h-6")} />
                         Stop Listening
                       </>
                     ) : (
                       <>
-                        <Mic className="w-6 h-6" />
+                        <Mic className={cn(deviceInfo.isIPhone ? "w-7 h-7" : "w-6 h-6")} />
                         Start Listening
                       </>
                     )}
                   </Button>
                 </div>
                 
+                {deviceInfo.isIPhone && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleEndSession}
+                      variant="outline"
+                      className="h-12 px-8 text-base"
+                    >
+                      End Session
+                    </Button>
+                  </div>
+                )}
+                
                 {isProcessing && (
-                  <div className="text-center text-sm text-muted-foreground">
+                  <div className={cn(
+                    "text-center text-muted-foreground",
+                    deviceInfo.isIPhone ? "text-xs" : "text-sm"
+                  )}>
                     Processing translation...
                   </div>
                 )}
                 
                 {error && (
-                  <div className="text-center text-sm text-red-600 bg-red-50 rounded-lg p-2">
+                  <div className={cn(
+                    "text-center text-red-600 bg-red-50 rounded-lg p-2",
+                    deviceInfo.isIPhone ? "text-xs" : "text-sm"
+                  )}>
                     {error}
                   </div>
                 )}
                 
-                <div className="text-center text-xs text-muted-foreground">
+                <div className={cn(
+                  "text-center text-muted-foreground",
+                  deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
+                )}>
                   Using: {transcriptionService === 'deepgram' ? 'Deepgram (High Accuracy)' : 'Browser Speech (Fast)'}
                 </div>
               </div>
@@ -333,93 +393,128 @@ export const MobileTranslationInterface = () => {
         {/* Translation History */}
         {isActive && translations.length > 0 && (
           <div className="flex-1 overflow-hidden">
-            <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
-              <h3 className="font-medium">Translation History</h3>
+            <div className={cn(
+              "border-b bg-muted/50 flex items-center justify-between",
+              deviceInfo.isIPhone ? "p-3" : "p-4"
+            )}>
+              <h3 className={cn(
+                "font-medium",
+                deviceInfo.isIPhone ? "text-sm" : "text-base"
+              )}>Translation History</h3>
               <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      title="Transcription service settings"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem 
-                      onClick={() => switchTranscriptionService('browser')}
-                      className={transcriptionService === 'browser' ? 'bg-accent' : ''}
-                    >
-                      <Mic className="mr-2 h-4 w-4" />
-                      Browser Speech {transcriptionService === 'browser' && '✓'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => switchTranscriptionService('deepgram')}
-                      className={transcriptionService === 'deepgram' ? 'bg-accent' : ''}
-                    >
-                      <Volume2 className="mr-2 h-4 w-4" />
-                      Deepgram (Better Accuracy) {transcriptionService === 'deepgram' && '✓'}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {!deviceInfo.isIPhone && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Transcription service settings"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => switchTranscriptionService('browser')}
+                        className={transcriptionService === 'browser' ? 'bg-accent' : ''}
+                      >
+                        <Mic className="mr-2 h-4 w-4" />
+                        Browser Speech {transcriptionService === 'browser' && '✓'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => switchTranscriptionService('deepgram')}
+                        className={transcriptionService === 'deepgram' ? 'bg-accent' : ''}
+                      >
+                        <Volume2 className="mr-2 h-4 w-4" />
+                        Deepgram (Better Accuracy) {transcriptionService === 'deepgram' && '✓'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleMute}
-                  className="h-8 w-8 p-0"
+                  className={cn(
+                    "p-0",
+                    deviceInfo.isIPhone ? "h-10 w-10" : "h-8 w-8"
+                  )}
                   title={isMuted ? "Unmute microphone" : "Mute microphone"}
                 >
-                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isMuted ? (
+                    <MicOff className={cn(deviceInfo.isIPhone ? "h-5 w-5" : "h-4 w-4")} />
+                  ) : (
+                    <Mic className={cn(deviceInfo.isIPhone ? "h-5 w-5" : "h-4 w-4")} />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleDownloadWord}
-                  className="h-8 w-8 p-0"
+                  className={cn(
+                    "p-0",
+                    deviceInfo.isIPhone ? "h-10 w-10" : "h-8 w-8"
+                  )}
                   title="Download as Word document"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className={cn(deviceInfo.isIPhone ? "h-5 w-5" : "h-4 w-4")} />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFullScreen(true)}
-                  className="h-8 w-8 p-0"
-                  title="View full screen"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
+                {!deviceInfo.isIPhone && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFullScreen(true)}
+                    className="h-8 w-8 p-0"
+                    title="View full screen"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div 
+              ref={scrollRef} 
+              className={cn(
+                "flex-1 overflow-y-auto space-y-4",
+                deviceInfo.isIPhone ? "p-3" : "p-4"
+              )}
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {translations.map((translation, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg ${
+                  className={cn(
+                    "rounded-lg touch-manipulation",
+                    deviceInfo.isIPhone ? "p-3" : "p-4",
                     translation.speaker === 'gp' 
                       ? 'bg-blue-50 border-l-4 border-blue-500' 
                       : 'bg-green-50 border-l-4 border-green-500'
-                  }`}
+                  )}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <button 
-                      className="font-medium text-sm hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer"
+                      className={cn(
+                        "font-medium hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer touch-manipulation",
+                        deviceInfo.isIPhone ? "text-xs min-h-[32px]" : "text-sm"
+                      )}
                       onClick={() => handleSpeakerChange(index, translation.speaker === 'gp' ? 'patient' : 'gp')}
                       title="Click to change speaker and retranslate"
                     >
                       {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
                     </button>
-                    <div className="text-xs text-muted-foreground">
+                    <div className={cn(
+                      "text-muted-foreground",
+                      deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
+                    )}>
                       {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="text-sm">
+                    <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
                       <span className="font-medium">Original:</span> {translation.originalText}
                     </div>
-                    <div className="text-sm">
+                    <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
                       <span className="font-medium">Translation:</span> {translation.translatedText}
                     </div>
                   </div>
