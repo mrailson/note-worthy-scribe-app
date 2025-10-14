@@ -16,7 +16,7 @@ export const DeepgramTranscriptCard: React.FC<DeepgramTranscriptCardProps> = ({
   wordCount,
   isRecording
 }) => {
-  const [isOpen, setIsOpen] = useState(false); // Collapsed by default
+  const [isOpen, setIsOpen] = useState(true); // Open by default for testing
   
   return (
     <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
