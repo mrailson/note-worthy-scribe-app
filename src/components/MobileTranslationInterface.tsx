@@ -28,7 +28,7 @@ export const MobileTranslationInterface = () => {
   const deviceInfo = useDeviceInfo();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedLanguage, setSelectedLanguage] = useState('fr');
+  const [selectedLanguage, setSelectedLanguage] = useState('');
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
@@ -369,7 +369,7 @@ export const MobileTranslationInterface = () => {
                       "text-lg",
                       deviceInfo.isIPhone ? "h-14" : "h-12"
                     )}>
-                      <SelectValue />
+                      <SelectValue placeholder="Please select" />
                     </SelectTrigger>
                     <SelectContent>
                       {HEALTHCARE_LANGUAGES.filter(lang => 
