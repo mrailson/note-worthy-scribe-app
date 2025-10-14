@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import {
   Shield,
   AlertTriangle,
@@ -791,13 +790,10 @@ const CSOReport = () => {
               onClick={async () => {
                 try {
                   setIsExporting(true);
-                  toast.info("Generating Word document...");
                   const { exportCSOReportToWord } = await import('@/utils/exportCSOReport');
                   await exportCSOReportToWord();
-                  toast.success("CSO Report exported successfully!");
                 } catch (error) {
                   console.error('Error exporting report:', error);
-                  toast.error("Failed to export report. Please try again.");
                 } finally {
                   setIsExporting(false);
                 }
