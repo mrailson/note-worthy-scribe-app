@@ -240,17 +240,40 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         hour12: false
       });
       
-      // Create paragraphs from the transcription
-      const paragraphs = transcriptionResult.split('\n\n').map(para => 
-        new Paragraph({
-          children: [new TextRun(para)],
-          spacing: { after: 200 }
-        })
-      );
+      // Split transcription into sentences and group into natural paragraphs
+      const sentences = transcriptionResult.match(/[^.!?]+[.!?]+/g) || [transcriptionResult];
+      const paragraphs: Paragraph[] = [];
+      
+      // Group sentences into paragraphs (approximately 3-5 sentences per paragraph)
+      for (let i = 0; i < sentences.length; i += 4) {
+        const paragraphText = sentences.slice(i, i + 4).join(' ').trim();
+        if (paragraphText) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: paragraphText, size: 24 })],
+              spacing: { 
+                before: 200,
+                after: 300,
+                line: 360 // 1.5 line spacing
+              },
+              alignment: 'left'
+            })
+          );
+        }
+      }
 
       const doc = new Document({
         sections: [{
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: 1440,    // 1 inch
+                right: 1440,
+                bottom: 1440,
+                left: 1440
+              }
+            }
+          },
           children: [
             new Paragraph({
               children: [new TextRun({ text: "Audio Transcription", bold: true, size: 32 })],
@@ -282,7 +305,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
             }),
             new Paragraph({
               children: [new TextRun({ text: "Transcription", bold: true, size: 24 })],
-              spacing: { after: 200 }
+              spacing: { after: 300, before: 400 }
             }),
             ...paragraphs
           ]
