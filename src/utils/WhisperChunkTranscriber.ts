@@ -107,9 +107,18 @@ export class WhisperChunkTranscriber {
         return;
       }
 
-      // Blob -> base64
+      // Blob -> base64 (process in chunks to avoid stack overflow on iPhone)
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binaryString = '';
+      const chunkSize = 8192; // Process 8KB at a time
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      
+      const base64Audio = btoa(binaryString);
 
       // Send to Whisper edge function
       const { data, error } = await supabase.functions.invoke('speech-to-text-consultation', {
