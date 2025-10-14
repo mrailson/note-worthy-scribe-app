@@ -251,10 +251,10 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
           </div>
         </div>
         
-        <div className="prose max-w-none">
+        <div className="prose prose-sm max-w-none dark:prose-invert">
           <div 
-            className="whitespace-pre-wrap text-sm leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: note.content.replace(/\n/g, '<br>') }}
+            className="whitespace-pre-wrap leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: note.content }}
           />
         </div>
       </div>
