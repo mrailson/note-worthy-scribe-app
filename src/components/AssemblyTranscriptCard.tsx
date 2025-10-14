@@ -5,18 +5,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Waves, ChevronDown, ChevronRight } from "lucide-react";
 
-interface DeepgramTranscriptCardProps {
+interface AssemblyTranscriptCardProps {
   transcript: string;
   wordCount: number;
   isRecording: boolean;
 }
 
-export const DeepgramTranscriptCard: React.FC<DeepgramTranscriptCardProps> = ({
+export const AssemblyTranscriptCard: React.FC<AssemblyTranscriptCardProps> = ({
   transcript,
   wordCount,
   isRecording
 }) => {
-  const [isOpen, setIsOpen] = useState(true); // Open by default for testing
+  const [isOpen, setIsOpen] = useState(true);
   
   return (
     <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -26,7 +26,7 @@ export const DeepgramTranscriptCard: React.FC<DeepgramTranscriptCardProps> = ({
             <div className="flex items-center justify-between">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Waves className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                Deepgram Transcript (Backup)
+                Assembly AI Transcript (Backup)
               </CardTitle>
               <div className="flex items-center gap-2">
                 {isRecording && (
@@ -66,10 +66,10 @@ export const DeepgramTranscriptCard: React.FC<DeepgramTranscriptCardProps> = ({
                   {isRecording ? (
                     <>
                       <Waves className="h-12 w-12 mx-auto mb-2 text-primary/50 animate-pulse" />
-                      <p>Waiting for Deepgram transcription...</p>
+                      <p>Waiting for Assembly AI transcription...</p>
                     </>
                   ) : (
-                    <p>No Deepgram transcript available</p>
+                    <p>No Assembly AI transcript available</p>
                   )}
                 </div>
               )}

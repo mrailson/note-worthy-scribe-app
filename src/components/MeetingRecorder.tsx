@@ -40,7 +40,7 @@ import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
-import { DeepgramTranscriptCard } from "@/components/DeepgramTranscriptCard";
+import { AssemblyTranscriptCard } from "@/components/AssemblyTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
@@ -57,7 +57,7 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
-import { DeepgramTranscriber } from '@/utils/DeepgramTranscriber';
+import { AssemblyAIRealtimeTranscriber, TranscriptData as AssemblyTranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
@@ -118,8 +118,8 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
-  const [deepgramTranscript, setDeepgramTranscript] = useState(""); // Deepgram backup transcript
-  const [deepgramWordCount, setDeepgramWordCount] = useState(0);
+  const [assemblyTranscript, setAssemblyTranscript] = useState(""); // Assembly AI backup transcript
+  const [assemblyWordCount, setAssemblyWordCount] = useState(0);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
@@ -333,10 +333,8 @@ export const MeetingRecorder = ({
       desktopTranscriberRef.current = null;
     }
 
-    if (deepgramTranscriberRef.current) {
-      deepgramTranscriberRef.current.stopTranscription();
-      deepgramTranscriberRef.current = null;
-    }
+    // Stop Assembly AI transcriber
+    stopAssemblyAI();
     
     // Clear recording audio if playing
     if (recordingAudioRef.current) {
@@ -1213,11 +1211,7 @@ export const MeetingRecorder = ({
             return newTranscript;
           });
 
-          // Send to Deepgram for backup transcription (fire and forget)
-          sendToDeepgram(chunkBlob, meetingId, currentChunkNumber).catch(err => {
-            console.error('⚠️ Deepgram backup failed for chunk', currentChunkNumber, ':', err);
-            console.error('⚠️ Error details:', JSON.stringify(err, null, 2));
-          });
+          // Assembly AI backup transcription is handled by real-time client
 
           // Update word count with immediate feedback
           const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
@@ -1291,57 +1285,50 @@ export const MeetingRecorder = ({
     });
   };
 
-  // Send audio to Deepgram for backup transcription
-  const sendToDeepgram = async (audioBlob: Blob, meetingId: string, chunkNumber: number) => {
+  // Start Assembly AI for backup transcription
+  const startAssemblyAI = () => {
     try {
-      const sessionId = sessionStorage.getItem('currentMeetingId') || meetingId;
-      const base64Audio = await convertBlobToBase64(audioBlob);
+      console.log('🚀 Starting Assembly AI realtime transcriber...');
       
-      console.log(`🌊 Deepgram: Sending chunk ${chunkNumber} (audio size: ${audioBlob.size} bytes, base64: ${base64Audio.length} chars)`);
-      
-      // Call Deepgram via direct fetch to ensure request reaches Edge Function
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/standalone-deepgram', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+      const transcriber = new AssemblyAIRealtimeTranscriber(
+        (data: AssemblyTranscriptData) => {
+          // Handle transcription data
+          if (data.is_final && data.text) {
+            console.log(`✅ Assembly AI final: "${data.text.substring(0, 50)}..."`);
+            setAssemblyTranscript(prev => {
+              const newText = prev + (prev ? ' ' : '') + data.text;
+              const words = newText.trim().split(/\s+/).length;
+              setAssemblyWordCount(words);
+              console.log(`📊 Assembly AI transcript updated: ${words} words total`);
+              return newText;
+            });
+          } else if (data.text) {
+            console.log(`📝 Assembly AI partial: "${data.text.substring(0, 30)}..."`);
+          }
         },
-        body: JSON.stringify({
-          audio: base64Audio,
-          meetingId: meetingId,
-          sessionId: sessionId,
-          chunkNumber: chunkNumber,
-          mimeType: (audioBlob as any).type || 'audio/webm'
-        })
-      });
-
-      const data = await response.json();
-      const error = response.ok ? null : { message: data?.error || `HTTP ${response.status}` };
-
-      console.log(`🌊 Deepgram response for chunk ${chunkNumber}:`, { data, error });
-
-      if (error) {
-        console.error(`❌ Deepgram error for chunk ${chunkNumber}:`, error);
-        return;
-      }
-
-      if (data?.text) {
-        console.log(`✅ Deepgram chunk ${chunkNumber}: "${data.text.substring(0, 50)}..." (confidence: ${data.confidence})`);
-        
-        setDeepgramTranscript(prev => {
-          const newText = prev + (prev ? ' ' : '') + data.text;
-          const words = newText.trim().split(/\s+/).length;
-          setDeepgramWordCount(words);
-          console.log(`📊 Deepgram transcript updated: ${words} words total`);
-          return newText;
-        });
-      } else {
-        console.warn(`⚠️ No text in Deepgram response for chunk ${chunkNumber}:`, data);
-      }
+        (error: string) => {
+          console.error('❌ Assembly AI error:', error);
+        },
+        (status: string) => {
+          console.log('📡 Assembly AI status:', status);
+        }
+      );
+      
+      assemblyTranscriberRef.current = transcriber;
+      transcriber.startTranscription();
+      
+      console.log('✅ Assembly AI transcriber started');
     } catch (err) {
-      console.error(`⚠️ Deepgram exception for chunk ${chunkNumber}:`, err);
-      console.error('⚠️ Stack:', err instanceof Error ? err.stack : String(err));
+      console.error('⚠️ Assembly AI startup exception:', err);
+    }
+  };
+
+  // Stop Assembly AI transcription
+  const stopAssemblyAI = () => {
+    if (assemblyTranscriberRef.current) {
+      console.log('🛑 Stopping Assembly AI transcriber...');
+      assemblyTranscriberRef.current.stopTranscription();
+      assemblyTranscriberRef.current = null;
     }
   };
 
@@ -1535,7 +1522,7 @@ export const MeetingRecorder = ({
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
-  const deepgramTranscriberRef = useRef<DeepgramTranscriber | null>(null);
+  const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
   const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
@@ -1670,9 +1657,8 @@ export const MeetingRecorder = ({
         if (desktopTranscriberRef.current) {
           desktopTranscriberRef.current.stopTranscription();
         }
-        if (deepgramTranscriberRef.current) {
-          deepgramTranscriberRef.current.stopTranscription();
-        }
+        // Stop Assembly AI transcriber
+        stopAssemblyAI();
         
         // Send last buffered text to server (best-effort)
         const currentSessionId = sessionStorage.getItem('currentSessionId');
@@ -2019,27 +2005,19 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Deepgram transcription
-  const startDeepgramTranscription = async (meetingId: string) => {
+  // Assembly AI transcription (replaces Deepgram)
+  const startAssemblyTranscription = async (meetingId: string) => {
     try {
-      console.log('🔗 Starting Deepgram transcription...');
-      addDebugLog('🔗 Starting Deepgram transcription...');
+      console.log('🔗 Starting Assembly AI transcription...');
+      addDebugLog('🔗 Starting Assembly AI transcription...');
       
-      deepgramTranscriberRef.current = new DeepgramTranscriber(
-        handleBrowserTranscript,
-        handleTranscriptionError,
-        handleStatusChange,
-        handleLiveSummary,
-        meetingId
-      );
-
-      console.log('🔗 Starting Deepgram transcription...');
-      await deepgramTranscriberRef.current.startTranscription();
-      console.log('✅ Deepgram transcription started successfully');
-      addDebugLog('✅ Deepgram transcription started');
+      startAssemblyAI();
+      
+      console.log('✅ Assembly AI transcription started successfully');
+      addDebugLog('✅ Assembly AI transcription started');
     } catch (error) {
-      console.error('❌ Deepgram transcription error:', error);
-      addDebugLog(`❌ Failed to start Deepgram transcription: ${error}`);
+      console.error('❌ Assembly AI transcription error:', error);
+      addDebugLog(`❌ Failed to start Assembly AI transcription: ${error}`);
       
       // Fall back to Whisper
       console.log('🔄 Falling back to Whisper transcription...');
@@ -2111,11 +2089,11 @@ export const MeetingRecorder = ({
     console.log(`🎙️ Starting transcription with service: ${selectedService}`);
     addDebugLog(`🎙️ Starting transcription with service: ${selectedService}`);
     
-    if (selectedService === 'deepgram') {
-      await startDeepgramTranscription(meetingId);
-    } else {
-      await startWhisperTranscription(meetingId);
-    }
+    // Start Assembly AI backup regardless of primary service
+    startAssemblyAI();
+    
+    // Use Whisper as primary service (assembly is backup only)
+    await startWhisperTranscription(meetingId);
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
@@ -2798,9 +2776,8 @@ export const MeetingRecorder = ({
         desktopTranscriberRef.current.stopTranscription();
       }
 
-      if (deepgramTranscriberRef.current) {
-        deepgramTranscriberRef.current.stopTranscription();
-      }
+      // Stop Assembly AI transcriber
+      stopAssemblyAI();
       
       // Clear timer
       if (intervalRef.current) {
@@ -3257,10 +3234,8 @@ export const MeetingRecorder = ({
         desktopTranscriberRef.current = null;
       }
       
-      if (deepgramTranscriberRef.current) {
-        deepgramTranscriberRef.current.stopTranscription();
-        deepgramTranscriberRef.current = null;
-      }
+      // Stop Assembly AI transcriber
+      stopAssemblyAI();
       
       // Stop microphone stream
       if (micAudioStreamRef.current) {
@@ -3335,12 +3310,9 @@ export const MeetingRecorder = ({
       desktopTranscriberRef.current = null;
     }
 
-    // Stop Deepgram transcriber and wait for final processing
-    if (deepgramTranscriberRef.current) {
-      deepgramTranscriberRef.current.stopTranscription();
-       await new Promise(resolve => setTimeout(resolve, 200));
-      deepgramTranscriberRef.current = null;
-    }
+    // Stop Assembly AI transcriber and wait for final processing
+    stopAssemblyAI();
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     
@@ -4469,9 +4441,8 @@ export const MeetingRecorder = ({
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
-      if (deepgramTranscriberRef.current) {
-        deepgramTranscriberRef.current.stopTranscription();
-      }
+      // Stop Assembly AI transcriber
+      stopAssemblyAI();
       
       // Mute audio streams but keep them alive
       if (micAudioStreamRef.current) {
@@ -4987,10 +4958,10 @@ export const MeetingRecorder = ({
             className="border-accent/30"
           />
           
-          {/* Deepgram Backup Transcript */}
-          <DeepgramTranscriptCard
-            transcript={deepgramTranscript}
-            wordCount={deepgramWordCount}
+          {/* Assembly AI Backup Transcript */}
+          <AssemblyTranscriptCard
+            transcript={assemblyTranscript}
+            wordCount={assemblyWordCount}
             isRecording={isRecording}
           />
           
