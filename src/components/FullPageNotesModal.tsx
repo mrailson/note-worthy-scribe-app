@@ -2996,7 +2996,7 @@ ${transcript}`;
                                     style={{ zIndex: 150 }}
                                   >
                                     <DropdownMenuItem 
-                                      onClick={() => {
+                                      onSelect={() => {
                                         if (content) {
                                           generateAdvancedWordDocument(content, tabName);
                                         }
@@ -3006,7 +3006,7 @@ ${transcript}`;
                                       Download Word
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
-                                      onClick={async () => {
+                                      onSelect={async () => {
                                         if (content) {
                                           const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
                                         }
@@ -3016,7 +3016,7 @@ ${transcript}`;
                                       Copy to Clipboard
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
-                                      onClick={() => {
+                                      onSelect={() => {
                                         console.log('📧 Send Email clicked from dropdown', { tabName, hasContent: !!content });
                                         setEmailModalContent({ title: tabName, notes: content || '' });
                                         setEmailModalOpen(true);
