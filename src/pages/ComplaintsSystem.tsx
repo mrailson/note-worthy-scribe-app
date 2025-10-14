@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDeviceInfo } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,6 +64,7 @@ import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { createLetterDocument } from "@/utils/letterFormatter";
+import { cn } from "@/lib/utils";
 
 interface Complaint {
   id: string;
@@ -115,6 +117,7 @@ interface ComplaintFormData {
 const ComplaintsSystem = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const deviceInfo = useDeviceInfo();
   
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1298,37 +1301,71 @@ const ComplaintsSystem = () => {
         {/* NHS Compliance Banner */}
         <NHSComplianceBanner activeSessionsCount={getActiveSessionCount()} />
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 h-auto p-1">
-            <TabsTrigger value="dashboard" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className={cn(
+          deviceInfo.isIPhone ? "space-y-3" : "space-y-4 sm:space-y-6"
+        )}>
+          <TabsList className={cn(
+            "grid w-full gap-1 p-1",
+            deviceInfo.isIPhone 
+              ? "grid-cols-3 h-auto" 
+              : "grid-cols-2 sm:grid-cols-5 h-auto"
+          )}>
+            <TabsTrigger 
+              value="dashboard" 
+              className={cn(
+                "flex items-center gap-1 text-xs sm:text-sm touch-manipulation",
+                deviceInfo.isIPhone ? "min-h-[52px] flex-col py-2" : "min-h-[44px]"
+              )}
+            >
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden">Home</span>
             </TabsTrigger>
-            <TabsTrigger value="view" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger 
+              value="view" 
+              className={cn(
+                "flex items-center gap-1 text-xs sm:text-sm touch-manipulation",
+                deviceInfo.isIPhone ? "min-h-[52px] flex-col py-2" : "min-h-[44px]"
+              )}
+            >
               <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">View Complaints</span>
               <span className="sm:hidden">View</span>
             </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger 
+              value="new" 
+              className={cn(
+                "flex items-center gap-1 text-xs sm:text-sm touch-manipulation",
+                deviceInfo.isIPhone ? "min-h-[52px] flex-col py-2" : "min-h-[44px]"
+              )}
+            >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Complaint</span>
               <span className="sm:hidden">New</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <BarChart3 className="h-4 w-4" />
-              <span>Reports</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Signature Settings</span>
-              <span className="sm:hidden">Settings</span>
-            </TabsTrigger>
+            {!deviceInfo.isIPhone && (
+              <>
+                <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Reports</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">Signature Settings</span>
+                  <span className="sm:hidden">Settings</span>
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
 
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+           {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className={cn(
+            deviceInfo.isIPhone ? "space-y-3" : "space-y-4 sm:space-y-6"
+          )}>
+            <div className={cn(
+              "grid gap-3 sm:gap-4",
+              deviceInfo.isIPhone ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4"
+            )}>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
                       setDashboardFilter("all"); 
@@ -1602,12 +1639,23 @@ const ComplaintsSystem = () => {
                     )}
                     
                     {paginatedComplaints.map((complaint) => (
-                    <Card key={complaint.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-lg">{complaint.complaint_title}</CardTitle>
+                    <Card key={complaint.id} className={cn(
+                      "hover:shadow-md transition-shadow",
+                      deviceInfo.isIPhone && "touch-manipulation"
+                    )}>
+                      <CardHeader className={cn(deviceInfo.isIPhone && "pb-3")}>
+                        <div className={cn(
+                          "flex items-center justify-between",
+                          deviceInfo.isIPhone && "flex-col items-start gap-2"
+                        )}>
+                          <div className={cn(
+                            "space-y-1",
+                            deviceInfo.isIPhone && "w-full"
+                          )}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <CardTitle className={cn(
+                                deviceInfo.isIPhone ? "text-base" : "text-lg"
+                              )}>{complaint.complaint_title}</CardTitle>
                               {isOverdue(complaint) && (
                                 <Badge variant="destructive" className="text-xs">
                                   <AlertCircle className="h-3 w-3 mr-1" />
@@ -1615,9 +1663,12 @@ const ComplaintsSystem = () => {
                                 </Badge>
                               )}
                             </div>
-                            <CardDescription className="flex items-center gap-4">
-                              <span><strong>Ref:</strong> {complaint.reference_number}</span>
-                              <span><strong>Patient:</strong> {
+                            <CardDescription className={cn(
+                              "flex items-center gap-2 flex-wrap",
+                              deviceInfo.isIPhone && "text-xs"
+                            )}>
+                              <span className="whitespace-nowrap"><strong>Ref:</strong> {complaint.reference_number}</span>
+                              <span className={cn(deviceInfo.isIPhone && "whitespace-nowrap")}><strong>Patient:</strong> {
                                 hasActiveAccess(complaint.id) 
                                   ? complaint.patient_name
                                   : maskPatientData(complaint, { 
@@ -1625,18 +1676,27 @@ const ComplaintsSystem = () => {
                                       roleLevel: getUserRoleLevel(userRole) 
                                     }).name
                               }</span>
-                              <span><strong>Date:</strong> {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</span>
+                              <span className="whitespace-nowrap"><strong>Date:</strong> {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</span>
                             </CardDescription>
                           </div>
-                          <div className="flex gap-2">
+                          <div className={cn(
+                            "flex gap-2",
+                            deviceInfo.isIPhone && "w-full flex-wrap"
+                          )}>
                             <div className="flex items-center gap-1">
-                              <span className="text-xs font-medium text-muted-foreground">Priority:</span>
+                              <span className={cn(
+                                "font-medium text-muted-foreground",
+                                deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
+                              )}>Priority:</span>
                               <Badge className={getPriorityColor(complaint.priority)}>
                                 {getPriorityLabel(complaint.priority)}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-xs font-medium text-muted-foreground">Status:</span>
+                              <span className={cn(
+                                "font-medium text-muted-foreground",
+                                deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
+                              )}>Status:</span>
                               <Badge className={getStatusColor(complaint.status)}>
                                 {getStatusIcon(complaint.status)}
                                 <span className="ml-1">{getStatusLabel(complaint.status)}</span>
@@ -2107,16 +2167,34 @@ const ComplaintsSystem = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-4">
-                    <Button type="submit" disabled={submitting}>
+                  <div className={cn(
+                    "pt-4",
+                    deviceInfo.isIPhone ? "flex flex-col gap-3" : "flex gap-4"
+                  )}>
+                    <Button 
+                      type="submit" 
+                      disabled={submitting}
+                      className={cn(
+                        deviceInfo.isIPhone && "w-full min-h-[48px] text-base"
+                      )}
+                    >
                       {submitting ? "Submitting..." : "Submit Complaint"}
                     </Button>
-                    <Button type="button" variant="outline">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      className={cn(
+                        deviceInfo.isIPhone && "w-full min-h-[48px]"
+                      )}
+                    >
                       Save as Draft
                     </Button>
                     <Button 
                       type="button" 
                       variant="outline"
+                      className={cn(
+                        deviceInfo.isIPhone && "w-full min-h-[48px]"
+                      )}
                       onClick={() => setFormData({
                         patient_name: "",
                         patient_dob: "",

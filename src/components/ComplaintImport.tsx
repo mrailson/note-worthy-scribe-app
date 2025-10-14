@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
+import { useDeviceInfo } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface ComplaintData {
   patient_name?: string;
@@ -34,6 +36,7 @@ interface ComplaintImportProps {
 }
 
 export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracted, onClose }) => {
+  const deviceInfo = useDeviceInfo();
   const [textContent, setTextContent] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -138,27 +141,43 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Import Complaint Data
+    <div className={cn(
+      "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
+      deviceInfo.isIPhone ? "p-2" : "p-4"
+    )}>
+      <Card className={cn(
+        "w-full overflow-y-auto",
+        deviceInfo.isIPhone 
+          ? "max-w-full h-full rounded-none" 
+          : "max-w-4xl max-h-[90vh] rounded-lg"
+      )}>
+        <CardHeader className={cn(
+          deviceInfo.isIPhone && "sticky top-0 z-10 bg-card border-b"
+        )}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <CardTitle className={cn(
+                "flex items-center gap-2",
+                deviceInfo.isIPhone ? "text-base" : "text-lg"
+              )}>
+                <Upload className={cn(deviceInfo.isIPhone ? "h-4 w-4" : "h-5 w-5")} />
+                <span className="truncate">Import Complaint</span>
               </CardTitle>
-              <CardDescription>
-                Upload files or paste text to automatically extract complaint information using AI
+              <CardDescription className={cn(
+                deviceInfo.isIPhone ? "text-xs hidden sm:block" : "text-sm"
+              )}>
+                Upload photos or paste text to extract complaint information
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download Examples
-                  </Button>
-                </DropdownMenuTrigger>
+            <div className="flex gap-2 flex-shrink-0">
+              {!deviceInfo.isIPhone && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-1" />
+                      Examples
+                    </Button>
+                  </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
                   <DropdownMenuItem onClick={() => downloadExample(1, "High Priority - Clinical Care & Staff Attitude")}>
                     Example 1: High Priority - Clinical Care & Staff Attitude
@@ -191,60 +210,127 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                     Example 10: Medium Priority - Prescription Error
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
-              <Button variant="outline" onClick={onClose}>
+                </DropdownMenu>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+                className={cn(deviceInfo.isIPhone && "min-h-[44px] px-4")}
+              >
                 Close
               </Button>
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-6">
-          <Alert>
+        <CardContent className={cn(
+          "space-y-6",
+          deviceInfo.isIPhone && "pb-safe"
+        )}>
+          <Alert className={cn(deviceInfo.isIPhone && "text-xs")}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Supported formats: Images (JPG, PNG), Text files, Email content. 
-              <strong>For Word documents and PDFs:</strong> Please copy the text content and paste it in the Text/Email tab for best results.
-              AI will automatically extract patient details, incident information, and complaint specifics.
+              {deviceInfo.isIPhone ? (
+                <>
+                  <strong>Take a photo</strong> of the complaint letter or paste text.
+                  AI extracts patient details and incident information automatically.
+                </>
+              ) : (
+                <>
+                  Supported formats: Images (JPG, PNG), Text files, Email content. 
+                  <strong>For Word documents and PDFs:</strong> Please copy the text content and paste it in the Text/Email tab for best results.
+                  AI will automatically extract patient details, incident information, and complaint specifics.
+                </>
+              )}
             </AlertDescription>
           </Alert>
 
           <Tabs defaultValue="file" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="file" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                File Upload
+            <TabsList className={cn(
+              "grid w-full grid-cols-2",
+              deviceInfo.isIPhone && "h-auto"
+            )}>
+              <TabsTrigger 
+                value="file" 
+                className={cn(
+                  "flex items-center gap-2",
+                  deviceInfo.isIPhone && "py-3 min-h-[48px]"
+                )}
+              >
+                {deviceInfo.isIPhone ? (
+                  <>
+                    <Camera className="h-4 w-4" />
+                    Photo
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    File Upload
+                  </>
+                )}
               </TabsTrigger>
-              <TabsTrigger value="text" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="text" 
+                className={cn(
+                  "flex items-center gap-2",
+                  deviceInfo.isIPhone && "py-3 min-h-[48px]"
+                )}
+              >
                 <Mail className="h-4 w-4" />
-                Text/Email
+                {deviceInfo.isIPhone ? "Text" : "Text/Email"}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="file" className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className={cn(
+                "border-2 border-dashed border-gray-300 rounded-lg text-center",
+                deviceInfo.isIPhone ? "p-6" : "p-8"
+              )}>
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx,.txt,.eml,.jpg,.jpeg,.png"
+                  accept="image/*,.pdf,.doc,.docx,.txt,.eml"
+                  capture={deviceInfo.isIPhone ? "environment" : undefined}
                   onChange={handleFileSelect}
                   className="hidden"
                   id="file-upload"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
-                  <div className="space-y-4">
+                  <div className={cn(
+                    "space-y-4",
+                    deviceInfo.isIPhone && "py-4"
+                  )}>
                     <div className="flex justify-center">
                       {selectedFile ? (
-                        <CheckCircle className="h-12 w-12 text-green-500" />
+                        <CheckCircle className={cn(
+                          "text-green-500",
+                          deviceInfo.isIPhone ? "h-16 w-16" : "h-12 w-12"
+                        )} />
+                      ) : deviceInfo.isIPhone ? (
+                        <Camera className="h-16 w-16 text-primary" />
                       ) : (
                         <Upload className="h-12 w-12 text-gray-400" />
                       )}
                     </div>
                     <div>
-                      <p className="text-lg font-medium">
-                        {selectedFile ? selectedFile.name : 'Choose a file to upload'}
+                      <p className={cn(
+                        "font-medium",
+                        deviceInfo.isIPhone ? "text-base" : "text-lg"
+                      )}>
+                        {selectedFile 
+                          ? selectedFile.name 
+                          : deviceInfo.isIPhone 
+                            ? 'Take Photo or Choose File'
+                            : 'Choose a file to upload'
+                        }
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        PDF, Word, Image, Text, or Email files up to 10MB
+                      <p className={cn(
+                        "text-muted-foreground mt-2",
+                        deviceInfo.isIPhone ? "text-xs" : "text-sm"
+                      )}>
+                        {deviceInfo.isIPhone 
+                          ? 'Photos, PDFs, or text files up to 10MB'
+                          : 'PDF, Word, Image, Text, or Email files up to 10MB'
+                        }
                       </p>
                     </div>
                   </div>
@@ -252,26 +338,39 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               </div>
               
               {selectedFile && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm">{selectedFile.name}</span>
-                    <Badge variant="secondary">
+                <div className={cn(
+                  "flex items-center justify-between bg-gray-50 rounded-lg",
+                  deviceInfo.isIPhone ? "p-4 flex-col gap-3" : "p-3"
+                )}>
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    deviceInfo.isIPhone && "w-full"
+                  )}>
+                    <FileText className="h-4 w-4 flex-shrink-0" />
+                    <span className={cn(
+                      "truncate flex-1",
+                      deviceInfo.isIPhone ? "text-sm" : "text-sm"
+                    )}>{selectedFile.name}</span>
+                    <Badge variant="secondary" className="flex-shrink-0">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </Badge>
                   </div>
                   <Button 
-                    size="sm" 
+                    size={deviceInfo.isIPhone ? "default" : "sm"}
                     onClick={() => handleImport('file')}
                     disabled={processing}
+                    className={cn(deviceInfo.isIPhone && "w-full min-h-[48px]")}
                   >
                     {processing ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
                       </>
                     ) : (
-                      'Extract Data'
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Extract Data
+                      </>
                     )}
                   </Button>
                 </div>
@@ -294,7 +393,10 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               <Button 
                 onClick={() => handleImport('text')}
                 disabled={processing || !textContent.trim()}
-                className="w-full"
+                className={cn(
+                  "w-full",
+                  deviceInfo.isIPhone && "min-h-[48px] text-base"
+                )}
               >
                 {processing ? (
                   <>
@@ -303,7 +405,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   </>
                 ) : (
                   <>
-                    <Image className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-4 w-4 mr-2" />
                     Extract Data from Text
                   </>
                 )}
@@ -359,12 +461,25 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-4">
-                  <Button onClick={handleConfirmData} className="flex-1">
+                <div className={cn(
+                  "flex gap-2 pt-4",
+                  deviceInfo.isIPhone && "flex-col"
+                )}>
+                  <Button 
+                    onClick={handleConfirmData} 
+                    className={cn(
+                      "flex-1",
+                      deviceInfo.isIPhone && "min-h-[48px] text-base w-full"
+                    )}
+                  >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Import This Data
                   </Button>
-                  <Button variant="outline" onClick={() => setExtractedData(null)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setExtractedData(null)}
+                    className={cn(deviceInfo.isIPhone && "min-h-[48px] w-full")}
+                  >
                     Try Again
                   </Button>
                 </div>
