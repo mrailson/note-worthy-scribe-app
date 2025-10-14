@@ -4,13 +4,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Minus, ChevronDown } from 'lucide-react';
 import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
 import AITestModal from '@/components/AITestModal';
 import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AudioUploadModal } from '@/components/AudioUploadModal';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -36,6 +37,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const navigate = useNavigate();
   const { practiceContext, practiceDetails } = usePracticeContext();
   const isMobile = useIsMobile();
+  const deviceInfo = useDeviceInfo();
   const [isAITestModalOpen, setIsAITestModalOpen] = useState(false);
   const [showMeetingNotesInterface, setShowMeetingNotesInterface] = useState(false);
   const [isPowerPointOpen, setIsPowerPointOpen] = useState(false);
@@ -178,8 +180,14 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         </div>
       )}
 
-      <div className="space-y-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className={cn(
+        "space-y-2",
+        deviceInfo.isIPhone && "space-y-3"
+      )}>
+        <div className={cn(
+          "grid gap-2",
+          deviceInfo.isIPhone ? "grid-cols-1 gap-3" : "grid-cols-1 sm:grid-cols-2 gap-2"
+        )}>
           {visibleActions.map((action, index) => {
             const IconComponent = action.icon;
             
@@ -223,13 +231,25 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="justify-between text-left h-auto py-2 px-3 w-full"
+                      className={cn(
+                        "justify-between text-left h-auto w-full",
+                        deviceInfo.isIPhone ? "py-3 px-4 min-h-[48px]" : "py-2 px-3"
+                      )}
                     >
                       <div className="flex items-center">
-                        <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{action.label}</span>
+                        <IconComponent className={cn(
+                          "flex-shrink-0 mr-2",
+                          deviceInfo.isIPhone ? "w-5 h-5" : "w-4 h-4"
+                        )} />
+                        <span className={cn(
+                          "truncate",
+                          deviceInfo.isIPhone && "text-base"
+                        )}>{action.label}</span>
                       </div>
-                      <ChevronDown className="w-3 h-3 ml-1" />
+                      <ChevronDown className={cn(
+                        "ml-1",
+                        deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3"
+                      )} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
@@ -285,11 +305,20 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 key={index}
                 variant="outline"
                 size="sm"
-                className="justify-start text-left h-auto py-2 px-3"
+                className={cn(
+                  "justify-start text-left h-auto",
+                  deviceInfo.isIPhone ? "py-3 px-4 min-h-[48px]" : "py-2 px-3"
+                )}
                 onClick={handleClick}
               >
-                <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
-                <span className="truncate">{action.label}</span>
+                <IconComponent className={cn(
+                  "flex-shrink-0 mr-2",
+                  deviceInfo.isIPhone ? "w-5 h-5" : "w-4 h-4"
+                )} />
+                <span className={cn(
+                  "truncate",
+                  deviceInfo.isIPhone && "text-base"
+                )}>{action.label}</span>
               </Button>
             );
           })}
@@ -301,16 +330,19 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => setShowAllQuickActions(!showAllQuickActions)}
-            className="w-full"
+            className={cn(
+              "w-full",
+              deviceInfo.isIPhone && "py-3 min-h-[48px] text-base"
+            )}
           >
             {showAllQuickActions ? (
               <>
-                <Minus className="w-4 h-4 mr-2" />
+                <Minus className={cn(deviceInfo.isIPhone ? "w-5 h-5 mr-2" : "w-4 h-4 mr-2")} />
                 Show Less
               </>
             ) : (
               <>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className={cn(deviceInfo.isIPhone ? "w-5 h-5 mr-2" : "w-4 h-4 mr-2")} />
                 Show More ({currentActions.length - maxVisibleActions} more)
               </>
             )}

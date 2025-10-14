@@ -350,11 +350,16 @@ const AI4GPService = () => {
 
           {/* Main Chat Area */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <Card className="flex-1 flex flex-col min-h-0">
-              <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center">
-                    <CardTitle className="flex items-center text-sm sm:text-base">
+            <Card className="flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm">
+              <CardHeader className={cn(
+                "border-b flex-shrink-0",
+                deviceInfo.isIPhone 
+                  ? "px-4 py-3 bg-background/95 backdrop-blur-sm sticky top-0 z-10" 
+                  : "px-3 py-2 sm:px-6 sm:py-4"
+              )}>
+                <div className="flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="flex items-center min-w-0 flex-1">
+                    <CardTitle className="flex items-center text-sm sm:text-base min-w-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -366,14 +371,23 @@ const AI4GPService = () => {
                                 setShowAIChat(false);
                                 setShowNews(false);
                               }}
-                              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative"
+                              className={cn(
+                                "flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative",
+                                deviceInfo.isIPhone && "min-h-[44px]"
+                              )}
                             >
-                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                              <div className="flex flex-col">
-                                <span className="hidden sm:inline">
+                              <Sparkles className={cn(
+                                "text-primary flex-shrink-0",
+                                deviceInfo.isIPhone ? "w-5 h-5 mr-2" : "w-4 h-4 sm:w-5 sm:h-5 mr-2"
+                              )} />
+                              <div className="flex flex-col min-w-0">
+                                <span className="hidden sm:inline truncate">
                                   {selectedRole === 'practice-manager' ? 'AI 4 PM Service' : 'AI 4 GP Service'}
                                 </span>
-                                <span className="sm:hidden">
+                                <span className={cn(
+                                  "sm:hidden truncate font-semibold",
+                                  deviceInfo.isIPhone && "text-base"
+                                )}>
                                   {selectedRole === 'practice-manager' ? 'AI4PM' : 'AI4GP'}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
@@ -391,9 +405,14 @@ const AI4GPService = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowSearchHistory(!showSearchHistory)}
-                        className="ml-3 px-2 sm:px-3"
+                        className={cn(
+                          "ml-2 sm:ml-3 flex-shrink-0",
+                          deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
+                        )}
                       >
-                        <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <History className={cn(
+                          deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4 sm:mr-1"
+                        )} />
                         <span className="hidden sm:inline text-xs">History</span>
                       </Button>
                       
@@ -406,15 +425,19 @@ const AI4GPService = () => {
                   </div>
 
                   
-                   <div className="flex items-center gap-1 sm:gap-2">
+                   <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="px-2 sm:px-3"
+                          className={cn(
+                            deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
+                          )}
                         >
-                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <MoreVertical className={cn(
+                            deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4"
+                          )} />
                           <span className="hidden sm:inline text-xs ml-1">Quick Pick</span>
                         </Button>
                       </DropdownMenuTrigger>
@@ -477,9 +500,13 @@ const AI4GPService = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowSettings(true)}
-                        className="px-2 sm:px-3"
+                        className={cn(
+                          deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
+                        )}
                       >
-                        <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                        <Settings className={cn(
+                          deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4 sm:mr-1"
+                        )} />
                         <span className="hidden sm:inline text-xs">Settings</span>
                       </Button>
                    </div>
@@ -554,35 +581,51 @@ const AI4GPService = () => {
 
               {/* Main Chat Content - Only show when services are not active */}
               {!showImageCreate && !showImageService && !showNews && (
-                <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
+                <CardContent className={cn(
+                  "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
+                  deviceInfo.isIPhone && "pb-safe"
+                )}>
                   {messages.length === 0 ? (
                     /* Welcome Screen - Compact, mobile-optimized */
-                    <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className="w-full max-w-2xl mx-auto">
-                        <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
+                    <div className={cn(
+                      "flex-1 overflow-y-auto space-y-3 sm:space-y-4",
+                      deviceInfo.isIPhone ? "p-4 pb-24" : "p-3 sm:p-6"
+                    )} style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="w-full max-w-2xl mx-auto space-y-4">
+                        <p className={cn(
+                          "text-center text-muted-foreground mb-3",
+                          deviceInfo.isIPhone ? "text-sm" : "text-xs sm:text-sm"
+                        )}>
                           Get started with these common queries:
                         </p>
                         
                         {/* Role Selection */}
-                        <div className="flex justify-center mb-4">
-                          <div className="flex bg-muted rounded-lg p-1">
+                        <div className="flex justify-center">
+                          <div className={cn(
+                            "flex bg-muted rounded-lg p-1",
+                            deviceInfo.isIPhone && "w-full max-w-sm"
+                          )}>
                             <button
                               onClick={() => setSelectedRole('gp')}
-                              className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                              className={cn(
+                                "flex-1 rounded-md transition-all",
+                                deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
                                 selectedRole === 'gp'
                                   ? 'bg-background text-foreground shadow-sm font-bold'
                                   : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                              }`}
+                              )}
                             >
                               For GP/Clinical
                             </button>
                             <button
                               onClick={() => setSelectedRole('practice-manager')}
-                              className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                              className={cn(
+                                "flex-1 rounded-md transition-all",
+                                deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
                                 selectedRole === 'practice-manager'
                                   ? 'bg-background text-foreground shadow-sm font-bold'
                                   : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                              }`}
+                              )}
                             >
                               For Practice Managers
                             </button>
@@ -614,7 +657,10 @@ const AI4GPService = () => {
                      </div>
                    ) : (
                     /* Messages Area */
-                    <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    <div className={cn(
+                      "flex-1 overflow-y-auto",
+                      deviceInfo.isIPhone && "pb-24"
+                    )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <MessagesList
                         messages={messages}
                         isLoading={isLoading}

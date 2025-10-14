@@ -3,6 +3,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, Sparkles } from 'lucide-react';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Message } from '@/types/ai4gp';
+import { useDeviceInfo } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface MessagesListProps {
   messages: Message[];
@@ -34,6 +36,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   autoCollapseUserPrompts = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const deviceInfo = useDeviceInfo();
 
   const scrollToBottom = () => {
     if (messagesEndRef.current && messages.length > 0) {
@@ -51,8 +54,14 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   }, [messages]);
 
   return (
-    <ScrollArea className="flex-1 px-2 sm:p-2">
-      <div className="space-y-4 py-2">
+    <ScrollArea className={cn(
+      "flex-1",
+      deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
+    )}>
+      <div className={cn(
+        "space-y-4",
+        deviceInfo.isIPhone ? "py-3" : "py-2"
+      )}>
         {messages.map((message) => (
             <MessageRenderer
             key={message.id}
