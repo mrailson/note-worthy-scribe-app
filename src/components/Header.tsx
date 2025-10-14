@@ -262,6 +262,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      <Settings className="h-4 w-4 mr-2" />
                      User Settings
                    </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/cso')}
+                     className="cursor-pointer py-3"
+                   >
+                     <Shield className="h-4 w-4 mr-2" />
+                     CSO Report
+                   </DropdownMenuItem>
                    {/* Practice Manager Menu */}
                    {hasModuleAccess('practice_manager_access') && (
                      <DropdownMenuItem 
@@ -503,6 +510,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
                                <Settings className="h-4 w-4 mr-2" />
                                User Settings
+                             </Button>
+                           </DrawerClose>
+
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/cso')}>
+                               <Shield className="h-4 w-4 mr-2" />
+                               CSO Report
                              </Button>
                            </DrawerClose>
 
