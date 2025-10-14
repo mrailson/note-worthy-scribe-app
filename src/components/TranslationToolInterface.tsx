@@ -2534,6 +2534,11 @@ export const TranslationToolInterface = () => {
                       )}
                     </Button>
                     
+                    <div className="text-center text-sm text-muted-foreground max-w-md">
+                      <p className="font-medium">🎤 Voice-Based Service</p>
+                      <p>Ensure your speaker is on to hear real-time translations</p>
+                    </div>
+                    
                     {/* Reset Button - Only show after a call has ended and there's memory to clear */}
                     {(qualityScore || currentTranslation || conversationBuffer.length > 0) && (
                       <Button
