@@ -4958,6 +4958,17 @@ export const MeetingRecorder = ({
             </Card>
           </div>
           
+          {/* Deepgram Backup Transcript - Visible during recording for testing */}
+          {isRecording && (
+            <div className="mt-4">
+              <DeepgramTranscriptCard
+                transcript={deepgramTranscript}
+                wordCount={deepgramWordCount}
+                isRecording={isRecording}
+              />
+            </div>
+          )}
+
           {/* Meeting Controls - Bottom Center - Hidden on iPhone */}
           {!isIOS && !isRecording && (
             <div className="flex justify-center items-center gap-3 pt-4">
