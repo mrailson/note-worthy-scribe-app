@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { Loader2, Clock, AlertCircle } from 'lucide-react';
 
 export const AdminMeetingControls = () => {
@@ -21,21 +21,21 @@ export const AdminMeetingControls = () => {
       
       if (error) {
         console.error('Auto-close check failed:', error);
-        toast.error('Auto-close check failed: ' + error.message);
+        showToast.error('Auto-close check failed: ' + error.message, { section: 'system' });
         return;
       }
 
       setLastResult(data);
       
       if (data?.closed_meetings > 0) {
-        toast.success(`Auto-closed ${data.closed_meetings} inactive meeting${data.closed_meetings > 1 ? 's' : ''}`);
+        showToast.success(`Auto-closed ${data.closed_meetings} inactive meeting${data.closed_meetings > 1 ? 's' : ''}`, { section: 'system' });
       } else {
-        toast.info('No inactive meetings found to close');
+        showToast.info('No inactive meetings found to close', { section: 'system' });
       }
       
     } catch (error) {
       console.error('Error in auto-close check:', error);
-      toast.error('Error running auto-close check');
+      showToast.error('Error running auto-close check', { section: 'system' });
     } finally {
       setIsRunning(false);
     }

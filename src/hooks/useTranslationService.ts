@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { AudioQueueItem } from "@/types/gpscribe";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 
 export const useTranslationService = () => {
   const [translationLanguage, setTranslationLanguage] = useState<string>('none');
@@ -45,7 +45,7 @@ export const useTranslationService = () => {
       return newTranslation;
     } catch (error) {
       console.error('Translation error:', error);
-      toast.error('Translation failed');
+      showToast.error('Translation failed', { section: 'translation' });
       return null;
     } finally {
       setIsTranslating(false);
@@ -138,7 +138,7 @@ export const useTranslationService = () => {
       await audio.play();
     } catch (error) {
       console.error('Translation playback error:', error);
-      toast.error('Failed to play translation');
+      showToast.error('Failed to play translation', { section: 'translation' });
     }
   }, [isMuted]);
 

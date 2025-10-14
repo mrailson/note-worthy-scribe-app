@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { Upload, Save, Image as ImageIcon, Building2 } from 'lucide-react';
 
 interface ComplaintSignature {
@@ -165,11 +165,11 @@ export const ComplaintSignatureSettings = () => {
       
       // If no practices found, show a helpful message
       if (!userRoles?.length) {
-        toast.info('No practice assignments found. Please contact your system administrator to assign you to a practice.');
+        showToast.info('No practice assignments found. Please contact your system administrator to assign you to a practice.', { section: 'complaints' });
       }
     } catch (error: any) {
       console.error('Error loading practices:', error);
-      toast.error('Error loading practices. Please check your practice assignments.');
+      showToast.error('Error loading practices. Please check your practice assignments.', { section: 'complaints' });
     }
   };
 
@@ -222,9 +222,9 @@ export const ComplaintSignatureSettings = () => {
         practice_logo_url: urlData.publicUrl
       }));
 
-      toast.success('Practice logo uploaded successfully');
+      showToast.success('Practice logo uploaded successfully', { section: 'complaints' });
     } catch (error: any) {
-      toast.error(`Error uploading logo: ${error.message}`);
+      showToast.error(`Error uploading logo: ${error.message}`, { section: 'complaints' });
     } finally {
       setUploadingLogo(false);
     }
@@ -244,13 +244,13 @@ export const ComplaintSignatureSettings = () => {
       if (!signature.job_title) missingFields.push('Job Title');
       if (!signature.email) missingFields.push('Email');
       
-      toast.error(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+      showToast.error(`Please fill in the following required fields: ${missingFields.join(', ')}`, { section: 'complaints' });
       return;
     }
 
     if (!user?.id) {
       console.log('User not authenticated');
-      toast.error('User not authenticated');
+      showToast.error('User not authenticated', { section: 'complaints' });
       return;
     }
 
@@ -311,12 +311,12 @@ export const ComplaintSignatureSettings = () => {
         }
       }
 
-      toast.success('Signature settings saved successfully');
+      showToast.success('Signature settings saved successfully', { section: 'complaints' });
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (error: any) {
       console.error('Error saving signature settings:', error);
-      toast.error(`Error saving settings: ${error.message}`);
+      showToast.error(`Error saving settings: ${error.message}`, { section: 'complaints' });
     } finally {
       setIsLoading(false);
     }

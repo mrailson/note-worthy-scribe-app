@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 export interface TranslationSession {
   id: string;
@@ -108,7 +108,7 @@ export const useTranslationHistory = () => {
         details: err.details
       });
       setError(err.message || 'Failed to load translation history');
-      toast.error(`Failed to load translation history: ${err.message || 'Unknown error'}`);
+      showToast.error(`Failed to load translation history: ${err.message || 'Unknown error'}`, { section: 'translation' });
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export const useTranslationHistory = () => {
 
     } catch (err: any) {
       console.error('Error saving translation session:', err);
-      toast.error('Failed to save translation session');
+      showToast.error('Failed to save translation session', { section: 'translation' });
       throw err;
     }
   }, [currentSessionId, loadSessions]);
@@ -195,7 +195,7 @@ export const useTranslationHistory = () => {
 
     } catch (err: any) {
       console.error('Error loading session details for session', sessionId, ':', err);
-      toast.error(`Failed to load session details: ${err.message}`);
+      showToast.error(`Failed to load session details: ${err.message}`, { section: 'translation' });
       throw err;
     }
   }, []);
@@ -209,7 +209,7 @@ export const useTranslationHistory = () => {
 
       if (error) throw error;
 
-      toast.success(data.message || 'Translation session deleted');
+      showToast.success(data.message || 'Translation session deleted', { section: 'translation' });
       
       // Remove from local state
       setSessions(prev => prev.filter(s => s.id !== sessionId));
@@ -221,7 +221,7 @@ export const useTranslationHistory = () => {
 
     } catch (err: any) {
       console.error('Error deleting translation session:', err);
-      toast.error(err.message || 'Failed to delete translation session');
+      showToast.error(err.message || 'Failed to delete translation session', { section: 'translation' });
       throw err;
     }
   }, [currentSessionId]);
@@ -242,13 +242,13 @@ export const useTranslationHistory = () => {
       // Update local state
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, ...updates } : s));
 
-      toast.success('Session updated successfully');
+      showToast.success('Session updated successfully', { section: 'translation' });
       
       return data.session;
 
     } catch (err: any) {
       console.error('Error updating translation session:', err);
-      toast.error(err.message || 'Failed to update translation session');
+      showToast.error(err.message || 'Failed to update translation session', { section: 'translation' });
       throw err;
     }
   }, []);
@@ -256,7 +256,7 @@ export const useTranslationHistory = () => {
   // Start new translation session
   const startNewSession = useCallback(() => {
     setCurrentSessionId(null);
-    toast.info('Started new translation session');
+    showToast.info('Started new translation session', { section: 'translation' });
   }, []);
 
   // Auto-save functionality

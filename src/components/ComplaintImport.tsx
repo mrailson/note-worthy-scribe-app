@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface ComplaintData {
   patient_name?: string;
@@ -44,23 +44,23 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     if (file) {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        showToast.error('File size must be less than 10MB', { section: 'complaints' });
         return;
       }
       
       setSelectedFile(file);
-      toast.success(`Selected: ${file.name}`);
+      showToast.success(`Selected: ${file.name}`, { section: 'complaints' });
     }
   };
 
   const handleImport = async (source: 'file' | 'text') => {
     if (source === 'file' && !selectedFile) {
-      toast.error('Please select a file to import');
+      showToast.error('Please select a file to import', { section: 'complaints' });
       return;
     }
     
     if (source === 'text' && !textContent.trim()) {
-      toast.error('Please enter text content to process');
+      showToast.error('Please enter text content to process', { section: 'complaints' });
       return;
     }
 
@@ -83,7 +83,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
 
       if (data.success) {
         setExtractedData(data.complaintData);
-        toast.success('Data extracted successfully! Review and confirm the details.');
+        showToast.success('Data extracted successfully! Review and confirm the details.', { section: 'complaints' });
       } else {
         throw new Error(data.error || 'Failed to process import');
       }
@@ -92,11 +92,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       
       // Show specific error messages for different file types
       if (error.message?.includes('Word document')) {
-        toast.error('Word documents require manual text entry. Please copy the text from your document and paste it in the text area below.');
+        showToast.error('Word documents require manual text entry. Please copy the text from your document and paste it in the text area below.', { section: 'complaints' });
       } else if (error.message?.includes('PDF')) {
-        toast.error('PDF files require manual text entry. Please copy the text from your PDF and paste it in the text area below.');
+        showToast.error('PDF files require manual text entry. Please copy the text from your PDF and paste it in the text area below.', { section: 'complaints' });
       } else {
-        toast.error(error instanceof Error ? error.message : 'Failed to import data. Please try copying and pasting the text instead.');
+        showToast.error(error instanceof Error ? error.message : 'Failed to import data. Please try copying and pasting the text instead.', { section: 'complaints' });
       }
     } finally {
       setProcessing(false);
@@ -107,7 +107,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     if (extractedData) {
       onDataExtracted(extractedData);
       onClose();
-      toast.success('Complaint data imported successfully!');
+      showToast.success('Complaint data imported successfully!', { section: 'complaints' });
     }
   };
 
@@ -130,10 +130,10 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       
-      toast.success(`Downloaded: ${exampleName}`);
+      showToast.success(`Downloaded: ${exampleName}`, { section: 'complaints' });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download example');
+      showToast.error('Failed to download example', { section: 'complaints' });
     }
   };
 
