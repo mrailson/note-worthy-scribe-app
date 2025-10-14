@@ -52,14 +52,23 @@ export const ManualNoteGenerationButton = ({
       }
 
       // Call the auto-generate function
-      const { error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+      console.log('📤 Invoking auto-generate-meeting-notes for:', meetingId);
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           meetingId,
           forceRegenerate: hasExistingNotes 
         }
       });
 
+      console.log('📥 Function response:', { data, error });
+
       if (error) {
+        console.error('❌ Function invocation error:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+          ...error
+        });
         throw error;
       }
 
