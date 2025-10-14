@@ -19,10 +19,10 @@ export const ProtectedRoute = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If user is not logged in, redirect to auth
+    // If user is not logged in, redirect to home
     if (!loading && !user) {
       toast.error('Please log in to access this page.');
-      navigate('/auth', { replace: true });
+      navigate('/', { replace: true });
       return;
     }
 
