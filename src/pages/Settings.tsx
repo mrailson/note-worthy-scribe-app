@@ -48,9 +48,11 @@ import {
   FolderOpen,
   Headphones,
   Stethoscope,
-  Sparkles
+  Sparkles,
+  Bell
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { 
   Select, 
   SelectContent, 
@@ -114,6 +116,17 @@ export default function Settings() {
 
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Toast preferences
+  const {
+    preferences: toastPreferences,
+    toggleSection: toggleToastSection,
+    enableAll: enableAllToasts,
+    disableAll: disableAllToasts,
+    resetToDefaults: resetToastDefaults,
+    allEnabled: allToastsEnabled,
+    allDisabled: allToastsDisabled,
+  } = useToastPreferences();
 
 
   // Fetch NHS terms
@@ -459,7 +472,7 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'} overflow-x-auto`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-4'} overflow-x-auto`}>
               <TabsTrigger value="general" className="flex items-center gap-2 mobile-touch-target">
                 <SettingsIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">General</span>
@@ -476,6 +489,10 @@ export default function Settings() {
                   <span className="hidden sm:inline">NHS Terms</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="notifications" className="flex items-center gap-2 mobile-touch-target">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notifications</span>
+              </TabsTrigger>
               <TabsTrigger value="security" className="flex items-center gap-2 mobile-touch-target">
                 <Shield className="h-4 w-4" />
                 <span className="hidden sm:inline">Security</span>
@@ -1034,6 +1051,203 @@ export default function Settings() {
               )}
              </TabsContent>
             )}
+
+            <TabsContent value="notifications" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Notification Preferences
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Control which types of toast notifications you want to see. You can enable or disable notifications by section.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Master Controls */}
+                  <div className="space-y-4 pb-4 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base font-semibold">Master Control</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {allToastsEnabled ? 'All notifications are enabled' : allToastsDisabled ? 'All notifications are disabled' : 'Some notifications are enabled'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={allToastsEnabled ? disableAllToasts : enableAllToasts}
+                        >
+                          {allToastsEnabled ? 'Disable All' : 'Enable All'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={resetToastDefaults}
+                        >
+                          Reset to Defaults
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Individual Section Controls */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold">Notification Sections</h3>
+                    
+                    {/* AI4GP Service */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-ai4gp" className="font-medium cursor-pointer">
+                            AI4GP Service
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications for AI letter generation, email sending, and document processing operations
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-ai4gp"
+                        checked={toastPreferences.ai4gp}
+                        onCheckedChange={() => toggleToastSection('ai4gp')}
+                      />
+                    </div>
+
+                    {/* Meeting Manager */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-meeting" className="font-medium cursor-pointer">
+                            Meeting Manager
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications for meeting recording, saving, transcription status, and audio processing
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-meeting"
+                        checked={toastPreferences.meeting_manager}
+                        onCheckedChange={() => toggleToastSection('meeting_manager')}
+                      />
+                    </div>
+
+                    {/* Translation Service */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-translation" className="font-medium cursor-pointer">
+                            Translation Service
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications for translation operations, language detection, and translation completion
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-translation"
+                        checked={toastPreferences.translation}
+                        onCheckedChange={() => toggleToastSection('translation')}
+                      />
+                    </div>
+
+                    {/* Complaints System */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <FileCheck className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-complaints" className="font-medium cursor-pointer">
+                            Complaints System
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications for complaint submissions, status updates, and workflow actions
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-complaints"
+                        checked={toastPreferences.complaints}
+                        onCheckedChange={() => toggleToastSection('complaints')}
+                      />
+                    </div>
+
+                    {/* GPScribe */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Stethoscope className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-gpscribe" className="font-medium cursor-pointer">
+                            GPScribe
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications for consultation notes, recording controls, and medical documentation
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-gpscribe"
+                        checked={toastPreferences.gpscribe}
+                        onCheckedChange={() => toggleToastSection('gpscribe')}
+                      />
+                    </div>
+
+                    {/* System Notifications */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <SettingsIcon className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-system" className="font-medium cursor-pointer">
+                            System & General
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          General system notifications, authentication messages, and settings updates
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-system"
+                        checked={toastPreferences.system}
+                        onCheckedChange={() => toggleToastSection('system')}
+                      />
+                    </div>
+
+                    {/* Security Notifications */}
+                    <div className="flex items-start justify-between space-x-4 p-4 rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-primary" />
+                          <Label htmlFor="toast-security" className="font-medium cursor-pointer">
+                            Security & Permissions
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Important security alerts, permission warnings, and access control notifications
+                        </p>
+                      </div>
+                      <Switch
+                        id="toast-security"
+                        checked={toastPreferences.security}
+                        onCheckedChange={() => toggleToastSection('security')}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Info Box */}
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Note:</strong> Disabling notifications for a section will prevent all toast messages from that area. 
+                      However, critical error messages may still appear to ensure you're aware of important issues.
+                      Changes are saved automatically and will persist across sessions.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="security" className="space-y-6">
               <Card>
