@@ -2542,15 +2542,7 @@ ${transcript}`;
         meetingId={meeting.id}
       />
       
-      <EmailMeetingMinutesModal
-        isOpen={emailModalOpen}
-        onOpenChange={setEmailModalOpen}
-        meetingId={meeting?.id || ''}
-        meetingTitle={emailModalContent.title}
-        meetingNotes={emailModalContent.notes}
-      />
-      
-      <Dialog 
+      <Dialog
         open={isOpen} 
         onOpenChange={(open) => {
           console.log('📱 Dialog onOpenChange called with:', open);
@@ -3445,6 +3437,14 @@ ${transcript}`;
         />
 
       </Dialog>
+      
+      <EmailMeetingMinutesModal
+        isOpen={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        meetingId={meeting?.id || ''}
+        meetingTitle={emailModalContent.title}
+        meetingNotes={emailModalContent.notes}
+      />
     </>
   );
 };
