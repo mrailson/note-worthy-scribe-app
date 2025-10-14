@@ -10,9 +10,10 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const STITCH_SIM_THRESHOLD = 0.95; // similarity to consider head/tail overlap
+const STITCH_SIM_THRESHOLD = 0.97; // similarity to consider head/tail overlap (increased to be less aggressive)
 const DEDUPE_SIM_THRESHOLD = 0.98; // be less aggressive when filtering duplicates
 const DEDUPE_WINDOW = 5;        // compare against last 5 sentences only (reduced from 15)
+const MIN_CONFIDENCE_THRESHOLD = 0.30; // minimum confidence to accept chunks (30%)
 
 const norm = (s: string) =>
   s.replace(/\u2026/g, "...")      // normalize ellipsis
@@ -167,14 +168,26 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
 
   console.log(`🔄 Live merge complete: ${prevText.length} -> ${deduped.length} chars (stitch: +${afterStitch}, dedupe final: +${afterDedupe})`);
   
+  // More aggressive fallback to prevent data loss
   if (afterDedupe === 0 && chunk.text.length > 10) {
     console.error(`❌ CHUNK COMPLETELY REJECTED: No text added despite ${chunk.text.length} char input!`, {
       originalChunk: chunk.text,
-      prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300))
+      prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300)),
+      stitchedLength: stitched.length,
+      dedupedLength: deduped.length,
+      afterStitch,
+      afterDedupe
     });
-    // Fallback: append anyway to avoid data loss (may produce near-duplicates we can clean later)
-    console.warn('✳️ Forced-append fallback engaged');
-    return prev + (/[.!?…]$/.test(prev) ? ' ' : ' ') + next;
+    
+    // Enhanced fallback: if nothing was added at all, force append with clear separator
+    if (afterStitch === 0) {
+      console.warn('✳️ CRITICAL: Stitch completely rejected chunk - forcing direct append');
+      const separator = (/[.!?…]$/.test(prev) ? ' ' : '. ');
+      return prev + separator + next;
+    } else {
+      console.warn('✳️ Dedupe rejected chunk - using stitched version');
+      return stitched; // Use stitched version if dedupe removed it
+    }
   }
   
   return deduped;
