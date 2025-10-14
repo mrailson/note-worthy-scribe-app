@@ -204,10 +204,14 @@ export class iPhoneWhisperTranscriber {
       
       // Convert to base64 in chunks to prevent memory issues
       let binary = '';
-      const chunkSize = 0x8000;
+      const chunkSize = 4096; // smaller chunk for iOS Safari stability
       for (let i = 0; i < uint8Array.length; i += chunkSize) {
         const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
+        let segment = '';
+        for (let j = 0; j < chunk.length; j++) {
+          segment += String.fromCharCode(chunk[j]);
+        }
+        binary += segment;
       }
       const base64Audio = btoa(binary);
 

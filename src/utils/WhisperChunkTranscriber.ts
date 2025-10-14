@@ -115,7 +115,11 @@ export class WhisperChunkTranscriber {
       
       for (let i = 0; i < uint8Array.length; i += chunkSize) {
         const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+        let segment = '';
+        for (let j = 0; j < chunk.length; j++) {
+          segment += String.fromCharCode(chunk[j]);
+        }
+        binaryString += segment;
       }
       
       const base64Audio = btoa(binaryString);
