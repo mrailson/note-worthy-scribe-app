@@ -452,12 +452,26 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                 </Button>
               </div>
             </div>
-            <div className="text-base bg-muted p-6 rounded-lg overflow-y-auto leading-relaxed whitespace-pre-wrap" style={{ maxHeight: '60vh' }}>
-              {transcriptionResult.split('\n\n').map((paragraph, idx) => (
-                <p key={idx} className="mb-4 last:mb-0">
-                  {paragraph}
-                </p>
-              ))}
+            <div className="text-base bg-muted p-6 rounded-lg overflow-y-auto leading-relaxed" style={{ maxHeight: '60vh', lineHeight: '1.8' }}>
+              {(() => {
+                // Split transcription into sentences and group into natural paragraphs
+                const sentences = transcriptionResult.match(/[^.!?]+[.!?]+/g) || [transcriptionResult];
+                const paragraphGroups = [];
+                
+                // Group sentences into paragraphs (approximately 3-5 sentences per paragraph)
+                for (let i = 0; i < sentences.length; i += 4) {
+                  const paragraphText = sentences.slice(i, i + 4).join(' ').trim();
+                  if (paragraphText) {
+                    paragraphGroups.push(paragraphText);
+                  }
+                }
+                
+                return paragraphGroups.map((paragraph, idx) => (
+                  <p key={idx} className="mb-6 last:mb-0">
+                    {paragraph}
+                  </p>
+                ));
+              })()}
             </div>
             <div className="text-sm text-muted-foreground mt-3">
               {transcriptionResult.length} characters
