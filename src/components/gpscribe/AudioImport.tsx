@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { FileAudio, Upload, Trash2, Loader2, Clipboard } from "lucide-react";
+import { FileAudio, Upload, Trash2, Loader2, Clipboard, Download } from "lucide-react";
 import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
+import { Document, Paragraph, TextRun, Packer } from "docx";
+import { saveAs } from "file-saver";
 
 interface AudioImportProps {
   onTranscriptReady: (transcript: string) => void;
@@ -221,6 +223,45 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleDownloadWord = async () => {
+    try {
+      const wordCount = transcriptionResult.split(' ').length;
+      
+      // Create paragraphs from the transcription
+      const paragraphs = transcriptionResult.split('\n\n').map(para => 
+        new Paragraph({
+          children: [new TextRun(para)],
+          spacing: { after: 200 }
+        })
+      );
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: "Audio Transcription", bold: true, size: 32 })],
+              spacing: { after: 400 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Word Count: ${wordCount}`, size: 20 })],
+              spacing: { after: 400 }
+            }),
+            ...paragraphs
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const fileName = selectedFile?.name.replace(/\.[^/.]+$/, '') || 'transcription';
+      saveAs(blob, `${fileName}_transcript.docx`);
+      showToast.success("Word document downloaded!", { section: 'ai4gp' });
+    } catch (error) {
+      console.error('Error creating Word document:', error);
+      showToast.error("Failed to create Word document", { section: 'ai4gp' });
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -323,7 +364,12 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         {transcriptionResult && (
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-base font-medium">Transcription Result:</div>
+              <div className="text-base font-medium flex items-center gap-2">
+                Transcription Result
+                <span className="text-sm text-muted-foreground font-normal">
+                  ({transcriptionResult.split(' ').length} words)
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -334,7 +380,15 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                   }}
                 >
                   <Clipboard className="h-3 w-3 mr-1" />
-                  Copy Full Transcript
+                  Copy Transcript
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadWord}
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download Word
                 </Button>
               </div>
             </div>
@@ -346,7 +400,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
               ))}
             </div>
             <div className="text-sm text-muted-foreground mt-3">
-              {transcriptionResult.split(' ').length} words • {transcriptionResult.length} characters
+              {transcriptionResult.length} characters
             </div>
           </div>
         )}
