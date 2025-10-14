@@ -158,25 +158,76 @@ export const MobileTranslationInterface = () => {
       
       const minutes = Math.floor(sessionDuration / 60);
       const seconds = sessionDuration % 60;
-      const durationString = `${minutes} minutes ${seconds} seconds`;
 
-      const { error } = await supabase.functions.invoke('send-translation-report', {
-        body: {
-          recipientEmail: user.email,
-          sessionTitle: `Translation Session - ${currentSession.targetLanguageName}`,
-          targetLanguage: currentSession.targetLanguageName,
-          translations: translations.map(t => ({
-            speaker: t.speaker,
-            originalText: t.originalText,
-            translatedText: t.translatedText,
-            timestamp: t.timestamp.toISOString()
-          })),
-          sessionStart: currentSession.sessionStart?.toISOString() || new Date().toISOString(),
-          sessionDuration: durationString
-        }
+      // Generate HTML report content
+      const reportContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+          <div style="background-color: #005EB8; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 24px;">NHS Translation Service Report</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Session Documentation</p>
+          </div>
+          
+          <div style="padding: 20px; background-color: #f8f9fa; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
+            <div style="background-color: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+              <h2 style="color: #005EB8; margin-top: 0;">Session Information</h2>
+              <p><strong>Target Language:</strong> ${currentSession.targetLanguageName}</p>
+              <p><strong>Session Start:</strong> ${currentSession.sessionStart?.toLocaleString('en-GB', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}</p>
+              <p><strong>Duration:</strong> ${minutes} minutes ${seconds} seconds</p>
+              <p><strong>Total Translations:</strong> ${translations.length}</p>
+            </div>
+            
+            <div style="background-color: white; padding: 15px; border-radius: 6px;">
+              <h2 style="color: #005EB8; margin-top: 0;">Translation History</h2>
+              ${translations.map((t, idx) => `
+                <div style="margin-bottom: 20px; padding: 15px; background-color: ${t.speaker === 'gp' ? '#e3f2fd' : '#e8f5e9'}; border-left: 4px solid ${t.speaker === 'gp' ? '#2196F3' : '#4CAF50'}; border-radius: 4px;">
+                  <div style="font-weight: bold; color: #333; margin-bottom: 8px;">
+                    ${idx + 1}. ${t.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} - ${t.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div style="margin-bottom: 8px;">
+                    <strong style="color: #555;">Original:</strong><br/>
+                    <span style="color: #333;">${t.originalText}</span>
+                  </div>
+                  <div>
+                    <strong style="color: #555;">Translation:</strong><br/>
+                    <span style="color: #333;">${t.translatedText}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div style="margin-top: 15px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⚠️ Important:</strong> This is an automated translation report. Please note that automated translations may not be 100% accurate. Review carefully for medical contexts.
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const emailData = {
+        to_email: user.email,
+        subject: `Translation Report - ${currentSession.targetLanguageName} (${new Date().toLocaleDateString('en-GB')})`,
+        message: reportContent,
+        template_type: 'ai_generated_content',
+        from_name: 'NHS Translation Service',
+        reply_to: 'noreply@gp-tools.nhs.uk'
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
       });
 
       if (error) throw error;
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send email via EmailJS');
+      }
 
       toast.success(`Translation report sent to ${user.email}`);
     } catch (error) {
