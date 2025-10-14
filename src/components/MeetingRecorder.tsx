@@ -1299,7 +1299,7 @@ export const MeetingRecorder = ({
       
       console.log(`🌊 Deepgram: Sending chunk ${chunkNumber} (audio size: ${audioBlob.size} bytes, base64: ${base64Audio.length} chars)`);
       
-      const { data, error } = await supabase.functions.invoke('deepgram-transcribe', {
+      const { data, error } = await supabase.functions.invoke('standalone-deepgram', {
         body: {
           audio: base64Audio,
           meetingId: meetingId,
