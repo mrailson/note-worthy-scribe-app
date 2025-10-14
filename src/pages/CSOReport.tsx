@@ -166,7 +166,6 @@ const CSOReport = () => {
             <div><span className="font-semibold">Version:</span> 1.0</div>
             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
             <div><span className="font-semibold">Status:</span> <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">DRAFT FOR REVIEW</Badge></div>
-            <div><span className="font-semibold">Classification:</span> Class IIa Medical Device Software</div>
           </div>
         </div>
 
