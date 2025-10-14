@@ -146,7 +146,18 @@ ${formattedNotes}
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="to-email">To Email</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="to-email">To Email</Label>
+              {profile?.email && toEmail !== profile.email && (
+                <button
+                  type="button"
+                  onClick={() => setToEmail(profile.email || "")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Send to myself
+                </button>
+              )}
+            </div>
             <Input
               id="to-email"
               type="email"
