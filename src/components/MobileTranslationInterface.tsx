@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings, ArrowLeft, Home } from 'lucide-react';
+import { Volume2, Mic, Languages, Square, Maximize2, Download, FileText, Mail, User, MicOff, Settings, ArrowLeft, Home, ChevronDown, ChevronUp, LayoutList, Layout } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,6 +33,8 @@ export const MobileTranslationInterface = () => {
   const [pendingLanguage, setPendingLanguage] = useState<{code: string, name: string} | null>(null);
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'single'>('timeline');
   
   // Use the manual translation hook
   const {
@@ -253,11 +255,15 @@ export const MobileTranslationInterface = () => {
         deviceInfo.isIPhone ? "max-w-full" : "max-w-2xl mx-auto"
       )}>
         <div className={cn(
-          "bg-background",
-          deviceInfo.isIPhone ? "p-4 sticky top-0 z-10 border-b" : "p-6"
+          "bg-background transition-all duration-300",
+          deviceInfo.isIPhone ? "sticky top-0 z-10 border-b" : "p-6",
+          deviceInfo.isIPhone && (isHeaderCollapsed ? "p-2" : "p-4")
         )}>
           {deviceInfo.isIPhone && (
-            <div className="mb-3">
+            <div className={cn(
+              "flex items-center justify-between",
+              isHeaderCollapsed ? "mb-0" : "mb-3"
+            )}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -265,10 +271,32 @@ export const MobileTranslationInterface = () => {
                 className="flex items-center gap-2 -ml-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Home
+                {!isHeaderCollapsed && "Home"}
               </Button>
+              {isActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+                  className="flex items-center gap-1"
+                >
+                  {isHeaderCollapsed ? (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      <span className="text-xs">Expand</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      <span className="text-xs">Collapse</span>
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           )}
+          
+          {!isHeaderCollapsed && (
           <div className="text-center space-y-4">
             <div className={cn(
               "flex items-center justify-center gap-2 font-bold text-primary",
@@ -403,6 +431,7 @@ export const MobileTranslationInterface = () => {
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Translation History */}
@@ -415,8 +444,25 @@ export const MobileTranslationInterface = () => {
               <h3 className={cn(
                 "font-medium",
                 deviceInfo.isIPhone ? "text-sm" : "text-base"
-              )}>Translation History</h3>
+              )}>
+                {viewMode === 'timeline' ? 'Translation History' : 'Current Translation'}
+              </h3>
               <div className="flex items-center gap-2">
+                {deviceInfo.isIPhone && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode(viewMode === 'timeline' ? 'single' : 'timeline')}
+                    className="h-10 w-10 p-0"
+                    title={viewMode === 'timeline' ? 'Single translation view' : 'Timeline view'}
+                  >
+                    {viewMode === 'timeline' ? (
+                      <Layout className="h-5 w-5" />
+                    ) : (
+                      <LayoutList className="h-5 w-5" />
+                    )}
+                  </Button>
+                )}
                 {!deviceInfo.isIPhone && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -491,50 +537,96 @@ export const MobileTranslationInterface = () => {
             <div 
               ref={scrollRef} 
               className={cn(
-                "flex-1 overflow-y-auto space-y-4",
-                deviceInfo.isIPhone ? "p-3" : "p-4"
+                "flex-1 overflow-y-auto",
+                deviceInfo.isIPhone ? "p-3" : "p-4",
+                viewMode === 'single' && "flex items-center justify-center"
               )}
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              {translations.map((translation, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "rounded-lg touch-manipulation",
-                    deviceInfo.isIPhone ? "p-3" : "p-4",
-                    translation.speaker === 'gp' 
-                      ? 'bg-blue-50 border-l-4 border-blue-500' 
-                      : 'bg-green-50 border-l-4 border-green-500'
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <button 
+              {viewMode === 'timeline' ? (
+                // Timeline view - show all translations
+                <div className="space-y-4">
+                  {translations.map((translation, index) => (
+                    <div
+                      key={index}
                       className={cn(
-                        "font-medium hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer touch-manipulation",
-                        deviceInfo.isIPhone ? "text-xs min-h-[32px]" : "text-sm"
+                        "rounded-lg touch-manipulation",
+                        deviceInfo.isIPhone ? "p-3" : "p-4",
+                        translation.speaker === 'gp' 
+                          ? 'bg-blue-50 border-l-4 border-blue-500' 
+                          : 'bg-green-50 border-l-4 border-green-500'
                       )}
-                      onClick={() => handleSpeakerChange(index, translation.speaker === 'gp' ? 'patient' : 'gp')}
-                      title="Click to change speaker and retranslate"
                     >
-                      {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
-                    </button>
-                    <div className={cn(
-                      "text-muted-foreground",
-                      deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
-                    )}>
-                      {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      <div className="flex items-center gap-2 mb-2">
+                        <button 
+                          className={cn(
+                            "font-medium hover:bg-muted rounded px-2 py-1 transition-colors cursor-pointer touch-manipulation",
+                            deviceInfo.isIPhone ? "text-xs min-h-[32px]" : "text-sm"
+                          )}
+                          onClick={() => handleSpeakerChange(index, translation.speaker === 'gp' ? 'patient' : 'gp')}
+                          title="Click to change speaker and retranslate"
+                        >
+                          {translation.speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
+                        </button>
+                        <div className={cn(
+                          "text-muted-foreground",
+                          deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
+                        )}>
+                          {translation.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
+                          <span className="font-medium">Original:</span> {translation.originalText}
+                        </div>
+                        <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
+                          <span className="font-medium">Translation:</span> {translation.translatedText}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
-                      <span className="font-medium">Original:</span> {translation.originalText}
-                    </div>
-                    <div className={cn(deviceInfo.isIPhone ? "text-xs" : "text-sm")}>
-                      <span className="font-medium">Translation:</span> {translation.translatedText}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                // Single translation view - show only the latest translation
+                translations.length > 0 && (
+                  <div className="w-full max-w-lg">
+                    <div
+                      className={cn(
+                        "rounded-xl p-6 shadow-lg",
+                        translations[translations.length - 1].speaker === 'gp' 
+                          ? 'bg-blue-50 border-2 border-blue-500' 
+                          : 'bg-green-50 border-2 border-green-500'
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <button 
+                          className="font-medium text-lg hover:bg-muted rounded px-3 py-2 transition-colors cursor-pointer touch-manipulation"
+                          onClick={() => handleSpeakerChange(translations.length - 1, translations[translations.length - 1].speaker === 'gp' ? 'patient' : 'gp')}
+                          title="Click to change speaker and retranslate"
+                        >
+                          {translations[translations.length - 1].speaker === 'gp' ? '👨‍⚕️ GP' : '👤 Patient'} ✏️
+                        </button>
+                        <div className="text-sm text-muted-foreground">
+                          {translations[translations.length - 1].timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="text-base">
+                          <div className="font-semibold mb-2 text-muted-foreground">Original:</div>
+                          <div className="text-lg">{translations[translations.length - 1].originalText}</div>
+                        </div>
+                        <div className="border-t pt-4">
+                          <div className="font-semibold mb-2 text-muted-foreground">Translation:</div>
+                          <div className="text-lg font-medium">{translations[translations.length - 1].translatedText}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center mt-4 text-sm text-muted-foreground">
+                      Translation {translations.length} of {translations.length}
+                    </div>
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
