@@ -71,7 +71,6 @@ export const MobileTranslationInterface = () => {
       try {
         setViewMode('single'); // Set to single translation view
         await startSession(lang.code, lang.name, false); // No consent required
-        await startListening(); // Automatically start listening
       } catch (error) {
         console.error('Error starting session:', error);
       }
