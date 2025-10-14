@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   Shield,
   AlertTriangle,
@@ -43,6 +44,7 @@ import {
 
 const CSOReport = () => {
   const [activeSection, setActiveSection] = useState<string>("executive");
+  const [isExporting, setIsExporting] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -777,17 +779,34 @@ const CSOReport = () => {
           </div>
         </section>
 
-        {/* Footer Actions */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t">
-          <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <ArrowUp className="w-4 h-4 mr-2" />
-            Back to Top
-          </Button>
-          <Button variant="default">
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </Button>
-        </div>
+          {/* Footer Actions */}
+          <div className="flex justify-between items-center mt-8 pt-6 border-t">
+            <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <ArrowUp className="w-4 h-4 mr-2" />
+              Back to Top
+            </Button>
+            <Button 
+              variant="default" 
+              disabled={isExporting}
+              onClick={async () => {
+                try {
+                  setIsExporting(true);
+                  toast.info("Generating Word document...");
+                  const { exportCSOReportToWord } = await import('@/utils/exportCSOReport');
+                  await exportCSOReportToWord();
+                  toast.success("CSO Report exported successfully!");
+                } catch (error) {
+                  console.error('Error exporting report:', error);
+                  toast.error("Failed to export report. Please try again.");
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {isExporting ? 'Generating...' : 'Export Report'}
+            </Button>
+          </div>
 
         {/* Confidentiality Notice */}
         <div className="mt-8 p-4 bg-muted/30 rounded-lg text-center text-sm text-muted-foreground">
