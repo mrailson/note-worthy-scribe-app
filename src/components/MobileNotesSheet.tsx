@@ -56,7 +56,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   notes
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("executive");
+  const [activeTab, setActiveTab] = useState("comprehensive");
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
@@ -536,8 +536,8 @@ ${formattedContent}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-3 pb-2 border-b flex-shrink-0">
               <TabsList className="grid w-full max-w-lg grid-cols-4 h-10">
+                <TabsTrigger value="comprehensive" className="text-[10px] px-1 font-medium">Detailed</TabsTrigger>
                 <TabsTrigger value="executive" className="text-[10px] px-1 font-medium">Exec</TabsTrigger>
-                <TabsTrigger value="comprehensive" className="text-[10px] px-1 font-medium">V.Detail</TabsTrigger>
                 <TabsTrigger value="creative" className="text-[10px] px-1 font-medium">Creative</TabsTrigger>
                 <TabsTrigger value="transcript" className="text-[10px] px-1 font-medium">Transcript</TabsTrigger>
               </TabsList>
@@ -555,6 +555,67 @@ ${formattedContent}
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4 pb-8">
+                  <TabsContent value="comprehensive" className="mt-0">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-semibold text-foreground">Detailed Minutes</h3>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('comprehensive')}
+                          disabled={sendingEmail.comprehensive || !notesStyle3}
+                          className="h-8 px-2 text-xs"
+                          title="Email this summary"
+                        >
+                          {sendingEmail.comprehensive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => regenerateNotes('comprehensive')}
+                          disabled={regenerating.comprehensive}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {regenerating.comprehensive ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg border p-4">
+                      {notesStyle3 ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-2"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
+                        />
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4 text-sm">
+                            No detailed minutes available
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => regenerateNotes('comprehensive')}
+                            disabled={regenerating.comprehensive}
+                            className="text-xs"
+                          >
+                            Generate Detailed Minutes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="executive" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Executive Summary</h3>
@@ -610,112 +671,6 @@ ${formattedContent}
                             className="text-xs"
                           >
                             Generate Executive Summary
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="detailed" className="mt-0">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-semibold text-foreground">Detailed Minutes</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => regenerateNotes('detailed')}
-                        disabled={regenerating.detailed}
-                        className="h-8 px-2 text-xs"
-                      >
-                        {regenerating.detailed ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3 w-3" />
-                        )}
-                        <span className="ml-1">
-                          {regenerating.detailed ? 'Generating...' : 'Regenerate'}
-                        </span>
-                      </Button>
-                    </div>
-                    <div className="bg-card rounded-lg border p-4">
-                      {notesStyle2 ? (
-                        <div 
-                          className="text-sm leading-relaxed space-y-2"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle2) }}
-                        />
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground mb-4 text-sm">
-                            No detailed minutes available
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => regenerateNotes('detailed')}
-                            disabled={regenerating.detailed}
-                            className="text-xs"
-                          >
-                            Generate Detailed Minutes
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="comprehensive" className="mt-0">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-semibold text-foreground">Very Detailed</h3>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => sendTabEmail('comprehensive')}
-                          disabled={sendingEmail.comprehensive || !notesStyle3}
-                          className="h-8 px-2 text-xs"
-                          title="Email this summary"
-                        >
-                          {sendingEmail.comprehensive ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Mail className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => regenerateNotes('comprehensive')}
-                          disabled={regenerating.comprehensive}
-                          className="h-8 px-2 text-xs"
-                        >
-                          {regenerating.comprehensive ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <RotateCcw className="h-3 w-3" />
-                          )}
-                          <span className="ml-1">
-                            {regenerating.comprehensive ? 'Generating...' : 'Regenerate'}
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="bg-card rounded-lg border p-4">
-                      {notesStyle3 ? (
-                        <div 
-                          className="text-sm leading-relaxed space-y-2"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notesStyle3) }}
-                        />
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground mb-4 text-sm">
-                            No very detailed notes available
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => regenerateNotes('comprehensive')}
-                            disabled={regenerating.comprehensive}
-                            className="text-xs"
-                          >
-                            Generate Very Detailed Notes
                           </Button>
                         </div>
                       )}
