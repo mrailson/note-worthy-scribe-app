@@ -1,4 +1,5 @@
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
+import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,9 @@ import {
   Save,
   FolderOpen,
   FilePlus2,
-  AlignJustify
+  AlignJustify,
+  Mail,
+  MoreVertical
 } from "lucide-react";
 
 interface Meeting {
@@ -122,6 +125,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
   const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
   const [showContextDialog, setShowContextDialog] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailModalContent, setEmailModalContent] = useState({ title: '', notes: '' });
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -2537,6 +2542,14 @@ ${transcript}`;
         meetingId={meeting.id}
       />
       
+      <EmailMeetingMinutesModal
+        isOpen={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        meetingId={meeting?.id || ''}
+        meetingTitle={emailModalContent.title}
+        meetingNotes={emailModalContent.notes}
+      />
+      
       <Dialog 
         open={isOpen} 
         onOpenChange={(open) => {
@@ -2978,47 +2991,44 @@ ${transcript}`;
                                   </TooltipProvider>
                                 )}
                                 
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        onClick={() => {
-                                          if (content) {
-                                            generateAdvancedWordDocument(content, tabName);
-                                          }
-                                        }}
-                                        variant="outline"
-                                        size="icon"
-                                      >
-                                        <FileText className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Download as Word</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        onClick={async () => {
-                                          if (content) {
-                                            const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
-                                          }
-                                        }}
-                                        variant="outline"
-                                        size="icon"
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Copy to clipboard</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48 bg-background z-50">
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        if (content) {
+                                          generateAdvancedWordDocument(content, tabName);
+                                        }
+                                      }}
+                                    >
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Download Word
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        if (content) {
+                                          const success = await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
+                                        }
+                                      }}
+                                    >
+                                      <Copy className="h-4 w-4 mr-2" />
+                                      Copy to Clipboard
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        setEmailModalContent({ title: tabName, notes: content });
+                                        setEmailModalOpen(true);
+                                      }}
+                                    >
+                                      <Mail className="h-4 w-4 mr-2" />
+                                      Send Email
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
 
                                 <TooltipProvider>
                                   <Tooltip>
