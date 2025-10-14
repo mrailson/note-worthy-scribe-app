@@ -322,8 +322,8 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
         {/* Transcription Result Preview */}
         {transcriptionResult && (
           <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-medium">Transcription Result:</div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-base font-medium">Transcription Result:</div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -338,10 +338,14 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                 </Button>
               </div>
             </div>
-            <div className="text-xs bg-muted p-3 rounded-lg max-h-64 overflow-y-auto whitespace-pre-wrap">
-              {transcriptionResult}
+            <div className="text-base bg-muted p-6 rounded-lg overflow-y-auto leading-relaxed whitespace-pre-wrap" style={{ maxHeight: '60vh' }}>
+              {transcriptionResult.split('\n\n').map((paragraph, idx) => (
+                <p key={idx} className="mb-4 last:mb-0">
+                  {paragraph}
+                </p>
+              ))}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-3">
               {transcriptionResult.split(' ').length} words • {transcriptionResult.length} characters
             </div>
           </div>

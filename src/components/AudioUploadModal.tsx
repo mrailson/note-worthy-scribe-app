@@ -56,11 +56,11 @@ export const AudioUploadModal: React.FC<AudioUploadModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[90vw] max-w-[90vw] h-[90vh] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Upload & Transcribe Audio</DialogTitle>
         </DialogHeader>
-        <div className="mt-4">
+        <div className="flex-1 overflow-y-auto mt-4">
           <AudioImport 
             onTranscriptReady={handleTranscriptReady}
             disabled={false}
