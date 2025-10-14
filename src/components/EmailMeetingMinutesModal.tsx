@@ -78,11 +78,28 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
+      // Format meeting notes for better readability
+      const formattedNotes = meetingNotes
+        .replace(/## /g, '\n\n')
+        .replace(/### /g, '\n')
+        .replace(/\*\*/g, '')
+        .replace(/^- /gm, '  • ')
+        .replace(/^\d+\. /gm, (match) => `  ${match}`)
+        .trim();
+
       // Prepare email data for EmailJS service
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: `${emailBody}\n\n--- Meeting Minutes ---\n\n${meetingNotes}`,
+        message: `${emailBody}
+
+════════════════════════════════════════════════════════════════
+
+MEETING MINUTES
+
+${formattedNotes}
+
+════════════════════════════════════════════════════════════════`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
