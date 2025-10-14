@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredModule: string;
+  requiredModule?: string;
   fallbackPath?: string;
 }
 
@@ -19,6 +19,19 @@ export const ProtectedRoute = ({
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If user is not logged in, redirect to auth
+    if (!loading && !user) {
+      toast.error('Please log in to access this page.');
+      navigate('/auth', { replace: true });
+      return;
+    }
+
+    // If no specific module is required, just check authentication
+    if (!requiredModule) {
+      return;
+    }
+
+    // Check module access if requiredModule is specified
     if (!loading && !hasModuleAccess(requiredModule)) {
       // Special handling for practice manager access
       if (requiredModule === 'practice_manager_access') {
@@ -61,7 +74,11 @@ export const ProtectedRoute = ({
     );
   }
 
-  if (!hasModuleAccess(requiredModule)) {
+  if (!user) {
+    return null;
+  }
+
+  if (requiredModule && !hasModuleAccess(requiredModule)) {
     return null;
   }
 

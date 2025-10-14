@@ -133,7 +133,11 @@ const App = () => {
             <Route path="/gp-genie" element={<GPGenie />} />
             <Route path="/translation-tool/:sessionId" element={<TranslationTool />} />
             <Route path="/new-recorder" element={<NewRecorder />} />
-            <Route path="/cso" element={<CSOReport />} />
+            <Route path="/cso" element={
+              <ProtectedRoute>
+                <CSOReport />
+              </ProtectedRoute>
+            } />
             
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
