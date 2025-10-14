@@ -153,3 +153,18 @@ verify_jwt = true
 [functions.transcribe-audio]
 verify_jwt = true
 
+[functions.send-email-via-emailjs]
+verify_jwt = false
+
+[functions.send-meeting-summary]
+verify_jwt = false
+
+[functions.send-complaint-notifications]
+verify_jwt = true
+
+[functions.generate-complaint-acknowledgement]
+verify_jwt = true
+
+[functions.send-welcome-email]
+verify_jwt = false
+
