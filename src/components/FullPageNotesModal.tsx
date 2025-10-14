@@ -3265,33 +3265,21 @@ ${transcript}`;
                
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
-                  {/* Sub-tabs for primary and backup transcripts */}
+                  {/* Primary transcript content */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
-                    <Tabs defaultValue="primary" className="h-full flex flex-col">
-                      <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="primary" className="text-xs sm:text-sm">
-                          Primary Transcript
-                        </TabsTrigger>
-                        <TabsTrigger value="backup" className="text-xs sm:text-sm">
-                          Backup Meeting Transcript
-                        </TabsTrigger>
-                      </TabsList>
-
-                      {/* Primary Transcript Tab */}
-                      <TabsContent value="primary" className="flex-1 mt-0 flex flex-col overflow-hidden">
-                        <div className="h-full flex flex-col">
-                          <div className="flex items-center justify-between pb-4 flex-shrink-0">
-                            <div className="flex items-center gap-4">
-                              <h3 className="text-lg font-semibold flex items-center gap-2">
-                                Primary Transcript
-                                {transcript && (
-                                  <span className="text-sm font-normal text-muted-foreground">
-                                    ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
-                                  </span>
-                                )}
-                              </h3>
-                            </div>
-                          </div>
+                    <div className="h-full flex flex-col">
+                      <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                        <div className="flex items-center gap-4">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            Meeting Transcript
+                            {transcript && (
+                              <span className="text-sm font-normal text-muted-foreground">
+                                ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
+                              </span>
+                            )}
+                          </h3>
+                        </div>
+                      </div>
                           
                           <div className="flex items-center justify-between pb-4 flex-shrink-0">
                             <div className="flex items-center gap-4">
@@ -3466,214 +3454,8 @@ ${transcript}`;
                                 />
                               )}
                             </div>
-                          </ScrollArea>
-                        </div>
-                      </TabsContent>
-
-                      {/* Backup Transcript Tab */}
-                      <TabsContent value="backup" className="flex-1 overflow-hidden mt-0">
-                        <div className="h-full flex flex-col">
-                          <div className="flex items-center justify-between pb-3 flex-shrink-0">
-                            <div className="flex items-center gap-4">
-                              <h3 className="text-lg font-semibold flex items-center gap-2">
-                                Backup Meeting Transcript
-                                {backupTranscript && (
-                                  <>
-                                    <span className="text-sm font-normal text-muted-foreground">
-                                      ({backupTranscript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
-                                    </span>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            onClick={async () => {
-                                              if (!backupTranscript || backupTranscript.trim().length === 0) return;
-                                              setIsFormattingParagraphs(true);
-                                              try {
-                                                const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
-                                                  body: { transcript: backupTranscript }
-                                                });
-                                                if (error) throw error;
-                                                if (!data?.formattedTranscript) throw new Error('No formatted transcript returned');
-                                                const { toHtmlParagraphs } = await import('@/lib/transcriptNormaliser');
-                                                const htmlTranscript = toHtmlParagraphs(data.formattedTranscript);
-                                                setBackupTranscript(htmlTranscript);
-                                                toast.success('Backup transcript formatted into paragraphs');
-                                              } catch (error) {
-                                                console.error('Error formatting backup transcript:', error);
-                                                toast.error('Error formatting backup transcript');
-                                              } finally {
-                                                setIsFormattingParagraphs(false);
-                                              }
-                                            }}
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            disabled={!backupTranscript || backupTranscript.trim().length === 0 || isFormattingParagraphs}
-                                            title="Format backup transcript into neat paragraphs"
-                                          >
-                                            <AlignJustify className={`h-4 w-4 ${isFormattingParagraphs ? 'animate-pulse' : ''}`} />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>{isFormattingParagraphs ? 'Formatting...' : 'Format into paragraphs'}</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </>
-                                )}
-                              </h3>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      onClick={() => copyToClipboard(backupTranscript || '')}
-                                      variant="outline"
-                                      size="icon"
-                                      disabled={!backupTranscript || backupTranscript.trim().length === 0}
-                                      title="Copy backup transcript to clipboard"
-                                    >
-                                      <Copy className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Copy backup transcript to clipboard</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              {/* Save backup transcript button */}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      onClick={async () => {
-                                        if (!backupTranscript || backupTranscript.trim().length === 0 || !meeting?.id) return;
-                                        try {
-                                          const { error } = await supabase
-                                            .from('meetings')
-                                            .update({ assembly_ai_transcript: backupTranscript })
-                                            .eq('id', meeting.id)
-                                            .eq('user_id', user!.id);
-                                          if (error) throw error;
-                                          toast.success('Backup transcript saved');
-                                        } catch (error) {
-                                          console.error('Error saving backup transcript:', error);
-                                          toast.error('Failed to save backup transcript');
-                                        }
-                                      }}
-                                      variant="outline"
-                                      size="icon"
-                                      disabled={!backupTranscript || backupTranscript.trim().length === 0}
-                                      title="Save backup transcript to this meeting"
-                                    >
-                                      <Save className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Save backup transcript</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      onClick={async () => {
-                                        if (!backupTranscript || backupTranscript.trim().length === 0) return;
-                                        setIsLoadingBackupTranscript(true);
-                                        try {
-                                          const { data, error } = await supabase.functions.invoke('deep-clean-transcript', {
-                                            body: { transcript: backupTranscript }
-                                          });
-                                          if (error) throw error;
-                                          if (!data?.cleanedTranscript) throw new Error('No cleaned transcript returned');
-                                          setBackupTranscript(data.cleanedTranscript);
-                                          toast.success('Backup transcript deep cleaned');
-                                        } catch (error) {
-                                          console.error('Error cleaning backup transcript:', error);
-                                          toast.error('Error cleaning backup transcript');
-                                        } finally {
-                                          setIsLoadingBackupTranscript(false);
-                                        }
-                                      }}
-                                      variant="outline"
-                                      size="icon"
-                                      disabled={!backupTranscript || backupTranscript.trim().length === 0 || isLoadingBackupTranscript}
-                                      title="Deep clean backup transcript using GPT to remove duplicates and improve formatting"
-                                    >
-                                      <Bot className={`h-4 w-4 ${isLoadingBackupTranscript ? 'animate-pulse' : ''}`} />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{isLoadingBackupTranscript ? 'AI Processing...' : 'Deep clean backup transcript using GPT'}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      onClick={() => {
-                                        if (isEditing && editingTab === "backup-transcript") {
-                                          setBackupTranscript(editingContent);
-                                          setIsEditing(false);
-                                          setEditingContent("");
-                                          setEditingTab("");
-                                        } else {
-                                          setEditingContent(backupTranscript);
-                                          setEditingTab("backup-transcript");
-                                          setIsEditing(true);
-                                        }
-                                      }}
-                                      variant="outline"
-                                      size="icon"
-                                    >
-                                      <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{isEditing && editingTab === "backup-transcript" ? 'Save' : 'Edit'} backup transcript</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </div>
-                          
-                          <ScrollArea className="flex-1 h-full">
-                            <div className="pr-4">
-                              {isLoadingBackupTranscript ? (
-                                <div className="flex items-center justify-center h-32">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                  <span className="ml-2">Loading backup transcript...</span>
-                                </div>
-                              ) : isEditing && editingTab === "backup-transcript" ? (
-                                <Textarea
-                                  value={editingContent}
-                                  onChange={(e) => setEditingContent(e.target.value)}
-                                  className="min-h-[500px] w-full font-mono text-sm resize-none"
-                                  placeholder="Backup transcript will appear here..."
-                                />
-                              ) : !backupTranscript || backupTranscript.trim().length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground space-y-2">
-                                  <p>No backup transcript available.</p>
-                                  <p className="text-xs">Assembly AI backup transcripts are saved during recording.</p>
-                                </div>
-                              ) : (
-                                <div 
-                                  className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                                  dangerouslySetInnerHTML={{ __html: backupTranscript }}
-                                />
-                              )}
-                            </div>
-                          </ScrollArea>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
+                      </ScrollArea>
+                    </div>
                   </div>
                 </div>
                 </TabsContent>
