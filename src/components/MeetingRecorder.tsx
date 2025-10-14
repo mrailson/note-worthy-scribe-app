@@ -3292,7 +3292,7 @@ export const MeetingRecorder = ({
     }
     
     // Show toast notification that processing is starting
-    toast.info("Saving meeting...");
+    const savingToastId = toast.info("Saving meeting...", { duration: Infinity });
     
     // Wait 3 seconds to capture final audio chunks
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -3860,7 +3860,8 @@ export const MeetingRecorder = ({
         }
       }
 
-      // Show success toast
+      // Dismiss the saving toast and show success
+      toast.dismiss(savingToastId);
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
       toast.success(`Meeting saved: ${formattedTitle}`);
 
@@ -3926,6 +3927,7 @@ export const MeetingRecorder = ({
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
+      toast.dismiss(savingToastId);
       toast.error('Failed to save meeting');
     }
   };
