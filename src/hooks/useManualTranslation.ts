@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { LanguageDetector, WebSpeechLanguageDetector } from '@/utils/languageDetection';
 import { EnhancedSpeechRecognition, TranscriptionService } from '@/utils/EnhancedSpeechRecognition';
 import { useTranslationBuffering } from '@/hooks/useTranslationBuffering';
@@ -101,7 +100,6 @@ export const useManualTranslation = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.error('❌ No authenticated session - cannot start manual translation session');
-        toast.error('Please sign in to start a translation session');
         return;
       }
       
@@ -149,7 +147,6 @@ export const useManualTranslation = () => {
       if (sessionError || !sessionData) {
         console.error('❌ Error creating session:', sessionError || 'No session returned');
         setError('Failed to start translation session');
-        toast.error('Unable to start session (authentication required)');
         return;
       }
 
@@ -254,7 +251,6 @@ export const useManualTranslation = () => {
     } catch (error) {
       console.error('❌ Failed to start manual translation session:', error);
       setError(error instanceof Error ? error.message : 'Failed to start session');
-      toast.error('Failed to start translation session');
     }
   }, [isListening]);
 
@@ -383,7 +379,6 @@ export const useManualTranslation = () => {
 
     } catch (error) {
       console.error('❌ Translation processing failed:', error);
-      toast.error('Translation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsProcessing(false);
     }
@@ -479,8 +474,6 @@ export const useManualTranslation = () => {
     if (speechRecognitionRef.current && isActive) {
       await speechRecognitionRef.current.switchService(service);
     }
-    
-    toast.success(`Switched to ${service === 'deepgram' ? 'Deepgram' : 'Browser'} transcription`);
   }, [isActive]);
 
   const startListening = useCallback(async () => {
@@ -499,19 +492,16 @@ export const useManualTranslation = () => {
     
     if (!isActive) {
       console.log('❌ Cannot start listening - session not active');
-      toast.error('No active session');
       return;
     }
     
     if (!currentSession) {
       console.log('❌ Cannot start listening - no current session');
-      toast.error('No active session');
       return;
     }
     
     if (!speechRecognitionRef.current) {
       console.log('❌ Cannot start listening - speech recognition not initialized');
-      toast.error('Speech recognition not available');
       return;
     }
 
@@ -524,7 +514,6 @@ export const useManualTranslation = () => {
         console.log('✅ Microphone access confirmed');
       } catch (permErr) {
         console.error('❌ Microphone permission error:', permErr);
-        toast.error('Microphone permission denied');
         return;
       }
 
@@ -532,10 +521,8 @@ export const useManualTranslation = () => {
       await speechRecognitionRef.current.startRecognition();
       setIsListening(true);
       console.log('✅ Enhanced speech recognition started successfully');
-      toast.success(`🎙️ Listening started (${transcriptionService === 'deepgram' ? 'Deepgram' : 'Browser'})`);
     } catch (error) {
       console.error('❌ Failed to start listening:', error);
-      toast.error('Failed to start speech recognition');
     }
   }, [currentSession, isActive, isListening]);
 
@@ -598,11 +585,9 @@ export const useManualTranslation = () => {
       } : null);
 
       setIsActive(false);
-      toast.success('Manual translation session completed');
 
     } catch (error) {
       console.error('Failed to end session:', error);
-      toast.error('Failed to end session properly');
     }
   }, [currentSession, translations, stopListening]);
 
