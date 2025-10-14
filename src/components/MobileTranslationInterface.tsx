@@ -70,7 +70,13 @@ export const MobileTranslationInterface = () => {
     if (lang) {
       try {
         setViewMode('single'); // Set to single translation view
+        setIsHeaderCollapsed(true); // Auto-collapse header
         await startSession(lang.code, lang.name, false); // No consent required
+        
+        // Give session time to initialize before starting listening
+        setTimeout(async () => {
+          await startListening();
+        }, 1500);
       } catch (error) {
         console.error('Error starting session:', error);
       }
