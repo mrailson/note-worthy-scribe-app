@@ -82,7 +82,7 @@ export class UnifiedTranscriptMerger {
           seq: chunk.sequenceId || chunk.chunkNumber,
           source: chunk.source || 'sequence-merge'
         };
-        merged = mergeLive(merged, liveChunk);
+        merged = mergeLive(merged, liveChunk).text;
       }
 
       return {
@@ -105,7 +105,7 @@ export class UnifiedTranscriptMerger {
         isFinal: chunk.isFinal !== false, // default to true if not specified
         source: chunk.source || 'text-merge'
       };
-      merged = mergeLive(merged, liveChunk);
+      merged = mergeLive(merged, liveChunk).text;
     }
 
     return {
@@ -131,7 +131,7 @@ export class UnifiedTranscriptMerger {
       speaker: newChunk.speaker
     };
 
-    return mergeLive(currentText, liveChunk);
+    return mergeLive(currentText, liveChunk).text;
   }
 
   /**

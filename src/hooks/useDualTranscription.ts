@@ -168,12 +168,12 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
               const newChunks = [...prev.assemblyChunks, chunk];
               
               // Accumulate transcript using mergeLive
-              const newTranscript = mergeLive(prev.assemblyTranscript, chunk);
-              const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+              const mergeResult = mergeLive(prev.assemblyTranscript, chunk);
+              const wordCount = mergeResult.text.trim().split(/\s+/).filter(w => w.length > 0).length;
               
               return {
                 ...prev,
-                assemblyTranscript: newTranscript,
+                assemblyTranscript: mergeResult.text,
                 assemblyConfidence: data.confidence,
                 assemblyChunks: newChunks.slice(-50), // Keep last 50 chunks
                 assemblyWordCount: wordCount

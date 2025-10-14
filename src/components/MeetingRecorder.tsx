@@ -1177,15 +1177,17 @@ export const MeetingRecorder = ({
             });
             
             // Use mergeLive to detect and remove overlapping text sections
-            const newTranscript = mergeLive(prev, { text: transcriptionText, isFinal: true });
-            const addedLength = newTranscript.length - prev.length;
+            const mergeResult = mergeLive(prev, { text: transcriptionText, isFinal: true });
+            const addedLength = mergeResult.addedChars;
             
             // Track merge success/failure and update chunk status with reason
-            let rejectionReason: string | undefined;
+            let rejectionReason = mergeResult.rejectionReason;
             if (addedLength > 0) {
               console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
             } else if (transcriptionText.length > 10) {
-              rejectionReason = `Duplicate content detected (0 chars added from ${transcriptionText.length} char chunk)`;
+              if (!rejectionReason) {
+                rejectionReason = `Duplicate content detected (0 chars added from ${transcriptionText.length} char chunk)`;
+              }
               console.error(`❌ Chunk ${chunkId} was NOT merged to transcript!`, {
                 chunkNumber: currentChunkNumber,
                 chunkLength: transcriptionText.length,
@@ -1194,7 +1196,9 @@ export const MeetingRecorder = ({
                 reason: rejectionReason
               });
             } else if (transcriptionText.length <= 10) {
-              rejectionReason = `Chunk too short (${transcriptionText.length} chars)`;
+              if (!rejectionReason) {
+                rejectionReason = `Chunk too short (${transcriptionText.length} chars)`;
+              }
             }
             
             // Update chunk status with rejection reason if not merged
@@ -1206,9 +1210,9 @@ export const MeetingRecorder = ({
               ));
             }
             
-            console.log(`📝 Transcript updated: ${newTranscript.length} chars (added ${addedLength}), chunk ${chunkId}`);
-            onTranscriptUpdate(newTranscript);
-            return newTranscript;
+            console.log(`📝 Transcript updated: ${mergeResult.text.length} chars (added ${addedLength}), chunk ${chunkId}`);
+            onTranscriptUpdate(mergeResult.text);
+            return mergeResult.text;
           });
 
           // Assembly AI backup transcription is handled by real-time client
@@ -3463,13 +3467,13 @@ export const MeetingRecorder = ({
               } else {
                 // Not segment JSON, treat as plain text (legacy)
                 console.log(`📝 Legacy plain text in chunk ${chunk.chunk_number}`);
-                finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true });
+                finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true }).text;
                 lastChunkText = chunk.transcription_text;
               }
             } catch {
               // Parse failed, treat as plain text (legacy)
               console.log(`📝 Plain text chunk ${chunk.chunk_number}`);
-              finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true });
+              finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true }).text;
               lastChunkText = chunk.transcription_text;
             }
           }

@@ -112,13 +112,20 @@ function dedupeTail(text: string) {
   return out.join(" ");
 }
 
+export interface MergeResult {
+  text: string;
+  rejectionReason?: string;
+  addedChars: number;
+}
+
 /**
  * Merge a final chunk into an accumulated, cleaned transcript.
  * - ignores non-final chunks (return prev unchanged)
  * - overlap-aware head/tail stitching
  * - sliding-window dedupe
+ * Returns both the merged text AND diagnostic rejection reason
  */
-export function mergeLive(prevText: string, chunk: LiveChunk): string {
+export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
   // Safety logging to catch incorrect function calls
   console.log(`🔍 mergeLive called:`, {
     prevLength: prevText.length,
@@ -130,12 +137,12 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
   
   if (!chunk?.text || !chunk.text.trim()) {
     console.log(`📝 Ignoring empty chunk`);
-    return prevText;
+    return { text: prevText, rejectionReason: 'Empty or whitespace-only chunk', addedChars: 0 };
   }
   
   if (chunk.isFinal === false) {
     console.log(`⏳ Ignoring non-final chunk: "${chunk.text.substring(0, 30)}..."`);
-    return prevText; // ignore interim by default
+    return { text: prevText, rejectionReason: 'Non-final chunk (interim result)', addedChars: 0 };
   }
 
   console.log(`✅ Processing final chunk: "${chunk.text.substring(0, 80)}..." (${chunk.text.length} chars)`);
@@ -152,11 +159,15 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
   const stitched = stitchWithOverlap(prev, next);
   const afterStitch = stitched.length - prev.length;
   
+  let rejectionReason: string | undefined;
+  
   if (afterStitch === 0 && next.length > 10) {
+    rejectionReason = `Stitch rejected: 100% overlap detected (similarity > ${STITCH_SIM_THRESHOLD})`;
     console.error(`⚠️ NO TEXT ADDED after stitchWithOverlap!`, {
       chunkLength: next.length,
       prevEnd: prev.substring(Math.max(0, prev.length - 200)),
-      chunkText: next
+      chunkText: next,
+      reason: rejectionReason
     });
   } else if (afterStitch > 0) {
     console.log(`📝 Stitched: +${afterStitch} chars from ${next.length} char chunk`);
@@ -170,25 +181,38 @@ export function mergeLive(prevText: string, chunk: LiveChunk): string {
   
   // More aggressive fallback to prevent data loss
   if (afterDedupe === 0 && chunk.text.length > 10) {
+    if (!rejectionReason) {
+      rejectionReason = `Dedupe rejected: Content matched recent sentences (similarity > ${DEDUPE_SIM_THRESHOLD})`;
+    }
+    
     console.error(`❌ CHUNK COMPLETELY REJECTED: No text added despite ${chunk.text.length} char input!`, {
       originalChunk: chunk.text,
       prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300)),
       stitchedLength: stitched.length,
       dedupedLength: deduped.length,
       afterStitch,
-      afterDedupe
+      afterDedupe,
+      reason: rejectionReason
     });
     
     // Enhanced fallback: if nothing was added at all, force append with clear separator
     if (afterStitch === 0) {
       console.warn('✳️ CRITICAL: Stitch completely rejected chunk - forcing direct append');
       const separator = (/[.!?…]$/.test(prev) ? ' ' : '. ');
-      return prev + separator + next;
+      return { 
+        text: prev + separator + next, 
+        rejectionReason: `${rejectionReason} (forced append used)`, 
+        addedChars: next.length 
+      };
     } else {
       console.warn('✳️ Dedupe rejected chunk - using stitched version');
-      return stitched; // Use stitched version if dedupe removed it
+      return { 
+        text: stitched, 
+        rejectionReason: `${rejectionReason} (using stitched version)`, 
+        addedChars: afterStitch 
+      };
     }
   }
   
-  return deduped;
+  return { text: deduped, rejectionReason, addedChars: afterDedupe };
 }

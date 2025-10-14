@@ -360,7 +360,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
               isFinal: true,
               source: 'debounced'
             };
-            return mergeLive(prev, chunk);
+            return mergeLive(prev, chunk).text;
           });
         } else {
           console.log("🔄 Debounce chunk was empty after deduplication");
@@ -486,8 +486,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
               source: r.source || 'unknown'
             };
             const merged = mergeLive(prev, chunk);
-            console.log("📈 Raw transcript updated:", prev.length, "->", merged.length, "chars");
-            return merged;
+            console.log("📈 Raw transcript updated:", prev.length, "->", merged.text.length, "chars");
+            return merged.text;
           });
 
           // Apply lightweight cleaning for real-time processing (use parsed text)
@@ -507,8 +507,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                   source: r.source || 'unknown'
                 };
                 const merged = mergeLive(prev, chunk);
-                console.log("📝 Cleaned transcript updated, length:", merged.length);
-                return merged;
+                console.log("📝 Cleaned transcript updated, length:", merged.text.length);
+                return merged.text;
               });
             } else if (dedupedChunk) {
               console.log("⚡ Queuing non-final chunk for debounce processing");
@@ -633,8 +633,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
         source: 'props'
       };
       const merged = mergeLive(prev, chunk);
-      console.log("📈 Props transcript updated:", prev.length, "->", merged.length, "chars");
-      return merged;
+      console.log("📈 Props transcript updated:", prev.length, "->", merged.text.length, "chars");
+      return merged.text;
     });
     }
   }, [transcript]);
@@ -653,8 +653,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
         source: 'client-props'
       };
       const merged = mergeLive(prev, chunk);
-      console.log("📈 Client props transcript updated:", prev.length, "->", merged.length, "chars");
-      return merged;
+      console.log("📈 Client props transcript updated:", prev.length, "->", merged.text.length, "chars");
+      return merged.text;
     });
 
     // Handle finality from client props
@@ -666,7 +666,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             isFinal: true,
             source: 'client-final'
           };
-          return mergeLive(prev, chunk);
+          return mergeLive(prev, chunk).text;
         });
       } else {
         queueFlushChunk(processedTranscript);
