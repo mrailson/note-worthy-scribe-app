@@ -304,7 +304,7 @@ const CSOReport = () => {
 
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <p className="text-sm font-medium">
-                  <strong>Recommendation:</strong> System may proceed to controlled deployment within a single practice as a pilot, subject to completion of critical requirements within 90 days. Full NHS rollout should not proceed until GREEN rating achieved.
+                  <strong>Recommendation:</strong> System may proceed to controlled deployment within max 10 practice pilot (max 5 for first month), subject to completion of critical requirements within 90 days. Full NHS rollout should not proceed until GREEN rating achieved.
                 </p>
               </div>
             </CardContent>
