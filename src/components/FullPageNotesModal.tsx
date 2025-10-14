@@ -119,7 +119,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [isLoadingBackupTranscript, setIsLoadingBackupTranscript] = useState(false);
   const [isFormattingParagraphs, setIsFormattingParagraphs] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
@@ -201,7 +203,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          // First, prefer any manually saved transcript on the meeting record
          const { data: manualData, error: manualError } = await supabase
            .from('meetings')
-           .select('live_transcript_text')
+           .select('live_transcript_text, assembly_ai_transcript')
            .eq('id', currentMeetingId)
            .eq('user_id', user!.id)
            .maybeSingle();
@@ -216,6 +218,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            console.log('✅ Using manually saved transcript from meetings.live_transcript_text');
            if (meeting?.id === currentMeetingId) {
              setTranscript(manualData.live_transcript_text);
+             // Also load backup transcript if available
+             if (manualData.assembly_ai_transcript) {
+               setBackupTranscript(manualData.assembly_ai_transcript);
+               console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
+             }
              setIsLoadingTranscript(false);
            }
            return; // Skip RPC fallback
@@ -3225,187 +3232,269 @@ ${transcript}`;
                
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
-                  <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                     <div className="flex items-center gap-4">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        Meeting Transcript
-                        {transcript && (
-                          <>
-                            <span className="text-sm font-normal text-muted-foreground">
-                              ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
-                            </span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleFormatParagraphs}
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    disabled={!transcript || transcript.trim().length === 0 || isFormattingParagraphs}
-                                    title="Format transcript into neat paragraphs"
-                                  >
-                                    <AlignJustify className={`h-4 w-4 ${isFormattingParagraphs ? 'animate-pulse' : ''}`} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{isFormattingParagraphs ? 'Formatting...' : 'Format into paragraphs'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </>
-                        )}
-                      </h3>
-                    </div>
-                     <div className="flex items-center gap-2">
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                              <Button
-                                onClick={() => {
-                                  console.log('🔵 Add Context button clicked, opening dialog');
-                                  setShowContextDialog(true);
-                                }}
-                                variant="outline"
-                                size="icon"
-                                title="Add context like agendas, attendee lists, or presentations"
-                              >
-                                <FilePlus2 className="h-4 w-4" />
-                              </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>Add meeting agendas, attendee lists, or presentations</p>
-                           </TooltipContent>
-                         </Tooltip>
-                       </TooltipProvider>
+                  {/* Sub-tabs for primary and backup transcripts */}
+                  <div className="flex-1 overflow-hidden px-6 pt-4">
+                    <Tabs defaultValue="primary" className="h-full flex flex-col">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="primary" className="text-xs sm:text-sm">
+                          Primary Transcript
+                        </TabsTrigger>
+                        <TabsTrigger value="backup" className="text-xs sm:text-sm">
+                          Backup Transcript (Assembly AI)
+                        </TabsTrigger>
+                      </TabsList>
 
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               onClick={() => copyToClipboard(transcript || '')}
-                               variant="outline"
-                               size="icon"
-                               disabled={!transcript || transcript.trim().length === 0}
-                               title="Copy transcript to clipboard"
-                             >
-                               <Copy className="h-4 w-4" />
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>Copy transcript to clipboard</p>
-                           </TooltipContent>
-                         </Tooltip>
-                        </TooltipProvider>
- 
-                        {/* Save transcript button */}
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                onClick={async () => {
-                                  if (!transcript || transcript.trim().length === 0) return;
-                                  await saveTranscriptToDatabase(transcript);
-                                  toast.success('Transcript saved');
-                                }}
-                                variant="outline"
-                                size="icon"
-                                disabled={!transcript || transcript.trim().length === 0}
-                                title="Save transcript to this meeting"
-                              >
-                                <Save className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Save transcript</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
- 
-                        <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               onClick={handleGPTCleanTranscript}
-                               variant="outline"
-                               size="icon"
-                               disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
-                               title="Deep clean transcript using GPT to remove duplicates and improve formatting"
-                             >
-                               <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>{isLoadingTranscript ? 'AI Processing...' : 'Deep clean transcript using GPT'}</p>
-                           </TooltipContent>
-                         </Tooltip>
-                       </TooltipProvider>
+                      {/* Primary Transcript Tab */}
+                      <TabsContent value="primary" className="flex-1 overflow-hidden mt-0">
+                        <div className="h-full flex flex-col">
+                          <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                            <div className="flex items-center gap-4">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                Primary Transcript
+                                {transcript && (
+                                  <>
+                                    <span className="text-sm font-normal text-muted-foreground">
+                                      ({transcript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
+                                    </span>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            onClick={handleFormatParagraphs}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            disabled={!transcript || transcript.trim().length === 0 || isFormattingParagraphs}
+                                            title="Format transcript into neat paragraphs"
+                                          >
+                                            <AlignJustify className={`h-4 w-4 ${isFormattingParagraphs ? 'animate-pulse' : ''}`} />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{isFormattingParagraphs ? 'Formatting...' : 'Format into paragraphs'}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </>
+                                )}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={() => {
+                                        console.log('🔵 Add Context button clicked, opening dialog');
+                                        setShowContextDialog(true);
+                                      }}
+                                      variant="outline"
+                                      size="icon"
+                                      title="Add context like agendas, attendee lists, or presentations"
+                                    >
+                                      <FilePlus2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Add meeting agendas, attendee lists, or presentations</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
 
-                       {isEditing && (
-                         <TooltipProvider>
-                           <Tooltip>
-                             <TooltipTrigger asChild>
-                               <Button
-                                 onClick={handleUndo}
-                                 variant="outline"
-                                 size="icon"
-                                 disabled={transcriptVersions.length === 0}
-                                 title={`Undo (${transcriptVersions.length} versions available)`}
-                               >
-                                 <Undo2 className="h-4 w-4" />
-                               </Button>
-                             </TooltipTrigger>
-                             <TooltipContent>
-                               <p>Undo ({transcriptVersions.length} versions available)</p>
-                             </TooltipContent>
-                           </Tooltip>
-                         </TooltipProvider>
-                       )}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={() => copyToClipboard(transcript || '')}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={!transcript || transcript.trim().length === 0}
+                                      title="Copy transcript to clipboard"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copy transcript to clipboard</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
 
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               onClick={handleEditToggle}
-                               variant="outline"
-                               size="icon"
-                             >
-                               <Edit3 className="h-4 w-4" />
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent>
-                             <p>{isEditing ? 'Save' : 'Edit'} transcript</p>
-                           </TooltipContent>
-                         </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                              {/* Save transcript button */}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={async () => {
+                                        if (!transcript || transcript.trim().length === 0) return;
+                                        await saveTranscriptToDatabase(transcript);
+                                        toast.success('Transcript saved');
+                                      }}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={!transcript || transcript.trim().length === 0}
+                                      title="Save transcript to this meeting"
+                                    >
+                                      <Save className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Save transcript</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={handleGPTCleanTranscript}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
+                                      title="Deep clean transcript using GPT to remove duplicates and improve formatting"
+                                    >
+                                      <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{isLoadingTranscript ? 'AI Processing...' : 'Deep clean transcript using GPT'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              {isEditing && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={handleUndo}
+                                        variant="outline"
+                                        size="icon"
+                                        disabled={transcriptVersions.length === 0}
+                                        title={`Undo (${transcriptVersions.length} versions available)`}
+                                      >
+                                        <Undo2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Undo ({transcriptVersions.length} versions available)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={handleEditToggle}
+                                      variant="outline"
+                                      size="icon"
+                                    >
+                                      <Edit3 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{isEditing ? 'Save' : 'Edit'} transcript</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 overflow-auto pt-0">
+                            {isLoadingTranscript ? (
+                              <div className="flex items-center justify-center h-32">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <span className="ml-2">Loading transcript...</span>
+                              </div>
+                            ) : isEditing && editingTab === "transcript" ? (
+                              <Textarea
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                                className="h-full w-full font-mono text-sm resize-none"
+                                placeholder="Meeting transcript will appear here..."
+                              />
+                            ) : !transcript ? (
+                              <div className="flex items-center justify-center h-32 text-muted-foreground">
+                                No transcript available for this meeting.
+                              </div>
+                            ) : (
+                              <div 
+                                className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                                dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </TabsContent>
+
+                      {/* Backup Transcript Tab */}
+                      <TabsContent value="backup" className="flex-1 overflow-hidden mt-0">
+                        <div className="h-full flex flex-col">
+                          <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                            <div className="flex items-center gap-4">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                Backup Transcript (Assembly AI)
+                                {backupTranscript && (
+                                  <span className="text-sm font-normal text-muted-foreground">
+                                    ({backupTranscript.trim().split(/\s+/).filter(w => w.length > 0).length.toLocaleString('en-GB')} words)
+                                  </span>
+                                )}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={() => copyToClipboard(backupTranscript || '')}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={!backupTranscript || backupTranscript.trim().length === 0}
+                                      title="Copy backup transcript to clipboard"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copy backup transcript to clipboard</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 overflow-auto pt-0">
+                            {isLoadingBackupTranscript ? (
+                              <div className="flex items-center justify-center h-32">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <span className="ml-2">Loading backup transcript...</span>
+                              </div>
+                            ) : !backupTranscript || backupTranscript.trim().length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground space-y-2">
+                                <p>No backup transcript available.</p>
+                                <p className="text-xs">Assembly AI backup transcripts are saved during recording.</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                                  <p className="font-medium mb-1">About this transcript:</p>
+                                  <p>This is a real-time backup transcript captured by Assembly AI during the meeting for comparison and redundancy purposes.</p>
+                                </div>
+                                <div 
+                                  className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
+                                  dangerouslySetInnerHTML={{ __html: backupTranscript }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                  
-                  <div className="flex-1 overflow-auto p-6 pt-0">
-                    {isLoadingTranscript ? (
-                      <div className="flex items-center justify-center h-32">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <span className="ml-2">Loading transcript...</span>
-                      </div>
-                     ) : isEditing && editingTab === "transcript" ? (
-                       <Textarea
-                         value={editingContent}
-                         onChange={(e) => setEditingContent(e.target.value)}
-                         className="h-full w-full font-mono text-sm resize-none"
-                         placeholder="Meeting transcript will appear here..."
-                       />
-                     ) : !transcript ? (
-                      <div className="flex items-center justify-center h-32 text-muted-foreground">
-                        No transcript available for this meeting.
-                      </div>
-                    ) : (
-                      <div 
-                         className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                         dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
-                       />
-                     )}
-                   </div>
-                  </div>
+                </div>
                 </TabsContent>
               </Tabs>
            </div>

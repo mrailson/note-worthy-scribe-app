@@ -3736,7 +3736,8 @@ export const MeetingRecorder = ({
         .update({
           title: meetingData.title,
           duration_minutes: Math.ceil(duration / 60),
-          status: 'completed'
+          status: 'completed',
+          assembly_ai_transcript: assemblyTranscript // Save Assembly AI backup transcript
         })
         .eq('id', meetingId)
         .select()

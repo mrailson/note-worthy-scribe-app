@@ -3559,6 +3559,7 @@ export type Database = {
       meetings: {
         Row: {
           agenda: string | null
+          assembly_ai_transcript: string | null
           assembly_confidence: number | null
           assembly_transcript_text: string | null
           audio_backup_created_at: string | null
@@ -3608,6 +3609,7 @@ export type Database = {
         }
         Insert: {
           agenda?: string | null
+          assembly_ai_transcript?: string | null
           assembly_confidence?: number | null
           assembly_transcript_text?: string | null
           audio_backup_created_at?: string | null
@@ -3657,6 +3659,7 @@ export type Database = {
         }
         Update: {
           agenda?: string | null
+          assembly_ai_transcript?: string | null
           assembly_confidence?: number | null
           assembly_transcript_text?: string | null
           audio_backup_created_at?: string | null
