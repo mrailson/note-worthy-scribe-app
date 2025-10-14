@@ -1299,14 +1299,24 @@ export const MeetingRecorder = ({
       
       console.log(`🌊 Deepgram: Sending chunk ${chunkNumber} (audio size: ${audioBlob.size} bytes, base64: ${base64Audio.length} chars)`);
       
-      const { data, error } = await supabase.functions.invoke('standalone-deepgram', {
-        body: {
+      // Call Deepgram via direct fetch to ensure request reaches Edge Function
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/standalone-deepgram', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+        },
+        body: JSON.stringify({
           audio: base64Audio,
           meetingId: meetingId,
           sessionId: sessionId,
           chunkNumber: chunkNumber
-        }
+        })
       });
+
+      const data = await response.json();
+      const error = response.ok ? null : { message: data?.error || `HTTP ${response.status}` };
 
       console.log(`🌊 Deepgram response for chunk ${chunkNumber}:`, { data, error });
 

@@ -54,15 +54,16 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-    
-    console.log('Deepgram transcription result:', transcript.slice(0, 100) + '...');
+    const alt = result?.results?.channels?.[0]?.alternatives?.[0];
+    const transcript = alt?.transcript || '';
+    const confidence = typeof alt?.confidence === 'number' ? alt.confidence : 0;
+    console.log('Deepgram transcription result:', (transcript || '[empty]').slice(0, 100) + '...');
 
     return new Response(
       JSON.stringify({ 
         text: transcript,
         service: 'deepgram',
-        confidence: result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0
+        confidence
       }),
       { 
         headers: { 
