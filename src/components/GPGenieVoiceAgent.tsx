@@ -35,6 +35,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useDeviceInfo } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface QualityScore {
   accuracy: number;
@@ -51,6 +53,7 @@ interface QualityScore {
 }
 
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
+  const deviceInfo = useDeviceInfo();
   const getLanguageName = (code: string) => {
     if (!code) return 'Unknown';
     const lower = code.toLowerCase();
@@ -451,10 +454,18 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   }, []);
 
   return (
-    <Card className="w-full max-w-6xl mx-auto">
-      <CardHeader>
+    <Card className={cn(
+      "w-full max-w-6xl mx-auto",
+      deviceInfo.isIPhone && "sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm"
+    )}>
+      <CardHeader className={cn(
+        deviceInfo.isIPhone && "sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b pb-4"
+      )}>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "flex items-center gap-2",
+            deviceInfo.isIPhone && "text-base"
+          )}>
             {activeTab === 'gp-genie' ? (
               <>
                 <Stethoscope className="h-6 w-6 text-primary" />
@@ -472,11 +483,12 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               </>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />
-              {activeTab === 'gp-genie' ? 'Clinical Voice AI' : activeTab === 'pm-genie' ? 'Practice Management AI' : 'Patient Telephone Triage'}
-            </Badge>
+          {!deviceInfo.isIPhone && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                {activeTab === 'gp-genie' ? 'Clinical Voice AI' : activeTab === 'pm-genie' ? 'Practice Management AI' : 'Patient Telephone Triage'}
+              </Badge>
             {conversation.status === 'connected' && (
               <Badge variant="default" className="text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -499,28 +511,55 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                 Translation Quality: {qualityScore.overallSafety}
               </Badge>
             )}
-          </div>
+            </div>
+          )}
         </div>
         
         {/* Service Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="gp-genie" className="flex items-center gap-2">
-              <Stethoscope className="h-4 w-4" />
-              GP Genie
+          <TabsList className={cn(
+            "grid w-full grid-cols-3",
+            deviceInfo.isIPhone && "h-auto"
+          )}>
+            <TabsTrigger 
+              value="gp-genie" 
+              className={cn(
+                "flex items-center gap-2",
+                deviceInfo.isIPhone && "flex-col min-h-[52px] px-2 py-3 text-xs"
+              )}
+            >
+              <Stethoscope className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
+              <span className={deviceInfo.isIPhone ? "text-[11px] leading-none" : ""}>GP Genie</span>
             </TabsTrigger>
-            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              PM Genie
+            <TabsTrigger 
+              value="pm-genie" 
+              className={cn(
+                "flex items-center gap-2",
+                deviceInfo.isIPhone && "flex-col min-h-[52px] px-2 py-3 text-xs"
+              )}
+            >
+              <Building2 className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
+              <span className={deviceInfo.isIPhone ? "text-[11px] leading-none" : ""}>PM Genie</span>
             </TabsTrigger>
-            <TabsTrigger value="patient-line" className="flex items-center gap-2">
-              <PhoneCall className="h-4 w-4" />
-              Oak Lane Patient Line
+            <TabsTrigger 
+              value="patient-line" 
+              className={cn(
+                "flex items-center gap-2",
+                deviceInfo.isIPhone && "flex-col min-h-[52px] px-2 py-3 text-xs"
+              )}
+            >
+              <PhoneCall className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
+              <span className={deviceInfo.isIPhone ? "text-[11px] leading-none" : ""}>
+                {deviceInfo.isIPhone ? "Oak Lane" : "Oak Lane Patient Line"}
+              </span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
         
-        <p className="text-sm text-muted-foreground mt-3">
+        <p className={cn(
+          "text-sm text-muted-foreground mt-3",
+          deviceInfo.isIPhone && "text-xs"
+        )}>
           {activeTab === 'gp-genie' 
             ? 'Speak naturally with GP Genie, your AI assistant for clinical guidance, patient reassurance advice, and evidence-based medicine support.'
             : activeTab === 'pm-genie'
@@ -530,7 +569,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         </p>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className={cn(
+        "space-y-6",
+        deviceInfo.isIPhone && "px-4 pb-safe"
+      )}>
         {/* Error Alert */}
         {error && (
           <Alert variant="destructive">
@@ -615,7 +657,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         )}
 
          {/* Main Interface */}
-        <div className="flex flex-col items-center space-y-6 py-8">
+        <div className={cn(
+          "flex flex-col items-center space-y-6 py-8",
+          deviceInfo.isIPhone && "py-4 space-y-4"
+        )}>
           {/* Translation Quality Status - Only for Oak Lane Patient Line */}
           {activeTab === 'patient-line' && qualityScore && (
             <div className="w-full max-w-md">
@@ -683,7 +728,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           <div className="text-center space-y-2">
             
             <div className="space-y-1">
-              <p className="font-medium">
+              <p className={cn(
+                "font-medium",
+                deviceInfo.isIPhone && "text-base"
+              )}>
                 {conversation.status === 'connected' 
                   ? conversation.isSpeaking 
                     ? `${activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line'} is speaking...` 
@@ -691,7 +739,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   : 'Ready to connect'
                 }
               </p>
-               <p className="text-sm text-muted-foreground">
+               <p className={cn(
+                 "text-sm text-muted-foreground",
+                 deviceInfo.isIPhone && "text-xs"
+               )}>
                  {conversation.status === 'connected'
                    ? activeTab === 'gp-genie'
                      ? 'Ask about patient care, clinical protocols, or consultation guidance'
@@ -715,9 +766,12 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                 onClick={endConversation}
                 variant="destructive"
                 size="lg"
-                className="flex items-center gap-2"
+                className={cn(
+                  "flex items-center gap-2",
+                  deviceInfo.isIPhone && "min-h-[56px] text-base px-8"
+                )}
               >
-                <PhoneOff className="h-5 w-5" />
+                <PhoneOff className={cn("h-5 w-5", deviceInfo.isIPhone && "h-6 w-6")} />
                 End Consultation
               </Button>
             ) : (
@@ -725,20 +779,28 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                 onClick={startConversation}
                 disabled={!hasPermission || isLoading}
                 size="lg"
-                className="flex items-center gap-2"
+                className={cn(
+                  "flex items-center gap-2",
+                  deviceInfo.isIPhone && "min-h-[56px] text-base px-8"
+                )}
               >
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className={cn("h-5 w-5 animate-spin", deviceInfo.isIPhone && "h-6 w-6")} />
                 ) : (
-                  <Phone className="h-5 w-5" />
+                  <Phone className={cn("h-5 w-5", deviceInfo.isIPhone && "h-6 w-6")} />
                 )}
-                {isLoading ? 'Connecting...' : 'Start the Conversation'}
+                {deviceInfo.isIPhone 
+                  ? (isLoading ? 'Connecting...' : 'Start Call') 
+                  : (isLoading ? 'Connecting...' : 'Start the Conversation')
+                }
               </Button>
             )}
           </div>
         </div>
 
         {/* Dynamic Content Based on Selected Service */}
+        {!deviceInfo.isIPhone && (
+          <>
         <Tabs value={activeTab} className="w-full">
           <TabsContent value="gp-genie" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -963,6 +1025,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
             </div>
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </CardContent>
     </Card>
   );
