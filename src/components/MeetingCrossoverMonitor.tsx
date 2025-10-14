@@ -41,7 +41,6 @@ export const MeetingCrossoverMonitor: React.FC = () => {
       
       if (issues.length === 0) {
         console.log('✅ No crossover issues detected');
-        toast.success('No meeting data crossover detected');
       } else {
         console.warn(`⚠️ Found ${issues.length} potential crossover issues`, issues);
         toast.warning(`Found ${issues.length} potential meeting data crossover issues`);
