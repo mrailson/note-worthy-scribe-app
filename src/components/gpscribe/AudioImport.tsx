@@ -227,6 +227,19 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     try {
       const wordCount = transcriptionResult.split(' ').length;
       
+      // Get file metadata
+      const fileDate = selectedFile ? new Date(selectedFile.lastModified) : new Date();
+      const formattedDate = fileDate.toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+      const formattedTime = fileDate.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
+      });
+      
       // Create paragraphs from the transcription
       const paragraphs = transcriptionResult.split('\n\n').map(para => 
         new Paragraph({
@@ -244,8 +257,32 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
               spacing: { after: 400 }
             }),
             new Paragraph({
+              children: [new TextRun({ text: "File Information", bold: true, size: 24 })],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `File Name: ${selectedFile?.name || 'Unknown'}`, size: 20 })],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `File Size: ${selectedFile ? formatFileSize(selectedFile.size) : 'Unknown'}`, size: 20 })],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Date: ${formattedDate}`, size: 20 })],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Time: ${formattedTime}`, size: 20 })],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
               children: [new TextRun({ text: `Word Count: ${wordCount}`, size: 20 })],
               spacing: { after: 400 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: "Transcription", bold: true, size: 24 })],
+              spacing: { after: 200 }
             }),
             ...paragraphs
           ]
