@@ -1311,7 +1311,8 @@ export const MeetingRecorder = ({
           audio: base64Audio,
           meetingId: meetingId,
           sessionId: sessionId,
-          chunkNumber: chunkNumber
+          chunkNumber: chunkNumber,
+          mimeType: (audioBlob as any).type || 'audio/webm'
         })
       });
 

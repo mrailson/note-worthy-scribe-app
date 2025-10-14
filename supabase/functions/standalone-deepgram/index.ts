@@ -17,13 +17,15 @@ serve(async (req) => {
       throw new Error('Deepgram API key not configured');
     }
 
-    const { audio } = await req.json();
+    const { audio, mimeType } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
     }
 
-    console.log('Processing audio chunk with Deepgram, size:', audio.length);
+    const resolvedMime = typeof mimeType === 'string' && mimeType.trim() ? mimeType : 'audio/webm';
+
+    console.log('Processing audio chunk with Deepgram, size:', audio.length, 'mime:', resolvedMime);
 
     // Convert base64 to binary
     const binaryAudio = atob(audio);
@@ -36,12 +38,12 @@ serve(async (req) => {
 
     // Send to Deepgram API
     const response = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-2&language=en&smart_format=true&diarize=false&punctuate=true',
+      'https://api.deepgram.com/v1/listen?model=nova-2&language=en-GB&smart_format=true&diarize=false&punctuate=true',
       {
         method: 'POST',
         headers: {
           'Authorization': `Token ${deepgramApiKey}`,
-          'Content-Type': 'audio/webm',
+          'Content-Type': resolvedMime,
         },
         body: bytes,
       }
