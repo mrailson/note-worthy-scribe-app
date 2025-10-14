@@ -3471,9 +3471,9 @@ ${transcript}`;
                       </TabsContent>
 
                       {/* Backup Transcript Tab */}
-                      <TabsContent value="backup" className="mt-0 pt-2">
-                        <div className="flex flex-col space-y-3">
-                          <div className="flex items-center justify-between flex-shrink-0">
+                      <TabsContent value="backup" className="flex-1 overflow-hidden mt-0">
+                        <div className="h-full flex flex-col">
+                          <div className="flex items-center justify-between pb-3 flex-shrink-0">
                             <div className="flex items-center gap-4">
                               <h3 className="text-lg font-semibold flex items-center gap-2">
                                 Backup Meeting Transcript
@@ -3644,7 +3644,7 @@ ${transcript}`;
                             </div>
                           </div>
                           
-                          <ScrollArea className="flex-1 max-h-[600px]">
+                          <ScrollArea className="flex-1 h-full">
                             <div className="pr-4">
                               {isLoadingBackupTranscript ? (
                                 <div className="flex items-center justify-center h-32">
