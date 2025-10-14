@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AudioImport } from '@/components/gpscribe/AudioImport';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface AudioUploadModalProps {
   open: boolean;
@@ -17,12 +17,12 @@ export const AudioUploadModal: React.FC<AudioUploadModalProps> = ({
   const handleTranscriptReady = (transcript: string) => {
     try {
       console.log('Transcript ready:', transcript);
-      toast.success('Transcription completed successfully!');
+      showToast.success('Transcription completed successfully!', { section: 'ai4gp' });
       // Show success message but don't auto-close modal
       // Let user decide when to close
     } catch (error) {
       console.error('Error handling transcript:', error);
-      toast.error('Error processing transcript');
+      showToast.error('Error processing transcript', { section: 'ai4gp' });
     }
   };
 

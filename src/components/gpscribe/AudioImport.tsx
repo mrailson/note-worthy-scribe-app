@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FileAudio, Upload, Trash2, Loader2, Clipboard } from "lucide-react";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AudioImportProps {
@@ -33,19 +33,19 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     // Check file type
     const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a'];
     if (!allowedTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a)$/i)) {
-      toast.error("Please upload an audio file (MP3, WAV, or M4A)");
+      showToast.error("Please upload an audio file (MP3, WAV, or M4A)", { section: 'ai4gp' });
       return;
     }
 
     // Check file size (max 20MB)
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 20MB.");
+      showToast.error("File too large. Maximum size is 20MB.", { section: 'ai4gp' });
       return;
     }
 
     setSelectedFile(file);
     setTranscriptionResult("");
-    toast.success(`Selected: ${file.name}`);
+    showToast.success(`Selected: ${file.name}`, { section: 'ai4gp' });
 
     // Reset input
     event.target.value = "";
@@ -98,8 +98,12 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
   };
 
   const handleTranscribe = async () => {
-    if (!selectedFile || !isMountedRef.current) {
-      toast.error("No file selected");
+    if (!selectedFile) {
+      showToast.error("No file selected", { section: 'ai4gp' });
+      return;
+    }
+
+    if (!isMountedRef.current) {
       return;
     }
 
@@ -109,7 +113,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     try {
       if (!isMountedRef.current) return;
       
-      toast.info("Converting audio file...");
+      showToast.info("Converting audio file...", { section: 'ai4gp' });
       setProgress(20);
 
       // Convert file to base64 with better error handling
@@ -118,7 +122,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       if (!isMountedRef.current) return;
       
       setProgress(40);
-      toast.info("Sending to transcription service...");
+      showToast.info("Sending to transcription service...", { section: 'ai4gp' });
 
       // Send to transcription edge function
       const { data, error } = await supabase.functions.invoke('mp3-transcription', {
@@ -155,14 +159,14 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       // Pass transcript to parent component
       onTranscriptReady(transcript);
       
-      toast.success(`Transcription completed! (${Math.round(data.duration || 0)}s audio)`);
+      showToast.success(`Transcription completed! (${Math.round(data.duration || 0)}s audio)`, { section: 'ai4gp' });
       
     } catch (error) {
       console.error('Transcription failed:', error);
       if (!isMountedRef.current) return;
       
       const errorMessage = error?.message || 'Unknown transcription error';
-      toast.error(`Transcription failed: ${errorMessage}`);
+      showToast.error(`Transcription failed: ${errorMessage}`, { section: 'ai4gp' });
       setProgress(0);
     } finally {
       if (isMountedRef.current) {
@@ -175,7 +179,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     setSelectedFile(null);
     setTranscriptionResult("");
     setProgress(0);
-    toast.info("Audio file cleared");
+    showToast.info("Audio file cleared", { section: 'ai4gp' });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -301,7 +305,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                   variant="outline"
                   onClick={() => {
                     navigator.clipboard.writeText(transcriptionResult);
-                    toast.success("Transcript copied to clipboard!");
+                    showToast.success("Transcript copied to clipboard!", { section: 'ai4gp' });
                   }}
                 >
                   <Clipboard className="h-3 w-3 mr-1" />
