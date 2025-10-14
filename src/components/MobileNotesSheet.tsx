@@ -33,6 +33,8 @@ interface Meeting {
   title: string;
   start_time: string;
   created_at: string;
+  duration_minutes?: number;
+  word_count?: number;
   notes_style_2?: string;
   notes_style_3?: string;
   notes_style_4?: string;
@@ -439,9 +441,8 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-3 pb-2 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-5 h-10">
+              <TabsList className="grid w-full max-w-lg grid-cols-4 h-10">
                 <TabsTrigger value="executive" className="text-[10px] px-1 font-medium">Exec</TabsTrigger>
-                <TabsTrigger value="detailed" className="text-[10px] px-1 font-medium">Detail</TabsTrigger>
                 <TabsTrigger value="comprehensive" className="text-[10px] px-1 font-medium">V.Detail</TabsTrigger>
                 <TabsTrigger value="creative" className="text-[10px] px-1 font-medium">Creative</TabsTrigger>
                 <TabsTrigger value="transcript" className="text-[10px] px-1 font-medium">Transcript</TabsTrigger>
@@ -660,6 +661,20 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                         </span>
                       </Button>
                     </div>
+                    {transcript && (
+                      <div className="flex gap-4 mb-3 text-xs text-muted-foreground">
+                        {meeting?.duration_minutes && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {meeting.duration_minutes} min
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {transcript.split(/\s+/).filter(word => word.length > 0).length} words
+                        </span>
+                      </div>
+                    )}
                     <div className="bg-card rounded-lg border p-4">
                       {isLoadingTranscript ? (
                         <div className="flex items-center justify-center py-8">
