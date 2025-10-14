@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { detectDevice } from "@/utils/DeviceDetection";
 
 interface RealtimeTranscriptCardProps {
   transcriptText: string;
@@ -45,6 +46,7 @@ export const RealtimeTranscriptCard = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isIOS = detectDevice().isIOS;
 
   // Auto-scroll to bottom when new transcript content arrives
   useEffect(() => {
@@ -252,9 +254,11 @@ export const RealtimeTranscriptCard = ({
             )}
           </div>
           
-          <div className="text-xs text-muted-foreground italic border-t pt-2">
-            Raw Transcript – early view only, duplicates auto-removed later.
-          </div>
+          {!isIOS && (
+            <div className="text-xs text-muted-foreground italic border-t pt-2">
+              Raw Transcript – early view only, duplicates auto-removed later.
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between mb-2">
