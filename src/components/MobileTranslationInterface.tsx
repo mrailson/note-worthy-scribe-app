@@ -330,6 +330,21 @@ export const MobileTranslationInterface = () => {
                 <ArrowLeft className="h-4 w-4" />
                 {!isHeaderCollapsed && "Home"}
               </Button>
+              
+              {isHeaderCollapsed && isActive && currentSession && (
+                <div className="flex items-center gap-2 flex-1 justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {currentSession.targetLanguageName}
+                  </span>
+                  {isListening && (
+                    <div className="flex items-center gap-1 text-xs text-green-600 animate-pulse">
+                      <Mic className="h-3 w-3" />
+                      <span>Listening</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {isActive && (
                 <Button
                   variant="ghost"
