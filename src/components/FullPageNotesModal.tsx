@@ -3264,12 +3264,25 @@ ${transcript}`;
           }}
           onAddContext={(contextTypes, files, customLabel) => {
             console.log('🟡 Adding context:', { contextTypes, filesCount: files.length, customLabel });
-            const formattedContext = formatTranscriptContext(contextTypes, files, customLabel);
-            const currentTranscript = transcript || '';
-            const updatedTranscript = formattedContext + currentTranscript;
-            setTranscript(updatedTranscript);
-            saveTranscriptToDatabase(updatedTranscript);
-            toast.success('Context added and saved to transcript');
+            
+            // Check if this is an "additional-transcript" type
+            if (contextTypes.includes('additional-transcript')) {
+              // Extract just the content and append it directly
+              const additionalContent = files.map(file => file.content || '').join('\n\n');
+              const currentTranscript = transcript || '';
+              const updatedTranscript = currentTranscript + '\n\n' + additionalContent;
+              setTranscript(updatedTranscript);
+              saveTranscriptToDatabase(updatedTranscript);
+              toast.success('Additional transcript appended and saved');
+            } else {
+              // Regular context formatting
+              const formattedContext = formatTranscriptContext(contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>, files, customLabel);
+              const currentTranscript = transcript || '';
+              const updatedTranscript = formattedContext + currentTranscript;
+              setTranscript(updatedTranscript);
+              saveTranscriptToDatabase(updatedTranscript);
+              toast.success('Context added and saved to transcript');
+            }
           }}
         />
 

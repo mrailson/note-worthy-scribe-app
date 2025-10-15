@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 interface TranscriptContextDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddContext: (contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other'>, files: UploadedFile[], customLabel?: string) => void;
+  onAddContext: (contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>, files: UploadedFile[], customLabel?: string) => void;
 }
 
 export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = ({
@@ -26,12 +26,12 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
 }) => {
   const { processFiles, isProcessing } = useFileUpload();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<Array<'agenda' | 'attendees' | 'presentation' | 'other'>>(['agenda']);
+  const [selectedTypes, setSelectedTypes] = useState<Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>>(['agenda']);
   const [customLabel, setCustomLabel] = useState('');
   const [textContent, setTextContent] = useState('');
   const [activeTab, setActiveTab] = useState<'file' | 'image' | 'text'>('file');
 
-  const toggleContextType = (type: 'agenda' | 'attendees' | 'presentation' | 'other') => {
+  const toggleContextType = (type: 'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript') => {
     setSelectedTypes(prev => 
       prev.includes(type) 
         ? prev.filter(t => t !== type)
@@ -124,7 +124,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
         <DialogHeader>
           <DialogTitle>Add Context to Transcript</DialogTitle>
           <DialogDescription>
-            Upload meeting agendas, attendee lists, presentations, or paste text to add context to your transcript.
+            Upload meeting agendas, attendee lists, presentations, paste text to add context, or add additional transcript content to append directly.
           </DialogDescription>
         </DialogHeader>
 
@@ -164,6 +164,14 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
                   onCheckedChange={() => toggleContextType('other')}
                 />
                 <Label htmlFor="other" className="cursor-pointer">Other</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="additional-transcript" 
+                  checked={selectedTypes.includes('additional-transcript')}
+                  onCheckedChange={() => toggleContextType('additional-transcript')}
+                />
+                <Label htmlFor="additional-transcript" className="cursor-pointer">Additional Transcript</Label>
               </div>
             </div>
 
@@ -249,7 +257,11 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
             {/* Text Paste Tab */}
             <TabsContent value="text" className="space-y-4">
               <Textarea
-                placeholder={`Paste your ${selectedTypes.join(', ')} content here...\n\nExample:\n• Dr. Sarah Johnson - GP Partner\n• Michael Chen - Practice Manager\n• Jane Smith - Reception Lead`}
+                placeholder={
+                  selectedTypes.includes('additional-transcript')
+                    ? `Paste additional transcript content here...\n\nThis will be appended directly to the existing transcript.`
+                    : `Paste your ${selectedTypes.join(', ')} content here...\n\nExample:\n• Dr. Sarah Johnson - GP Partner\n• Michael Chen - Practice Manager\n• Jane Smith - Reception Lead`
+                }
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
                 className="min-h-[200px] font-mono text-sm"

@@ -90,7 +90,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   };
 
   const handleAddContext = (
-    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
+    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>,
     files: UploadedFile[],
     customLabel?: string
   ) => {
@@ -100,11 +100,23 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
       content: extractCleanContent(file.content || '')
     }));
 
-    const formattedContext = formatTranscriptContext(contextTypes, cleanedFiles, customLabel);
-    const updatedTranscript = formattedContext + meetingData.transcript;
-    
-    if (onUpdateTranscript) {
-      onUpdateTranscript(updatedTranscript);
+    // Check if this is an "additional-transcript" type
+    if (contextTypes.includes('additional-transcript')) {
+      // Extract just the content and append it directly
+      const additionalContent = cleanedFiles.map(file => file.content || '').join('\n\n');
+      const updatedTranscript = meetingData.transcript + '\n\n' + additionalContent;
+      
+      if (onUpdateTranscript) {
+        onUpdateTranscript(updatedTranscript);
+      }
+    } else {
+      // Regular context formatting
+      const formattedContext = formatTranscriptContext(contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>, cleanedFiles, customLabel);
+      const updatedTranscript = formattedContext + meetingData.transcript;
+      
+      if (onUpdateTranscript) {
+        onUpdateTranscript(updatedTranscript);
+      }
     }
   };
 
