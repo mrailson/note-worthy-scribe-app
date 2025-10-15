@@ -225,11 +225,8 @@ serve(async (req) => {
       }
     }
 
-    // Generate batch UUID for new notes
-    const batchId = crypto.randomUUID();
-    
-    // Queue all 5 note types for regeneration
-    const noteTypes = ['brief', 'executive', 'detailed', 'very_detailed', 'limerick'];
+    // Queue note types for regeneration (only the types we actually use)
+    const noteTypes = ['brief', 'executive', 'limerick'];
     const queueInserts = noteTypes.map(noteType => ({
       meeting_id: primaryMeeting.id,
       status: 'pending',

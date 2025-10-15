@@ -65,18 +65,6 @@ const noteTypeConfig = {
     icon: Crown,
     color: 'bg-purple-100 text-purple-800'
   },
-  detailed: {
-    label: 'Detailed Minutes',
-    description: 'Comprehensive meeting documentation',
-    icon: Book,
-    color: 'bg-green-100 text-green-800'
-  },
-  very_detailed: {
-    label: 'Very Detailed',
-    description: 'Complete verbatim record',
-    icon: Scroll,
-    color: 'bg-orange-100 text-orange-800'
-  },
   limerick: {
     label: 'Creative Summary',
     description: 'Fun limerick-style notes',
@@ -217,16 +205,6 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {noteType === 'detailed' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEnhanceClick(note)}
-              >
-                <Wand2 className="h-4 w-4 mr-2" />
-                Enhance
-              </Button>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
