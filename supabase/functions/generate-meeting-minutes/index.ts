@@ -14,6 +14,34 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Round time to nearest 15-minute interval
+  function roundToNearest15Minutes(timeString: string): string {
+    if (!timeString) return '';
+    
+    try {
+      // Parse time (assumes format like "14:23" or "06:47")
+      const [hours, minutes] = timeString.split(':').map(Number);
+      
+      // Round minutes to nearest 15
+      const roundedMinutes = Math.round(minutes / 15) * 15;
+      
+      // Handle overflow (e.g., 59 minutes rounds to 60)
+      let finalHours = hours;
+      let finalMinutes = roundedMinutes;
+      
+      if (finalMinutes === 60) {
+        finalHours = (hours + 1) % 24;
+        finalMinutes = 0;
+      }
+      
+      // Format as HH:MM
+      return `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error rounding time:', error);
+      return timeString; // Return original if parsing fails
+    }
+  }
+
   try {
     const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel } = await req.json();
 
@@ -28,55 +56,128 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre'). Do NOT include any times, time ranges, or timestamps anywhere in the output. Do NOT use placeholder text - only include information that is actually present in the transcript.
+    const roundedTime = roundToNearest15Minutes(meetingTime || '');
 
-Format the output as follows:
+    const prompt = `You are a professional meeting secretary creating detailed meeting minutes using British English conventions. Analyse the transcript and generate comprehensive, structured meeting minutes.
 
-# Meeting Minutes
+CRITICAL RULES:
+- Use British English spellings throughout (organised, realise, colour, centre)
+- Use British date formats with ordinals (1st August 2025, 22nd October 2025)
+- Use 24-hour time format
+- ONLY include information actually present in the transcript
+- NEVER make up or fabricate information
+- If a section has no relevant information, OMIT that entire section
+- Do NOT use placeholder text like "Not specified", "TBC", or "[Insert X]"
 
-**Date:** ${meetingDate || 'Not specified'}
-**Meeting:** ${meetingTitle || 'General Meeting'}
-**Location:** [Extract from transcript if mentioned, otherwise write "Not specified"]
+FORMAT REQUIREMENTS:
 
-## 1️⃣ Attendees
-List all participants mentioned by name in the transcript. If no specific names are mentioned, write "Participants identified by voice/role" and list any roles mentioned (e.g., "Practice Manager", "GP", "Receptionist").
+# MEETING DETAILS
 
-## 2️⃣ Meeting Agenda & Topics Discussed
-Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Do not include any times or time ranges.
+**Meeting Title:** ${meetingTitle || 'General Meeting'}
+**Date:** ${meetingDate || 'Date not recorded'}
+**Time:** ${roundedTime || 'Time not recorded'}
+**Location:** [Extract from transcript if explicitly mentioned, otherwise write "Location not specified"]
 
-## 3️⃣ Key Discussion Points
-Provide a detailed summary of the main discussions organized by topic. For each major topic, include:
-- Important points raised by participants
-- Concerns or issues discussed
-- Ideas and suggestions shared
-- Any relevant background information mentioned
+---
 
-Example format:
-**Opening Discussion**
-- Topic details...
+# EXECUTIVE SUMMARY
 
-**Budget Review**
-- Budget-related discussion points...
+[Write 2-3 comprehensive paragraphs summarising the overall meeting. Include:
+- Main purpose and context of the meeting
+- Key decisions made
+- Most important outcomes
+- Overall sentiment and next steps
+Only include information from the transcript. If insufficient information, write 1 concise paragraph.]
 
-## 4️⃣ Action Items
-List all action items and tasks assigned during the meeting:
-- **Task:** [Description of the action item]
-- **Assigned to:** [Person or role responsible]
-- **Deadline:** [If mentioned, otherwise "To be determined"]
+---
 
-Important instructions:
-- Use British English spellings and conventions throughout (e.g., 'organised', 'realise', 'colour', 'centre')
-- Do not include any timestamps or time ranges anywhere
-- Only include information that is actually present in the transcript
-- Do not add placeholder text or make assumptions
-- If a section has no relevant information from the transcript, write "Not discussed in this meeting"
-- Use clear, professional language
-- Organise information logically
-- Extract specific details, names, and numbers when mentioned
+# ATTENDEES
+
+[Extract specific names if mentioned in transcript. If NO specific names are mentioned, use "Practice team members" - do NOT use "Not specified" or "TBC" or any placeholder text.]
+
+---
+
+# DISCUSSION SUMMARY
+
+## Background
+[Set the context and background for the discussions. What led to this meeting? What prior situations or issues are being addressed?]
+
+## Key Points
+[List main discussion items as clear bullet points:
+- Each major topic discussed
+- Important points raised
+- Concerns or issues mentioned
+- Data, numbers, or specific details shared
+- Different perspectives or opinions expressed]
+
+## Outcome
+[Summarise the conclusions reached, consensus achieved, or how discussions resolved]
+
+---
+
+# DECISIONS & RESOLUTIONS
+
+[List as numbered items (1., 2., 3., etc.):
+1. Each specific decision made
+2. Resolutions agreed upon
+3. Approvals given
+4. Changes agreed to be implemented
+
+If NO decisions were made, OMIT this entire section.]
+
+---
+
+# ACTION ITEMS
+
+[Format as a proper markdown table. If there are action items, create table like this:
+
+| Action | Responsible Party | Deadline | Priority |
+|--------|------------------|----------|----------|
+| Specific task description | Person or team name | Specific date or "To be determined" | High/Medium/Low |
+| Another task | Another person | Date | Priority |
+
+Rules for Action Items:
+- Extract from transcript only
+- Use actual names/roles mentioned
+- Include actual deadlines if stated
+- Assign priority based on urgency indicated (High/Medium/Low)
+- If NO action items discussed, OMIT this entire section.]
+
+---
+
+# FOLLOW-UP REQUIREMENTS
+
+[Only include this section if there are specific follow-up tasks, monitoring requirements, or check-ins mentioned. List as bullet points.
+
+If NOTHING mentioned about follow-up, OMIT this entire section.]
+
+---
+
+# OPEN ITEMS & RISKS
+
+[Only include this section if transcript mentions:
+- Unresolved issues
+- Outstanding questions
+- Identified risks or concerns
+- Items requiring further discussion
+List as bullet points.
+
+If NOTHING mentioned, OMIT this entire section.]
+
+---
+
+# NEXT MEETING
+
+[Only include this section if a next meeting is explicitly scheduled or discussed.
+Include: Date, time, location, agenda items if mentioned.
+
+If NO next meeting mentioned, OMIT this entire section.]
+
+---
 
 Detail preference: ${detailInstructions}
 
-Transcript to analyze:
+Transcript to analyse:
 ${transcript}`;
 
     console.log('Generating meeting minutes for:', meetingTitle);
@@ -92,7 +193,7 @@ ${transcript}`;
         messages: [
           { 
             role: 'system', 
-            content: 'You are a professional meeting secretary who creates detailed, well-structured meeting minutes using British English spellings and conventions. Always follow the exact format provided and extract as much relevant information as possible from the transcript.' 
+            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
           },
           { role: 'user', content: prompt }
         ],
