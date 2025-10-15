@@ -44,12 +44,23 @@ export const MeetingOverviewEditor = ({
 
     setSaving(true);
     try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error("You must be logged in to save changes");
+      }
+
       // Check if overview already exists
-      const { data: existingOverview } = await supabase
+      const { data: existingOverview, error: fetchError } = await supabase
         .from('meeting_overviews')
         .select('id')
         .eq('meeting_id', meetingId)
         .maybeSingle();
+
+      if (fetchError) {
+        throw new Error(`Failed to check existing overview: ${fetchError.message}`);
+      }
 
       if (existingOverview) {
         // Update existing overview
@@ -58,7 +69,7 @@ export const MeetingOverviewEditor = ({
           .update({ overview: overview.trim() })
           .eq('meeting_id', meetingId);
 
-        if (error) throw error;
+        if (error) throw new Error(`Update failed: ${error.message}`);
       } else {
         // Create new overview
         const { error } = await supabase
@@ -66,16 +77,18 @@ export const MeetingOverviewEditor = ({
           .insert({
             meeting_id: meetingId,
             overview: overview.trim(),
-            created_by: (await supabase.auth.getUser()).data.user?.id
+            created_by: user.id
           });
 
-        if (error) throw error;
+        if (error) throw new Error(`Insert failed: ${error.message}`);
       }
 
       setIsEditing(false);
       onOverviewChange?.(overview.trim());
+      toast.success("Overview saved successfully");
     } catch (error: any) {
       console.error("Error saving overview:", error);
+      toast.error(error.message || "Failed to save overview");
     } finally {
       setSaving(false);
     }
@@ -131,7 +144,7 @@ export const MeetingOverviewEditor = ({
         className="min-h-[80px] resize-y"
       />
       <div className="text-xs text-muted-foreground">
-        {overview.split(' ').filter(word => word.length > 0).length}/120 words
+        {overview.split(' ').filter(word => word.length > 0).length}/150 words
       </div>
       <div className="flex gap-2">
         <Button
