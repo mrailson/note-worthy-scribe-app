@@ -9,6 +9,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateWordDocument } from "@/utils/documentGenerators";
+import { format } from "date-fns";
 
 interface EmailMeetingMinutesModalProps {
   isOpen: boolean;
@@ -28,19 +29,63 @@ export function EmailMeetingMinutesModal({
   const { profile } = useUserProfile();
   const [toEmail, setToEmail] = useState(profile?.email || "");
   const [subject, setSubject] = useState(meetingTitle ? `Meeting Minutes - ${meetingTitle}` : 'Meeting Minutes');
-  const [emailBody, setEmailBody] = useState(
-    `Dear recipient,\n\nPlease find attached the meeting minutes${meetingTitle ? ` for "${meetingTitle}"` : ''}.\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`
-  );
+  const [emailBody, setEmailBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [includeTranscript, setIncludeTranscript] = useState(false);
+  const [meetingDateTime, setMeetingDateTime] = useState<string>("");
+
+  // Helper function to round time to nearest 15 minutes
+  const roundToNearest15Minutes = (date: Date): Date => {
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const roundedDate = new Date(date);
+    roundedDate.setMinutes(roundedMinutes);
+    roundedDate.setSeconds(0);
+    roundedDate.setMilliseconds(0);
+    return roundedDate;
+  };
+
+  // Fetch meeting data to get the start time
+  useEffect(() => {
+    const fetchMeetingData = async () => {
+      if (!meetingId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('meetings')
+          .select('start_time')
+          .eq('id', meetingId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data?.start_time) {
+          const meetingDate = new Date(data.start_time);
+          const roundedDate = roundToNearest15Minutes(meetingDate);
+          const formattedDateTime = format(roundedDate, "dd/MM/yyyy 'at' HH:mm");
+          setMeetingDateTime(formattedDateTime);
+        }
+      } catch (error) {
+        console.error('Error fetching meeting data:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchMeetingData();
+    }
+  }, [isOpen, meetingId]);
 
   // Reset form when modal opens with new meeting data
   useEffect(() => {
     if (isOpen && meetingTitle) {
       setSubject(`Meeting Minutes - ${meetingTitle}`);
-      setEmailBody(`Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nThe minutes are also included below for your reference.\n\nKind regards,\n${profile?.display_name || 'GP Tools User'}`);
+      const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
+      const dateTimeText = meetingDateTime ? ` for the meeting recorded on ${meetingDateTime}` : '';
+      setEmailBody(
+        `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nThe minutes are also included below for your reference${dateTimeText}.\n\nKind regards,\n${userName}`
+      );
     }
-  }, [isOpen, meetingTitle, profile?.display_name]);
+  }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDateTime]);
 
   const handleSendEmail = async () => {
     if (!toEmail.trim()) {
