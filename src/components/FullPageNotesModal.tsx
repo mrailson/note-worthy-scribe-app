@@ -57,8 +57,12 @@ import {
   FilePlus2,
   AlignJustify,
   Mail,
-  MoreVertical
+  MoreVertical,
+  Eraser
 } from "lucide-react";
+import { cleanTranscript } from '@/lib/transcriptCleaner';
+import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
+import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 
 interface Meeting {
   id: string;
@@ -1371,8 +1375,69 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
+  // Handle Quick Tidy - apply medical term corrections and NHS rules
+  const handleQuickTidy = async () => {
+    // Get current content based on active tab
+    const getCurrentContent = () => {
+      switch (activeNotesStyleTab) {
+        case 'style1': return notesStyle3;
+        case 'style4': return notesStyle4;
+        case 'style5': return notesStyle5;
+        default: return null;
+      }
+    };
+
+    const currentContent = getCurrentContent();
+    if (!currentContent || !currentContent.trim()) {
+      toast.error('No content to tidy');
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      
+      // 1. Load user-specific medical term corrections
+      await medicalTermCorrector.loadCorrections(user?.id);
+      
+      // 2. Apply medical term corrections
+      let tidiedContent = medicalTermCorrector.applyCorrections(currentContent);
+      
+      // 3. Apply NHS default rules using transcriptCleaner
+      const cleanResult = cleanTranscript(tidiedContent, NHS_DEFAULT_RULES);
+      tidiedContent = cleanResult.cleaned;
+      
+      // 4. Count changes
+      const changeCount = cleanResult.appliedRuleIds.length;
+      
+      // 5. Update content and save to database
+      switch (activeNotesStyleTab) {
+        case 'style1':
+          setNotesStyle3(tidiedContent);
+          await saveNoteStyleToDatabase(3, tidiedContent);
+          break;
+        case 'style4':
+          setNotesStyle4(tidiedContent);
+          await saveNoteStyleToDatabase(4, tidiedContent);
+          break;
+        case 'style5':
+          setNotesStyle5(tidiedContent);
+          await saveNoteStyleToDatabase(5, tidiedContent);
+          break;
+      }
+      
+      // 6. Show success toast
+      toast.success(`Quick Tidy complete! ${changeCount} corrections applied.`);
+      
+    } catch (error) {
+      console.error('Quick Tidy error:', error);
+      toast.error('Quick Tidy failed. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Simple transcript cleaning function using string similarity
-  const cleanTranscript = (text: string): string => {
+  const cleanTranscriptDuplicates = (text: string): string => {
     const sentences = text.split(/(?<=[.?!])\s+/);
     const output: string[] = [];
 
@@ -1540,7 +1605,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     saveCurrentVersion('clean-transcript', 'transcript');
     
     try {
-      const cleanedTranscript = cleanTranscript(transcript);
+      const cleanedTranscript = cleanTranscriptDuplicates(transcript);
       setTranscript(cleanedTranscript);
       
     } catch (error) {
@@ -2755,6 +2820,41 @@ ${transcript}`;
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+
+                          {/* Quick Tidy button - fix names & acronyms */}
+                          {!isEditing && (() => {
+                            const getTabContent = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return notesStyle3;
+                                case 'style4': return notesStyle4;
+                                case 'style5': return notesStyle5;
+                                default: return null;
+                              }
+                            };
+                            
+                            const content = getTabContent();
+                            
+                            return content ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={handleQuickTidy}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={isGenerating}
+                                    >
+                                      <Eraser className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Quick Tidy - Fix names & acronyms</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : null;
+                          })()}
+
                           {/* Action buttons for each tab when content exists */}
                           {(() => {
                             const getTabContent = () => {
