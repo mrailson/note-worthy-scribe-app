@@ -389,35 +389,7 @@ ${cleanedTranscript}`;
     }
 
     const data = await response.json();
-    
-    // Log full response structure for debugging
-    console.log('📋 OpenAI Response Structure:', {
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length,
-      hasMessage: !!data.choices?.[0]?.message,
-      hasContent: !!data.choices?.[0]?.message?.content,
-      finishReason: data.choices?.[0]?.finish_reason,
-      usage: data.usage
-    });
-    
-    // Check for refusal or empty content
-    if (!data.choices || data.choices.length === 0) {
-      console.error('❌ No choices in OpenAI response:', JSON.stringify(data));
-      throw new Error('OpenAI returned no response choices');
-    }
-    
-    const choice = data.choices[0];
-    if (choice.finish_reason === 'content_filter') {
-      console.error('❌ Content was filtered by OpenAI');
-      throw new Error('Content was filtered - transcript may contain inappropriate content');
-    }
-    
-    const generatedNotes = choice.message?.content || '';
-    
-    if (!generatedNotes || generatedNotes.trim().length === 0) {
-      console.error('❌ OpenAI returned empty content. Full response:', JSON.stringify(data));
-      throw new Error('OpenAI generated empty notes - this may indicate a model issue or content filter');
-    }
+    const generatedNotes = data.choices[0].message.content;
 
     console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
 
