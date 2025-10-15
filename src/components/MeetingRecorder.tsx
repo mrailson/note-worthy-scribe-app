@@ -40,7 +40,6 @@ import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
-import { AssemblyTranscriptCard } from "@/components/AssemblyTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
@@ -57,7 +56,6 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
-import { AssemblyAIRealtimeTranscriber, TranscriptData as AssemblyTranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
@@ -118,8 +116,6 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
-  const [assemblyTranscript, setAssemblyTranscript] = useState(""); // Assembly AI backup transcript
-  const [assemblyWordCount, setAssemblyWordCount] = useState(0);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
@@ -332,9 +328,6 @@ export const MeetingRecorder = ({
       await desktopTranscriberRef.current.stopTranscription();
       desktopTranscriberRef.current = null;
     }
-
-    // Stop Assembly AI transcriber
-    stopAssemblyAI();
     
     // Clear recording audio if playing
     if (recordingAudioRef.current) {
@@ -1289,53 +1282,6 @@ export const MeetingRecorder = ({
     });
   };
 
-  // Start Assembly AI for backup transcription
-  const startAssemblyAI = () => {
-    try {
-      console.log('🚀 Starting Assembly AI realtime transcriber...');
-      
-      const transcriber = new AssemblyAIRealtimeTranscriber(
-        (data: AssemblyTranscriptData) => {
-          // Handle transcription data
-          if (data.is_final && data.text) {
-            console.log(`✅ Assembly AI final: "${data.text.substring(0, 50)}..."`);
-            setAssemblyTranscript(prev => {
-              const newText = prev + (prev ? ' ' : '') + data.text;
-              const words = newText.trim().split(/\s+/).length;
-              setAssemblyWordCount(words);
-              console.log(`📊 Assembly AI transcript updated: ${words} words total`);
-              return newText;
-            });
-          } else if (data.text) {
-            console.log(`📝 Assembly AI partial: "${data.text.substring(0, 30)}..."`);
-          }
-        },
-        (error: string) => {
-          console.error('❌ Assembly AI error:', error);
-        },
-        (status: string) => {
-          console.log('📡 Assembly AI status:', status);
-        }
-      );
-      
-      assemblyTranscriberRef.current = transcriber;
-      transcriber.startTranscription();
-      
-      console.log('✅ Assembly AI transcriber started');
-    } catch (err) {
-      console.error('⚠️ Assembly AI startup exception:', err);
-    }
-  };
-
-  // Stop Assembly AI transcription
-  const stopAssemblyAI = () => {
-    if (assemblyTranscriberRef.current) {
-      console.log('🛑 Stopping Assembly AI transcriber...');
-      assemblyTranscriberRef.current.stopTranscription();
-      assemblyTranscriberRef.current = null;
-    }
-  };
-
   const stopOverlappingChunks = async () => {
     try {
       console.log('🛑 Stopping overlapping chunk recording...');
@@ -1526,7 +1472,6 @@ export const MeetingRecorder = ({
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
-  const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
   const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
@@ -1661,8 +1606,6 @@ export const MeetingRecorder = ({
         if (desktopTranscriberRef.current) {
           desktopTranscriberRef.current.stopTranscription();
         }
-        // Stop Assembly AI transcriber
-        stopAssemblyAI();
         
         // Send last buffered text to server (best-effort)
         const currentSessionId = sessionStorage.getItem('currentSessionId');
@@ -2009,27 +1952,6 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Assembly AI transcription (replaces Deepgram)
-  const startAssemblyTranscription = async (meetingId: string) => {
-    try {
-      console.log('🔗 Starting Assembly AI transcription...');
-      addDebugLog('🔗 Starting Assembly AI transcription...');
-      
-      startAssemblyAI();
-      
-      console.log('✅ Assembly AI transcription started successfully');
-      addDebugLog('✅ Assembly AI transcription started');
-    } catch (error) {
-      console.error('❌ Assembly AI transcription error:', error);
-      addDebugLog(`❌ Failed to start Assembly AI transcription: ${error}`);
-      
-      // Fall back to Whisper
-      console.log('🔄 Falling back to Whisper transcription...');
-      addDebugLog('🔄 Falling back to Whisper transcription...');
-      await startWhisperTranscription(meetingId);
-    }
-  };
-
   // Whisper transcription (original logic)
   const startWhisperTranscription = async (meetingId: string) => {
     const browserSupport = checkBrowserSupport();
@@ -2093,10 +2015,7 @@ export const MeetingRecorder = ({
     console.log(`🎙️ Starting transcription with service: ${selectedService}`);
     addDebugLog(`🎙️ Starting transcription with service: ${selectedService}`);
     
-    // Start Assembly AI backup regardless of primary service
-    startAssemblyAI();
-    
-    // Use Whisper as primary service (assembly is backup only)
+    // Use Whisper as primary service
     await startWhisperTranscription(meetingId);
   };
 
@@ -2779,9 +2698,6 @@ export const MeetingRecorder = ({
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
-
-      // Stop Assembly AI transcriber
-      stopAssemblyAI();
       
       // Clear timer
       if (intervalRef.current) {
@@ -3238,9 +3154,6 @@ export const MeetingRecorder = ({
         desktopTranscriberRef.current = null;
       }
       
-      // Stop Assembly AI transcriber
-      stopAssemblyAI();
-      
       // Stop microphone stream
       if (micAudioStreamRef.current) {
         micAudioStreamRef.current.getTracks().forEach(track => track.stop());
@@ -3313,10 +3226,6 @@ export const MeetingRecorder = ({
        await new Promise(resolve => setTimeout(resolve, 200));
       desktopTranscriberRef.current = null;
     }
-
-    // Stop Assembly AI transcriber and wait for final processing
-    stopAssemblyAI();
-    await new Promise(resolve => setTimeout(resolve, 200));
     
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     
@@ -3740,8 +3649,7 @@ export const MeetingRecorder = ({
         .update({
           title: meetingData.title,
           duration_minutes: Math.ceil(duration / 60),
-          status: 'completed',
-          assembly_ai_transcript: assemblyTranscript // Save Assembly AI backup transcript
+          status: 'completed'
         })
         .eq('id', meetingId)
         .select()
@@ -4446,8 +4354,6 @@ export const MeetingRecorder = ({
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
-      // Stop Assembly AI transcriber
-      stopAssemblyAI();
       
       // Mute audio streams but keep them alive
       if (micAudioStreamRef.current) {
@@ -4961,13 +4867,6 @@ export const MeetingRecorder = ({
             wordCount={wordCount}
             confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
             className="border-accent/30"
-          />
-          
-          {/* Assembly AI Backup Transcript */}
-          <AssemblyTranscriptCard
-            transcript={assemblyTranscript}
-            wordCount={assemblyWordCount}
-            isRecording={isRecording}
           />
           
           {/* Live Transcript with Enhanced Two-Section Layout */}
