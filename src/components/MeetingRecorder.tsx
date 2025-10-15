@@ -3823,9 +3823,8 @@ export const MeetingRecorder = ({
       backgroundProcessing();
 
     } catch (error) {
-      console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
-      // showToast.dismiss(savingToastId); // Removed - toast not shown
-      showToast.error('Failed to save meeting', { section: 'meeting_manager' });
+      console.error('❌ Background processing error (meeting already saved):', error);
+      // Toast removed - meeting is already saved successfully, this is just background cleanup
     }
   };
 
