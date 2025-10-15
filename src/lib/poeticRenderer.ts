@@ -9,10 +9,8 @@ export function renderPoeticContent(content: string): string {
 
   // Convert the poetic content to HTML while preserving structure
   let html = content
-    // Remove ## Verse headers (they're already handled by the component)
-    .replace(/^##\s*Verse\s*\d+.*$/gm, '')
-    // Remove single # headers at the start (like "# 🎭 Meeting in Verse")
-    .replace(/^#\s+.*$/gm, '')
+    // Remove all markdown headers (##, ###, etc.)
+    .replace(/^#{1,6}\s+.*$/gm, '')
     // Convert line breaks to HTML breaks
     .replace(/\n/g, '<br>')
     // Bold text
