@@ -579,7 +579,7 @@ export const MeetingHistoryList = ({
       // 3. Fetch meeting note fields (prefer Minutes - Standard)
       const { data: notesFields, error: notesFieldsError } = await supabase
         .from('meetings')
-        .select('notes_style_3, notes_style_2, notes_style_1')
+        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5')
         .eq('id', meeting.id)
         .maybeSingle();
 
