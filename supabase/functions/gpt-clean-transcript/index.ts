@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +14,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!lovableApiKey) {
+      throw new Error('Lovable API key not configured');
     }
 
     const payload = await req.json();
@@ -25,7 +25,7 @@ serve(async (req) => {
       throw new Error('Missing required field: transcript');
     }
 
-    console.log('🧹 Strict GPT Deep Clean transcript, length:', transcript.length);
+    console.log('🧹 Lovable AI transcript cleaning, length:', transcript.length);
 
     // Helper functions for chunking
     const splitIntoSentences = (text: string): string[] => {
@@ -90,26 +90,26 @@ ${chunk}
 Cleaned chunk:
 `;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${lovableApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-2.5-flash',
           messages: [
             { role: 'system', content: systemMessage },
             { role: 'user', content: instructions }
           ],
-          max_tokens: 4000,
+          max_completion_tokens: 4000,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error(`OpenAI API error (chunk ${i + 1}/${chunks.length}):`, errorData);
-        throw new Error(`OpenAI API error on chunk ${i + 1}: ${errorData.error?.message || 'Unknown error'}`);
+        console.error(`Lovable AI error (chunk ${i + 1}/${chunks.length}):`, errorData);
+        throw new Error(`Lovable AI error on chunk ${i + 1}: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
@@ -120,7 +120,7 @@ Cleaned chunk:
 
     const merged = cleanedChunks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
 
-    console.log('✅ Strict GPT cleaning completed', {
+    console.log('✅ Lovable AI cleaning completed', {
       chunks: chunks.length,
       chunkSize,
       inputLength: transcript.length,

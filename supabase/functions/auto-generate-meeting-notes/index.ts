@@ -237,56 +237,55 @@ serve(async (req) => {
     const wordCount = fullTranscript.split(/\s+/).filter(word => word.length > 0).length;
     console.log('📊 Word count:', wordCount);
 
-    // Clean the transcript before generating notes
+    // Smart cleaning strategy: skip for small/medium transcripts
     let cleanedTranscript = fullTranscript;
     let transcriptUsed = 'raw';
+    const transcriptLength = fullTranscript.length;
     
-    try {
-      console.log('🧹 Cleaning transcript...');
-      
-      if (fullTranscript.length <= 7000) {
-        // Use GPT cleaning for smaller transcripts
-        const cleanResponse = await fetch(`${supabaseUrl}/functions/v1/gpt-clean-transcript`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ transcript: fullTranscript }),
-        });
-
-        if (cleanResponse.ok) {
-          const cleanData = await cleanResponse.json();
-          cleanedTranscript = cleanData.cleanedTranscript || fullTranscript;
-          transcriptUsed = 'gpt-cleaned';
-          console.log('✅ GPT cleaning completed:', cleanData.originalLength, '→', cleanData.cleanedLength, 'chars');
-        } else {
-          throw new Error('GPT cleaning failed');
-        }
-      } else {
-        // For larger transcripts, use chunked cleaning approach
-        console.log('📝 Large transcript detected, using chunked cleaning');
-        cleanedTranscript = await cleanLargeTranscript(fullTranscript, meeting.title, supabaseUrl, supabaseServiceKey);
-        transcriptUsed = 'chunked-cleaned';
-        console.log('✅ Chunked cleaning completed:', fullTranscript.length, '→', cleanedTranscript.length, 'chars');
-      }
-    } catch (cleanError) {
-      console.warn('⚠️ Transcript cleaning failed, using original:', cleanError.message);
-      // Continue with original transcript if cleaning fails
+    console.log('📊 Transcript length:', transcriptLength, 'chars (~', Math.round(transcriptLength / 4), 'words)');
+    
+    // Only clean very large transcripts (>500K chars)
+    // Gemini Flash can handle up to ~2M tokens, so most transcripts don't need cleaning
+    if (transcriptLength < 500000) {
+      console.log('⚡ Skipping cleaning - transcript within Gemini context window');
       cleanedTranscript = fullTranscript;
-      transcriptUsed = 'raw-fallback';
+      transcriptUsed = 'raw-optimized';
+    } else {
+      // Very large transcript - use cleaning
+      try {
+        console.log('🧹 Large transcript detected (>500K chars), using Lovable AI cleaning...');
+        cleanedTranscript = await cleanLargeTranscript(fullTranscript, meeting.title, supabaseUrl, supabaseServiceKey);
+        transcriptUsed = 'lovable-cleaned';
+        console.log('✅ Cleaning completed:', fullTranscript.length, '→', cleanedTranscript.length, 'chars');
+      } catch (cleanError) {
+        console.warn('⚠️ Transcript cleaning failed, using original:', cleanError.message);
+        cleanedTranscript = fullTranscript;
+        transcriptUsed = 'raw-fallback';
+      }
     }
 
     console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
-    // Generate notes using OpenAI
-    const systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
+    // Generate notes using Lovable AI
+    let systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
 
 CRITICAL INSTRUCTIONS:
 - ALWAYS generate structured business meeting notes regardless of the content type (meetings, discussions, educational content, documentaries, etc.)
 - Transform any audio/video transcript into professional business-style meeting notes
 - Extract business-relevant information, decisions, action items, and discussion points from any content
-- Never refuse to generate notes based on content type - treat all content as meeting material
+- Never refuse to generate notes based on content type - treat all content as meeting material`;
+
+    // Add raw transcript handling note if cleaning was skipped
+    if (transcriptUsed === 'raw-optimized') {
+      systemPrompt += `
+
+NOTE ON TRANSCRIPT QUALITY:
+- This transcript may contain minor speech recognition artifacts, duplicates, or fragments
+- Intelligently filter out obvious duplicates and fragments whilst preserving all meaningful content
+- Focus on extracting the core business information and decisions from the content`;
+    }
+
+    systemPrompt += `
 
 CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
