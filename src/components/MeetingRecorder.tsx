@@ -3195,8 +3195,8 @@ export const MeetingRecorder = ({
       return;
     }
     
-    // Show toast notification that processing is starting
-    const savingToastId = showToast.info("Saving meeting...", { section: 'meeting_manager', duration: Infinity });
+    // Toast notifications removed - user finds them distracting
+    // const savingToastId = showToast.info("Saving meeting...", { section: 'meeting_manager', duration: Infinity });
     
     // Wait 3 seconds to capture final audio chunks
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -3757,10 +3757,10 @@ export const MeetingRecorder = ({
         }
       }
 
-      // Dismiss the saving toast and show success
-      showToast.dismiss(savingToastId);
-      const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
-      showToast.success(`Meeting saved: ${formattedTitle}`, { section: 'meeting_manager' });
+      // Toast notifications removed - user finds them distracting
+      // showToast.dismiss(savingToastId);
+      // const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
+      // showToast.success(`Meeting saved: ${formattedTitle}`, { section: 'meeting_manager' });
 
       // Start background processing immediately (don't block UI)
       console.log('🤖 Starting background processing (notes generation, cleanup)...');
@@ -3824,7 +3824,7 @@ export const MeetingRecorder = ({
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
-      showToast.dismiss(savingToastId);
+      // showToast.dismiss(savingToastId); // Removed - toast not shown
       showToast.error('Failed to save meeting', { section: 'meeting_manager' });
     }
   };
