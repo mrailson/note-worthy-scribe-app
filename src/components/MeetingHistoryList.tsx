@@ -203,8 +203,8 @@ export const MeetingHistoryList = ({
     selectedTypes: {
       standard: true,
       overview: true,
-      executive: true,
-      limerick: true
+      executive: false,
+      limerick: false
     }
   });
   
@@ -840,8 +840,8 @@ export const MeetingHistoryList = ({
       selectedTypes: {
         standard: true,
         overview: true,
-        executive: true,
-        limerick: true
+        executive: false,
+        limerick: false
       }
     });
   };
@@ -1925,8 +1925,8 @@ export const MeetingHistoryList = ({
             selectedTypes: {
               standard: true,
               overview: true,
-              executive: true,
-              limerick: true
+              executive: false,
+              limerick: false
             }
           });
         }
