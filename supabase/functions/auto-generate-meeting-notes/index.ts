@@ -367,6 +367,8 @@ Transcript:
 ${cleanedTranscript}`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
+    console.log('📊 System prompt length:', systemPrompt.length, 'chars');
+    console.log('📊 User prompt length:', userPrompt.length, 'chars');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -384,9 +386,11 @@ ${cleanedTranscript}`;
       }),
     });
 
+    console.log('📡 Lovable AI response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ Lovable AI API error:', errorData);
+      console.error('❌ Lovable AI API error:', response.status, errorData);
       
       // Handle specific error cases
       if (response.status === 429) {
@@ -403,9 +407,18 @@ ${cleanedTranscript}`;
     }
 
     const data = await response.json();
-    const generatedNotes = data.choices[0].message.content;
+    console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
+    
+    const generatedNotes = data.choices?.[0]?.message?.content || '';
+    
+    if (!generatedNotes || generatedNotes.trim().length === 0) {
+      console.error('⚠️ Lovable AI returned empty content!');
+      console.error('Response structure:', JSON.stringify(data));
+      throw new Error('Lovable AI returned empty content. This may indicate an API configuration issue.');
+    }
 
     console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
+    console.log('📝 Generated preview:', generatedNotes.substring(0, 200));
 
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
     const overviewMatch = generatedNotes.match(/\*\*EXECUTIVE SUMMARY\*\*\s*\n(.*?)(?=\n\*\*|$)/s);
