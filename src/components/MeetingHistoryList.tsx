@@ -1658,8 +1658,6 @@ export const MeetingHistoryList = ({
                   onRefresh?.();
                 }}
                 className="mb-3"
-                meetingNotes={meeting.meeting_summary || meeting.transcript || ""}
-                meetingTitle={meeting.title}
               />
               
               {/* Meeting Documents - Always show, allow uploads even when empty */}

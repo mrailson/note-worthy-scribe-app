@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Edit, Save, X, Sparkles, RefreshCw } from "lucide-react";
+import { Edit, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
@@ -12,124 +12,22 @@ interface MeetingOverviewEditorProps {
   currentOverview?: string;
   onOverviewChange?: (overview: string) => void;
   className?: string;
-  meetingNotes?: string;
-  meetingTitle?: string;
 }
 
 export const MeetingOverviewEditor = ({ 
   meetingId, 
   currentOverview = "", 
   onOverviewChange,
-  className = "",
-  meetingNotes,
-  meetingTitle
+  className = ""
 }: MeetingOverviewEditorProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [overview, setOverview] = useState(currentOverview);
   const [saving, setSaving] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
 
   // Sync local state with prop changes
   useEffect(() => {
     setOverview(currentOverview);
   }, [currentOverview]);
-
-  const handleRegenerateOverview = async () => {
-    setRegenerating(true);
-    
-    try {
-      console.log('🔄 Starting overview regeneration...', { meetingTitle, hasNotes: !!meetingNotes });
-      
-      // If no meetingNotes provided, try to fetch from database
-      let notesToUse = meetingNotes;
-      if (!notesToUse) {
-        console.log('📄 Fetching meeting notes from database...');
-        const { data: summaryData } = await supabase
-          .from('meeting_summaries')
-          .select('summary')
-          .eq('meeting_id', meetingId)
-          .maybeSingle();
-        
-        notesToUse = summaryData?.summary;
-      }
-      
-      // If still no notes, try to get transcript
-      if (!notesToUse) {
-        console.log('📄 Fetching transcript from database...');
-        const { data: transcriptData } = await supabase
-          .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
-        
-        if (transcriptData?.[0]?.transcript) {
-          // Normalise transcript to clean plain text
-          const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
-          const normalised = normaliseTranscript(transcriptData[0].transcript);
-          notesToUse = normalised.plain;
-        }
-      }
-      
-      if (!notesToUse) {
-        toast.error("No meeting content available to generate overview");
-        return;
-      }
-      
-      const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
-        body: {
-          meetingTitle: meetingTitle || 'Meeting',
-          meetingNotes: notesToUse
-        }
-      });
-      
-      console.log('📝 Edge function response:', { data, error });
-      
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw error;
-      }
-      
-      if (data?.overview) {
-        console.log('✅ Overview generated:', data.overview);
-        setOverview(data.overview);
-        
-        // Auto-save the regenerated overview
-        const { data: existingOverview } = await supabase
-          .from('meeting_overviews')
-          .select('id')
-          .eq('meeting_id', meetingId)
-          .maybeSingle();
-
-        if (existingOverview) {
-          const { error: updateError } = await supabase
-            .from('meeting_overviews')
-            .update({ overview: data.overview })
-            .eq('meeting_id', meetingId);
-
-          if (updateError) throw updateError;
-        } else {
-          const { error: insertError } = await supabase
-            .from('meeting_overviews')
-            .insert({
-              meeting_id: meetingId,
-              overview: data.overview,
-              created_by: (await supabase.auth.getUser()).data.user?.id
-            });
-
-          if (insertError) throw insertError;
-        }
-        
-        // Toast removed - user finds it distracting
-        // toast.success("Overview regenerated successfully");
-        onOverviewChange?.(data.overview);
-      } else {
-        console.warn('⚠️ No overview in response:', data);
-        toast.error("Failed to generate overview - empty response");
-      }
-    } catch (error: any) {
-      console.error('❌ Error regenerating overview:', error);
-      toast.error(`Failed to regenerate overview: ${error.message || 'Unknown error'}`);
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   const handleSave = async () => {
     const wordCount = overview.trim().split(' ').filter(word => word.length > 0).length;
@@ -203,18 +101,6 @@ export const MeetingOverviewEditor = ({
               <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
-            {(meetingNotes || meetingTitle) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRegenerateOverview}
-                disabled={regenerating}
-                className="h-8 px-2"
-              >
-                <RefreshCw className={`h-3 w-3 mr-1 ${regenerating ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            )}
           </div>
         </div>
         <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[60px]">
@@ -225,7 +111,7 @@ export const MeetingOverviewEditor = ({
               }}
             />
           ) : (
-            "No overview yet. Click Edit to add one or Refresh to create one automatically."
+            "No overview yet. Click Edit to add one."
           )}
         </div>
       </div>
