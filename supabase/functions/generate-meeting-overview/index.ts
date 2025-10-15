@@ -53,27 +53,25 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
-    const systemPrompt = `Create a detailed, structured meeting overview using British English spellings and conventions.
+    const systemPrompt = `Create a comprehensive executive meeting summary using British English spellings and conventions.
 
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
-- 80-120 words total
-- Start with the meeting type and main purpose
-- Include 4-6 key points covering:
-  * Main topics discussed
-  * Key decisions made
-  * Important actions or next steps
-  * Notable concerns or issues raised
-- Use bullet points (•) to separate distinct topics
-- Be specific with details that help recall the meeting
-- Include concrete information (names, numbers, deadlines when mentioned)
-- Write in a professional, clear style`;
+- 100-150 words in a structured executive summary format
+- Start with a clear opening statement of the meeting's primary focus and key outcomes
+- Write in cohesive paragraphs (not bullet points) that flow naturally
+- First paragraph: Main purpose, critical decisions, and overarching themes
+- Second paragraph (if needed): Key challenges, actions agreed, and important details
+- Include specific information: names, numbers, deadlines, key deliverables
+- Maintain formal, professional executive tone
+- Focus on strategic importance and business impact
+- Emphasise what matters most to decision-makers and stakeholders`;
 
-    const userPrompt = `Create a detailed overview from this meeting titled "${meetingTitle || 'Meeting'}":
+    const userPrompt = `Create a comprehensive executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
 
 ${content.substring(0, 3000)}
 
-Provide 80-120 words covering the meeting's purpose, main discussion points, key decisions, and any important actions or deadlines mentioned.`;
+Provide a 100-150 word executive summary covering the meeting's strategic purpose, critical decisions made, key discussion themes, important actions agreed, and any significant deadlines or deliverables mentioned.`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 
