@@ -216,10 +216,10 @@ const MeetingHistory = () => {
     try {
       console.log('🔍 Fetching meeting details for:', meetingId);
       
-      // Fetch meeting details with notes generation status - use maybeSingle to avoid errors
+      // Fetch meeting details with notes generation status AND notes_style_3 - use maybeSingle to avoid errors
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup, notes_generation_status')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup, notes_generation_status, notes_style_3')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
         .maybeSingle();
@@ -240,7 +240,7 @@ const MeetingHistory = () => {
       console.log('🔍 Meeting data fetched:', meeting);
       console.log('🔍 Notes generation status:', meeting.notes_generation_status);
 
-      // Fetch existing summary if available
+      // Fetch existing summary if available (legacy table)
       const { data: summaryData, error: summaryError } = await supabase
         .from('meeting_summaries')
         .select('*')
@@ -252,6 +252,12 @@ const MeetingHistory = () => {
       }
       
       console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
+      
+      // Load notes_style_3 (Minutes - Standard) for email functionality
+      const notesStyle3 = meeting.notes_style_3 || '';
+      
+      // Set meetingSummary for email button - prefer notes_style_3 over legacy summary
+      setMeetingSummary(notesStyle3 || summaryData?.summary || '');
       
       // Handle different notes generation states
       let notesToShow = summaryData?.summary || '';
@@ -496,7 +502,10 @@ const MeetingHistory = () => {
   };
 
   const handleEmailNotes = async () => {
-    if (!selectedMeeting || !meetingSummary) return;
+    if (!selectedMeeting || !meetingSummary) {
+      toast.error('No meeting notes available to email');
+      return;
+    }
     
     try {
       const { error } = await supabase.functions.invoke('send-meeting-summary', {
@@ -504,14 +513,15 @@ const MeetingHistory = () => {
           to: user?.email,
           meetingTitle: selectedMeeting.title,
           summary: meetingSummary,
-          meetingDate: new Date(selectedMeeting.start_time).toLocaleDateString()
+          meetingDate: new Date(selectedMeeting.start_time).toLocaleDateString('en-GB')
         }
       });
 
       if (error) throw error;
-      console.log("Meeting notes emailed successfully");
+      toast.success(`Meeting notes sent to ${user?.email}`);
     } catch (error: any) {
       console.error("Error emailing notes:", error.message);
+      toast.error(`Failed to send email: ${error.message}`);
     }
   };
 
