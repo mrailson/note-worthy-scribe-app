@@ -16,7 +16,7 @@ interface NoteTypeConfig {
 const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
-    model: 'claude-sonnet-4-20250514',
+    model: 'gpt-5-nano-2025-08-07',
     systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
@@ -63,7 +63,7 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   },
   {
     type: 'executive',
-    model: 'claude-sonnet-4-20250514',
+    model: 'gpt-5-nano-2025-08-07',
     systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
 
 Format:
@@ -122,7 +122,7 @@ Focus on strategic implications for practice sustainability, patient care qualit
   },
   {
     type: 'limerick',
-    model: 'claude-sonnet-4-20250514',
+    model: 'gpt-5-nano-2025-08-07',
     systemPrompt: `Create a creative LIMERICK-style summary using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
 
 Format:
@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -186,23 +186,24 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log(`Generating ${config.type} notes with ${config.model}...`);
 
-        // All configs now use Claude, so always use Anthropic API
-        const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        // All configs now use OpenAI GPT-5 Nano
+        const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': anthropicApiKey,
-            'anthropic-version': '2023-06-01'
+            'Authorization': `Bearer ${openAIApiKey}`
           },
           body: JSON.stringify({
             model: config.model,
-            max_tokens: config.maxTokens || 2000,
+            max_completion_tokens: config.maxTokens || 2000,
             messages: [
               {
+                role: 'system',
+                content: config.systemPrompt
+              },
+              {
                 role: 'user',
-                content: `${config.systemPrompt}
-
-Meeting: ${meetingTitle || 'Meeting'}
+                content: `Meeting: ${meetingTitle || 'Meeting'}
 Date: ${meetingDate || 'Not specified'}
 Time: ${meetingTime || 'Not specified'}
 
@@ -221,9 +222,9 @@ ${transcript}`
 
         const data = await apiResponse.json();
         
-        // All responses are now from Claude
-        const content = data.content[0].text;
-        const tokenCount = data.usage?.output_tokens || 0;
+        // Extract content from OpenAI response
+        const content = data.choices[0].message.content;
+        const tokenCount = data.usage?.completion_tokens || 0;
 
         const processingTime = Date.now() - startTime;
 
