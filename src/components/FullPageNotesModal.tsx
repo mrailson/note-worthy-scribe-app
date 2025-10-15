@@ -1873,111 +1873,54 @@ ${transcript}`;
         minute: '2-digit' 
       });
 
-      const style3Prompt = `Please analyze the provided meeting transcript and create standard meeting minutes that balance detail with readability. Provide enough context for understanding while keeping content focused and actionable.
+      const style3Prompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes. Do not include any instructional lines in the output.
 
-**FORMATTING REQUIREMENTS**
-• Use clear headings with bullet points and sub-bullets
-• Include 2-3 sentences per major point
-• Maintain professional, accessible language
-• Ensure logical flow between sections
-• Use bold text for emphasis on key items
+STRICT RULES (DO NOT PRINT THESE):
+- Use British English spellings and 24-hour time
+- Use British date formats with ordinals (e.g., 22nd October 2025)
+- Only include information present in the transcript; never fabricate
+- Never use placeholders or square brackets like [Insert X]
+- If an item is unknown, omit the field/section entirely
+- Prefer clear headings, bullet points, and concise paragraphs
 
-**REQUIRED STRUCTURE**
+OUTPUT STRUCTURE (ONLY OUTPUT THE SECTIONS WITH REAL CONTENT):
 
-**MEETING DETAILS**
-• Date: ${meetingDate}
-• Time: ${meetingTime}
-• Attendees: [Names with roles/departments where mentioned]
-• Meeting Objective: [1-2 sentence summary of purpose]
+# MEETING DETAILS
+- Meeting Title: ${meeting.title}
+- Date: ${meetingDate}
+- Time: ${meetingTime}
+- Location: If a location (room, online platform) is explicitly mentioned in the transcript, output it; otherwise write "Location not specified".
 
-**EXECUTIVE SUMMARY**
-Brief 3-4 sentence overview covering:
-• Meeting's main focus and why it was called
-• Primary outcomes achieved
-• Key decisions made and next steps
+# EXECUTIVE SUMMARY
+Write 1–3 concise paragraphs covering: purpose, key decisions, major outcomes, and next steps.
 
-**DISCUSSION SUMMARY**
+# ATTENDEES
+List specific names/roles if the transcript mentions any. If none are mentioned, write "Practice team members".
 
-**[TOPIC 1 NAME]**
-Background: [1-2 sentences on context/why this was discussed]
-Key Points:
-• [Main point with brief explanation - 2-3 sentences]
-• [Secondary point with context - 2-3 sentences]
-• [Additional considerations raised - 2-3 sentences]
-Outcome: [What was concluded or decided for this topic]
+# DISCUSSION SUMMARY
+- Background: Brief context leading to the meeting
+- Key Points: Bullet points with important details (facts, figures, concerns, differing views)
+- Outcome: What was concluded/decided (if applicable)
 
-**[TOPIC 2 NAME]**
-Background: [Brief context]
-Key Points:
-• [Detailed point with reasoning]
-• [Alternative viewpoints discussed]
-• [Technical/practical considerations]
-Outcome: [Resolution or next steps]
+# DECISIONS & RESOLUTIONS
+Numbered list of decisions/resolutions made. Omit this section if none.
 
-[Continue for all major topics]
+# ACTION ITEMS
+Provide a markdown table only if the transcript contains actions. Use real names/roles and real dates where available; otherwise write "To be determined" for unspecified deadlines.
 
-**DECISIONS & RESOLUTIONS**
+| Action | Responsible Party | Deadline | Priority |
+|--------|------------------|----------|----------|
 
-**[Decision Title]**
-• What: [Clear statement of decision]
-• Why: [Brief rationale - 1-2 sentences]
-• Impact: [Who/what this affects]
+# FOLLOW-UP REQUIREMENTS
+Bullet points for monitoring/check-ins mentioned. Omit if none.
 
-**[Decision Title]**
-• What: [Decision details]
-• Why: [Reasoning behind decision]
-• Impact: [Scope of impact]
+# OPEN ITEMS & RISKS
+Bullet points for unresolved issues, questions, or risks. Omit if none.
 
-**ACTION ITEMS**
-| Task | Owner | Due Date | Details |
-|------|-------|----------|---------|
-| [Specific task description] | [Name] | [Date] | [Context/requirements] |
-| [Task with deliverable] | [Name] | [Date] | [Specifications/criteria] |
+# NEXT MEETING
+Only include if a next meeting was explicitly set. Include date/time/location if stated.
 
-**FOLLOW-UP REQUIREMENTS**
-
-Immediate Actions (Next 48 hours):
-• [Urgent task with brief description]
-• [Critical follow-up required]
-
-Short-term Deliverables (1-2 weeks):
-• [Milestone with context and owner]
-• [Preparation needed for next phase]
-
-Long-term Objectives:
-• [Strategic goals established]
-• [Future planning requirements]
-
-**OPEN ITEMS & RISKS**
-
-Unresolved Issues:
-• [Item requiring further discussion with brief context]
-• [Decision pending additional information]
-
-Identified Risks:
-• [Potential challenge with brief impact description]
-• [Resource/timeline concerns noted]
-
-**NEXT MEETING**
-• Date/Time: [If scheduled]
-• Focus: [Primary agenda for next session]
-• Preparation Required: [What attendees need to do beforehand]
-
-**GENERATION INSTRUCTIONS:**
-• Balanced Detail: Provide enough context for non-attendees to understand decisions without overwhelming detail
-• Complete Coverage: Include all substantive topics discussed, even if brief
-• Clear Attribution: Note who raised points or made commitments when important
-• Actionable Language: Use specific, measurable terms for action items
-• Logical Grouping: Organize related discussion points together
-• Professional Tone: Suitable for sharing with senior stakeholders
-• Scan-Friendly: Easy to quickly find specific information
-• Context Preservation: Include enough background for future reference
-
-**TARGET LENGTH:** 2-4 pages - comprehensive without being verbose.
-**TONE:** Professional, objective, informative - appropriate for formal business records.
-
-Here is the meeting transcript to process:
-
+Transcript:
 ${transcript}`;
 
       console.log('📝 Detailed prompt created, length:', style3Prompt.length);
