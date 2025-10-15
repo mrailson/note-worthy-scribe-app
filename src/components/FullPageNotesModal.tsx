@@ -3223,7 +3223,7 @@ ${transcript}`;
                                 <Textarea
                                   value={editingContent}
                                   onChange={(e) => setEditingContent(e.target.value)}
-                                  className="min-h-[500px] w-full font-mono text-sm resize-none"
+                                  className="h-[calc(100vh-300px)] w-full font-mono text-sm resize-none"
                                   placeholder="Meeting transcript will appear here..."
                                 />
                               ) : !transcript ? (
