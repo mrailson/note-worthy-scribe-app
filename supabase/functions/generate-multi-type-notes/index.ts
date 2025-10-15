@@ -104,39 +104,7 @@ Format:
 **Executive Review Scheduled:** [Date or "TBD"] | **Escalation Required:** [YES/NO - if yes, state why in 5 words]`,
     maxTokens: 600
   },
-  {
-    type: 'limerick',
-    model: 'google/gemini-2.5-flash',
-    systemPrompt: `Create a creative LIMERICK-style summary using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
-
-Format:
-# Meeting Limerick Summary
-
-## The Meeting Limerick
-*[Write a proper limerick with AABBA rhyme scheme that captures the meeting's essence]*
-
-There once was a meeting so bright,
-Where decisions were made left and right,
-With actions to do,
-And outcomes so true,
-The future now looks quite all right!
-
-## What It Actually Means
-• **Key Point 1:** [Clear explanation of main decision/outcome]
-• **Key Point 2:** [Clear explanation of secondary point]
-• **Key Point 3:** [Clear explanation of third point]
-
-## Action Items (The Serious Stuff)
-• **[Item]** - Assigned to: [Owner] | Due: [Date]
-• **[Item]** - Assigned to: [Owner] | Due: [Date]
-
-## Next Meeting
-• **When:** [Date/Time]
-• **Purpose:** [What we'll cover]
-
-Keep it fun but informative with proper formatting and clear action items!`,
-    maxTokens: 600
-  }
+  // Limerick config will be generated dynamically based on transcript length
 ];
 
 const handler = async (req: Request): Promise<Response> => {
@@ -163,8 +131,37 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Calculate meeting size for limerick verse scaling
+    const transcriptWordCount = transcript.split(/\s+/).length;
+    const limerickVerseCount = transcriptWordCount < 500 ? 1 :
+                               transcriptWordCount < 1500 ? 2 :
+                               transcriptWordCount < 3000 ? 3 :
+                               transcriptWordCount < 5000 ? 4 :
+                               transcriptWordCount < 8000 ? 5 : 6;
+
+    console.log(`Transcript: ${transcriptWordCount} words → ${limerickVerseCount} limerick verses`);
+
+    // Create dynamic limerick config based on meeting size
+    const limerickConfig = {
+      type: 'limerick' as const,
+      model: 'google/gemini-2.5-flash',
+      systemPrompt: `You are a creative meeting poet who transforms GP practice meetings into delightful limericks using British English spellings and conventions.
+
+CRITICAL RULES:
+- Write EXACTLY ${limerickVerseCount} limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'}
+- Each limerick MUST follow strict AABBA rhyme scheme
+- Each limerick should capture a distinct aspect of the meeting
+- Use British English spellings: organised, realise, colour, centre, programme, summarise
+- Make them clever, fun, and medically themed where appropriate
+- Each verse should be self-contained but together tell the meeting story`,
+      maxTokens: Math.min(800, 400 + (limerickVerseCount * 50))
+    };
+
+    // Combine all configs (brief, executive, and dynamic limerick)
+    const allNoteConfigs = [...noteConfigs, limerickConfig];
+
     // Process all note types in parallel
-    const generateNotePromises = noteConfigs.map(async (config) => {
+    const generateNotePromises = allNoteConfigs.map(async (config) => {
       const startTime = Date.now();
       
       try {
@@ -186,7 +183,45 @@ const handler = async (req: Request): Promise<Response> => {
               },
               {
                 role: 'user',
-                content: `Meeting: ${meetingTitle || 'Meeting'}
+                content: config.type === 'limerick' 
+                  ? `Create ${limerickVerseCount} meeting limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'} following this EXACT structure:
+
+# 🎭 Meeting in Verse
+
+${Array.from({length: limerickVerseCount}, (_, i) => `
+## Verse ${i + 1}${i === 0 ? ' - The Opening' : i === limerickVerseCount - 1 ? ' - The Finale' : ''}
+*[Write a proper limerick with AABBA rhyme scheme]*
+
+Line one sets the scene with flair,
+Line two shows the meeting's care,
+Line three is short,
+Line four's the retort,
+Line five concludes with style to spare!
+`).join('\n')}
+
+---
+
+## 📋 What It Actually Means
+• **Key Point 1:** [Main decision/outcome in plain English]
+• **Key Point 2:** [Secondary important point]
+• **Key Point 3:** [Third critical insight]
+${limerickVerseCount >= 4 ? '• **Key Point 4:** [Additional key point for larger meetings]' : ''}
+
+## 📌 Action Items (The Serious Stuff)
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+
+${limerickVerseCount >= 3 ? `## 📅 Next Meeting\n• **When:** [Date/Time if mentioned]\n• **Purpose:** [What we'll cover]` : ''}
+
+**Meeting Size:** ${limerickVerseCount} ${limerickVerseCount === 1 ? 'verse' : 'verses'} (${transcriptWordCount} words discussed)
+
+Meeting: ${meetingTitle || 'Meeting'}
+Date: ${meetingDate || 'Not specified'}
+Time: ${meetingTime || 'Not specified'}
+
+Transcript:
+${transcript}`
+                  : `Meeting: ${meetingTitle || 'Meeting'}
 Date: ${meetingDate || 'Not specified'}
 Time: ${meetingTime || 'Not specified'}
 
