@@ -2176,10 +2176,16 @@ ${transcript}`;
       if (data?.meetingMinutes || data?.generatedNotes) {
         const generatedContent = data.meetingMinutes || data.generatedNotes;
         console.log('✅ Executive notes generated, length:', generatedContent.length);
-        setNotesStyle4(generatedContent);
+
+        // Post-process to ensure meeting date/time are populated (avoid placeholders)
+        const fixedContent = generatedContent
+          .replace(/Date:\s*\[[^\]]*\]/gi, `Date: ${meetingDate}`)
+          .replace(/Time:\s*\[[^\]]*\]/gi, `Time: ${meetingTime}`);
+
+        setNotesStyle4(fixedContent);
         
         // Save to database
-        await saveNoteStyleToDatabase(4, generatedContent);
+        await saveNoteStyleToDatabase(4, fixedContent);
       } else {
         console.error('❌ No content in Executive response:', data);
       }
