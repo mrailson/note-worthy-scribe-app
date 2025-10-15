@@ -413,9 +413,21 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     if (emailData.transcript_attachment) {
+      const dataUrl = `data:${emailData.transcript_attachment.type};base64,${emailData.transcript_attachment.content}`;
       templateParams.transcript_filename = emailData.transcript_attachment.filename;
       // Format as data URL for EmailJS Variable Attachment
-      templateParams.transcript_attachment = `data:${emailData.transcript_attachment.type};base64,${emailData.transcript_attachment.content}`;
+      templateParams.transcript_attachment = dataUrl;
+
+      // Provide common alternative variable names to match EmailJS template configs
+      templateParams.txt_filename = emailData.transcript_attachment.filename;
+      templateParams.txt_attachment = dataUrl;
+      templateParams.attachment_2_filename = emailData.transcript_attachment.filename;
+      templateParams.attachment_2 = dataUrl;
+
+      console.log("Transcript attachment prepared:", {
+        filename: templateParams.transcript_filename,
+        data_url_prefix: dataUrl.substring(0, 100)
+      });
     }
     
     // Helper function to calculate payload size
@@ -537,7 +549,9 @@ const handler = async (req: Request): Promise<Response> => {
       has_transcript_attachment: !!emailData.transcript_attachment,
       transcript_filename: emailData.transcript_attachment?.filename,
       template_params_has_word_attachment: !!templateParams.word_attachment,
-      template_params_word_filename: templateParams.word_filename
+      template_params_word_filename: templateParams.word_filename,
+      template_params_has_transcript_attachment: !!templateParams.transcript_attachment || !!templateParams.txt_attachment || !!templateParams.attachment_2,
+      template_params_transcript_filename: templateParams.transcript_filename || templateParams.txt_filename || templateParams.attachment_2_filename
     });
 
     // Send email via EmailJS API
