@@ -57,6 +57,9 @@ function sanitizeMeetingMinutes(content: string): string {
 }
 
 async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const startTime = Date.now();
+  console.log('⏱️ Starting chunk consolidation...');
+  
   const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document. Use British English throughout.
 
 CRITICAL RULES:
@@ -71,6 +74,7 @@ CRITICAL RULES:
 CHUNK RESULTS TO CONSOLIDATE:
 ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
+  const apiStartTime = Date.now();
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -89,9 +93,12 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
           content: consolidationPrompt 
         }
       ],
-      max_completion_tokens: 8192
+      max_completion_tokens: 4096 // Reduced for faster generation
     }),
   });
+
+  const apiEndTime = Date.now();
+  console.log(`⚡ OpenAI API consolidation took: ${apiEndTime - apiStartTime}ms`);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -100,11 +107,19 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
   const data = await response.json();
   const content = data.choices[0].message.content;
-  return sanitizeMeetingMinutes(content);
+  
+  const sanitizeStartTime = Date.now();
+  const sanitized = sanitizeMeetingMinutes(content);
+  console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
+  console.log(`⏱️ Total consolidation time: ${Date.now() - startTime}ms`);
+  
+  return sanitized;
 }
 
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const startTime = Date.now();
   console.log('🎯 Processing chunk with GPT-5 - NO PLACEHOLDERS');
+  console.log(`📊 Transcript length: ${transcript.length} characters`);
   
   const meetingNotesPrompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes.
 
@@ -158,7 +173,8 @@ Only include if explicitly scheduled in transcript.
 TRANSCRIPT:
 ${transcript}`;
 
-  console.log('Processing chunk for meeting:', meetingTitle);
+  console.log('📤 Sending request to OpenAI GPT-5...');
+  const apiStartTime = Date.now();
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -178,9 +194,12 @@ ${transcript}`;
           content: meetingNotesPrompt 
         }
       ],
-      max_completion_tokens: 8192
+      max_completion_tokens: 4096 // Reduced for faster generation
     }),
   });
+
+  const apiEndTime = Date.now();
+  console.log(`⚡ OpenAI API response received in: ${apiEndTime - apiStartTime}ms`);
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -190,7 +209,13 @@ ${transcript}`;
 
   const data = await response.json();
   const content = data.choices[0].message.content;
-  return sanitizeMeetingMinutes(content);
+  
+  const sanitizeStartTime = Date.now();
+  const sanitized = sanitizeMeetingMinutes(content);
+  console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
+  console.log(`⏱️ Total chunk processing time: ${Date.now() - startTime}ms`);
+  
+  return sanitized;
 }
 
 serve(async (req) => {
@@ -198,6 +223,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const functionStartTime = Date.now();
+  console.log('🚀 Function invoked at:', new Date().toISOString());
 
   try {
     const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel, customPrompt } = await req.json();
@@ -218,6 +246,7 @@ serve(async (req) => {
       console.log('🎨 Using custom prompt for generation');
       console.log('📝 Custom prompt preview:', customPrompt.substring(0, 200) + '...');
       
+      const customApiStartTime = Date.now();
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -236,9 +265,12 @@ serve(async (req) => {
               content: customPrompt
             }
           ],
-          max_completion_tokens: 8192
+          max_completion_tokens: 4096 // Reduced for faster generation
         }),
       });
+
+      const customApiEndTime = Date.now();
+      console.log(`⚡ Custom prompt API call took: ${customApiEndTime - customApiStartTime}ms`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -250,10 +282,13 @@ serve(async (req) => {
       let generatedNotes = data.choices[0].message.content;
       
       // Sanitize output
+      const sanitizeStartTime = Date.now();
       generatedNotes = sanitizeMeetingMinutes(generatedNotes);
+      console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
       
       console.log('✅ Custom prompt generated successfully');
       console.log('📝 Generated preview:', generatedNotes.substring(0, 300));
+      console.log(`⏱️ Total custom prompt processing: ${Date.now() - functionStartTime}ms`);
 
       return new Response(JSON.stringify({
         meetingMinutes: generatedNotes,
@@ -299,12 +334,15 @@ serve(async (req) => {
       meetingMinutes = await processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
     }
 
-    console.log('GPT-5 meeting minutes generated successfully');
-    console.log('Generated minutes preview:', meetingMinutes.substring(0, 500));
+    const totalTime = Date.now() - functionStartTime;
+    console.log('✅ GPT-5 meeting minutes generated successfully');
+    console.log('📝 Generated minutes preview:', meetingMinutes.substring(0, 500));
+    console.log(`⏱️ TOTAL FUNCTION EXECUTION TIME: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`);
 
     return new Response(JSON.stringify({ 
       success: true,
-      meetingMinutes: meetingMinutes 
+      meetingMinutes: meetingMinutes,
+      processingTimeMs: totalTime // Include timing in response
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
