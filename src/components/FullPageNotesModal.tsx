@@ -2002,9 +2002,27 @@ ${transcript}`;
         await saveNoteStyleToDatabase(3, generatedContent);
       } else {
         console.error('❌ No content in Detailed response:', data);
+        toast.error('Failed to generate notes. No content received from AI service.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
+      
+      // Parse and display user-friendly error messages
+      let errorMessage = 'Failed to generate meeting notes. ';
+      
+      if (error?.message) {
+        if (error.message.includes('Rate limit')) {
+          errorMessage = 'AI service is busy. Please wait a moment and try again.';
+        } else if (error.message.includes('credits') || error.message.includes('402')) {
+          errorMessage = 'AI credits depleted. Please contact support to continue using this feature.';
+        } else if (error.message.includes('context') || error.message.includes('too large')) {
+          errorMessage = 'Transcript is too large. Please try cleaning the transcript first or contact support.';
+        } else {
+          errorMessage += error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       console.log('🏁 Standard generation finished');
       setIsGeneratingStyle3(false);

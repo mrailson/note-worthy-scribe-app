@@ -1,18 +1,21 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Updated to use OpenAI GPT-5 instead of Claude
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Updated to use Lovable AI with Gemini Flash (2M token context)
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Add this function to handle large transcripts
+// Handle large transcripts with Gemini's 2M token context
 function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  if (transcript.length > 25000) {
-    // Implement chunking strategy
+  console.log('🔧 Using Lovable AI with google/gemini-2.5-flash (2M token context)');
+  
+  // Gemini can handle ~2M tokens (~500K characters) - much larger than GPT-5-nano
+  if (transcript.length > 500000) {
+    console.log('⚠️ Transcript exceeds 500K chars, using chunked processing');
     return processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
   } else {
     // Use standard single API call
@@ -22,8 +25,8 @@ function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTim
 
 function processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
   const words = transcript.split(' ');
-  const chunkSize = 20000; // Words per chunk
-  const overlap = 2000; // Word overlap between chunks
+  const chunkSize = 100000; // Words per chunk (increased for Gemini)
+  const overlap = 5000; // Word overlap between chunks
   const chunks = [];
   
   for (let i = 0; i < words.length; i += chunkSize - overlap) {
@@ -75,14 +78,14 @@ CHUNK RESULTS TO CONSOLIDATE:
 ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
   const apiStartTime = Date.now();
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
+      'Authorization': `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-5-nano-2025-08-07',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: 'system', 
@@ -98,11 +101,17 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
   });
 
   const apiEndTime = Date.now();
-  console.log(`⚡ OpenAI API consolidation took: ${apiEndTime - apiStartTime}ms`);
+  console.log(`⚡ Lovable AI consolidation took: ${apiEndTime - apiStartTime}ms`);
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`OpenAI API error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
+    if (response.status === 429) {
+      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+    }
+    if (response.status === 402) {
+      throw new Error('Insufficient Lovable AI credits. Please contact support.');
+    }
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`AI service error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
   }
 
   const data = await response.json();
@@ -118,7 +127,7 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
   const startTime = Date.now();
-  console.log('🎯 Processing chunk with GPT-5 - NO PLACEHOLDERS');
+  console.log('🎯 Processing chunk with Gemini Flash - NO PLACEHOLDERS');
   console.log(`📊 Transcript length: ${transcript.length} characters`);
   
   const meetingNotesPrompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes.
@@ -173,17 +182,17 @@ Only include if explicitly scheduled in transcript.
 TRANSCRIPT:
 ${transcript}`;
 
-  console.log('📤 Sending request to OpenAI GPT-5...');
+  console.log('📤 Sending request to Lovable AI (Gemini Flash)...');
   const apiStartTime = Date.now();
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
+      'Authorization': `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-5-nano-2025-08-07',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: 'system', 
@@ -199,12 +208,18 @@ ${transcript}`;
   });
 
   const apiEndTime = Date.now();
-  console.log(`⚡ OpenAI API response received in: ${apiEndTime - apiStartTime}ms`);
+  console.log(`⚡ Lovable AI response received in: ${apiEndTime - apiStartTime}ms`);
 
   if (!response.ok) {
-    const errorData = await response.json();
-    console.error('OpenAI API error:', response.status, await response.text());
-    throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    if (response.status === 429) {
+      throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+    }
+    if (response.status === 402) {
+      throw new Error('Insufficient Lovable AI credits. Please contact support.');
+    }
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Lovable AI error:', response.status, errorData);
+    throw new Error(`AI service error: ${errorData.error?.message || 'Unknown error'}`);
   }
 
   const data = await response.json();
@@ -241,20 +256,20 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
-    // If customPrompt is provided, use it directly with GPT-5
+    // If customPrompt is provided, use it directly with Gemini
     if (customPrompt) {
       console.log('🎨 Using custom prompt for generation');
       console.log('📝 Custom prompt preview:', customPrompt.substring(0, 200) + '...');
       
       const customApiStartTime = Date.now();
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${lovableApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-5-nano-2025-08-07',
+          model: 'google/gemini-2.5-flash',
           messages: [
             { 
               role: 'system', 
@@ -273,9 +288,15 @@ serve(async (req) => {
       console.log(`⚡ Custom prompt API call took: ${customApiEndTime - customApiStartTime}ms`);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('OpenAI API error:', response.status, errorData);
-        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        if (response.status === 402) {
+          throw new Error('Insufficient Lovable AI credits. Please contact support.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Lovable AI error:', response.status, errorData);
+        throw new Error(`AI service error: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
@@ -335,25 +356,36 @@ serve(async (req) => {
     }
 
     const totalTime = Date.now() - functionStartTime;
-    console.log('✅ GPT-5 meeting minutes generated successfully');
+    console.log('✅ Lovable AI meeting minutes generated successfully');
     console.log('📝 Generated minutes preview:', meetingMinutes.substring(0, 500));
     console.log(`⏱️ TOTAL FUNCTION EXECUTION TIME: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`);
 
     return new Response(JSON.stringify({ 
       success: true,
       meetingMinutes: meetingMinutes,
-      processingTimeMs: totalTime // Include timing in response
+      processingTimeMs: totalTime
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in generate-meeting-notes-claude function:', error);
+    
+    // Return user-friendly error messages
+    let userMessage = error.message;
+    let statusCode = 500;
+    
+    if (error.message.includes('Rate limit')) {
+      statusCode = 429;
+    } else if (error.message.includes('credits')) {
+      statusCode = 402;
+    }
+    
     return new Response(JSON.stringify({ 
       success: false,
-      error: error.message 
+      error: userMessage
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
