@@ -450,10 +450,10 @@ const handler = async (req: Request): Promise<Response> => {
       template_params: templateParams
     };
     
-    const maxSize = 48000; // Leave some buffer for 50KB limit
+    const maxSize = 49500; // Increased from 48000 to use more of the 50KB limit
     let currentSize = getPayloadSize(testPayload);
     
-    console.log(`Initial payload size: ${currentSize} bytes`);
+    console.log(`Initial payload size: ${currentSize} bytes (limit: ${maxSize} bytes)`);
     
     if (currentSize > maxSize) {
       console.log("Payload too large, truncating content...");

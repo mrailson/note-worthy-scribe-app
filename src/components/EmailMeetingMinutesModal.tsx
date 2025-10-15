@@ -154,7 +154,9 @@ export function EmailMeetingMinutesModal({
 
       // Helper function to convert markdown and format to HTML
       const convertToStyledHTML = (text: string): string => {
-        const lines = text.split('\n');
+        // FIRST: Strip ALL bold markers from the entire text before any processing
+        const cleanedText = text.replace(/\*\*/g, '');
+        const lines = cleanedText.split('\n');
         let html = '';
         let i = 0;
         
@@ -243,9 +245,8 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle regular paragraphs - remove bold markers
-          const cleanText = line.replace(/\*\*/g, '');
-          html += `<p style="margin: 12px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${cleanText}</p>\n`;
+          // Handle regular paragraphs
+          html += `<p style="margin: 12px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${line}</p>\n`;
           i++;
         }
         
@@ -259,20 +260,7 @@ export function EmailMeetingMinutesModal({
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: `
-          <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
-            <div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;">
-              <p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p>
-            </div>
-            
-            <div style="padding: 20px; background-color: #ffffff;">
-              <div style="border-top: 2px solid #0066cc; padding-top: 20px;">
-                <h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING MINUTES</h1>
-                ${formattedNotes}
-              </div>
-            </div>
-          </div>
-        `,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="border-top: 2px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING MINUTES</h1>${formattedNotes}</div></div></div>`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
