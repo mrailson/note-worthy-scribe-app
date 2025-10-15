@@ -1,8 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker - using a fixed version for stability
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
 
 export class PDFProcessor {
   private static readonly MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB limit
@@ -14,25 +14,32 @@ export class PDFProcessor {
         throw new Error(`PDF file too large: ${file.name}. Maximum size is 15MB.`);
       }
 
-      console.log('Extracting text from PDF using PDF.js...');
+      console.log('📄 Starting PDF text extraction for:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
       
       // First, try client-side text extraction with PDF.js
       const arrayBuffer = await file.arrayBuffer();
-      const extractedText = await this.extractTextWithPdfJs(arrayBuffer);
       
-      // If we got meaningful text (more than just whitespace), return it
-      if (extractedText && extractedText.trim().length > 50) {
-        console.log('PDF text extracted successfully with PDF.js, length:', extractedText.length);
-        return extractedText;
+      try {
+        console.log('🔍 Attempting PDF.js text extraction...');
+        const extractedText = await this.extractTextWithPdfJs(arrayBuffer);
+        
+        // If we got meaningful text (more than just whitespace), return it
+        if (extractedText && extractedText.trim().length > 50) {
+          console.log('✅ PDF text extracted successfully with PDF.js, length:', extractedText.length);
+          return extractedText;
+        }
+        
+        console.log('⚠️ PDF.js extracted minimal text (', extractedText.trim().length, 'chars). Likely a scanned PDF.');
+      } catch (pdfJsError) {
+        console.warn('⚠️ PDF.js extraction failed:', pdfJsError);
+        console.log('📸 Falling back to OCR method...');
       }
       
-      // If PDF.js didn't extract much text, it's likely a scanned PDF
-      // Fall back to OCR using the vision API
-      console.log('PDF appears to be scanned or has minimal text, using OCR...');
+      // If PDF.js didn't extract much text or failed, fall back to OCR
       return await this.extractTextWithOCR(arrayBuffer, file.name);
       
     } catch (error) {
-      console.error('PDF processing error:', error);
+      console.error('❌ PDF processing error:', error);
       if (error instanceof Error && error.message.includes('too large')) {
         throw error;
       }
@@ -42,35 +49,48 @@ export class PDFProcessor {
 
   private static async extractTextWithPdfJs(arrayBuffer: ArrayBuffer): Promise<string> {
     try {
+      console.log('📚 Loading PDF document...');
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       
+      console.log(`📖 PDF loaded successfully. Pages: ${pdf.numPages}`);
       let fullText = '';
       
       // Extract text from each page
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        
-        fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`;
+        try {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          
+          if (pageText.trim()) {
+            fullText += `\n--- Page ${pageNum} ---\n${pageText}\n`;
+            console.log(`✓ Page ${pageNum}: ${pageText.length} characters extracted`);
+          } else {
+            console.log(`⚠️ Page ${pageNum}: No text found (possibly scanned)`);
+          }
+        } catch (pageError) {
+          console.error(`❌ Error extracting text from page ${pageNum}:`, pageError);
+        }
       }
       
       return fullText.trim();
     } catch (error) {
-      console.error('PDF.js extraction error:', error);
-      return '';
+      console.error('❌ PDF.js extraction error:', error);
+      throw error; // Re-throw to trigger OCR fallback
     }
   }
 
   private static async extractTextWithOCR(arrayBuffer: ArrayBuffer, fileName: string): Promise<string> {
     try {
+      console.log('📸 Converting PDF to base64 for OCR...');
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       const dataUrl = `data:application/pdf;base64,${base64}`;
       
+      console.log('📤 Sending to OCR service...');
       const { data, error } = await supabase.functions.invoke('extract-document-text', {
         body: {
           fileType: 'pdf',
@@ -80,20 +100,21 @@ export class PDFProcessor {
       });
 
       if (error) {
-        console.error('OCR extraction error:', error);
+        console.error('❌ OCR extraction error:', error);
         return `[PDF: ${fileName} - OCR extraction failed: ${error.message}]`;
       }
 
       const extractedText = data?.extractedText || '';
       if (extractedText) {
-        console.log('PDF text extracted successfully via OCR, length:', extractedText.length);
+        console.log('✅ PDF text extracted successfully via OCR, length:', extractedText.length);
         return extractedText;
       } else {
-        return `[PDF: ${fileName} - No text found]`;
+        console.warn('⚠️ OCR returned no text');
+        return `[PDF: ${fileName} - No text found via OCR]`;
       }
     } catch (error) {
-      console.error('OCR processing error:', error);
-      return `[PDF: ${fileName} - OCR processing failed]`;
+      console.error('❌ OCR processing error:', error);
+      return `[PDF: ${fileName} - OCR processing failed: ${error instanceof Error ? error.message : 'Unknown error'}]`;
     }
   }
 }
