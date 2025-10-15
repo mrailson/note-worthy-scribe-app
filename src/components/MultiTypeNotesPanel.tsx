@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2, MoreVertical, Copy, Mail } from 'lucide-react';
+import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2, MoreVertical, Copy, Mail, Target, Zap, Users, AlertTriangle, PoundSterling, BarChart, TrendingUp } from 'lucide-react';
 import { useMultiTypeNotes, type MultiTypeNote } from '@/hooks/useMultiTypeNotes';
 import { NoteEnhancementDialog } from './meeting/NoteEnhancementDialog';
 import { EmailMeetingMinutesModal } from './EmailMeetingMinutesModal';
@@ -60,10 +61,11 @@ const noteTypeConfig = {
     color: 'bg-blue-100 text-blue-800'
   },
   executive: {
-    label: 'Executive Summary',
-    description: 'Strategic overview for leadership',
+    label: 'Executive One-Pager',
+    description: 'Strategic brief for senior leaders (1-2 min read)',
     icon: Crown,
-    color: 'bg-purple-100 text-purple-800'
+    color: 'bg-purple-100 text-purple-800',
+    isOnePager: true
   },
   limerick: {
     label: 'Creative Summary',
@@ -148,6 +150,182 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
     setEmailModalOpen(true);
   };
 
+  const renderExecutiveContent = (content: string) => {
+    const sections = content.split(/(?=^# )/gm);
+    
+    const iconMap: Record<string, any> = {
+      '🎯': Target,
+      '⚡': Zap,
+      '👥': Users,
+      '⚠️': AlertTriangle,
+      '💰': PoundSterling,
+      '📊': BarChart
+    };
+
+    return (
+      <div className="space-y-6">
+        {sections.map((section, idx) => {
+          if (!section.trim()) return null;
+          
+          const lines = section.split('\n').filter(l => l.trim());
+          const headerLine = lines[0] || '';
+          const emoji = headerLine.match(/[🎯⚡👥⚠️💰📊]/)?.[0] || '';
+          const IconComponent = iconMap[emoji] || Target;
+          const sectionTitle = headerLine.replace(/^#\s*/, '').replace(/[🎯⚡👥⚠️💰📊]/g, '').trim();
+          const sectionContent = lines.slice(1).join('\n');
+
+          // Special rendering for different sections
+          if (sectionTitle.includes('MEETING CONTEXT')) {
+            return (
+              <Card key={idx} className="border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-primary" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-base leading-relaxed">{sectionContent}</p>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (sectionTitle.includes('CRITICAL DECISIONS')) {
+            return (
+              <Card key={idx} className="border-l-4 border-l-blue-500">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-blue-600" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sectionContent.split('•').filter(s => s.trim()).map((decision, i) => (
+                    <Alert key={i} className="border-blue-200 bg-blue-50/50">
+                      <AlertDescription className="text-sm">
+                        <div dangerouslySetInnerHTML={{ __html: decision.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (sectionTitle.includes('LEADERSHIP ACTION')) {
+            return (
+              <Card key={idx} className="border-l-4 border-l-amber-500">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-amber-600" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sectionContent.split('•').filter(s => s.trim()).map((action, i) => (
+                    <Alert key={i} className="border-amber-200 bg-amber-50/50">
+                      <AlertDescription className="text-sm">
+                        <div dangerouslySetInnerHTML={{ __html: action.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (sectionTitle.includes('RISKS & OPPORTUNITIES')) {
+            return (
+              <Card key={idx} className="border-l-4 border-l-orange-500">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-orange-600" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {sectionContent.split('•').filter(s => s.trim()).map((item, i) => {
+                    const isRisk = item.includes('Risk:');
+                    return (
+                      <Alert key={i} className={isRisk ? 'border-red-200 bg-red-50/50' : 'border-green-200 bg-green-50/50'}>
+                        <div className="flex items-start gap-2">
+                          {isRisk ? (
+                            <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+                          ) : (
+                            <TrendingUp className="h-4 w-4 text-green-600 mt-0.5" />
+                          )}
+                          <AlertDescription className="text-sm flex-1">
+                            <div dangerouslySetInnerHTML={{ __html: item.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                          </AlertDescription>
+                        </div>
+                      </Alert>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (sectionTitle.includes('FINANCIAL')) {
+            return (
+              <Card key={idx} className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-purple-600" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {sectionContent.split('•').filter(s => s.trim()).map((metric, i) => (
+                      <div key={i} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <p className="text-sm" dangerouslySetInnerHTML={{ __html: metric.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          if (sectionTitle.includes('WHY THIS MATTERS')) {
+            return (
+              <Card key={idx} className="border-2 border-primary bg-gradient-to-r from-primary/10 to-transparent">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconComponent className="h-6 w-6 text-primary" />
+                    {sectionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-base font-medium leading-relaxed">{sectionContent}</p>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          // Default rendering
+          return (
+            <Card key={idx}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <IconComponent className="h-5 w-5" />
+                  {sectionTitle}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: sectionContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderNoteContent = (noteType: keyof typeof noteTypeConfig) => {
     const note = getNoteByType(noteType);
     const noteStatus = status[noteType];
@@ -192,6 +370,9 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
       );
     }
 
+    // Check if this is an executive one-pager for special rendering
+    const isExecutiveOnePager = noteType === 'executive' && 'isOnePager' in config && config.isOnePager;
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -229,12 +410,16 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
           </div>
         </div>
         
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <div 
-            className="whitespace-pre-wrap leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: note.content }}
-          />
-        </div>
+        {isExecutiveOnePager ? (
+          renderExecutiveContent(note.content)
+        ) : (
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <div 
+              className="whitespace-pre-wrap leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: note.content }}
+            />
+          </div>
+        )}
       </div>
     );
   };

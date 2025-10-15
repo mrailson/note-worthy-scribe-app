@@ -64,61 +64,45 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   {
     type: 'executive',
     model: 'google/gemini-2.5-flash',
-    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
+    systemPrompt: `You are an executive briefing specialist creating strategic one-pagers for GP practice senior partners and leadership who did NOT attend this meeting.
+
+Your goal: Enable a busy partner to understand strategic impact and required actions in under 2 minutes.
+
+CRITICAL RULES:
+- Maximum 500 words total
+- Every point must answer "why does leadership care?"
+- Focus on strategic/financial/governance implications only
+- No operational minutiae
+- Use bullet points with bold key terms
+- Include specific numbers, dates, and names where relevant
+- Use British English spellings (organised, realise, programme, summarise)
 
 Format:
-# GP/PCN Executive Summary
+# 🎯 MEETING CONTEXT
+[2-3 sentences: Meeting type, date, primary strategic purpose]
 
-## Meeting Overview
-Brief context and purpose - [Practice partnership/PCN strategic/Clinical governance/Operational planning meeting]
+# ⚡ CRITICAL DECISIONS (3-4 maximum)
+• **[Decision name]** - Strategic impact: [Why this matters to practice viability/compliance/competitiveness] | Impact: [Financial/operational/patient care consequence]
 
-## Strategic Healthcare Decisions
-• **[Clinical Service Decision]** - Impact on patient care delivery and practice capacity
-• **[Operational Decision]** - Effect on practice efficiency, workflow, and staff resources  
-• **[Financial Decision]** - Practice revenue, cost implications, and sustainability impact
-• **[Partnership Decision]** - PCN collaboration, shared services, or external partnerships
+# 👥 LEADERSHIP ACTION REQUIRED (2-3 maximum)
+• **[Action]** - Owner: [Partner name/role] | Deadline: [Specific date] | **Why critical:** [Consequence of delay/non-action]
 
-## Practice & PCN Impact Analysis
-• **Patient Care Impact:** [How decisions improve/change patient experience and clinical outcomes]
-• **Operational Impact:** [Effects on daily practice operations, appointment availability, staff workload]
-• **Financial Impact:** [Revenue changes, cost savings/increases, investment requirements]
-• **Strategic Impact:** [Long-term practice positioning, competitive advantage, service expansion]
+# ⚠️ RISKS & OPPORTUNITIES (2-3 maximum)
+• **Risk:** [Specific threat to practice] | **Mitigation:** [Brief approach agreed]
+• **Opportunity:** [Revenue/efficiency/quality gain] | **Capture plan:** [Next steps]
 
-## Key Business Risks & Healthcare Governance
-• **Clinical Risk:** [Patient safety considerations, clinical governance implications] | **Mitigation:** [Risk management approach]
-• **Operational Risk:** [Service delivery, staffing, capacity risks] | **Mitigation:** [Contingency planning]
-• **Financial Risk:** [Budget, funding, contract risks] | **Mitigation:** [Financial safeguarding measures]
-• **Regulatory Risk:** [CQC, compliance, information governance] | **Mitigation:** [Compliance strategies]
+# 💰 FINANCIAL & RESOURCE IMPACT
+• **Investment Required:** [£X or "TBD - awaiting quotes"]
+• **Revenue Impact:** [Annual income change or "Net neutral"]
+• **Partner Drawing Impact:** [If relevant, or "No immediate impact"]
+• **ROI Timeline:** [Months to break-even or "Strategic investment"]
 
-## Leadership Actions Required
-• **Practice Management:** [Critical operational tasks] - [Timeline] - [Resource requirements]
-• **Clinical Leadership:** [Clinical pathway/quality actions] - [Timeline] - [Professional development needs]  
-• **PCN Leadership:** [Collaborative initiatives] - [Timeline] - [Inter-practice coordination requirements]
-• **Partnership Board:** [Strategic decisions requiring partner approval] - [Timeline] - [Business case needs]
+# 📊 WHY THIS MATTERS TO YOU
+[2-3 sentences explaining strategic positioning, competitive implications, partner obligations, or regulatory requirements that make this meeting significant for senior leadership who didn't attend]
 
-## Matters to Revisit
-• **[Deferred decision]** - [Reason for deferral] | **Next review:** [Timeline]
-• **[Outstanding issue]** - [Context and implications] | **Action needed:** [Who/what/when]
-• **[Future consideration]** - [Strategic importance] | **Follow-up required:** [Process/timeline]
-
-## Resource Requirements & Investment Decisions
-• **Staffing:** [New hires, role changes, training investments, workforce planning]
-• **Technology:** [IT systems, clinical equipment, infrastructure upgrades]
-• **Premises:** [Practice space, facilities, accessibility improvements]
-• **Financial:** [Budget allocations, cash flow implications, partnership distributions]
-
-## Patient & Population Health Outcomes
-• **Service Enhancements:** [Improved patient access, new services, care quality improvements]
-• **Population Health Impact:** [Screening programs, prevention services, health inequalities work]
-• **Care Integration:** [Better coordination with secondary care, community services, social care]
-
-## Next Executive Review Points
-• **Immediate Review (2 weeks):** [Critical operational decisions requiring quick executive oversight]
-• **Monthly Review (1 month):** [Progress monitoring on major initiatives and financial performance]
-• **Quarterly Review (3 months):** [Strategic outcomes assessment and partnership performance review]
-
-Focus on strategic implications for practice sustainability, patient care quality, and partnership success. Emphasize actionable leadership decisions and measurable outcomes.`,
-    maxTokens: 1000
+---
+**Executive Review Scheduled:** [Date or "TBD"] | **Escalation Required:** [YES/NO - if yes, state why in 5 words]`,
+    maxTokens: 600
   },
   {
     type: 'limerick',
