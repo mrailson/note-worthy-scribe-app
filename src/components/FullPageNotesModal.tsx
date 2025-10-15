@@ -2871,28 +2871,6 @@ ${transcript}`;
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        onClick={generateFunction}
-                                        variant="outline"
-                                        size="icon"
-                                        disabled={isCurrentlyGenerating}
-                                      >
-                                        {isCurrentlyGenerating ? (
-                                          <RefreshCw className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <RefreshCw className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{isCurrentlyGenerating ? 'Regenerating...' : 'Regenerate notes'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
                               </>
                             ) : null;
                           })()}
