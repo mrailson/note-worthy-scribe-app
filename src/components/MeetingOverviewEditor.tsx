@@ -156,18 +156,27 @@ export const MeetingOverviewEditor = ({
       <Textarea
         id="overview"
         value={overview}
-        onChange={(e) => setOverview(e.target.value)}
-        placeholder="Brief overview of meeting purpose and main topics discussed (80-120 words recommended)"
+        onChange={(e) => {
+          console.log('📝 Overview changed:', e.target.value.length, 'chars');
+          setOverview(e.target.value);
+        }}
+        placeholder="Brief overview of meeting purpose and main topics discussed (100-150 words recommended)"
         className="min-h-[80px] resize-y"
       />
-      <div className="text-xs text-muted-foreground">
-        {wordCount}/150 words
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">
+          {wordCount}/150 words {wordCount > 150 && <span className="text-destructive font-semibold">(too long)</span>}
+        </span>
+        <span className={`px-2 py-1 rounded text-xs font-mono ${isSaveDisabled ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-600'}`}>
+          {isSaveDisabled ? '❌ Save disabled' : '✅ Can save'}
+        </span>
       </div>
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
           disabled={isSaveDisabled}
           size="sm"
+          className={isSaveDisabled ? 'opacity-50 cursor-not-allowed' : ''}
         >
           <Save className="h-3 w-3 mr-1" />
           {saving ? "Saving..." : "Save"}
