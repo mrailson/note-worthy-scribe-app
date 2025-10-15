@@ -907,7 +907,7 @@ export const MeetingHistoryList = ({
             // Race between the actual request and timeout
             const result = await Promise.race([
               supabase.functions.invoke(
-                'start-standard-notes',
+                'auto-generate-meeting-notes',
                 { body: { meetingId, forceRegenerate: true } }
               ),
               timeoutPromise
