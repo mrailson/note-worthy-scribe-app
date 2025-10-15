@@ -416,7 +416,7 @@ const handler = async (req: Request): Promise<Response> => {
         return content;
       }
       
-      const truncatedSuffix = "...[content truncated for email size limits]";
+      const truncatedSuffix = '<div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;"><p style="margin: 0; color: #856404; font-size: 14px;"><strong>Note:</strong> Email content has been shortened to meet email size limits. Complete meeting minutes are available in the attached Word document.</p></div>';
       let left = 0;
       let right = content.length;
       let result = "";
@@ -450,19 +450,20 @@ const handler = async (req: Request): Promise<Response> => {
       template_params: templateParams
     };
     
-    const maxSize = 49500; // Increased from 48000 to use more of the 50KB limit
+    const maxSize = 50000; // EmailJS maximum is 50KB - use it all
     let currentSize = getPayloadSize(testPayload);
     
-    console.log(`Initial payload size: ${currentSize} bytes (limit: ${maxSize} bytes)`);
+    console.log(`Payload size: ${currentSize} bytes (EmailJS limit: 50KB)`);
     
     if (currentSize > maxSize) {
-      console.log("Payload too large, truncating content...");
+      console.log(`Payload exceeds limit (${currentSize} > ${maxSize}), truncating...`);
       
       // Priority order for truncation: message > html_message > attachment content
       if (templateParams.message) {
         const testWithoutMessage = {...testPayload, template_params: {...templateParams, message: "", html_message: ""}};
         const availableForMessage = maxSize - getPayloadSize(testWithoutMessage);
-        templateParams.message = truncateContent(templateParams.message, Math.floor(availableForMessage * 0.7));
+        // Use 80% of available space to leave buffer
+        templateParams.message = truncateContent(templateParams.message, Math.floor(availableForMessage * 0.8));
         
         // Update html_message if it exists
         if (templateParams.html_message) {
@@ -490,12 +491,13 @@ const handler = async (req: Request): Promise<Response> => {
       testPayload.template_params = templateParams;
       currentSize = getPayloadSize(testPayload);
       if (currentSize > maxSize && templateParams.attachment_content) {
-        console.log("Still too large, removing attachment content...");
+        console.log("Still over limit after message truncation, removing attachment content from email...");
         delete templateParams.attachment_content;
-        templateParams.attachment_name = templateParams.attachment_name + " (content removed due to size limits)";
+        templateParams.attachment_name = templateParams.attachment_name + " (attached separately)";
       }
       
-      console.log(`Final payload size: ${getPayloadSize(testPayload)} bytes`);
+      const finalSize = getPayloadSize(testPayload);
+      console.log(`Adjusted payload size: ${finalSize} bytes ${finalSize > maxSize ? '⚠️ STILL TOO LARGE' : '✓ Within limit'}`);
     }
     
     const payload = {
