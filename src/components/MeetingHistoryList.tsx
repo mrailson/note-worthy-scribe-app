@@ -576,35 +576,42 @@ export const MeetingHistoryList = ({
         .eq('meeting_id', meeting.id)
         .order('generated_at', { ascending: false });
 
+      // 3. Fetch meeting note fields (prefer Minutes - Standard)
+      const { data: notesFields, error: notesFieldsError } = await supabase
+        .from('meetings')
+        .select('notes_style_3, notes_style_2, notes_style_1')
+        .eq('id', meeting.id)
+        .maybeSingle();
+
       console.log('📧 Summary query result:', { summaryData, error });
       console.log('📧 Multi notes query result:', { multiNotesData });
+      console.log('📧 Meeting note fields:', notesFields, notesFieldsError);
       
       if (error) {
         console.error('Error fetching meeting summary:', error);
       }
       
-      // Priority order: multi-type notes > meeting notes > summary > transcript
+      // Priority order: Minutes - Standard (notes_style_3) > multi-type notes > summary > transcript
       let notes = '';
       
-      if (multiNotesData && multiNotesData.length > 0) {
-        // Prefer detailed notes first, then brief, then any available
+      const standardFromMeeting = (notesFields as any)?.notes_style_3 || (meeting as any).notes_style_3 || '';
+      if (standardFromMeeting) {
+        notes = standardFromMeeting;
+        console.log('📧 Using Minutes - Standard from meeting:', notes.substring(0, 100) + '...');
+      } else if (multiNotesData && multiNotesData.length > 0) {
+        // Prefer detailed, then brief, then most recent
         const detailedNote = multiNotesData.find(n => n.note_type === 'detailed');
         const briefNote = multiNotesData.find(n => n.note_type === 'brief');
         const anyNote = multiNotesData[0]; // First available (most recent)
         
         notes = detailedNote?.content || briefNote?.content || anyNote?.content || '';
-        console.log('📧 Using multi-type notes:', notes?.substring(0, 100) + '...');
+        console.log('📧 Using multi-type notes:', notes.substring(0, 100) + '...');
       } else {
-        // Check meeting's own note fields before falling back
+        // Fallbacks
         const meetingData = meeting as any;
-        notes = meetingData.notes_style_2 || meetingData.notes_style_3 || meetingData.notes_style_1 || 
+        notes = (notesFields as any)?.notes_style_2 || meetingData.notes_style_2 || (notesFields as any)?.notes_style_1 || meetingData.notes_style_1 ||
                 summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
-        
-        if (meetingData.notes_style_2 || meetingData.notes_style_3 || meetingData.notes_style_1) {
-          console.log('📧 Using meeting note fields:', notes?.substring(0, 100) + '...');
-        } else {
-          console.log('📧 Using fallback notes:', notes?.substring(0, 100) + '...');
-        }
+        console.log('📧 Using fallback notes:', notes.substring(0, 100) + '...');
       }
       
       if (!notes.trim()) {
