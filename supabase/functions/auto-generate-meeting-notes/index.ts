@@ -264,11 +264,11 @@ serve(async (req) => {
           throw new Error('GPT cleaning failed');
         }
       } else {
-        // For larger transcripts, use chunked cleaning approach
-        console.log('📝 Large transcript detected, using chunked cleaning');
-        cleanedTranscript = await cleanLargeTranscript(fullTranscript, meeting.title, supabaseUrl, supabaseServiceKey);
-        transcriptUsed = 'chunked-cleaned';
-        console.log('✅ Chunked cleaning completed:', fullTranscript.length, '→', cleanedTranscript.length, 'chars');
+        // For very large transcripts, skip cleaning and truncate to avoid timeouts
+        console.log('📝 Large transcript detected, skipping cleaning and truncating for generation');
+        cleanedTranscript = fullTranscript.slice(0, 12000);
+        transcriptUsed = 'truncated-raw';
+        console.log('✅ Truncation applied:', fullTranscript.length, '→', cleanedTranscript.length, 'chars');
       }
     } catch (cleanError) {
       console.warn('⚠️ Transcript cleaning failed, using original:', cleanError.message);
