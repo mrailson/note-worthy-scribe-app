@@ -16,7 +16,6 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingTemplatesTab } from "@/components/MeetingTemplatesTab";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
-import { MeetingModalQuickPick } from "@/components/MeetingModalQuickPick";
 import { MeetingContextEnhancer } from "@/components/MeetingContextEnhancer";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
@@ -2419,39 +2418,6 @@ ${transcript}`;
     }
   };
 
-  // Quick Pick Actions
-  const handleQuickPickAction = (action: string) => {
-    const currentContent = getCurrentContent();
-    const actions: { [key: string]: () => string } = {
-      'uppercase': () => currentContent.toUpperCase(),
-      'lowercase': () => currentContent.toLowerCase(),
-      'title-case': () => currentContent.replace(/\w\S*/g, (txt) => 
-        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-      ),
-      'sentence-case': () => currentContent.charAt(0).toUpperCase() + currentContent.slice(1).toLowerCase(),
-      'remove-extra-spaces': () => currentContent.replace(/\s+/g, ' ').trim(),
-      'add-bullet-points': () => currentContent.split('\n')
-        .filter(line => line.trim())
-        .map(line => `• ${line.trim()}`)
-        .join('\n'),
-      'add-numbers': () => currentContent.split('\n')
-        .filter(line => line.trim())
-        .map((line, index) => `${index + 1}. ${line.trim()}`)
-        .join('\n'),
-      'remove-bullets': () => currentContent.replace(/^[\s]*[•\-*]\s*/gm, ''),
-      'remove-numbers': () => currentContent.replace(/^[\s]*\d+\.\s*/gm, ''),
-      'clinical-summary': () => currentContent + '\n\n## Clinical Summary\n[AI-generated summary would appear here]',
-      'action-items': () => currentContent + '\n\n## Action Items\n[Extracted action items would appear here]',
-      'patient-care-focus': () => currentContent + '\n\n## Patient Care Focus\n[Patient care highlights would appear here]'
-    };
-
-    const result = actions[action]?.();
-    if (result) {
-      if (activeTab === "notes") {
-        onNotesChange(result);
-      }
-    }
-  };
 
   // AI Enhancement functionality
   const handleAIEnhancement = async (enhanceType: string) => {
@@ -2599,132 +2565,6 @@ ${transcript}`;
               <Bot className="h-5 w-5 text-primary flex-shrink-0" />
               <span className="truncate">{meeting.title} - Meeting Notes</span>
             </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size={isMobile ? "sm" : "sm"} 
-                  className={`gap-2 ${isMobile ? "mr-1 px-2" : "mr-2"} touch-manipulation min-h-[44px] sm:min-h-[36px]`}
-                >
-                  <Download className="h-4 w-4" />
-                  {!isMobile && "Quick Pick"}
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-               <DropdownMenuContent align="end" className="w-56">
-                 <DropdownMenuGroup>
-                   <DropdownMenuItem onClick={() => copyToClipboard(getCurrentContent())}>
-                     <Copy className="h-4 w-4 mr-2" />
-                     Copy to Clipboard
-                   </DropdownMenuItem>
-                   
-                   {/* Regenerate option - show on notes tab when transcript is available */}
-                   {activeTab === "notes" && transcript && (
-                     <DropdownMenuItem onClick={handleRegenerateNotes} disabled={isGenerating}>
-                       <RefreshCw className="h-4 w-4 mr-2" />
-                       {isGenerating ? 'Regenerating...' : 'Regenerate Notes'}
-                     </DropdownMenuItem>
-                   )}
-                   
-                   <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => generateAdvancedWordDocument(getCurrentContent(), `${meeting.title} - ${activeTab === "notes" ? "Meeting Notes" : "Transcript"}`)}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Download as Word
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => generatePDF(getCurrentContent(), `${meeting.title} - ${activeTab === "notes" ? "Meeting Notes" : "Transcript"}`)}>
-                        <FileType className="h-4 w-4 mr-2" />
-                        Download as PDF
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onClick={() => {
-                         // Create clean plain text version
-                         const cleanPlainText = (content: string) => {
-                           if (!content) return '';
-                           
-                           return content
-                             // First convert HTML breaks to newlines
-                             .replace(/<br\s*\/?>/gi, '\n')
-                             .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
-                             .replace(/<\/p>/gi, '\n')
-                             .replace(/<p[^>]*>/gi, '')
-                             
-                             // Handle headers with proper spacing
-                             .replace(/<\/h[1-6]>/gi, '\n\n')
-                             .replace(/<h[1-6][^>]*>/gi, '')
-                             
-                             // Remove all HTML tags
-                             .replace(/<[^>]*>/g, '')
-                             
-                             // Remove markdown formatting
-                             .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
-                             .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
-                             .replace(/~~([^~]+)~~/g, '$1') // Remove ~~strikethrough~~
-                             .replace(/`([^`]+)`/g, '$1') // Remove `code`
-                             .replace(/^#+\s*/gm, '') // Remove markdown headers
-                             
-                             // Convert HTML entities
-                             .replace(/&nbsp;/g, ' ')
-                             .replace(/&amp;/g, '&')
-                             .replace(/&lt;/g, '<')
-                             .replace(/&gt;/g, '>')
-                             .replace(/&quot;/g, '"')
-                             .replace(/&#39;/g, "'")
-                             .replace(/&apos;/g, "'")
-                             
-                             // Clean up spacing while maintaining structure
-                             .replace(/[ \t]+/g, ' ') // Multiple spaces to single space
-                             .replace(/\n[ \t]+/g, '\n') // Remove leading spaces on new lines
-                             .replace(/[ \t]+\n/g, '\n') // Remove trailing spaces before new lines
-                             .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
-                             .replace(/^---+$/gm, '') // Remove horizontal rules
-                             .replace(/^\s*[\*\-\+]\s*/gm, '• ') // Convert markdown bullets to simple bullets
-                             .trim();
-                         };
-                         
-                         const plainTextContent = cleanPlainText(getCurrentContent());
-                         const element = document.createElement("a");
-                         const file = new Blob([plainTextContent], { type: 'text/plain' });
-                         element.href = URL.createObjectURL(file);
-                         element.download = `${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${activeTab}.txt`;
-                         document.body.appendChild(element);
-                          element.click();
-                          document.body.removeChild(element);
-                        }}>
-                        <Type className="h-4 w-4 mr-2" />
-                        Download as Plain Text
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => setShowFindReplace(!showFindReplace)}>
-                        <Search className="h-4 w-4 mr-2" />
-                        Find and Replace
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowCustomInstruction(!showCustomInstruction)}>
-                        <Mic className="h-4 w-4 mr-2" />
-                        Update Names and Terms
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  
-                  <DropdownMenuItem onClick={() => setEnhancementDialogOpen(true)}>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    AI Enhance
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </DialogTitle>
           <DialogDescription className="sr-only">
             View and edit meeting notes and transcript for {meeting.title}
