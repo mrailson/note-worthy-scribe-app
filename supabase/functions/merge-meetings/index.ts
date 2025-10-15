@@ -231,7 +231,6 @@ serve(async (req) => {
       meeting_id: primaryMeeting.id,
       status: 'pending',
       note_type: noteType,
-      batch_id: batchId,
       detail_level: noteType
     }));
 

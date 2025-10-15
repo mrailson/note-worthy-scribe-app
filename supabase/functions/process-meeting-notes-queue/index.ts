@@ -93,31 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error(`Failed to fetch transcript: ${transcriptError?.message || 'No transcript found'}`);
         }
 
-        // Check if this is part of a batch (multi-type generation)
-        const { data: batchItems, error: batchError } = await supabase
-          .from('meeting_notes_queue')
-          .select('*')
-          .eq('batch_id', item.batch_id)
-          .eq('status', 'pending');
-
-        if (item.batch_id && batchItems && batchItems.length > 1) {
-          // This is a multi-type batch, call the new function
-          const { data: functionResult, error: functionError } = await supabase.functions.invoke(
-            'generate-multi-type-notes',
-            {
-              body: { 
-                meetingId: item.meeting_id,
-                batchId: item.batch_id,
-                transcript: transcriptData[0].transcript,
-                meetingTitle: meeting.title,
-                meetingDate: new Date(meeting.created_at).toLocaleDateString(),
-                meetingTime: new Date(meeting.created_at).toLocaleTimeString()
-              }
-            }
-          );
-        } else {
-          // Single note generation - check note type for appropriate function
-          let functionResult, functionError;
+        // Single note generation - check note type for appropriate function
+        let functionResult, functionError;
           
           if (item.note_type === 'detailed') {
             // Call detailed minutes generation function for detailed notes
@@ -159,7 +136,6 @@ const handler = async (req: Request): Promise<Response> => {
             functionResult = data;
             functionError = error;
           }
-        }
 
         if (functionError) {
           console.error(`Error calling auto-generate function for meeting ${item.meeting_id}:`, functionError);
