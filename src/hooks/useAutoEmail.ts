@@ -118,11 +118,10 @@ export function useAutoEmail() {
         .message-container {
           max-width: 700px;
           margin: 0 auto;
-          background-color: #f8fafc;
+          background-color: #ffffff;
           border: 1px solid #e2e8f0;
           border-radius: 12px;
           padding: 24px;
-          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         }
         h1 {
           color: #2563eb;
@@ -184,21 +183,19 @@ export function useAutoEmail() {
           box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         div[class*="bg-primary/20"] {
-          background-color: #dbeafe;
+          background-color: #eff6ff;
           border-left: 4px solid #2563eb;
           padding: 0.75rem;
           margin: 1rem 0;
           border-radius: 0 8px 8px 0;
         }
         div[class*="bg-primary/20"] strong {
-          color: #ffffff;
+          color: #1e40af;
           font-weight: bold;
           font-size: 1.125rem;
           display: block;
           margin-bottom: 0.5rem;
-          background-color: #2563eb;
           padding: 0.5rem;
-          border-radius: 4px;
         }
         a {
           color: #2563eb;
