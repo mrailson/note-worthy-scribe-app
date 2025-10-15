@@ -195,7 +195,8 @@ ${formattedNotes}
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
 
-      toast.success(`Meeting minutes sent successfully to ${toEmail}`);
+      // Toast removed - user finds it distracting
+      // toast.success(`Meeting minutes sent successfully to ${toEmail}`);
       onOpenChange(false);
       
     } catch (error: any) {
