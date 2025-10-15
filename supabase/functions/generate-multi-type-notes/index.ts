@@ -17,7 +17,7 @@ const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting. Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
+    systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
 # GP Executive Brief
@@ -64,7 +64,7 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   {
     type: 'executive',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
+    systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
 
 Format:
 # GP/PCN Executive Summary
@@ -123,7 +123,7 @@ Focus on strategic implications for practice sustainability, patient care qualit
   {
     type: 'detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create DETAILED GP/PCN meeting minutes focused specifically on operational agreements and decisions affecting GP practices and Primary Care Networks. Extract and highlight what matters most to healthcare professionals.
+    systemPrompt: `Create DETAILED GP/PCN meeting minutes using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') focused specifically on operational agreements and decisions affecting GP practices and Primary Care Networks. Extract and highlight what matters most to healthcare professionals.
 
 Format:
 # GP/PCN Detailed Meeting Minutes
@@ -250,7 +250,7 @@ Focus on extracting specific operational agreements, resource commitments, and d
   {
     type: 'very_detailed',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create COMPREHENSIVE GP/PCN Clinical Documentation with exceptional formatting and complete healthcare governance coverage. Include verbatim quotes of significant clinical discussions, full context for all healthcare decisions, and detailed clinical risk assessment.
+    systemPrompt: `Create COMPREHENSIVE GP/PCN Clinical Documentation using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') with exceptional formatting and complete healthcare governance coverage. Include verbatim quotes of significant clinical discussions, full context for all healthcare decisions, and detailed clinical risk assessment.
 
 Format:
 # Comprehensive GP/PCN Clinical Record
@@ -452,7 +452,7 @@ Focus on comprehensive clinical documentation, professional governance, and deta
   {
     type: 'limerick',
     model: 'claude-sonnet-4-20250514',
-    systemPrompt: `Create a creative LIMERICK-style summary with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
+    systemPrompt: `Create a creative LIMERICK-style summary using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
 
 Format:
 # Meeting Limerick Summary

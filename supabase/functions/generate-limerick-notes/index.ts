@@ -71,15 +71,16 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: `You are a creative assistant that transforms meeting transcripts into entertaining limericks. 
+                content: `You are a creative assistant that transforms meeting transcripts into entertaining limericks using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). 
                 
 A limerick is a 5-line poem with an AABBA rhyme scheme that's humorous and bouncy. Keep them professional but fun.
 
 Guidelines:
 - Create multiple limericks covering different aspects of the meeting
+- Use British English spellings throughout the limericks
 - Keep content appropriate for a professional setting
 - Focus on main topics, decisions, and key participants
-- Make them memorable and entertaining while being respectful
+- Make them memorable and entertaining whilst being respectful
 - Each limerick should capture a specific meeting moment or topic`
               },
               {
