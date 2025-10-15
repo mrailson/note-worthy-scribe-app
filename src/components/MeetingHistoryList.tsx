@@ -164,6 +164,14 @@ export const MeetingHistoryList = ({
   console.log('🚨 Loading state:', loading);
   console.log('🚨 About to render:', meetings.length === 0 ? 'NO MEETINGS MESSAGE' : 'MEETINGS LIST');
   
+  // Local state for meetings to allow immediate updates
+  const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
+  
+  // Sync local meetings with prop changes
+  useEffect(() => {
+    setLocalMeetings(meetings);
+  }, [meetings]);
+  
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -238,7 +246,7 @@ export const MeetingHistoryList = ({
 
   // Auto-recover stuck meetings after 2 minutes
   useEffect(() => {
-    const stuckMeetings = meetings.filter(m => 
+    const stuckMeetings = localMeetings.filter(m => 
       m.status === 'recording' && isStuckMeeting(m) && !recoveringMeetings.has(m.id)
     );
     
@@ -253,7 +261,7 @@ export const MeetingHistoryList = ({
         recoverStuckMeeting(meeting.id);
       }
     });
-  }, [meetings]);
+  }, [localMeetings]);
 
   // Function to recover stuck meetings
   const recoverStuckMeeting = async (meetingId: string) => {
@@ -1348,7 +1356,7 @@ export const MeetingHistoryList = ({
     );
   }
 
-  if (meetings.length === 0) {
+  if (localMeetings.length === 0) {
     return (
       <Card className="text-center py-12">
         <CardContent>
@@ -1367,7 +1375,7 @@ export const MeetingHistoryList = ({
 
   return (
     <div className="space-y-4">
-      {meetings.map((meeting) => (
+      {localMeetings.map((meeting) => (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
             <div className="space-y-3">
@@ -1675,7 +1683,14 @@ export const MeetingHistoryList = ({
               <MeetingOverviewEditor 
                 meetingId={meeting.id}
                 currentOverview={meeting.overview || ""}
-                onOverviewChange={() => onRefresh?.()}
+                onOverviewChange={(newOverview) => {
+                  // Update local state immediately
+                  setLocalMeetings(prev => prev.map(m => 
+                    m.id === meeting.id ? { ...m, overview: newOverview } : m
+                  ));
+                  // Also refresh from database
+                  onRefresh?.();
+                }}
                 className="mb-3"
                 meetingNotes={meeting.meeting_summary || meeting.transcript || ""}
                 meetingTitle={meeting.title}
