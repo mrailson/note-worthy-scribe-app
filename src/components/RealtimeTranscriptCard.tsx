@@ -163,12 +163,10 @@ export const RealtimeTranscriptCard = ({
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             <span>Meeting Transcript</span>
-            {/* Word Count - moved inline with title */}
-            {wordCount > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {wordCount} words
-              </Badge>
-            )}
+            {/* Word Count - always visible inline with title */}
+            <Badge variant="outline" className="text-xs">
+              {wordCount} words
+            </Badge>
             {isRecording && (
               <Badge variant="secondary" className="bg-red-100 text-red-800 animate-pulse">
                 <div className="w-2 h-2 bg-red-500 rounded-full mr-1" />
