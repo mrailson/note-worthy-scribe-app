@@ -62,7 +62,8 @@ export function EmailMeetingMinutesModal({
         if (data?.start_time) {
           const meetingDate = new Date(data.start_time);
           const roundedDate = roundToNearest15Minutes(meetingDate);
-          const formattedDateTime = format(roundedDate, "dd/MM/yyyy 'at' HH:mm");
+          // Use dashes instead of forward slashes to avoid HTML encoding issues
+          const formattedDateTime = format(roundedDate, "dd-MM-yyyy 'at' HH:mm");
           setMeetingDateTime(formattedDateTime);
         }
       } catch (error) {
