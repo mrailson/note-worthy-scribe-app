@@ -459,6 +459,7 @@ ${cleanedTranscript}`;
         'generate-meeting-overview',
         {
           body: { 
+            meetingId,
             meetingTitle: meeting.title,
             meetingNotes: generatedNotes
           }
