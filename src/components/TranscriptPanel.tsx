@@ -251,13 +251,13 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
             <div className="mb-4">
               <Button 
                 variant="outline" 
-                size="default" 
-                className="w-full gap-2 justify-start text-left h-auto py-3"
+                size="lg" 
+                className="w-full gap-3 justify-start h-auto py-3 px-4"
                 onClick={() => setShowContextDialog(true)}
               >
-                <FilePlus2 className="h-5 w-5 shrink-0" />
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Add Meeting Context</span>
+                <FilePlus2 className="h-5 w-5 shrink-0 text-primary" />
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className="font-semibold text-base">Add Meeting Context</span>
                   <span className="text-xs text-muted-foreground font-normal">(Agenda, Attendees, Presentations etc)</span>
                 </div>
               </Button>
