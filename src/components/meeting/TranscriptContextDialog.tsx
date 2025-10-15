@@ -163,7 +163,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
                   checked={selectedTypes.includes('other')}
                   onCheckedChange={() => toggleContextType('other')}
                 />
-                <Label htmlFor="other" className="cursor-pointer">Other</Label>
+                <Label htmlFor="other" className="cursor-pointer">General Meeting Context</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
