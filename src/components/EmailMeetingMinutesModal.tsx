@@ -131,7 +131,24 @@ export function EmailMeetingMinutesModal({
       let transcriptAttachment = null;
       if (includeTranscript) {
         try {
-          const transcriptBlob = new Blob([meetingNotes], { type: 'text/plain' });
+          // Fetch the actual transcript from the database
+          const { data: transcriptData, error: transcriptError } = await supabase
+            .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+          
+          if (transcriptError) {
+            console.error('Error fetching transcript:', transcriptError);
+            throw transcriptError;
+          }
+          
+          // Extract transcript text from the result
+          const actualTranscript = transcriptData?.[0]?.transcript || '';
+          
+          if (!actualTranscript.trim()) {
+            toast.error('No transcript available for this meeting');
+            return;
+          }
+          
+          const transcriptBlob = new Blob([actualTranscript], { type: 'text/plain' });
           const reader = new FileReader();
           const base64Promise = new Promise<string>((resolve) => {
             reader.onloadend = () => {
