@@ -910,14 +910,28 @@ export const MeetingHistoryList = ({
         
         if (currentType === 'standard') {
           toast.info("Generating standard minutes...");
-          const { error: standardError } = await supabase.functions.invoke(
-            'auto-generate-meeting-notes',
-            { body: { meetingId, forceRegenerate: true } }
-          );
           
-          if (standardError) throw new Error(`Standard notes failed: ${standardError.message}`);
-          await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
-          completedCount++;
+          try {
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
+            const { data, error: standardError } = await supabase.functions.invoke(
+              'auto-generate-meeting-notes',
+              { body: { meetingId, forceRegenerate: true } }
+            );
+            
+            console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
+            
+            if (standardError) {
+              console.error('❌ Edge function error:', standardError);
+              throw new Error(`Standard notes failed: ${standardError.message || JSON.stringify(standardError)}`);
+            }
+            
+            console.log('⏳ Polling for note completion...');
+            await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
+            completedCount++;
+          } catch (err: any) {
+            console.error('💥 Standard notes generation error:', err);
+            throw new Error(`Standard notes failed: ${err.message || 'Network error - edge function may have timed out'}`);
+          }
           
           setProcessingMeetings(prev => ({
             ...prev,
