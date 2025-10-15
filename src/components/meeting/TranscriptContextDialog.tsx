@@ -264,7 +264,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
                 }
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
-                className="min-h-[200px] font-mono text-sm"
+                className="min-h-[400px] font-mono text-sm"
               />
               {textContent && (
                 <p className="text-xs text-muted-foreground">
