@@ -152,8 +152,66 @@ export function EmailMeetingMinutesModal({
         }
       }
 
-      // Format meeting notes for better readability - remove all markdown
-      const formattedNotes = meetingNotes
+      // Helper function to convert markdown tables to HTML
+      const convertMarkdownTablesToHTML = (text: string): string => {
+        const lines = text.split('\n');
+        let result = '';
+        let i = 0;
+        
+        while (i < lines.length) {
+          const line = lines[i];
+          
+          // Check if this line looks like a table row (contains pipes)
+          if (line.includes('|')) {
+            let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif;">\n';
+            let isFirstRow = true;
+            let inTable = true;
+            
+            while (i < lines.length && inTable) {
+              const currentLine = lines[i].trim();
+              
+              // Check if it's a separator line (dashes and pipes)
+              if (/^[\|\-\s]+$/.test(currentLine)) {
+                i++;
+                continue;
+              }
+              
+              // Check if line has pipes (table row)
+              if (currentLine.includes('|')) {
+                const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
+                
+                if (cells.length > 0) {
+                  tableHTML += '  <tr>\n';
+                  cells.forEach(cell => {
+                    if (isFirstRow) {
+                      tableHTML += `    <th style="border: 1px solid #ddd; padding: 12px; background-color: #f8f9fa; text-align: left; font-weight: bold;">${cell}</th>\n`;
+                    } else {
+                      tableHTML += `    <td style="border: 1px solid #ddd; padding: 12px; text-align: left;">${cell}</td>\n`;
+                    }
+                  });
+                  tableHTML += '  </tr>\n';
+                  isFirstRow = false;
+                }
+                i++;
+              } else {
+                inTable = false;
+              }
+            }
+            
+            tableHTML += '</table>\n';
+            result += tableHTML;
+          } else {
+            result += line + '\n';
+            i++;
+          }
+        }
+        
+        return result;
+      };
+
+      // Format meeting notes for better readability - remove all markdown and convert tables
+      const notesWithTables = convertMarkdownTablesToHTML(meetingNotes);
+      const formattedNotes = notesWithTables
         .replace(/#{1,6}\s/g, '') // Remove all markdown headers (# ## ### etc)
         .replace(/\*\*/g, '') // Remove bold markers
         .replace(/^- /gm, '  • ') // Convert dashes to bullets
