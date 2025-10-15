@@ -393,16 +393,17 @@ const handler = async (req: Request): Promise<Response> => {
       templateParams.message = emailData.message; // Keep original for fallback
     }
     
+    // EmailJS requires attachments in data URL format
     if (emailData.word_attachment) {
-      templateParams.attachment_name = emailData.word_attachment.filename;
-      templateParams.attachment_content = emailData.word_attachment.content;
-      templateParams.attachment_type = emailData.word_attachment.type;
+      templateParams.word_filename = emailData.word_attachment.filename;
+      // Format as data URL for EmailJS Variable Attachment
+      templateParams.word_attachment = `data:${emailData.word_attachment.type};base64,${emailData.word_attachment.content}`;
     }
     
     if (emailData.transcript_attachment) {
-      templateParams.attachment2_name = emailData.transcript_attachment.filename;
-      templateParams.attachment2_content = emailData.transcript_attachment.content;
-      templateParams.attachment2_type = emailData.transcript_attachment.type;
+      templateParams.transcript_filename = emailData.transcript_attachment.filename;
+      // Format as data URL for EmailJS Variable Attachment
+      templateParams.transcript_attachment = `data:${emailData.transcript_attachment.type};base64,${emailData.transcript_attachment.content}`;
     }
     
     // Helper function to calculate payload size
@@ -490,10 +491,11 @@ const handler = async (req: Request): Promise<Response> => {
       // Re-check and truncate attachment if still too large
       testPayload.template_params = templateParams;
       currentSize = getPayloadSize(testPayload);
-      if (currentSize > maxSize && templateParams.attachment_content) {
-        console.log("Still over limit after message truncation, removing attachment content from email...");
-        delete templateParams.attachment_content;
-        templateParams.attachment_name = templateParams.attachment_name + " (attached separately)";
+      if (currentSize > maxSize && templateParams.word_attachment) {
+        console.log("Still over limit after message truncation, removing Word attachment...");
+        delete templateParams.word_attachment;
+        delete templateParams.word_filename;
+        templateParams.message = (templateParams.message || '') + '<div style="margin-top: 20px; padding: 15px; background-color: #fff3cd;"><p style="margin: 0; color: #856404;"><strong>Note:</strong> Email was too large to include Word attachment. Content is in the email body.</p></div>';
       }
       
       const finalSize = getPayloadSize(testPayload);
