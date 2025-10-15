@@ -190,7 +190,23 @@ export const MeetingHistoryList = ({
     open: boolean;
     meeting: Meeting | null;
     lastRun: string | null;
-  }>({ open: false, meeting: null, lastRun: null });
+    selectedTypes: {
+      standard: boolean;
+      overview: boolean;
+      executive: boolean;
+      limerick: boolean;
+    };
+  }>({ 
+    open: false, 
+    meeting: null, 
+    lastRun: null,
+    selectedTypes: {
+      standard: true,
+      overview: true,
+      executive: true,
+      limerick: true
+    }
+  });
   
   // Add state for processing - Sequential processing (Standard → Overview → Executive → Limerick)
   const [processingMeetings, setProcessingMeetings] = useState<Record<string, {
@@ -820,32 +836,57 @@ export const MeetingHistoryList = ({
     setConfirmProcessDialog({
       open: true,
       meeting,
-      lastRun: lastRunFormatted
+      lastRun: lastRunFormatted,
+      selectedTypes: {
+        standard: true,
+        overview: true,
+        executive: true,
+        limerick: true
+      }
     });
   };
 
   // Handle full processing pipeline - Sequential processing
-  const handleFullProcessing = async (meeting: Meeting) => {
+  const handleFullProcessing = async (meeting: Meeting, selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean }) => {
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
       return; // Already processing
     }
 
-    // Initialize processing state with 4 stages
+    // Build list of selected types in order
+    const typesToProcess: Array<'standard' | 'overview' | 'executive' | 'limerick'> = [];
+    if (selectedTypes.standard) typesToProcess.push('standard');
+    if (selectedTypes.overview) typesToProcess.push('overview');
+    if (selectedTypes.executive) typesToProcess.push('executive');
+    if (selectedTypes.limerick) typesToProcess.push('limerick');
+    
+    if (typesToProcess.length === 0) {
+      toast.error("Please select at least one note type to generate");
+      return;
+    }
+
+    // Initialize processing state with selected stages
+    const initialStages: any = {
+      'standard': selectedTypes.standard ? 'pending' : 'skipped',
+      'overview': selectedTypes.overview ? 'pending' : 'skipped',
+      'executive': selectedTypes.executive ? 'pending' : 'skipped',
+      'limerick': selectedTypes.limerick ? 'pending' : 'skipped'
+    };
+    
+    // Set first selected type to processing
+    if (typesToProcess.length > 0) {
+      initialStages[typesToProcess[0]] = 'processing';
+    }
+    
     setProcessingMeetings(prev => ({
       ...prev,
       [meetingId]: {
         isProcessing: true,
-        currentStage: 'standard',
-        stages: {
-          'standard': 'processing',
-          'overview': 'pending',
-          'executive': 'pending',
-          'limerick': 'pending'
-        },
+        currentStage: typesToProcess[0],
+        stages: initialStages,
         completedCount: 0,
-        totalCount: 4
+        totalCount: typesToProcess.length
       }
     }));
 
@@ -860,121 +901,159 @@ export const MeetingHistoryList = ({
         throw new Error('No transcript available for processing');
       }
 
-      // STAGE 1: Standard Minutes
-      toast.info("Generating standard minutes...");
-      const { error: standardError } = await supabase.functions.invoke(
-        'auto-generate-meeting-notes',
-        { body: { meetingId, forceRegenerate: true } }
-      );
+      let completedCount = 0;
       
-      if (standardError) throw new Error(`Standard notes failed: ${standardError.message}`);
-      
-      // Poll for completion
-      await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
-      
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: {
-          ...prev[meetingId],
-          currentStage: 'overview',
-          stages: { ...prev[meetingId].stages, 'standard': 'success', 'overview': 'processing' },
-          completedCount: 1
+      // Process each selected type sequentially
+      for (let i = 0; i < typesToProcess.length; i++) {
+        const currentType = typesToProcess[i];
+        const nextType = typesToProcess[i + 1];
+        
+        if (currentType === 'standard') {
+          toast.info("Generating standard minutes...");
+          const { error: standardError } = await supabase.functions.invoke(
+            'auto-generate-meeting-notes',
+            { body: { meetingId, forceRegenerate: true } }
+          );
+          
+          if (standardError) throw new Error(`Standard notes failed: ${standardError.message}`);
+          await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: nextType || 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'standard': 'success',
+                ...(nextType ? { [nextType]: 'processing' } : {})
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Standard minutes completed!");
         }
-      }));
-      
-      toast.success("Standard minutes completed!");
-
-      // STAGE 2: Meeting Overview
-      toast.info("Generating meeting overview...");
-      const { error: overviewError } = await supabase.functions.invoke(
-        'generate-meeting-overview',
-        { 
-          body: { 
-            meetingId,
-            transcript,
-            meetingTitle: meeting.title
-          } 
+        
+        if (currentType === 'overview') {
+          toast.info("Generating meeting overview...");
+          const { error: overviewError } = await supabase.functions.invoke(
+            'generate-meeting-overview',
+            { 
+              body: { 
+                meetingId,
+                transcript,
+                meetingTitle: meeting.title
+              } 
+            }
+          );
+          
+          if (overviewError) throw new Error(`Overview failed: ${overviewError.message}`);
+          await pollForNoteCompletion(meetingId, 'overview', 'meeting_overviews');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: nextType || 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'overview': 'success',
+                ...(nextType ? { [nextType]: 'processing' } : {})
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Meeting overview completed!");
         }
-      );
-      
-      if (overviewError) throw new Error(`Overview failed: ${overviewError.message}`);
-      
-      await pollForNoteCompletion(meetingId, 'overview', 'meeting_overviews');
-      
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: {
-          ...prev[meetingId],
-          currentStage: 'executive',
-          stages: { ...prev[meetingId].stages, 'overview': 'success', 'executive': 'processing' },
-          completedCount: 2
+        
+        if (currentType === 'executive') {
+          toast.info("Generating executive minutes...");
+          const { error: execError } = await supabase.functions.invoke(
+            'generate-multi-type-notes',
+            { 
+              body: { 
+                meetingId,
+                transcript,
+                meetingTitle: meeting.title,
+                meetingDate: format(new Date(meeting.created_at), "d MMMM yyyy"),
+                meetingTime: format(new Date(meeting.created_at), "HH:mm")
+              } 
+            }
+          );
+          
+          if (execError) throw new Error(`Executive notes failed: ${execError.message}`);
+          await pollForNoteCompletion(meetingId, 'executive', 'meeting_notes_multi');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: nextType || 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'executive': 'success',
+                ...(nextType ? { [nextType]: 'processing' } : {})
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Executive minutes completed!");
         }
-      }));
-      
-      toast.success("Meeting overview completed!");
-
-      // STAGE 3: Executive Minutes
-      toast.info("Generating executive minutes...");
-      const { error: execError } = await supabase.functions.invoke(
-        'generate-multi-type-notes',
-        { 
-          body: { 
-            meetingId,
-            transcript,
-            meetingTitle: meeting.title,
-            meetingDate: format(new Date(meeting.created_at), "d MMMM yyyy"),
-            meetingTime: format(new Date(meeting.created_at), "HH:mm")
-          } 
+        
+        if (currentType === 'limerick') {
+          toast.info("Generating limerick minutes...");
+          // Limerick is generated by multi-type-notes, just poll for it
+          await pollForNoteCompletion(meetingId, 'limerick', 'meeting_notes_multi');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'limerick': 'success'
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Limerick minutes completed!");
         }
-      );
+      }
       
-      if (execError) throw new Error(`Executive notes failed: ${execError.message}`);
+      // Mark all as complete
+      const finalStages: any = {
+        'standard': selectedTypes.standard ? 'success' : 'skipped',
+        'overview': selectedTypes.overview ? 'success' : 'skipped',
+        'executive': selectedTypes.executive ? 'success' : 'skipped',
+        'limerick': selectedTypes.limerick ? 'success' : 'skipped'
+      };
       
-      // Poll for executive note completion
-      await pollForNoteCompletion(meetingId, 'executive', 'meeting_notes_multi');
-      
-      setProcessingMeetings(prev => ({
-        ...prev,
-        [meetingId]: {
-          ...prev[meetingId],
-          currentStage: 'limerick',
-          stages: { ...prev[meetingId].stages, 'executive': 'success', 'limerick': 'processing' },
-          completedCount: 3
-        }
-      }));
-      
-      toast.success("Executive minutes completed!");
-
-      // STAGE 4: Limerick (Already generated by multi-type-notes but wait for it)
-      toast.info("Generating limerick minutes...");
-      
-      // Poll for limerick note completion
-      await pollForNoteCompletion(meetingId, 'limerick', 'meeting_notes_multi');
-      
-      // Mark complete
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: {
           ...prev[meetingId],
           currentStage: 'complete',
-          stages: {
-            'standard': 'success',
-            'overview': 'success',
-            'executive': 'success',
-            'limerick': 'success'
-          },
-          completedCount: 4,
+          stages: finalStages,
+          completedCount: typesToProcess.length,
           isProcessing: false
         }
       }));
       
-      toast.success("All processing complete!");
+      toast.success("All selected processing complete!");
       
       if (onRefresh) {
         onRefresh();
       }
       
-      // Keep completed state visible
       setTimeout(() => {
         setProcessingMeetings(prev => ({
           ...prev,
@@ -1823,50 +1902,147 @@ export const MeetingHistoryList = ({
       />
       
       {/* Process Confirmation Dialog */}
-      <AlertDialog open={confirmProcessDialog.open} onOpenChange={(open) => 
-        setConfirmProcessDialog({ open, meeting: null, lastRun: null })
-      }>
+      <AlertDialog open={confirmProcessDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmProcessDialog({ 
+            open: false, 
+            meeting: null, 
+            lastRun: null,
+            selectedTypes: {
+              standard: true,
+              overview: true,
+              executive: true,
+              limerick: true
+            }
+          });
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Process Meeting Notes?</AlertDialogTitle>
+            <AlertDialogTitle>Process Meeting Notes</AlertDialogTitle>
             <AlertDialogDescription>
-              <div className="space-y-3">
-                <p>This will generate the following in sequential order:</p>
-                <ol className="list-decimal pl-5 space-y-1">
-                  <li>Standard Minutes</li>
-                  <li>Meeting Overview</li>
-                  <li>Executive Minutes</li>
-                  <li>Limerick Minutes</li>
-                </ol>
+              <div className="space-y-4">
+                <p>Select which note types to generate (in sequential order):</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="standard"
+                      checked={confirmProcessDialog.selectedTypes.standard}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            standard: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="standard" className="text-sm font-medium cursor-pointer">
+                      Standard Minutes
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="overview"
+                      checked={confirmProcessDialog.selectedTypes.overview}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            overview: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="overview" className="text-sm font-medium cursor-pointer">
+                      Meeting Overview
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="executive"
+                      checked={confirmProcessDialog.selectedTypes.executive}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            executive: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="executive" className="text-sm font-medium cursor-pointer">
+                      Executive Minutes
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="limerick"
+                      checked={confirmProcessDialog.selectedTypes.limerick}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            limerick: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="limerick" className="text-sm font-medium cursor-pointer">
+                      Limerick Minutes
+                    </label>
+                  </div>
+                </div>
                 
                 {confirmProcessDialog.lastRun && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded dark:bg-amber-950 dark:border-amber-800">
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded dark:bg-amber-950 dark:border-amber-800">
                     <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
                       Last processed: {confirmProcessDialog.lastRun}
                     </p>
                   </div>
                 )}
                 
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded dark:bg-blue-950 dark:border-blue-800">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded dark:bg-blue-950 dark:border-blue-800">
                   <p className="text-sm text-blue-900 dark:text-blue-100">
                     ⚠️ Only run if you have updated the meeting transcript or context
                   </p>
                 </div>
                 
-                <p className="text-sm text-muted-foreground mt-2">
-                  Processing takes approximately 3-5 minutes and will regenerate all note types.
+                <p className="text-sm text-muted-foreground">
+                  Processing takes approximately 1-2 minutes per note type and will regenerate selected types.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              if (confirmProcessDialog.meeting) {
-                handleFullProcessing(confirmProcessDialog.meeting);
-              }
-              setConfirmProcessDialog({ open: false, meeting: null, lastRun: null });
-            }}>
+            <AlertDialogAction 
+              onClick={() => {
+                if (confirmProcessDialog.meeting) {
+                  handleFullProcessing(confirmProcessDialog.meeting, confirmProcessDialog.selectedTypes);
+                }
+                setConfirmProcessDialog({ 
+                  open: false, 
+                  meeting: null, 
+                  lastRun: null,
+                  selectedTypes: {
+                    standard: true,
+                    overview: true,
+                    executive: true,
+                    limerick: true
+                  }
+                });
+              }}
+              disabled={!Object.values(confirmProcessDialog.selectedTypes).some(v => v)}
+            >
               Proceed with Processing
             </AlertDialogAction>
           </AlertDialogFooter>
