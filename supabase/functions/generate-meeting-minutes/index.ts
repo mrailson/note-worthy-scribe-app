@@ -172,17 +172,15 @@ ${transcript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'o4-mini-2025-04-16',
+        model: 'gpt-5-2025-08-07',
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. CRITICAL: Never use placeholder text like [Insert X] or square brackets in your output. Write actual content from the transcript or use phrases like "Practice team members" or "Team discussed" when specific details are not available. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
+            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. CRITICAL: Never use placeholder text like [Insert X] or square brackets in your output. Write actual content from the transcript or use phrases like "Practice team members" or "Location not specified" when specific details are not available. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
           },
           { role: 'user', content: prompt }
         ],
-        /* temperature removed for model compatibility */
-        // Removed max tokens to ensure compatibility with current model
-
+        max_completion_tokens: 4096
       }),
     });
 
@@ -192,7 +190,17 @@ ${transcript}`;
     }
 
     const data = await response.json();
-    const generatedMinutes = data.choices[0].message.content;
+    let generatedMinutes = data.choices[0].message.content;
+    
+    // Sanitize output to remove any [Insert X] placeholders
+    generatedMinutes = generatedMinutes
+      .replace(/\[Insert[^\]]*\]/gi, '')
+      .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
+      .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
+      .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
+      .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
 
     console.log('Meeting minutes generated successfully');
 

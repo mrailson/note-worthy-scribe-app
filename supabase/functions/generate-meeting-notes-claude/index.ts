@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,102 +37,125 @@ function processSingle(transcript, meetingTitle, meetingDate, meetingTime, style
   return { transcript, strategy: 'single' };
 }
 
-async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document. Ensure no duplication of action items or decisions, and maintain chronological flow.
+// Sanitize output to remove placeholders
+function sanitizeMeetingMinutes(content: string): string {
+  return content
+    // Remove [Insert X] patterns
+    .replace(/\[Insert[^\]]*\]/gi, '')
+    // Remove Location: [Insert Location]
+    .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
+    // Remove Attendees: [Insert...]
+    .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
+    // Remove Apologies: [Insert...]
+    .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
+    // Remove Owner: [Insert Owner Name]
+    .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
+    // Clean up multiple blank lines
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .trim();
+}
 
-CONSOLIDATION REQUIREMENTS:
-- Merge all agenda items in chronological order
-- Consolidate all action items (remove duplicates)
-- Consolidate all decisions (note if any were modified later)
-- Maintain all specific details, names, dates, and quotes
-- Create unified executive summary
-- Create consolidated action items section
-- Create consolidated decisions section
-- Only include "Chair:" line if a chairperson is explicitly identified
-- Only include "Secretary:" or "Minute Taker:" line if someone is explicitly identified in that role
-- Only include "Meeting Duration:" or "Duration:" if the meeting length can be determined
-- Do NOT include placeholder text like "[Not identified in transcript]" or "[Ongoing - transcript appears to be mid-meeting excerpt]"
-- If these roles/information are not identifiable, simply omit the lines entirely
+async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document. Use British English throughout.
+
+CRITICAL RULES:
+- Never use placeholder text like [Insert X] or [Not specified]
+- If information is not available, omit the field entirely
+- Use "Practice team members" for unknown attendees
+- Use "Location not specified" if location unknown
+- Merge all agenda items chronologically
+- Remove duplicate action items and decisions
+- Maintain all specific details, names, dates
 
 CHUNK RESULTS TO CONSOLIDATE:
-${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}
+${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
-Please create a single, comprehensive meeting minutes document following Style ${styleChoice} format.`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': anthropicApiKey,
+      'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
+      model: 'gpt-5-2025-08-07',
       messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English and never include placeholder text in square brackets.' 
+        },
         { 
           role: 'user', 
           content: consolidationPrompt 
         }
-      ]
+      ],
+      max_completion_tokens: 8192
     }),
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(`Claude API error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
+    throw new Error(`OpenAI API error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  return data.content[0].text;
+  const content = data.choices[0].message.content;
+  return sanitizeMeetingMinutes(content);
 }
 
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
-  console.log('🎯 Processing chunk with updated rules - NO PLACEHOLDERS for Chair/Secretary/Duration');
+  console.log('🎯 Processing chunk with GPT-5 - NO PLACEHOLDERS');
   
-  const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. This is a LONG MEETING (potentially 3+ hours, 30,000+ words) - ensure ALL agenda items and discussions are captured.
+  const meetingNotesPrompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes.
 
-CRITICAL PLACEHOLDER REMOVAL:
-- NEVER include "Chair: [Not identified in transcript]" 
-- NEVER include "Secretary: [Not identified in transcript]"
-- NEVER include "Meeting Duration: [Ongoing - transcript appears to be mid-meeting excerpt]"
-- NEVER include "Duration: [Meeting length if determinable]"
-- If Chair/Secretary/Duration cannot be determined from transcript, OMIT the lines completely
-- Do NOT add any placeholder text in brackets like [Not identified] or [To be confirmed]
+STRICT RULES:
+- Use British English spellings and 24-hour time format throughout
+- Use British date formats with ordinals (e.g., 22nd October 2025)
+- Only include information actually present in the transcript
+- NEVER use placeholders or square brackets like [Insert X], [Not specified], [To be confirmed]
+- If information is not available, omit the field/section entirely
+- Use "Practice team members" for unknown attendees
+- Use "Location not specified" if location is unknown
+- Capture ALL agenda items, decisions, and action items from the transcript
 
-LANGUAGE AND SPELLING REQUIREMENTS:
-- Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
-- Use British terminology: whilst (not while), amongst (not among), programme (not program), fulfil (not fulfill), learnt (not learned)
-- Use British date format: 31st August 2025 (not August 31, 2025) - include ordinal indicators (1st, 2nd, 3rd, etc.)
-- Use 24-hour time format where appropriate: 14:30 rather than 2:30 PM
-- Follow NHS/UK business conventions for dates, times, and formal language
-- Use £ symbol positioning following UK conventions
+OUTPUT STRUCTURE:
 
-LARGE MEETING HANDLING:
-- Process the ENTIRE transcript systematically from start to finish
-- Identify ALL distinct agenda items and topic changes
-- Group related discussions that may be scattered throughout the meeting
-- Capture decisions made at different points in the meeting
-- Note when topics are revisited or decisions are modified
-- Include timing indicators if mentioned ("after lunch", "at the start", etc.)
+# MEETING DETAILS
+- Meeting Title: ${meetingTitle || 'General Meeting'}
+- Date: ${meetingDate || 'Date not recorded'}
+- Time: ${meetingTime || 'Time not recorded'}
+- Location: [Only if explicitly mentioned in transcript, otherwise write "Location not specified"]
+- Attendees: [List specific names/roles if mentioned, otherwise write "Practice team members"]
 
-STYLE OPTIONS:
-Style 1 (Default - Professional Business): Modern business format with executive structure
-Style 2 (Original - Informal): Clear, direct format without formal business structure  
-Style 3 (NHS Formal): Traditional NHS committee minutes format
+# EXECUTIVE SUMMARY
+Write 2-3 concise paragraphs covering: meeting purpose, key decisions, major outcomes, and next steps.
 
-[Use Style ${styleChoice}]
+# DISCUSSION SUMMARY
+For each major topic discussed:
+- Background: Brief context
+- Key Points: Bullet points with important details
+- Outcome: Conclusions or decisions reached
 
-CRITICAL EXTRACTION REQUIREMENTS (ALL STYLES):
-- EVERY person mentioned by name with their roles, responsibilities, background
-- EVERY location, site name, system name mentioned (spell exactly as heard)
-- EVERY number, percentage, cost, timeframe, date mentioned  
-- EVERY technical system, process, or procedure discussed
-- EVERY specific quote or phrase mentioned (use quotation marks)
-- EVERY training program, course, qualification, exam date
-- EVERY past experience, trial, or example referenced
-- EVERY concern, benefit, challenge, or solution discussed
-- EVERY compliance issue, regulatory requirement mentioned
+# DECISIONS & RESOLUTIONS
+Numbered list of specific decisions made. Omit section if no decisions.
+
+# ACTION ITEMS
+Markdown table only if actions exist:
+| Action | Responsible Party | Deadline | Priority |
+|--------|------------------|----------|----------|
+
+Use real names/roles from transcript. Use "To be determined" for unspecified deadlines.
+
+# FOLLOW-UP REQUIREMENTS
+Bullet points for monitoring/check-ins mentioned. Omit if none.
+
+# OPEN ITEMS & RISKS
+Bullet points for unresolved issues or risks. Omit if none.
+
+# NEXT MEETING
+Only include if explicitly scheduled in transcript.
+
+TRANSCRIPT:
+${transcript}`;
 - EVERY alternative solution or option considered
 - ALL decisions made throughout the meeting (even if later modified)
 - ALL action items assigned to specific people
@@ -412,32 +435,37 @@ Transcript: ${transcript}`;
 
   console.log('Processing chunk for meeting:', meetingTitle);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': anthropicApiKey,
+      'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
+      model: 'gpt-5-2025-08-07',
       messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English and never include placeholder text in square brackets.' 
+        },
         { 
           role: 'user', 
           content: meetingNotesPrompt 
         }
-      ]
+      ],
+      max_completion_tokens: 8192
     }),
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
+    console.error('OpenAI API error:', response.status, await response.text());
+    throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  return data.content[0].text;
+  const content = data.choices[0].message.content;
+  return sanitizeMeetingMinutes(content);
 }
 
 serve(async (req) => {
@@ -460,40 +488,47 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
-    // If customPrompt is provided, use it directly with Claude
+    // If customPrompt is provided, use it directly with GPT-5
     if (customPrompt) {
-      console.log('🎨 Using custom prompt for limerick generation');
+      console.log('🎨 Using custom prompt for generation');
       console.log('📝 Custom prompt preview:', customPrompt.substring(0, 200) + '...');
       
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'x-api-key': anthropicApiKey,
+          'Authorization': `Bearer ${openAIApiKey}`,
           'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 8192,
+          model: 'gpt-5-2025-08-07',
           messages: [
+            { 
+              role: 'system', 
+              content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English throughout and never include placeholder text in square brackets like [Insert X].' 
+            },
             { 
               role: 'user', 
               content: customPrompt
             }
-          ]
+          ],
+          max_completion_tokens: 8192
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
+        console.error('OpenAI API error:', response.status, errorData);
+        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      const generatedNotes = data.content[0].text;
+      let generatedNotes = data.choices[0].message.content;
       
-      console.log('✅ Custom prompt limerick generated successfully');
-      console.log('📝 Generated limerick preview:', generatedNotes.substring(0, 300));
+      // Sanitize output
+      generatedNotes = sanitizeMeetingMinutes(generatedNotes);
+      
+      console.log('✅ Custom prompt generated successfully');
+      console.log('📝 Generated preview:', generatedNotes.substring(0, 300));
 
       return new Response(JSON.stringify({
         meetingMinutes: generatedNotes,
@@ -539,7 +574,7 @@ serve(async (req) => {
       meetingMinutes = await processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
     }
 
-    console.log('Claude meeting minutes generated successfully');
+    console.log('GPT-5 meeting minutes generated successfully');
     console.log('Generated minutes preview:', meetingMinutes.substring(0, 500));
 
     return new Response(JSON.stringify({ 

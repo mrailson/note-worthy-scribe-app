@@ -1952,19 +1952,24 @@ ${transcript}`;
         let generatedContent = data.meetingMinutes || data.generatedNotes;
         console.log('✅ Detailed notes generated, length:', generatedContent.length);
         
-        // POST-PROCESSING CLEANUP: Remove any unwanted header text
-        // Remove "Meeting - Date Not Specified" and "MINUTES" from the beginning
+        // SANITIZE: Remove any [Insert X] placeholders that got through
         generatedContent = generatedContent
+          .replace(/\[Insert[^\]]*\]/gi, '')
+          .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
+          .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
+          .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
+          .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
           .replace(/^.*Meeting\s*-\s*Date\s*Not\s*Specified.*$/gim, '')
           .replace(/^.*MINUTES.*$/gim, '')
           .replace(/^[^\*]*\*\*Meeting Details\*\*/, '**Meeting Details**')
+          .replace(/\n\s*\n\s*\n/g, '\n\n')
           .trim();
         
-        // Ensure it starts with **Meeting Details**
-        if (!generatedContent.startsWith('**Meeting Details**')) {
-          const meetingDetailsMatch = generatedContent.match(/\*\*Meeting Details\*\*/);
+        // Ensure it starts with **Meeting Details** or # MEETING DETAILS
+        if (!generatedContent.startsWith('**Meeting Details**') && !generatedContent.startsWith('# MEETING DETAILS')) {
+          const meetingDetailsMatch = generatedContent.match(/(\*\*Meeting Details\*\*|# MEETING DETAILS)/);
           if (meetingDetailsMatch) {
-            generatedContent = generatedContent.substring(generatedContent.indexOf('**Meeting Details**'));
+            generatedContent = generatedContent.substring(generatedContent.indexOf(meetingDetailsMatch[0]));
           }
         }
         
