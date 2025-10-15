@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateWordDocument } from "@/utils/documentGenerators";
 import { format } from "date-fns";
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, ShadingType, Packer } from "docx";
 
 interface EmailMeetingMinutesModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
-      // Generate transcript txt attachment if requested
+      // Generate transcript Word document attachment if requested
       let transcriptAttachment = null;
       if (includeTranscript) {
         try {
@@ -163,24 +164,113 @@ export function EmailMeetingMinutesModal({
             console.log('Transcript is plain text format');
           }
           
-          const transcriptBlob = new Blob([actualTranscript], { type: 'text/plain' });
-          const reader = new FileReader();
-          const base64Promise = new Promise<string>((resolve) => {
-            reader.onloadend = () => {
-              const base64 = (reader.result as string).split(',')[1];
+          // Create a formatted Word document for the transcript
+          const transcriptDoc = new Document({
+            sections: [
+              {
+                properties: {
+                  page: {
+                    margin: {
+                      top: 1440,
+                      right: 1440,
+                      bottom: 1440,
+                      left: 1440,
+                    },
+                  },
+                },
+                children: [
+                  // Title
+                  new Paragraph({
+                    text: 'MEETING TRANSCRIPT',
+                    heading: HeadingLevel.HEADING_1,
+                    spacing: { after: 200 },
+                    alignment: AlignmentType.CENTER,
+                    shading: {
+                      fill: '0066CC',
+                      type: ShadingType.CLEAR,
+                    },
+                  }),
+                  // Meeting title
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: meetingTitle,
+                        bold: true,
+                        size: 28,
+                      }),
+                    ],
+                    spacing: { after: 200, before: 200 },
+                    alignment: AlignmentType.CENTER,
+                  }),
+                  // Date and time
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: meetingDateTime || 'Date and time not recorded',
+                        size: 22,
+                        color: '666666',
+                      }),
+                    ],
+                    spacing: { after: 400 },
+                    alignment: AlignmentType.CENTER,
+                  }),
+                  // Divider
+                  new Paragraph({
+                    border: {
+                      bottom: {
+                        color: '0066CC',
+                        space: 1,
+                        style: BorderStyle.SINGLE,
+                        size: 6,
+                      },
+                    },
+                    spacing: { after: 400 },
+                  }),
+                  // Transcript heading
+                  new Paragraph({
+                    text: 'Transcript',
+                    heading: HeadingLevel.HEADING_2,
+                    spacing: { after: 200, before: 200 },
+                  }),
+                  // Transcript content - split into paragraphs for better formatting
+                  ...actualTranscript.split(/\.\s+/).filter(sentence => sentence.trim()).map(sentence => 
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: sentence.trim() + '.',
+                          size: 22,
+                        }),
+                      ],
+                      spacing: { after: 100 },
+                      alignment: AlignmentType.LEFT,
+                    })
+                  ),
+                ],
+              },
+            ],
+          });
+          
+          const transcriptDocBlob = await Packer.toBlob(transcriptDoc);
+          const transcriptReader = new FileReader();
+          const transcriptBase64Promise = new Promise<string>((resolve) => {
+            transcriptReader.onloadend = () => {
+              const base64 = (transcriptReader.result as string).split(',')[1];
               resolve(base64);
             };
           });
-          reader.readAsDataURL(transcriptBlob);
-          const base64Content = await base64Promise;
+          transcriptReader.readAsDataURL(transcriptDocBlob);
+          const transcriptBase64Content = await transcriptBase64Promise;
           
+          // Use "Transcript_" naming convention
+          const sanitizedTitle = meetingTitle.replace(/[^a-zA-Z0-9\s\-_]/g, '').replace(/\s+/g, '_');
           transcriptAttachment = {
-            content: base64Content,
-            filename: `${meetingTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_transcript.txt`,
-            type: 'text/plain'
+            content: transcriptBase64Content,
+            filename: `Transcript_${sanitizedTitle}.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
         } catch (txtError) {
-          console.warn('Transcript text file generation failed:', txtError);
+          console.warn('Transcript document generation failed:', txtError);
+          toast.error('Failed to generate transcript document');
         }
       }
 
