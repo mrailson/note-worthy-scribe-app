@@ -2133,12 +2133,15 @@ ${transcript}`;
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
       });
 
+      // Use the recorded meeting date instead of current date
+      const meetingDate = meeting.start_time ? new Date(meeting.start_time) : new Date();
+      
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
-          meetingDate: new Date().toLocaleDateString('en-GB'),
-          meetingTime: new Date().toLocaleTimeString('en-GB', { 
+          meetingDate: meetingDate.toLocaleDateString('en-GB'),
+          meetingTime: meetingDate.toLocaleTimeString('en-GB', { 
             hour: '2-digit', 
             minute: '2-digit' 
           }),
