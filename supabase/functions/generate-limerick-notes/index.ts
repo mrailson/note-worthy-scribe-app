@@ -55,6 +55,16 @@ serve(async (req) => {
         const transcript = transcriptData[0].transcript;
         console.log(`Got transcript for meeting ${meetingId}, length: ${transcript.length}`);
 
+        // Calculate meeting size for limerick verse scaling
+        const transcriptWordCount = transcript.split(/\s+/).length;
+        const limerickVerseCount = transcriptWordCount < 500 ? 1 :
+                                   transcriptWordCount < 1500 ? 2 :
+                                   transcriptWordCount < 3000 ? 3 :
+                                   transcriptWordCount < 5000 ? 4 :
+                                   transcriptWordCount < 8000 ? 5 : 6;
+
+        console.log(`Transcript: ${transcriptWordCount} words → ${limerickVerseCount} limerick verses`);
+
         // Generate limerick notes using OpenAI
         if (!openAIApiKey) {
           throw new Error('OpenAI API key not configured');
@@ -71,24 +81,55 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: `You are a creative assistant that transforms meeting transcripts into entertaining limericks using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). 
-                
-A limerick is a 5-line poem with an AABBA rhyme scheme that's humorous and bouncy. Keep them professional but fun.
+                content: `You are a creative meeting poet who transforms GP practice meetings into delightful limericks using British English spellings and conventions.
 
-Guidelines:
-- Create multiple limericks covering different aspects of the meeting
-- Use British English spellings throughout the limericks
-- Keep content appropriate for a professional setting
-- Focus on main topics, decisions, and key participants
-- Make them memorable and entertaining whilst being respectful
-- Each limerick should capture a specific meeting moment or topic`
+CRITICAL RULES:
+- Write EXACTLY ${limerickVerseCount} limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'}
+- Each limerick MUST follow strict AABBA rhyme scheme
+- Each limerick should capture a distinct aspect of the meeting
+- Use British English spellings: organised, realise, colour, centre, programme, summarise
+- Make them clever, fun, and medically themed where appropriate
+- Each verse should be self-contained but together tell the meeting story`
               },
               {
                 role: 'user',
-                content: `Please create entertaining limericks based on this meeting transcript. Focus on the main topics and participants discussed:\n\n${transcript}`
+                content: `Create ${limerickVerseCount} meeting limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'} following this EXACT structure:
+
+# 🎭 Meeting in Verse
+
+${Array.from({length: limerickVerseCount}, (_, i) => `
+## Verse ${i + 1}${i === 0 ? ' - The Opening' : i === limerickVerseCount - 1 ? ' - The Finale' : ''}
+*[Write a proper limerick with AABBA rhyme scheme]*
+
+Line one sets the scene with flair,
+Line two shows the meeting's care,
+Line three is short,
+Line four's the retort,
+Line five concludes with style to spare!
+`).join('\n')}
+
+---
+
+## 📋 What It Actually Means
+• **Key Point 1:** [Main decision/outcome in plain English]
+• **Key Point 2:** [Secondary important point]
+• **Key Point 3:** [Third critical insight]
+${limerickVerseCount >= 4 ? '• **Key Point 4:** [Additional key point for larger meetings]' : ''}
+
+## 📌 Action Items (The Serious Stuff)
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+• **[Item]** - Assigned to: [Owner] | Due: [Date]
+
+${limerickVerseCount >= 3 ? `## 📅 Next Meeting\n• **When:** [Date/Time if mentioned]\n• **Purpose:** [What we'll cover]` : ''}
+
+**Meeting Size:** ${limerickVerseCount} ${limerickVerseCount === 1 ? 'verse' : 'verses'} (${transcriptWordCount} words discussed)
+
+Transcript to transform:
+
+${transcript}`
               }
             ],
-            max_tokens: 2000,
+            max_tokens: Math.min(2000, 400 + (limerickVerseCount * 50)),
             temperature: 0.8,
           }),
         });
