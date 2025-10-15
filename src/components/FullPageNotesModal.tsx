@@ -2050,6 +2050,30 @@ ${transcript}`;
 
     setIsGeneratingStyle4(true);
     try {
+      // Round time to nearest 15 minutes
+      const roundToNearest15Minutes = (date: Date) => {
+        const minutes = date.getMinutes();
+        const rounded = Math.round(minutes / 15) * 15;
+        const newDate = new Date(date);
+        newDate.setMinutes(rounded, 0, 0);
+        return newDate;
+      };
+
+      const startDate = new Date(meeting.start_time || meeting.created_at);
+      const roundedTime = roundToNearest15Minutes(startDate);
+      
+      const meetingDate = roundedTime.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const meetingTime = roundedTime.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
       const style4Prompt = `Please analyze the provided PCN meeting transcript and create a brief executive overview specifically for non-attending GP partners. Focus on financial impacts, operational changes affecting practices, and strategic decisions while avoiding administrative detail.
 
 **TARGET AUDIENCE**
@@ -2061,7 +2085,7 @@ ${transcript}`;
 **REQUIRED STRUCTURE**
 
 📋 **MEETING SNAPSHOT**
-Date: [Meeting date] | Duration: [Length] | Attendees: [Key roles only]
+Date: ${meetingDate} | Time: ${meetingTime} | Attendees: [Key roles only]
 Meeting Focus: [One sentence - what this meeting was primarily about]
 
 💰 **FINANCIAL HIGHLIGHTS**
@@ -2133,18 +2157,13 @@ ${transcript}`;
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
       });
 
-      // Use the recorded meeting date instead of current date
-      const meetingDate = meeting.start_time ? new Date(meeting.start_time) : new Date();
-      
+      // Use the recorded meeting date
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcriptWithMetadata,
           meetingTitle: meeting.title,
-          meetingDate: meetingDate.toLocaleDateString('en-GB'),
-          meetingTime: meetingDate.toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
+          meetingDate: meetingDate,
+          meetingTime: meetingTime,
           detailLevel: 'standard',
           customPrompt: style4Prompt
         }
