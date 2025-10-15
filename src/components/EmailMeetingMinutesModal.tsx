@@ -162,8 +162,8 @@ ${formattedNotes}
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
-      <DialogContent className="sm:max-w-md z-[9999] border shadow-2xl" forceMount>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md border shadow-2xl" style={{ zIndex: 200 }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />

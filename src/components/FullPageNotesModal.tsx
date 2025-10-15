@@ -3033,7 +3033,8 @@ ${transcript}`;
                                   <DropdownMenuContent 
                                     align="end" 
                                     className="w-48 bg-popover border shadow-md" 
-                                    style={{ zIndex: 150 }}
+                                    style={{ zIndex: 180 }}
+                                    sideOffset={5}
                                   >
                                     <DropdownMenuItem 
                                       onSelect={() => {
@@ -3056,10 +3057,15 @@ ${transcript}`;
                                       Copy to Clipboard
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
-                                      onSelect={() => {
+                                      onSelect={(e) => {
+                                        // Prevent immediate dropdown close to allow modal state to propagate
+                                        e.preventDefault();
                                         console.log('📧 Send Email clicked from dropdown', { tabName, hasContent: !!content });
                                         setEmailModalContent({ title: tabName, notes: content || '' });
-                                        setEmailModalOpen(true);
+                                        // Use setTimeout to ensure dropdown closes gracefully before modal opens
+                                        setTimeout(() => {
+                                          setEmailModalOpen(true);
+                                        }, 50);
                                       }}
                                     >
                                       <Mail className="h-4 w-4 mr-2" />
