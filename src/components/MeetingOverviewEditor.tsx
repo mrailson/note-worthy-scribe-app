@@ -37,8 +37,8 @@ export const MeetingOverviewEditor = ({
       return;
     }
     
-    if (wordCount > 50) {
-      toast.error("Overview must be 50 words or less");
+    if (wordCount > 150) {
+      toast.error("Overview must be 150 words or less");
       return;
     }
 
@@ -103,7 +103,7 @@ export const MeetingOverviewEditor = ({
             </Button>
           </div>
         </div>
-        <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[60px]">
+        <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[80px]">
           {overview ? (
             <div 
               dangerouslySetInnerHTML={{ 
@@ -127,16 +127,16 @@ export const MeetingOverviewEditor = ({
         id="overview"
         value={overview}
         onChange={(e) => setOverview(e.target.value)}
-        placeholder="Brief overview of meeting purpose and main topics discussed (max 50 words)"
+        placeholder="Brief overview of meeting purpose and main topics discussed (80-120 words recommended)"
         className="min-h-[80px] resize-y"
       />
       <div className="text-xs text-muted-foreground">
-        {overview.split(' ').filter(word => word.length > 0).length}/50 words
+        {overview.split(' ').filter(word => word.length > 0).length}/120 words
       </div>
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          disabled={saving || !overview.trim() || overview.split(' ').filter(word => word.length > 0).length > 50}
+          disabled={saving || !overview.trim() || overview.split(' ').filter(word => word.length > 0).length > 150}
           size="sm"
         >
           <Save className="h-3 w-3 mr-1" />

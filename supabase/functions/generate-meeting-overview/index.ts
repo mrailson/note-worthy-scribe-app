@@ -53,23 +53,27 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
-    const systemPrompt = `Create a concise, structured meeting overview in exactly this format using British English spellings and conventions:
-
-"[Meeting Type]: [Main Topic 1] • [Main Topic 2] • [Main Topic 3]"
+    const systemPrompt = `Create a detailed, structured meeting overview using British English spellings and conventions.
 
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
-- Maximum 40 words total
-- Use bullet points (•) to separate key topics
-- Be direct and specific
-- Focus on decisions made, actions planned, or key issues discussed
-- No fluff or filler words`;
+- 80-120 words total
+- Start with the meeting type and main purpose
+- Include 4-6 key points covering:
+  * Main topics discussed
+  * Key decisions made
+  * Important actions or next steps
+  * Notable concerns or issues raised
+- Use bullet points (•) to separate distinct topics
+- Be specific with details that help recall the meeting
+- Include concrete information (names, numbers, deadlines when mentioned)
+- Write in a professional, clear style`;
 
-    const userPrompt = `Create a concise overview from this meeting titled "${meetingTitle || 'Meeting'}":
+    const userPrompt = `Create a detailed overview from this meeting titled "${meetingTitle || 'Meeting'}":
 
-${content.substring(0, 2000)}...
+${content.substring(0, 3000)}
 
-Maximum 50 words. Focus on meeting purpose and main topics only.`;
+Provide 80-120 words covering the meeting's purpose, main discussion points, key decisions, and any important actions or deadlines mentioned.`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 
@@ -85,7 +89,7 @@ Maximum 50 words. Focus on meeting purpose and main topics only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 100,
+        max_completion_tokens: 250,
       }),
     });
 
