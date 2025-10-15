@@ -82,7 +82,7 @@ export function EmailMeetingMinutesModal({
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
       const dateTimeText = meetingDateTime ? ` for the meeting recorded on ${meetingDateTime}` : '';
       setEmailBody(
-        `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nThe minutes are also included below for your reference${dateTimeText}.\n\nKind regards,\n${userName}`
+        `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nKind regards,\n${userName}`
       );
     }
   }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDateTime]);
