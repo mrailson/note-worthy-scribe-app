@@ -87,14 +87,14 @@ export function renderMinutesMarkdown(content: string): string {
     // Convert bullet list items
     .replace(/^[-•]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
 
-    // Wrap consecutive list items in ul tags
-    .replace(/(<li class="mb-2[^>]*>.*?<\/li>\s*)+/gs, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
+    // Wrap consecutive list items in ul tags (using non-greedy, safer pattern)
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
 
     // Convert numbered list items
     .replace(/^(\d+)[\.)]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
 
-    // Wrap consecutive numbered items in ol tags
-    .replace(/(<li class="mb-2[^>]*value="[^"]*">.*?<\/li>\s*)+/gs, '<ol class="list-decimal list-outside ml-6 mb-4 space-y-1">$&</ol>')
+    // Wrap consecutive numbered items in ol tags (using safer pattern)
+    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-4 space-y-1">$&</ol>')
 
     // Paragraphs
     .replace(/\n\n/g, '</p><p class="mb-4 text-[#212B32] leading-relaxed">')
