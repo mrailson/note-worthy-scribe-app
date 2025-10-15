@@ -751,7 +751,7 @@ export const MeetingHistoryList = ({
     noteType: string,
     table: 'meetings' | 'meeting_notes_multi' | 'meeting_overviews'
   ): Promise<void> => {
-    const maxAttempts = 40; // 2 minutes max
+    const maxAttempts = 60; // 3 minutes max
     let attempts = 0;
     
     while (attempts < maxAttempts) {
@@ -898,10 +898,22 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           try {
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
-            const { data, error: standardError } = await supabase.functions.invoke(
-              'auto-generate-meeting-notes',
-              { body: { meetingId, forceRegenerate: true } }
-            );
+            
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Request timed out after 3 minutes')), 180000); // 3 minutes
+            });
+            
+            // Race between the actual request and timeout
+            const result = await Promise.race([
+              supabase.functions.invoke(
+                'auto-generate-meeting-notes',
+                { body: { meetingId, forceRegenerate: true } }
+              ),
+              timeoutPromise
+            ]) as any;
+            
+            const { data, error: standardError } = result;
             
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
             
