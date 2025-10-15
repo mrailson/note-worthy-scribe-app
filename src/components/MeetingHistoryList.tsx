@@ -185,16 +185,22 @@ export const MeetingHistoryList = ({
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
   
-  // Add state for processing - Multi-type notes processing
+  // Add state for confirmation dialog
+  const [confirmProcessDialog, setConfirmProcessDialog] = useState<{
+    open: boolean;
+    meeting: Meeting | null;
+    lastRun: string | null;
+  }>({ open: false, meeting: null, lastRun: null });
+  
+  // Add state for processing - Sequential processing (Standard → Overview → Executive → Limerick)
   const [processingMeetings, setProcessingMeetings] = useState<Record<string, {
     isProcessing: boolean;
-    currentStage: 'deep-clean' | 'standard' | 'brief' | 'limerick' | 'executive' | 'complete';
+    currentStage: 'standard' | 'overview' | 'executive' | 'limerick' | 'complete';
     stages: {
-      'deep-clean': 'pending' | 'processing' | 'success' | 'failed';
       'standard': 'pending' | 'processing' | 'success' | 'failed';
-      'brief': 'pending' | 'processing' | 'success' | 'failed';
-      'limerick': 'pending' | 'processing' | 'success' | 'failed';
+      'overview': 'pending' | 'processing' | 'success' | 'failed';
       'executive': 'pending' | 'processing' | 'success' | 'failed';
+      'limerick': 'pending' | 'processing' | 'success' | 'failed';
     };
     error?: string;
     completedCount?: number;
@@ -729,7 +735,96 @@ export const MeetingHistoryList = ({
     }
   };
 
-  // Handle full processing pipeline - Multi-type notes with deep clean
+  // Helper function to poll for note completion
+  const pollForNoteCompletion = async (
+    meetingId: string,
+    noteType: string,
+    table: 'meetings' | 'meeting_notes_multi' | 'meeting_overviews'
+  ): Promise<void> => {
+    const maxAttempts = 40; // 2 minutes max
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      let exists = false;
+      
+      if (table === 'meetings') {
+        const { data } = await supabase
+          .from('meetings')
+          .select(noteType)
+          .eq('id', meetingId)
+          .single();
+        exists = data && data[noteType] && data[noteType].length > 0;
+      } else if (table === 'meeting_notes_multi') {
+        const { data } = await supabase
+          .from('meeting_notes_multi')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .eq('note_type', noteType)
+          .single();
+        exists = !!data;
+      } else if (table === 'meeting_overviews') {
+        const { data } = await supabase
+          .from('meeting_overviews')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .single();
+        exists = !!data;
+      }
+      
+      if (exists) return;
+      attempts++;
+    }
+    
+    throw new Error(`Timeout waiting for ${noteType} to complete`);
+  };
+
+  // Handle process button click - shows confirmation dialog
+  const handleProcessClick = async (meeting: Meeting) => {
+    const meetingId = meeting.id;
+    
+    // Check if notes already exist
+    const [notesMultiData, meetingData, overviewData] = await Promise.all([
+      supabase.from('meeting_notes_multi').select('note_type, created_at').eq('meeting_id', meetingId),
+      supabase.from('meetings').select('notes_style_3, updated_at').eq('id', meetingId).single(),
+      supabase.from('meeting_overviews').select('created_at').eq('meeting_id', meetingId).single()
+    ]);
+    
+    // Find most recent timestamp
+    let lastRunDate: Date | null = null;
+    
+    if (notesMultiData.data && notesMultiData.data.length > 0) {
+      const timestamps = notesMultiData.data.map(n => new Date(n.created_at));
+      lastRunDate = new Date(Math.max(...timestamps.map(d => d.getTime())));
+    }
+    
+    if (meetingData.data?.notes_style_3 && meetingData.data.updated_at) {
+      const meetingDate = new Date(meetingData.data.updated_at);
+      if (!lastRunDate || meetingDate > lastRunDate) {
+        lastRunDate = meetingDate;
+      }
+    }
+    
+    if (overviewData.data?.created_at) {
+      const overviewDate = new Date(overviewData.data.created_at);
+      if (!lastRunDate || overviewDate > lastRunDate) {
+        lastRunDate = overviewDate;
+      }
+    }
+    
+    const lastRunFormatted = lastRunDate 
+      ? format(lastRunDate, "d MMMM yyyy 'at' HH:mm")
+      : null;
+    
+    setConfirmProcessDialog({
+      open: true,
+      meeting,
+      lastRun: lastRunFormatted
+    });
+  };
+
+  // Handle full processing pipeline - Sequential processing
   const handleFullProcessing = async (meeting: Meeting) => {
     const meetingId = meeting.id;
     
@@ -737,232 +832,149 @@ export const MeetingHistoryList = ({
       return; // Already processing
     }
 
-    // Initialize processing state
+    // Initialize processing state with 4 stages
     setProcessingMeetings(prev => ({
       ...prev,
       [meetingId]: {
         isProcessing: true,
-        currentStage: 'deep-clean',
+        currentStage: 'standard',
         stages: {
-          'deep-clean': 'processing',
-          'standard': 'pending',
-          'brief': 'pending',
-          'limerick': 'pending',
-          'executive': 'pending'
+          'standard': 'processing',
+          'overview': 'pending',
+          'executive': 'pending',
+          'limerick': 'pending'
         },
         completedCount: 0,
-        totalCount: 5
+        totalCount: 4
       }
     }));
 
     try {
-      // Stage 1: Deep Clean Transcript (with time-based limits)
-      toast.info("Starting deep clean of transcript...");
-      
-      // Check if transcript needs cleaning (only if not already cleaned or new text added)
-      const { data: currentMeeting } = await supabase
-        .from('meetings')
-        .select('word_count, duration_minutes, updated_at, transcript_cleaned_at, transcript_cleaned_word_count')
-        .eq('id', meetingId)
-        .single();
-
-      // Get transcript from proper source using the existing function
+      // Get transcript once for all generations
       const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
         p_meeting_id: meetingId 
       });
-      
       const transcript = transcriptData?.[0]?.transcript;
-
-      let shouldClean = true;
       
-      // Check server-side clean status to skip re-cleaning if nothing new
-      if (currentMeeting?.transcript_cleaned_at) {
-        const cleanTime = new Date(currentMeeting.transcript_cleaned_at);
-        const meetingUpdatedTime = new Date(currentMeeting?.updated_at || 0);
-        const currentWordCount = currentMeeting?.word_count || 0;
-        const lastCleanedWordCount = currentMeeting?.transcript_cleaned_word_count || 0;
-        const deltaThreshold = 50; // allow small drift
-
-        // Skip cleaning if cleaned recently and word count hasn't grown significantly
-        if (cleanTime > meetingUpdatedTime && Math.abs(currentWordCount - lastCleanedWordCount) <= deltaThreshold) {
-          shouldClean = false;
-          toast.info("Transcript already cleaned recently, skipping...");
-        }
+      if (!transcript || transcript.trim().length === 0) {
+        throw new Error('No transcript available for processing');
       }
 
-      // No transcript available, skip cleaning
-      if (!transcript) {
-        shouldClean = false;
-      }
-
-      if (shouldClean && transcript) {
-        // Apply time-based limit: 1 minute per hour of meeting duration
-        const durationHours = (currentMeeting?.duration_minutes || 60) / 60;
-        const maxProcessingTimeMs = Math.max(60000, durationHours * 60000); // Min 1 minute, 1 minute per hour
-        
-        const { data: cleanResult, error: cleanError } = await supabase.functions.invoke('gpt-clean-transcript', {
-          body: { 
-            meetingId,
-            transcript: transcript,
-            maxProcessingTime: maxProcessingTimeMs
-          }
-        });
-
-        if (cleanError) {
-          throw new Error(`Deep clean failed: ${cleanError.message}`);
-        }
-
-        // Update server-side clean status to avoid re-cleaning on subsequent runs
-        if (cleanResult?.cleanedTranscript) {
-          await supabase
-            .from('meetings')
-            .update({
-              transcript_cleaned_at: new Date().toISOString(),
-              transcript_cleaned_word_count: cleanResult.cleanedTranscript.split(' ').length,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', meetingId);
-        }
-      }
-
-      // Mark deep clean as success and move to multi-type notes generation
+      // STAGE 1: Standard Minutes
+      toast.info("Generating standard minutes...");
+      const { error: standardError } = await supabase.functions.invoke(
+        'auto-generate-meeting-notes',
+        { body: { meetingId, forceRegenerate: true } }
+      );
+      
+      if (standardError) throw new Error(`Standard notes failed: ${standardError.message}`);
+      
+      // Poll for completion
+      await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
+      
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: {
           ...prev[meetingId],
-          currentStage: 'standard',
-          stages: {
-            ...prev[meetingId].stages,
-            'deep-clean': 'success',
-            'standard': 'processing'
-          },
+          currentStage: 'overview',
+          stages: { ...prev[meetingId].stages, 'standard': 'success', 'overview': 'processing' },
           completedCount: 1
         }
       }));
+      
+      toast.success("Standard minutes completed!");
 
-      toast.success("Deep clean completed! Starting parallel note generation...");
-
-      // Stage 2: Generate all note types in one call (parallel processing)
+      // STAGE 2: Meeting Overview
+      toast.info("Generating meeting overview...");
+      const { error: overviewError } = await supabase.functions.invoke(
+        'generate-meeting-overview',
+        { 
+          body: { 
+            meetingId,
+            transcript,
+            meetingTitle: meeting.title
+          } 
+        }
+      );
+      
+      if (overviewError) throw new Error(`Overview failed: ${overviewError.message}`);
+      
+      await pollForNoteCompletion(meetingId, 'overview', 'meeting_overviews');
+      
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: {
           ...prev[meetingId],
-          currentStage: 'standard',
-          stages: {
-            ...prev[meetingId].stages,
-            'standard': 'processing',
-            'brief': 'processing', 
-            'limerick': 'processing',
-            'executive': 'processing'
-          }
+          currentStage: 'executive',
+          stages: { ...prev[meetingId].stages, 'overview': 'success', 'executive': 'processing' },
+          completedCount: 2
         }
       }));
-
-      toast.info("Generating all note types in parallel... (estimated 1-2 mins)");
-
-      // Get the latest transcript (might have been cleaned)
-      const { data: latestTranscriptData } = await supabase.rpc('get_meeting_full_transcript', { 
-        p_meeting_id: meetingId 
-      });
       
-      const latestTranscript = latestTranscriptData?.[0]?.transcript || transcript;
+      toast.success("Meeting overview completed!");
 
-      if (!latestTranscript) {
-        throw new Error(`No transcript available for notes generation`);
-      }
-
-      // Single call to generate ALL note types in parallel
-      const { data: noteResult, error: noteError } = await supabase.functions.invoke('generate-multi-type-notes', {
-        body: {
-          meetingId,
-          transcript: latestTranscript,
-          forceRegenerate: true
+      // STAGE 3: Executive Minutes
+      toast.info("Generating executive minutes...");
+      const { error: execError } = await supabase.functions.invoke(
+        'generate-multi-type-notes',
+        { 
+          body: { 
+            meetingId,
+            transcript,
+            meetingTitle: meeting.title,
+            meetingDate: format(new Date(meeting.created_at), "d MMMM yyyy"),
+            meetingTime: format(new Date(meeting.created_at), "HH:mm")
+          } 
         }
-      });
-
-      if (noteError) {
-        throw new Error(`Note generation failed: ${noteError.message}`);
-      }
-
-      // Poll for completion of all note types
-      const checkCompletion = async () => {
-        const { data: existingNotes } = await supabase
-          .from('meeting_notes_multi')
-          .select('note_type')
-          .eq('meeting_id', meetingId);
-
-        const completedTypes = new Set(existingNotes?.map(n => n.note_type) || []);
-        const targetTypes = ['detailed', 'brief', 'limerick', 'executive'];
-        
-        // Update UI for each completed type
-        const stageMapping = {
-          'detailed': 'standard',
-          'brief': 'brief',
-          'limerick': 'limerick', 
-          'executive': 'executive'
-        };
-
-        const stages: any = {};
-        targetTypes.forEach(type => {
-          const stage = stageMapping[type as keyof typeof stageMapping];
-          stages[stage] = completedTypes.has(type) ? 'success' : 'processing';
-        });
-
-        const completedCount = targetTypes.filter(type => completedTypes.has(type)).length;
-        
-        setProcessingMeetings(prev => ({
-          ...prev,
-          [meetingId]: {
-            ...prev[meetingId],
-            stages: {
-              ...prev[meetingId].stages,
-              ...stages
-            },
-            completedCount: completedCount + 1 // +1 for deep clean
-          }
-        }));
-
-        return completedCount === targetTypes.length;
-      };
-
-      // Poll every 3 seconds for completion
-      const maxPolls = 40; // 2 minutes max
-      let polls = 0;
+      );
       
-      while (polls < maxPolls) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        polls++;
-        
-        const allComplete = await checkCompletion();
-        if (allComplete) break;
-      }
+      if (execError) throw new Error(`Executive notes failed: ${execError.message}`);
+      
+      // Poll for executive note completion
+      await pollForNoteCompletion(meetingId, 'executive', 'meeting_notes_multi');
+      
+      setProcessingMeetings(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...prev[meetingId],
+          currentStage: 'limerick',
+          stages: { ...prev[meetingId].stages, 'executive': 'success', 'limerick': 'processing' },
+          completedCount: 3
+        }
+      }));
+      
+      toast.success("Executive minutes completed!");
 
-      // Mark all stages as complete
+      // STAGE 4: Limerick (Already generated by multi-type-notes but wait for it)
+      toast.info("Generating limerick minutes...");
+      
+      // Poll for limerick note completion
+      await pollForNoteCompletion(meetingId, 'limerick', 'meeting_notes_multi');
+      
+      // Mark complete
       setProcessingMeetings(prev => ({
         ...prev,
         [meetingId]: {
           ...prev[meetingId],
           currentStage: 'complete',
           stages: {
-            'deep-clean': 'success',
             'standard': 'success',
-            'brief': 'success',
-            'limerick': 'success',
-            'executive': 'success'
+            'overview': 'success',
+            'executive': 'success',
+            'limerick': 'success'
           },
-          completedCount: 5,
+          completedCount: 4,
           isProcessing: false
         }
       }));
-
-      toast.success("All processing complete! Generated deep cleaned transcript and all note types (Standard, Brief, Limerick, Executive).");
-
-      // Refresh the meeting data
+      
+      toast.success("All processing complete!");
+      
       if (onRefresh) {
         onRefresh();
       }
-
-      // Keep the completed state visible (don't auto-clear it)
+      
+      // Keep completed state visible
       setTimeout(() => {
         setProcessingMeetings(prev => ({
           ...prev,
@@ -996,11 +1008,10 @@ export const MeetingHistoryList = ({
       });
       
       const stageNames = {
-        'deep-clean': 'Deep Clean',
         'standard': 'Standard Notes',
-        'brief': 'Brief Notes',
-        'limerick': 'Limerick Notes',
-        'executive': 'Executive Notes'
+        'overview': 'Meeting Overview',
+        'executive': 'Executive Notes',
+        'limerick': 'Limerick Notes'
       };
       
       const currentStage = processingMeetings[meetingId]?.currentStage;
@@ -1019,53 +1030,43 @@ export const MeetingHistoryList = ({
     }
   };
   
-  // Helper functions for processing button display - Multi-type notes
+  // Helper functions for processing button display
   const getProcessingButtonText = (processing: any) => {
     if (!processing) return 'Process';
-    
-    if (processing.currentStage === 'complete' && processing.completedCount === 5) {
-      return 'Complete!';
-    }
-    
-    if (!processing.isProcessing && processing.completedCount === 5) {
-      return 'Complete!';
-    }
+    if (processing.currentStage === 'complete') return 'Complete!';
     
     if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
       return 'Failed';
     }
     
-    if (processing.isProcessing) {
-      const stageNames = {
-        'deep-clean': 'Deep Cleaning...',
-        'standard': 'Standard Notes...',
-        'brief': 'Brief Notes...',
-        'limerick': 'Limerick Notes...',
-        'executive': 'Executive Notes...'
-      };
-      return stageNames[processing.currentStage] || 'Processing...';
-    }
+    const stageLabels = {
+      'standard': 'Standard...',
+      'overview': 'Overview...',
+      'executive': 'Executive...',
+      'limerick': 'Limerick...'
+    };
     
-    return 'Process';
+    return stageLabels[processing.currentStage] || 'Processing...';
   };
 
   const getProcessingButtonIcon = (processing: any) => {
-    if (!processing) return RefreshCw;
+    if (!processing) return FileText;
     
     if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
       return AlertCircle;
     }
     
-    // Show green tick when all 5 stages are complete
-    if (processing.completedCount === 5 || (processing.currentStage === 'complete' && processing.completedCount === 5)) {
-      return CheckCircle2;
-    }
+    if (processing.currentStage === 'complete') return CheckCircle2;
     
-    if (processing.isProcessing) {
-      return RefreshCw;
-    }
+    // Show different icons for each stage
+    const stageIcons: Record<string, any> = {
+      'standard': FileText,
+      'overview': Eye,
+      'executive': Bot,
+      'limerick': RefreshCw
+    };
     
-    return RefreshCw;
+    return stageIcons[processing.currentStage] || RefreshCw;
   };
 
   const getProcessingButtonColor = (processing: any) => {
@@ -1075,8 +1076,7 @@ export const MeetingHistoryList = ({
       return 'text-destructive hover:text-destructive/80';
     }
     
-    // Green color when all notes are complete
-    if (processing.completedCount === 5 || (processing.currentStage === 'complete' && processing.completedCount === 5)) {
+    if (processing.completedCount === 4 || processing.currentStage === 'complete') {
       return 'text-green-600 hover:text-green-700';
     }
     
@@ -1088,34 +1088,34 @@ export const MeetingHistoryList = ({
   };
 
   const getProcessingTooltip = (processing: any) => {
-    if (!processing) return "Deep clean transcript, then generate Standard → Brief → Limerick → Executive notes";
+    if (!processing) return "Generate Standard → Overview → Executive → Limerick notes";
     
     if (processing.error) {
       const stageNames = {
-        'deep-clean': 'Deep Clean',
         'standard': 'Standard Notes',
-        'brief': 'Brief Notes', 
-        'limerick': 'Limerick Notes',
-        'executive': 'Executive Notes'
+        'overview': 'Meeting Overview',
+        'executive': 'Executive Notes',
+        'limerick': 'Limerick Notes'
       };
       const stageName = stageNames[processing.currentStage] || processing.currentStage;
       return `Failed at ${stageName}: ${processing.error}`;
     }
     
-    if (processing.completedCount === 5) {
-      return "All processing complete: Deep clean + Standard, Brief, Limerick & Executive notes generated";
+    if (processing.completedCount === 4) {
+      return "All processing complete: Standard, Overview, Executive & Limerick notes generated";
     }
     
     if (processing.isProcessing) {
-      const stageLabels = {
-        'deep-clean': 'Deep cleaning transcript (removing duplicates, 1 min per hour limit)',
-        'standard': 'Generating standard meeting notes',
-        'brief': 'Generating brief summary notes',
-        'limerick': 'Generating limerick-style notes',
-        'executive': 'Generating executive summary notes'
+      const stageDescriptions = {
+        'standard': 'Generating standard meeting minutes',
+        'overview': 'Generating meeting overview',
+        'executive': 'Generating executive minutes',
+        'limerick': 'Generating limerick-style notes'
       };
-      const progress = `(${processing.completedCount || 0}/5 complete)`;
-      return `${stageLabels[processing.currentStage] || 'Processing...'} ${progress}`;
+      const progress = `${processing.completedCount}/4`;
+      const current = stageDescriptions[processing.currentStage] || 'Processing';
+      
+      return `${current} (${progress})`;
     }
     
     return "Deep clean transcript, then generate Standard → Brief → Limerick → Executive notes";
@@ -1523,7 +1523,7 @@ export const MeetingHistoryList = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleFullProcessing(meeting)}
+                  onClick={() => handleProcessClick(meeting)}
                   disabled={processingMeetings[meeting.id]?.isProcessing}
                   className={`flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] ${getProcessingButtonColor(processingMeetings[meeting.id])}`}
                   title={getProcessingTooltip(processingMeetings[meeting.id])}
@@ -1821,6 +1821,57 @@ export const MeetingHistoryList = ({
         meetingTitle={selectedMeetingForEmail?.title || ''}
         meetingNotes={selectedMeetingForEmail?.meeting_summary || selectedMeetingForEmail?.transcript || ''}
       />
+      
+      {/* Process Confirmation Dialog */}
+      <AlertDialog open={confirmProcessDialog.open} onOpenChange={(open) => 
+        setConfirmProcessDialog({ open, meeting: null, lastRun: null })
+      }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Process Meeting Notes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-3">
+                <p>This will generate the following in sequential order:</p>
+                <ol className="list-decimal pl-5 space-y-1">
+                  <li>Standard Minutes</li>
+                  <li>Meeting Overview</li>
+                  <li>Executive Minutes</li>
+                  <li>Limerick Minutes</li>
+                </ol>
+                
+                {confirmProcessDialog.lastRun && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded dark:bg-amber-950 dark:border-amber-800">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                      Last processed: {confirmProcessDialog.lastRun}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded dark:bg-blue-950 dark:border-blue-800">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    ⚠️ Only run if you have updated the meeting transcript or context
+                  </p>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mt-2">
+                  Processing takes approximately 3-5 minutes and will regenerate all note types.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (confirmProcessDialog.meeting) {
+                handleFullProcessing(confirmProcessDialog.meeting);
+              }
+              setConfirmProcessDialog({ open: false, meeting: null, lastRun: null });
+            }}>
+              Proceed with Processing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
