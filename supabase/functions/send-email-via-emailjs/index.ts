@@ -395,9 +395,21 @@ const handler = async (req: Request): Promise<Response> => {
     
     // EmailJS requires attachments in data URL format
     if (emailData.word_attachment) {
+      console.log("Processing word attachment:", {
+        has_content: !!emailData.word_attachment.content,
+        has_filename: !!emailData.word_attachment.filename,
+        has_type: !!emailData.word_attachment.type,
+        content_length: emailData.word_attachment.content?.length
+      });
+      
       templateParams.word_filename = emailData.word_attachment.filename;
       // Format as data URL for EmailJS Variable Attachment
       templateParams.word_attachment = `data:${emailData.word_attachment.type};base64,${emailData.word_attachment.content}`;
+      
+      console.log("Word attachment formatted:", {
+        filename: templateParams.word_filename,
+        data_url_prefix: templateParams.word_attachment?.substring(0, 100)
+      });
     }
     
     if (emailData.transcript_attachment) {
@@ -523,7 +535,9 @@ const handler = async (req: Request): Promise<Response> => {
       has_attachment: !!emailData.word_attachment,
       attachment_filename: emailData.word_attachment?.filename,
       has_transcript_attachment: !!emailData.transcript_attachment,
-      transcript_filename: emailData.transcript_attachment?.filename
+      transcript_filename: emailData.transcript_attachment?.filename,
+      template_params_has_word_attachment: !!templateParams.word_attachment,
+      template_params_word_filename: templateParams.word_filename
     });
 
     // Send email via EmailJS API
