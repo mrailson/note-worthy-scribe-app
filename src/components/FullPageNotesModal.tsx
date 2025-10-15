@@ -327,6 +327,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          return;
        }
 
+       // Load executive and limerick notes from meeting_notes_multi table
+       const { data: multiNotesData } = await supabase
+         .from('meeting_notes_multi')
+         .select('note_type, content')
+         .eq('meeting_id', currentMeetingId)
+         .in('note_type', ['executive', 'limerick'])
+         .order('generated_at', { ascending: false });
+
        // Validate we're still on the same meeting before updating state
        if (meeting?.id !== currentMeetingId) {
          console.warn('⚠️ Meeting changed during note styles loading, discarding results');
@@ -346,8 +354,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          if (meetingData.notes_style_5) {
            setNotesStyle5(meetingData.notes_style_5);
          }
-         console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
        }
+
+       // Load executive and limerick notes from multi-type notes table (takes priority)
+       if (multiNotesData && multiNotesData.length > 0) {
+         multiNotesData.forEach(note => {
+           if (note.note_type === 'executive' && note.content) {
+             setNotesStyle4(note.content);
+             console.log('✅ Loaded executive notes from meeting_notes_multi');
+           }
+           if (note.note_type === 'limerick' && note.content) {
+             setNotesStyle5(note.content);
+             console.log('✅ Loaded limerick notes from meeting_notes_multi');
+           }
+         });
+       }
+
+       console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
      } catch (error) {
        console.error('Error loading note styles:', error);
      }
