@@ -6,10 +6,12 @@ export interface ChunkStatus {
   text: string;
   confidence: number;
   wordCount: number;
-  status: 'success' | 'low_confidence' | 'filtered';
+  status: 'success' | 'low_confidence' | 'filtered' | 'rejected';
   reason?: string;
   speaker?: string;
   isFinal: boolean;
+  mergeRejectionReason?: string;
+  wasMerged?: boolean;
 }
 
 export function useChunkTracker() {

@@ -10,9 +10,9 @@ export type LiveChunk = {
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
-const STITCH_SIM_THRESHOLD = 0.97; // similarity to consider head/tail overlap (increased to be less aggressive)
-const DEDUPE_SIM_THRESHOLD = 0.98; // be less aggressive when filtering duplicates
-const DEDUPE_WINDOW = 5;        // compare against last 5 sentences only (reduced from 15)
+const STITCH_SIM_THRESHOLD = 0.85; // similarity to consider head/tail overlap (reduced to allow more variation)
+const DEDUPE_SIM_THRESHOLD = 0.90; // less aggressive filtering to reduce false positives
+const DEDUPE_WINDOW = 8;        // compare against last 8 sentences (increased for better context)
 const MIN_CONFIDENCE_THRESHOLD = 0.30; // minimum confidence to accept chunks (30%)
 
 const norm = (s: string) =>
@@ -48,8 +48,8 @@ function stitchWithOverlap(prev: string, next: string) {
   const b = next.slice(0, OVERLAP_SCAN);
   if (!a || !b) return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
 
-  // Enhanced overlap detection with more aggressive thresholds
-  for (let k = Math.min(a.length, b.length); k >= 30; k -= 8) { // Reduced min overlap and step size
+  // Enhanced overlap detection with balanced thresholds
+  for (let k = Math.min(a.length, b.length); k >= 40; k -= 10) { // Increased min overlap to be more conservative
     const suf = a.slice(-k);
     const pre = b.slice(0, k);
     const similarity = sim(suf, pre);

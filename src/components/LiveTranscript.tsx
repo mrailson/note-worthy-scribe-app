@@ -78,6 +78,7 @@ interface LiveTranscriptProps {
     };
   }) => void;
   defaultOpen?: boolean;
+  onChunkRejected?: (chunkText: string, reason: string, chunkNumber?: number) => void; // New callback for rejection tracking
 }
 
 interface LiveTranscriptHandle {
@@ -93,7 +94,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
   attendees,
   meetingSettings,
   onMeetingSettingsChange,
-  defaultOpen
+  defaultOpen,
+  onChunkRejected
 }, ref) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? false);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
@@ -117,6 +119,15 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   const [isLiveTranscriptModalOpen, setIsLiveTranscriptModalOpen] = useState(false);
   const [textAlignment, setTextAlignment] = useState<'left' | 'center'>('left');
+  
+  // Rejection tracking state
+  const [rejectedChunks, setRejectedChunks] = useState<Array<{
+    text: string;
+    reason: string;
+    timestamp: Date;
+  }>>([]);
+  const [totalChunksProcessed, setTotalChunksProcessed] = useState(0);
+  const [rejectionRate, setRejectionRate] = useState(0);
   
   // Live meeting notes state
   const [liveNotesData, setLiveNotesData] = useState<{
@@ -360,7 +371,18 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
               isFinal: true,
               source: 'debounced'
             };
-            return mergeLive(prev, chunk).text;
+            const merged = mergeLive(prev, chunk);
+            
+            // Track rejection
+            if (merged.rejectionReason && merged.addedChars === 0) {
+              setRejectedChunks(prevRejected => [...prevRejected, {
+                text: dedupedChunk,
+                reason: merged.rejectionReason!,
+                timestamp: new Date()
+              }]);
+            }
+            
+            return merged.text;
           });
         } else {
           console.log("🔄 Debounce chunk was empty after deduplication");
@@ -486,9 +508,22 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
               source: r.source || 'unknown'
             };
             const merged = mergeLive(prev, chunk);
+            
+            // Track rejection if chunk was rejected
+            if (merged.rejectionReason && merged.addedChars === 0) {
+              setRejectedChunks(prevRejected => [...prevRejected, {
+                text: textForDisplay,
+                reason: merged.rejectionReason!,
+                timestamp: new Date()
+              }]);
+              console.warn(`⚠️ Chunk rejected: ${merged.rejectionReason}`);
+            }
+            
             console.log("📈 Raw transcript updated:", prev.length, "->", merged.text.length, "chars");
             return merged.text;
           });
+          
+          setTotalChunksProcessed(prev => prev + 1);
 
           // Apply lightweight cleaning for real-time processing (use parsed text)
           const cleanedChunk = lightCleanChunk(textForDisplay);
@@ -507,6 +542,27 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
                   source: r.source || 'unknown'
                 };
                 const merged = mergeLive(prev, chunk);
+                
+                // Track rejection if chunk was rejected
+                if (merged.rejectionReason && merged.addedChars === 0) {
+              setRejectedChunks(prevRejected => [...prevRejected, {
+                text: dedupedChunk,
+                reason: merged.rejectionReason!,
+                timestamp: new Date()
+              }]);
+              
+              // Notify parent component
+              if (onChunkRejected) {
+                onChunkRejected(dedupedChunk, merged.rejectionReason!, r.chunk_number);
+              }
+              
+              toast({
+                title: "Chunk Rejected",
+                description: `A transcript chunk was filtered out: ${merged.rejectionReason}`,
+                variant: "destructive"
+              });
+                }
+                
                 console.log("📝 Cleaned transcript updated, length:", merged.text.length);
                 return merged.text;
               });
@@ -673,6 +729,55 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       }
     }
   }, [transcript, isFinal]);
+
+  // Calculate rejection rate
+  useEffect(() => {
+    if (totalChunksProcessed > 0) {
+      const rate = (rejectedChunks.length / totalChunksProcessed) * 100;
+      setRejectionRate(rate);
+      
+      // Show warning if >20% of chunks are being rejected
+      if (rate > 20 && rejectedChunks.length > 5) {
+        console.warn(`⚠️ HIGH REJECTION RATE: ${rate.toFixed(1)}% of chunks rejected!`);
+        toast({
+          title: "High Chunk Rejection Rate",
+          description: `${rate.toFixed(0)}% of transcript chunks are being filtered. You can manually merge them if needed.`,
+          variant: "destructive",
+        });
+      }
+    }
+  }, [rejectedChunks.length, totalChunksProcessed]);
+
+  // Manual merge function to force-merge rejected chunks
+  const handleManualMergeRejectedChunks = () => {
+    if (rejectedChunks.length === 0) {
+      toast({
+        title: "No Rejected Chunks",
+        description: "There are no rejected chunks to merge.",
+      });
+      return;
+    }
+
+    console.log(`🔧 Manually merging ${rejectedChunks.length} rejected chunks...`);
+    
+    setCleanedTranscript(prev => {
+      let result = prev;
+      rejectedChunks.forEach(rejected => {
+        // Force append with separator (bypass deduplication)
+        const separator = /[.!?…]$/.test(result) ? ' ' : '. ';
+        result = result + separator + rejected.text;
+      });
+      return result;
+    });
+
+    toast({
+      title: "Chunks Merged",
+      description: `Successfully merged ${rejectedChunks.length} rejected chunks into transcript.`,
+    });
+
+    // Clear rejected chunks after merge
+    setRejectedChunks([]);
+  };
 
   // Handle text selection for corrections
   const handleTextSelection = () => {

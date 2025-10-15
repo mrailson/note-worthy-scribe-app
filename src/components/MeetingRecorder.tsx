@@ -4892,6 +4892,19 @@ export const MeetingRecorder = ({
                 transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
               }));
             }}
+            onChunkRejected={(chunkText, reason, chunkNumber) => {
+              // Update chunk save status with rejection reason
+              if (chunkNumber !== undefined) {
+                setChunkSaveStatuses(prevStatuses => 
+                  prevStatuses.map(status => 
+                    status.chunkNumber === chunkNumber
+                      ? { ...status, mergeRejectionReason: reason }
+                      : status
+                  )
+                );
+                console.warn(`⚠️ Chunk #${chunkNumber} rejected during merge: ${reason}`);
+              }
+            }}
           />
 
           {/* Audio Chunking Live Overview - Show real-time chunk confirmations */}
