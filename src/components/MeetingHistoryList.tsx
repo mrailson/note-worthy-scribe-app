@@ -193,6 +193,8 @@ export const MeetingHistoryList = ({
     selectedTypes: {
       standard: boolean;
       overview: boolean;
+      executive: boolean;
+      limerick: boolean;
     };
   }>({ 
     open: false, 
@@ -200,17 +202,21 @@ export const MeetingHistoryList = ({
     lastRun: null,
     selectedTypes: {
       standard: true,
-      overview: true
+      overview: true,
+      executive: true,
+      limerick: true
     }
   });
   
-  // Add state for processing - Sequential processing (Standard → Overview)
+  // Add state for processing - Sequential processing (Standard → Overview → Executive → Limerick)
   const [processingMeetings, setProcessingMeetings] = useState<Record<string, {
     isProcessing: boolean;
-    currentStage: 'standard' | 'overview' | 'complete';
+    currentStage: 'standard' | 'overview' | 'executive' | 'limerick' | 'complete';
     stages: {
       'standard': 'pending' | 'processing' | 'success' | 'failed';
       'overview': 'pending' | 'processing' | 'success' | 'failed';
+      'executive': 'pending' | 'processing' | 'success' | 'failed';
+      'limerick': 'pending' | 'processing' | 'success' | 'failed';
     };
     error?: string;
     completedCount?: number;
@@ -751,7 +757,7 @@ export const MeetingHistoryList = ({
     noteType: string,
     table: 'meetings' | 'meeting_notes_multi' | 'meeting_overviews'
   ): Promise<void> => {
-    const maxAttempts = 60; // 3 minutes max
+    const maxAttempts = 40; // 2 minutes max
     let attempts = 0;
     
     while (attempts < maxAttempts) {
@@ -833,13 +839,15 @@ export const MeetingHistoryList = ({
       lastRun: lastRunFormatted,
       selectedTypes: {
         standard: true,
-        overview: true
+        overview: true,
+        executive: true,
+        limerick: true
       }
     });
   };
 
   // Handle full processing pipeline - Sequential processing
-  const handleFullProcessing = async (meeting: Meeting, selectedTypes: { standard: boolean; overview: boolean }) => {
+  const handleFullProcessing = async (meeting: Meeting, selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean }) => {
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
@@ -847,18 +855,23 @@ export const MeetingHistoryList = ({
     }
 
     // Build list of selected types in order
-    const typesToProcess: Array<'standard' | 'overview'> = [];
+    const typesToProcess: Array<'standard' | 'overview' | 'executive' | 'limerick'> = [];
     if (selectedTypes.standard) typesToProcess.push('standard');
     if (selectedTypes.overview) typesToProcess.push('overview');
+    if (selectedTypes.executive) typesToProcess.push('executive');
+    if (selectedTypes.limerick) typesToProcess.push('limerick');
     
     if (typesToProcess.length === 0) {
+      toast.error("Please select at least one note type to generate");
       return;
     }
 
     // Initialize processing state with selected stages
     const initialStages: any = {
       'standard': selectedTypes.standard ? 'pending' : 'skipped',
-      'overview': selectedTypes.overview ? 'pending' : 'skipped'
+      'overview': selectedTypes.overview ? 'pending' : 'skipped',
+      'executive': selectedTypes.executive ? 'pending' : 'skipped',
+      'limerick': selectedTypes.limerick ? 'pending' : 'skipped'
     };
     
     // Set first selected type to processing
@@ -896,39 +909,15 @@ export const MeetingHistoryList = ({
         const nextType = typesToProcess[i + 1];
         
         if (currentType === 'standard') {
-          try {
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
-            
-            // Create a timeout promise
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Request timed out after 3 minutes')), 180000); // 3 minutes
-            });
-            
-            // Race between the actual request and timeout
-            const result = await Promise.race([
-              supabase.functions.invoke(
-                'auto-generate-meeting-notes',
-                { body: { meetingId, forceRegenerate: true } }
-              ),
-              timeoutPromise
-            ]) as any;
-            
-            const { data, error: standardError } = result;
-            
-            console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
-            
-            if (standardError) {
-              console.error('❌ Edge function error:', standardError);
-              throw new Error(`Standard notes failed: ${standardError.message || JSON.stringify(standardError)}`);
-            }
-            
-            console.log('⏳ Polling for note completion...');
-            await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
-            completedCount++;
-          } catch (err: any) {
-            console.error('💥 Standard notes generation error:', err);
-            throw new Error(`Standard notes failed: ${err.message || 'Network error - edge function may have timed out'}`);
-          }
+          toast.info("Generating standard minutes...");
+          const { error: standardError } = await supabase.functions.invoke(
+            'auto-generate-meeting-notes',
+            { body: { meetingId, forceRegenerate: true } }
+          );
+          
+          if (standardError) throw new Error(`Standard notes failed: ${standardError.message}`);
+          await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
+          completedCount++;
           
           setProcessingMeetings(prev => ({
             ...prev,
@@ -943,9 +932,12 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
+          
+          toast.success("Standard minutes completed!");
         }
         
         if (currentType === 'overview') {
+          toast.info("Generating meeting overview...");
           const { error: overviewError } = await supabase.functions.invoke(
             'generate-meeting-overview',
             { 
@@ -974,14 +966,75 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
+          
+          toast.success("Meeting overview completed!");
         }
         
+        if (currentType === 'executive') {
+          toast.info("Generating executive minutes...");
+          const { error: execError } = await supabase.functions.invoke(
+            'generate-multi-type-notes',
+            { 
+              body: { 
+                meetingId,
+                transcript,
+                meetingTitle: meeting.title,
+                meetingDate: format(new Date(meeting.created_at), "d MMMM yyyy"),
+                meetingTime: format(new Date(meeting.created_at), "HH:mm")
+              } 
+            }
+          );
+          
+          if (execError) throw new Error(`Executive notes failed: ${execError.message}`);
+          await pollForNoteCompletion(meetingId, 'executive', 'meeting_notes_multi');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: nextType || 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'executive': 'success',
+                ...(nextType ? { [nextType]: 'processing' } : {})
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Executive minutes completed!");
+        }
+        
+        if (currentType === 'limerick') {
+          toast.info("Generating limerick minutes...");
+          // Limerick is generated by multi-type-notes, just poll for it
+          await pollForNoteCompletion(meetingId, 'limerick', 'meeting_notes_multi');
+          completedCount++;
+          
+          setProcessingMeetings(prev => ({
+            ...prev,
+            [meetingId]: {
+              ...prev[meetingId],
+              currentStage: 'complete',
+              stages: { 
+                ...prev[meetingId].stages, 
+                'limerick': 'success'
+              },
+              completedCount
+            }
+          }));
+          
+          toast.success("Limerick minutes completed!");
+        }
       }
       
       // Mark all as complete
       const finalStages: any = {
         'standard': selectedTypes.standard ? 'success' : 'skipped',
-        'overview': selectedTypes.overview ? 'success' : 'skipped'
+        'overview': selectedTypes.overview ? 'success' : 'skipped',
+        'executive': selectedTypes.executive ? 'success' : 'skipped',
+        'limerick': selectedTypes.limerick ? 'success' : 'skipped'
       };
       
       setProcessingMeetings(prev => ({
@@ -994,6 +1047,8 @@ export const MeetingHistoryList = ({
           isProcessing: false
         }
       }));
+      
+      toast.success("All selected processing complete!");
       
       if (onRefresh) {
         onRefresh();
@@ -1033,8 +1088,15 @@ export const MeetingHistoryList = ({
       
       const stageNames = {
         'standard': 'Standard Notes',
-        'overview': 'Meeting Overview'
+        'overview': 'Meeting Overview',
+        'executive': 'Executive Notes',
+        'limerick': 'Limerick Notes'
       };
+      
+      const currentStage = processingMeetings[meetingId]?.currentStage;
+      const stageName = currentStage ? stageNames[currentStage] || currentStage : 'unknown stage';
+      
+      toast.error(`Processing failed at ${stageName}: ${error.message}`);
       
       // Clear error state after delay
       setTimeout(() => {
@@ -1058,7 +1120,9 @@ export const MeetingHistoryList = ({
     
     const stageLabels = {
       'standard': 'Standard...',
-      'overview': 'Overview...'
+      'overview': 'Overview...',
+      'executive': 'Executive...',
+      'limerick': 'Limerick...'
     };
     
     return stageLabels[processing.currentStage] || 'Processing...';
@@ -1076,7 +1140,9 @@ export const MeetingHistoryList = ({
     // Show different icons for each stage
     const stageIcons: Record<string, any> = {
       'standard': FileText,
-      'overview': Eye
+      'overview': Eye,
+      'executive': Bot,
+      'limerick': RefreshCw
     };
     
     return stageIcons[processing.currentStage] || RefreshCw;
@@ -1089,7 +1155,7 @@ export const MeetingHistoryList = ({
       return 'text-destructive hover:text-destructive/80';
     }
     
-    if (processing.completedCount === 2 || processing.currentStage === 'complete') {
+    if (processing.completedCount === 4 || processing.currentStage === 'complete') {
       return 'text-green-600 hover:text-green-700';
     }
     
@@ -1101,33 +1167,37 @@ export const MeetingHistoryList = ({
   };
 
   const getProcessingTooltip = (processing: any) => {
-    if (!processing) return "Generate Standard → Overview notes";
+    if (!processing) return "Generate Standard → Overview → Executive → Limerick notes";
     
     if (processing.error) {
       const stageNames = {
         'standard': 'Standard Notes',
-        'overview': 'Meeting Overview'
+        'overview': 'Meeting Overview',
+        'executive': 'Executive Notes',
+        'limerick': 'Limerick Notes'
       };
       const stageName = stageNames[processing.currentStage] || processing.currentStage;
       return `Failed at ${stageName}: ${processing.error}`;
     }
     
-    if (processing.completedCount === 2) {
-      return "All processing complete: Standard & Overview notes generated";
+    if (processing.completedCount === 4) {
+      return "All processing complete: Standard, Overview, Executive & Limerick notes generated";
     }
     
     if (processing.isProcessing) {
       const stageDescriptions = {
         'standard': 'Generating standard meeting minutes',
-        'overview': 'Generating meeting overview'
+        'overview': 'Generating meeting overview',
+        'executive': 'Generating executive minutes',
+        'limerick': 'Generating limerick-style notes'
       };
-      const progress = `${processing.completedCount}/2`;
+      const progress = `${processing.completedCount}/4`;
       const current = stageDescriptions[processing.currentStage] || 'Processing';
       
       return `${current} (${progress})`;
     }
     
-    return "Deep clean transcript, then generate Standard → Overview notes";
+    return "Deep clean transcript, then generate Standard → Brief → Limerick → Executive notes";
   };
 
   const getStatusIcon = (status: string) => {
@@ -1840,7 +1910,9 @@ export const MeetingHistoryList = ({
             lastRun: null,
             selectedTypes: {
               standard: true,
-              overview: true
+              overview: true,
+              executive: true,
+              limerick: true
             }
           });
         }
@@ -1890,6 +1962,44 @@ export const MeetingHistoryList = ({
                       Meeting Overview
                     </label>
                   </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="executive"
+                      checked={confirmProcessDialog.selectedTypes.executive}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            executive: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="executive" className="text-sm font-medium cursor-pointer">
+                      Executive Minutes
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="limerick"
+                      checked={confirmProcessDialog.selectedTypes.limerick}
+                      onCheckedChange={(checked) => {
+                        setConfirmProcessDialog(prev => ({
+                          ...prev,
+                          selectedTypes: {
+                            ...prev.selectedTypes,
+                            limerick: checked === true
+                          }
+                        }));
+                      }}
+                    />
+                    <label htmlFor="limerick" className="text-sm font-medium cursor-pointer">
+                      Limerick Minutes
+                    </label>
+                  </div>
                 </div>
                 
                 {confirmProcessDialog.lastRun && (
@@ -1925,7 +2035,9 @@ export const MeetingHistoryList = ({
                   lastRun: null,
                   selectedTypes: {
                     standard: true,
-                    overview: true
+                    overview: true,
+                    executive: true,
+                    limerick: true
                   }
                 });
               }}
