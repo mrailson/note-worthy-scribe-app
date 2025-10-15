@@ -3026,17 +3026,17 @@ ${transcript}`;
                                    )}
                                  </Button>
                                </div>
-                             ) : (
-                                <div className="space-y-4">
-                                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                    <div 
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: renderPoeticContent(notesStyle5)
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                             )}
+                              ) : (
+                                 <div>
+                                   <div className="max-w-none">
+                                     <div 
+                                       dangerouslySetInnerHTML={{ 
+                                         __html: renderPoeticContent(notesStyle5)
+                                       }}
+                                     />
+                                   </div>
+                                 </div>
+                              )}
                            </div>
                          )}
                        </TabsContent>

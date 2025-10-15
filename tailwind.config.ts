@@ -126,6 +126,7 @@ export default {
 			},
 			fontFamily: {
 				'nhs': ['Inter', 'Arial', 'sans-serif'],
+				'limerick': ['EB Garamond', 'Georgia', 'serif'],
 			}
 		}
 	},

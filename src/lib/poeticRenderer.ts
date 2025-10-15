@@ -26,13 +26,21 @@ export function renderPoeticContent(content: string): string {
   html = `<div class="poetic-content text-foreground">
     <style>
       .poetic-content {
-        line-height: 1.7;
-        font-family: 'Georgia', 'Palatino', 'Times New Roman', serif;
-        font-size: 1rem;
+        line-height: 1.8;
+        font-family: 'EB Garamond', 'Georgia', 'Palatino', serif;
+        font-size: 1.125rem;
+        text-align: center;
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 0.5rem 1.5rem;
       }
       .poetic-content br {
         display: block;
-        margin: 0.15em 0;
+        margin: 0.25em 0;
+      }
+      .poetic-content strong {
+        font-weight: 600;
+        color: hsl(var(--primary));
       }
     </style>
     ${html}
