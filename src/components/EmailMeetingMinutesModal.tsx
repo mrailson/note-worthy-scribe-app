@@ -78,9 +78,11 @@ export function EmailMeetingMinutesModal({
   // Reset form when modal opens with new meeting data
   useEffect(() => {
     if (isOpen && meetingTitle) {
-      setSubject(`Meeting Minutes - ${meetingTitle}`);
+      const subjectLine = meetingDateTime 
+        ? `Meeting Minutes - ${meetingTitle} - ${meetingDateTime}`
+        : `Meeting Minutes - ${meetingTitle}`;
+      setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
-      const dateTimeText = meetingDateTime ? ` for the meeting recorded on ${meetingDateTime}` : '';
       setEmailBody(
         `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nKind regards,\n${userName}`
       );
