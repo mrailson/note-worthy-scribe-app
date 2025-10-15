@@ -3097,10 +3097,11 @@ ${transcript}`;
                                         setShowContextDialog(true);
                                       }}
                                       variant="outline"
-                                      size="icon"
-                                      title="Add context like agendas, attendee lists, or presentations"
+                                      className="gap-2"
+                                      title="Add meeting context like agendas, attendee lists, or presentations"
                                     >
-                                      <FilePlus2 className="h-4 w-4" />
+                                      <FilePlus2 className="h-4 w-4 text-primary" />
+                                      Add Meeting Context (Agenda, Attendees etc)
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
