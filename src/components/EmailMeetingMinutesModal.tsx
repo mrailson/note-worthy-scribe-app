@@ -152,18 +152,18 @@ export function EmailMeetingMinutesModal({
         }
       }
 
-      // Helper function to convert markdown tables to HTML
-      const convertMarkdownTablesToHTML = (text: string): string => {
+      // Helper function to convert markdown and format to HTML
+      const convertToStyledHTML = (text: string): string => {
         const lines = text.split('\n');
-        let result = '';
+        let html = '';
         let i = 0;
         
         while (i < lines.length) {
-          const line = lines[i];
+          const line = lines[i].trim();
           
-          // Check if this line looks like a table row (contains pipes)
+          // Handle tables
           if (line.includes('|')) {
-            let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif;">\n';
+            let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif; background-color: #ffffff;">\n';
             let isFirstRow = true;
             let inTable = true;
             
@@ -199,39 +199,80 @@ export function EmailMeetingMinutesModal({
             }
             
             tableHTML += '</table>\n';
-            result += tableHTML;
-          } else {
-            result += line + '\n';
-            i++;
+            html += tableHTML;
+            continue;
           }
+          
+          // Handle headers (lines in ALL CAPS or starting with #)
+          if (line.match(/^#{1,6}\s/) || (line.length > 0 && line === line.toUpperCase() && line.length < 100)) {
+            const headerText = line.replace(/^#{1,6}\s/, '');
+            html += `<h2 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin: 24px 0 12px 0; font-family: Arial, sans-serif;">${headerText}</h2>\n`;
+            i++;
+            continue;
+          }
+          
+          // Handle bullet points
+          if (line.match(/^[•\-\*]\s/)) {
+            let listHTML = '<ul style="margin: 12px 0; padding-left: 20px;">\n';
+            while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
+              const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
+              listHTML += `  <li style="margin: 6px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${itemText}</li>\n`;
+              i++;
+            }
+            listHTML += '</ul>\n';
+            html += listHTML;
+            continue;
+          }
+          
+          // Handle numbered lists
+          if (line.match(/^\d+\.\s/)) {
+            let listHTML = '<ol style="margin: 12px 0; padding-left: 20px;">\n';
+            while (i < lines.length && lines[i].trim().match(/^\d+\.\s/)) {
+              const itemText = lines[i].trim().replace(/^\d+\.\s/, '');
+              listHTML += `  <li style="margin: 6px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${itemText}</li>\n`;
+              i++;
+            }
+            listHTML += '</ol>\n';
+            html += listHTML;
+            continue;
+          }
+          
+          // Handle empty lines
+          if (line.length === 0) {
+            i++;
+            continue;
+          }
+          
+          // Handle regular paragraphs - remove bold markers
+          const cleanText = line.replace(/\*\*/g, '');
+          html += `<p style="margin: 12px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${cleanText}</p>\n`;
+          i++;
         }
         
-        return result;
+        return html;
       };
 
-      // Format meeting notes for better readability - remove all markdown and convert tables
-      const notesWithTables = convertMarkdownTablesToHTML(meetingNotes);
-      const formattedNotes = notesWithTables
-        .replace(/#{1,6}\s/g, '') // Remove all markdown headers (# ## ### etc)
-        .replace(/\*\*/g, '') // Remove bold markers
-        .replace(/^- /gm, '  • ') // Convert dashes to bullets
-        .replace(/^\d+\. /gm, (match) => `  ${match}`) // Indent numbered lists
-        .replace(/^#\s*$/gm, '') // Remove standalone hash characters on their own lines
-        .trim();
+      // Format meeting notes as styled HTML
+      const formattedNotes = convertToStyledHTML(meetingNotes);
 
       // Prepare email data for EmailJS service
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: `${emailBody}
-
-════════════════════════════════════════════════════════════════
-
-MEETING MINUTES
-
-${formattedNotes}
-
-════════════════════════════════════════════════════════════════`,
+        message: `
+          <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;">
+              <p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p>
+            </div>
+            
+            <div style="padding: 20px; background-color: #ffffff;">
+              <div style="border-top: 2px solid #0066cc; padding-top: 20px;">
+                <h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING MINUTES</h1>
+                ${formattedNotes}
+              </div>
+            </div>
+          </div>
+        `,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
