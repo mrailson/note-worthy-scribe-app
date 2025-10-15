@@ -149,13 +149,13 @@ export function EmailMeetingMinutesModal({
         }
       }
 
-      // Format meeting notes for better readability
+      // Format meeting notes for better readability - remove all markdown
       const formattedNotes = meetingNotes
-        .replace(/## /g, '\n\n')
-        .replace(/### /g, '\n')
-        .replace(/\*\*/g, '')
-        .replace(/^- /gm, '  • ')
-        .replace(/^\d+\. /gm, (match) => `  ${match}`)
+        .replace(/#{1,6}\s/g, '') // Remove all markdown headers (# ## ### etc)
+        .replace(/\*\*/g, '') // Remove bold markers
+        .replace(/^- /gm, '  • ') // Convert dashes to bullets
+        .replace(/^\d+\. /gm, (match) => `  ${match}`) // Indent numbered lists
+        .replace(/^#\s*$/gm, '') // Remove standalone hash characters on their own lines
         .trim();
 
       // Prepare email data for EmailJS service
