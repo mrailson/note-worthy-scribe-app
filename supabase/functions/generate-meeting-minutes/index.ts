@@ -60,122 +60,105 @@ serve(async (req) => {
 
     const prompt = `You are a professional meeting secretary creating detailed meeting minutes using British English conventions. Analyse the transcript and generate comprehensive, structured meeting minutes.
 
-CRITICAL RULES:
+CRITICAL RULES - ABSOLUTELY NO PLACEHOLDERS:
 - Use British English spellings throughout (organised, realise, colour, centre)
 - Use British date formats with ordinals (1st August 2025, 22nd October 2025)
-- Use 24-hour time format
+- Use 24-hour time format (e.g., 14:30, not 2:30 PM)
 - ONLY include information actually present in the transcript
 - NEVER make up or fabricate information
-- If a section has no relevant information, OMIT that entire section
-- Do NOT use placeholder text like "Not specified", "TBC", or "[Insert X]"
+- NEVER EVER use square brackets like [Insert X] or [Insert Name] or any similar placeholder
+- NEVER use phrases like "Not specified", "TBC", "To be confirmed"
+- If information is not in the transcript, either OMIT that field entirely or use descriptive text like "Practice team members" or "Team discussed"
+- If a section has no relevant information, OMIT that entire section completely
 
-FORMAT REQUIREMENTS:
+FORMATTING RULES:
+Write the meeting minutes in the following structure. Replace instructional text with actual content from the transcript:
 
 # MEETING DETAILS
 
 **Meeting Title:** ${meetingTitle || 'General Meeting'}
 **Date:** ${meetingDate || 'Date not recorded'}
 **Time:** ${roundedTime || 'Time not recorded'}
-**Location:** [Extract from transcript if explicitly mentioned, otherwise write "Location not specified"]
+**Location:** Location not specified
+
+INSTRUCTION FOR LOCATION: If a specific location is mentioned in the transcript (e.g., "Board Room", "via Microsoft Teams"), write it. Otherwise write "Location not specified".
 
 ---
 
 # EXECUTIVE SUMMARY
 
-[Write 2-3 comprehensive paragraphs summarising the overall meeting. Include:
-- Main purpose and context of the meeting
-- Key decisions made
-- Most important outcomes
-- Overall sentiment and next steps
-Only include information from the transcript. If insufficient information, write 1 concise paragraph.]
+INSTRUCTION: Write 2-3 comprehensive paragraphs summarising the overall meeting. Include main purpose, key decisions, important outcomes, and next steps. Only use information from the transcript. If there's very little content, write 1 concise paragraph.
 
 ---
 
 # ATTENDEES
 
-[Extract specific names if mentioned in transcript. If NO specific names are mentioned, use "Practice team members" - do NOT use "Not specified" or "TBC" or any placeholder text.]
+Practice team members
+
+INSTRUCTION FOR ATTENDEES: If specific names are mentioned in the transcript, list them here (e.g., "Dr Sarah Johnson, Practice Manager David Smith, Nurse Jane Williams"). If NO names are mentioned, write "Practice team members". Never write anything in square brackets.
 
 ---
 
 # DISCUSSION SUMMARY
 
 ## Background
-[Set the context and background for the discussions. What led to this meeting? What prior situations or issues are being addressed?]
+INSTRUCTION: Explain what led to this meeting and what prior situations are being addressed. Use only transcript content.
 
 ## Key Points
-[List main discussion items as clear bullet points:
-- Each major topic discussed
-- Important points raised
-- Concerns or issues mentioned
-- Data, numbers, or specific details shared
-- Different perspectives or opinions expressed]
+INSTRUCTION: List main discussion items as bullet points. Each bullet should be a complete sentence about topics discussed, points raised, concerns mentioned, or data shared.
 
 ## Outcome
-[Summarise the conclusions reached, consensus achieved, or how discussions resolved]
+INSTRUCTION: Summarise conclusions reached and how discussions resolved. Use only transcript content.
 
 ---
 
 # DECISIONS & RESOLUTIONS
 
-[List as numbered items (1., 2., 3., etc.):
-1. Each specific decision made
-2. Resolutions agreed upon
-3. Approvals given
-4. Changes agreed to be implemented
-
-If NO decisions were made, OMIT this entire section.]
+INSTRUCTION: List specific decisions as numbered items (1., 2., 3., etc.). Each should be a clear statement of what was decided or resolved. If NO decisions were made in the meeting, OMIT this entire DECISIONS & RESOLUTIONS section completely.
 
 ---
 
 # ACTION ITEMS
 
-[Format as a proper markdown table. If there are action items, create table like this:
+INSTRUCTION: Create a markdown table with columns: Action | Responsible Party | Deadline | Priority
 
+For Responsible Party column: Use actual names or roles from transcript (e.g., "Practice Manager", "Clinical Lead", "Reception Team"). Never write "Insert Owner Name" or similar placeholders.
+
+For Deadline column: Use actual dates mentioned (e.g., "22nd October 2025") or write "To be determined" if no deadline stated.
+
+For Priority column: Write "High", "Medium", or "Low" based on urgency mentioned in transcript.
+
+If NO action items were discussed, OMIT this entire ACTION ITEMS section completely.
+
+Example format:
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
-| Specific task description | Person or team name | Specific date or "To be determined" | High/Medium/Low |
-| Another task | Another person | Date | Priority |
-
-Rules for Action Items:
-- Extract from transcript only
-- Use actual names/roles mentioned
-- Include actual deadlines if stated
-- Assign priority based on urgency indicated (High/Medium/Low)
-- If NO action items discussed, OMIT this entire section.]
+| Investigate telephony system messaging | IT Lead | 29th October 2025 | High |
+| Arrange staff training session | Practice Manager | 5th November 2025 | Medium |
 
 ---
 
 # FOLLOW-UP REQUIREMENTS
 
-[Only include this section if there are specific follow-up tasks, monitoring requirements, or check-ins mentioned. List as bullet points.
-
-If NOTHING mentioned about follow-up, OMIT this entire section.]
+INSTRUCTION: List specific follow-up tasks or monitoring requirements as bullet points. Use only items mentioned in transcript. If NOTHING about follow-up was mentioned, OMIT this entire section completely.
 
 ---
 
 # OPEN ITEMS & RISKS
 
-[Only include this section if transcript mentions:
-- Unresolved issues
-- Outstanding questions
-- Identified risks or concerns
-- Items requiring further discussion
-List as bullet points.
-
-If NOTHING mentioned, OMIT this entire section.]
+INSTRUCTION: List unresolved issues, outstanding questions, risks, or items needing further discussion as bullet points. Use only items from transcript. If NOTHING was mentioned, OMIT this entire section completely.
 
 ---
 
 # NEXT MEETING
 
-[Only include this section if a next meeting is explicitly scheduled or discussed.
-Include: Date, time, location, agenda items if mentioned.
-
-If NO next meeting mentioned, OMIT this entire section.]
+INSTRUCTION: Only include this section if a next meeting was explicitly scheduled or discussed. Include date, time, location, and agenda items if mentioned. If NO next meeting was mentioned, OMIT this entire section completely.
 
 ---
 
 Detail preference: ${detailInstructions}
+
+IMPORTANT REMINDER: Never use square brackets, never write "[Insert anything]", never use placeholder text. Write real content from the transcript or omit the section entirely.
 
 Transcript to analyse:
 ${transcript}`;
@@ -193,7 +176,7 @@ ${transcript}`;
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
+            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. CRITICAL: Never use placeholder text like [Insert X] or square brackets in your output. Write actual content from the transcript or use phrases like "Practice team members" or "Team discussed" when specific details are not available. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
           },
           { role: 'user', content: prompt }
         ],
