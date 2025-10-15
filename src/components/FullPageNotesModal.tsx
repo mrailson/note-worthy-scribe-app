@@ -1495,7 +1495,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setTranscript(htmlTranscript);
       // Persist immediately
       await saveTranscriptToDatabase(htmlTranscript);
-      toast.success('Transcript formatted into paragraphs');
+      // Toast removed - user finds it distracting
+      // toast.success('Transcript formatted into paragraphs');
+      
       
     } catch (error) {
       console.error('Error formatting transcript:', error);
