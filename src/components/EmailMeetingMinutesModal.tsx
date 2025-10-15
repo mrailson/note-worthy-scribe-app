@@ -141,11 +141,26 @@ export function EmailMeetingMinutesModal({
           }
           
           // Extract transcript text from the result
-          const actualTranscript = transcriptData?.[0]?.transcript || '';
+          let actualTranscript = transcriptData?.[0]?.transcript || '';
           
           if (!actualTranscript.trim()) {
             toast.error('No transcript available for this meeting');
             return;
+          }
+          
+          // Parse and clean the transcript to extract only text (remove timestamps)
+          try {
+            const transcriptArray = JSON.parse(actualTranscript);
+            if (Array.isArray(transcriptArray)) {
+              // Extract just the text from each segment
+              actualTranscript = transcriptArray
+                .map((segment: any) => segment.text || '')
+                .join(' ')
+                .trim();
+            }
+          } catch (e) {
+            // If it's not JSON, use as-is (already plain text)
+            console.log('Transcript is plain text format');
           }
           
           const transcriptBlob = new Blob([actualTranscript], { type: 'text/plain' });
