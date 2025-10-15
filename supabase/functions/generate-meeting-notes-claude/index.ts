@@ -82,7 +82,7 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-5-2025-08-07',
+      model: 'gpt-5-nano-2025-08-07',
       messages: [
         { 
           role: 'system', 
@@ -93,7 +93,7 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
           content: consolidationPrompt 
         }
       ],
-      max_completion_tokens: 4096 // Reduced for faster generation
+      max_completion_tokens: 2000
     }),
   });
 
@@ -183,7 +183,7 @@ ${transcript}`;
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-5-2025-08-07',
+      model: 'gpt-5-nano-2025-08-07',
       messages: [
         { 
           role: 'system', 
@@ -194,7 +194,7 @@ ${transcript}`;
           content: meetingNotesPrompt 
         }
       ],
-      max_completion_tokens: 4096 // Reduced for faster generation
+      max_completion_tokens: 2000
     }),
   });
 
@@ -254,7 +254,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-5-2025-08-07',
+          model: 'gpt-5-nano-2025-08-07',
           messages: [
             { 
               role: 'system', 
@@ -265,7 +265,7 @@ serve(async (req) => {
               content: customPrompt
             }
           ],
-          max_completion_tokens: 4096 // Reduced for faster generation
+          max_completion_tokens: 2000
         }),
       });
 
