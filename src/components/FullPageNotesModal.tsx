@@ -2148,6 +2148,9 @@ Here is the PCN meeting transcript to process:
 ${transcript}`;
 
       console.log('📝 Executive prompt created, length:', style4Prompt.length);
+      console.log('📅 Meeting date being sent:', meetingDate);
+      console.log('🕐 Meeting time being sent:', meetingTime);
+      console.log('📄 Transcript length:', transcript?.length);
       console.log('🚀 Calling Executive generation...');
 
       // Add meeting metadata to transcript
@@ -2174,18 +2177,27 @@ ${transcript}`;
       if (error) throw error;
 
       if (data?.meetingMinutes || data?.generatedNotes) {
-        const generatedContent = data.meetingMinutes || data.generatedNotes;
+        let generatedContent = data.meetingMinutes || data.generatedNotes;
         console.log('✅ Executive notes generated, length:', generatedContent.length);
 
         // Post-process to ensure meeting date/time are populated (avoid placeholders)
-        const fixedContent = generatedContent
-          .replace(/Date:\s*\[[^\]]*\]/gi, `Date: ${meetingDate}`)
-          .replace(/Time:\s*\[[^\]]*\]/gi, `Time: ${meetingTime}`);
+        // Only replace if placeholders exist
+        if (generatedContent.includes('[Not specified') || generatedContent.includes('[Date') || generatedContent.includes('[Time')) {
+          console.log('🔧 Fixing placeholder date/time values');
+          generatedContent = generatedContent
+            .replace(/Date:\s*\[Not specified[^\]]*\]/gi, `Date: ${meetingDate}`)
+            .replace(/Date:\s*\[[^\]]*\]/gi, `Date: ${meetingDate}`)
+            .replace(/Time:\s*\[Not specified[^\]]*\]/gi, `Time: ${meetingTime}`)
+            .replace(/Time:\s*\[[^\]]*\]/gi, `Time: ${meetingTime}`);
+        }
 
-        setNotesStyle4(fixedContent);
+        setNotesStyle4(generatedContent);
         
         // Save to database
-        await saveNoteStyleToDatabase(4, fixedContent);
+        await saveNoteStyleToDatabase(4, generatedContent);
+      } else if (data?.error) {
+        console.error('❌ Executive generation returned error:', data.error);
+        toast.error(`AI could not generate executive notes: ${data.error}`);
       } else {
         console.error('❌ No content in Executive response:', data);
       }
