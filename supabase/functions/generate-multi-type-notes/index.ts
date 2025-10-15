@@ -238,6 +238,8 @@ ${transcript}`
             model_used: config.model,
             token_count: tokenCount,
             processing_time_ms: processingTime
+          }, {
+            onConflict: 'meeting_id,note_type'
           });
 
         if (saveError) {
