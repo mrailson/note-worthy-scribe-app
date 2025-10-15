@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,11 @@ export const MeetingOverviewEditor = ({
   const [overview, setOverview] = useState(currentOverview);
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setOverview(currentOverview);
+  }, [currentOverview]);
 
   const handleRegenerateOverview = async () => {
     setRegenerating(true);
@@ -213,14 +218,14 @@ export const MeetingOverviewEditor = ({
           </div>
         </div>
         <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[60px]">
-          {currentOverview ? (
+          {overview ? (
             <div 
               dangerouslySetInnerHTML={{ 
-                __html: renderNHSMarkdown(currentOverview, { enableNHSStyling: true })
+                __html: renderNHSMarkdown(overview, { enableNHSStyling: true })
               }}
             />
           ) : (
-            "No overview yet. Click Edit to add one or Regenerate to create one automatically."
+            "No overview yet. Click Edit to add one or Refresh to create one automatically."
           )}
         </div>
       </div>
