@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingData } from "@/types/meetingTypes";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
@@ -249,26 +248,22 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
         
         <CollapsibleContent>
           <CardContent>
+            <div className="mb-4">
+              <Button 
+                variant="outline" 
+                size="default" 
+                className="w-full gap-2 justify-start text-left h-auto py-3"
+                onClick={() => setShowContextDialog(true)}
+              >
+                <FilePlus2 className="h-5 w-5 shrink-0" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Add Meeting Context</span>
+                  <span className="text-xs text-muted-foreground font-normal">(Agenda, Attendees, Presentations etc)</span>
+                </div>
+              </Button>
+            </div>
+            
             <div className="flex items-center justify-end gap-2 mb-3">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={() => setShowContextDialog(true)}
-                    >
-                      <FilePlus2 className="h-4 w-4" />
-                      Add Context
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add meeting agendas, attendee lists, or presentations</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
               <Button 
                 variant="outline" 
                 size="sm" 
