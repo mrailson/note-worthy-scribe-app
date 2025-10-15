@@ -2199,116 +2199,43 @@ ${transcript}`;
   };
 
   const generateNotesStyle5 = async () => {
-    console.log('🎭 Starting limerick generation...');
-    
-    if (!meeting?.id || !transcript) {
-      console.error('❌ Missing required data:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+    console.log('🎭 Starting limerick generation (edge function)...');
+
+    if (!meeting?.id) {
+      console.error('❌ Missing meeting id');
       return;
     }
 
     setIsGeneratingStyle5(true);
     try {
-      const style5Prompt = `Please analyze the provided meeting transcript and create an amusing limerick that captures the essence of the meeting. The limerick should be lighthearted, professional, and suitable for sharing with colleagues.
-
-**LIMERICK REQUIREMENTS**
-
-**Structure**
-• 5 lines total
-• AABBA rhyme scheme (lines 1, 2, 5 rhyme; lines 3, 4 rhyme)
-• Meter: Lines 1, 2, 5 are longer; lines 3, 4 are shorter
-• Topic: Based on main meeting themes, decisions, or memorable moments
-
-**Content Guidelines**
-• Gentle Humor: Amusing but respectful
-• Meeting-Relevant: Reference actual topics discussed
-• Workplace Appropriate: Suitable for professional sharing
-• Inclusive: Not targeting any individual negatively
-• Clever: Use wordplay, puns, or meeting-specific terminology where possible
-
-**Style Examples**
-Topic-based:
-• "There once was a meeting on [topic]..."
-• "A discussion on [subject] was held..."
-• "The team met to talk about [issue]..."
-
-Outcome-based:
-• "A decision was made with great care..."
-• "The group reached consensus that day..."
-
-**PCN/Healthcare Context**
-When appropriate, incorporate:
-• Healthcare terminology (but keep accessible)
-• PCN-specific references
-• GP practice dynamics
-• Patient care themes
-• Administrative challenges (gently mocked)
-
-**GENERATION INSTRUCTIONS**
-1. Read the Transcript: Identify 2-3 main themes or memorable moments
-2. Choose Focus: Pick the most interesting/amusing aspect suitable for limerick treatment
-3. Check Tone: Ensure humor is gentle and workplace-appropriate
-4. Verify Meter: Read aloud to ensure proper limerick rhythm
-5. Test Rhymes: Confirm AABBA pattern works naturally
-6. Add Context: Include brief explanation of what meeting aspect inspired the limerick
-
-**OUTPUT FORMAT**
-**Meeting Limerick**
-[The 5-line limerick]
-
-**Inspiration:** [1-2 sentences explaining which part of the meeting inspired this limerick and why it was amusing/noteworthy]
-
-**TONE:** Light, clever, good-natured - something that would get a chuckle in the coffee room without causing offense.
-**QUALITY CHECK:** Each limerick should be clever and meeting-relevant. For longer meetings, aim for 3-5 limericks covering different aspects. For shorter meetings, 2-3 limericks may suffice.
-
-Here is the meeting transcript to process:
-
-${transcript}`;
-
-      console.log('📝 Limerick prompt created, length:', style5Prompt.length);
-      console.log('🚀 Calling Supabase function...');
-
-      // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
-        startTime: meeting.start_time,
-        endTime: meeting.end_time || undefined,
-        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
+      // Invoke our dedicated limerick generator (saves to meetings.notes_style_5)
+      const { data, error } = await supabase.functions.invoke('generate-limerick-notes', {
+        body: { meetingIds: [meeting.id] },
       });
 
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-        body: {
-          transcript: transcriptWithMetadata,
-          meetingTitle: meeting.title,
-          meetingDate: new Date().toLocaleDateString('en-GB'),
-          meetingTime: new Date().toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          detailLevel: 'standard',
-          customPrompt: style5Prompt
-        }
-      });
+      console.log('📋 Limerick edge response:', data, error);
+      if (error) throw error;
 
-      console.log('📋 Function response:', { data: !!data, error: !!error });
+      // Fetch the updated content from the meetings table
+      const { data: meetingRow, error: fetchError } = await supabase
+        .from('meetings')
+        .select('notes_style_5')
+        .eq('id', meeting.id)
+        .maybeSingle();
 
-      if (error) {
-        console.error('❌ Supabase function error:', error);
-        throw error;
-      }
+      if (fetchError) throw fetchError;
 
-      if (data?.meetingMinutes || data?.generatedNotes) {
-        const generatedContent = data.meetingMinutes || data.generatedNotes;
-        console.log('✅ Limerick generated, length:', generatedContent.length);
-        console.log('🎭 Limerick preview:', generatedContent.substring(0, 200));
-        
+      const generatedContent = meetingRow?.notes_style_5 || '';
+      if (generatedContent) {
         setNotesStyle5(generatedContent);
-        
-        // Save to database
         await saveNoteStyleToDatabase(5, generatedContent);
+        console.log('✅ Limerick notes updated from edge function');
       } else {
-        console.error('❌ No content in response:', data);
+        console.warn('⚠️ Edge function completed but no limerick content found');
       }
     } catch (error) {
-      console.error('❌ Error generating limerick:', error);
+      console.error('❌ Error generating limerick (edge):', error);
+      toast.error('Failed to generate limerick notes');
     } finally {
       console.log('🏁 Limerick generation finished');
       setIsGeneratingStyle5(false);
