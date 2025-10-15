@@ -16,7 +16,7 @@ interface NoteTypeConfig {
 const noteConfigs: NoteTypeConfig[] = [
   {
     type: 'brief',
-    model: 'gpt-5-nano-2025-08-07',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `Create a BRIEF GP/PCN Executive Summary with excellent formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise'). Focus on key healthcare decisions, practice impacts, and immediate action items. Target busy GP Partners and Practice Managers who need quick operational insights.
 
 Format:
@@ -63,7 +63,7 @@ Focus on actionable healthcare outcomes and practice operational impact. Keep co
   },
   {
     type: 'executive',
-    model: 'gpt-5-nano-2025-08-07',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `Create an EXECUTIVE SUMMARY with professional formatting using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') specifically for GP Partners, Practice Managers, and PCN leadership. Focus on strategic healthcare decisions, practice impact, and operational outcomes.
 
 Format:
@@ -122,7 +122,7 @@ Focus on strategic implications for practice sustainability, patient care qualit
   },
   {
     type: 'limerick',
-    model: 'gpt-5-nano-2025-08-07',
+    model: 'google/gemini-2.5-flash',
     systemPrompt: `Create a creative LIMERICK-style summary using British English spellings and conventions (e.g., 'organised', 'realise', 'colour', 'centre', 'programme', 'summarise') with proper formatting. Make it fun but informative, capturing the meeting essence in limerick form.
 
 Format:
@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -184,14 +184,13 @@ const handler = async (req: Request): Promise<Response> => {
       const startTime = Date.now();
       
       try {
-        console.log(`Generating ${config.type} notes with ${config.model}...`);
+        console.log(`🔧 Generating ${config.type} notes with ${config.model}...`);
 
-        // All configs now use OpenAI GPT-5 Nano
-        const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const apiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openAIApiKey}`
+            'Authorization': `Bearer ${lovableApiKey}`
           },
           body: JSON.stringify({
             model: config.model,
@@ -216,13 +215,21 @@ ${transcript}`
 
         if (!apiResponse.ok) {
           const errorText = await apiResponse.text();
-          console.error(`API error for ${config.type}:`, errorText);
+          console.error(`❌ Lovable AI error for ${config.type}:`, errorText);
+          
+          if (apiResponse.status === 429) {
+            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+          }
+          if (apiResponse.status === 402) {
+            throw new Error('Insufficient AI credits. Please add credits to your workspace.');
+          }
+          
           throw new Error(`API request failed: ${errorText}`);
         }
 
         const data = await apiResponse.json();
         
-        // Extract content from OpenAI response
+        // Extract content from Lovable AI response
         const content = data.choices[0].message.content;
         const tokenCount = data.usage?.completion_tokens || 0;
 

@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,9 +16,9 @@ serve(async (req) => {
 
   console.log('🚀 Function called');
 
-  if (!openAIApiKey) {
-    console.error('❌ OpenAI API key not found');
-    return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+  if (!lovableApiKey) {
+    console.error('❌ Lovable AI API key not found');
+    return new Response(JSON.stringify({ error: 'Lovable AI API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -71,38 +71,51 @@ ${content.substring(0, 2000)}...
 
 Maximum 50 words. Focus on meeting purpose and main topics only.`;
 
-    console.log('🤖 Calling OpenAI API...');
+    console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 100,
-        temperature: 0.7,
+        max_completion_tokens: 100,
       }),
     });
 
-    console.log('📡 OpenAI response status:', response.status);
+    console.log('📡 Lovable AI response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ OpenAI API error:', errorData);
-      return new Response(JSON.stringify({ error: `OpenAI API error: ${response.status}` }), {
+      console.error('❌ Lovable AI API error:', errorData);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please wait a moment and try again.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'Insufficient AI credits. Please add credits to your workspace.' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      return new Response(JSON.stringify({ error: `Lovable AI API error: ${response.status}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const data = await response.json();
-    console.log('✅ OpenAI response received');
+    console.log('✅ Lovable AI response received');
     
     const overview = data.choices?.[0]?.message?.content?.trim() || '';
     console.log('📝 Generated overview:', overview);

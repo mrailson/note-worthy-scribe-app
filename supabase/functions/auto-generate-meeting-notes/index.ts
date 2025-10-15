@@ -113,12 +113,12 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!lovableApiKey) {
+      throw new Error('Lovable AI API key not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -366,14 +366,16 @@ ${contextInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano-2025-08-07',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -384,8 +386,20 @@ ${cleanedTranscript}`;
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('❌ Lovable AI API error:', errorData);
+      
+      // Handle specific error cases
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      if (response.status === 402) {
+        throw new Error('Insufficient AI credits. Please add credits to your workspace.');
+      }
+      if (response.status === 413) {
+        throw new Error('Transcript too large. Please try cleaning the transcript first.');
+      }
+      
+      throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
