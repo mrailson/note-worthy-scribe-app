@@ -1,5 +1,6 @@
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
+import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
   const [transcriptVersions, setTranscriptVersions] = useState<ContentVersion[]>([]);
+  
+  // Undo stack for inline corrections
+  interface UndoState {
+    style3: string;
+    style4: string;
+    style5: string;
+    timestamp: number;
+  }
+  const [undoStack, setUndoStack] = useState<UndoState[]>([]);
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
@@ -1431,6 +1441,160 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     } catch (error) {
       console.error('Quick Tidy error:', error);
       toast.error('Quick Tidy failed. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle inline word correction from InlineWordCorrector component
+  const handleInlineCorrection = async (correction: {
+    original: string;
+    replacement: string;
+    applyToAll: boolean;
+    saveForFuture: boolean;
+  }) => {
+    try {
+      setIsGenerating(true);
+      
+      // 1. Store current state for undo
+      const undoState: UndoState = {
+        style3: notesStyle3,
+        style4: notesStyle4,
+        style5: notesStyle5,
+        timestamp: Date.now()
+      };
+      setUndoStack(prev => [...prev, undoState]);
+      
+      // 2. Create regex for replacement
+      const escapedOriginal = correction.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedOriginal}\\b`, 'gi');
+      
+      let updatedTabs: string[] = [];
+      let totalReplacements = 0;
+      
+      // 3. Apply to all tabs if checked (default behaviour)
+      if (correction.applyToAll) {
+        // Minutes - Standard (style3)
+        const style3Matches = (notesStyle3.match(regex) || []).length;
+        if (style3Matches > 0) {
+          const newStyle3 = notesStyle3.replace(regex, correction.replacement);
+          setNotesStyle3(newStyle3);
+          await saveNoteStyleToDatabase(3, newStyle3);
+          updatedTabs.push('Minutes');
+          totalReplacements += style3Matches;
+        }
+        
+        // Executive Summary (style4)
+        const style4Matches = (notesStyle4.match(regex) || []).length;
+        if (style4Matches > 0) {
+          const newStyle4 = notesStyle4.replace(regex, correction.replacement);
+          setNotesStyle4(newStyle4);
+          await saveNoteStyleToDatabase(4, newStyle4);
+          updatedTabs.push('Executive');
+          totalReplacements += style4Matches;
+        }
+        
+        // Limerick (style5)
+        const style5Matches = (notesStyle5.match(regex) || []).length;
+        if (style5Matches > 0) {
+          const newStyle5 = notesStyle5.replace(regex, correction.replacement);
+          setNotesStyle5(newStyle5);
+          await saveNoteStyleToDatabase(5, newStyle5);
+          updatedTabs.push('Limerick');
+          totalReplacements += style5Matches;
+        }
+      } else {
+        // Apply only to current tab
+        switch (activeNotesStyleTab) {
+          case 'style1':
+            const newStyle3 = notesStyle3.replace(regex, correction.replacement);
+            setNotesStyle3(newStyle3);
+            await saveNoteStyleToDatabase(3, newStyle3);
+            updatedTabs.push('Minutes');
+            totalReplacements = (notesStyle3.match(regex) || []).length;
+            break;
+          case 'style4':
+            const newStyle4 = notesStyle4.replace(regex, correction.replacement);
+            setNotesStyle4(newStyle4);
+            await saveNoteStyleToDatabase(4, newStyle4);
+            updatedTabs.push('Executive');
+            totalReplacements = (notesStyle4.match(regex) || []).length;
+            break;
+          case 'style5':
+            const newStyle5 = notesStyle5.replace(regex, correction.replacement);
+            setNotesStyle5(newStyle5);
+            await saveNoteStyleToDatabase(5, newStyle5);
+            updatedTabs.push('Limerick');
+            totalReplacements = (notesStyle5.match(regex) || []).length;
+            break;
+        }
+      }
+      
+      // 4. Save to database for future use (auto-save enabled by default)
+      if (correction.saveForFuture && user?.id) {
+        await medicalTermCorrector.addCorrection(
+          correction.original,
+          correction.replacement,
+          undefined,
+          user.id
+        );
+      }
+      
+      // 5. Show success toast with undo button
+      if (updatedTabs.length > 0) {
+        toast.success(
+          `Replaced "${correction.original}" with "${correction.replacement}" in ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`,
+          {
+            duration: 8000,
+            action: {
+              label: 'Undo',
+              onClick: () => handleUndoInlineCorrection()
+            }
+          }
+        );
+      } else {
+        toast.info('No occurrences found to replace');
+      }
+      
+    } catch (error) {
+      console.error('Inline correction error:', error);
+      toast.error('Failed to apply correction');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle undo for inline corrections
+  const handleUndoInlineCorrection = async () => {
+    if (undoStack.length === 0) {
+      toast.error('Nothing to undo');
+      return;
+    }
+    
+    try {
+      setIsGenerating(true);
+      
+      // Get last state
+      const lastState = undoStack[undoStack.length - 1];
+      
+      // Restore all tabs
+      setNotesStyle3(lastState.style3);
+      setNotesStyle4(lastState.style4);
+      setNotesStyle5(lastState.style5);
+      
+      // Save to database
+      await saveNoteStyleToDatabase(3, lastState.style3);
+      await saveNoteStyleToDatabase(4, lastState.style4);
+      await saveNoteStyleToDatabase(5, lastState.style5);
+      
+      // Remove from undo stack
+      setUndoStack(prev => prev.slice(0, -1));
+      
+      toast.success('Correction undone');
+      
+    } catch (error) {
+      console.error('Undo error:', error);
+      toast.error('Failed to undo correction');
     } finally {
       setIsGenerating(false);
     }
@@ -2987,43 +3151,53 @@ ${transcript}`;
                              placeholder="Meeting notes will appear here..."
                            />
                          ) : (
-                           <div className="space-y-4">
-                             {!notesStyle3 ? (
-                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                                  <p className="text-muted-foreground text-center">
-                                    Generate comprehensive meeting notes with structured format (auto-generated as default)
-                                  </p>
-                                  <Button
-                                    onClick={generateNotesStyle3}
-                                    disabled={isGeneratingStyle3 || !transcript}
-                                    className="gap-2"
-                                  >
-                                    {isGeneratingStyle3 ? (
-                                      <>
-                                        <RefreshCw className="h-4 w-4 animate-spin" />
-                                        Generating Standard Minutes...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Sparkles className="h-4 w-4" />
-                                        Generate Minutes - Standard
-                                      </>
-                                    )}
-                                 </Button>
-                               </div>
-                              ) : (
-                                <div className="space-y-4">
-                                  <div className="max-w-none">
-                                    <div 
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: renderMinutesMarkdown(notesStyle3)
-                                      }}
-                                    />
-                                  </div>
+                            <div className="space-y-4">
+                              {!notesStyle3 ? (
+                                <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                   <p className="text-muted-foreground text-center">
+                                     Generate comprehensive meeting notes with structured format (auto-generated as default)
+                                   </p>
+                                   <Button
+                                     onClick={generateNotesStyle3}
+                                     disabled={isGeneratingStyle3 || !transcript}
+                                     className="gap-2"
+                                   >
+                                     {isGeneratingStyle3 ? (
+                                       <>
+                                         <RefreshCw className="h-4 w-4 animate-spin" />
+                                         Generating Standard Minutes...
+                                       </>
+                                     ) : (
+                                       <>
+                                         <Sparkles className="h-4 w-4" />
+                                         Generate Minutes - Standard
+                                       </>
+                                     )}
+                                  </Button>
                                 </div>
-                              )}
-                           </div>
-                         )}
+                               ) : (
+                                 <div className="space-y-4 relative">
+                                   <div className="max-w-none">
+                                     <div 
+                                       dangerouslySetInnerHTML={{ 
+                                         __html: renderMinutesMarkdown(notesStyle3)
+                                       }}
+                                     />
+                                   </div>
+                                   <InlineWordCorrector
+                                     content={notesStyle3}
+                                     allTabsContent={{
+                                       style3: notesStyle3,
+                                       style4: notesStyle4,
+                                       style5: notesStyle5
+                                     }}
+                                     onApplyCorrection={handleInlineCorrection}
+                                     isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                   />
+                                 </div>
+                               )}
+                            </div>
+                          )}
                        </TabsContent>
                       
                        <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
@@ -3054,44 +3228,54 @@ ${transcript}`;
                              className="h-full w-full font-mono text-sm resize-none"
                              placeholder="Meeting notes will appear here..."
                            />
-                         ) : (
-                           <div className="space-y-4">
-                             {!notesStyle4 ? (
-                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                                 <p className="text-muted-foreground text-center">
-                                   Generate a concise GP Partner update with key decisions and finance highlights
-                                 </p>
-                                 <Button
-                                   onClick={generateNotesStyle4}
-                                   disabled={isGeneratingStyle4 || !transcript}
-                                   className="gap-2"
-                                 >
-                                   {isGeneratingStyle4 ? (
-                                     <>
-                                       <RefreshCw className="h-4 w-4 animate-spin" />
-                                       Generating Style 4...
-                                     </>
-                                   ) : (
-                                     <>
-                                       <Sparkles className="h-4 w-4" />
-                                       Generate Minutes - Executive
-                                     </>
-                                   )}
-                                 </Button>
-                               </div>
-                             ) : (
-                                <div className="space-y-4">
-                                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                    <div 
-                                      dangerouslySetInnerHTML={{ 
-                                        __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
-                                      }}
-                                    />
-                                  </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {!notesStyle4 ? (
+                                <div className="flex flex-col items-center justify-center h-32 space-y-4">
+                                  <p className="text-muted-foreground text-center">
+                                    Generate a concise GP Partner update with key decisions and finance highlights
+                                  </p>
+                                  <Button
+                                    onClick={generateNotesStyle4}
+                                    disabled={isGeneratingStyle4 || !transcript}
+                                    className="gap-2"
+                                  >
+                                    {isGeneratingStyle4 ? (
+                                      <>
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
+                                        Generating Style 4...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="h-4 w-4" />
+                                        Generate Minutes - Executive
+                                      </>
+                                    )}
+                                  </Button>
                                 </div>
-                             )}
-                           </div>
-                         )}
+                              ) : (
+                                 <div className="space-y-4 relative">
+                                   <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                                     <div 
+                                       dangerouslySetInnerHTML={{ 
+                                         __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                       }}
+                                     />
+                                   </div>
+                                   <InlineWordCorrector
+                                     content={notesStyle4}
+                                     allTabsContent={{
+                                       style3: notesStyle3,
+                                       style4: notesStyle4,
+                                       style5: notesStyle5
+                                     }}
+                                     onApplyCorrection={handleInlineCorrection}
+                                     isActive={!isEditing && activeNotesStyleTab === 'style4'}
+                                   />
+                                 </div>
+                              )}
+                            </div>
+                          )}
                        </TabsContent>
                       
                        <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
@@ -3127,17 +3311,27 @@ ${transcript}`;
                                    )}
                                  </Button>
                                </div>
-                              ) : (
-                                 <div>
-                                   <div className="max-w-none">
-                                     <div 
-                                       dangerouslySetInnerHTML={{ 
-                                         __html: renderPoeticContent(notesStyle5)
-                                       }}
-                                     />
-                                   </div>
-                                 </div>
-                              )}
+                               ) : (
+                                  <div className="relative">
+                                    <div className="max-w-none">
+                                      <div 
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: renderPoeticContent(notesStyle5)
+                                        }}
+                                      />
+                                    </div>
+                                    <InlineWordCorrector
+                                      content={notesStyle5}
+                                      allTabsContent={{
+                                        style3: notesStyle3,
+                                        style4: notesStyle4,
+                                        style5: notesStyle5
+                                      }}
+                                      onApplyCorrection={handleInlineCorrection}
+                                      isActive={!isEditing && activeNotesStyleTab === 'style5'}
+                                    />
+                                  </div>
+                               )}
                            </div>
                          )}
                        </TabsContent>

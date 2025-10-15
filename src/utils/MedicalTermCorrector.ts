@@ -67,33 +67,65 @@ export class MedicalTermCorrector {
   async addCorrection(
     incorrectTerm: string,
     correctTerm: string,
-    contextPhrase?: string
+    contextPhrase?: string,
+    userId?: string
   ): Promise<boolean> {
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
-        throw new Error('User must be authenticated to add corrections');
+      let actualUserId = userId;
+      
+      if (!actualUserId) {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) {
+          throw new Error('User must be authenticated to add corrections');
+        }
+        actualUserId = user.data.user.id;
       }
 
-      const { error } = await supabase
+      // Check if correction already exists
+      const { data: existing } = await supabase
         .from('medical_term_corrections')
-        .insert({
-          user_id: user.data.user.id,
-          incorrect_term: incorrectTerm.trim(),
-          correct_term: correctTerm.trim(),
-          context_phrase: contextPhrase?.trim(),
-          usage_count: 0,
-          is_global: false,
-        });
+        .select('id, usage_count')
+        .eq('user_id', actualUserId)
+        .eq('incorrect_term', incorrectTerm.trim())
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error adding medical term correction:', error);
-        return false;
+      if (existing) {
+        // Update existing correction
+        const { error } = await supabase
+          .from('medical_term_corrections')
+          .update({
+            correct_term: correctTerm.trim(),
+            usage_count: existing.usage_count + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+
+        if (error) {
+          console.error('Error updating medical term correction:', error);
+          return false;
+        }
+      } else {
+        // Insert new correction
+        const { error } = await supabase
+          .from('medical_term_corrections')
+          .insert({
+            user_id: actualUserId,
+            incorrect_term: incorrectTerm.trim(),
+            correct_term: correctTerm.trim(),
+            context_phrase: contextPhrase?.trim(),
+            usage_count: 1,
+            is_global: false,
+          });
+
+        if (error) {
+          console.error('Error adding medical term correction:', error);
+          return false;
+        }
       }
 
       // Update local cache
       this.corrections.set(incorrectTerm.toLowerCase().trim(), correctTerm.trim());
-      console.log(`✅ Added correction: "${incorrectTerm}" → "${correctTerm}"`);
+      console.log(`✅ Added/updated correction: "${incorrectTerm}" → "${correctTerm}"`);
       return true;
     } catch (error) {
       console.error('Failed to add medical term correction:', error);
@@ -248,6 +280,25 @@ export class MedicalTermCorrector {
     });
     
     return suggestions.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  // Get suggestions for popup (returns just the correction strings)
+  async getSuggestionsForText(text: string, limit: number = 5): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('medical_term_corrections')
+        .select('correct_term, usage_count')
+        .or(`incorrect_term.ilike.${text},incorrect_term.ilike.%${text}%`)
+        .order('usage_count', { ascending: false })
+        .limit(limit);
+      
+      if (error) throw error;
+      
+      return data?.map(d => d.correct_term) || [];
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      return [];
+    }
   }
 
   async refreshCorrections(userId?: string): Promise<void> {
