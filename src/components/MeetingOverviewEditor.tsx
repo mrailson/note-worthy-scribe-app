@@ -29,6 +29,23 @@ export const MeetingOverviewEditor = ({
     setOverview(currentOverview);
   }, [currentOverview]);
 
+  // Debug logging for save button state
+  const wordCount = overview.trim().split(/\s+/).filter(word => word.length > 0).length;
+  const isSaveDisabled = saving || !overview.trim() || wordCount > 150;
+  
+  useEffect(() => {
+    if (isEditing) {
+      console.log('🔍 Save button state:', {
+        saving,
+        hasContent: !!overview.trim(),
+        wordCount,
+        isSaveDisabled,
+        overviewLength: overview.length,
+        trimmedLength: overview.trim().length
+      });
+    }
+  }, [overview, saving, isEditing, wordCount, isSaveDisabled]);
+
   const handleSave = async () => {
     const wordCount = overview.trim().split(' ').filter(word => word.length > 0).length;
     
@@ -144,12 +161,12 @@ export const MeetingOverviewEditor = ({
         className="min-h-[80px] resize-y"
       />
       <div className="text-xs text-muted-foreground">
-        {overview.split(' ').filter(word => word.length > 0).length}/150 words
+        {wordCount}/150 words
       </div>
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          disabled={saving || !overview.trim() || overview.split(' ').filter(word => word.length > 0).length > 150}
+          disabled={isSaveDisabled}
           size="sm"
         >
           <Save className="h-3 w-3 mr-1" />
