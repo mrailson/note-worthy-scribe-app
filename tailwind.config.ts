@@ -125,7 +125,7 @@ export default {
 				'400': '400ms'
 			},
 			fontFamily: {
-				'nhs': ['Inter', 'Arial', 'sans-serif'],
+				'nhs': ['Fira Sans', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
 				'limerick': ['EB Garamond', 'Georgia', 'serif'],
 			}
 		}

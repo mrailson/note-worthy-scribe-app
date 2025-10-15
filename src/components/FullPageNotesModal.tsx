@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
+import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
@@ -2910,17 +2911,17 @@ ${transcript}`;
                                     )}
                                  </Button>
                                </div>
-                             ) : (
-                               <div className="space-y-4">
-                                 <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                                   <div 
-                                     dangerouslySetInnerHTML={{ 
-                                       __html: renderNHSMarkdown(notesStyle3, { enableNHSStyling: true })
-                                     }}
-                                   />
-                                 </div>
-                               </div>
-                             )}
+                              ) : (
+                                <div className="space-y-4">
+                                  <div className="max-w-none">
+                                    <div 
+                                      dangerouslySetInnerHTML={{ 
+                                        __html: renderMinutesMarkdown(notesStyle3)
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
                            </div>
                          )}
                        </TabsContent>
