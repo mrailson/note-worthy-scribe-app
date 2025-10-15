@@ -852,7 +852,6 @@ export const MeetingHistoryList = ({
     if (selectedTypes.overview) typesToProcess.push('overview');
     
     if (typesToProcess.length === 0) {
-      toast.error("Please select at least one note type to generate");
       return;
     }
 
@@ -897,8 +896,6 @@ export const MeetingHistoryList = ({
         const nextType = typesToProcess[i + 1];
         
         if (currentType === 'standard') {
-          toast.info("Generating standard minutes...");
-          
           try {
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
             const { data, error: standardError } = await supabase.functions.invoke(
@@ -934,12 +931,9 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Standard minutes completed!");
         }
         
         if (currentType === 'overview') {
-          toast.info("Generating meeting overview...");
           const { error: overviewError } = await supabase.functions.invoke(
             'generate-meeting-overview',
             { 
@@ -968,8 +962,6 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Meeting overview completed!");
         }
         
       }
@@ -990,8 +982,6 @@ export const MeetingHistoryList = ({
           isProcessing: false
         }
       }));
-      
-      toast.success("All selected processing complete!");
       
       if (onRefresh) {
         onRefresh();
@@ -1033,11 +1023,6 @@ export const MeetingHistoryList = ({
         'standard': 'Standard Notes',
         'overview': 'Meeting Overview'
       };
-      
-      const currentStage = processingMeetings[meetingId]?.currentStage;
-      const stageName = currentStage ? stageNames[currentStage] || currentStage : 'unknown stage';
-      
-      toast.error(`Processing failed at ${stageName}: ${error.message}`);
       
       // Clear error state after delay
       setTimeout(() => {
