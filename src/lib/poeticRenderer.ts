@@ -2,43 +2,37 @@ import DOMPurify from 'dompurify';
 
 /**
  * Simple renderer for poetic content that preserves line breaks and basic formatting
- * without the heavy processing of NHS markdown
+ * Clean display optimized for limerick verses
  */
 export function renderPoeticContent(content: string): string {
   if (!content) return '';
 
   // Convert the poetic content to HTML while preserving structure
   let html = content
+    // Remove ## Verse headers (they're already handled by the component)
+    .replace(/^##\s*Verse\s*\d+.*$/gm, '')
+    // Remove single # headers at the start (like "# 🎭 Meeting in Verse")
+    .replace(/^#\s+.*$/gm, '')
     // Convert line breaks to HTML breaks
     .replace(/\n/g, '<br>')
     // Bold text
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-    // Italic text
-    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-    // Basic headers (if any)
-    .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
-      const level = hashes.length;
-      const classMap = {
-        1: 'text-2xl font-bold text-primary mb-4 mt-6',
-        2: 'text-xl font-semibold text-primary mb-4 mt-5',  
-        3: 'text-lg font-semibold text-primary mb-3 mt-4',
-        4: 'text-base font-semibold text-primary mb-2 mt-3',
-        5: 'text-sm font-semibold text-primary mb-2 mt-2',
-        6: 'text-xs font-semibold text-primary mb-1 mt-1'
-      };
-      return `<h${level} class="${classMap[level]}">${content.trim()}</h${level}>`;
-    });
+    // Italic text (but not asterisks used for list bullets)
+    .replace(/(?<!^|\s)\*([^*\n]+?)\*(?!\*)/g, '<em class="italic">$1</em>')
+    // Clean up multiple consecutive breaks
+    .replace(/(<br>\s*){3,}/g, '<br><br>');
 
-  // Wrap in a simple container with poetic styling
-  html = `<div class="poetic-content font-serif leading-relaxed text-foreground whitespace-pre-wrap">
+  // Wrap in a simple container with elegant poetic styling
+  html = `<div class="poetic-content text-foreground">
     <style>
       .poetic-content {
-        line-height: 1.8;
-        font-family: 'Georgia', 'Times New Roman', serif;
+        line-height: 1.7;
+        font-family: 'Georgia', 'Palatino', 'Times New Roman', serif;
+        font-size: 1rem;
       }
       .poetic-content br {
         display: block;
-        margin: 0.25em 0;
+        margin: 0.15em 0;
       }
     </style>
     ${html}
@@ -46,7 +40,7 @@ export function renderPoeticContent(content: string): string {
 
   // Sanitize the HTML
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'span', 'style'],
+    ALLOWED_TAGS: ['div', 'br', 'strong', 'em', 'span', 'style', 'p'],
     ALLOWED_ATTR: ['class', 'style']
   });
 }
