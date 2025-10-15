@@ -156,6 +156,8 @@ INSTRUCTION: Only include this section if a next meeting was explicitly schedule
 
 ---
 
+DO NOT include a "Meeting Transcript for Reference" section at the end.
+
 Detail preference: ${detailInstructions}
 
 IMPORTANT REMINDER: Never use square brackets, never write "[Insert anything]", never use placeholder text. Write real content from the transcript or omit the section entirely.

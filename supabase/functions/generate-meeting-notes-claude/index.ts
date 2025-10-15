@@ -179,6 +179,8 @@ Bullet points for unresolved issues or risks. Omit if none.
 # NEXT MEETING
 Only include if explicitly scheduled in transcript.
 
+DO NOT include a "Meeting Transcript for Reference" section.
+
 TRANSCRIPT:
 ${transcript}`;
 
