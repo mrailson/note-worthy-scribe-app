@@ -111,7 +111,8 @@ export const MeetingOverviewEditor = ({
           if (insertError) throw insertError;
         }
         
-        toast.success("Overview regenerated successfully");
+        // Toast removed - user finds it distracting
+        // toast.success("Overview regenerated successfully");
         onOverviewChange?.(data.overview);
       } else {
         console.warn('⚠️ No overview in response:', data);
