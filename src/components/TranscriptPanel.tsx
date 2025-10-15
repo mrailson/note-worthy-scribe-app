@@ -258,7 +258,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 <FilePlus2 className="h-5 w-5 shrink-0 text-primary" />
                 <div className="flex flex-col items-start gap-0.5">
                   <span className="font-semibold text-base">Add Meeting Context</span>
-                  <span className="text-xs text-muted-foreground font-normal">(Agenda, Attendees, Presentations etc)</span>
+                  <span className="text-xs text-muted-foreground font-normal">(Agenda, Attendees etc)</span>
                 </div>
               </Button>
             </div>
