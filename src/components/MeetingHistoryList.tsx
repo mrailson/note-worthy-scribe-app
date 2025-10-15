@@ -49,7 +49,6 @@ import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
@@ -422,7 +421,6 @@ export const MeetingHistoryList = ({
 
       if (docError) throw docError;
       if (!docData) {
-        toast.error('Document not found');
         return;
       }
 
@@ -441,11 +439,8 @@ export const MeetingHistoryList = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast.success('Download started');
     } catch (error: any) {
       console.error('Error downloading document:', error.message);
-      toast.error('Failed to download document');
     }
   };
 
@@ -462,7 +457,6 @@ export const MeetingHistoryList = ({
       
       if (docError) throw docError;
       if (!docData) {
-        toast.error('Document not found');
         return;
       }
       
@@ -481,15 +475,12 @@ export const MeetingHistoryList = ({
       
       if (dbError) throw dbError;
       
-      toast.success(`Deleted ${fileName}`);
-      
       // Trigger a refresh of the meeting data
       if (onRefresh) {
         onRefresh();
       }
     } catch (error: any) {
       console.error('Error deleting document:', error.message);
-      toast.error('Failed to delete document');
     }
   };
 
@@ -506,7 +497,6 @@ export const MeetingHistoryList = ({
 
       if (docError) throw docError;
       if (!docData) {
-        toast.error('Document not found');
         return;
       }
 
@@ -524,7 +514,6 @@ export const MeetingHistoryList = ({
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (error: any) {
       console.error('Error opening document:', error.message);
-      toast.error('Failed to open document');
     }
   };
 
@@ -539,7 +528,6 @@ export const MeetingHistoryList = ({
   // Handle audio backup download
   const handleAudioBackup = async (meeting: Meeting) => {
     if (!meeting.audio_backup_path) {
-      toast.error('No audio backup available for this meeting');
       return;
     }
 
@@ -563,11 +551,8 @@ export const MeetingHistoryList = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast.success('Audio backup downloaded successfully');
     } catch (error) {
       console.error('Error downloading audio backup:', error);
-      toast.error('Failed to download audio backup');
     }
   };
 
@@ -645,8 +630,7 @@ export const MeetingHistoryList = ({
       }
       
       if (!notes.trim()) {
-        console.log('📧 No notes available - showing error');
-        toast.error('No meeting notes available to email. Please generate notes first.');
+        console.log('📧 No notes available');
         return;
       }
       
@@ -660,7 +644,6 @@ export const MeetingHistoryList = ({
       console.log('📧 Email modal should be open now');
     } catch (error) {
       console.error('📧 Error preparing email:', error);
-      toast.error('Failed to prepare email. Please try again.');
     }
   };
 
@@ -679,7 +662,7 @@ export const MeetingHistoryList = ({
 
       if (duplicateFiles.length > 0) {
         const duplicateNames = duplicateFiles.map(file => file.name).join(', ');
-        toast.error(`The following file(s) already exist in this meeting: ${duplicateNames}`);
+        console.error(`Duplicate files: ${duplicateNames}`);
         setUploading(false);
         return;
       }
@@ -732,7 +715,6 @@ export const MeetingHistoryList = ({
       }
 
       console.log('🎉 All files uploaded successfully');
-      toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
       
       // Update the document count and documents array locally
       if (onDocumentsUploaded) {
@@ -753,7 +735,6 @@ export const MeetingHistoryList = ({
       setSelectedMeetingForUpload(null);
     } catch (error: any) {
       console.error('💥 Upload error:', error);
-      toast.error(`Failed to upload documents: ${error.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
@@ -870,7 +851,6 @@ export const MeetingHistoryList = ({
     if (selectedTypes.limerick) typesToProcess.push('limerick');
     
     if (typesToProcess.length === 0) {
-      toast.error("Please select at least one note type to generate");
       return;
     }
 
@@ -917,7 +897,6 @@ export const MeetingHistoryList = ({
         const nextType = typesToProcess[i + 1];
         
         if (currentType === 'standard') {
-          toast.info("Generating standard minutes...");
           
           try {
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId);
@@ -954,12 +933,9 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Standard minutes completed!");
         }
         
         if (currentType === 'overview') {
-          toast.info("Generating meeting overview...");
           const { error: overviewError } = await supabase.functions.invoke(
             'generate-meeting-overview',
             { 
@@ -988,12 +964,9 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Meeting overview completed!");
         }
         
         if (currentType === 'executive') {
-          toast.info("Generating executive minutes...");
           const { error: execError } = await supabase.functions.invoke(
             'generate-multi-type-notes',
             { 
@@ -1024,12 +997,9 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Executive minutes completed!");
         }
         
         if (currentType === 'limerick') {
-          toast.info("Generating limerick minutes...");
           // Limerick is generated by multi-type-notes, just poll for it
           await pollForNoteCompletion(meetingId, 'limerick', 'meeting_notes_multi');
           completedCount++;
@@ -1046,8 +1016,6 @@ export const MeetingHistoryList = ({
               completedCount
             }
           }));
-          
-          toast.success("Limerick minutes completed!");
         }
       }
       
@@ -1069,8 +1037,6 @@ export const MeetingHistoryList = ({
           isProcessing: false
         }
       }));
-      
-      toast.success("All selected processing complete!");
       
       if (onRefresh) {
         onRefresh();
@@ -1118,7 +1084,7 @@ export const MeetingHistoryList = ({
       const currentStage = processingMeetings[meetingId]?.currentStage;
       const stageName = currentStage ? stageNames[currentStage] || currentStage : 'unknown stage';
       
-      toast.error(`Processing failed at ${stageName}: ${error.message}`);
+      console.error(`Processing failed at ${stageName}: ${error.message}`);
       
       // Clear error state after delay
       setTimeout(() => {
