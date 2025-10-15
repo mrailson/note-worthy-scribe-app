@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -31,7 +32,15 @@ serve(async (req) => {
       hasNotes: !!requestBody.meetingNotes 
     });
 
-    const { transcript, meetingTitle, meetingNotes } = requestBody;
+    const { meetingId, transcript, meetingTitle, meetingNotes } = requestBody;
+
+    if (!meetingId) {
+      console.log('❌ Meeting ID is required');
+      return new Response(JSON.stringify({ error: 'Meeting ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!transcript && !meetingNotes) {
       console.log('❌ No content provided');
@@ -98,7 +107,34 @@ Maximum 50 words. Focus on meeting purpose and main topics only.`;
     const overview = data.choices?.[0]?.message?.content?.trim() || '';
     console.log('📝 Generated overview:', overview);
 
-    return new Response(JSON.stringify({ overview }), {
+    // Initialize Supabase client and save to database
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    console.log('💾 Saving overview to database...');
+    
+    // Upsert the overview (insert or update if exists)
+    const { error: dbError } = await supabase
+      .from('meeting_overviews')
+      .upsert({
+        meeting_id: meetingId,
+        overview: overview
+      }, {
+        onConflict: 'meeting_id'
+      });
+
+    if (dbError) {
+      console.error('❌ Database error:', dbError);
+      return new Response(JSON.stringify({ error: `Failed to save overview: ${dbError.message}` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('✅ Overview saved successfully');
+
+    return new Response(JSON.stringify({ overview, success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
