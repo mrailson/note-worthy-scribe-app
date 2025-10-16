@@ -3063,7 +3063,7 @@ ${transcript}`;
                                   <div className="space-y-4 relative min-h-[500px]">
                                     {/* Animated loading overlay */}
                                     {isGeneratingStyle3 && (
-                                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
                                           <div className="relative">
                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
@@ -3111,7 +3111,7 @@ ${transcript}`;
                              <div className="relative min-h-[500px]">
                                {/* Animated loading overlay */}
                                {isGenerating && (
-                                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                 <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
                                    <div className="flex flex-col items-center gap-4 animate-scale-in">
                                      <div className="relative">
                                        <RefreshCw className="h-12 w-12 text-primary animate-spin" />
@@ -3173,7 +3173,7 @@ ${transcript}`;
                                   <div className="space-y-4 relative min-h-[500px]">
                                     {/* Animated loading overlay */}
                                     {isGeneratingStyle4 && (
-                                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
                                           <div className="relative">
                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
@@ -3246,7 +3246,7 @@ ${transcript}`;
                                    <div className="relative min-h-[500px]">
                                      {/* Animated loading overlay */}
                                      {isGeneratingStyle5 && (
-                                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
                                          <div className="flex flex-col items-center gap-4 animate-scale-in">
                                            <div className="relative">
                                              <RefreshCw className="h-12 w-12 text-primary animate-spin" />
