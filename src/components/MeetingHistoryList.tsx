@@ -1726,6 +1726,7 @@ export const MeetingHistoryList = ({
                                       ? { ...m, meeting_format: 'teams', meeting_location: null }
                                       : m
                                   ));
+                                  toast.success('Meeting type updated to MS Teams');
                                   if (onRefresh) onRefresh();
                                 } catch (error) {
                                   console.error('Error updating meeting type:', error);
@@ -1751,6 +1752,7 @@ export const MeetingHistoryList = ({
                                       ? { ...m, meeting_format: 'face-to-face' }
                                       : m
                                   ));
+                                  toast.success('Meeting type updated to Face to Face');
                                   if (onRefresh) onRefresh();
                                 } catch (error) {
                                   console.error('Error updating meeting type:', error);
@@ -1766,16 +1768,17 @@ export const MeetingHistoryList = ({
                                 try {
                                   const { error } = await supabase
                                     .from('meetings')
-                                    .update({ meeting_format: 'hybrid' })
+                                    .update({ meeting_format: 'hybrid', meeting_location: null })
                                     .eq('id', meeting.id);
                                   if (error) throw error;
                                   
                                   // Update local state
                                   setLocalMeetings(prev => prev.map(m => 
                                     m.id === meeting.id 
-                                      ? { ...m, meeting_format: 'hybrid' }
+                                      ? { ...m, meeting_format: 'hybrid', meeting_location: null }
                                       : m
                                   ));
+                                  toast.success('Meeting type updated to Hybrid');
                                   if (onRefresh) onRefresh();
                                 } catch (error) {
                                   console.error('Error updating meeting type:', error);
