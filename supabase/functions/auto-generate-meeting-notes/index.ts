@@ -390,13 +390,10 @@ Then use these sections with # headers (level 1):
 - Location: [from authoritative context - DO NOT CHANGE THIS]
 
 # EXECUTIVE SUMMARY
-Write 2-3 substantial paragraphs that capture the essence of the content. Include:
-- Main focus areas, initiatives, or programmes discussed  
-- Key decisions made and their context
-- Important timelines, deadlines, or milestones mentioned
-- Critical issues, concerns, or challenges raised
-- Specific details that make this content memorable and distinguishable
-- Financial, operational, or strategic implications discussed
+Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of the content:
+- Main focus areas and key decisions made
+- Critical timelines or issues raised
+- One distinguishing detail that makes this meeting memorable
 
 # ATTENDEES
 - [Name]
@@ -439,7 +436,7 @@ CRITICAL FORMATTING RULES:
 - Do not use ## (level 2 headers) for main sections
 - Respect the authoritative location provided - never contradict it
 
-Make the executive summary rich in detail and context. Focus on creating a narrative that captures the content's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this was about even months later.`;
+Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.`;
 
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
