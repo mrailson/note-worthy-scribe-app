@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,11 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other',
     role: ''
   });
+
+  // Autocomplete state
+  const [orgSuggestions, setOrgSuggestions] = useState<Array<{ name: string; code?: string }>>([]);
+  const [showOrgSuggestions, setShowOrgSuggestions] = useState(false);
+  const orgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -244,6 +249,46 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     });
     setEditingAttendeeId(null);
     setIsAddingAttendee(false);
+    setOrgSuggestions([]);
+    setShowOrgSuggestions(false);
+  };
+
+  const fetchOrgSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setOrgSuggestions([]);
+      return;
+    }
+
+    try {
+      const { data: practices, error } = await supabase
+        .from('gp_practices')
+        .select('name, practice_code')
+        .or(`name.ilike.%${query}%,practice_code.ilike.%${query}%`)
+        .limit(10);
+
+      if (error) throw error;
+
+      const suggestions = practices?.map(p => ({
+        name: p.name,
+        code: p.practice_code || undefined
+      })) || [];
+
+      setOrgSuggestions(suggestions);
+      setShowOrgSuggestions(true);
+    } catch (error) {
+      console.error('Error fetching practice suggestions:', error);
+    }
+  };
+
+  const handleOrgInputChange = (value: string) => {
+    setFormData({ ...formData, organization: value });
+    fetchOrgSuggestions(value);
+  };
+
+  const selectOrgSuggestion = (suggestion: { name: string; code?: string }) => {
+    setFormData({ ...formData, organization: suggestion.name });
+    setShowOrgSuggestions(false);
+    setOrgSuggestions([]);
   };
 
   const getOrgTypeBadge = (type?: string) => {
@@ -430,14 +475,34 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                       </Select>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative">
                       <Label htmlFor="organization">Organisation Name</Label>
                       <Input
+                        ref={orgInputRef}
                         id="organization"
                         value={formData.organization}
-                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                        placeholder="Oak Tree Surgery"
+                        onChange={(e) => handleOrgInputChange(e.target.value)}
+                        onFocus={() => formData.organization.length >= 2 && setShowOrgSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowOrgSuggestions(false), 200)}
+                        placeholder="Start typing practice name or ODS code..."
+                        autoComplete="off"
                       />
+                      {showOrgSuggestions && orgSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-60 overflow-y-auto">
+                          {orgSuggestions.map((suggestion, idx) => (
+                            <div
+                              key={idx}
+                              className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                              onClick={() => selectOrgSuggestion(suggestion)}
+                            >
+                              <div className="font-medium">{suggestion.name}</div>
+                              {suggestion.code && (
+                                <div className="text-xs text-muted-foreground">ODS: {suggestion.code}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
