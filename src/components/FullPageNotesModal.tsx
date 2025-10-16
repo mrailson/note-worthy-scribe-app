@@ -29,7 +29,7 @@ import { formatTranscriptContext, extractCleanContent, addMeetingMetadataToTrans
 import { UploadedFile } from "@/types/ai4gp";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -105,6 +105,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const { user } = useAuth();
   const { isRecording, isResourceOperationSafe } = useRecording();
   const isMobile = useIsMobile();
+  const isIPhone = useIsIPhone();
   
   // Enhanced debugging
   console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
@@ -3024,7 +3025,7 @@ ${transcript}`;
                                         Enhance Notes
                                       </DropdownMenuItem>
                                     )}
-                                    {activeNotesStyleTab === 'style1' && (
+                                    {activeNotesStyleTab === 'style1' && !isIPhone && (
                                       <DropdownMenuItem 
                                         onSelect={() => generateNotesStyle3()}
                                         disabled={isGeneratingStyle3}
