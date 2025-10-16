@@ -207,10 +207,10 @@ export function renderMinutesMarkdown(content: string): string {
     .replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '')
     
     // Wrap remaining numbered items with mb-3 (items that have nested content)
-    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-5 space-y-2">$&</ol>')
+    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside mb-5 space-y-2">$&</ol>')
 
     // Wrap remaining numbered items (regular without nesting)
-    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-4 space-y-1">$&</ol>')
+    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside mb-4 space-y-1">$&</ol>')
 
     // Paragraphs
     .replace(/\n\n/g, '</p><p class="mb-4 text-[#212B32] leading-relaxed">')
