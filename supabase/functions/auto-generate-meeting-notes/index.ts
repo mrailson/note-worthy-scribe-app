@@ -278,12 +278,13 @@ serve(async (req) => {
 
     console.log('📄 Raw transcript length:', fullTranscript.length, 'chars');
 
-    // Fetch explicit attendees added to the meeting card
+    // Fetch explicit attendees added to the meeting card with their organizations
     const { data: cardAttendees, error: attendeesError } = await supabase
       .from('meeting_attendees')
       .select(`
         attendee:attendees (
-          name
+          name,
+          organization
         )
       `)
       .eq('meeting_id', meetingId);
@@ -292,24 +293,45 @@ serve(async (req) => {
       console.warn('⚠️ Error fetching meeting_attendees:', attendeesError);
     }
 
-    // Extract just the names from the join result
-    const cardAttendeeNames = cardAttendees
-      ?.map(item => item.attendee?.name)
-      .filter((name): name is string => Boolean(name)) || [];
+    // Extract names and organizations from the join result
+    interface AttendeeInfo {
+      name: string;
+      organization?: string;
+    }
+    
+    const cardAttendeeDetails: AttendeeInfo[] = cardAttendees
+      ?.map(item => ({
+        name: item.attendee?.name,
+        organization: item.attendee?.organization
+      }))
+      .filter((item): item is AttendeeInfo => Boolean(item.name)) || [];
 
+    const cardAttendeeNames = cardAttendeeDetails.map(a => a.name);
     console.log('👥 Card attendees:', cardAttendeeNames.length, cardAttendeeNames);
     console.log('👥 Transcript participants:', meeting.participants?.length || 0, meeting.participants);
 
     // Determine final attendee list using intelligent merge
     let finalAttendees: string[];
+    let attendeeWithOrg: string[];
     if (cardAttendeeNames.length >= 1) {
       // Use fuzzy deduplication to merge card attendees with transcript participants
       const transcriptParticipants = meeting.participants || [];
       finalAttendees = fuzzyDeduplicate(cardAttendeeNames, transcriptParticipants);
-      console.log('✅ Using merged attendees (card + transcript):', finalAttendees.length, finalAttendees);
+      
+      // Format attendees with organizations (only for card attendees)
+      attendeeWithOrg = finalAttendees.map(name => {
+        const attendeeDetail = cardAttendeeDetails.find(a => a.name === name);
+        if (attendeeDetail?.organization) {
+          return `${name} (${attendeeDetail.organization})`;
+        }
+        return name;
+      });
+      
+      console.log('✅ Using merged attendees (card + transcript):', finalAttendees.length, attendeeWithOrg);
     } else {
       // Fallback to transcript participants only
       finalAttendees = meeting.participants || [];
+      attendeeWithOrg = finalAttendees;
       console.log('✅ Using transcript participants only:', finalAttendees.length, finalAttendees);
     }
 
@@ -381,13 +403,16 @@ CRITICAL: Start your response immediately with "# MEETING DETAILS" - do NOT incl
 
 # MEETING DETAILS
 
-Meeting Title: [exact title from metadata]
+**Meeting Title: [exact title from metadata - use larger bold font]**
 Date: [full British format with day of week]
 Time: [24-hour GMT format from recording start time if not otherwise specified]
 Location: [from authoritative context - DO NOT CHANGE THIS]
 
-CRITICAL FORMAT: Write each field on its own line starting with the label directly (no bullets, no dashes, no symbols). Example:
-Meeting Title: Strategic Planning Review
+CRITICAL FORMAT: 
+- Meeting Title MUST be bold and larger (use **Meeting Title:** format)
+- Write each field on its own line starting with the label directly (no bullets, no dashes, no symbols)
+Example:
+**Meeting Title: Strategic Planning Review**
 Date: Wednesday 15th October 2025
 Time: 14:30 GMT
 Location: Oak Lane Medical Practice
@@ -399,9 +424,9 @@ Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of t
 - One distinguishing detail that makes this meeting memorable
 
 # ATTENDEES
-- [Name]
-- [Name]
-(List each attendee's name on a separate bullet point)
+- [Name] (Organisation) - if organization is known from context
+- [Name] - if organization is not known
+(List each attendee on a separate bullet point. Include their organization in parentheses only if it is provided in the authoritative context)
 
 # DISCUSSION SUMMARY
 
@@ -471,7 +496,7 @@ Keep the executive summary concise and focused - maximum 3-4 sentences that quic
     }
 
     const contextInfo = `**MEETING CONTEXT (AUTHORITATIVE - DO NOT CONTRADICT):**
-${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${finalAttendees.length ? `- Attendees: ${finalAttendees.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
+${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${attendeeWithOrg.length ? `- Attendees: ${attendeeWithOrg.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
 **CRITICAL INSTRUCTION: The location and format above are AUTHORITATIVE. Do not infer, state, or imply any different location even if the transcript mentions other places. Transcript location mentions are for context only.**
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 
