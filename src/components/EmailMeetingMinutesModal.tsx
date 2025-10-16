@@ -495,7 +495,6 @@ export function EmailMeetingMinutesModal({
             <ul className="text-xs space-y-1">
               <li>• Word document with meeting notes attached</li>
               <li>• Meeting notes included in email body</li>
-              <li>• Professional email formatting</li>
               {(toEmail.trim() || selectedAttendeeEmails.length > 0) && (
                 <li className="font-medium mt-2 pt-2 border-t">
                   Recipients: {[toEmail.trim(), ...selectedAttendeeEmails].filter(Boolean).length} email{[toEmail.trim(), ...selectedAttendeeEmails].filter(Boolean).length !== 1 ? 's' : ''}
