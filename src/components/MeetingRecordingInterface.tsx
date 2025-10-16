@@ -98,6 +98,54 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       console.log('✅ Meeting record created:', meeting.id);
       setCurrentMeetingId(meeting.id);
 
+      // Automatically add user as attendee
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          // Create or get user attendee record
+          const { data: existingAttendee } = await supabase
+            .from('attendees')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', profile.full_name || 'Unknown')
+            .maybeSingle();
+
+          let attendeeId = existingAttendee?.id;
+
+          if (!attendeeId) {
+            const { data: newAttendee } = await supabase
+              .from('attendees')
+              .insert({
+                user_id: user.id,
+                name: profile.full_name || 'Unknown',
+                email: profile.email,
+                is_default: false
+              })
+              .select('id')
+              .single();
+            
+            attendeeId = newAttendee?.id;
+          }
+
+          if (attendeeId) {
+            await supabase
+              .from('meeting_attendees')
+              .insert({
+                meeting_id: meeting.id,
+                attendee_id: attendeeId
+              });
+            console.log('✅ User added as attendee');
+          }
+        }
+      } catch (attendeeError) {
+        console.warn('Failed to add user as attendee:', attendeeError);
+      }
+
       // Start audio recording with chunking
       console.log('🎤 Requesting media access...');
       
