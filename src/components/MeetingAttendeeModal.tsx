@@ -491,7 +491,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="name">Name *</Label>
+                      <Label htmlFor="name">Name * (First Last Order please)</Label>
                       <Input
                         id="name"
                         value={formData.name}
