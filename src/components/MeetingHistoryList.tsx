@@ -162,6 +162,7 @@ export const MeetingHistoryList = ({
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
   const { user } = useAuth();
+  const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
@@ -222,20 +223,23 @@ export const MeetingHistoryList = ({
             }
           });
           
-          // Sort attendees by role priority
+          // Sort attendees by role priority (chair > key_participant > you > others)
           Object.keys(attendeesMap).forEach(meetingId => {
             attendeesMap[meetingId].sort((a, b) => {
-              const getRolePriority = (role: string, email: string) => {
-                if (role === 'chair') return 0;
-                if (role === 'key_participant') return 1;
-                if (email?.toLowerCase() === user?.email?.toLowerCase()) return 2;
+              const isCurrentUserAttendee = (att: any) => {
+                const emailMatch = att.email?.toLowerCase() === user?.email?.toLowerCase();
+                const nameMatch = userFullNameLower ? att.name?.toLowerCase() === userFullNameLower : true;
+                return emailMatch && nameMatch;
+              };
+
+              const getRolePriority = (att: any) => {
+                if (att.meeting_role === 'chair') return 0;
+                if (att.meeting_role === 'key_participant') return 1;
+                if (isCurrentUserAttendee(att)) return 2;
                 return 3;
               };
               
-              const priorityA = getRolePriority(a.meeting_role, a.email);
-              const priorityB = getRolePriority(b.meeting_role, b.email);
-              
-              return priorityA - priorityB;
+              return getRolePriority(a) - getRolePriority(b);
             });
           });
           
@@ -1558,12 +1562,13 @@ export const MeetingHistoryList = ({
                           ? meetingAttendees[meeting.id] 
                           : meetingAttendees[meeting.id].slice(0, 5)
                         ).map((attendee: any, idx: number) => {
-                          // Compare by email since user_id might be incorrectly set
-                          const isUserAttendee = attendee.email?.toLowerCase() === user?.email?.toLowerCase();
+                          const emailMatch = attendee.email?.toLowerCase() === user?.email?.toLowerCase();
+                          const nameMatch = userFullNameLower ? attendee.name?.toLowerCase() === userFullNameLower : true;
+                          const isUserAttendee = emailMatch && nameMatch;
                           
                           return (
                             <AttendeeRoleBadge
-                              key={idx}
+                              key={attendee.id ?? idx}
                               attendee={attendee}
                               meetingId={meeting.id}
                               meetingRole={attendee.meeting_role}
@@ -1600,15 +1605,20 @@ export const MeetingHistoryList = ({
                                   
                                   // Sort attendees
                                   attendees.sort((a: any, b: any) => {
-                                    const getRolePriority = (role: string, email: string) => {
-                                      if (role === 'chair') return 0;
-                                      if (role === 'key_participant') return 1;
-                                      if (email?.toLowerCase() === user?.email?.toLowerCase()) return 2;
+                                    const isCurrentUserAttendee = (att: any) => {
+                                      const emailMatch = att.email?.toLowerCase() === user?.email?.toLowerCase();
+                                      const nameMatch = userFullNameLower ? att.name?.toLowerCase() === userFullNameLower : true;
+                                      return emailMatch && nameMatch;
+                                    };
+
+                                    const getRolePriority = (att: any) => {
+                                      if (att.meeting_role === 'chair') return 0;
+                                      if (att.meeting_role === 'key_participant') return 1;
+                                      if (isCurrentUserAttendee(att)) return 2;
                                       return 3;
                                     };
                                     
-                                    return getRolePriority(a.meeting_role, a.email) - 
-                                           getRolePriority(b.meeting_role, b.email);
+                                    return getRolePriority(a) - getRolePriority(b);
                                   });
                                   
                                   setMeetingAttendees(prev => ({
