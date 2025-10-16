@@ -91,8 +91,16 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
           {isCurrentUser && ' (You)'}
         </Badge>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2 z-50" align="start" sideOffset={5} onClick={(e) => e.stopPropagation()}>
-        <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+      <PopoverContent 
+        className="w-56 p-3 z-[100] bg-background border-border pointer-events-auto" 
+        align="start" 
+        sideOffset={8}
+        onInteractOutside={(e) => {
+          e.preventDefault();
+          setOpen(false);
+        }}
+      >
+        <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground mb-2">
             Set role for {attendee.name}
           </p>
