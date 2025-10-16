@@ -57,6 +57,7 @@ import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
 import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 import CSOReport from "./pages/CSOReport";
+import Attendees from "./pages/Attendees";
 
 
 const App = () => {
@@ -92,6 +93,7 @@ const App = () => {
             <Route path="/admin" element={<SystemAdmin />} />
             <Route path="/practice-admin" element={<PracticeAdmin />} />
             <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
+            <Route path="/attendees" element={<Attendees />} />
             <Route path="/fridge-temp/:fridgeId" element={<FridgeTemperatureEntry />} />
             {/* Public route for QR code scanning - no authentication required */}
             <Route path="/public/fridge-temp/:fridgeId" element={<FridgeTemperatureEntry />} />

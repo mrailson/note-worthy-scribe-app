@@ -274,16 +274,24 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      <Shield className="h-4 w-4 mr-2" />
                      CSO Report
                    </DropdownMenuItem>
-                   {/* Practice Manager Menu */}
-                   {hasModuleAccess('practice_manager_access') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/practice-admin')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Users className="h-4 w-4 mr-2" />
-                       Practice Management
-                     </DropdownMenuItem>
-                   )}
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/attendees')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Attendees
+                    </DropdownMenuItem>
+                    
+                    {/* Practice Manager Menu */}
+                    {hasModuleAccess('practice_manager_access') && (
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/practice-admin')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Practice Management
+                      </DropdownMenuItem>
+                    )}
                    
                    {/* System Admin Menu */}
                    {isSystemAdmin && (
@@ -472,6 +480,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                               )}
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/attendees')}>
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Manage Attendees
+                                </Button>
+                              </DrawerClose>
                             </CollapsibleContent>
                           </Collapsible>
 
