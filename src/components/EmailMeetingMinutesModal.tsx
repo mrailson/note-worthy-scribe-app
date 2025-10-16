@@ -493,7 +493,7 @@ export function EmailMeetingMinutesModal({
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border">
             <p className="font-medium mb-1">What will be sent:</p>
             <ul className="text-xs space-y-1">
-              <li>• Word document with meeting notes attached</li>
+              <li>• Word document with the meeting notes</li>
               <li>• Meeting notes included in email body</li>
               {(toEmail.trim() || selectedAttendeeEmails.length > 0) && (
                 <li className="font-medium mt-2 pt-2 border-t">
