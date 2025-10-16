@@ -3059,23 +3059,23 @@ ${transcript}`;
                                      )}
                                   </Button>
                                 </div>
-                               ) : (
-                                 <div className="space-y-4 relative">
-                                   {/* Animated loading overlay */}
-                                   {isGeneratingStyle3 && (
-                                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
-                                       <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                         <div className="relative">
-                                           <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                           <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                         </div>
-                                         <div className="text-center space-y-2">
-                                           <p className="text-lg font-semibold">Regenerating Notes</p>
-                                           <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                         </div>
-                                       </div>
-                                     </div>
-                                   )}
+                                ) : (
+                                  <div className="space-y-4 relative min-h-[500px]">
+                                    {/* Animated loading overlay */}
+                                    {isGeneratingStyle3 && (
+                                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                        <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                          <div className="relative">
+                                            <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                          </div>
+                                          <div className="text-center space-y-2">
+                                            <p className="text-lg font-semibold">Regenerating Notes</p>
+                                            <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                    <div className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}>
                                      <div 
                                        dangerouslySetInnerHTML={{ 
@@ -3107,23 +3107,23 @@ ${transcript}`;
                              className="h-full w-full font-mono text-sm resize-none"
                              placeholder="Meeting notes will appear here..."
                            />
-                          ) : (
-                            <div className="relative">
-                              {/* Animated loading overlay */}
-                              {isGenerating && (
-                                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
-                                  <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                    <div className="relative">
-                                      <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                      <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                    </div>
-                                    <div className="text-center space-y-2">
-                                      <p className="text-lg font-semibold">Regenerating Notes</p>
-                                      <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                           ) : (
+                             <div className="relative min-h-[500px]">
+                               {/* Animated loading overlay */}
+                               {isGenerating && (
+                                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                   <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                     <div className="relative">
+                                       <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                       <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                     </div>
+                                     <div className="text-center space-y-2">
+                                       <p className="text-lg font-semibold">Regenerating Notes</p>
+                                       <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                     </div>
+                                   </div>
+                                 </div>
+                               )}
                               <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGenerating ? 'opacity-50' : 'opacity-100'}`}>
                                 <div 
                                   dangerouslySetInnerHTML={{ 
@@ -3169,23 +3169,23 @@ ${transcript}`;
                                     )}
                                   </Button>
                                 </div>
-                               ) : (
-                                 <div className="space-y-4 relative">
-                                   {/* Animated loading overlay */}
-                                   {isGeneratingStyle4 && (
-                                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
-                                       <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                         <div className="relative">
-                                           <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                           <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                         </div>
-                                         <div className="text-center space-y-2">
-                                           <p className="text-lg font-semibold">Regenerating Notes</p>
-                                           <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                         </div>
-                                       </div>
-                                     </div>
-                                   )}
+                                ) : (
+                                  <div className="space-y-4 relative min-h-[500px]">
+                                    {/* Animated loading overlay */}
+                                    {isGeneratingStyle4 && (
+                                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                        <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                          <div className="relative">
+                                            <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                          </div>
+                                          <div className="text-center space-y-2">
+                                            <p className="text-lg font-semibold">Regenerating Notes</p>
+                                            <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                    <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGeneratingStyle4 ? 'opacity-50' : 'opacity-100'}`}>
                                      <div 
                                        dangerouslySetInnerHTML={{ 
@@ -3242,23 +3242,23 @@ ${transcript}`;
                                    )}
                                  </Button>
                                </div>
-                                ) : (
-                                  <div className="relative">
-                                    {/* Animated loading overlay */}
-                                    {isGeneratingStyle5 && (
-                                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
-                                        <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                          <div className="relative">
-                                            <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                          </div>
-                                          <div className="text-center space-y-2">
-                                            <p className="text-lg font-semibold">Regenerating Notes</p>
-                                            <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
+                                 ) : (
+                                   <div className="relative min-h-[500px]">
+                                     {/* Animated loading overlay */}
+                                     {isGeneratingStyle5 && (
+                                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center animate-fade-in">
+                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                           <div className="relative">
+                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                           </div>
+                                           <div className="text-center space-y-2">
+                                             <p className="text-lg font-semibold">Regenerating Notes</p>
+                                             <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                           </div>
+                                         </div>
+                                       </div>
+                                     )}
                                     <div className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle5 ? 'opacity-50' : 'opacity-100'}`}>
                                       <div 
                                         dangerouslySetInnerHTML={{ 
