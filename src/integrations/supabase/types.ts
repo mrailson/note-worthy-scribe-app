@@ -144,6 +144,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization: string | null
+          organization_type: string | null
           practice_id: string | null
           role: string | null
           title: string | null
@@ -157,6 +158,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           organization?: string | null
+          organization_type?: string | null
           practice_id?: string | null
           role?: string | null
           title?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization?: string | null
+          organization_type?: string | null
           practice_id?: string | null
           role?: string | null
           title?: string | null

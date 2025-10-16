@@ -19,6 +19,7 @@ interface Attendee {
   email?: string;
   title?: string;
   organization?: string;
+  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other';
   role?: string;
 }
 
@@ -99,7 +100,7 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
         .in('practice_id', practiceIds);
 
       if (attendees) {
-        setAvailableAttendees(attendees);
+        setAvailableAttendees(attendees as Attendee[]);
       }
 
       // Fetch attendee templates for user's practices
@@ -119,7 +120,7 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
           template_name: template.template_name,
           description: template.description,
           is_default: template.is_default,
-          attendees: template.template_attendees?.map(ta => ta.attendees) || []
+          attendees: (template.template_attendees?.map(ta => ta.attendees) || []) as Attendee[]
         }));
         setAttendeeTemplates(formattedTemplates);
       }

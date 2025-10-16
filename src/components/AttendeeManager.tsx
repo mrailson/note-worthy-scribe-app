@@ -18,6 +18,7 @@ interface Attendee {
   email?: string;
   title?: string;
   organization?: string;
+  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other';
   role?: string;
   is_default?: boolean;
   practice_id?: string;
@@ -55,6 +56,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     email: '',
     title: 'Dr',
     organization: '',
+    organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other',
     role: ''
   });
   const [templateFormData, setTemplateFormData] = useState({
@@ -80,7 +82,6 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     if (!user?.id) return;
 
     try {
-      // Get user's practice assignments and roles
       const { data: userRoles } = await supabase
         .rpc('get_user_roles', { _user_id: user.id });
       
@@ -88,7 +89,6 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
         const practiceIds = userRoles.map(role => role.practice_id).filter(Boolean);
         setUserPracticeIds(practiceIds);
         
-        // Check if user has management access (Practice Manager or GP)
         const hasAccess = userRoles.some(role => 
           role.role === 'practice_manager' || role.role === 'system_admin'
         );
@@ -111,8 +111,8 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
       if (error) throw error;
       if (data) {
-        setAttendees(data);
-        onAttendeesChange?.(data);
+        setAttendees(data as Attendee[]);
+        onAttendeesChange?.(data as Attendee[]);
       }
     } catch (error) {
       console.error('Error fetching attendees:', error);
@@ -146,7 +146,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           template_name: template.template_name,
           description: template.description,
           is_default: template.is_default,
-          attendees: template.template_attendees?.map(ta => ta.attendees) || []
+          attendees: (template.template_attendees?.map(ta => ta.attendees) || []) as Attendee[]
         }));
         setTemplates(formattedTemplates);
       }
@@ -188,6 +188,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
             email: formData.email || null,
             title: formData.title || null,
             organization: formData.organization || null,
+            organization_type: formData.organization_type,
             role: formData.role || null,
           })
           .eq('id', editingId);
@@ -203,11 +204,12 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           .from('attendees')
           .insert({
             user_id: user?.id,
-            practice_id: userPracticeIds[0], // Use first practice ID
+            practice_id: userPracticeIds[0],
             name: formData.name,
             email: formData.email || null,
             title: formData.title || null,
             organization: formData.organization || null,
+            organization_type: formData.organization_type,
             role: formData.role || null,
           });
 
@@ -260,6 +262,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
       email: attendee.email || '',
       title: attendee.title || 'Dr',
       organization: attendee.organization || '',
+      organization_type: attendee.organization_type || 'practice',
       role: attendee.role || ''
     });
     setEditingId(attendee.id);
@@ -273,6 +276,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
       email: '',
       title: 'Dr',
       organization: '',
+      organization_type: 'practice',
       role: ''
     });
     setEditingId(null);
@@ -291,7 +295,6 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     }
 
     try {
-      // Create the template
       const { data: template, error: templateError } = await supabase
         .from('meeting_attendee_templates')
         .insert({
@@ -306,7 +309,6 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
       if (templateError) throw templateError;
 
-      // Link attendees to template
       const templateAttendees = templateFormData.selectedAttendeeIds.map(attendeeId => ({
         template_id: template.id,
         attendee_id: attendeeId
@@ -373,6 +375,21 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     }));
   };
 
+  const getOrgTypeInfo = (type?: string) => {
+    switch (type) {
+      case 'practice':
+        return { icon: '🏥', label: 'Practice', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' };
+      case 'neighbourhood_pcn':
+        return { icon: '🤝', label: 'Neighbourhood/PCN', color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' };
+      case 'icn':
+        return { icon: '🏛️', label: 'ICN', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' };
+      case 'nhse':
+        return { icon: '📋', label: 'NHSE', color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' };
+      default:
+        return { icon: '📋', label: 'Other', color: 'bg-grey-100 text-grey-700 dark:bg-grey-950 dark:text-grey-300' };
+    }
+  };
+
   if (!hasManagementAccess) {
     return (
       <Card>
@@ -404,12 +421,10 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
             </TabsList>
             
             <TabsContent value="attendees" className="space-y-4">
-              {/* Attendee management content */}
               {renderAttendeeManagement()}
             </TabsContent>
             
             <TabsContent value="templates" className="space-y-4">
-              {/* Template management content */}
               {renderTemplateManagement()}
             </TabsContent>
           </Tabs>
@@ -425,127 +440,189 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
       <>
         {/* Add/Edit Form */}
         {isAdding && (
-          <div className="p-4 border rounded-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">
-                {isEditing ? 'Edit Attendee' : 'Add New Attendee'}
-              </h4>
-              <Button variant="ghost" size="sm" onClick={resetForm}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Select value={formData.title} onValueChange={(value) => setFormData({...formData, title: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dr">Dr</SelectItem>
-                    <SelectItem value="Mr">Mr</SelectItem>
-                    <SelectItem value="Mrs">Mrs</SelectItem>
-                    <SelectItem value="Ms">Ms</SelectItem>
-                    <SelectItem value="Prof">Prof</SelectItem>
-                  </SelectContent>
-                </Select>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">
+                  {isEditing ? 'Edit Attendee' : 'Add New Attendee'}
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={resetForm}>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Select value={formData.title} onValueChange={(value) => setFormData({...formData, title: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dr">Dr</SelectItem>
+                      <SelectItem value="Mr">Mr</SelectItem>
+                      <SelectItem value="Mrs">Mrs</SelectItem>
+                      <SelectItem value="Ms">Ms</SelectItem>
+                      <SelectItem value="Prof">Prof</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Full name"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Full name"
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="email@nhs.net"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="email@example.com"
-              />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="organization_type">Organisation Type *</Label>
+                  <Select 
+                    value={formData.organization_type} 
+                    onValueChange={(value: 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other') => 
+                      setFormData({ ...formData, organization_type: value })
+                    }
+                  >
+                    <SelectTrigger id="organization_type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="practice">🏥 Practice</SelectItem>
+                      <SelectItem value="neighbourhood_pcn">🤝 Neighbourhood/PCN</SelectItem>
+                      <SelectItem value="icn">🏛️ ICN</SelectItem>
+                      <SelectItem value="nhse">📋 NHSE</SelectItem>
+                      <SelectItem value="other">📋 Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="organization">Organisation</Label>
-                <Input
-                  id="organization"
-                  value={formData.organization}
-                  onChange={(e) => setFormData({...formData, organization: e.target.value})}
-                  placeholder="NHS Trust, GP Practice, etc."
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="organization">Organisation Name</Label>
+                  <Input
+                    id="organization"
+                    value={formData.organization}
+                    onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                    placeholder="Oak Tree Surgery"
+                  />
+                </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Input
                   id="role"
                   value={formData.role}
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  placeholder="Consultant, GP, Manager, etc."
+                  placeholder="Clinical Lead, Practice Manager, etc."
                 />
               </div>
-            </div>
 
-            <div className="flex items-center justify-end space-x-2">
-              <Button variant="outline" onClick={resetForm}>Cancel</Button>
-              <Button onClick={saveAttendee}>
-                <Check className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </div>
-          </div>
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <Button variant="outline" onClick={resetForm}>Cancel</Button>
+                <Button onClick={saveAttendee} disabled={!formData.name}>
+                  {isEditing ? 'Update' : 'Add'} Attendee
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Add Button */}
         {!isAdding && (
-          <Button variant="outline" onClick={() => setIsAdding(true)}>
+          <Button onClick={() => setIsAdding(true)} className="w-full md:w-auto">
             <Plus className="h-4 w-4 mr-2" />
-            Add Attendee
+            Add New Attendee
           </Button>
         )}
 
-        {/* Attendees List */}
-        <div className="space-y-2">
-          {attendees.map((attendee) => (
-            <div key={attendee.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium flex items-center gap-2">
-                  {attendee.title} {attendee.name}
-                  {attendee.is_default && (
-                    <Badge variant="secondary" className="text-xs">Default</Badge>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {attendee.email} • {attendee.role} • {attendee.organization}
-                </div>
+        {/* Attendee List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Saved Attendees ({attendees.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {attendees.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No attendees saved yet. Add your first attendee above.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {attendees.map(attendee => {
+                  const orgInfo = getOrgTypeInfo(attendee.organization_type);
+                  return (
+                    <Card key={attendee.id} className="relative group hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-base truncate">{attendee.title ? `${attendee.title} ${attendee.name}` : attendee.name}</div>
+                              {attendee.role && (
+                                <div className="text-sm text-muted-foreground truncate">{attendee.role}</div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className={`${orgInfo.color} text-xs shrink-0`}>
+                              {orgInfo.icon}
+                            </Badge>
+                          </div>
+
+                          {attendee.email && (
+                            <div className="text-sm truncate">
+                              <a href={`mailto:${attendee.email}`} className="text-primary hover:underline">
+                                {attendee.email}
+                              </a>
+                            </div>
+                          )}
+
+                          {attendee.organization && (
+                            <div className="text-sm text-muted-foreground truncate">
+                              {attendee.organization}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 pt-2 border-t">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => editAttendee(attendee)}
+                              className="flex-1"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              onClick={() => deleteAttendee(attendee.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-              <div className="space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => editAttendee(attendee)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteAttendee(attendee.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          
-          {attendees.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No attendees added yet. Click "Add Attendee" to get started.
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </>
     );
   }
@@ -553,109 +630,128 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
   function renderTemplateManagement() {
     return (
       <>
-        {/* Template Form */}
+        {/* Template Creation Form */}
         {isManagingTemplates && (
-          <div className="p-4 border rounded-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Create New Template</h4>
-              <Button variant="ghost" size="sm" onClick={() => setIsManagingTemplates(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Create Attendee Template</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setIsManagingTemplates(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="templateName">Template Name</Label>
+                <Label htmlFor="template-name">Template Name *</Label>
                 <Input
-                  id="templateName"
+                  id="template-name"
                   value={templateFormData.name}
                   onChange={(e) => setTemplateFormData({...templateFormData, name: e.target.value})}
-                  placeholder="Enter template name..."
+                  placeholder="e.g., Monthly Team Meeting"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="templateDescription">Description</Label>
+                <Label htmlFor="template-desc">Description</Label>
                 <Input
-                  id="templateDescription"
+                  id="template-desc"
                   value={templateFormData.description}
                   onChange={(e) => setTemplateFormData({...templateFormData, description: e.target.value})}
-                  placeholder="Optional description..."
+                  placeholder="Optional description"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Select Attendees</Label>
-                <div className="max-h-40 overflow-y-auto space-y-2">
+                <Label>Select Attendees *</Label>
+                <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
                   {attendees.map(attendee => (
                     <div key={attendee.id} className="flex items-center space-x-2">
                       <Checkbox
+                        id={`template-${attendee.id}`}
                         checked={templateFormData.selectedAttendeeIds.includes(attendee.id)}
                         onCheckedChange={() => toggleAttendeeSelection(attendee.id)}
                       />
-                      <Label className="text-sm">
-                        {attendee.title} {attendee.name} ({attendee.role})
+                      <Label htmlFor={`template-${attendee.id}`} className="flex-1 cursor-pointer">
+                        {attendee.name}
+                        {attendee.organization && (
+                          <span className="text-sm text-muted-foreground ml-2">
+                            ({attendee.organization})
+                          </span>
+                        )}
                       </Label>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-2">
+              <div className="flex items-center justify-end space-x-2 pt-2">
                 <Button variant="outline" onClick={() => setIsManagingTemplates(false)}>
                   Cancel
                 </Button>
                 <Button onClick={saveTemplate}>
                   <Bookmark className="h-4 w-4 mr-2" />
-                  Save Template
+                  Create Template
                 </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Add Template Button */}
+        {/* Create Template Button */}
         {!isManagingTemplates && (
-          <Button variant="outline" onClick={() => setIsManagingTemplates(true)}>
+          <Button onClick={() => setIsManagingTemplates(true)} className="w-full md:w-auto">
             <Plus className="h-4 w-4 mr-2" />
-            Create Template
+            Create New Template
           </Button>
         )}
 
-        {/* Templates List */}
-        <div className="space-y-2">
-          {templates.map((template) => (
-            <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium flex items-center gap-2">
-                  <Bookmark className="h-4 w-4" />
-                  {template.template_name}
-                  {template.is_default && (
-                    <Badge variant="secondary" className="text-xs">Default</Badge>
-                  )}
-                  <Badge variant="outline">{template.attendees.length} attendees</Badge>
-                </div>
-                {template.description && (
-                  <div className="text-sm text-muted-foreground">{template.description}</div>
-                )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  Attendees: {template.attendees.map(a => a.name).join(', ')}
-                </div>
+        {/* Template List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Saved Templates ({templates.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {templates.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No templates saved yet. Create your first template above.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {templates.map(template => (
+                  <Card key={template.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="font-semibold">{template.template_name}</div>
+                          {template.description && (
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {template.description}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {template.attendees.map((attendee: Attendee) => (
+                              <Badge key={attendee.id} variant="secondary" className="text-xs">
+                                {attendee.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => deleteTemplate(template.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <div className="space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => deleteTemplate(template.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          
-          {templates.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No templates created yet. Click "Create Template" to get started.
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </>
     );
   }
