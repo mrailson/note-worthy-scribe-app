@@ -53,25 +53,24 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
-    const systemPrompt = `Create a comprehensive executive meeting summary using British English spellings and conventions.
+    const systemPrompt = `Create a concise executive meeting summary using British English spellings and conventions.
 
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
-- 100-150 words in a structured executive summary format
-- Start with a clear opening statement of the meeting's primary focus and key outcomes
-- Write in cohesive paragraphs (not bullet points) that flow naturally
-- First paragraph: Main purpose, critical decisions, and overarching themes
-- Second paragraph (if needed): Key challenges, actions agreed, and important details
-- Include specific information: names, numbers, deadlines, key deliverables
-- Maintain formal, professional executive tone
-- Focus on strategic importance and business impact
-- Emphasise what matters most to decision-makers and stakeholders`;
+- 30-50 words maximum
+- Use 3-5 bullet points format
+- Each bullet point: one clear, specific statement
+- Focus on key decisions, actions, and outcomes only
+- Include critical details: names, deadlines, deliverables (if mentioned)
+- Professional, direct tone
+- NO introductory phrases or filler words`;
 
-    const userPrompt = `Create a comprehensive executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
+
+    const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
 
 ${content.substring(0, 3000)}
 
-Provide a 100-150 word executive summary covering the meeting's strategic purpose, critical decisions made, key discussion themes, important actions agreed, and any significant deadlines or deliverables mentioned.`;
+Provide 3-5 bullet points (30-50 words total) covering: key decisions, critical actions agreed, important deadlines, and main deliverables.`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 
@@ -87,7 +86,7 @@ Provide a 100-150 word executive summary covering the meeting's strategic purpos
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 250,
+        max_completion_tokens: 150,
       }),
     });
 
