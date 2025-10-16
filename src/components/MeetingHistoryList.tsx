@@ -180,10 +180,12 @@ export const MeetingHistoryList = ({
     // Fetch attendees for all meetings
     const fetchAllAttendees = async () => {
       const meetingIds = meetings.map(m => m.id);
+      console.log('📋 Fetching attendees for meetings:', meetingIds);
+      
       if (meetingIds.length === 0) return;
 
       try {
-        const { data: attendeeLinks } = await supabase
+        const { data: attendeeLinks, error } = await supabase
           .from('meeting_attendees')
           .select(`
             meeting_id,
@@ -202,6 +204,13 @@ export const MeetingHistoryList = ({
           `)
           .in('meeting_id', meetingIds);
 
+        console.log('📋 Raw attendee data:', { data: attendeeLinks, error, count: attendeeLinks?.length });
+
+        if (error) {
+          console.error('❌ Error fetching attendees:', error);
+          return;
+        }
+
         if (attendeeLinks) {
           const attendeesMap: Record<string, any[]> = {};
           attendeeLinks.forEach((link: any) => {
@@ -215,6 +224,8 @@ export const MeetingHistoryList = ({
               });
             }
           });
+          
+          console.log('📋 Attendees map before sorting:', attendeesMap);
           
           // Sort attendees by role priority
           Object.keys(attendeesMap).forEach(meetingId => {
@@ -233,10 +244,12 @@ export const MeetingHistoryList = ({
             });
           });
           
+          console.log('📋 Final attendees map:', attendeesMap);
+          console.log('📋 Current user ID:', user?.id);
           setMeetingAttendees(attendeesMap);
         }
       } catch (error) {
-        console.error('Error fetching attendees:', error);
+        console.error('❌ Error fetching attendees:', error);
       }
     };
 
