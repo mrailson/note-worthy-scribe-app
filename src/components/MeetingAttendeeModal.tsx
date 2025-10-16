@@ -19,7 +19,7 @@ interface Attendee {
   email?: string;
   title?: string;
   organization?: string;
-  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other';
+  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icb' | 'nhse' | 'other';
   role?: string;
 }
 
@@ -45,7 +45,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     email: '',
     title: 'Dr',
     organization: '',
-    organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icn' | 'nhse' | 'other',
+    organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icb' | 'nhse' | 'other',
     role: ''
   });
 
@@ -354,8 +354,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         return { icon: '🏥', label: 'Practice', className: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' };
       case 'neighbourhood_pcn':
         return { icon: '🤝', label: 'PCN', className: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' };
-      case 'icn':
-        return { icon: '🏛️', label: 'ICN', className: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' };
+      case 'icb':
+        return { icon: '🏛️', label: 'ICB', className: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' };
       case 'nhse':
         return { icon: '📋', label: 'NHSE', className: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' };
       default:
@@ -491,7 +491,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="name">Name * (First Last Order please)</Label>
+                      <Label htmlFor="name">Full Name * (First Last)</Label>
                       <Input
                         id="name"
                         value={formData.name}
@@ -525,7 +525,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                         <SelectContent>
                           <SelectItem value="practice">🏥 Practice</SelectItem>
                           <SelectItem value="neighbourhood_pcn">🤝 Neighbourhood/PCN</SelectItem>
-                          <SelectItem value="icn">🏛️ ICN</SelectItem>
+                          <SelectItem value="icb">🏛️ ICB</SelectItem>
                           <SelectItem value="nhse">📋 NHSE</SelectItem>
                           <SelectItem value="other">📋 Other</SelectItem>
                         </SelectContent>
