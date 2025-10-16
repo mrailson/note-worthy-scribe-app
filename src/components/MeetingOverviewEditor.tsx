@@ -139,7 +139,12 @@ export const MeetingOverviewEditor = ({
               dangerouslySetInnerHTML={{ 
                 __html: renderNHSMarkdown(overview, { enableNHSStyling: true })
               }}
-              className="prose prose-sm max-w-none [&>p]:mb-3 [&>ul]:space-y-2 [&>ul]:mt-3 [&>ul>li]:leading-relaxed"
+              className="prose prose-sm max-w-none 
+                [&>p]:mb-4 [&>p]:leading-relaxed
+                [&>ul]:space-y-2.5 [&>ul]:mt-4 [&>ul]:pl-1
+                [&>ul>li]:leading-relaxed [&>ul>li]:pl-1
+                [&>ul>li::marker]:text-primary [&>ul>li::marker]:text-base
+                [&_br]:block [&_br]:my-2"
             />
           ) : (
             "No overview yet. Click Edit to add one."

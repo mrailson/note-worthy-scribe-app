@@ -62,25 +62,35 @@ Format:
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
 - Total: 60-80 words maximum
+- Opening paragraph on its own line, followed by blank line
+- Then each bullet point on separate line with • character
 - Each bullet point: one clear, specific statement (8-12 words)
 - Focus on key decisions, actions, and outcomes only
 - Include critical details: names, deadlines, deliverables (if mentioned)
 - Professional, direct tone
-- Use • for bullet points
-- NO introductory phrases or filler words`;
+- NO introductory phrases or filler words
+
+Example format:
+[Paragraph describing meeting]
+
+• [First key point]
+• [Second key point]
+• [Third key point]`;
 
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
 
 ${content.substring(0, 3000)}
 
-Format:
-[Brief paragraph describing meeting purpose and outcome]
+Format your response exactly like this:
+[Brief paragraph describing the meeting purpose and outcome]
 
-• [Key decision/action 1]
-• [Key decision/action 2]
-• [Key decision/action 3]
-• [Additional points as needed, max 5 total]`;
+• [Key decision/action/deliverable]
+• [Key decision/action/deliverable]
+• [Key decision/action/deliverable]
+• [Additional points as needed, max 5 total]
+
+Remember: Use • bullet character, put each bullet on its own line, blank line between paragraph and bullets.`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 
