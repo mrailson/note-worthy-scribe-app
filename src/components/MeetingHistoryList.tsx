@@ -32,7 +32,9 @@ import {
   Mail,
   Users,
   MoreVertical,
-  FileDown
+  FileDown,
+  Video,
+  MonitorSpeaker
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -112,6 +114,8 @@ interface Meeting {
   import_source?: string;
   import_source_display?: string;
   meeting_config?: any;
+  meeting_format?: string;
+  meeting_location?: string;
   // Sharing fields
   access_type?: 'owner' | 'shared';
   access_level?: 'view' | 'download';
@@ -1642,6 +1646,31 @@ export const MeetingHistoryList = ({
                           )}
                         </span>
                       </>
+                      
+                      {/* Meeting Type */}
+                      {meeting.meeting_format && (
+                        <>
+                          <span>•</span>
+                          {meeting.meeting_format === 'teams' && (
+                            <Video className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="MS Teams" />
+                          )}
+                          {meeting.meeting_format === 'face-to-face' && (
+                            <Users className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="Face to Face" />
+                          )}
+                          {meeting.meeting_format === 'hybrid' && (
+                            <MonitorSpeaker className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="Hybrid" />
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Location - only for face-to-face meetings */}
+                      {meeting.meeting_format === 'face-to-face' && meeting.meeting_location && (
+                        <>
+                          <span>•</span>
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{meeting.meeting_location}</span>
+                        </>
+                      )}
                       
                       {meeting.import_source && (
                         <Badge variant="outline" className="text-xs">
