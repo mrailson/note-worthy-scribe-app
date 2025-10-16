@@ -2911,18 +2911,21 @@ export type Database = {
           created_at: string
           id: string
           meeting_id: string
+          meeting_role: string | null
         }
         Insert: {
           attendee_id: string
           created_at?: string
           id?: string
           meeting_id: string
+          meeting_role?: string | null
         }
         Update: {
           attendee_id?: string
           created_at?: string
           id?: string
           meeting_id?: string
+          meeting_role?: string | null
         }
         Relationships: [
           {

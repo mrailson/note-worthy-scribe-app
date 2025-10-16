@@ -70,6 +70,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { MeetingAttendeeModal } from './MeetingAttendeeModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 
 
 interface Meeting {
@@ -159,6 +161,7 @@ export const MeetingHistoryList = ({
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
+  const { user } = useAuth();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
@@ -168,6 +171,7 @@ export const MeetingHistoryList = ({
   // Local state for meetings to allow immediate updates
   const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
   const [meetingAttendees, setMeetingAttendees] = useState<Record<string, any[]>>({});
+  const [expandedAttendees, setExpandedAttendees] = useState<Record<string, boolean>>({});
   
   // Sync local meetings with prop changes
   useEffect(() => {
@@ -183,6 +187,8 @@ export const MeetingHistoryList = ({
           .from('meeting_attendees')
           .select(`
             meeting_id,
+            meeting_role,
+            attendee_id,
             attendees:attendee_id (
               id,
               name,
@@ -190,7 +196,8 @@ export const MeetingHistoryList = ({
               email,
               organization,
               organization_type,
-              role
+              role,
+              user_id
             )
           `)
           .in('meeting_id', meetingIds);
@@ -202,9 +209,30 @@ export const MeetingHistoryList = ({
               attendeesMap[link.meeting_id] = [];
             }
             if (link.attendees) {
-              attendeesMap[link.meeting_id].push(link.attendees);
+              attendeesMap[link.meeting_id].push({
+                ...link.attendees,
+                meeting_role: link.meeting_role || 'attendee'
+              });
             }
           });
+          
+          // Sort attendees by role priority
+          Object.keys(attendeesMap).forEach(meetingId => {
+            attendeesMap[meetingId].sort((a, b) => {
+              const getRolePriority = (role: string, userId: string) => {
+                if (role === 'chair') return 0;
+                if (role === 'key_participant') return 1;
+                if (userId === user?.id) return 2;
+                return 3;
+              };
+              
+              const priorityA = getRolePriority(a.meeting_role, a.user_id);
+              const priorityB = getRolePriority(b.meeting_role, b.user_id);
+              
+              return priorityA - priorityB;
+            });
+          });
+          
           setMeetingAttendees(attendeesMap);
         }
       } catch (error) {
@@ -213,7 +241,7 @@ export const MeetingHistoryList = ({
     };
 
     fetchAllAttendees();
-  }, [meetings]);
+  }, [meetings, user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -1520,15 +1548,84 @@ export const MeetingHistoryList = ({
                           <Users className="h-3 w-3" />
                           Attendees:
                         </span>
-                        {meetingAttendees[meeting.id].slice(0, 3).map((attendee: any, idx: number) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
-                            {attendee.title} {attendee.name}
-                          </Badge>
+                        {(expandedAttendees[meeting.id] 
+                          ? meetingAttendees[meeting.id] 
+                          : meetingAttendees[meeting.id].slice(0, 5)
+                        ).map((attendee: any, idx: number) => (
+                          <AttendeeRoleBadge
+                            key={idx}
+                            attendee={attendee}
+                            meetingId={meeting.id}
+                            meetingRole={attendee.meeting_role}
+                            isCurrentUser={attendee.user_id === user?.id}
+                            onRoleChange={() => {
+                              // Refetch attendees after role change
+                              const fetchAttendees = async () => {
+                                const { data } = await supabase
+                                  .from('meeting_attendees')
+                                  .select(`
+                                    meeting_id,
+                                    meeting_role,
+                                    attendee_id,
+                                    attendees:attendee_id (
+                                      id,
+                                      name,
+                                      title,
+                                      email,
+                                      organization,
+                                      organization_type,
+                                      role,
+                                      user_id
+                                    )
+                                  `)
+                                  .eq('meeting_id', meeting.id);
+
+                                if (data) {
+                                  const attendees = data
+                                    .map((link: any) => link.attendees ? {
+                                      ...link.attendees,
+                                      meeting_role: link.meeting_role || 'attendee'
+                                    } : null)
+                                    .filter(Boolean);
+                                  
+                                  // Sort attendees
+                                  attendees.sort((a: any, b: any) => {
+                                    const getRolePriority = (role: string, userId: string) => {
+                                      if (role === 'chair') return 0;
+                                      if (role === 'key_participant') return 1;
+                                      if (userId === user?.id) return 2;
+                                      return 3;
+                                    };
+                                    
+                                    return getRolePriority(a.meeting_role, a.user_id) - 
+                                           getRolePriority(b.meeting_role, b.user_id);
+                                  });
+                                  
+                                  setMeetingAttendees(prev => ({
+                                    ...prev,
+                                    [meeting.id]: attendees
+                                  }));
+                                }
+                              };
+                              fetchAttendees();
+                            }}
+                          />
                         ))}
-                        {meetingAttendees[meeting.id].length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{meetingAttendees[meeting.id].length - 3} more
-                          </Badge>
+                        {meetingAttendees[meeting.id].length > 5 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setExpandedAttendees(prev => ({
+                              ...prev,
+                              [meeting.id]: !prev[meeting.id]
+                            }))}
+                          >
+                            {expandedAttendees[meeting.id] 
+                              ? 'Show less' 
+                              : `+${meetingAttendees[meeting.id].length - 5} more`
+                            }
+                          </Button>
                         )}
                       </div>
                     )}
