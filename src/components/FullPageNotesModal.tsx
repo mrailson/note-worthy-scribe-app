@@ -561,58 +561,73 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         for (const item of parsedContent) {
           if (item.type === 'table') {
             // Create table
-            const tableRows = item.content.map((row, rowIndex) => 
+            const tableRows = item.content.map((row, rowIndex) =>
               new TableRow({
-                children: row.map(cellText => {
+                children: row.map((cellText) => {
                   // Parse cell text for formatting
-                  const cellRuns = [];
+                  const cellRuns = [] as any[];
                   let currentText = cellText;
-                  
+
                   // Handle bold text in cells
                   const boldRegex = /(\*\*|__)(.*?)\1/g;
                   let lastIndex = 0;
-                  let match;
-                  
+                  let match: RegExpExecArray | null;
+
                   while ((match = boldRegex.exec(currentText)) !== null) {
                     // Add text before bold
                     if (match.index > lastIndex) {
                       const beforeText = currentText.slice(lastIndex, match.index);
                       if (beforeText) cellRuns.push(new TextRun({ text: beforeText, size: rowIndex === 0 ? 22 : 20 }));
                     }
-                    
+
                     // Add bold text
                     cellRuns.push(new TextRun({ text: match[2], bold: true, size: rowIndex === 0 ? 22 : 20 }));
                     lastIndex = match.index + match[0].length;
                   }
-                  
+
                   // Add remaining text
                   if (lastIndex < currentText.length) {
                     const remainingText = currentText.slice(lastIndex);
                     if (remainingText) cellRuns.push(new TextRun({ text: remainingText, size: rowIndex === 0 ? 22 : 20 }));
                   }
-                  
+
                   if (cellRuns.length === 0) {
                     cellRuns.push(new TextRun({ text: cellText, size: rowIndex === 0 ? 22 : 20, bold: rowIndex === 0 }));
                   }
-                  
+
+                  // Do not force equal-width cells; let the table's columnWidths control sizing
                   return new TableCell({
                     children: [new Paragraph({ children: cellRuns })],
-                    width: {
-                      size: 100 / row.length,
-                      type: WidthType.PERCENTAGE,
-                    },
                   });
-                })
+                }),
               })
             );
             
-            paragraphs.push(new Table({
-              rows: tableRows,
-              width: {
-                size: 100,
-                type: WidthType.PERCENTAGE,
-              },
-            }));
+            // Compute responsive column widths based on content length to avoid squashed columns on mobile Word (iPhone)
+            const rowsArr = item.content as string[][];
+            const colCount = Math.max(...rowsArr.map((r) => r.length));
+            const weights = new Array(colCount).fill(1);
+            rowsArr.forEach((r) =>
+              r.forEach((cell, i) => {
+                const len = Math.min(cell.replace(/\*\*|__/g, '').length, 80);
+                if (len > weights[i]) weights[i] = len;
+              })
+            );
+            const totalWidth = 9360; // approx text width (twips) for US Letter with 1" margins
+            const totalWeight = weights.reduce((a, b) => a + b, 0) || colCount;
+            const colWidths = weights.map((w) => Math.max(1, Math.floor((w / totalWeight) * totalWidth)));
+            const sum = colWidths.reduce((a, b) => a + b, 0);
+            if (sum !== totalWidth && colWidths.length > 0) {
+              colWidths[colWidths.length - 1] += totalWidth - sum;
+            }
+
+            paragraphs.push(
+              new Table({
+                rows: tableRows,
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                columnWidths: colWidths,
+              })
+            );
             
             // Add space after table
             paragraphs.push(new Paragraph({
