@@ -19,7 +19,7 @@ interface Attendee {
   email?: string;
   title?: string;
   organization?: string;
-  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icb' | 'nhse' | 'other';
+  organization_type?: 'practice' | 'neighbourhood_pcn' | 'icb' | 'lmc' | 'nhse' | 'other';
   role?: string;
 }
 
@@ -45,7 +45,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     email: '',
     title: 'Dr',
     organization: '',
-    organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icb' | 'nhse' | 'other',
+    organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icb' | 'lmc' | 'nhse' | 'other',
     role: ''
   });
 
@@ -356,6 +356,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         return { icon: '🤝', label: 'PCN', className: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' };
       case 'icb':
         return { icon: '🏛️', label: 'ICB', className: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' };
+      case 'lmc':
+        return { icon: '⚖️', label: 'LMC', className: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' };
       case 'nhse':
         return { icon: '📋', label: 'NHSE', className: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' };
       default:
@@ -526,6 +528,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                           <SelectItem value="practice">🏥 Practice</SelectItem>
                           <SelectItem value="neighbourhood_pcn">🤝 Neighbourhood/PCN</SelectItem>
                           <SelectItem value="icb">🏛️ ICB</SelectItem>
+                          <SelectItem value="lmc">⚖️ LMC</SelectItem>
                           <SelectItem value="nhse">📋 NHSE</SelectItem>
                           <SelectItem value="other">📋 Other</SelectItem>
                         </SelectContent>
