@@ -6,6 +6,51 @@ import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
+// Helper function to render tables in PDF
+const renderTable = (
+  doc: any, 
+  tableData: string[][], 
+  margin: number, 
+  yPosition: number, 
+  maxWidth: number, 
+  pageHeight: number
+): number => {
+  if (tableData.length === 0) return yPosition;
+  
+  const colCount = Math.max(...tableData.map(row => row.length));
+  const colWidth = maxWidth / colCount;
+  const rowHeight = 8;
+  let currentY = yPosition;
+  
+  tableData.forEach((row, rowIndex) => {
+    // Check if we need a new page
+    if (currentY + rowHeight > pageHeight - 30) {
+      doc.addPage();
+      currentY = 20;
+    }
+    
+    // Draw row
+    row.forEach((cell, colIndex) => {
+      const x = margin + (colIndex * colWidth);
+      
+      // Draw cell border
+      doc.rect(x, currentY, colWidth, rowHeight);
+      
+      // Draw cell text
+      doc.setFontSize(10);
+      doc.setFont('helvetica', rowIndex === 0 ? 'bold' : 'normal');
+      
+      // Wrap text if too long
+      const cellText = doc.splitTextToSize(cell, colWidth - 4);
+      doc.text(cellText[0] || '', x + 2, currentY + 5);
+    });
+    
+    currentY += rowHeight;
+  });
+  
+  return currentY + 5; // Add spacing after table
+};
+
 export const useMeetingExport = (meetingData: MeetingData | null, meetingSettings: MeetingSettingsState) => {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -76,11 +121,23 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
       const maxWidth = pageWidth - (2 * margin);
       let yPosition = 30;
       
-      // Title
-      doc.setFontSize(20);
+      // Remove transcript section from content FIRST
+      let cleanContent = content.replace(/\*\*/g, ''); // Remove bold markers first
+      cleanContent = cleanContent.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+      cleanContent = cleanContent.replace(/\n*Transcript:[\s\S]*$/i, '');
+      cleanContent = cleanContent.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+      cleanContent = cleanContent.replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '');
+      cleanContent = cleanContent.replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
+      
+      // Title - wrap if too long
+      doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(title, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 15;
+      const titleLines = doc.splitTextToSize(title, maxWidth);
+      titleLines.forEach((line: string) => {
+        doc.text(line, pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 8;
+      });
+      yPosition += 7;
       
       // Date
       doc.setFontSize(12);
@@ -89,7 +146,9 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
       yPosition += 15;
       
       // Process content with proper formatting
-      const lines = content.split('\n');
+      const lines = cleanContent.split('\n');
+      let inTable = false;
+      let tableData: string[][] = [];
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -102,8 +161,31 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
         
         // Empty line
         if (!line) {
+          // If we were in a table, render it
+          if (inTable && tableData.length > 0) {
+            yPosition = renderTable(doc, tableData, margin, yPosition, maxWidth, pageHeight);
+            tableData = [];
+            inTable = false;
+          }
           yPosition += 5;
           continue;
+        }
+        
+        // Detect table rows (lines with |)
+        if (line.includes('|')) {
+          const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+          
+          // Skip separator rows (like |---|---|)
+          if (!cells.every(cell => /^-+$/.test(cell))) {
+            inTable = true;
+            tableData.push(cells);
+          }
+          continue;
+        } else if (inTable) {
+          // End of table - render it
+          yPosition = renderTable(doc, tableData, margin, yPosition, maxWidth, pageHeight);
+          tableData = [];
+          inTable = false;
         }
         
         // Section headers (lines starting with #)
@@ -168,6 +250,11 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
         const textLines = doc.splitTextToSize(line, maxWidth);
         doc.text(textLines, margin, yPosition);
         yPosition += (textLines.length * 5.5) + 2;
+      }
+      
+      // Render any remaining table
+      if (inTable && tableData.length > 0) {
+        renderTable(doc, tableData, margin, yPosition, maxWidth, pageHeight);
       }
       
       doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.pdf`);

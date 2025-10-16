@@ -785,6 +785,13 @@ export const MeetingHistoryList = ({
         return;
       }
 
+      // Strip out transcript section before generating Word doc
+      notes = notes.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*Transcript:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '');
+      notes = notes.replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
+
       await generateWordDocument(notes, meeting.title);
     } catch (error) {
       console.error('Error downloading Word document:', error);
@@ -824,6 +831,13 @@ export const MeetingHistoryList = ({
         toast.error('No meeting notes available to download');
         return;
       }
+
+      // Strip out transcript section before generating PDF
+      notes = notes.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*Transcript:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+      notes = notes.replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '');
+      notes = notes.replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
 
       generatePDF(notes, meeting.title);
     } catch (error) {
