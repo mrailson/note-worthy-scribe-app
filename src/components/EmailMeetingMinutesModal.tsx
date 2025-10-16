@@ -117,12 +117,19 @@ export function EmailMeetingMinutesModal({
         : `Meeting Minutes - ${meetingTitle}`;
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
-      const recipientName = toEmail ? toEmail.split('@')[0] : 'recipient';
+      
+      // Find recipient name from attendees list or use email prefix as fallback
+      let recipientName = 'recipient';
+      if (toEmail) {
+        const attendee = meetingAttendees.find(a => a.email?.toLowerCase() === toEmail.toLowerCase());
+        recipientName = attendee?.name || toEmail.split('@')[0];
+      }
+      
       setEmailBody(
         `Dear ${recipientName},\n\nPlease find attached the meeting notes for "${meetingTitle}".\n\nKind regards,\n${userName}`
       );
     }
-  }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDate, toEmail]);
+  }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDate, toEmail, meetingAttendees]);
 
   // Ensure user's email auto-fills when available
   useEffect(() => {
