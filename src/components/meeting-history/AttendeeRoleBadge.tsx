@@ -45,7 +45,9 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   };
 
   const updateRole = async (newRole: 'chair' | 'key_participant' | 'attendee') => {
+    if (updating) return;
     setUpdating(true);
+    console.log('⬆️ Updating attendee role', { meetingId, attendeeId: attendee.id, newRole });
     try {
       const { error } = await supabase
         .from('meeting_attendees')
@@ -55,10 +57,12 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
 
       if (error) throw error;
 
+      toast.success(`Role set to ${newRole.replace('_', ' ')}`);
       setOpen(false);
       onRoleChange?.();
+      console.log('✅ Role updated successfully');
     } catch (error) {
-      console.error('Error updating attendee role:', error);
+      console.error('❌ Error updating attendee role:', error);
       toast.error('Failed to update attendee role');
     } finally {
       setUpdating(false);
@@ -92,13 +96,10 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
         </Badge>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-56 p-3 z-[100] bg-background border-border pointer-events-auto" 
+        className="w-56 p-3 z-[1000] bg-popover text-popover-foreground border border-border shadow-md rounded-md pointer-events-auto" 
         align="start" 
         sideOffset={8}
-        onInteractOutside={(e) => {
-          e.preventDefault();
-          setOpen(false);
-        }}
+        onPointerDownOutside={(e) => e.preventDefault()}
       >
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground mb-2">
