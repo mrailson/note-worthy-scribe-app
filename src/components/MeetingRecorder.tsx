@@ -4504,49 +4504,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     </div>
                   </div>
                   
-                  {/* Meeting Type Selector */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
-                    <Select value={meetingType} onValueChange={(value: any) => setMeetingType(value)}>
-                      <SelectTrigger className="h-8 text-xs border-0 bg-transparent">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        <SelectItem value="teams">
-                          <div className="flex items-center gap-2">
-                            <Video className="h-4 w-4" />
-                            <span>MS Teams</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="face-to-face">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            <span>Face to Face</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="hybrid">
-                          <div className="flex items-center gap-2">
-                            <MonitorSpeaker className="h-4 w-4" />
-                            <span>Hybrid</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="text-xs font-medium text-muted-foreground mt-1">Meeting Type</div>
-                  </div>
-                  
-                  {/* Location Input - Only show for Face to Face */}
-                  {meetingType === 'face-to-face' && (
-                    <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
-                      <Input
-                        value={meetingLocation}
-                        onChange={(e) => setMeetingLocation(e.target.value)}
-                        placeholder="Enter location"
-                        className="h-8 text-xs text-center border-0 bg-transparent"
-                      />
-                      <div className="text-xs font-medium text-muted-foreground mt-1">Location</div>
-                    </div>
-                  )}
-                  
                   {/* Connection Status */}
                   <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50 hidden">
                     <div className="flex items-center justify-center mb-1">

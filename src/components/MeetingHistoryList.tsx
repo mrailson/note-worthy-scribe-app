@@ -1647,28 +1647,132 @@ export const MeetingHistoryList = ({
                         </span>
                       </>
                       
-                      {/* Meeting Type */}
-                      {meeting.meeting_format && (
-                        <>
-                          <span>•</span>
-                          {meeting.meeting_format === 'teams' && (
-                            <Video className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="MS Teams" />
-                          )}
-                          {meeting.meeting_format === 'face-to-face' && (
-                            <Users className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="Face to Face" />
-                          )}
-                          {meeting.meeting_format === 'hybrid' && (
-                            <MonitorSpeaker className="h-3 w-3 flex-shrink-0 text-muted-foreground" aria-label="Hybrid" />
-                          )}
-                        </>
-                      )}
+                      {/* Meeting Type - Editable */}
+                      <>
+                        <span>•</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-1 hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
+                              {meeting.meeting_format === 'face-to-face' && (
+                                <Users className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                              )}
+                              {meeting.meeting_format === 'hybrid' && (
+                                <MonitorSpeaker className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                              )}
+                              {(!meeting.meeting_format || meeting.meeting_format === 'teams') && (
+                                <Video className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                              )}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="bg-background z-50">
+                            <DropdownMenuItem 
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('meetings')
+                                    .update({ meeting_format: 'teams', meeting_location: null })
+                                    .eq('id', meeting.id);
+                                  if (error) throw error;
+                                  
+                                  // Update local state
+                                  setLocalMeetings(prev => prev.map(m => 
+                                    m.id === meeting.id 
+                                      ? { ...m, meeting_format: 'teams', meeting_location: null }
+                                      : m
+                                  ));
+                                  if (onRefresh) onRefresh();
+                                } catch (error) {
+                                  console.error('Error updating meeting type:', error);
+                                  toast.error('Failed to update meeting type');
+                                }
+                              }}
+                            >
+                              <Video className="h-4 w-4 mr-2" />
+                              MS Teams
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('meetings')
+                                    .update({ meeting_format: 'face-to-face' })
+                                    .eq('id', meeting.id);
+                                  if (error) throw error;
+                                  
+                                  // Update local state
+                                  setLocalMeetings(prev => prev.map(m => 
+                                    m.id === meeting.id 
+                                      ? { ...m, meeting_format: 'face-to-face' }
+                                      : m
+                                  ));
+                                  if (onRefresh) onRefresh();
+                                } catch (error) {
+                                  console.error('Error updating meeting type:', error);
+                                  toast.error('Failed to update meeting type');
+                                }
+                              }}
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              Face to Face
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('meetings')
+                                    .update({ meeting_format: 'hybrid' })
+                                    .eq('id', meeting.id);
+                                  if (error) throw error;
+                                  
+                                  // Update local state
+                                  setLocalMeetings(prev => prev.map(m => 
+                                    m.id === meeting.id 
+                                      ? { ...m, meeting_format: 'hybrid' }
+                                      : m
+                                  ));
+                                  if (onRefresh) onRefresh();
+                                } catch (error) {
+                                  console.error('Error updating meeting type:', error);
+                                  toast.error('Failed to update meeting type');
+                                }
+                              }}
+                            >
+                              <MonitorSpeaker className="h-4 w-4 mr-2" />
+                              Hybrid
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
                       
-                      {/* Location - only for face-to-face meetings */}
-                      {meeting.meeting_format === 'face-to-face' && meeting.meeting_location && (
+                      {/* Location - editable for face-to-face meetings */}
+                      {meeting.meeting_format === 'face-to-face' && (
                         <>
                           <span>•</span>
                           <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{meeting.meeting_location}</span>
+                          <Input
+                            value={meeting.meeting_location || ''}
+                            onChange={async (e) => {
+                              const newLocation = e.target.value;
+                              try {
+                                const { error } = await supabase
+                                  .from('meetings')
+                                  .update({ meeting_location: newLocation })
+                                  .eq('id', meeting.id);
+                                if (error) throw error;
+                                
+                                // Update local state
+                                setLocalMeetings(prev => prev.map(m => 
+                                  m.id === meeting.id 
+                                    ? { ...m, meeting_location: newLocation }
+                                    : m
+                                ));
+                              } catch (error) {
+                                console.error('Error updating location:', error);
+                              }
+                            }}
+                            placeholder="Enter location"
+                            className="h-5 text-xs border-0 bg-transparent px-1 w-32 inline-block"
+                          />
                         </>
                       )}
                       
