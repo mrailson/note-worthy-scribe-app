@@ -2985,39 +2985,6 @@ ${transcript}`;
                             </Tooltip>
                           </TooltipProvider>
 
-                          {/* Quick Tidy button - fix names & acronyms */}
-                          {!isEditing && (() => {
-                            const getTabContent = () => {
-                              switch (activeNotesStyleTab) {
-                                case 'style1': return notesStyle3;
-                                case 'style4': return notesStyle4;
-                                case 'style5': return notesStyle5;
-                                default: return null;
-                              }
-                            };
-                            
-                            const content = getTabContent();
-                            
-                            return content ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      onClick={handleQuickTidy}
-                                      variant="outline"
-                                      size="icon"
-                                      disabled={isGenerating}
-                                    >
-                                      <Eraser className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Quick Tidy - Fix names & acronyms</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : null;
-                          })()}
 
                           {/* Action buttons for each tab when content exists */}
                           {(() => {
@@ -3068,25 +3035,6 @@ ${transcript}`;
                             
                             return content ? (
                               <>
-                                {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          onClick={() => setEnhancementDialogOpen(true)}
-                                          variant="outline"
-                                          size="icon"
-                                        >
-                                          <Wand2 className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Enhance notes</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                                
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="icon">
@@ -3099,6 +3047,23 @@ ${transcript}`;
                                     style={{ zIndex: 180 }}
                                     sideOffset={5}
                                   >
+                                    {!isEditing && content && (
+                                      <DropdownMenuItem 
+                                        onSelect={() => handleQuickTidy()}
+                                        disabled={isGenerating}
+                                      >
+                                        <Eraser className="h-4 w-4 mr-2" />
+                                        Quick Tidy
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
+                                      <DropdownMenuItem 
+                                        onSelect={() => setEnhancementDialogOpen(true)}
+                                      >
+                                        <Wand2 className="h-4 w-4 mr-2" />
+                                        Enhance Notes
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem 
                                       onSelect={() => {
                                         if (content) {
