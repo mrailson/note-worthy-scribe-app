@@ -127,11 +127,54 @@ export function renderMinutesMarkdown(content: string): string {
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
     .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
     
+    // Smart numbered list processing: detect which numbered items should be nested
+    // This converts sequences of short numbered items after a longer one into nested bullets
+    .replace(/^(\d+)[\.)]\s+(.+)$/gm, (match, num, content) => {
+      // Mark numbered items for processing
+      return `<!NUM!>${num}<!NUM_SEP!>${content}<!NUM_END!>`;
+    })
+    
+    // Process marked numbered items and determine nesting
+    .replace(/<!NUM!>\d+<!NUM_SEP!>[\s\S]*?<!NUM_END!>/g, (match) => {
+      // This will be processed in a second pass
+      return match;
+    })
+    
+    // Smart nested conversion: Look for patterns where short items follow longer ones
+    .replace(/(<!NUM!>(\d+)<!NUM_SEP!>((?:.{60,})|(?:.*?\*\*.*))<!NUM_END!>)((?:\s*<!NUM!>\d+<!NUM_SEP!>(?:.{0,100})<!NUM_END!>){2,})/gm, 
+      (match, mainItem, mainNum, mainContent, followingItems) => {
+        // Main item: longer text (60+ chars) or has bold text
+        // Following items: 2+ shorter items that should be nested
+        
+        const main = mainItem.replace(/<!NUM!>\d+<!NUM_SEP!>/, '').replace(/<!NUM_END!>/, '');
+        const nested = followingItems
+          .match(/<!NUM!>\d+<!NUM_SEP!>(.*?)<!NUM_END!>/g)
+          ?.map(item => item.replace(/<!NUM!>\d+<!NUM_SEP!>/, '').replace(/<!NUM_END!>/, '').trim())
+          .map(item => `<!NESTED_BULLET!>${item}<!NESTED_BULLET_END!>`)
+          .join('\n') || '';
+        
+        return `<!MAIN_NUM!>${mainNum}<!MAIN_NUM_SEP!>${main}<!NESTED_START!>\n${nested}<!NESTED_STOP!>`;
+      })
+    
     // Mark nested bullets (indented with 4+ spaces or tabs) for later processing
     .replace(/^([ ]{4,}|\t+)[-•\*]\s+(.+)$/gm, '<!NESTED!>$2<!NESTED_END!>')
     
     // Mark nested numbered items (indented with 2+ spaces before number)
     .replace(/^[ ]{2,}(\d+)[\.)]\s+(.+)$/gm, '<!NESTED_NUM!>$2<!NESTED_NUM_END!>')
+    
+    // Convert remaining simple numbered items (not processed by smart nesting)
+    .replace(/<!NUM!>(\d+)<!NUM_SEP!>(.*?)<!NUM_END!>/g, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
+    
+    // Convert main numbered items with nested content
+    .replace(/<!MAIN_NUM!>(\d+)<!MAIN_NUM_SEP!>(.*?)<!NESTED_START!>(.*?)<!NESTED_STOP!>/gs, (match, num, content, nested) => {
+      const nestedBullets = nested
+        .match(/<!NESTED_BULLET!>(.*?)<!NESTED_BULLET_END!>/g)
+        ?.map(item => item.replace(/<!NESTED_BULLET!>|<!NESTED_BULLET_END!>/g, '').trim())
+        .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
+        .join('') || '';
+      
+      return `<li class="mb-3 text-[#212B32] leading-relaxed" value="${num}">${content}<ul class="list-disc list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
+    })
     
     // Convert top-level bullet list items
     .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
@@ -149,14 +192,8 @@ export function renderMinutesMarkdown(content: string): string {
     .replace(/<!NESTED!>|<!NESTED_END!>/g, '')
     
     // Wrap consecutive top-level list items in ul tags
-    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-2)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-2)[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
 
-    // Enhanced numbered list items - detect discussion points with bold headers
-    .replace(/^(\d+)[\.)]\s+(\*\*.*?\*\*:?)\s*$/gm, '<li class="mb-4 text-[#212B32] leading-relaxed font-medium text-base border-l-2 border-[#005EB8] pl-3" value="$1">$2</li>')
-    
-    // Regular numbered list items
-    .replace(/^(\d+)[\.)]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
-    
     // Convert nested numbered items to bullets within list items
     .replace(/(<li[^>]*value="[^"]*">.*?)((?:<!NESTED_NUM!>.*?<!NESTED_NUM_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
       const nestedItems = nested.match(/<!NESTED_NUM!>(.*?)<!NESTED_NUM_END!>/g)
@@ -168,11 +205,11 @@ export function renderMinutesMarkdown(content: string): string {
     
     // Clean up nested numbered markers
     .replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '')
-
-    // Wrap consecutive numbered items in ol tags with better spacing for discussion points
-    .replace(/(<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-4">$&</ol>')
     
-    // Wrap remaining numbered items (regular)
+    // Wrap remaining numbered items with mb-3 (items that have nested content)
+    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-5 space-y-2">$&</ol>')
+
+    // Wrap remaining numbered items (regular without nesting)
     .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-4 space-y-1">$&</ol>')
 
     // Paragraphs
