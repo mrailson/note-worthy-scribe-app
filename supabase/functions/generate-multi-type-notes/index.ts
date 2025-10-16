@@ -131,6 +131,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch meeting context for authoritative location/format
+    const { data: meeting } = await supabase
+      .from('meetings')
+      .select('meeting_format, meeting_location')
+      .eq('id', meetingId)
+      .single();
+
+    // Build authoritative location context
+    let locationContext = '';
+    if (meeting?.meeting_format === 'teams') {
+      locationContext = 'Location: Online (Microsoft Teams)\n';
+    } else if (meeting?.meeting_format === 'hybrid') {
+      locationContext = meeting?.meeting_location 
+        ? `Location: ${meeting.meeting_location} and Online (Hybrid)\n`
+        : 'Location: Hybrid (Online + on-site)\n';
+    } else if (meeting?.meeting_format === 'face-to-face' && meeting?.meeting_location) {
+      locationContext = `Location: ${meeting.meeting_location}\n`;
+    }
+
     // Calculate meeting size for limerick verse scaling
     const transcriptWordCount = transcript.split(/\s+/).length;
     const limerickVerseCount = transcriptWordCount < 500 ? 1 :
@@ -184,7 +203,12 @@ CRITICAL RULES:
               {
                 role: 'user',
                 content: config.type === 'limerick' 
-                  ? `Create ${limerickVerseCount} meeting limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'} following this EXACT structure:
+                  ? `${locationContext ? `**MEETING CONTEXT (AUTHORITATIVE):**
+${locationContext}Format: ${meeting?.meeting_format === 'teams' ? 'MS Teams' : meeting?.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}
+
+**CRITICAL: This location/format is authoritative. Do not state any different location in your response.**
+
+` : ''}Create ${limerickVerseCount} meeting limerick ${limerickVerseCount === 1 ? 'verse' : 'verses'} following this EXACT structure:
 
 # 🎭 Meeting in Verse
 
@@ -221,7 +245,12 @@ Time: ${meetingTime || 'Not specified'}
 
 Transcript:
 ${transcript}`
-                  : `Meeting: ${meetingTitle || 'Meeting'}
+                  : `${locationContext ? `**MEETING CONTEXT (AUTHORITATIVE):**
+${locationContext}Format: ${meeting?.meeting_format === 'teams' ? 'MS Teams' : meeting?.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}
+
+**CRITICAL: This location/format is authoritative. Do not contradict it even if the transcript mentions other locations.**
+
+` : ''}Meeting: ${meetingTitle || 'Meeting'}
 Date: ${meetingDate || 'Not specified'}
 Time: ${meetingTime || 'Not specified'}
 

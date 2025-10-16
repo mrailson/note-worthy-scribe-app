@@ -350,9 +350,21 @@ Make the executive summary rich in detail and context. Focus on creating a narra
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
 
-    // Build context information from meeting metadata
-    const contextInfo = `**MEETING CONTEXT:**
-${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${meeting.participants?.length ? `- Attendees: ${meeting.participants.join(', ')}\n` : ''}${meeting.meeting_location ? `- Location: ${meeting.meeting_location}\n` : ''}${meeting.meeting_format ? `- Format: ${meeting.meeting_format}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
+    // Build authoritative context information from meeting metadata
+    let locationContext = '';
+    if (meeting.meeting_format === 'teams') {
+      locationContext = '- Location: Online (Microsoft Teams)\n';
+    } else if (meeting.meeting_format === 'hybrid') {
+      locationContext = meeting.meeting_location 
+        ? `- Location: ${meeting.meeting_location} and Online (Hybrid)\n`
+        : '- Location: Hybrid (Online + on-site)\n';
+    } else if (meeting.meeting_format === 'face-to-face' && meeting.meeting_location) {
+      locationContext = `- Location: ${meeting.meeting_location}\n`;
+    }
+
+    const contextInfo = `**MEETING CONTEXT (AUTHORITATIVE - DO NOT CONTRADICT):**
+${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${meeting.participants?.length ? `- Attendees: ${meeting.participants.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
+**CRITICAL INSTRUCTION: The location and format above are AUTHORITATIVE. Do not infer, state, or imply any different location even if the transcript mentions other places. Transcript location mentions are for context only.**
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 
 `;

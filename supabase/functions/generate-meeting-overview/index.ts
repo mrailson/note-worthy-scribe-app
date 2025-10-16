@@ -53,6 +53,29 @@ serve(async (req) => {
     const content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
+    // Initialize Supabase client and fetch meeting context
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: meeting } = await supabase
+      .from('meetings')
+      .select('meeting_format, meeting_location')
+      .eq('id', meetingId)
+      .single();
+
+    // Build authoritative location context
+    let locationContext = '';
+    if (meeting?.meeting_format === 'teams') {
+      locationContext = 'Location: Online (Microsoft Teams)\n';
+    } else if (meeting?.meeting_format === 'hybrid') {
+      locationContext = meeting?.meeting_location 
+        ? `Location: ${meeting.meeting_location} and Online (Hybrid)\n`
+        : 'Location: Hybrid (Online + on-site)\n';
+    } else if (meeting?.meeting_format === 'face-to-face' && meeting?.meeting_location) {
+      locationContext = `Location: ${meeting.meeting_location}\n`;
+    }
+
     const systemPrompt = `Create a concise executive meeting summary using British English spellings and conventions.
 
 Format:
@@ -80,7 +103,11 @@ Example format:
 
     const userPrompt = `Create a concise executive summary from this meeting titled "${meetingTitle || 'Meeting'}":
 
-${content.substring(0, 3000)}
+${locationContext ? `**MEETING CONTEXT (AUTHORITATIVE):**
+${locationContext}
+**CRITICAL: This location/format is authoritative. Do not contradict it even if the content mentions other locations.**
+
+` : ''}${content.substring(0, 3000)}
 
 Format your response exactly like this:
 [Brief paragraph describing the meeting purpose and outcome]
@@ -140,11 +167,6 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
     
     const overview = data.choices?.[0]?.message?.content?.trim() || '';
     console.log('📝 Generated overview:', overview);
-
-    // Initialize Supabase client and save to database
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('💾 Saving overview to database...');
     
