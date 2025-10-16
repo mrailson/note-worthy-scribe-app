@@ -180,7 +180,6 @@ export const MeetingHistoryList = ({
     // Fetch attendees for all meetings
     const fetchAllAttendees = async () => {
       const meetingIds = meetings.map(m => m.id);
-      console.log('📋 Fetching attendees for meetings:', meetingIds);
       
       if (meetingIds.length === 0) return;
 
@@ -204,8 +203,6 @@ export const MeetingHistoryList = ({
           `)
           .in('meeting_id', meetingIds);
 
-        console.log('📋 Raw attendee data:', { data: attendeeLinks, error, count: attendeeLinks?.length });
-
         if (error) {
           console.error('❌ Error fetching attendees:', error);
           return;
@@ -225,36 +222,32 @@ export const MeetingHistoryList = ({
             }
           });
           
-          console.log('📋 Attendees map before sorting:', attendeesMap);
-          
           // Sort attendees by role priority
           Object.keys(attendeesMap).forEach(meetingId => {
             attendeesMap[meetingId].sort((a, b) => {
-              const getRolePriority = (role: string, userId: string) => {
+              const getRolePriority = (role: string, email: string) => {
                 if (role === 'chair') return 0;
                 if (role === 'key_participant') return 1;
-                if (userId === user?.id) return 2;
+                if (email?.toLowerCase() === user?.email?.toLowerCase()) return 2;
                 return 3;
               };
               
-              const priorityA = getRolePriority(a.meeting_role, a.user_id);
-              const priorityB = getRolePriority(b.meeting_role, b.user_id);
+              const priorityA = getRolePriority(a.meeting_role, a.email);
+              const priorityB = getRolePriority(b.meeting_role, b.email);
               
               return priorityA - priorityB;
             });
           });
           
-          console.log('📋 Final attendees map:', attendeesMap);
-          console.log('📋 Current user ID:', user?.id);
           setMeetingAttendees(attendeesMap);
         }
       } catch (error) {
-        console.error('❌ Error fetching attendees:', error);
+        console.error('Error fetching attendees:', error);
       }
     };
 
     fetchAllAttendees();
-  }, [meetings, user?.id]);
+  }, [meetings, user?.id, user?.email]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -1565,14 +1558,8 @@ export const MeetingHistoryList = ({
                           ? meetingAttendees[meeting.id] 
                           : meetingAttendees[meeting.id].slice(0, 5)
                         ).map((attendee: any, idx: number) => {
-                          // Debug: Check user_id comparison
-                          const isUserAttendee = attendee.user_id === user?.id;
-                          console.log('Attendee check:', {
-                            name: attendee.name,
-                            attendeeUserId: attendee.user_id,
-                            currentUserId: user?.id,
-                            isMatch: isUserAttendee
-                          });
+                          // Compare by email since user_id might be incorrectly set
+                          const isUserAttendee = attendee.email?.toLowerCase() === user?.email?.toLowerCase();
                           
                           return (
                             <AttendeeRoleBadge
@@ -1613,15 +1600,15 @@ export const MeetingHistoryList = ({
                                   
                                   // Sort attendees
                                   attendees.sort((a: any, b: any) => {
-                                    const getRolePriority = (role: string, userId: string) => {
+                                    const getRolePriority = (role: string, email: string) => {
                                       if (role === 'chair') return 0;
                                       if (role === 'key_participant') return 1;
-                                      if (userId === user?.id) return 2;
+                                      if (email?.toLowerCase() === user?.email?.toLowerCase()) return 2;
                                       return 3;
                                     };
                                     
-                                    return getRolePriority(a.meeting_role, a.user_id) - 
-                                           getRolePriority(b.meeting_role, b.user_id);
+                                    return getRolePriority(a.meeting_role, a.email) - 
+                                           getRolePriority(b.meeting_role, b.email);
                                   });
                                   
                                   setMeetingAttendees(prev => ({

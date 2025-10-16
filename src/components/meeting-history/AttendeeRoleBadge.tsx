@@ -15,6 +15,7 @@ interface AttendeeRoleBadgeProps {
     id: string;
     name: string;
     title?: string;
+    email?: string;
   };
   meetingId: string;
   meetingRole: 'chair' | 'key_participant' | 'attendee';
@@ -31,14 +32,6 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
-
-  // Debug logging
-  console.log('AttendeeRoleBadge render:', {
-    attendeeName: attendee.name,
-    isCurrentUser,
-    meetingRole,
-    open
-  });
 
   const getRoleIcon = () => {
     switch (meetingRole) {
@@ -98,8 +91,8 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
           {isCurrentUser && ' (You)'}
         </Badge>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2 z-50" align="start" sideOffset={5}>
-        <div className="space-y-1">
+      <PopoverContent className="w-56 p-2 z-50" align="start" sideOffset={5} onClick={(e) => e.stopPropagation()}>
+        <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
           <p className="text-xs font-medium text-muted-foreground mb-2">
             Set role for {attendee.name}
           </p>
@@ -107,7 +100,10 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
             variant={meetingRole === 'chair' ? 'default' : 'ghost'}
             size="sm"
             className="w-full justify-start"
-            onClick={() => updateRole('chair')}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateRole('chair');
+            }}
             disabled={updating}
           >
             <Crown className="h-4 w-4 mr-2" />
@@ -117,7 +113,10 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
             variant={meetingRole === 'key_participant' ? 'default' : 'ghost'}
             size="sm"
             className="w-full justify-start"
-            onClick={() => updateRole('key_participant')}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateRole('key_participant');
+            }}
             disabled={updating}
           >
             <Star className="h-4 w-4 mr-2" />
@@ -127,7 +126,10 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
             variant={meetingRole === 'attendee' ? 'default' : 'ghost'}
             size="sm"
             className="w-full justify-start"
-            onClick={() => updateRole('attendee')}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateRole('attendee');
+            }}
             disabled={updating}
           >
             <User className="h-4 w-4 mr-2" />
