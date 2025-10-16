@@ -375,13 +375,7 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
-
-Use the exact meeting title provided in the metadata without adding any prefix or modification
-
-Then add: Date: [Day of week] [Day with ordinal] [Month] [Year]
-
-Then use these sections with # headers (level 1):
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (start directly with the first section header):
 
 # MEETING DETAILS
 - Meeting Title: [from metadata]
