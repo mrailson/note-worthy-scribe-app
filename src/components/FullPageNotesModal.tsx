@@ -1,5 +1,5 @@
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
-import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
+import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -138,8 +138,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [enhancementDialogOpen, setEnhancementDialogOpen] = useState(false);
   const [showContextDialog, setShowContextDialog] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailModalContent, setEmailModalContent] = useState({ title: '', notes: '' });
-  useEffect(() => { console.log('📧 Email modal open state:', emailModalOpen); }, [emailModalOpen]);
+  const [emailModalContent, setEmailModalContent] = useState({ subject: '', body: '', toEmail: '' });
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -3055,15 +3054,15 @@ ${transcript}`;
                                       Copy to Clipboard
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
-                                      onSelect={(e) => {
-                                        // Prevent immediate dropdown close to allow modal state to propagate
-                                        e.preventDefault();
-                                        console.log('📧 Send Email clicked from dropdown', { tabName, hasContent: !!content });
-                                        setEmailModalContent({ title: meeting?.title || 'Meeting', notes: content || '' });
-                                        // Use setTimeout to ensure dropdown closes gracefully before modal opens
-                                        setTimeout(() => {
-                                          setEmailModalOpen(true);
-                                        }, 50);
+                                      onSelect={() => {
+                                        const subject = `${meeting?.title || 'Meeting'} - ${new Date().toLocaleDateString('en-GB')}`;
+                                        const body = content || '';
+                                        setEmailModalContent({ 
+                                          subject, 
+                                          body, 
+                                          toEmail: user?.email || '' 
+                                        });
+                                        setEmailModalOpen(true);
                                       }}
                                     >
                                       <Mail className="h-4 w-4 mr-2" />
@@ -3394,12 +3393,14 @@ ${transcript}`;
 
       </Dialog>
       
-      <EmailMeetingMinutesModal
+      <MeetingMinutesEmailModal
         isOpen={emailModalOpen}
         onOpenChange={setEmailModalOpen}
-        meetingId={meeting?.id || ''}
-        meetingTitle={emailModalContent.title}
-        meetingNotes={emailModalContent.notes}
+        defaultToEmail={emailModalContent.toEmail}
+        defaultSubject={emailModalContent.subject}
+        defaultBody={emailModalContent.body}
+        meetingTitle={meeting?.title || 'Meeting'}
+        meetingDate={meeting?.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
       />
     </>
   );
