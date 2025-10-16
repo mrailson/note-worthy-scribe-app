@@ -45,6 +45,7 @@ export function EmailMeetingMinutesModal({
   const [meetingAttendees, setMeetingAttendees] = useState<MeetingAttendee[]>([]);
   const [selectedAttendeeEmails, setSelectedAttendeeEmails] = useState<string[]>([]);
   const [meetingDateTime, setMeetingDateTime] = useState<string>("");
+  const [meetingDate, setMeetingDate] = useState<string>("");
 
   // Helper function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -77,6 +78,8 @@ export function EmailMeetingMinutesModal({
           // Use dashes instead of forward slashes to avoid HTML encoding issues
           const formattedDateTime = format(roundedDate, "dd-MM-yyyy 'at' HH:mm");
           setMeetingDateTime(formattedDateTime);
+          const formattedDateOnly = format(roundedDate, "dd-MM-yyyy");
+          setMeetingDate(formattedDateOnly);
         }
       } catch (error) {
         console.error('Error fetching meeting data:', error);
@@ -91,8 +94,8 @@ export function EmailMeetingMinutesModal({
   // Reset form when modal opens with new meeting data
   useEffect(() => {
     if (isOpen && meetingTitle) {
-      const subjectLine = meetingDateTime 
-        ? `${meetingTitle}, ${meetingDateTime} - Minutes`
+      const subjectLine = meetingDate 
+        ? `${meetingTitle}, ${meetingDate} - Minutes`
         : `${meetingTitle} - Minutes`;
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
@@ -100,7 +103,14 @@ export function EmailMeetingMinutesModal({
         `Dear recipient,\n\nPlease find attached the meeting notes for "${meetingTitle}".\n\nKind regards,\n${userName}`
       );
     }
-  }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDateTime]);
+  }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDate]);
+
+  // Ensure user's email auto-fills when available
+  useEffect(() => {
+    if (isOpen && profile?.email && (!toEmail || toEmail.trim() === "")) {
+      setToEmail(profile.email);
+    }
+  }, [isOpen, profile?.email]);
 
   // Fetch meeting attendees
   useEffect(() => {
