@@ -375,7 +375,9 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (start directly with the first section header):
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
+
+CRITICAL: Start your response immediately with "# MEETING DETAILS" - do NOT include any title, date, or text before this first header.
 
 # MEETING DETAILS
 - Meeting Title: [from metadata]
