@@ -247,13 +247,12 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         if (error) throw error;
         toast.success('Attendee updated');
       } else {
-        // Insert new - only set user_id if this attendee is the current user
-        const isCurrentUser = formData.email?.toLowerCase() === user.email?.toLowerCase();
+        // Insert new - always set user_id to current user (who is creating the record)
         
         const { error } = await supabase
           .from('attendees')
           .insert({
-            user_id: isCurrentUser ? user.id : null,
+            user_id: user.id,
             practice_id: practiceIds[0],
             name: formData.name,
             email: formData.email || null,
