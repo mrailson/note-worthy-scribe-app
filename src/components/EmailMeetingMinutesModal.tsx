@@ -58,6 +58,24 @@ export function EmailMeetingMinutesModal({
     return roundedDate;
   };
 
+  // Helper function to add ordinal suffix to day
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+
+  // Helper function to format date nicely
+  const formatNiceDate = (date: Date): string => {
+    const day = date.getDate();
+    const ordinal = getOrdinalSuffix(day);
+    return format(date, `d'${ordinal}' MMMM yyyy`);
+  };
+
   // Fetch meeting data to get the start time
   useEffect(() => {
     const fetchMeetingData = async () => {
@@ -78,8 +96,8 @@ export function EmailMeetingMinutesModal({
           // Use dashes instead of forward slashes to avoid HTML encoding issues
           const formattedDateTime = format(roundedDate, "dd-MM-yyyy 'at' HH:mm");
           setMeetingDateTime(formattedDateTime);
-          const formattedDateOnly = format(roundedDate, "dd-MM-yyyy");
-          setMeetingDate(formattedDateOnly);
+          const niceDate = formatNiceDate(roundedDate);
+          setMeetingDate(niceDate);
         }
       } catch (error) {
         console.error('Error fetching meeting data:', error);
@@ -95,8 +113,8 @@ export function EmailMeetingMinutesModal({
   useEffect(() => {
     if (isOpen && meetingTitle) {
       const subjectLine = meetingDate 
-        ? `${meetingTitle}, ${meetingDate} - Minutes`
-        : `${meetingTitle} - Minutes`;
+        ? `Meeting Minutes - ${meetingTitle} - ${meetingDate}`
+        : `Meeting Minutes - ${meetingTitle}`;
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
       const recipientName = toEmail ? toEmail.split('@')[0] : 'recipient';
