@@ -55,14 +55,18 @@ serve(async (req) => {
 
     const systemPrompt = `Create a concise executive meeting summary using British English spellings and conventions.
 
+Format:
+1. Opening paragraph (20-30 words): Brief overview of meeting purpose and main outcome
+2. Key points (3-5 bullet points): Specific decisions, actions, and deliverables
+
 Requirements:
 - Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
-- 30-50 words maximum
-- Use 3-5 bullet points format
-- Each bullet point: one clear, specific statement
+- Total: 60-80 words maximum
+- Each bullet point: one clear, specific statement (8-12 words)
 - Focus on key decisions, actions, and outcomes only
 - Include critical details: names, deadlines, deliverables (if mentioned)
 - Professional, direct tone
+- Use • for bullet points
 - NO introductory phrases or filler words`;
 
 
@@ -70,7 +74,13 @@ Requirements:
 
 ${content.substring(0, 3000)}
 
-Provide 3-5 bullet points (30-50 words total) covering: key decisions, critical actions agreed, important deadlines, and main deliverables.`;
+Format:
+[Brief paragraph describing meeting purpose and outcome]
+
+• [Key decision/action 1]
+• [Key decision/action 2]
+• [Key decision/action 3]
+• [Additional points as needed, max 5 total]`;
 
     console.log('🔧 Using Lovable AI with google/gemini-2.5-flash');
 

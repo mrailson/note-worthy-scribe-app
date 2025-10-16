@@ -31,7 +31,7 @@ export const MeetingOverviewEditor = ({
 
   // Debug logging for save button state
   const wordCount = overview.trim().split(/\s+/).filter(word => word.length > 0).length;
-  const isSaveDisabled = saving || !overview.trim() || wordCount > 150;
+  const isSaveDisabled = saving || !overview.trim() || wordCount > 80;
   
   useEffect(() => {
     if (isEditing) {
@@ -54,8 +54,8 @@ export const MeetingOverviewEditor = ({
       return;
     }
     
-    if (wordCount > 150) {
-      toast.error("Overview must be 150 words or less");
+    if (wordCount > 80) {
+      toast.error("Overview must be 80 words or less");
       return;
     }
 
@@ -139,6 +139,7 @@ export const MeetingOverviewEditor = ({
               dangerouslySetInnerHTML={{ 
                 __html: renderNHSMarkdown(overview, { enableNHSStyling: true })
               }}
+              className="prose prose-sm max-w-none [&>p]:mb-3 [&>ul]:space-y-2 [&>ul]:mt-3 [&>ul>li]:leading-relaxed"
             />
           ) : (
             "No overview yet. Click Edit to add one."
@@ -160,12 +161,12 @@ export const MeetingOverviewEditor = ({
           console.log('📝 Overview changed:', e.target.value.length, 'chars');
           setOverview(e.target.value);
         }}
-        placeholder="Brief overview of meeting purpose and main topics discussed (100-150 words recommended)"
+        placeholder="Brief overview paragraph followed by bullet points (e.g., • Key point 1, • Key point 2)"
         className="min-h-[80px] resize-y"
       />
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">
-          {wordCount}/150 words {wordCount > 150 && <span className="text-destructive font-semibold">(too long)</span>}
+          {wordCount}/80 words {wordCount > 80 && <span className="text-destructive font-semibold">(too long)</span>}
         </span>
         <span className={`px-2 py-1 rounded text-xs font-mono ${isSaveDisabled ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-600'}`}>
           {isSaveDisabled ? '❌ Save disabled' : '✅ Can save'}
