@@ -124,8 +124,14 @@ export function renderMinutesMarkdown(content: string): string {
     // Italic text
     .replace(/\*(.*?)\*/g, '<em class="italic text-[#425563]">$1</em>')
 
+    // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
+    .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
+    
     // Mark nested bullets (indented with 4+ spaces or tabs) for later processing
     .replace(/^([ ]{4,}|\t+)[-•\*]\s+(.+)$/gm, '<!NESTED!>$2<!NESTED_END!>')
+    
+    // Mark nested numbered items (indented with 2+ spaces before number)
+    .replace(/^[ ]{2,}(\d+)[\.)]\s+(.+)$/gm, '<!NESTED_NUM!>$2<!NESTED_NUM_END!>')
     
     // Convert top-level bullet list items
     .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
@@ -150,6 +156,18 @@ export function renderMinutesMarkdown(content: string): string {
     
     // Regular numbered list items
     .replace(/^(\d+)[\.)]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
+    
+    // Convert nested numbered items to bullets within list items
+    .replace(/(<li[^>]*value="[^"]*">.*?)((?:<!NESTED_NUM!>.*?<!NESTED_NUM_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
+      const nestedItems = nested.match(/<!NESTED_NUM!>(.*?)<!NESTED_NUM_END!>/g)
+        ?.map(item => item.replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '').trim())
+        .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
+        .join('') || '';
+      return `${opening}<ul class="list-disc list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
+    })
+    
+    // Clean up nested numbered markers
+    .replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '')
 
     // Wrap consecutive numbered items in ol tags with better spacing for discussion points
     .replace(/(<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-4">$&</ol>')
