@@ -101,6 +101,51 @@ async function cleanLargeTranscript(
   return mergeCleanedChunks(results);
 }
 
+/**
+ * Fuzzy deduplicate attendee names between card and transcript lists.
+ * Prioritizes card attendees and adds transcript participants that don't match.
+ * 
+ * @param cardNames - Names from meeting_attendees table (explicit)
+ * @param transcriptNames - Names from meeting.participants (detected)
+ * @returns Merged list with card names first, deduplicated
+ */
+function fuzzyDeduplicate(cardNames: string[], transcriptNames: string[]): string[] {
+  if (!transcriptNames || transcriptNames.length === 0) {
+    return cardNames;
+  }
+  
+  // Normalize function for fuzzy matching
+  const normalize = (name: string): string => {
+    return name.trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+  
+  // Start with card names (these take priority)
+  const result: string[] = [...cardNames];
+  const normalizedCardNames = new Set(cardNames.map(normalize));
+  
+  // Add transcript names that don't fuzzy-match any card names
+  for (const transcriptName of transcriptNames) {
+    const normalizedTranscript = normalize(transcriptName);
+    
+    // Check if this transcript name fuzzy-matches any card name
+    let isDuplicate = false;
+    for (const normalizedCard of normalizedCardNames) {
+      if (normalizedTranscript === normalizedCard) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    // Add if not a duplicate
+    if (!isDuplicate) {
+      result.push(transcriptName);
+      normalizedCardNames.add(normalizedTranscript);
+    }
+  }
+  
+  return result;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -232,6 +277,41 @@ serve(async (req) => {
     }
 
     console.log('📄 Raw transcript length:', fullTranscript.length, 'chars');
+
+    // Fetch explicit attendees added to the meeting card
+    const { data: cardAttendees, error: attendeesError } = await supabase
+      .from('meeting_attendees')
+      .select(`
+        attendee:attendees (
+          name
+        )
+      `)
+      .eq('meeting_id', meetingId);
+
+    if (attendeesError) {
+      console.warn('⚠️ Error fetching meeting_attendees:', attendeesError);
+    }
+
+    // Extract just the names from the join result
+    const cardAttendeeNames = cardAttendees
+      ?.map(item => item.attendee?.name)
+      .filter((name): name is string => Boolean(name)) || [];
+
+    console.log('👥 Card attendees:', cardAttendeeNames.length, cardAttendeeNames);
+    console.log('👥 Transcript participants:', meeting.participants?.length || 0, meeting.participants);
+
+    // Determine final attendee list using intelligent merge
+    let finalAttendees: string[];
+    if (cardAttendeeNames.length >= 1) {
+      // Use fuzzy deduplication to merge card attendees with transcript participants
+      const transcriptParticipants = meeting.participants || [];
+      finalAttendees = fuzzyDeduplicate(cardAttendeeNames, transcriptParticipants);
+      console.log('✅ Using merged attendees (card + transcript):', finalAttendees.length, finalAttendees);
+    } else {
+      // Fallback to transcript participants only
+      finalAttendees = meeting.participants || [];
+      console.log('✅ Using transcript participants only:', finalAttendees.length, finalAttendees);
+    }
 
     // Calculate word count for the meeting
     const wordCount = fullTranscript.split(/\s+/).filter(word => word.length > 0).length;
@@ -391,7 +471,7 @@ Make the executive summary rich in detail and context. Focus on creating a narra
     }
 
     const contextInfo = `**MEETING CONTEXT (AUTHORITATIVE - DO NOT CONTRADICT):**
-${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${meeting.participants?.length ? `- Attendees: ${meeting.participants.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
+${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${finalAttendees.length ? `- Attendees: ${finalAttendees.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
 **CRITICAL INSTRUCTION: The location and format above are AUTHORITATIVE. Do not infer, state, or imply any different location even if the transcript mentions other places. Transcript location mentions are for context only.**
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 
