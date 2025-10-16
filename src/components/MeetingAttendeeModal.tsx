@@ -53,6 +53,40 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
   const [orgSuggestions, setOrgSuggestions] = useState<Array<{ name: string; code?: string }>>([]);
   const [showOrgSuggestions, setShowOrgSuggestions] = useState(false);
   const orgInputRef = useRef<HTMLInputElement>(null);
+  
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
+  const roleInputRef = useRef<HTMLInputElement>(null);
+
+  // Predefined roles for GP practices and ICB
+  const commonRoles = [
+    'GP',
+    'GP Partner',
+    'Salaried GP',
+    'Practice Manager',
+    'Deputy Practice Manager',
+    'Finance Manager',
+    'Clinical Lead',
+    'Practice Nurse',
+    'Advanced Nurse Practitioner',
+    'Healthcare Assistant',
+    'Pharmacist',
+    'Clinical Pharmacist',
+    'Physiotherapist',
+    'Mental Health Practitioner',
+    'Social Prescriber',
+    'Care Coordinator',
+    'PCN Clinical Director',
+    'PCN Manager',
+    'ICB Manager',
+    'ICB Clinical Lead',
+    'Quality Improvement Lead',
+    'Medical Secretary',
+    'Receptionist',
+    'Administrator',
+    'IT Manager',
+    'Communications Manager'
+  ];
 
   useEffect(() => {
     if (isOpen && user) {
@@ -251,6 +285,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     setIsAddingAttendee(false);
     setOrgSuggestions([]);
     setShowOrgSuggestions(false);
+    setRoleSuggestions([]);
+    setShowRoleSuggestions(false);
   };
 
   const fetchOrgSuggestions = async (query: string) => {
@@ -289,6 +325,27 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     setFormData({ ...formData, organization: suggestion.name });
     setShowOrgSuggestions(false);
     setOrgSuggestions([]);
+  };
+
+  const handleRoleInputChange = (value: string) => {
+    setFormData({ ...formData, role: value });
+    
+    if (value.length >= 1) {
+      const filtered = commonRoles.filter(role => 
+        role.toLowerCase().includes(value.toLowerCase())
+      );
+      setRoleSuggestions(filtered);
+      setShowRoleSuggestions(filtered.length > 0);
+    } else {
+      setRoleSuggestions([]);
+      setShowRoleSuggestions(false);
+    }
+  };
+
+  const selectRoleSuggestion = (role: string) => {
+    setFormData({ ...formData, role });
+    setShowRoleSuggestions(false);
+    setRoleSuggestions([]);
   };
 
   const getOrgTypeBadge = (type?: string) => {
@@ -506,14 +563,39 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <Label htmlFor="role">Role</Label>
                     <Input
+                      ref={roleInputRef}
                       id="role"
                       value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      placeholder="Clinical Lead, Practice Manager, etc."
+                      onChange={(e) => handleRoleInputChange(e.target.value)}
+                      onFocus={() => {
+                        if (formData.role.length >= 1) {
+                          const filtered = commonRoles.filter(role => 
+                            role.toLowerCase().includes(formData.role.toLowerCase())
+                          );
+                          setRoleSuggestions(filtered);
+                          setShowRoleSuggestions(filtered.length > 0);
+                        }
+                      }}
+                      onBlur={() => setTimeout(() => setShowRoleSuggestions(false), 200)}
+                      placeholder="Start typing role..."
+                      autoComplete="off"
                     />
+                    {showRoleSuggestions && roleSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-60 overflow-y-auto">
+                        {roleSuggestions.map((role, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                            onClick={() => selectRoleSuggestion(role)}
+                          >
+                            {role}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
