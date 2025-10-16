@@ -111,6 +111,7 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
             className="w-full justify-start"
             onClick={(e) => {
               e.stopPropagation();
+              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'chair' });
               updateRole('chair');
             }}
             disabled={updating}
@@ -124,6 +125,7 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
             className="w-full justify-start"
             onClick={(e) => {
               e.stopPropagation();
+              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'key_participant' });
               updateRole('key_participant');
             }}
             disabled={updating}
