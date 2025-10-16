@@ -27,6 +27,16 @@ export default {
 				'medium': 'var(--shadow-medium)',
 				'strong': 'var(--shadow-strong)',
 			},
+			padding: {
+				'safe': 'env(safe-area-inset-bottom)',
+				'safe-top': 'env(safe-area-inset-top)',
+				'safe-left': 'env(safe-area-inset-left)',
+				'safe-right': 'env(safe-area-inset-right)',
+			},
+			margin: {
+				'safe': 'env(safe-area-inset-bottom)',
+				'safe-top': 'env(safe-area-inset-top)',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

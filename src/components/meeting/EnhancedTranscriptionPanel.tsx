@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
@@ -15,6 +16,8 @@ import { detectPII, highlightPII, maskPII, removePII, type PIIMatch } from '@/ut
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { toast } from 'sonner';
+import { useIsIPhone, useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface TranscriptionChunk {
   id: string;
@@ -39,6 +42,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   onTranscriptChange,
   meetingContext
 }) => {
+  const isIPhone = useIsIPhone();
+  const isMobile = useIsMobile();
+  
   const [chunks, setChunks] = useState<TranscriptionChunk[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -46,8 +52,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
   const [showPII, setShowPII] = useState(true);
-  const [showContext, setShowContext] = useState(true);
-  const [showStats, setShowStats] = useState(false);
+  const [showContext, setShowContext] = useState(!isMobile); // Collapsed by default on mobile
+  const [showStats, setShowStats] = useState(!isMobile); // Collapsed by default on mobile
+  const [showPIIPanel, setShowPIIPanel] = useState(!isMobile); // Collapsible on mobile
   
   // PII State
   const [piiMatches, setPiiMatches] = useState<PIIMatch[]>([]);
@@ -210,16 +217,31 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   }
 
   return (
-    <div className="h-full flex flex-col space-y-4 p-6">
+    <div className={cn(
+      "h-full flex flex-col space-y-4 p-6",
+      isMobile && "p-4 space-y-3",
+      isIPhone && "p-3 space-y-2 pb-safe"
+    )}>
       {/* Header with Controls */}
-      <div className="sticky top-0 z-10 bg-background pb-4 border-b space-y-4">
+      <div className={cn(
+        "sticky top-0 z-10 bg-background pb-4 border-b space-y-4",
+        isMobile && "space-y-3",
+        isIPhone && "pt-safe-top space-y-2"
+      )}>
         {/* Title and Word Count */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">Enhanced Transcript</h3>
-            <Badge variant="outline" className="text-sm">
-              {stats.wordCount.toLocaleString('en-GB')} words
-            </Badge>
+            <h3 className={cn(
+              "font-semibold",
+              isIPhone ? "text-base" : "text-lg"
+            )}>
+              {isIPhone ? "Transcript" : "Enhanced Transcript"}
+            </h3>
+            {!isIPhone && (
+              <Badge variant="outline" className="text-sm">
+                {stats.wordCount.toLocaleString('en-GB')} words
+              </Badge>
+            )}
           </div>
           
           <Button
@@ -232,54 +254,91 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </Button>
         </div>
 
-        {/* Toggle Controls */}
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <Switch checked={showTimestamps} onCheckedChange={setShowTimestamps} />
-            <span className="text-sm">Timestamps</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-muted-foreground" />
-            <Switch checked={showConfidence} onCheckedChange={setShowConfidence} />
-            <span className="text-sm">Confidence</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <Switch checked={showPII} onCheckedChange={setShowPII} />
-            <span className="text-sm">Highlight PII</span>
-            {showPII && piiMatches.length > 0 && (
-              <Badge variant="destructive" className="ml-1">
-                {piiMatches.length}
+        {/* Toggle Controls - Responsive */}
+        <div className={cn(
+          "grid gap-3",
+          isIPhone ? "grid-cols-1 gap-2" : isMobile ? "grid-cols-2" : "flex items-center gap-6 flex-wrap"
+        )}>
+          {/* Word count on mobile */}
+          {isIPhone && (
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-muted-foreground">Words:</span>
+              <Badge variant="outline" className="text-xs">
+                {stats.wordCount.toLocaleString('en-GB')}
               </Badge>
-            )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Switch id="timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
+            <Label htmlFor="timestamps" className={cn(
+              "cursor-pointer flex items-center gap-2",
+              isIPhone && "text-xs"
+            )}>
+              <Clock className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+              {isIPhone ? "Times" : "Timestamps"}
+            </Label>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
+            <Label htmlFor="confidence" className={cn(
+              "cursor-pointer flex items-center gap-2",
+              isIPhone && "text-xs"
+            )}>
+              <Eye className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+              {isIPhone ? "Conf" : "Confidence"}
+            </Label>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Switch id="pii" checked={showPII} onCheckedChange={setShowPII} />
+            <Label htmlFor="pii" className={cn(
+              "cursor-pointer flex items-center gap-2",
+              isIPhone && "text-xs"
+            )}>
+              <AlertTriangle className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-amber-600")} />
+              PII
+              {showPII && piiMatches.length > 0 && (
+                <Badge variant="destructive" className="ml-1 text-xs">
+                  {piiMatches.length}
+                </Badge>
+              )}
+            </Label>
           </div>
         </div>
 
-        {/* Quick Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Quick Action Buttons - Responsive */}
+        <div className={cn(
+          "flex gap-2",
+          isIPhone ? "flex-col" : "flex-wrap"
+        )}>
           <Button
             variant="outline"
-            size="sm"
+            size={isIPhone ? "sm" : "sm"}
             onClick={handleRemoveFillerWords}
             disabled={!transcript || stats.fillerWordCount === 0}
+            className={cn(isIPhone && "w-full justify-start")}
           >
-            <Sparkles className="h-4 w-4 mr-2" />
+            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
             Remove Filler Words
             {stats.fillerWordCount > 0 && (
-              <Badge variant="secondary" className="ml-2">{stats.fillerWordCount}</Badge>
+              <Badge variant="secondary" className={cn(
+                isIPhone ? "ml-auto text-xs" : "ml-2"
+              )}>
+                {stats.fillerWordCount}
+              </Badge>
             )}
           </Button>
 
           <Button
             variant="outline"
-            size="sm"
+            size={isIPhone ? "sm" : "sm"}
             onClick={handleCleanMedicalTerms}
             disabled={!transcript}
+            className={cn(isIPhone && "w-full justify-start")}
           >
-            <Sparkles className="h-4 w-4 mr-2 text-nhs-blue" />
+            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2 text-nhs-blue")} />
             Clean NHS Terms
           </Button>
 
@@ -287,20 +346,32 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             <>
               <Button
                 variant="outline"
-                size="sm"
+                size={isIPhone ? "sm" : "sm"}
                 onClick={handleMaskAllPII}
-                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                className={cn(
+                  "text-amber-600 border-amber-300 hover:bg-amber-50",
+                  isIPhone && "w-full justify-start"
+                )}
               >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Mask All PII ({piiMatches.length})
+                <AlertTriangle className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                Mask All PII
+                <Badge variant="secondary" className={cn(
+                  "text-xs bg-amber-100 text-amber-900",
+                  isIPhone ? "ml-auto" : "ml-2"
+                )}>
+                  {piiMatches.length}
+                </Badge>
               </Button>
               
               {selectedPII.size > 0 && (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size={isIPhone ? "sm" : "sm"}
                   onClick={handleMaskSelectedPII}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
+                  className={cn(
+                    "text-red-600 border-red-300 hover:bg-red-50",
+                    isIPhone && "w-full justify-start"
+                  )}
                 >
                   Mask Selected ({selectedPII.size})
                 </Button>
@@ -308,86 +379,160 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              navigator.clipboard.writeText(transcript);
-              toast.success('Transcript copied');
-            }}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copy
-          </Button>
+          {!isIPhone && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(transcript);
+                toast.success('Transcript copied');
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Statistics Panel */}
-      {showStats && (
-        <Card className="p-4 bg-muted/50">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Total Chunks</p>
-              <p className="text-2xl font-semibold">{stats.totalChunks}</p>
+      {/* Statistics Panel - Collapsible and Mobile-Optimized */}
+      <Collapsible open={showStats} onOpenChange={setShowStats}>
+        <Card>
+          <CollapsibleTrigger className={cn(
+            "w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors",
+            isMobile && "p-3"
+          )}>
+            <span className={cn(
+              "font-semibold flex items-center gap-2",
+              isIPhone && "text-sm"
+            )}>
+              <BarChart3 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
+              Statistics
+            </span>
+            {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className={cn(
+              "p-4 bg-muted/50",
+              isMobile && "p-3"
+            )}>
+              <div className={cn(
+                "grid gap-4",
+                isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
+              )}>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
+                  <p className={cn(
+                    "font-semibold",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{stats.totalChunks}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Avg Conf</p>
+                  <p className={cn(
+                    "font-semibold",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{stats.avgConfidence}%</p>
+                </div>
+                {!isIPhone && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Low Conf</p>
+                    <p className={cn(
+                      "font-semibold text-amber-600",
+                      isMobile ? "text-lg" : "text-2xl"
+                    )}>{stats.lowConfidenceCount}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Fillers</p>
+                  <p className={cn(
+                    "font-semibold",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{stats.fillerWordCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">PII</p>
+                  <p className={cn(
+                    "font-semibold text-red-600",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{stats.piiCount}</p>
+                </div>
+                {!isIPhone && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Words</p>
+                    <p className={cn(
+                      "font-semibold",
+                      isMobile ? "text-lg" : "text-2xl"
+                    )}>{stats.wordCount.toLocaleString('en-GB')}</p>
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Avg Confidence</p>
-              <p className="text-2xl font-semibold">{stats.avgConfidence}%</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Low Confidence</p>
-              <p className="text-2xl font-semibold text-amber-600">{stats.lowConfidenceCount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Filler Words</p>
-              <p className="text-2xl font-semibold">{stats.fillerWordCount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">PII Detected</p>
-              <p className="text-2xl font-semibold text-red-600">{stats.piiCount}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Words</p>
-              <p className="text-2xl font-semibold">{stats.wordCount.toLocaleString('en-GB')}</p>
-            </div>
-          </div>
+          </CollapsibleContent>
         </Card>
-      )}
+      </Collapsible>
 
-      {/* Context Section */}
+      {/* Context Section - Mobile-Optimized */}
       {contextData && (contextData.agenda || contextData.attendees.length > 0) && (
         <Collapsible open={showContext} onOpenChange={setShowContext}>
           <Card>
-            <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+            <CollapsibleTrigger className={cn(
+              "w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors",
+              isMobile && "p-3"
+            )}>
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                <span className="font-medium">Meeting Context</span>
+                <FileText className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-primary")} />
+                <span className={cn(
+                  "font-medium",
+                  isIPhone && "text-sm"
+                )}>Meeting Context</span>
               </div>
               {showContext ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="p-4 pt-0 space-y-4">
+              <div className={cn(
+                "p-4 pt-0 space-y-4",
+                isMobile && "p-3 space-y-3"
+              )}>
                 {contextData.agenda && (
                   <div>
-                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <h4 className={cn(
+                      "font-semibold mb-2 flex items-center gap-2",
+                      isIPhone ? "text-xs" : "text-sm"
+                    )}>
                       📋 Agenda
                     </h4>
-                    <Card className="p-3 bg-muted/30">
-                      <p className="text-sm whitespace-pre-wrap">{contextData.agenda}</p>
+                    <Card className={cn(
+                      "p-3 bg-muted/30",
+                      isIPhone && "p-2"
+                    )}>
+                      <p className={cn(
+                        "whitespace-pre-wrap",
+                        isIPhone ? "text-xs" : "text-sm"
+                      )}>{contextData.agenda}</p>
                     </Card>
                   </div>
                 )}
 
                 {contextData.attendees.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                    <h4 className={cn(
+                      "font-semibold mb-2 flex items-center gap-2",
+                      isIPhone ? "text-xs" : "text-sm"
+                    )}>
+                      <Users className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
                       Attendees ({contextData.attendees.length})
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className={cn(
+                      "grid gap-2",
+                      isIPhone ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+                    )}>
                       {contextData.attendees.map((attendee, idx) => (
-                        <Card key={idx} className="p-2 bg-muted/30">
-                          <p className="text-sm">{attendee}</p>
+                        <Card key={idx} className={cn(
+                          "p-2 bg-muted/30",
+                          isIPhone && "p-1.5"
+                        )}>
+                          <p className={cn(isIPhone ? "text-xs" : "text-sm")}>{attendee}</p>
                         </Card>
                       ))}
                     </div>
@@ -399,63 +544,101 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         </Collapsible>
       )}
 
-      {/* PII Management Panel */}
+      {/* PII Management Panel - Collapsible on Mobile */}
       {showPII && piiMatches.length > 0 && (
-        <Card className="p-4 border-amber-200 bg-amber-50/50">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <h4 className="font-semibold text-amber-900 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Detected Personally Identifiable Information
-              </h4>
-              <p className="text-xs text-amber-700 mt-1">
-                Review and manage sensitive data in the transcript
-              </p>
-            </div>
-          </div>
-          
-          <ScrollArea className="h-48 border rounded-md bg-white p-2">
-            <div className="space-y-2">
-              {piiMatches.map((match, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer"
-                  onClick={() => {
-                    const newSelected = new Set(selectedPII);
-                    if (newSelected.has(idx)) {
-                      newSelected.delete(idx);
-                    } else {
-                      newSelected.add(idx);
-                    }
-                    setSelectedPII(newSelected);
-                  }}
-                >
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                    selectedPII.has(idx) ? 'bg-primary border-primary' : 'border-muted-foreground'
-                  }`}>
-                    {selectedPII.has(idx) && <Check className="h-3 w-3 text-white" />}
+        <Collapsible open={showPIIPanel} onOpenChange={setShowPIIPanel}>
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CollapsibleTrigger className={cn(
+              "w-full p-4 flex items-center justify-between hover:bg-amber-100/50 transition-colors",
+              isMobile && "p-3"
+            )}>
+              <div>
+                <h4 className={cn(
+                  "font-semibold text-amber-900 flex items-center gap-2",
+                  isIPhone && "text-xs"
+                )}>
+                  <AlertTriangle className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
+                  {isIPhone ? `PII (${piiMatches.length})` : "Detected Personally Identifiable Information"}
+                </h4>
+                {!isIPhone && (
+                  <p className="text-xs text-amber-700 mt-1">
+                    Review and manage sensitive data in the transcript
+                  </p>
+                )}
+              </div>
+              {isMobile && (
+                showPIIPanel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+              )}
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className={cn(
+                "p-4 pt-0",
+                isMobile && "p-3 pt-0"
+              )}>
+                <ScrollArea className={cn(
+                  "border rounded-md bg-white p-2",
+                  isIPhone ? "h-32" : "h-48"
+                )}>
+                  <div className="space-y-2">
+                    {piiMatches.map((match, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer",
+                          isIPhone && "p-1.5 gap-1.5"
+                        )}
+                        onClick={() => {
+                          const newSelected = new Set(selectedPII);
+                          if (newSelected.has(idx)) {
+                            newSelected.delete(idx);
+                          } else {
+                            newSelected.add(idx);
+                          }
+                          setSelectedPII(newSelected);
+                        }}
+                      >
+                        <div className={`${isIPhone ? 'w-3 h-3' : 'w-4 h-4'} rounded border-2 flex items-center justify-center ${
+                          selectedPII.has(idx) ? 'bg-primary border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {selectedPII.has(idx) && <Check className={cn(isIPhone ? "h-2 w-2" : "h-3 w-3", "text-white")} />}
+                        </div>
+                        
+                        <Badge variant="outline" className="text-xs">
+                          {match.type.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                        
+                        <span className={cn(
+                          "font-mono flex-1 truncate",
+                          isIPhone ? "text-xs" : "text-sm"
+                        )}>{match.value}</span>
+                        
+                        {!isIPhone && (
+                          <Badge variant="secondary" className="text-xs">
+                            {match.confidence}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  
-                  <Badge variant="outline" className="text-xs">
-                    {match.type.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                  
-                  <span className="text-sm font-mono flex-1">{match.value}</span>
-                  
-                  <Badge variant="secondary" className="text-xs">
-                    {match.confidence}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </Card>
+                </ScrollArea>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
-      {/* Main Transcript Display */}
+      {/* Main Transcript Display - Mobile-Optimized */}
       <Card className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4 text-foreground">
+        <ScrollArea className={cn(
+          "flex-1 p-4",
+          isMobile && "p-3",
+          isIPhone && "px-2 py-3"
+        )}>
+          <div className={cn(
+            "space-y-4 text-foreground",
+            isIPhone && "text-sm space-y-3 leading-relaxed"
+          )}>
             {!transcript ? (
               <div className="flex items-center justify-center h-32 text-muted-foreground">
                 No transcript available for this meeting.
