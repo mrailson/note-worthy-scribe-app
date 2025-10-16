@@ -2102,137 +2102,45 @@ ${transcript}`;
 
     setIsGeneratingStyle3(true);
     try {
-      // Round time to nearest 15 minutes
-      const roundToNearest15Minutes = (date: Date) => {
-        const minutes = date.getMinutes();
-        const rounded = Math.round(minutes / 15) * 15;
-        const newDate = new Date(date);
-        newDate.setMinutes(rounded, 0, 0);
-        return newDate;
-      };
+      console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
-      const startDate = new Date(meeting.start_time || meeting.created_at);
-      const roundedTime = roundToNearest15Minutes(startDate);
-      
-      const meetingDate = roundedTime.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      const meetingTime = roundedTime.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-
-      const style3Prompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes. Do not include any instructional lines in the output.
-
-STRICT RULES (DO NOT PRINT THESE):
-- Use British English spellings and 24-hour time
-- Use British date formats with ordinals (e.g., 22nd October 2025)
-- Only include information present in the transcript; never fabricate
-- Never use placeholders or square brackets like [Insert X]
-- If an item is unknown, omit the field/section entirely
-- Prefer clear headings, bullet points, and concise paragraphs
-
-OUTPUT STRUCTURE (ONLY OUTPUT THE SECTIONS WITH REAL CONTENT):
-
-# MEETING DETAILS
-- Meeting Title: ${meeting.title}
-- Date: ${meetingDate}
-- Time: ${meetingTime}
-- Location: If a location (room, online platform) is explicitly mentioned in the transcript, output it; otherwise write "Location not specified".
-
-# EXECUTIVE SUMMARY
-Write 1–3 concise paragraphs covering: purpose, key decisions, major outcomes, and next steps.
-
-# ATTENDEES
-List specific names/roles if the transcript mentions any. If none are mentioned, write "Practice team members".
-
-# DISCUSSION SUMMARY
-- Background: Brief context leading to the meeting
-- Key Points: Bullet points with important details (facts, figures, concerns, differing views)
-- Outcome: What was concluded/decided (if applicable)
-
-# DECISIONS & RESOLUTIONS
-Numbered list of decisions/resolutions made. Omit this section if none.
-
-# ACTION ITEMS
-Provide a markdown table only if the transcript contains actions. Use real names/roles and real dates where available; otherwise write "To be determined" for unspecified deadlines.
-
-| Action | Responsible Party | Deadline | Priority |
-|--------|------------------|----------|----------|
-
-# FOLLOW-UP REQUIREMENTS
-Bullet points for monitoring/check-ins mentioned. Omit if none.
-
-# OPEN ITEMS & RISKS
-Bullet points for unresolved issues, questions, or risks. Omit if none.
-
-# NEXT MEETING
-Only include if a next meeting was explicitly set. Include date/time/location if stated.
-
-Transcript:
-${transcript}`;
-
-      console.log('📝 Detailed prompt created, length:', style3Prompt.length);
-      console.log('🚀 Calling Detailed generation...');
-
-      // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
-        startTime: meeting.start_time,
-        endTime: meeting.end_time || undefined,
-        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
-      });
-
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: {
-          transcript: transcriptWithMetadata,
-          meetingTitle: meeting.title,
-          meetingDate: meetingDate,
-          meetingTime: meetingTime,
-          detailLevel: 'standard',
-          customPrompt: style3Prompt
+          meetingId: meeting.id,
+          forceRegenerate: true
         }
       });
 
-      console.log('📋 Detailed response:', { data: !!data, error: !!error });
+      console.log('📋 Response:', { data: !!data, error: !!error });
 
       if (error) throw error;
 
-      if (data?.meetingMinutes || data?.generatedNotes) {
-        let generatedContent = data.meetingMinutes || data.generatedNotes;
-        console.log('✅ Detailed notes generated, length:', generatedContent.length);
-        
-        // SANITIZE: Remove any [Insert X] placeholders that got through
-        generatedContent = generatedContent
-          .replace(/\[Insert[^\]]*\]/gi, '')
-          .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
-          .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
-          .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
-          .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
-          .replace(/^.*Meeting\s*-\s*Date\s*Not\s*Specified.*$/gim, '')
-          .replace(/^.*MINUTES.*$/gim, '')
-          .replace(/^[^\*]*\*\*Meeting Details\*\*/, '**Meeting Details**')
-          .replace(/\n\s*\n\s*\n/g, '\n\n')
-          .trim();
-        
-        // Ensure it starts with **Meeting Details** or # MEETING DETAILS
-        if (!generatedContent.startsWith('**Meeting Details**') && !generatedContent.startsWith('# MEETING DETAILS')) {
-          const meetingDetailsMatch = generatedContent.match(/(\*\*Meeting Details\*\*|# MEETING DETAILS)/);
-          if (meetingDetailsMatch) {
-            generatedContent = generatedContent.substring(generatedContent.indexOf(meetingDetailsMatch[0]));
-          }
-        }
+      if (data?.skipped) {
+        console.log('⚠️ Notes generation was skipped:', data.message);
+        toast.info(data.message || 'Notes regeneration skipped');
+        return;
+      }
+
+      // Fetch the regenerated notes from the database
+      const { data: summaryData, error: fetchError } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meeting.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (summaryData?.summary) {
+        const generatedContent = summaryData.summary;
+        console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
         
         setNotesStyle3(generatedContent);
         
-        // Save to database
-        await saveNoteStyleToDatabase(3, generatedContent);
+        // Update local state - already saved by edge function
+        toast.success('Meeting notes regenerated successfully');
       } else {
-        console.error('❌ No content in Detailed response:', data);
-        toast.error('Failed to generate notes. No content received from AI service.');
+        console.error('❌ No content in regenerated notes');
+        toast.error('Failed to regenerate notes. No content received.');
       }
     } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
