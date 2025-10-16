@@ -826,10 +826,10 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           isOpen={isEmailModalOpen}
           onOpenChange={setIsEmailModalOpen}
           defaultToEmail={user?.email || ""}
-          defaultSubject={`Meeting Summary: ${meetingSettings?.title || "Meeting"} - ${new Date().toLocaleDateString()}`}
+          defaultSubject={`${meetingSettings?.title || "Meeting"}, ${new Date().toLocaleDateString()} - Minutes`}
           defaultBody={notes.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()}
           meetingTitle={meetingSettings?.title || "Meeting"}
-          meetingDate={new Date().toLocaleString()}
+          meetingDate={new Date().toLocaleDateString()}
           duration={duration}
         />
       </CardContent>

@@ -36,18 +36,28 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
   transcript,
   practiceName,
 }) => {
-  const [toEmail, setToEmail] = useState(defaultToEmail || "");
+  const [toEmail, setToEmail] = useState("");
   const [ccRaw, setCcRaw] = useState("");
-  const [subject, setSubject] = useState(defaultSubject);
-  const [body, setBody] = useState(defaultBody);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Initialize state when modal opens or defaults change
+  React.useEffect(() => {
+    if (isOpen) {
+      setToEmail(defaultToEmail || "");
+      setSubject(defaultSubject || `${meetingTitle}, ${meetingDate} - Minutes`);
+      setBody(defaultBody);
+    }
+  }, [isOpen, defaultToEmail, defaultSubject, defaultBody, meetingTitle, meetingDate]);
 
   const ccList = useMemo(() =>
     ccRaw
       .split(/[,;\s]+/)
       .map((s) => s.trim())
-      .filter(Boolean),
-  [ccRaw]);
+      .filter(Boolean)
+      .filter((email) => email.toLowerCase() !== toEmail.toLowerCase()),
+  [ccRaw, toEmail]);
 
   const handleSend = async () => {
     if (!toEmail) {
@@ -93,36 +103,35 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="to">To</Label>
-              <Input
-                id="to"
-                type="email"
-                value={toEmail}
-                onChange={(e) => setToEmail(e.target.value)}
-                placeholder="your@email.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cc">CC (comma separated)</Label>
-              <Input
-                id="cc"
-                value={ccRaw}
-                onChange={(e) => setCcRaw(e.target.value)}
-                placeholder="colleague@nhs.net, manager@nhs.net"
-              />
-              {ccList.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {ccList.map((email) => (
-                    <Badge key={email} variant="secondary" className="text-xs">
-                      <Users className="h-3 w-3 mr-1" />
-                      {email}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="to">To</Label>
+            <Input
+              id="to"
+              type="email"
+              value={toEmail}
+              onChange={(e) => setToEmail(e.target.value)}
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cc">Add Meeting Participants (comma separated)</Label>
+            <Input
+              id="cc"
+              value={ccRaw}
+              onChange={(e) => setCcRaw(e.target.value)}
+              placeholder="colleague@nhs.net, manager@nhs.net"
+            />
+            {ccList.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {ccList.map((email) => (
+                  <Badge key={email} variant="secondary" className="text-xs">
+                    <Users className="h-3 w-3 mr-1" />
+                    {email}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

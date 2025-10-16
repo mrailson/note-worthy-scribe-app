@@ -42,7 +42,6 @@ export function EmailMeetingMinutesModal({
   const [subject, setSubject] = useState(meetingTitle ? `Meeting Notes - ${meetingTitle}` : 'Meeting Notes');
   const [emailBody, setEmailBody] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [includeTranscript, setIncludeTranscript] = useState(false);
   const [meetingAttendees, setMeetingAttendees] = useState<MeetingAttendee[]>([]);
   const [selectedAttendeeEmails, setSelectedAttendeeEmails] = useState<string[]>([]);
   const [meetingDateTime, setMeetingDateTime] = useState<string>("");
@@ -93,8 +92,8 @@ export function EmailMeetingMinutesModal({
   useEffect(() => {
     if (isOpen && meetingTitle) {
       const subjectLine = meetingDateTime 
-        ? `${meetingTitle} - ${meetingDateTime}`
-        : meetingTitle;
+        ? `${meetingTitle}, ${meetingDateTime} - Minutes`
+        : `${meetingTitle} - Minutes`;
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
       setEmailBody(
@@ -132,6 +131,8 @@ export function EmailMeetingMinutesModal({
         if (meetingAttendeesData) {
           const attendeesWithEmail = meetingAttendeesData
             .filter((ma: any) => ma.attendees && ma.attendees.email)
+            // Filter out the user's own email
+            .filter((ma: any) => ma.attendees.email !== profile?.email)
             .map((ma: any) => ({
               id: ma.attendees.id,
               name: ma.attendees.name,
@@ -149,7 +150,7 @@ export function EmailMeetingMinutesModal({
     };
 
     fetchAttendees();
-  }, [isOpen, meetingId]);
+  }, [isOpen, meetingId, profile?.email]);
 
   const handleSendEmail = async () => {
     if (!toEmail.trim()) {
@@ -186,152 +187,6 @@ export function EmailMeetingMinutesModal({
       } catch (docError) {
         console.warn('Word document generation failed:', docError);
         // Continue without attachment
-      }
-
-      // Generate transcript Word document attachment if requested
-      let transcriptAttachment = null;
-      if (includeTranscript) {
-        try {
-          // Fetch the actual transcript from the database
-          const { data: transcriptData, error: transcriptError } = await supabase
-            .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
-          
-          if (transcriptError) {
-            console.error('Error fetching transcript:', transcriptError);
-            throw transcriptError;
-          }
-          
-          // Extract transcript text from the result
-          let actualTranscript = transcriptData?.[0]?.transcript || '';
-          
-          if (!actualTranscript.trim()) {
-            toast.error('No transcript available for this meeting');
-            return;
-          }
-          
-          // Parse and clean the transcript to extract only text (remove timestamps)
-          try {
-            const transcriptArray = JSON.parse(actualTranscript);
-            if (Array.isArray(transcriptArray)) {
-              // Extract just the text from each segment
-              actualTranscript = transcriptArray
-                .map((segment: any) => segment.text || '')
-                .join(' ')
-                .trim();
-            }
-          } catch (e) {
-            // If it's not JSON, use as-is (already plain text)
-            console.log('Transcript is plain text format');
-          }
-          
-          // Create a formatted Word document for the transcript
-          const transcriptDoc = new Document({
-            sections: [
-              {
-                properties: {
-                  page: {
-                    margin: {
-                      top: 1440,
-                      right: 1440,
-                      bottom: 1440,
-                      left: 1440,
-                    },
-                  },
-                },
-                children: [
-                  // Title
-                  new Paragraph({
-                    text: 'MEETING TRANSCRIPT',
-                    heading: HeadingLevel.HEADING_1,
-                    spacing: { after: 200 },
-                    alignment: AlignmentType.CENTER,
-                    shading: {
-                      fill: '0066CC',
-                      type: ShadingType.CLEAR,
-                    },
-                  }),
-                  // Meeting title
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: meetingTitle,
-                        bold: true,
-                        size: 28,
-                      }),
-                    ],
-                    spacing: { after: 200, before: 200 },
-                    alignment: AlignmentType.CENTER,
-                  }),
-                  // Date and time
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: meetingDateTime || 'Date and time not recorded',
-                        size: 22,
-                        color: '666666',
-                      }),
-                    ],
-                    spacing: { after: 400 },
-                    alignment: AlignmentType.CENTER,
-                  }),
-                  // Divider
-                  new Paragraph({
-                    border: {
-                      bottom: {
-                        color: '0066CC',
-                        space: 1,
-                        style: BorderStyle.SINGLE,
-                        size: 6,
-                      },
-                    },
-                    spacing: { after: 400 },
-                  }),
-                  // Transcript heading
-                  new Paragraph({
-                    text: 'Transcript',
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { after: 200, before: 200 },
-                  }),
-                  // Transcript content - split into paragraphs for better formatting
-                  ...actualTranscript.split(/\.\s+/).filter(sentence => sentence.trim()).map(sentence => 
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: sentence.trim() + '.',
-                          size: 22,
-                        }),
-                      ],
-                      spacing: { after: 100 },
-                      alignment: AlignmentType.LEFT,
-                    })
-                  ),
-                ],
-              },
-            ],
-          });
-          
-          const transcriptDocBlob = await Packer.toBlob(transcriptDoc);
-          const transcriptReader = new FileReader();
-          const transcriptBase64Promise = new Promise<string>((resolve) => {
-            transcriptReader.onloadend = () => {
-              const base64 = (transcriptReader.result as string).split(',')[1];
-              resolve(base64);
-            };
-          });
-          transcriptReader.readAsDataURL(transcriptDocBlob);
-          const transcriptBase64Content = await transcriptBase64Promise;
-          
-          // Use "Transcript_" naming convention
-          const sanitizedTitle = meetingTitle.replace(/[^a-zA-Z0-9\s\-_]/g, '').replace(/\s+/g, '_');
-          transcriptAttachment = {
-            content: transcriptBase64Content,
-            filename: `Transcript_${sanitizedTitle}.docx`,
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          };
-        } catch (txtError) {
-          console.warn('Transcript document generation failed:', txtError);
-          toast.error('Failed to generate transcript document');
-        }
       }
 
       // Helper function to convert markdown and format to HTML
@@ -473,7 +328,6 @@ export function EmailMeetingMinutesModal({
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
         word_attachment: wordAttachment,
-        transcript_attachment: transcriptAttachment,
         meeting_title: meetingTitle,
         meeting_id: meetingId
       };
@@ -626,25 +480,11 @@ export function EmailMeetingMinutesModal({
             />
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-transcript"
-                checked={includeTranscript}
-                onCheckedChange={(checked) => setIncludeTranscript(checked as boolean)}
-              />
-              <Label htmlFor="include-transcript" className="text-sm font-normal cursor-pointer">
-                Include meeting transcript as separate attachment
-              </Label>
-            </div>
-          </div>
-
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border">
             <p className="font-medium mb-1">What will be sent:</p>
             <ul className="text-xs space-y-1">
               <li>• Word document with meeting notes attached</li>
               <li>• Meeting notes included in email body</li>
-              {includeTranscript && <li>• Transcript as separate Word document attachment</li>}
               <li>• Professional email formatting</li>
               {(toEmail.trim() || selectedAttendeeEmails.length > 0) && (
                 <li className="font-medium mt-2 pt-2 border-t">
