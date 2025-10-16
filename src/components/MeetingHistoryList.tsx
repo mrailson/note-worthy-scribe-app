@@ -30,7 +30,8 @@ import {
   RefreshCw,
   Bot,
   Mail,
-  Users
+  Users,
+  MoreVertical
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -46,6 +47,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
@@ -1751,33 +1758,6 @@ export const MeetingHistoryList = ({
                 )}
                 
                 
-                {/* Email Minutes Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🔴 BUTTON CLICKED - Testing click handler');
-                    handleEmailMinutesClick(meeting);
-                  }}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-blue-600 hover:text-blue-700"
-                >
-                  <Mail className="h-4 w-4" />
-                  <span>Email</span>
-                </Button>
-
-                {/* Upload Documents Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleUploadClick(meeting)}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
-                >
-                  <Paperclip className="h-4 w-4" />
-                  <span>Upload</span>
-                </Button>
-
                 {/* Attendees Button */}
                 <Button
                   variant="outline"
@@ -1812,17 +1792,54 @@ export const MeetingHistoryList = ({
                   </span>
                 </Button>
                 
+                {/* Actions Dropdown Menu */}
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center justify-center gap-2 flex-1 sm:flex-none text-destructive hover:text-destructive touch-manipulation min-h-[44px]"
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                        <span>Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      align="end" 
+                      className="w-48 bg-popover border shadow-md z-50"
+                      sideOffset={5}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span>Delete</span>
-                    </Button>
-                  </AlertDialogTrigger>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleEmailMinutesClick(meeting);
+                        }}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email Minutes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleUploadClick(meeting);
+                        }}
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Upload Documents
+                      </DropdownMenuItem>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Meeting
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
                   <AlertDialogContent className="mx-4 max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
