@@ -244,6 +244,7 @@ export function EmailMeetingMinutesModal({
         const lines = cleanedText.split('\n');
         let html = '';
         let i = 0;
+        let numberedListCounter = 1; // Track sequential numbering across all numbered lists
         
         while (i < lines.length) {
           const line = lines[i].trim();
@@ -311,12 +312,13 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle numbered lists
+          // Handle numbered lists with sequential numbering
           if (line.match(/^\d+\.\s/)) {
-            let listHTML = '<ol style="margin: 12px 0; padding-left: 20px;">\n';
+            let listHTML = `<ol start="${numberedListCounter}" style="margin: 12px 0; padding-left: 20px;">\n`;
             while (i < lines.length && lines[i].trim().match(/^\d+\.\s/)) {
               const itemText = lines[i].trim().replace(/^\d+\.\s/, '');
               listHTML += `  <li style="margin: 6px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${itemText}</li>\n`;
+              numberedListCounter++; // Increment counter for each item
               i++;
             }
             listHTML += '</ol>\n';
