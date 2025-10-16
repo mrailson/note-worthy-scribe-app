@@ -163,7 +163,7 @@ export function renderMinutesMarkdown(content: string): string {
     .replace(/^[ ]{2,}(\d+)[\.)]\s+(.+)$/gm, '<!NESTED_NUM!>$2<!NESTED_NUM_END!>')
     
     // Convert remaining simple numbered items (not processed by smart nesting)
-    .replace(/<!NUM!>(\d+)<!NUM_SEP!>(.*?)<!NUM_END!>/g, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
+    .replace(/<!NUM!>(\d+)<!NUM_SEP!>(.*?)<!NUM_END!>/g, '<li class="mb-2 text-[#212B32] leading-relaxed pl-2" value="$1">$2</li>')
     
     // Convert main numbered items with nested content
     .replace(/<!MAIN_NUM!>(\d+)<!MAIN_NUM_SEP!>(.*?)<!NESTED_START!>(.*?)<!NESTED_STOP!>/gs, (match, num, content, nested) => {
@@ -173,7 +173,7 @@ export function renderMinutesMarkdown(content: string): string {
         .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
         .join('') || '';
       
-      return `<li class="mb-3 text-[#212B32] leading-relaxed" value="${num}">${content}<ul class="list-disc list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
+      return `<li class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
     })
     
     // Convert top-level bullet list items
@@ -200,7 +200,7 @@ export function renderMinutesMarkdown(content: string): string {
         ?.map(item => item.replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '').trim())
         .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
         .join('') || '';
-      return `${opening}<ul class="list-disc list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
+      return `${opening}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
     })
     
     // Clean up nested numbered markers
