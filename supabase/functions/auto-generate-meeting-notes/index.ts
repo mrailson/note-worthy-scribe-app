@@ -381,13 +381,16 @@ CRITICAL: Start your response immediately with "# MEETING DETAILS" - do NOT incl
 
 # MEETING DETAILS
 
-Meeting Title: [from metadata]
-
+Meeting Title: [exact title from metadata]
 Date: [full British format with day of week]
-
-Time: [Use 24-hour GMT format. If not specified in metadata, use the recording start time provided]
-
+Time: [24-hour GMT format from recording start time if not otherwise specified]
 Location: [from authoritative context - DO NOT CHANGE THIS]
+
+CRITICAL FORMAT: Write each field on its own line starting with the label directly (no bullets, no dashes, no symbols). Example:
+Meeting Title: Strategic Planning Review
+Date: Wednesday 15th October 2025
+Time: 14:30 GMT
+Location: Oak Lane Medical Practice
 
 # EXECUTIVE SUMMARY
 Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of the content:
