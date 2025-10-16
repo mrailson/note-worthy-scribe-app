@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Crown, Star, User } from 'lucide-react';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Crown, Star, User, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -30,7 +30,6 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   isCurrentUser,
   onRoleChange
 }) => {
-  const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const getRoleIcon = () => {
@@ -58,7 +57,6 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
       if (error) throw error;
 
       toast.success(`Role set to ${newRole.replace('_', ' ')}`);
-      setOpen(false);
       onRoleChange?.();
       console.log('✅ Role updated successfully');
     } catch (error) {
@@ -76,11 +74,8 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={(newOpen) => {
-      console.log('Popover state changing:', { from: open, to: newOpen, attendee: attendee.name });
-      setOpen(newOpen);
-    }}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Badge
           variant={getBadgeVariant()}
           className="text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1"
@@ -94,60 +89,56 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
           {attendee.name}
           {isCurrentUser && ' (You)'}
         </Badge>
-      </PopoverTrigger>
-      <PopoverContent 
-        className="w-56 p-3 z-[1000] bg-popover text-popover-foreground border border-border shadow-md rounded-md pointer-events-auto" 
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        className="w-56" 
         align="start" 
-        sideOffset={8}
-        onPointerDownOutside={(e) => e.preventDefault()}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            Set role for {attendee.name}
-          </p>
-          <Button
-            variant={meetingRole === 'chair' ? 'default' : 'ghost'}
-            size="sm"
-            className="w-full justify-start"
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'chair' });
-              updateRole('chair');
-            }}
-            disabled={updating}
-          >
-            <Crown className="h-4 w-4 mr-2" />
-            Chair
-          </Button>
-          <Button
-            variant={meetingRole === 'key_participant' ? 'default' : 'ghost'}
-            size="sm"
-            className="w-full justify-start"
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'key_participant' });
-              updateRole('key_participant');
-            }}
-            disabled={updating}
-          >
-            <Star className="h-4 w-4 mr-2" />
-            Key Participant
-          </Button>
-          <Button
-            variant={meetingRole === 'attendee' ? 'default' : 'ghost'}
-            size="sm"
-            className="w-full justify-start"
-            onClick={(e) => {
-              e.stopPropagation();
-              updateRole('attendee');
-            }}
-            disabled={updating}
-          >
-            <User className="h-4 w-4 mr-2" />
-            Attendee
-          </Button>
+        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+          Set role for {attendee.name}
         </div>
-      </PopoverContent>
-    </Popover>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'chair' });
+            updateRole('chair');
+          }}
+          disabled={updating}
+          className="cursor-pointer"
+        >
+          <Crown className="h-4 w-4 mr-2" />
+          Chair
+          {meetingRole === 'chair' && <Check className="h-4 w-4 ml-auto" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'key_participant' });
+            updateRole('key_participant');
+          }}
+          disabled={updating}
+          className="cursor-pointer"
+        >
+          <Star className="h-4 w-4 mr-2" />
+          Key Participant
+          {meetingRole === 'key_participant' && <Check className="h-4 w-4 ml-auto" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'attendee' });
+            updateRole('attendee');
+          }}
+          disabled={updating}
+          className="cursor-pointer"
+        >
+          <User className="h-4 w-4 mr-2" />
+          Attendee
+          {meetingRole === 'attendee' && <Check className="h-4 w-4 ml-auto" />}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
