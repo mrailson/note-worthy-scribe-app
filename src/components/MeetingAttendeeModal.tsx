@@ -296,29 +296,70 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     }
 
     try {
-      const { data: practices, error } = await supabase
-        .from('gp_practices')
-        .select('name, practice_code')
-        .or(`name.ilike.%${query}%,practice_code.ilike.%${query}%`)
-        .limit(10);
+      let suggestions: Array<{ name: string; code?: string }> = [];
 
-      if (error) throw error;
+      // Search based on organization type
+      if (formData.organization_type === 'practice') {
+        const { data: practices, error } = await supabase
+          .from('gp_practices')
+          .select('name, practice_code')
+          .or(`name.ilike.%${query}%,practice_code.ilike.%${query}%`)
+          .limit(10);
 
-      const suggestions = practices?.map(p => ({
-        name: p.name,
-        code: p.practice_code || undefined
-      })) || [];
+        if (error) throw error;
+
+        suggestions = practices?.map(p => ({
+          name: p.name,
+          code: p.practice_code || undefined
+        })) || [];
+      } else if (formData.organization_type === 'neighbourhood_pcn') {
+        // Search for PCNs in gp_practices table (PCNs are also listed there)
+        // or search for existing PCN organizations in attendees table
+        const { data: existingPcns, error } = await supabase
+          .from('attendees')
+          .select('organization')
+          .eq('organization_type', 'neighbourhood_pcn')
+          .ilike('organization', `%${query}%`)
+          .limit(10);
+
+        if (error) throw error;
+
+        // Get unique organization names
+        const uniquePcns = [...new Set(existingPcns?.map(p => p.organization).filter(Boolean))];
+        suggestions = uniquePcns.map(name => ({ name: name as string }));
+      } else {
+        // For ICB, LMC, NHSE, and Other - search existing organizations of that type
+        const { data: existingOrgs, error } = await supabase
+          .from('attendees')
+          .select('organization')
+          .eq('organization_type', formData.organization_type)
+          .ilike('organization', `%${query}%`)
+          .limit(10);
+
+        if (error) throw error;
+
+        // Get unique organization names
+        const uniqueOrgs = [...new Set(existingOrgs?.map(o => o.organization).filter(Boolean))];
+        suggestions = uniqueOrgs.map(name => ({ name: name as string }));
+      }
 
       setOrgSuggestions(suggestions);
-      setShowOrgSuggestions(true);
+      setShowOrgSuggestions(suggestions.length > 0);
     } catch (error) {
-      console.error('Error fetching practice suggestions:', error);
+      console.error('Error fetching organization suggestions:', error);
     }
   };
 
   const handleOrgInputChange = (value: string) => {
     setFormData({ ...formData, organization: value });
     fetchOrgSuggestions(value);
+  };
+
+  // Re-fetch suggestions when organization type changes
+  const handleOrgTypeChange = (value: any) => {
+    setFormData({ ...formData, organization_type: value, organization: '' });
+    setOrgSuggestions([]);
+    setShowOrgSuggestions(false);
   };
 
   const selectOrgSuggestion = (suggestion: { name: string; code?: string }) => {
@@ -519,7 +560,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                       <Label htmlFor="org_type">Organisation Type *</Label>
                       <Select
                         value={formData.organization_type}
-                        onValueChange={(value: any) => setFormData({ ...formData, organization_type: value })}
+                        onValueChange={handleOrgTypeChange}
                       >
                         <SelectTrigger id="org_type">
                           <SelectValue />
