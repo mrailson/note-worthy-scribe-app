@@ -377,7 +377,7 @@ CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 
 FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
 
-Start with a descriptive document title based on the meeting content (e.g., "Practice Partnership Meeting - Strategic Planning Review")
+Use the exact meeting title provided in the metadata without adding any prefix or modification
 
 Then add: Date: [Day of week] [Day with ordinal] [Month] [Year]
 
