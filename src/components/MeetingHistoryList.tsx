@@ -29,7 +29,8 @@ import {
   MapPin,
   RefreshCw,
   Bot,
-  Mail
+  Mail,
+  Users
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -68,6 +69,7 @@ import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
+import { MeetingAttendeeModal } from './MeetingAttendeeModal';
 
 
 interface Meeting {
@@ -239,6 +241,10 @@ export const MeetingHistoryList = ({
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedMeetingForEmail, setSelectedMeetingForEmail] = useState<Meeting | null>(null);
+
+  // Attendee modal state
+  const [attendeeModalOpen, setAttendeeModalOpen] = useState(false);
+  const [selectedMeetingForAttendees, setSelectedMeetingForAttendees] = useState<Meeting | null>(null);
 
   // Status recovery state
   const [recoveringMeetings, setRecoveringMeetings] = useState<Set<string>>(new Set());
@@ -645,6 +651,12 @@ export const MeetingHistoryList = ({
     } catch (error) {
       console.error('📧 Error preparing email:', error);
     }
+  };
+
+  // Handle attendees click
+  const handleAttendeesClick = (meeting: Meeting) => {
+    setSelectedMeetingForAttendees(meeting);
+    setAttendeeModalOpen(true);
   };
 
   const uploadDocuments = async () => {
@@ -1585,6 +1597,17 @@ export const MeetingHistoryList = ({
                   <Paperclip className="h-4 w-4" />
                   <span>Upload</span>
                 </Button>
+
+                {/* Attendees Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAttendeesClick(meeting)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Attendees</span>
+                </Button>
                 
                 {/* Process Meeting Button */}
                 <Button
@@ -2041,6 +2064,19 @@ export const MeetingHistoryList = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Attendee Modal */}
+      {selectedMeetingForAttendees && (
+        <MeetingAttendeeModal
+          isOpen={attendeeModalOpen}
+          onClose={() => {
+            setAttendeeModalOpen(false);
+            setSelectedMeetingForAttendees(null);
+          }}
+          meetingId={selectedMeetingForAttendees.id}
+          meetingTitle={selectedMeetingForAttendees.title}
+        />
+      )}
     </div>
   );
 };
