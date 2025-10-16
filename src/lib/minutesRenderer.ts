@@ -20,12 +20,50 @@ export function renderMinutesMarkdown(content: string): string {
 
   // Convert markdown to HTML with NHS professional styling
   let html = preprocessedContent
-    // Remove markdown headers (##, ###, etc.) but keep the text
+    // Enhanced ATTENDEES section formatting
+    .replace(/(## ATTENDEES|## Attendees)\s*\n((?:[-•]\s+.+\n?)+)/gi, (match, header, list) => {
+      const attendees = list.match(/[-•]\s+(.+)/g)?.map(a => a.replace(/^[-•]\s+/, '').trim()) || [];
+      
+      // Separate mentioned/present
+      const present = attendees.filter(a => !a.toLowerCase().includes('mentioned'));
+      const mentioned = attendees.filter(a => a.toLowerCase().includes('mentioned')).map(a => a.replace(/\s*\(mentioned\)/gi, ''));
+      
+      if (attendees.length <= 4) {
+        // Inline format for short lists
+        let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
+        html += '<div class="bg-[#F0F4F5] border-l-4 border-[#005EB8] p-4 mb-4 rounded-r">';
+        if (present.length > 0) html += `<p class="mb-2"><strong class="text-[#005EB8]">Present:</strong> ${present.join(', ')}</p>`;
+        if (mentioned.length > 0) html += `<p><strong class="text-[#768692]">Also mentioned:</strong> ${mentioned.join(', ')}</p>`;
+        html += '</div>';
+        return html;
+      } else {
+        // Grid format for longer lists
+        const presentGrid = present.map(a => 
+          `<div class="px-3 py-2 bg-white border border-[#E8EDEE] rounded text-[#212B32]">${a}</div>`
+        ).join('');
+        const mentionedGrid = mentioned.length > 0 ? mentioned.map(a => 
+          `<div class="px-3 py-2 bg-white border border-[#E8EDEE] rounded text-[#768692] italic">${a}</div>`
+        ).join('') : '';
+        
+        let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
+        if (present.length > 0) {
+          html += '<p class="text-sm font-semibold text-[#005EB8] mb-2">Present:</p>';
+          html += `<div class="grid grid-cols-2 gap-2 mb-3">${presentGrid}</div>`;
+        }
+        if (mentioned.length > 0) {
+          html += '<p class="text-sm font-semibold text-[#768692] mb-2">Also mentioned:</p>';
+          html += `<div class="grid grid-cols-2 gap-2 mb-4">${mentionedGrid}</div>`;
+        }
+        return html;
+      }
+    })
+
+    // Remove remaining markdown headers (##, ###, etc.) but keep the text
     .replace(/^#{1,6}\s+(.+)$/gm, (match, content) => {
       // Determine header level based on content
-      if (content.includes('Meeting Details') || content.includes('Executive Summary')) {
+      if (content.includes('Meeting Details') || content.includes('Executive Summary') || content.toUpperCase() === 'MEETING DETAILS') {
         return `<h2 class="text-xl font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${content}</h2>`;
-      } else if (content.includes('Action Items') || content.includes('Attendees') || content.includes('Discussion')) {
+      } else if (content.includes('Action Items') || content.includes('Discussion') || content.includes('Key Discussion') || content.includes('Decisions Made')) {
         return `<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">${content}</h3>`;
       } else {
         return `<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">${content}</h4>`;
@@ -84,16 +122,37 @@ export function renderMinutesMarkdown(content: string): string {
     // Italic text
     .replace(/\*(.*?)\*/g, '<em class="italic text-[#425563]">$1</em>')
 
-    // Convert bullet list items
-    .replace(/^[-•]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
+    // Mark nested bullets (indented with 4+ spaces or tabs) for later processing
+    .replace(/^([ ]{4,}|\t+)[-•\*]\s+(.+)$/gm, '<!NESTED!>$2<!NESTED_END!>')
+    
+    // Convert top-level bullet list items
+    .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
+    
+    // Convert nested bullets within list items
+    .replace(/(<li[^>]*>.*?)((?:<!NESTED!>.*?<!NESTED_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
+      const nestedItems = nested.match(/<!NESTED!>(.*?)<!NESTED_END!>/g)
+        ?.map(item => item.replace(/<!NESTED!>|<!NESTED_END!>/g, '').trim())
+        .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
+        .join('') || '';
+      return `${opening}<ul class="list-circle list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
+    })
+    
+    // Clean up any remaining nested markers
+    .replace(/<!NESTED!>|<!NESTED_END!>/g, '')
+    
+    // Wrap consecutive top-level list items in ul tags
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-2)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-2)[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
 
-    // Wrap consecutive list items in ul tags (using non-greedy, safer pattern)
-    .replace(/(<li class="mb-2[^>]*>(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
-
-    // Convert numbered list items
+    // Enhanced numbered list items - detect discussion points with bold headers
+    .replace(/^(\d+)[\.)]\s+(\*\*.*?\*\*:?)\s*$/gm, '<li class="mb-4 text-[#212B32] leading-relaxed font-medium text-base border-l-2 border-[#005EB8] pl-3" value="$1">$2</li>')
+    
+    // Regular numbered list items
     .replace(/^(\d+)[\.)]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed" value="$1">$2</li>')
 
-    // Wrap consecutive numbered items in ol tags (using safer pattern)
+    // Wrap consecutive numbered items in ol tags with better spacing for discussion points
+    .replace(/(<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-4[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-4">$&</ol>')
+    
+    // Wrap remaining numbered items (regular)
     .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-4 space-y-1">$&</ol>')
 
     // Paragraphs
@@ -135,6 +194,15 @@ export function renderMinutesMarkdown(content: string): string {
       
       .minutes-content table {
         page-break-inside: avoid;
+      }
+      
+      .minutes-content ul ul {
+        list-style-type: circle;
+        margin-top: 0.5rem;
+      }
+      
+      .minutes-content ol li[class*="border-l-2"] {
+        margin-bottom: 1rem;
       }
       
       /* Print optimization */
