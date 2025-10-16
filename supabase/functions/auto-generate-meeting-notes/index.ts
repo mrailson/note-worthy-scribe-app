@@ -290,14 +290,26 @@ NOTE ON TRANSCRIPT QUALITY:
 CRITICAL LANGUAGE AND FORMATTING REQUIREMENTS:
 - Use British English spelling throughout: organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme
 - Use British terminology: whilst (not while), amongst (not among), programme (not program), fulfil (not fulfill), learnt (not learned)
-- Use British date format: 31st August 2025 (not August 31, 2025) - include ordinal indicators (1st, 2nd, 3rd, etc.)
+- Use British date format: Wednesday 31st August 2025 (including day of week)
 - Use 24-hour time format where appropriate: 14:30 rather than 2:30 PM
 - Follow NHS/UK business conventions for professional language and formatting
 - Use £ symbol positioning following UK conventions
 
-FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS (using professional business formatting with markdown headers for proper styling):
+FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
 
-## EXECUTIVE SUMMARY
+Start with a descriptive document title based on the meeting content (e.g., "Practice Partnership Meeting - Strategic Planning Review")
+
+Then add: Date: [Day of week] [Day with ordinal] [Month] [Year]
+
+Then use these sections with # headers (level 1):
+
+# MEETING DETAILS
+- Meeting Title: [from metadata]
+- Date: [full British format with day of week]
+- Time: [24-hour format]
+- Location: [from authoritative context - DO NOT CHANGE THIS]
+
+# EXECUTIVE SUMMARY
 Write 2-3 substantial paragraphs that capture the essence of the content. Include:
 - Main focus areas, initiatives, or programmes discussed  
 - Key decisions made and their context
@@ -306,37 +318,53 @@ Write 2-3 substantial paragraphs that capture the essence of the content. Includ
 - Specific details that make this content memorable and distinguishable
 - Financial, operational, or strategic implications discussed
 
-## ATTENDEES
-- List all participants, speakers, or individuals mentioned
+# ATTENDEES
+- [Name]
+- [Name]
+(List each attendee's name on a separate bullet point)
 
-## KEY DISCUSSION POINTS
-1. Detailed breakdown of main topics with context and outcomes
+# DISCUSSION SUMMARY
 
-2. Important themes, initiatives, or programmes covered
+Background
+[Write a context-setting paragraph explaining what led to this meeting and the key topics to be addressed]
 
-3. Educational content or knowledge shared
+Key Points
+1. [First major discussion point with full context and outcomes]
 
-## DECISIONS MADE
-- Specific decisions reached or recommendations made with reasoning
-- Strategic directions or policy changes discussed
+2. [Second major discussion point with details]
 
-## ACTION ITEMS
-- Specific tasks, assignments, and next steps with responsible parties and deadlines
-- Follow-up activities or commitments identified
+3. [Continue with all significant discussion items]
 
-## MATTERS TO REVISIT
-- Items deferred or requiring future consideration with context and timelines
-- Outstanding issues or unresolved questions that need follow-up
-- Strategic considerations for future meetings or decisions
+# ACTION ITEMS
+| Action | Responsible Party | Deadline | Priority |
+|--------|-------------------|----------|----------|
+| [Specific task description] | [Person's name] | [Date or timeframe] | High/Medium/Low |
+| [Next action item] | [Person's name] | [Date or timeframe] | High/Medium/Low |
 
-## NEXT STEPS & FOLLOW-UP
-- Any scheduled follow-up meetings, review dates, or important future milestones
-- Planned activities or continuation of programmes
+(Format as a proper markdown table with these exact column headers)
+
+# OPEN ITEMS & RISKS
+- [Items deferred or requiring future consideration with context]
+- [Outstanding issues or unresolved questions that need follow-up]
+- [Strategic considerations for future meetings or decisions]
+
+# NEXT MEETING
+[State the next meeting date if mentioned, or write "To be determined" if not specified]
+
+CRITICAL FORMATTING RULES:
+- Use # (level 1 headers) for ALL main sections
+- Start document with a specific descriptive title
+- Include day of week in all dates (e.g., "Wednesday 15th October 2025")
+- ACTION ITEMS MUST be a properly formatted markdown table with pipes (|)
+- Do not use ## (level 2 headers) for main sections
+- Respect the authoritative location provided - never contradict it
 
 Make the executive summary rich in detail and context. Focus on creating a narrative that captures the content's purpose, main discussions, and outcomes in a way that would help someone quickly understand what this was about even months later.`;
 
-    // Format date in British format
+    // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = daysOfWeek[meetingDate.getDay()];
     const day = meetingDate.getDate();
     const ordinalSuffix = (day: number) => {
       if (day > 3 && day < 21) return 'th';
@@ -348,7 +376,7 @@ Make the executive summary rich in detail and context. Focus on creating a narra
       }
     };
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const formattedDate = `${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
+    const formattedDate = `${dayOfWeek} ${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
 
     // Build authoritative context information from meeting metadata
     let locationContext = '';
