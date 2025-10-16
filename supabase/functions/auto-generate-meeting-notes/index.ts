@@ -472,13 +472,38 @@ ${cleanedTranscript}`;
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
     }
 
-    // Update meeting with completion status, word count, and AI overview
+    // Generate descriptive meeting title using the transcript
+    let generatedTitle = meeting.title;
+    try {
+      console.log('🏷️ Generating descriptive meeting title...');
+      const { data: titleResult, error: titleError } = await supabase.functions.invoke(
+        'generate-meeting-title',
+        {
+          body: { 
+            transcript: cleanedTranscript,
+            currentTitle: meeting.title
+          }
+        }
+      );
+
+      if (titleError) {
+        console.warn('⚠️ Title generation failed:', titleError.message);
+      } else if (titleResult?.title) {
+        generatedTitle = titleResult.title;
+        console.log('✅ Generated title:', generatedTitle);
+      }
+    } catch (titleError) {
+      console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
+    }
+
+    // Update meeting with completion status, word count, AI overview, and generated title
     await supabase
       .from('meetings')
       .update({ 
         notes_generation_status: 'completed',
         word_count: wordCount,
-        overview: aiOverview
+        overview: aiOverview,
+        title: generatedTitle
       })
       .eq('id', meetingId);
 

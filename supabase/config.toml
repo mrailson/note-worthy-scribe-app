@@ -171,3 +171,6 @@ verify_jwt = false
 [functions.standalone-deepgram]
 verify_jwt = false
 
+[functions.generate-meeting-title]
+verify_jwt = false
+
