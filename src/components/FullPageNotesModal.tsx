@@ -3064,7 +3064,16 @@ ${transcript}`;
                                         Enhance Notes
                                       </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem 
+                                    {activeNotesStyleTab === 'style1' && (
+                                      <DropdownMenuItem 
+                                        onSelect={() => generateNotesStyle3()}
+                                        disabled={isGeneratingStyle3}
+                                      >
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Regenerate Meeting Notes
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
                                       onSelect={() => {
                                         if (content) {
                                           generateAdvancedWordDocument(content, tabName);
