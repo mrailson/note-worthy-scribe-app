@@ -359,7 +359,7 @@ export function EmailMeetingMinutesModal({
       const emailData = {
         to_email: uniqueRecipients.join(', '),
         subject: subject.trim(),
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="border-top: 2px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING NOTES</h1>${formattedNotes}</div></div></div>`,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING NOTES</h1>${formattedNotes}</div></div></div>`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
