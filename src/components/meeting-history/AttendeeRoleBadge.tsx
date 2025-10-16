@@ -32,6 +32,14 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   const [open, setOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
 
+  // Debug logging
+  console.log('AttendeeRoleBadge render:', {
+    attendeeName: attendee.name,
+    isCurrentUser,
+    meetingRole,
+    open
+  });
+
   const getRoleIcon = () => {
     switch (meetingRole) {
       case 'chair':
@@ -71,11 +79,18 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      console.log('Popover state changing:', { from: open, to: newOpen, attendee: attendee.name });
+      setOpen(newOpen);
+    }}>
       <PopoverTrigger asChild>
         <Badge
           variant={getBadgeVariant()}
           className="text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1"
+          onClick={(e) => {
+            console.log('Badge clicked:', attendee.name);
+            e.stopPropagation();
+          }}
         >
           {getRoleIcon()}
           {attendee.title && `${attendee.title} `}
@@ -83,7 +98,7 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
           {isCurrentUser && ' (You)'}
         </Badge>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start">
+      <PopoverContent className="w-56 p-2 z-50" align="start" sideOffset={5}>
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground mb-2">
             Set role for {attendee.name}

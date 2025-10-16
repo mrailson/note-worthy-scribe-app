@@ -1551,14 +1551,24 @@ export const MeetingHistoryList = ({
                         {(expandedAttendees[meeting.id] 
                           ? meetingAttendees[meeting.id] 
                           : meetingAttendees[meeting.id].slice(0, 5)
-                        ).map((attendee: any, idx: number) => (
-                          <AttendeeRoleBadge
-                            key={idx}
-                            attendee={attendee}
-                            meetingId={meeting.id}
-                            meetingRole={attendee.meeting_role}
-                            isCurrentUser={attendee.user_id === user?.id}
-                            onRoleChange={() => {
+                        ).map((attendee: any, idx: number) => {
+                          // Debug: Check user_id comparison
+                          const isUserAttendee = attendee.user_id === user?.id;
+                          console.log('Attendee check:', {
+                            name: attendee.name,
+                            attendeeUserId: attendee.user_id,
+                            currentUserId: user?.id,
+                            isMatch: isUserAttendee
+                          });
+                          
+                          return (
+                            <AttendeeRoleBadge
+                              key={idx}
+                              attendee={attendee}
+                              meetingId={meeting.id}
+                              meetingRole={attendee.meeting_role}
+                              isCurrentUser={isUserAttendee}
+                              onRoleChange={() => {
                               // Refetch attendees after role change
                               const fetchAttendees = async () => {
                                 const { data } = await supabase
@@ -1610,7 +1620,8 @@ export const MeetingHistoryList = ({
                               fetchAttendees();
                             }}
                           />
-                        ))}
+                        );
+                        })}
                         {meetingAttendees[meeting.id].length > 5 && (
                           <Button
                             variant="ghost"
