@@ -187,7 +187,53 @@ export const MeetingHistoryList = ({
   const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
   const [meetingAttendees, setMeetingAttendees] = useState<Record<string, any[]>>({});
   const [expandedAttendees, setExpandedAttendees] = useState<Record<string, boolean>>({});
+  const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
+  const [customLocations, setCustomLocations] = useState<string[]>([]);
+  const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
   
+  // Fetch user practices and custom locations
+  useEffect(() => {
+    const fetchPracticesAndLocations = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Fetch user's practices
+        const { data: practiceIds } = await supabase.rpc('get_user_practice_ids', {
+          p_user_id: user.id
+        });
+        
+        if (practiceIds && practiceIds.length > 0) {
+          const { data: practices } = await supabase
+            .from('gp_practices')
+            .select('id, name')
+            .in('id', practiceIds);
+          
+          if (practices) {
+            setUserPractices(practices.map(p => ({ id: p.id, practice_name: p.name })));
+          }
+        }
+        
+        // Fetch custom locations from user's meetings
+        const { data: locations } = await supabase
+          .from('meetings')
+          .select('meeting_location')
+          .eq('user_id', user.id)
+          .eq('meeting_format', 'face-to-face')
+          .not('meeting_location', 'is', null)
+          .limit(20);
+        
+        if (locations) {
+          const uniqueLocations = [...new Set(locations.map(l => l.meeting_location).filter(Boolean))];
+          setCustomLocations(uniqueLocations as string[]);
+        }
+      } catch (error) {
+        console.error('Error fetching practices and locations:', error);
+      }
+    };
+    
+    fetchPracticesAndLocations();
+  }, [user?.id]);
+
   // Sync local meetings with prop changes
   useEffect(() => {
     setLocalMeetings(meetings);
@@ -1749,30 +1795,102 @@ export const MeetingHistoryList = ({
                         <>
                           <span>•</span>
                           <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <Input
-                            value={meeting.meeting_location || ''}
-                            onChange={async (e) => {
-                              const newLocation = e.target.value;
-                              try {
-                                const { error } = await supabase
-                                  .from('meetings')
-                                  .update({ meeting_location: newLocation })
-                                  .eq('id', meeting.id);
-                                if (error) throw error;
-                                
-                                // Update local state
-                                setLocalMeetings(prev => prev.map(m => 
-                                  m.id === meeting.id 
-                                    ? { ...m, meeting_location: newLocation }
-                                    : m
-                                ));
-                              } catch (error) {
-                                console.error('Error updating location:', error);
-                              }
-                            }}
-                            placeholder="Enter location"
-                            className="h-5 text-xs border-0 bg-transparent px-1 w-32 inline-block"
-                          />
+                          <DropdownMenu 
+                            open={locationInputOpen[meeting.id]} 
+                            onOpenChange={(open) => setLocationInputOpen(prev => ({ ...prev, [meeting.id]: open }))}
+                          >
+                            <DropdownMenuTrigger asChild>
+                              <button className="flex items-center gap-1 hover:bg-accent/50 rounded px-1 py-0.5 transition-colors text-xs">
+                                <span className="truncate max-w-[120px]">
+                                  {meeting.meeting_location || 'Set location'}
+                                </span>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="bg-background z-50 w-64">
+                              <div className="p-2 space-y-1">
+                                <Input
+                                  placeholder="Type or select location..."
+                                  value={meeting.meeting_location || ''}
+                                  onChange={async (e) => {
+                                    const newLocation = e.target.value;
+                                    try {
+                                      const { error } = await supabase
+                                        .from('meetings')
+                                        .update({ meeting_location: newLocation })
+                                        .eq('id', meeting.id);
+                                      if (error) throw error;
+                                      
+                                      // Update local state
+                                      setLocalMeetings(prev => prev.map(m => 
+                                        m.id === meeting.id 
+                                          ? { ...m, meeting_location: newLocation }
+                                          : m
+                                      ));
+                                    } catch (error) {
+                                      console.error('Error updating location:', error);
+                                    }
+                                  }}
+                                  className="h-8 text-xs"
+                                />
+                                <div className="text-xs text-muted-foreground px-2 py-1 font-medium">Practice Locations</div>
+                                {userPractices.map((practice) => (
+                                  <DropdownMenuItem
+                                    key={practice.id}
+                                    onClick={async () => {
+                                      try {
+                                        const { error } = await supabase
+                                          .from('meetings')
+                                          .update({ meeting_location: practice.practice_name })
+                                          .eq('id', meeting.id);
+                                        if (error) throw error;
+                                        
+                                        setLocalMeetings(prev => prev.map(m => 
+                                          m.id === meeting.id 
+                                            ? { ...m, meeting_location: practice.practice_name }
+                                            : m
+                                        ));
+                                        setLocationInputOpen(prev => ({ ...prev, [meeting.id]: false }));
+                                      } catch (error) {
+                                        console.error('Error updating location:', error);
+                                      }
+                                    }}
+                                  >
+                                    {practice.practice_name}
+                                  </DropdownMenuItem>
+                                ))}
+                                {customLocations.length > 0 && (
+                                  <>
+                                    <div className="text-xs text-muted-foreground px-2 py-1 font-medium border-t mt-1 pt-2">Recent Locations</div>
+                                    {customLocations.filter(loc => !userPractices.some(p => p.practice_name === loc)).slice(0, 5).map((location, idx) => (
+                                      <DropdownMenuItem
+                                        key={idx}
+                                        onClick={async () => {
+                                          try {
+                                            const { error } = await supabase
+                                              .from('meetings')
+                                              .update({ meeting_location: location })
+                                              .eq('id', meeting.id);
+                                            if (error) throw error;
+                                            
+                                            setLocalMeetings(prev => prev.map(m => 
+                                              m.id === meeting.id 
+                                                ? { ...m, meeting_location: location }
+                                                : m
+                                            ));
+                                            setLocationInputOpen(prev => ({ ...prev, [meeting.id]: false }));
+                                          } catch (error) {
+                                            console.error('Error updating location:', error);
+                                          }
+                                        }}
+                                      >
+                                        {location}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </>
+                                )}
+                              </div>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </>
                       )}
                       

@@ -137,6 +137,7 @@ export const MeetingRecorder = ({
   // Meeting type and location state
   const [meetingType, setMeetingType] = useState<'teams' | 'face-to-face' | 'hybrid'>('teams');
   const [meetingLocation, setMeetingLocation] = useState<string>('');
+  const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
   
   // Early word count progress display (first 20 seconds)
   const [showEarlyWordCount, setShowEarlyWordCount] = useState(false);
@@ -253,15 +254,6 @@ export const MeetingRecorder = ({
   const handleTimestampsToggle = (show: boolean) => {
     setShowTimestamps(show);
   };
-
-  // Update meeting settings when type/location changes
-  useEffect(() => {
-    updateMeetingSettings(prev => ({
-      ...prev,
-      meetingFormat: meetingType,
-      location: meetingType === 'face-to-face' ? meetingLocation : ''
-    }));
-  }, [meetingType, meetingLocation]);
 
 
   // Reset meeting function
@@ -406,6 +398,56 @@ export const MeetingRecorder = ({
   const isRecordingRef = useRef<boolean>(false);
   const recordingStartTimeRef = useRef<Date | null>(null);
   const recordingStartMonotonicRef = useRef<number | null>(null);
+  
+  // Fetch user practices and set default location
+  useEffect(() => {
+    const fetchUserPractices = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data: practiceIds } = await supabase.rpc('get_user_practice_ids', {
+          p_user_id: user.id
+        });
+        
+        if (practiceIds && practiceIds.length > 0) {
+          const { data: practices } = await supabase
+            .from('gp_practices')
+            .select('id, name')
+            .in('id', practiceIds);
+          
+          if (practices) {
+            setUserPractices(practices.map(p => ({ id: p.id, practice_name: p.name })));
+            // Set default location to first practice if face-to-face is selected
+            if (meetingType === 'face-to-face' && !meetingLocation) {
+              setMeetingLocation(practices[0].name);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching practices:', error);
+      }
+    };
+    
+    fetchUserPractices();
+  }, [user?.id]);
+
+  // Update location when meeting type changes to face-to-face
+  useEffect(() => {
+    if (meetingType === 'face-to-face' && userPractices.length > 0 && !meetingLocation) {
+      setMeetingLocation(userPractices[0].practice_name);
+    } else if (meetingType !== 'face-to-face') {
+      setMeetingLocation('');
+    }
+  }, [meetingType, userPractices]);
+
+  // Update meeting settings when type/location changes
+  useEffect(() => {
+    updateMeetingSettings(prev => ({
+      ...prev,
+      meetingFormat: meetingType,
+      location: meetingType === 'face-to-face' ? meetingLocation : ''
+    }));
+  }, [meetingType, meetingLocation]);
   // Progressive pre-summaries ingestion state
   const ingestedKeysRef = useRef<Set<string>>(new Set());
   // Audio backup recording refs
