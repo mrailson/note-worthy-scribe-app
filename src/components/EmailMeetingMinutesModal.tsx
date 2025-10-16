@@ -337,7 +337,19 @@ export function EmailMeetingMinutesModal({
       // Helper function to convert markdown and format to HTML
       const convertToStyledHTML = (text: string): string => {
         // FIRST: Strip ALL bold markers from the entire text before any processing
-        const cleanedText = text.replace(/\*\*/g, '');
+        let cleanedText = text.replace(/\*\*/g, '');
+        
+        // Remove transcript section if present (everything after "MEETING TRANSCRIPT FOR REFERENCE:")
+        const transcriptIndex = cleanedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
+        if (transcriptIndex !== -1) {
+          cleanedText = cleanedText.substring(0, transcriptIndex).trim();
+        }
+        
+        // Also remove any transcript sections that might be in different formats
+        cleanedText = cleanedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+        cleanedText = cleanedText.replace(/\n*Transcript:[\s\S]*$/i, '');
+        cleanedText = cleanedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+        
         const lines = cleanedText.split('\n');
         let html = '';
         let i = 0;
