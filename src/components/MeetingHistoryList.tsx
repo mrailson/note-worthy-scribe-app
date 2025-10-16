@@ -1817,7 +1817,7 @@ export const MeetingHistoryList = ({
                         }}
                       >
                         <Mail className="h-4 w-4 mr-2" />
-                        Email Minutes
+                        Email Meeting Notes
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onSelect={(e) => {

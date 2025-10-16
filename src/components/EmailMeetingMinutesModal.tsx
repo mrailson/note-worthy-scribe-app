@@ -29,7 +29,7 @@ export function EmailMeetingMinutesModal({
 }: EmailMeetingMinutesModalProps) {
   const { profile } = useUserProfile();
   const [toEmail, setToEmail] = useState(profile?.email || "");
-  const [subject, setSubject] = useState(meetingTitle ? `Meeting Minutes - ${meetingTitle}` : 'Meeting Minutes');
+  const [subject, setSubject] = useState(meetingTitle ? `Meeting Notes - ${meetingTitle}` : 'Meeting Notes');
   const [emailBody, setEmailBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [includeTranscript, setIncludeTranscript] = useState(false);
@@ -81,12 +81,12 @@ export function EmailMeetingMinutesModal({
   useEffect(() => {
     if (isOpen && meetingTitle) {
       const subjectLine = meetingDateTime 
-        ? `Meeting Minutes - ${meetingTitle} - ${meetingDateTime}`
-        : `Meeting Minutes - ${meetingTitle}`;
+        ? `${meetingTitle} - ${meetingDateTime}`
+        : meetingTitle;
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
       setEmailBody(
-        `Dear recipient,\n\nPlease find attached the meeting minutes for "${meetingTitle}".\n\nKind regards,\n${userName}`
+        `Dear recipient,\n\nPlease find attached the meeting notes for "${meetingTitle}".\n\nKind regards,\n${userName}`
       );
     }
   }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDateTime]);
@@ -382,7 +382,7 @@ export function EmailMeetingMinutesModal({
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="border-top: 2px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING MINUTES</h1>${formattedNotes}</div></div></div>`,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="border-top: 2px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING NOTES</h1>${formattedNotes}</div></div></div>`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
@@ -425,7 +425,7 @@ export function EmailMeetingMinutesModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Email Meeting Minutes
+            Email Meeting Notes
           </DialogTitle>
         </DialogHeader>
         
@@ -486,7 +486,7 @@ export function EmailMeetingMinutesModal({
                 className="h-4 w-4 rounded border-gray-300"
               />
               <Label htmlFor="include-transcript" className="text-sm font-normal cursor-pointer">
-                Include transcript as .txt attachment
+                Include meeting transcript as separate attachment
               </Label>
             </div>
           </div>
