@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Send, Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,15 @@ import { toast } from "sonner";
 import { generateWordDocument } from "@/utils/documentGenerators";
 import { format } from "date-fns";
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, ShadingType, Packer } from "docx";
+
+interface MeetingAttendee {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  organization: string | null;
+  organization_type: string | null;
+}
 
 interface EmailMeetingMinutesModalProps {
   isOpen: boolean;
@@ -33,6 +43,8 @@ export function EmailMeetingMinutesModal({
   const [emailBody, setEmailBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [includeTranscript, setIncludeTranscript] = useState(false);
+  const [meetingAttendees, setMeetingAttendees] = useState<MeetingAttendee[]>([]);
+  const [selectedAttendeeEmails, setSelectedAttendeeEmails] = useState<string[]>([]);
   const [meetingDateTime, setMeetingDateTime] = useState<string>("");
 
   // Helper function to round time to nearest 15 minutes
@@ -90,6 +102,54 @@ export function EmailMeetingMinutesModal({
       );
     }
   }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDateTime]);
+
+  // Fetch meeting attendees
+  useEffect(() => {
+    const fetchAttendees = async () => {
+      if (!isOpen || !meetingId) return;
+
+      try {
+        const { data: meetingAttendeesData, error } = await supabase
+          .from('meeting_attendees')
+          .select(`
+            attendee_id,
+            attendees:attendee_id (
+              id,
+              name,
+              email,
+              role,
+              organization,
+              organization_type
+            )
+          `)
+          .eq('meeting_id', meetingId);
+
+        if (error) {
+          console.error('Error fetching meeting attendees:', error);
+          return;
+        }
+
+        if (meetingAttendeesData) {
+          const attendeesWithEmail = meetingAttendeesData
+            .filter((ma: any) => ma.attendees && ma.attendees.email)
+            .map((ma: any) => ({
+              id: ma.attendees.id,
+              name: ma.attendees.name,
+              email: ma.attendees.email,
+              role: ma.attendees.role,
+              organization: ma.attendees.organization,
+              organization_type: ma.attendees.organization_type,
+            }));
+
+          setMeetingAttendees(attendeesWithEmail);
+        }
+      } catch (error) {
+        console.error('Error fetching attendees:', error);
+      }
+    };
+
+    fetchAttendees();
+  }, [isOpen, meetingId]);
 
   const handleSendEmail = async () => {
     if (!toEmail.trim()) {
@@ -379,8 +439,22 @@ export function EmailMeetingMinutesModal({
       const formattedNotes = convertToStyledHTML(meetingNotes);
 
       // Prepare email data for EmailJS service
+      // Combine all recipient emails
+      const allRecipients = [
+        toEmail.trim(),
+        ...selectedAttendeeEmails
+      ].filter(email => email); // Remove empty strings
+
+      // Remove duplicates
+      const uniqueRecipients = Array.from(new Set(allRecipients));
+
+      if (uniqueRecipients.length === 0) {
+        toast.error("Please add at least one email recipient.");
+        return;
+      }
+
       const emailData = {
-        to_email: toEmail.trim(),
+        to_email: uniqueRecipients.join(', '),
         subject: subject.trim(),
         message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="border-top: 2px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING NOTES</h1>${formattedNotes}</div></div></div>`,
         template_type: 'meeting_minutes',
@@ -421,7 +495,7 @@ export function EmailMeetingMinutesModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border shadow-2xl" style={{ zIndex: 200 }}>
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto border shadow-2xl" style={{ zIndex: 200 }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -452,6 +526,70 @@ export function EmailMeetingMinutesModal({
               className="w-full"
             />
           </div>
+
+          {meetingAttendees.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Add Meeting Participants ({selectedAttendeeEmails.length} of {meetingAttendees.length} selected)</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allEmails = meetingAttendees
+                        .filter(a => a.email)
+                        .map(a => a.email as string);
+                      setSelectedAttendeeEmails(allEmails);
+                    }}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedAttendeeEmails([])}
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
+              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2 bg-muted/20">
+                {meetingAttendees.map((attendee) => (
+                  <div key={attendee.id} className="flex items-start gap-3 p-2 hover:bg-accent rounded-md transition-colors">
+                    <Checkbox
+                      id={`attendee-${attendee.id}`}
+                      checked={selectedAttendeeEmails.includes(attendee.email as string)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedAttendeeEmails([...selectedAttendeeEmails, attendee.email as string]);
+                        } else {
+                          setSelectedAttendeeEmails(selectedAttendeeEmails.filter(e => e !== attendee.email));
+                        }
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <Label 
+                        htmlFor={`attendee-${attendee.id}`}
+                        className="text-sm font-medium cursor-pointer block"
+                      >
+                        {attendee.name}
+                      </Label>
+                      <p className="text-xs text-muted-foreground truncate">{attendee.email}</p>
+                      {(attendee.role || attendee.organization) && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {attendee.role && <span>{attendee.role}</span>}
+                          {attendee.role && attendee.organization && <span> • </span>}
+                          {attendee.organization && <span>{attendee.organization}</span>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
@@ -470,20 +608,18 @@ export function EmailMeetingMinutesModal({
               id="email-body"
               value={emailBody}
               onChange={(e) => setEmailBody(e.target.value)}
-              placeholder="Email message (meeting minutes will be attached below)"
-              rows={6}
+              placeholder="Email message (meeting notes will be attached below)"
+              rows={10}
               className="w-full resize-none"
             />
           </div>
           
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="include-transcript"
                 checked={includeTranscript}
-                onChange={(e) => setIncludeTranscript(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                onCheckedChange={(checked) => setIncludeTranscript(checked as boolean)}
               />
               <Label htmlFor="include-transcript" className="text-sm font-normal cursor-pointer">
                 Include meeting transcript as separate attachment
@@ -494,10 +630,15 @@ export function EmailMeetingMinutesModal({
           <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border">
             <p className="font-medium mb-1">What will be sent:</p>
             <ul className="text-xs space-y-1">
-              <li>• Word document with meeting minutes attached</li>
-              <li>• Meeting minutes included in email body</li>
-              {includeTranscript && <li>• Transcript as .txt file attachment</li>}
+              <li>• Word document with meeting notes attached</li>
+              <li>• Meeting notes included in email body</li>
+              {includeTranscript && <li>• Transcript as separate Word document attachment</li>}
               <li>• Professional email formatting</li>
+              {(toEmail.trim() || selectedAttendeeEmails.length > 0) && (
+                <li className="font-medium mt-2 pt-2 border-t">
+                  Recipients: {[toEmail.trim(), ...selectedAttendeeEmails].filter(Boolean).length} email{[toEmail.trim(), ...selectedAttendeeEmails].filter(Boolean).length !== 1 ? 's' : ''}
+                </li>
+              )}
             </ul>
           </div>
         </div>
