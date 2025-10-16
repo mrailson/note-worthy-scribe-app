@@ -3008,7 +3008,7 @@ ${transcript}`;
                                         // Prevent immediate dropdown close to allow modal state to propagate
                                         e.preventDefault();
                                         console.log('📧 Send Email clicked from dropdown', { tabName, hasContent: !!content });
-                                        setEmailModalContent({ title: tabName, notes: content || '' });
+                                        setEmailModalContent({ title: meeting?.title || 'Meeting', notes: content || '' });
                                         // Use setTimeout to ensure dropdown closes gracefully before modal opens
                                         setTimeout(() => {
                                           setEmailModalOpen(true);
