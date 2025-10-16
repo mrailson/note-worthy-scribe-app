@@ -380,10 +380,14 @@ FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
 CRITICAL: Start your response immediately with "# MEETING DETAILS" - do NOT include any title, date, or text before this first header.
 
 # MEETING DETAILS
-- Meeting Title: [from metadata]
-- Date: [full British format with day of week]
-- Time: [24-hour format]
-- Location: [from authoritative context - DO NOT CHANGE THIS]
+
+Meeting Title: [from metadata]
+
+Date: [full British format with day of week]
+
+Time: [Use 24-hour GMT format. If not specified in metadata, use the recording start time provided]
+
+Location: [from authoritative context - DO NOT CHANGE THIS]
 
 # EXECUTIVE SUMMARY
 Write 1 concise paragraph (3-4 sentences maximum) that captures the essence of the content:
@@ -470,8 +474,15 @@ ${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${finalAttendees.length 
 
 `;
 
+    // Format start time in GMT 24-hour format
+    const startTime = meeting.start_time ? new Date(meeting.start_time) : new Date(meeting.created_at);
+    const hours = String(startTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(startTime.getUTCMinutes()).padStart(2, '0');
+    const formattedStartTime = `${hours}:${minutes} GMT`;
+
     const userPrompt = `Meeting Title: ${meeting.title}
 Meeting Date: ${formattedDate}
+Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 ${contextInfo}
