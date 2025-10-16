@@ -9,8 +9,10 @@ export function renderMinutesMarkdown(content: string): string {
 
   console.log('🔍 MINUTES RENDERER INPUT:', content.substring(0, 200));
 
-  // Preprocess content to normalize spacing
+  // Preprocess content to normalize spacing and remove transcript section
   let preprocessedContent = content
+    // Remove "MEETING TRANSCRIPT FOR REFERENCE" section and everything after it
+    .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
     // Normalize line breaks
     .replace(/\r\n/g, '\n')
     // Clean up multiple consecutive line breaks
