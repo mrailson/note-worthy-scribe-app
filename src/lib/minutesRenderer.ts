@@ -173,7 +173,7 @@ export function renderMinutesMarkdown(content: string): string {
         .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
         .join('') || '';
       
-      return `<li class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
+      return `<li class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}</li><ul class="list-disc list-outside ml-6 mb-3 space-y-1 text-[#425563]">${nestedBullets}</ul>`;
     })
     
     // Convert top-level bullet list items
@@ -200,7 +200,7 @@ export function renderMinutesMarkdown(content: string): string {
         ?.map(item => item.replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '').trim())
         .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
         .join('') || '';
-      return `${opening}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
+      return `${opening}</li><ul class="list-disc list-outside ml-6 mb-3 space-y-1 text-[#425563]">${nestedItems}</ul>`;
     })
     
     // Clean up nested numbered markers
