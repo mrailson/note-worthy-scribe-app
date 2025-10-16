@@ -165,9 +165,42 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
           .insert(meetingAttendees);
 
         if (error) throw error;
+
+        // Silently update the transcript with attendee details
+        const selectedAttendeesData = allAttendees.filter(a => selectedAttendeeIds.includes(a.id));
+        
+        if (selectedAttendeesData.length > 0) {
+          // Format attendees information
+          const attendeesText = selectedAttendeesData.map(attendee => {
+            const orgBadge = getOrgTypeBadge(attendee.organization_type);
+            return `${attendee.title ? attendee.title + ' ' : ''}${attendee.name}${attendee.role ? ' - ' + attendee.role : ''}${attendee.organization ? ' (' + attendee.organization + ', ' + orgBadge.label + ')' : ''}${attendee.email ? ' - ' + attendee.email : ''}`;
+          }).join('\n');
+
+          const attendeesSection = `\n\n### Confirmed Attendees:\n${attendeesText}\n`;
+
+          // Get current transcript
+          const { data: currentTranscript } = await supabase.rpc('get_meeting_full_transcript', {
+            p_meeting_id: meetingId
+          });
+
+          if (currentTranscript && currentTranscript.length > 0) {
+            const transcriptText = currentTranscript[0].transcript || '';
+            
+            // Remove old attendees section if it exists
+            const updatedTranscript = transcriptText.replace(/\n\n### Confirmed Attendees:[\s\S]*?(?=\n\n|$)/, '') + attendeesSection;
+
+            // Update the meeting transcript
+            await supabase
+              .from('meetings')
+              .update({ 
+                transcript: updatedTranscript,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', meetingId);
+          }
+        }
       }
 
-      toast.success(`Attendees updated for "${meetingTitle}"`);
       onClose();
     } catch (error) {
       console.error('Error saving attendees:', error);

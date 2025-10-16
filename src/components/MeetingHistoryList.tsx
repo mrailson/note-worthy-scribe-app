@@ -167,10 +167,52 @@ export const MeetingHistoryList = ({
   
   // Local state for meetings to allow immediate updates
   const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
+  const [meetingAttendees, setMeetingAttendees] = useState<Record<string, any[]>>({});
   
   // Sync local meetings with prop changes
   useEffect(() => {
     setLocalMeetings(meetings);
+    
+    // Fetch attendees for all meetings
+    const fetchAllAttendees = async () => {
+      const meetingIds = meetings.map(m => m.id);
+      if (meetingIds.length === 0) return;
+
+      try {
+        const { data: attendeeLinks } = await supabase
+          .from('meeting_attendees')
+          .select(`
+            meeting_id,
+            attendees:attendee_id (
+              id,
+              name,
+              title,
+              email,
+              organization,
+              organization_type,
+              role
+            )
+          `)
+          .in('meeting_id', meetingIds);
+
+        if (attendeeLinks) {
+          const attendeesMap: Record<string, any[]> = {};
+          attendeeLinks.forEach((link: any) => {
+            if (!attendeesMap[link.meeting_id]) {
+              attendeesMap[link.meeting_id] = [];
+            }
+            if (link.attendees) {
+              attendeesMap[link.meeting_id].push(link.attendees);
+            }
+          });
+          setMeetingAttendees(attendeesMap);
+        }
+      } catch (error) {
+        console.error('Error fetching attendees:', error);
+      }
+    };
+
+    fetchAllAttendees();
   }, [meetings]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
@@ -1470,6 +1512,26 @@ export const MeetingHistoryList = ({
                         </Badge>
                       )}
                     </div>
+
+                    {/* Display Attendees */}
+                    {meetingAttendees[meeting.id] && meetingAttendees[meeting.id].length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          Attendees:
+                        </span>
+                        {meetingAttendees[meeting.id].slice(0, 3).map((attendee: any, idx: number) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {attendee.title} {attendee.name}
+                          </Badge>
+                        ))}
+                        {meetingAttendees[meeting.id].length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{meetingAttendees[meeting.id].length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
