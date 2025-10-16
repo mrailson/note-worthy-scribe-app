@@ -2136,7 +2136,9 @@ ${transcript}`;
         
         setNotesStyle3(generatedContent);
         
-        // Update local state - already saved by edge function
+        // Save to meetings table so it persists when returning to the meeting
+        await saveNoteStyleToDatabase(3, generatedContent);
+        
         toast.success('Meeting notes regenerated successfully');
       } else {
         console.error('❌ No content in regenerated notes');
