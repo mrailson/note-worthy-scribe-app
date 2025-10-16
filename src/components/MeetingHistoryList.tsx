@@ -31,7 +31,8 @@ import {
   Bot,
   Mail,
   Users,
-  MoreVertical
+  MoreVertical,
+  FileDown
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -79,6 +80,8 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { MeetingAttendeeModal } from './MeetingAttendeeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
+import { useMeetingExport } from '@/hooks/useMeetingExport';
+import { toast } from 'sonner';
 
 
 interface Meeting {
@@ -335,6 +338,9 @@ export const MeetingHistoryList = ({
 
   // Status recovery state
   const [recoveringMeetings, setRecoveringMeetings] = useState<Set<string>>(new Set());
+
+  // Initialize meeting export hook
+  const { generateWordDocument, generatePDF } = useMeetingExport(null, { outputLevel: 1 } as any);
 
   // Auto-recover stuck meetings after 2 minutes
   useEffect(() => {
@@ -744,6 +750,86 @@ export const MeetingHistoryList = ({
   const handleAttendeesClick = (meeting: Meeting) => {
     setSelectedMeetingForAttendees(meeting);
     setAttendeeModalOpen(true);
+  };
+
+  // Handle download meeting notes as Word
+  const handleDownloadWord = async (meeting: Meeting) => {
+    try {
+      console.log('📄 Downloading Word document for meeting:', meeting.id, meeting.title);
+      
+      // Fetch the latest meeting notes/summary from multiple sources (prioritize Minutes - Standard)
+      const { data: notesFields, error: notesFieldsError } = await supabase
+        .from('meetings')
+        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5')
+        .eq('id', meeting.id)
+        .maybeSingle();
+
+      const { data: summaryData } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meeting.id)
+        .maybeSingle();
+
+      // Priority order: Minutes - Standard (notes_style_3) > other notes > summary
+      let notes = '';
+      const standardFromMeeting = (notesFields as any)?.notes_style_3 || '';
+      
+      if (standardFromMeeting) {
+        notes = standardFromMeeting;
+      } else if (summaryData?.summary) {
+        notes = summaryData.summary;
+      } else if (meeting.meeting_summary) {
+        notes = meeting.meeting_summary;
+      } else {
+        toast.error('No meeting notes available to download');
+        return;
+      }
+
+      await generateWordDocument(notes, meeting.title);
+    } catch (error) {
+      console.error('Error downloading Word document:', error);
+      toast.error('Failed to download Word document');
+    }
+  };
+
+  // Handle download meeting notes as PDF
+  const handleDownloadPDF = async (meeting: Meeting) => {
+    try {
+      console.log('📄 Downloading PDF for meeting:', meeting.id, meeting.title);
+      
+      // Fetch the latest meeting notes/summary from multiple sources (prioritize Minutes - Standard)
+      const { data: notesFields, error: notesFieldsError } = await supabase
+        .from('meetings')
+        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5')
+        .eq('id', meeting.id)
+        .maybeSingle();
+
+      const { data: summaryData } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meeting.id)
+        .maybeSingle();
+
+      // Priority order: Minutes - Standard (notes_style_3) > other notes > summary
+      let notes = '';
+      const standardFromMeeting = (notesFields as any)?.notes_style_3 || '';
+      
+      if (standardFromMeeting) {
+        notes = standardFromMeeting;
+      } else if (summaryData?.summary) {
+        notes = summaryData.summary;
+      } else if (meeting.meeting_summary) {
+        notes = meeting.meeting_summary;
+      } else {
+        toast.error('No meeting notes available to download');
+        return;
+      }
+
+      generatePDF(notes, meeting.title);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
   };
 
   const uploadDocuments = async () => {
@@ -1818,6 +1904,24 @@ export const MeetingHistoryList = ({
                       >
                         <Mail className="h-4 w-4 mr-2" />
                         Email Meeting Notes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleDownloadWord(meeting);
+                        }}
+                      >
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Download Meeting Notes (Word)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleDownloadPDF(meeting);
+                        }}
+                      >
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Download Meeting Notes (PDF)
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onSelect={(e) => {
