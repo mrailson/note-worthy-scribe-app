@@ -2104,6 +2104,7 @@ ${transcript}`;
     try {
       console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
+      // Start the generation (this returns immediately, actual generation happens async)
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: {
           meetingId: meeting.id,
@@ -2121,19 +2122,52 @@ ${transcript}`;
         return;
       }
 
-      // Fetch the regenerated notes from the database
-      const { data: summaryData, error: fetchError } = await supabase
-        .from('meeting_summaries')
-        .select('summary')
-        .eq('meeting_id', meeting.id)
-        .single();
+      console.log('⏳ Polling for completion...');
+      
+      // Poll for completion - check every 2 seconds for up to 60 seconds
+      const maxAttempts = 30;
+      let attempts = 0;
+      let generatedContent = null;
 
-      if (fetchError) throw fetchError;
-
-      if (summaryData?.summary) {
-        const generatedContent = summaryData.summary;
-        console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
+      while (attempts < maxAttempts) {
+        attempts++;
         
+        // Check meeting status
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('notes_generation_status')
+          .eq('id', meeting.id)
+          .single();
+        
+        console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
+        
+        if (meetingData?.notes_generation_status === 'completed') {
+          // Fetch the regenerated notes
+          const { data: summaryData, error: fetchError } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meeting.id)
+            .single();
+
+          if (fetchError) {
+            console.error('❌ Error fetching notes:', fetchError);
+            throw fetchError;
+          }
+
+          if (summaryData?.summary) {
+            generatedContent = summaryData.summary;
+            console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
+            break;
+          }
+        } else if (meetingData?.notes_generation_status === 'failed') {
+          throw new Error('Note generation failed on server');
+        }
+        
+        // Wait 2 seconds before next check
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      if (generatedContent) {
         setNotesStyle3(generatedContent);
         
         // Save to meetings table so it persists when returning to the meeting
@@ -2141,8 +2175,8 @@ ${transcript}`;
         
         toast.success('Meeting notes regenerated successfully');
       } else {
-        console.error('❌ No content in regenerated notes');
-        toast.error('Failed to regenerate notes. No content received.');
+        console.error('❌ Timeout waiting for notes generation');
+        toast.error('Note generation timed out. Please try again.');
       }
     } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
