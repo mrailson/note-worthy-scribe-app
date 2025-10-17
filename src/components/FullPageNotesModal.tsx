@@ -3789,6 +3789,125 @@ ${transcript}`;
                                   onExport={() => {
                                     toast.info('Export feature coming soon');
                                   }}
+                                  onEmailPatientCopy={() => {
+                                    if (!soapNotes?.patient_copy) {
+                                      toast.error('No patient letter available to email');
+                                      return;
+                                    }
+                                    
+                                    const consultDate = meeting?.start_time ? new Date(meeting.start_time) : new Date();
+                                    const formattedDate = consultDate.toLocaleDateString('en-GB', { 
+                                      weekday: 'long', 
+                                      year: 'numeric', 
+                                      month: 'long', 
+                                      day: 'numeric' 
+                                    });
+                                    
+                                    // Format medications if available
+                                    let medicationsHtml = '';
+                                    if (soapNotes.clinical_actions?.medications && soapNotes.clinical_actions.medications.length > 0) {
+                                      medicationsHtml = `
+                                        <div style="margin-bottom: 30px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
+                                            Your Medications
+                                          </h2>
+                                          <p style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+                                            We have made the following changes to your medications:
+                                          </p>
+                                          <ul style="margin-left: 24px; margin-bottom: 15px;">
+                                            ${soapNotes.clinical_actions.medications.map(med => {
+                                              const medText = typeof med === 'string' 
+                                                ? med 
+                                                : med.name 
+                                                  ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
+                                                  : JSON.stringify(med);
+                                              return `<li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px;">
+                                                <span style="color: #2563eb; font-weight: bold;">•</span> ${medText}
+                                              </li>`;
+                                            }).join('')}
+                                          </ul>
+                                        </div>
+                                      `;
+                                    }
+                                    
+                                    // Format review if available
+                                    let reviewHtml = '';
+                                    if (soapNotes.review) {
+                                      reviewHtml = `
+                                        <div style="margin-bottom: 30px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
+                                            Follow-up Plan
+                                          </h2>
+                                          <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap;">
+                                            ${soapNotes.review}
+                                          </p>
+                                        </div>
+                                      `;
+                                    }
+                                    
+                                    const emailBody = `
+                                      <div style="max-width: 800px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background-color: #ffffff; padding: 40px;">
+                                        <div style="border-top: 4px solid #2563eb; margin-bottom: 30px;"></div>
+                                        
+                                        <h1 style="color: #1e40af; font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 15px;">
+                                          Your Consultation Summary
+                                        </h1>
+                                        
+                                        <p style="text-align: center; color: #6b7280; font-style: italic; margin-bottom: 8px;">
+                                          ${formattedDate}
+                                        </p>
+                                        
+                                        ${soapNotes.consultation_type ? `
+                                          <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+                                            Consultation Type: ${soapNotes.consultation_type}
+                                          </p>
+                                        ` : ''}
+                                        
+                                        <p style="text-align: center; color: #9ca3af; margin: 20px 0;">• • •</p>
+                                        
+                                        <div style="margin-bottom: 30px;">
+                                          <p style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">Dear Patient,</p>
+                                          <p style="font-size: 16px; line-height: 1.8; text-align: justify;">
+                                            Thank you for attending your consultation. This letter provides a detailed summary of our discussion, 
+                                            the care plan we have agreed upon together, and important information about your ongoing care.
+                                          </p>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 30px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
+                                            What We Discussed Today
+                                          </h2>
+                                          <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; text-align: justify;">
+                                            ${soapNotes.patient_copy}
+                                          </p>
+                                        </div>
+                                        
+                                        ${medicationsHtml}
+                                        ${reviewHtml}
+                                        
+                                        <div style="background-color: #fef3c7; border-left: 4px solid #fbbf24; padding: 15px; border-radius: 4px; margin-bottom: 30px;">
+                                          <p style="font-size: 14px; line-height: 1.6; margin: 0;">
+                                            <strong>Important:</strong> If you have any concerns or questions about this information, please do not hesitate 
+                                            to contact the surgery. If you experience any unexpected symptoms or side effects, please seek medical advice promptly.
+                                          </p>
+                                        </div>
+                                        
+                                        <div style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                          <p style="margin: 5px 0;">This letter is a summary of your consultation.</p>
+                                          <p style="margin: 5px 0;">Please keep it for your records.</p>
+                                        </div>
+                                      </div>
+                                    `;
+                                    
+                                    const subject = `Your Consultation Summary - ${formattedDate}`;
+                                    
+                                    setEmailModalContent({
+                                      subject,
+                                      body: emailBody,
+                                      toEmail: user?.email || ''
+                                    });
+                                    setEmailModalOpen(true);
+                                  }}
                                 />
                               </div>
                             )}

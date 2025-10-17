@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, FileText, ChevronDown, ChevronUp, FileDown, MoreVertical } from 'lucide-react';
+import { Copy, FileText, ChevronDown, ChevronUp, FileDown, MoreVertical, Mail } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
@@ -32,6 +32,7 @@ interface EnhancedSoapNotesDisplayProps {
   onCopySection?: (section: keyof SoapNote) => void;
   onCopyAll?: () => void;
   onExport?: () => void;
+  onEmailPatientCopy?: () => void;
 }
 
 const soapSections = [
@@ -76,7 +77,8 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   consultationType,
   onCopySection,
   onCopyAll,
-  onExport
+  onExport,
+  onEmailPatientCopy
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -509,6 +511,18 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
+                  {onEmailPatientCopy && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onEmailPatientCopy}
+                      className="gap-2"
+                      title="Email patient letter"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Email Letter
+                    </Button>
+                  )}
                   <Button
                     variant="default"
                     size="sm"
