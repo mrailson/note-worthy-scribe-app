@@ -5170,37 +5170,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 </div>
 
                 <div className="flex gap-2">
-                  {isSelectMode && selectedMeetings.length >= 2 && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                        >
-                          <Merge className="h-4 w-4 mr-2" />
-                          Merge Selected ({selectedMeetings.length})
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="mx-4 max-w-md">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Merge Selected Meetings</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sm">
-                            This will merge {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be combined. The other meetings will be deleted after merging. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
-                          <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleMergeMeetings()}
-                            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
-                          >
-                            Merge Meetings
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
                   
                   {isSelectMode && selectedMeetings.length > 0 && (
                     <AlertDialog>
