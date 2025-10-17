@@ -305,41 +305,14 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* Font Size Controls */}
-            <div className="flex items-center gap-1 border rounded-md p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
-                disabled={fontSize <= 12}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="text-xs text-muted-foreground px-2 min-w-[2.5rem] text-center">
-                {fontSize}px
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
-                disabled={fontSize >= 24}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowStats(!showStats)}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              {showStats ? 'Hide' : 'Show'} Stats
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowStats(!showStats)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            {showStats ? 'Hide' : 'Show'} Stats
+          </Button>
         </div>
 
         {/* Toggle Controls - Collapsible */}
@@ -428,6 +401,34 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           "flex gap-2",
           isIPhone ? "flex-col" : "flex-wrap"
         )}>
+          {/* Font Size Controls */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Type className="h-4 w-4 text-muted-foreground mr-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
+              disabled={fontSize <= 12}
+              title="Decrease font size"
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+              {fontSize}px
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
+              disabled={fontSize >= 24}
+              title="Increase font size"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+
           <Button
             variant="outline"
             size={isIPhone ? "sm" : "sm"}
