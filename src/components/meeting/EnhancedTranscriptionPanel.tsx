@@ -610,28 +610,33 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 };
                 
                 let formattedDateTime = '';
+                let dateToUse: Date | null = null;
                 
-                // Parse date
-                if (dateStr) {
-                  const d = new Date(dateStr);
-                  if (!isNaN(d.getTime())) {
-                    const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
-                    const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
-                    const day = d.getDate();
-                    const year = d.getFullYear();
-                    formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+                // First, try to get a date from start_time (this usually has the full datetime)
+                if (startStr) {
+                  const parsed = new Date(startStr);
+                  if (!isNaN(parsed.getTime())) {
+                    dateToUse = parsed;
                   }
                 }
                 
-                // Parse time - handle different formats without timezone conversion
-                if (startStr) {
-                  // Check if it's just a time string (HH:mm format)
-                  if (/^\d{1,2}:\d{2}$/.test(startStr)) {
-                    formattedDateTime += ` at ${startStr}`;
-                  } 
-                  // If it's an ISO datetime string, extract time without timezone conversion
-                  else if (startStr.includes('T')) {
-                    // Extract time portion from ISO string (e.g., "2025-10-15T15:00:00Z" -> "15:00")
+                // Fallback to date field if start_time didn't work
+                if (!dateToUse && dateStr) {
+                  const parsed = new Date(dateStr);
+                  if (!isNaN(parsed.getTime())) {
+                    dateToUse = parsed;
+                  }
+                }
+                
+                if (dateToUse) {
+                  const dayName = dateToUse.toLocaleDateString('en-GB', { weekday: 'long' });
+                  const monthName = dateToUse.toLocaleDateString('en-GB', { month: 'long' });
+                  const day = dateToUse.getDate();
+                  const year = dateToUse.getFullYear();
+                  formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+                  
+                  // Extract time without timezone conversion
+                  if (startStr?.includes('T')) {
                     const timePart = startStr.split('T')[1];
                     if (timePart) {
                       const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
@@ -639,6 +644,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                         formattedDateTime += ` at ${timeMatch[1]}:${timeMatch[2]}`;
                       }
                     }
+                  } else if (startStr && /^\d{1,2}:\d{2}$/.test(startStr)) {
+                    // If start_time is just a time string
+                    formattedDateTime += ` at ${startStr}`;
                   }
                 }
                 
