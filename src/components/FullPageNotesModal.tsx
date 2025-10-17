@@ -2,6 +2,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
+import { SoapNotesDisplay } from "@/components/meeting/SoapNotesDisplay";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,8 @@ import {
   Eraser,
   Minus,
   Plus,
-  AlertTriangle
+  AlertTriangle,
+  Stethoscope
 } from "lucide-react";
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
@@ -132,13 +134,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
+  
+  // SOAP notes state
+  const [soapNotes, setSoapNotes] = useState<{S: string, O: string, A: string, P: string, generated_at?: string, consultation_type?: string} | null>(null);
+  const [isGeneratingSoap, setIsGeneratingSoap] = useState(false);
+  const [soapNotesGenerated, setSoapNotesGenerated] = useState(false);
   // Lazy-render cache for Executive tab
   const [execHtml, setExecHtml] = useState<string>("");
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes - Standard (default 13)
+  const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptLoaded, setTranscriptLoaded] = useState(false); // Track if transcript has been loaded
@@ -509,8 +516,47 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   useEffect(() => {
     if (isOpen && meeting?.id && user?.id) {
       loadExistingNoteStyles();
+      loadExistingSoapNotes();
     }
   }, [isOpen, meeting?.id, user?.id]);
+
+  // Load existing SOAP notes from database
+  const loadExistingSoapNotes = async () => {
+    if (!meeting?.id || !user?.id) return;
+
+    const currentMeetingId = meeting.id;
+    console.log('🩺 Loading existing SOAP notes for meeting:', currentMeetingId);
+
+    try {
+      const { data: meetingData, error } = await supabase
+        .from('meetings')
+        .select('soap_notes')
+        .eq('id', currentMeetingId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error loading SOAP notes:', error);
+        return;
+      }
+
+      if (meeting?.id !== currentMeetingId) {
+        console.warn('⚠️ Meeting changed during SOAP notes loading');
+        return;
+      }
+
+      if (meetingData?.soap_notes) {
+        setSoapNotes(meetingData.soap_notes as any);
+        setSoapNotesGenerated(true);
+        console.log('✅ Loaded existing SOAP notes');
+      } else {
+        setSoapNotes(null);
+        setSoapNotesGenerated(false);
+      }
+    } catch (error) {
+      console.error('Error loading SOAP notes:', error);
+    }
+  };
 
    // Save note style to database with enhanced validation
    const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
@@ -2557,6 +2603,82 @@ ${transcript}`;
     }
   };
 
+  const generateSoapNotes = async () => {
+    if (!meeting?.id || !user?.id) {
+      toast.error('Meeting information not available');
+      return;
+    }
+
+    console.log('🩺 Starting SOAP notes generation...');
+    setIsGeneratingSoap(true);
+
+    try {
+      // Get the full meeting transcript
+      const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+        p_meeting_id: meeting.id
+      });
+
+      if (transcriptError) throw transcriptError;
+
+      if (!transcriptData || transcriptData.length === 0 || !transcriptData[0]?.transcript) {
+        toast.error('No transcript available to generate consultation notes');
+        return;
+      }
+
+      // Parse the transcript
+      const transcriptText = transcriptData[0].transcript;
+      
+      // Call the generate-consultation-notes edge function
+      const { data, error } = await supabase.functions.invoke('generate-consultation-notes', {
+        body: {
+          transcript: transcriptText,
+          meetingId: meeting.id,
+          redactIdentifiers: true
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.soapNotes) {
+        const soapData = {
+          S: data.soapNotes.subjective || '',
+          O: data.soapNotes.objective || '',
+          A: data.soapNotes.assessment || '',
+          P: data.soapNotes.plan || '',
+          generated_at: new Date().toISOString(),
+          consultation_type: data.consultationType || 'General Consultation'
+        };
+
+        setSoapNotes(soapData);
+        setSoapNotesGenerated(true);
+
+        // Save to database
+        const { error: saveError } = await supabase
+          .from('meetings')
+          .update({ soap_notes: soapData })
+          .eq('id', meeting.id)
+          .eq('user_id', user.id);
+
+        if (saveError) {
+          console.error('❌ Error saving SOAP notes:', saveError);
+          toast.error('SOAP notes generated but could not be saved');
+        } else {
+          console.log('✅ SOAP notes saved to database');
+          toast.success('Consultation notes generated successfully');
+        }
+      } else {
+        console.error('❌ No SOAP notes in response:', data);
+        toast.error('Could not generate consultation notes');
+      }
+    } catch (error: any) {
+      console.error('Error generating SOAP notes:', error);
+      toast.error(error.message || 'Failed to generate consultation notes');
+    } finally {
+      console.log('🏁 SOAP generation finished');
+      setIsGeneratingSoap(false);
+    }
+  };
+
   const generateAndSaveOverview = async (meetingNotes: string) => {
     if (!meeting?.id) return;
     
@@ -3015,35 +3137,57 @@ ${transcript}`;
               setActiveTab(value);
             }} className="h-full flex flex-col">
               <div className="px-6 pt-4 flex-shrink-0">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
-                  <TabsTrigger value="transcript">Meeting Transcript</TabsTrigger>
-                </TabsList>
+                <div className="flex items-center gap-2">
+                  <TabsList className="grid grid-cols-2 flex-1">
+                    <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
+                    <TabsTrigger value="consultation">Patient Consultation</TabsTrigger>
+                    <TabsTrigger value="transcript">Meeting Transcript</TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
               
               <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
-                     <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
-                       <TabsList className="grid w-full grid-cols-3 md:grid-cols-3 mb-4">
-                          <TabsTrigger value="style1" className="text-xs sm:text-sm">
-                            Minutes - Standard
-                          </TabsTrigger>
-                          <TabsTrigger value="style4" className="text-xs sm:text-sm">
-                            Minutes - Executive
-                          </TabsTrigger>
-                          <TabsTrigger value="style5" className="text-xs sm:text-sm">
-                            Minutes - Limerick
-                          </TabsTrigger>
-                        </TabsList>
+                      <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
+                        <div className="flex items-center gap-2 mb-4">
+                          <TabsList className="flex-1">
+                            <TabsTrigger value="style1" className="text-xs sm:text-sm">
+                              Minutes
+                            </TabsTrigger>
+                          </TabsList>
+                          
+                          {/* Alternative Formats Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-2 text-xs sm:text-sm">
+                                <Sparkles className="h-4 w-4" />
+                                Alternative Formats
+                                <ChevronDownIcon className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
+                                  <Sparkles className="mr-2 h-4 w-4" />
+                                  <span>Executive Summary</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  <span>Limerick Style</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
 
                       {/* Meeting Notes header and controls moved below sub-tabs */}
                       <div className="flex items-center justify-between pb-4 flex-shrink-0">
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-semibold">Meeting Notes</h3>
                           
-                          {/* Font Size Controls - only show for Minutes - Standard */}
+                          {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
                             <div className="flex items-center gap-1 border rounded-md p-1">
                               <Type className="h-4 w-4 text-muted-foreground mr-1" />
@@ -3128,10 +3272,10 @@ ${transcript}`;
                             
                              const getTabName = () => {
                                switch (activeNotesStyleTab) {
-                                 case 'style1': return 'Minutes - Standard';
+                                 case 'style1': return 'Minutes';
                                  case 'style2': return 'Minutes - Brief';
-                                case 'style4': return 'Minutes - Executive';
-                                case 'style5': return 'Minutes - Limerick';
+                                case 'style4': return 'Executive Summary';
+                                case 'style5': return 'Limerick Style';
                                 default: return 'Meeting Notes';
                               }
                             };
@@ -3270,11 +3414,11 @@ ${transcript}`;
                                          Generating Standard Minutes...
                                        </>
                                      ) : (
-                                       <>
-                                         <Sparkles className="h-4 w-4" />
-                                         Generate Minutes - Standard
-                                       </>
-                                     )}
+                                        <>
+                                          <Sparkles className="h-4 w-4" />
+                                          Generate Minutes
+                                        </>
+                                      )}
                                   </Button>
                                 </div>
                                 ) : (
@@ -3534,6 +3678,76 @@ ${transcript}`;
                        </TabsContent>
                     </Tabs>
                   </div>
+                </div>
+              </TabsContent>
+               
+              {/* Patient Consultation Tab with SOAP Notes */}
+              <TabsContent value="consultation" className="flex-1 overflow-hidden mt-0 bg-white">
+                <div className="h-full flex flex-col p-6">
+                  {!soapNotesGenerated ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="max-w-2xl w-full text-center space-y-6">
+                        <div className="flex justify-center">
+                          <div className="rounded-full bg-blue-100 dark:bg-blue-900/20 p-6">
+                            <Stethoscope className="h-16 w-16 text-blue-600 dark:text-blue-400" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-2xl font-semibold">Generate Patient Consultation Notes</h3>
+                          <p className="text-muted-foreground">
+                            Convert this meeting transcript into structured SOAP format consultation notes
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <div className="text-left text-sm">
+                              <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">SOAP Format</p>
+                              <p className="text-blue-800 dark:text-blue-200">
+                                <strong>S</strong> - Subjective (patient's perspective)<br/>
+                                <strong>O</strong> - Objective (clinical findings)<br/>
+                                <strong>A</strong> - Assessment (diagnosis/impression)<br/>
+                                <strong>P</strong> - Plan (treatment/follow-up)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="lg"
+                          onClick={generateSoapNotes}
+                          disabled={isGeneratingSoap || !transcript}
+                          className="gap-2"
+                        >
+                          {isGeneratingSoap ? (
+                            <>
+                              <RefreshCw className="h-5 w-5 animate-spin" />
+                              Generating Consultation Notes...
+                            </>
+                          ) : (
+                            <>
+                              <Stethoscope className="h-5 w-5" />
+                              Generate Consultation Notes
+                            </>
+                          )}
+                        </Button>
+                        {!transcript && (
+                          <p className="text-sm text-muted-foreground">
+                            No transcript available. Record or import a meeting first.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-auto">
+                      <SoapNotesDisplay
+                        soapNotes={soapNotes}
+                        consultationType={soapNotes?.consultation_type}
+                        onExport={() => {
+                          toast.info('Export feature coming soon');
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
                
