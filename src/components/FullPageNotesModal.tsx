@@ -2957,7 +2957,7 @@ ${transcript}`;
       <DialogContent 
         className={`${isMobile 
           ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
-          : "max-w-6xl h-[90vh] max-h-screen"
+          : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
         } flex flex-col overflow-hidden z-[100] ${showContextDialog ? "pointer-events-none" : ""}`}
         style={{ zIndex: 100 }}
         aria-hidden={showContextDialog}
