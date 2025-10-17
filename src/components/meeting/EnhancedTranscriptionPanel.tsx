@@ -309,7 +309,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               new TextRun({
                 text: meetingContext.title,
                 bold: true,
-                size: 32, // 16pt
+                size: 24, // 12pt
                 font: 'Calibri',
               })
             ],
