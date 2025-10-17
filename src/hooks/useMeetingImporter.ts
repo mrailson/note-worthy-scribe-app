@@ -141,6 +141,19 @@ export const useMeetingImporter = () => {
         console.warn('Background note generation may not have started:', functionError);
       }
 
+      // Step 5: Trigger meeting overview generation
+      try {
+        await supabase.functions.invoke('generate-meeting-overview', {
+          body: { 
+            meetingId: meeting.id,
+            transcript: data.transcript,
+            meetingTitle: data.isDemo ? `🎭 ${data.title}` : data.title
+          }
+        });
+      } catch (overviewError) {
+        console.warn('Meeting overview generation may not have started:', overviewError);
+      }
+
       setProgress(100);
       setCurrentStep('Complete!');
 
