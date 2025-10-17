@@ -1025,6 +1025,13 @@ export const MeetingHistoryList = ({
           .eq('meeting_id', meetingId)
           .single();
         exists = !!data;
+      } else if (table === 'meeting_summaries') {
+        const { data } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .single();
+        exists = data && data.summary && data.summary.length > 0;
       }
       
       if (exists) return;
