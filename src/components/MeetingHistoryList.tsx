@@ -993,7 +993,7 @@ export const MeetingHistoryList = ({
   const pollForNoteCompletion = async (
     meetingId: string,
     noteType: string,
-    table: 'meetings' | 'meeting_notes_multi' | 'meeting_overviews'
+    table: 'meetings' | 'meeting_notes_multi' | 'meeting_overviews' | 'meeting_summaries'
   ): Promise<void> => {
     const maxAttempts = 40; // 2 minutes max
     let attempts = 0;
@@ -1162,7 +1162,8 @@ export const MeetingHistoryList = ({
             }
             
             console.log('⏳ Polling for note completion...');
-            await pollForNoteCompletion(meetingId, 'notes_style_3', 'meetings');
+            // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
+            await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
             completedCount++;
           } catch (err: any) {
             console.error('💥 Standard notes generation error:', err);
