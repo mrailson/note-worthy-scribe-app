@@ -2908,8 +2908,9 @@ ${transcript}`;
 
                       {/* Meeting Notes header and controls moved below sub-tabs */}
                       <div className="flex items-center justify-between pb-4 flex-shrink-0">
-                        <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                          
                           {/* Font Size Controls - only show for Minutes - Standard */}
                           {activeNotesStyleTab === 'style1' && (
                             <div className="flex items-center gap-1 border rounded-md p-1">
@@ -2939,7 +2940,9 @@ ${transcript}`;
                               </Button>
                             </div>
                           )}
-                          
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
                           {isEditing && (
                             <TooltipProvider>
                               <Tooltip>
