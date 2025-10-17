@@ -599,7 +599,60 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               "font-semibold",
               isIPhone ? "text-base" : "text-lg"
             )}>
-              {isIPhone ? "Transcript" : "Enhanced Transcript"}
+              {(() => {
+                const dateStr = meetingContext?.date as string | undefined;
+                const startStr = meetingContext?.start_time as string | undefined;
+                
+                // Helper for ordinal suffix
+                const ordinal = (n: number) => {
+                  if (n > 3 && n < 21) return 'th';
+                  switch (n % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+                };
+                
+                let formattedDateTime = '';
+                let dt: Date | null = null;
+                
+                // Try to parse date
+                if (dateStr) {
+                  const parsed = new Date(dateStr);
+                  if (!isNaN(parsed.getTime())) dt = parsed;
+                }
+                
+                // If start_time looks like ISO/date string, prefer that
+                if (!dt && startStr && !/^(\d{1,2}:\d{2})$/.test(startStr)) {
+                  const parsed = new Date(startStr);
+                  if (!isNaN(parsed.getTime())) dt = parsed;
+                }
+                
+                if (dt) {
+                  const dayName = dt.toLocaleDateString('en-GB', { weekday: 'long' });
+                  const monthName = dt.toLocaleDateString('en-GB', { month: 'long' });
+                  const day = dt.getDate();
+                  const year = dt.getFullYear();
+                  const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year} at ${time}`;
+                } else if (dateStr) {
+                  const d = new Date(dateStr);
+                  if (!isNaN(d.getTime())) {
+                    const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+                    const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
+                    const day = d.getDate();
+                    const year = d.getFullYear();
+                    formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+                    
+                    // If start_time provided in HH:mm, append it
+                    if (startStr && /^(\d{1,2}:\d{2})$/.test(startStr)) {
+                      formattedDateTime += ` at ${startStr}`;
+                    }
+                  }
+                }
+                
+                return isIPhone 
+                  ? "Transcript" 
+                  : formattedDateTime 
+                    ? `Transcript for Meeting on ${formattedDateTime}`
+                    : "Transcript for Meeting";
+              })()}
             </h3>
             {!isIPhone && (
               <Badge variant="outline" className="text-sm">
