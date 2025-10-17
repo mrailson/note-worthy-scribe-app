@@ -234,12 +234,12 @@ export const MeetingHistoryList = ({
     fetchPracticesAndLocations();
   }, [user?.id]);
 
-  // Sync local meetings with prop changes
+  // Sync local meetings with prop changes and fetch attendees for visible meetings only
   useEffect(() => {
     setLocalMeetings(meetings);
     
-    // Fetch attendees for all meetings
-    const fetchAllAttendees = async () => {
+    // Fetch attendees only for currently visible meetings (current page)
+    const fetchAttendeesForVisibleMeetings = async () => {
       const meetingIds = meetings.map(m => m.id);
       
       if (meetingIds.length === 0) return;
@@ -303,14 +303,17 @@ export const MeetingHistoryList = ({
             });
           });
           
-          setMeetingAttendees(attendeesMap);
+          setMeetingAttendees(prev => ({
+            ...prev,
+            ...attendeesMap
+          }));
         }
       } catch (error) {
         console.error('Error fetching attendees:', error);
       }
     };
 
-    fetchAllAttendees();
+    fetchAttendeesForVisibleMeetings();
   }, [meetings, user?.id, user?.email]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);

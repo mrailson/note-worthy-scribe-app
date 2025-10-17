@@ -1389,71 +1389,7 @@ const MeetingHistory = () => {
       // Set meetings immediately so UI loads
       setMeetings(basicMeetings);
       setCurrentPage(pageToFetch);
-      console.log('✅ Basic meetings loaded, UI should be visible');
-
-      // Step 3: Enrich with transcript data separately (failures won't break the UI)
-      console.log('🔄 Starting transcript enrichment...');
-      
-      const transcriptPromises = meetingIds.map(async (meetingId) => {
-        try {
-          const { data, error } = await supabase.rpc('get_meeting_full_transcript', {
-            p_meeting_id: meetingId
-          });
-          
-          if (error) {
-            console.error('Error fetching transcript for meeting', meetingId, error);
-            return { meetingId, transcript: '', wordCount: 0 };
-          }
-          
-          const rawTranscript = data?.[0]?.transcript || '';
-          
-          // Normalise transcript to clean paragraphs
-          let transcript = rawTranscript;
-          if (rawTranscript) {
-            const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
-            const normalised = normaliseTranscript(rawTranscript);
-            transcript = normalised.plain;
-          }
-          
-          const wordCount = transcript ? transcript.split(/\s+/).filter(word => word.length > 0).length : 0;
-          
-          return { meetingId, transcript, wordCount };
-        } catch (err) {
-          console.error('Exception fetching transcript for meeting', meetingId, err);
-          return { meetingId, transcript: '', wordCount: 0 };
-        }
-      });
-
-      // Wait for transcripts and update meetings (but don't fail if some transcripts fail)
-      try {
-        const transcriptResults = await Promise.allSettled(transcriptPromises);
-        const wordCounts: Record<string, number> = {};
-        const transcriptContents: Record<string, string> = {};
-        
-        transcriptResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const { meetingId, transcript, wordCount } = result.value;
-            wordCounts[meetingId] = wordCount;
-            transcriptContents[meetingId] = transcript;
-          } else {
-            console.error('Failed to fetch transcript for meeting', meetingIds[index], result.reason);
-          }
-        });
-
-        // Step 4: Update meetings with transcript data
-        const enrichedMeetings = basicMeetings.map(meeting => ({
-          ...meeting,
-          word_count: wordCounts[meeting.id] || null,
-          transcript: transcriptContents[meeting.id] || null
-        }));
-
-        setMeetings(enrichedMeetings);
-        console.log('✅ Transcript enrichment complete');
-        
-      } catch (transcriptError) {
-        console.error('Error during transcript enrichment:', transcriptError);
-        // UI still works with basic data, transcripts just won't be available
-      }
+      console.log('✅ Basic meetings loaded, UI should be visible (transcripts will load on-demand)');
       
     } catch (error: any) {
       console.error("Error Loading Meetings:", error.message);
