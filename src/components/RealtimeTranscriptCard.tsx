@@ -229,7 +229,7 @@ export const RealtimeTranscriptCard = ({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="pt-0 h-full">
+      <CardContent className="pt-0 pb-2 h-full">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
