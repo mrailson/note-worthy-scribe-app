@@ -130,7 +130,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [fontSizeStyle1, setFontSizeStyle1] = useState(15); // Font size for Minutes - Standard
+  const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes - Standard (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [isLoadingBackupTranscript, setIsLoadingBackupTranscript] = useState(false);
@@ -156,11 +156,33 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   }
   const [undoStack, setUndoStack] = useState<UndoState[]>([]);
   
-  // Search functionality for transcript
+   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
+
+   // Load persisted font size for this meeting
+   useEffect(() => {
+     if (meeting?.id) {
+       const savedFontSize = localStorage.getItem(`meeting-font-size-${meeting.id}`);
+       if (savedFontSize) {
+         const parsedSize = parseInt(savedFontSize, 10);
+         if (!isNaN(parsedSize) && parsedSize >= 8 && parsedSize <= 32) {
+           setFontSizeStyle1(parsedSize);
+         }
+       } else {
+         setFontSizeStyle1(13); // Reset to default if no saved size
+       }
+     }
+   }, [meeting?.id]);
+
+   // Save font size when changed
+   useEffect(() => {
+     if (meeting?.id && fontSizeStyle1 !== 13) {
+       localStorage.setItem(`meeting-font-size-${meeting.id}`, fontSizeStyle1.toString());
+     }
+   }, [fontSizeStyle1, meeting?.id]);
 
    // Fetch transcript when modal opens with enhanced validation
    useEffect(() => {
