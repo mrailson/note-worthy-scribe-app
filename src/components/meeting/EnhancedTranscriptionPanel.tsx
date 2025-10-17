@@ -458,20 +458,6 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </Card>
         </Collapsible>
 
-        {/* Add Context Button */}
-        <Button 
-          variant="outline" 
-          size={isIPhone ? "sm" : "default"}
-          className={cn(
-            "gap-2 justify-start",
-            isIPhone && "text-xs"
-          )}
-          onClick={() => setShowContextDialog(true)}
-        >
-          <FilePlus2 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-primary")} />
-          {isIPhone ? "Add Context" : "Add Meeting Context"}
-        </Button>
-
         {/* Quick Action Buttons - Responsive */}
         <div className={cn(
           "flex gap-2",
@@ -504,6 +490,20 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               <Plus className="h-3 w-3" />
             </Button>
           </div>
+
+          {/* Add Context Button */}
+          <Button 
+            variant="outline" 
+            size={isIPhone ? "sm" : "sm"}
+            className={cn(
+              "gap-2",
+              isIPhone && "w-full justify-start"
+            )}
+            onClick={() => setShowContextDialog(true)}
+          >
+            <FilePlus2 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-primary mr-2")} />
+            {isIPhone ? "Add Context" : "Add Meeting Context"}
+          </Button>
 
           <Button
             variant="outline"
