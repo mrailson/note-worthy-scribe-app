@@ -3289,13 +3289,29 @@ ${transcript}`;
                                         </div>
                                       </div>
                                     )}
-                                   <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGeneratingStyle4 ? 'opacity-50' : 'opacity-100'}`}>
                                      <div 
-                                       dangerouslySetInnerHTML={{ 
-                                         __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
-                                       }}
-                                     />
-                                   </div>
+                                       className={`prose max-w-none exec-notes prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGeneratingStyle4 ? 'opacity-50' : 'opacity-100'}`}
+                                       style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                     >
+                                       <style>
+                                         {`
+                                           .exec-notes { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                           .exec-notes * { font-size: inherit !important; line-height: inherit !important; }
+                                           .exec-notes h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
+                                           .exec-notes h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
+                                           .exec-notes h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
+                                           .exec-notes h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
+                                           .exec-notes h5 { font-size: ${fontSizeStyle1 * 1.05}px !important; }
+                                           .exec-notes h6 { font-size: ${fontSizeStyle1 * 1.0}px !important; }
+                                           .exec-notes p, .exec-notes li, .exec-notes td, .exec-notes th, .exec-notes a, .exec-notes span, .exec-notes strong, .exec-notes em, .exec-notes blockquote, .exec-notes code, .exec-notes small { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                         `}
+                                       </style>
+                                       <div 
+                                         dangerouslySetInnerHTML={{ 
+                                           __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                         }}
+                                       />
+                                     </div>
                                    <InlineWordCorrector
                                      content={notesStyle4}
                                      allTabsContent={{
