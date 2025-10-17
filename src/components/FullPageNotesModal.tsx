@@ -3184,7 +3184,7 @@ ${transcript}`;
                         <div className="flex items-center gap-2 mb-4">
                           <TabsList className="flex-1">
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
-                              Minutes
+                              Meeting Minutes - Standard View
                             </TabsTrigger>
                           </TabsList>
                           
