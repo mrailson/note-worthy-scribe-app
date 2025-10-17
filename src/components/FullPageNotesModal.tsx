@@ -3163,13 +3163,19 @@ ${transcript}`;
                 <div className="h-full flex flex-col">
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
-                      <Tabs value={activeNotesStyleTab} onValueChange={(value) => {
+                       <Tabs value={activeNotesStyleTab} onValueChange={(value) => {
                         setActiveNotesStyleTab(value);
                         // Load transcript when switching to Patient Consultation (style6)
                         if (value === 'style6' && !transcriptLoaded && !isLoadingTranscript) {
                           console.log('🔄 Loading transcript for Patient Consultation...');
                           if (isResourceOperationSafe()) {
-                            fetchTranscriptData();
+                            fetchTranscriptData().then(() => {
+                              // Auto-trigger consultation notes for demo meetings
+                              if (meeting?.title.includes('🎭') && !soapNotesGenerated) {
+                                console.log('🎭 Auto-triggering consultation notes for demo meeting');
+                                setTimeout(() => generateSoapNotes(), 500);
+                              }
+                            });
                           } else {
                             toast.error("Cannot load transcript while recording is active.");
                           }
@@ -3738,12 +3744,12 @@ ${transcript}`;
                                      </div>
                                    </div>
                                  </div>
-                                 <Button
-                                   size="lg"
-                                   onClick={generateSoapNotes}
-                                   disabled={isGeneratingSoap || !transcript}
-                                   className="gap-2"
-                                 >
+                                  <Button
+                                    size="lg"
+                                    onClick={generateSoapNotes}
+                                    disabled={isGeneratingSoap || (!transcript && !isLoadingTranscript)}
+                                    className="gap-2"
+                                  >
                                    {isGeneratingSoap ? (
                                      <>
                                        <RefreshCw className="h-5 w-5 animate-spin" />
@@ -3756,11 +3762,17 @@ ${transcript}`;
                                      </>
                                    )}
                                  </Button>
-                                 {!transcript && (
-                                   <p className="text-sm text-muted-foreground">
-                                     No transcript available. Record or import a meeting first.
-                                   </p>
-                                 )}
+                                  {isLoadingTranscript && (
+                                    <p className="text-sm text-muted-foreground flex items-center gap-2 justify-center">
+                                      <RefreshCw className="h-4 w-4 animate-spin" />
+                                      Loading transcript...
+                                    </p>
+                                  )}
+                                  {!transcript && !isLoadingTranscript && (
+                                    <p className="text-sm text-muted-foreground">
+                                      No transcript available. Record or import a meeting first.
+                                    </p>
+                                  )}
                                </div>
                              </div>
                             ) : (
