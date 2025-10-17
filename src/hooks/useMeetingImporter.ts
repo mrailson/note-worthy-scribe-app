@@ -110,16 +110,20 @@ export const useMeetingImporter = () => {
       setProgress(70);
 
       // Step 3: Queue automatic note generation
-      const { error: queueError } = await supabase
-        .from('meeting_notes_queue')
-        .insert({
-          meeting_id: meeting.id,
-          detail_level: 'standard',
-          status: 'pending',
-          source: 'import'
-        });
+      try {
+        const { error: queueError } = await supabase
+          .from('meeting_notes_queue')
+          .insert({
+            meeting_id: meeting.id,
+            detail_level: 'standard',
+            status: 'pending',
+            source: 'import'
+          });
 
-      if (queueError) throw queueError;
+        if (queueError) throw queueError;
+      } catch (queueError) {
+        console.warn('Failed to queue note generation:', queueError);
+      }
 
       setCurrentStep('Triggering note generation...');
       setProgress(90);
