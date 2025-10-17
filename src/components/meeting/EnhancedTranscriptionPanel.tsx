@@ -130,17 +130,41 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   // Quick Actions
   const handleCleanTranscript = () => {
-    // First remove filler words
-    const { cleaned: fillerCleaned, stats: fillerStats } = removeFillerWords(transcript);
+    let cleanedText = transcript;
     
-    // Then clean medical terms
+    // First remove swear words
+    const swearWords = [
+      'shit', 'bollocks', 'wanker', 'fuck', 'fucker', 'fucking', 
+      'bastard', 'damn', 'crap', 'bloody', 'arse', 'arsehole',
+      'piss', 'pissed', 'twat', 'dick', 'dickhead', 'cock',
+      'bugger', 'git', 'sod', 'tosser', 'prick', 'hell'
+    ];
+    
+    let swearCount = 0;
+    swearWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = cleanedText.match(regex);
+      if (matches) {
+        swearCount += matches.length;
+        cleanedText = cleanedText.replace(regex, '[redacted]');
+      }
+    });
+    
+    // Then remove filler words
+    const { cleaned: fillerCleaned, stats: fillerStats } = removeFillerWords(cleanedText);
+    
+    // Finally clean medical terms
     const nhsResult = cleanTranscript(fillerCleaned, NHS_DEFAULT_RULES);
     
     // Apply the final cleaned transcript
     onTranscriptChange(nhsResult.cleaned);
     
-    const totalChanges = fillerStats.totalRemoved + nhsResult.appliedRuleIds.length;
-    toast.success(`Cleaned transcript: ${fillerStats.totalRemoved} filler words + ${nhsResult.appliedRuleIds.length} NHS terms`);
+    const changes = [];
+    if (swearCount > 0) changes.push(`${swearCount} profanity`);
+    if (fillerStats.totalRemoved > 0) changes.push(`${fillerStats.totalRemoved} filler words`);
+    if (nhsResult.appliedRuleIds.length > 0) changes.push(`${nhsResult.appliedRuleIds.length} NHS terms`);
+    
+    toast.success(`Cleaned transcript: ${changes.join(' + ')}`);
   };
 
   const handleMaskAllPII = () => {
