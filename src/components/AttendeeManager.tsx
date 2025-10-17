@@ -67,7 +67,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
   useEffect(() => {
     checkUserAccess();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (userPracticeIds.length > 0) {
@@ -90,7 +90,9 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
         setUserPracticeIds(practiceIds);
         
         const hasAccess = userRoles.some(role => 
-          role.role === 'practice_manager' || role.role === 'system_admin'
+          role.role === 'practice_manager' || 
+          role.role === 'system_admin' ||
+          role.role === 'pcn_manager'
         );
         setHasManagementAccess(hasAccess);
       }
@@ -227,11 +229,11 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
       resetForm();
       fetchAttendees();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving attendee:', error);
       toast({
         title: "Error",
-        description: "Failed to save attendee",
+        description: `Failed to save attendee: ${error?.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
