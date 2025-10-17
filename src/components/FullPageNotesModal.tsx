@@ -3392,35 +3392,37 @@ ${transcript}`;
                           </DropdownMenu>
                         </div>
 
-                      {/* Meeting Notes header and undo button */}
-                      <div className="flex items-center justify-between pb-4 flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                      {/* Meeting Notes header and undo button - hide for Patient Consultation */}
+                      {activeNotesStyleTab !== 'style6' && (
+                        <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {isEditing && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      onClick={handleUndo}
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={notesVersions.length === 0}
+                                      title={`Undo (${notesVersions.length} versions available)`}
+                                    >
+                                      <Undo2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Undo ({notesVersions.length} versions available)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {isEditing && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleUndo}
-                                    variant="outline"
-                                    size="icon"
-                                    disabled={notesVersions.length === 0}
-                                    title={`Undo (${notesVersions.length} versions available)`}
-                                  >
-                                    <Undo2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Undo ({notesVersions.length} versions available)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      </div>
+                      )}
                       
                        <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style1" ? (
