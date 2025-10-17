@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
 
 interface DemoSamplesSelectorProps {
@@ -15,12 +16,27 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   disabled = false
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Meeting' | 'Consultation'>('All');
   const itemsPerPage = 4;
-  const totalPages = Math.ceil(demoMeetings.length / itemsPerPage);
+  
+  // Filter demos based on selected category
+  const filteredDemos = selectedCategory === 'All' 
+    ? demoMeetings 
+    : demoMeetings.filter(meeting => meeting.category === selectedCategory);
+  
+  const totalPages = Math.ceil(filteredDemos.length / itemsPerPage);
   
   const startIndex = currentPage * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentMeetings = demoMeetings.slice(startIndex, endIndex);
+  const currentMeetings = filteredDemos.slice(startIndex, endIndex);
+
+  // Reset page when category changes
+  const handleCategoryChange = (value: string) => {
+    if (value) {
+      setSelectedCategory(value as 'All' | 'Meeting' | 'Consultation');
+      setCurrentPage(0);
+    }
+  };
 
   const getMeetingTypeColor = (type: DemoMeeting['type']) => {
     switch (type) {
@@ -57,6 +73,35 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
             Select from pre-configured NHS meetings with realistic transcripts. Perfect for demonstrations, training, and testing the system's capabilities. All data is fictional and safe to share.
           </p>
         </div>
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Filter by:</span>
+          <ToggleGroup 
+            type="single" 
+            value={selectedCategory} 
+            onValueChange={handleCategoryChange}
+            className="gap-1"
+          >
+            <ToggleGroupItem value="All" aria-label="Show all demos" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="Meeting" aria-label="Show meetings only" className="gap-2">
+              <Users className="h-4 w-4" />
+              Meetings
+            </ToggleGroupItem>
+            <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
+              <Stethoscope className="h-4 w-4" />
+              Consultations
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {filteredDemos.length} {selectedCategory === 'All' ? 'demos' : selectedCategory.toLowerCase() + 's'}
+        </Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

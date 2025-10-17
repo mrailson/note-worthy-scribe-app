@@ -1,6 +1,7 @@
 export interface DemoMeeting {
   id: string;
   type: 'LMC' | 'PCN' | 'Partnership' | 'ICB' | 'Neighbourhood' | 'Regional' | 'Trust' | 'MDT' | 'Consultation';
+  category: 'Meeting' | 'Consultation';
   title: string;
   description: string;
   duration: string;
@@ -16,6 +17,7 @@ export const demoMeetings: DemoMeeting[] = [
   {
     id: 'lmc-contract-meeting',
     type: 'LMC',
+    category: 'Meeting',
     title: 'LMC Contract Negotiation Meeting',
     description: 'GP contract discussions, workload issues, and funding review',
     duration: '10:00',
@@ -93,6 +95,7 @@ Dr Sarah Mitchell: Let's add that to our action points. We need to ensure practi
   {
     id: 'pcn-board-meeting',
     type: 'PCN',
+    category: 'Meeting',
     title: 'PCN Board Meeting - Service Review',
     description: 'ARRS roles review, DES performance, and health inequalities initiatives',
     duration: '12:00',
@@ -188,6 +191,7 @@ Dr Emma Thompson: Agreed. Thank you, everyone. I think we've covered the main it
   {
     id: 'partnership-meeting',
     type: 'Partnership',
+    category: 'Meeting',
     title: 'GP Practice Partnership Meeting',
     description: 'Financial review, staffing updates, and CQC preparation',
     duration: '08:00',
@@ -292,6 +296,7 @@ Dr Helen Carter: Excellent. I think that covers the main items. Let's meet again
   {
     id: 'icb-strategy-meeting',
     type: 'ICB',
+    category: 'Meeting',
     title: 'ICB Strategic Planning Meeting',
     description: 'System-wide planning, elective recovery, and winter pressures preparation',
     duration: '15:00',
@@ -316,6 +321,7 @@ Amanda Richards: Thank you, everyone. I think we've covered the key strategic ar
   {
     id: 'neighbourhood-meeting',
     type: 'Neighbourhood',
+    category: 'Meeting',
     title: 'Neighbourhood Health Team Meeting',
     description: 'Community health integration, social prescribing, and population health review',
     duration: '10:00',
@@ -414,6 +420,7 @@ Emma Roberts: I'll arrange that for next month. Thank you, everyone. I think we'
   {
     id: 'regional-leadership',
     type: 'Regional',
+    category: 'Meeting',
     title: 'NHS Regional Leadership Forum',
     description: 'Regional workforce strategy, capital planning, and system oversight',
     duration: '14:00',
@@ -517,6 +524,7 @@ Dame Susan Fletcher: Let's scope out the options. I want proposals for the next 
   {
     id: 'trust-leadership',
     type: 'Trust',
+    category: 'Meeting',
     title: 'NHFT Board Meeting - Performance Review',
     description: 'Trust performance, CQC preparation, financial sustainability, and quality improvement',
     duration: '12:00',
@@ -640,6 +648,7 @@ Stephen Collins: Agreed. Thank you, everyone. We've identified some significant 
   {
     id: 'frailty-mdt',
     type: 'MDT',
+    category: 'Meeting',
     title: 'Frailty Multi-Disciplinary Team Review',
     description: 'Comprehensive frailty assessment, care planning, and multi-agency coordination',
     duration: '09:00',
@@ -759,6 +768,7 @@ Dr Elizabeth Palmer: Excellent points. This is exactly why the MDT approach work
   {
     id: 'gp-diabetes-review',
     type: 'Consultation',
+    category: 'Consultation',
     title: 'Type 2 Diabetes Annual Review',
     description: 'Annual diabetes check with medication review and lifestyle discussion',
     duration: '15:00',
@@ -841,6 +851,7 @@ Mr David Thompson: I will. Thank you very much.`
   {
     id: 'gp-chest-infection-telephone',
     type: 'Consultation',
+    category: 'Consultation',
     title: 'Chest Infection - Telephone Consultation',
     description: 'Telephone consultation for suspected lower respiratory tract infection',
     duration: '08:00',
@@ -917,6 +928,7 @@ Dr Michael Chen: You're welcome. Take care, and don't hesitate to contact us if 
   {
     id: 'gp-mental-health-consultation',
     type: 'Consultation',
+    category: 'Consultation',
     title: 'Depression and Anxiety Review',
     description: 'Mental health consultation for moderate depression with anxiety symptoms',
     duration: '20:00',
@@ -1021,6 +1033,7 @@ Dr Emma Roberts: You're very welcome. You've done the right thing coming in toda
   {
     id: 'gp-hypertension-review',
     type: 'Consultation',
+    category: 'Consultation',
     title: 'Hypertension Medication Review',
     description: 'Blood pressure review with medication adjustment and lifestyle advice',
     duration: '12:00',
@@ -1104,4 +1117,9 @@ export const getDemoMeetingById = (id: string): DemoMeeting | undefined => {
 
 export const getDemoMeetingsByType = (type: DemoMeeting['type']): DemoMeeting[] => {
   return demoMeetings.filter(meeting => meeting.type === type);
+};
+
+export const getDemoMeetingsByCategory = (category: 'Meeting' | 'Consultation' | 'All'): DemoMeeting[] => {
+  if (category === 'All') return demoMeetings;
+  return demoMeetings.filter(meeting => meeting.category === category);
 };
