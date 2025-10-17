@@ -226,7 +226,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none h-full',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:mt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:ml-6 [&_ol]:mb-4 [&_ol]:ml-6 [&_li]:mb-2',
       },
     },
   });
@@ -430,10 +430,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
       
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto px-8 py-6">
         <EditorContent 
           editor={editor} 
-          className="focus:outline-none h-full"
+          className="focus:outline-none min-h-full"
         />
       </div>
       
