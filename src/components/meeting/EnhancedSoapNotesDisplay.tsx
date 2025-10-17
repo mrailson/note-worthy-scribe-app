@@ -152,6 +152,29 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     toast.success('Patient copy copied to clipboard');
   };
 
+  const handleExportToWord = async () => {
+    try {
+      toast.info('Generating consultation document...');
+      const { exportConsultationToWord } = await import('@/utils/consultationWordExport');
+      
+      await exportConsultationToWord({
+        shorthand,
+        standard,
+        summaryLine,
+        patientCopy,
+        referral,
+        review,
+        clinicalActions,
+        consultationType
+      });
+      
+      toast.success('Consultation document downloaded');
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export consultation document');
+    }
+  };
+
   if (!soapNotes && !summaryLine) {
     return null;
   }
@@ -412,33 +435,12 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                 Copy All
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={async () => {
-                  const btn = document.querySelector('[data-export-word]') as HTMLButtonElement;
-                  btn?.click();
-                }}
-              >
+              <DropdownMenuItem onClick={handleExportToWord}>
                 <FileDown className="h-4 w-4 mr-2" />
                 Export to Word
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Hidden Word Export Button */}
-          <div className="hidden">
-            <div data-export-word>
-              <ConsultationExportButton
-                shorthand={shorthand}
-                standard={standard}
-                summaryLine={summaryLine}
-                patientCopy={patientCopy}
-                referral={referral}
-                review={review}
-                clinicalActions={clinicalActions}
-                consultationType={consultationType}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
