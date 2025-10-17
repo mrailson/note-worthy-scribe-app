@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X, Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 
@@ -47,21 +47,28 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   useEffect(() => {
     if (!isActive) return;
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      // Ignore selections made inside the popup
+      if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+        return;
+      }
+
       setTimeout(() => {
         const selection = window.getSelection();
         const text = selection?.toString().trim();
 
         if (text && text.length >= 2 && text.length <= 100) {
-          const range = selection.getRangeAt(0);
-          const rect = range.getBoundingClientRect();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
 
-          setSelectedText(text);
-          setSelectionRect(rect);
-          setReplacement(text);
-          countOccurrences(text);
-          loadSuggestions(text);
-          setShowPopup(true);
+            setSelectedText(text);
+            setSelectionRect(rect);
+            setReplacement(text);
+            countOccurrences(text);
+            loadSuggestions(text);
+            setShowPopup(true);
+          }
         }
       }, 10);
     };
@@ -212,19 +219,6 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     window.getSelection()?.removeAllRanges();
   };
 
-  const handleDelete = () => {
-    onApplyCorrection({
-      original: selectedText,
-      replacement: '',
-      applyToAll,
-      saveForFuture: false // Don't save deletions for future
-    });
-
-    setShowPopup(false);
-    setSelectedText('');
-    setReplacement('');
-    window.getSelection()?.removeAllRanges();
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -274,7 +268,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
           ref={inputRef}
           value={replacement}
           onChange={(e) => setReplacement(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           className="text-sm"
           placeholder="Enter replacement text"
         />
@@ -348,15 +342,6 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
           }}
         >
           Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          className="text-xs gap-1"
-          onClick={handleDelete}
-        >
-          <Trash2 className="h-3 w-3" />
-          Delete
         </Button>
         <Button
           size="sm"
