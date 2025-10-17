@@ -421,12 +421,6 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                 <FileDown className="h-4 w-4 mr-2" />
                 Export to Word
               </DropdownMenuItem>
-              {onExport && (
-                <DropdownMenuItem onClick={onExport}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export (Other)
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
