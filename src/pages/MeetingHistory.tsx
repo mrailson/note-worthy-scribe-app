@@ -1671,7 +1671,7 @@ const MeetingHistory = () => {
              onClick={() => setImportDialogOpen(true)}
              className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
            >
-             <Upload className="h-4 w-4" />
+             <Sparkles className="h-4 w-4" />
              <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
              <span className="hidden sm:inline lg:hidden">Demo Import</span>
              <span className="sm:hidden">Import</span>
