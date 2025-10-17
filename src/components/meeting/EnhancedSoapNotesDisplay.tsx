@@ -135,6 +135,13 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     }
   };
 
+  const handleCopySummary = () => {
+    if (!summaryLine) return;
+    
+    navigator.clipboard.writeText(summaryLine);
+    toast.success('Summary line copied to clipboard');
+  };
+
   if (!soapNotes && !summaryLine) {
     return null;
   }
@@ -193,7 +200,17 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       {summaryLine && (
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
-            <p className="text-lg font-semibold">{summaryLine}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-lg font-semibold flex-1">{summaryLine}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopySummary}
+                className="h-8 w-8 p-0 shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -210,7 +227,17 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       {summaryLine && (
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
-            <p className="text-base font-medium">{summaryLine}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-medium flex-1">{summaryLine}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopySummary}
+                className="h-8 w-8 p-0 shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -227,7 +254,17 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       {summaryLine && (
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
-            <p className="text-lg font-semibold">{summaryLine}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-lg font-semibold flex-1">{summaryLine}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopySummary}
+                className="h-8 w-8 p-0 shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -244,7 +281,17 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       {summaryLine && (
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
-            <p className="text-base font-medium">{summaryLine}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-medium flex-1">{summaryLine}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopySummary}
+                className="h-8 w-8 p-0 shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
