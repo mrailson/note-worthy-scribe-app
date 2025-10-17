@@ -377,9 +377,10 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </Button>
         </div>
 
-        {/* Toggle Controls - Collapsible */}
-        <Collapsible open={showToggles} onOpenChange={setShowToggles}>
-          <Card>
+        {/* Toggle Controls - Collapsible - Only shown when stats are visible */}
+        {showStats && (
+          <Collapsible open={showToggles} onOpenChange={setShowToggles}>
+            <Card>
             <CollapsibleTrigger className={cn(
               "w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors",
               isMobile && "p-2"
@@ -457,6 +458,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </CollapsibleContent>
           </Card>
         </Collapsible>
+        )}
 
         {/* Quick Action Buttons - Responsive */}
         <div className={cn(
