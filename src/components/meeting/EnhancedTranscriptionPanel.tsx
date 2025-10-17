@@ -185,13 +185,34 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     if (!containsHTML) return text;
     
     return text
-      .replace(/<\/p>\s*<p>/gi, '\n\n')  // Convert </p><p> to double newline
-      .replace(/<p>/gi, '')               // Remove opening <p> tags
-      .replace(/<\/p>/gi, '\n\n')        // Convert closing </p> to double newline
-      .replace(/<br\s*\/?>/gi, '\n')     // Convert <br> to newline
-      .replace(/<[^>]+>/g, '')           // Remove any other HTML tags
-      .replace(/\n{3,}/g, '\n\n')        // Replace multiple newlines with double newline
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')  // Convert </p><p ...> to double newline
+      .replace(/<p[^>]*>/gi, '')                 // Remove opening <p ...> tags
+      .replace(/<\/p>/gi, '\n\n')             // Convert closing </p> to double newline
+      .replace(/<br\s*\/?>(\s*<br\s*\/?>)*/gi, '\n') // Convert <br> (multiple) to newline
+      .replace(/&nbsp;/gi, ' ')                  // Decode nbsp
+      .replace(/<[^>]+>/g, '')                   // Remove any other HTML tags
+      .replace(/\n{3,}/g, '\n\n')              // Replace multiple newlines with double newline
       .trim();
+  };
+
+  // Robust paragraph splitter with sensible fallbacks
+  const splitIntoParagraphs = (text: string): string[] => {
+    const byBlankLines = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+    if (byBlankLines.length > 1) return byBlankLines;
+
+    // Fallback: sentence grouping
+    const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
+    const paras: string[] = [];
+    let buf = '';
+    for (const s of sentences) {
+      buf = buf ? `${buf} ${s}` : s;
+      if (buf.length >= 280 || buf.split(' ').length >= 45) {
+        paras.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) paras.push(buf.trim());
+    return paras.length ? paras : [text];
   };
 
   // Render highlighted transcript
@@ -204,9 +225,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     
     if (!showPII || piiMatches.length === 0) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-4 text-[15px] md:text-base leading-7 md:leading-8">
           {paragraphs.map((para, idx) => (
-            <p key={idx} className="leading-relaxed">
+            <p key={idx} className="">
               {para}
             </p>
           ))}
@@ -216,11 +237,11 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
     // With PII highlighting
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 text-[15px] md:text-base leading-7 md:leading-8">
         {paragraphs.map((para, paraIdx) => {
           const segments = highlightPII(para, piiMatches);
           return (
-            <p key={paraIdx} className="leading-relaxed">
+            <p key={paraIdx} className="">
               {segments.map((segment, segIdx) => {
                 if (segment.isPII && segment.match) {
                   return (
