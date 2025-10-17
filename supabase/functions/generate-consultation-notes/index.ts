@@ -139,26 +139,58 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const requestData: GenerateNotesRequest = await req.json();
+    const requestData = await req.json();
     console.log('📥 Request data:', { 
       consultationId: requestData.consultationId,
-      transcriptLength: requestData.transcript?.length,
+      transcriptLength: typeof requestData.transcript === 'string' ? requestData.transcript.length : requestData.transcript?.length,
       consultationType: requestData.consultationType 
     });
 
-    if (!requestData.transcript || requestData.transcript.length === 0) {
+    // Handle both string and array transcript formats
+    let transcript: TranscriptEntry[];
+    let transcriptText: string;
+    
+    if (typeof requestData.transcript === 'string') {
+      // If transcript is a string, convert it to the expected format
+      console.log('📝 Converting string transcript to array format');
+      transcriptText = requestData.transcript;
+      
+      // Parse the transcript into entries (simple split by lines)
+      const lines = requestData.transcript.split('\n').filter(line => line.trim());
+      transcript = lines.map((line, index) => {
+        const speakerMatch = line.match(/^(.*?):\s*(.*)$/);
+        if (speakerMatch) {
+          const speaker = speakerMatch[1].toLowerCase().includes('patient') ? 'Patient' : 'Clinician';
+          return {
+            t: `${index}`,
+            speaker: speaker as "Patient" | "Clinician",
+            text: speakerMatch[2]
+          };
+        }
+        return {
+          t: `${index}`,
+          speaker: 'Clinician' as "Patient" | "Clinician",
+          text: line
+        };
+      });
+    } else if (Array.isArray(requestData.transcript)) {
+      // Use the array directly
+      transcript = requestData.transcript;
+      transcriptText = transcript
+        .map(entry => `${entry.speaker}: ${entry.text}`)
+        .join('\n');
+    } else {
+      throw new Error('Invalid transcript format - must be string or array');
+    }
+
+    if (!transcript || transcript.length === 0) {
       throw new Error('No transcript provided');
     }
 
     // Step 1: Classify consultation
     console.log('🔍 Classifying consultation...');
-    const classifier = classifyConsultation(requestData.transcript);
+    const classifier = classifyConsultation(transcript);
     console.log('📊 Classification result:', classifier);
-
-    // Step 2: Build transcript text
-    const transcriptText = requestData.transcript
-      .map(entry => `${entry.speaker}: ${entry.text}`)
-      .join('\n');
 
     console.log('📝 Transcript length:', transcriptText.length);
 
