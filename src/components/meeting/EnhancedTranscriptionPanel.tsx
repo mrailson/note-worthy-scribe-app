@@ -52,8 +52,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
   const [showPII, setShowPII] = useState(false); // Disabled by default - user must explicitly enable
+  const [showToggles, setShowToggles] = useState(false); // Collapsed by default
   const [showContext, setShowContext] = useState(!isMobile); // Collapsed by default on mobile
-  const [showStats, setShowStats] = useState(!isMobile); // Collapsed by default on mobile
+  const [showStats, setShowStats] = useState(false); // Collapsed by default
   const [showPIIPanel, setShowPIIPanel] = useState(!isMobile); // Collapsible on mobile
   
   // PII State
@@ -310,62 +311,86 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </Button>
         </div>
 
-        {/* Toggle Controls - Responsive */}
-        <div className={cn(
-          "grid gap-3",
-          isIPhone ? "grid-cols-1 gap-2" : isMobile ? "grid-cols-2" : "flex items-center gap-6 flex-wrap"
-        )}>
-          {/* Word count on mobile */}
-          {isIPhone && (
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Words:</span>
-              <Badge variant="outline" className="text-xs">
-                {stats.wordCount.toLocaleString('en-GB')}
-              </Badge>
-            </div>
-          )}
-
-          {/* Timestamp toggle hidden - chunks don't have timestamp data */}
-          {false && (
-            <div className="flex items-center gap-2">
-              <Switch id="timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
-              <Label htmlFor="timestamps" className={cn(
-                "cursor-pointer flex items-center gap-2",
+        {/* Toggle Controls - Collapsible */}
+        <Collapsible open={showToggles} onOpenChange={setShowToggles}>
+          <Card>
+            <CollapsibleTrigger className={cn(
+              "w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors",
+              isMobile && "p-2"
+            )}>
+              <span className={cn(
+                "text-sm font-medium flex items-center gap-2",
                 isIPhone && "text-xs"
               )}>
-                <Clock className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
-                {isIPhone ? "Times" : "Timestamps"}
-              </Label>
-            </div>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
-            <Label htmlFor="confidence" className={cn(
-              "cursor-pointer flex items-center gap-2",
-              isIPhone && "text-xs"
-            )}>
-              <Eye className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
-              {isIPhone ? "Conf" : "Confidence"}
-            </Label>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Switch id="pii" checked={showPII} onCheckedChange={setShowPII} />
-            <Label htmlFor="pii" className={cn(
-              "cursor-pointer flex items-center gap-2",
-              isIPhone && "text-xs"
-            )}>
-              <AlertTriangle className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-amber-600")} />
-              PII
-              {showPII && piiMatches.length > 0 && (
-                <Badge variant="destructive" className="ml-1 text-xs">
-                  {piiMatches.length}
-                </Badge>
-              )}
-            </Label>
-          </div>
-        </div>
+                <Eye className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
+                Display Options
+              </span>
+              {showToggles ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className={cn(
+                "p-3 pt-0",
+                isMobile && "p-2"
+              )}>
+                <div className={cn(
+                  "grid gap-3",
+                  isIPhone ? "grid-cols-1 gap-2" : isMobile ? "grid-cols-2" : "flex items-center gap-6 flex-wrap"
+                )}>
+                  {/* Word count on mobile */}
+                  {isIPhone && (
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-xs text-muted-foreground">Words:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {stats.wordCount.toLocaleString('en-GB')}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Timestamp toggle hidden - chunks don't have timestamp data */}
+                  {false && (
+                    <div className="flex items-center gap-2">
+                      <Switch id="timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
+                      <Label htmlFor="timestamps" className={cn(
+                        "cursor-pointer flex items-center gap-2",
+                        isIPhone && "text-xs"
+                      )}>
+                        <Clock className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                        {isIPhone ? "Times" : "Timestamps"}
+                      </Label>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
+                    <Label htmlFor="confidence" className={cn(
+                      "cursor-pointer flex items-center gap-2",
+                      isIPhone && "text-xs"
+                    )}>
+                      <Eye className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                      {isIPhone ? "Conf" : "Confidence"}
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch id="pii" checked={showPII} onCheckedChange={setShowPII} />
+                    <Label htmlFor="pii" className={cn(
+                      "cursor-pointer flex items-center gap-2",
+                      isIPhone && "text-xs"
+                    )}>
+                      <AlertTriangle className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-amber-600")} />
+                      PII
+                      {showPII && piiMatches.length > 0 && (
+                        <Badge variant="destructive" className="ml-1 text-xs">
+                          {piiMatches.length}
+                        </Badge>
+                      )}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Quick Action Buttons - Responsive */}
         <div className={cn(
