@@ -3140,7 +3140,6 @@ ${transcript}`;
                 <div className="flex items-center gap-2">
                   <TabsList className="grid grid-cols-2 flex-1">
                     <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
-                    <TabsTrigger value="consultation">Patient Consultation</TabsTrigger>
                     <TabsTrigger value="transcript">Meeting Transcript</TabsTrigger>
                   </TabsList>
                 </div>
@@ -3150,7 +3149,18 @@ ${transcript}`;
                 <div className="h-full flex flex-col">
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
                   <div className="flex-1 overflow-hidden px-6 pt-4">
-                      <Tabs value={activeNotesStyleTab} onValueChange={setActiveNotesStyleTab} className="h-full flex flex-col">
+                      <Tabs value={activeNotesStyleTab} onValueChange={(value) => {
+                        setActiveNotesStyleTab(value);
+                        // Load transcript when switching to Patient Consultation (style6)
+                        if (value === 'style6' && !transcriptLoaded && !isLoadingTranscript) {
+                          console.log('🔄 Loading transcript for Patient Consultation...');
+                          if (isResourceOperationSafe()) {
+                            fetchTranscriptData();
+                          } else {
+                            toast.error("Cannot load transcript while recording is active.");
+                          }
+                        }
+                      }} className="h-full flex flex-col">
                         <div className="flex items-center gap-2 mb-4">
                           <TabsList className="flex-1">
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
@@ -3167,7 +3177,7 @@ ${transcript}`;
                                 <ChevronDownIcon className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuContent align="end" className="w-56 bg-background z-50">
                               <DropdownMenuGroup>
                                 <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
                                   <Sparkles className="mr-2 h-4 w-4" />
@@ -3176,6 +3186,10 @@ ${transcript}`;
                                 <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
                                   <FileText className="mr-2 h-4 w-4" />
                                   <span>Limerick Style</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
+                                  <Stethoscope className="mr-2 h-4 w-4" />
+                                  <span>Patient Consultation</span>
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
                             </DropdownMenuContent>
@@ -3266,6 +3280,7 @@ ${transcript}`;
                                 case 'style2': return notes;
                                 case 'style4': return notesStyle4;
                                 case 'style5': return notesStyle5;
+                                case 'style6': return null; // Patient Consultation has its own UI
                                 default: return null;
                               }
                             };
@@ -3276,6 +3291,7 @@ ${transcript}`;
                                  case 'style2': return 'Minutes - Brief';
                                 case 'style4': return 'Executive Summary';
                                 case 'style5': return 'Limerick Style';
+                                case 'style6': return 'Patient Consultation';
                                 default: return 'Meeting Notes';
                               }
                             };
@@ -3669,85 +3685,85 @@ ${transcript}`;
                                         style5: notesStyle5
                                       }}
                                       onApplyCorrection={handleInlineCorrection}
-                                      isActive={!isEditing && activeNotesStyleTab === 'style5'}
+                                       isActive={!isEditing && activeNotesStyleTab === 'style5'}
                                     />
                                   </div>
                                 )}
                            </div>
                          )}
                        </TabsContent>
+                       
+                       {/* Patient Consultation Content (style6) */}
+                       <TabsContent value="style6" className="flex-1 overflow-hidden mt-0">
+                         <div className="h-full flex flex-col">
+                           {!soapNotesGenerated ? (
+                             <div className="flex-1 flex items-center justify-center">
+                               <div className="max-w-2xl w-full text-center space-y-6">
+                                 <div className="flex justify-center">
+                                   <div className="rounded-full bg-blue-100 dark:bg-blue-900/20 p-6">
+                                     <Stethoscope className="h-16 w-16 text-blue-600 dark:text-blue-400" />
+                                   </div>
+                                 </div>
+                                 <div className="space-y-2">
+                                   <h3 className="text-2xl font-semibold">Generate Patient Consultation Notes</h3>
+                                   <p className="text-muted-foreground">
+                                     Convert this meeting transcript into structured SOAP format consultation notes
+                                   </p>
+                                 </div>
+                                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                   <div className="flex items-start gap-3">
+                                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                     <div className="text-left text-sm">
+                                       <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">SOAP Format</p>
+                                       <p className="text-blue-800 dark:text-blue-200">
+                                         <strong>S</strong> - Subjective (patient's perspective)<br/>
+                                         <strong>O</strong> - Objective (clinical findings)<br/>
+                                         <strong>A</strong> - Assessment (diagnosis/impression)<br/>
+                                         <strong>P</strong> - Plan (treatment/follow-up)
+                                       </p>
+                                     </div>
+                                   </div>
+                                 </div>
+                                 <Button
+                                   size="lg"
+                                   onClick={generateSoapNotes}
+                                   disabled={isGeneratingSoap || !transcript}
+                                   className="gap-2"
+                                 >
+                                   {isGeneratingSoap ? (
+                                     <>
+                                       <RefreshCw className="h-5 w-5 animate-spin" />
+                                       Generating Consultation Notes...
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Stethoscope className="h-5 w-5" />
+                                       Generate Consultation Notes
+                                     </>
+                                   )}
+                                 </Button>
+                                 {!transcript && (
+                                   <p className="text-sm text-muted-foreground">
+                                     No transcript available. Record or import a meeting first.
+                                   </p>
+                                 )}
+                               </div>
+                             </div>
+                           ) : (
+                             <div className="flex-1 overflow-auto">
+                               <SoapNotesDisplay
+                                 soapNotes={soapNotes}
+                                 consultationType={soapNotes?.consultation_type}
+                                 onExport={() => {
+                                   toast.info('Export feature coming soon');
+                                 }}
+                               />
+                             </div>
+                           )}
+                         </div>
+                       </TabsContent>
                     </Tabs>
                   </div>
-                </div>
-              </TabsContent>
-               
-              {/* Patient Consultation Tab with SOAP Notes */}
-              <TabsContent value="consultation" className="flex-1 overflow-hidden mt-0 bg-white">
-                <div className="h-full flex flex-col p-6">
-                  {!soapNotesGenerated ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="max-w-2xl w-full text-center space-y-6">
-                        <div className="flex justify-center">
-                          <div className="rounded-full bg-blue-100 dark:bg-blue-900/20 p-6">
-                            <Stethoscope className="h-16 w-16 text-blue-600 dark:text-blue-400" />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="text-2xl font-semibold">Generate Patient Consultation Notes</h3>
-                          <p className="text-muted-foreground">
-                            Convert this meeting transcript into structured SOAP format consultation notes
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                            <div className="text-left text-sm">
-                              <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">SOAP Format</p>
-                              <p className="text-blue-800 dark:text-blue-200">
-                                <strong>S</strong> - Subjective (patient's perspective)<br/>
-                                <strong>O</strong> - Objective (clinical findings)<br/>
-                                <strong>A</strong> - Assessment (diagnosis/impression)<br/>
-                                <strong>P</strong> - Plan (treatment/follow-up)
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          size="lg"
-                          onClick={generateSoapNotes}
-                          disabled={isGeneratingSoap || !transcript}
-                          className="gap-2"
-                        >
-                          {isGeneratingSoap ? (
-                            <>
-                              <RefreshCw className="h-5 w-5 animate-spin" />
-                              Generating Consultation Notes...
-                            </>
-                          ) : (
-                            <>
-                              <Stethoscope className="h-5 w-5" />
-                              Generate Consultation Notes
-                            </>
-                          )}
-                        </Button>
-                        {!transcript && (
-                          <p className="text-sm text-muted-foreground">
-                            No transcript available. Record or import a meeting first.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-auto">
-                      <SoapNotesDisplay
-                        soapNotes={soapNotes}
-                        consultationType={soapNotes?.consultation_type}
-                        onExport={() => {
-                          toast.info('Export feature coming soon');
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
               </TabsContent>
                
