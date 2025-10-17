@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { EnhancedTranscriptionPanel } from "@/components/meeting/EnhancedTranscriptionPanel";
+import { PaginatedTranscriptViewer } from "@/components/standalone/PaginatedTranscriptViewer";
 import { formatTranscriptContext, extractCleanContent, addMeetingMetadataToTranscript } from "@/utils/meeting/formatTranscriptContext";
 import { UploadedFile } from "@/types/ai4gp";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,7 +63,8 @@ import {
   MoreVertical,
   Eraser,
   Minus,
-  Plus
+  Plus,
+  AlertTriangle
 } from "lucide-react";
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
@@ -139,6 +141,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptLoaded, setTranscriptLoaded] = useState(false); // Track if transcript has been loaded
+  const [transcriptSize, setTranscriptSize] = useState(0); // Track transcript size in bytes
+  const [isLargeTranscript, setIsLargeTranscript] = useState(false); // Track if transcript is large (>30KB)
   const [isLoadingBackupTranscript, setIsLoadingBackupTranscript] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true); // Transcript card expanded by default
   const [isFormattingParagraphs, setIsFormattingParagraphs] = useState(false);
@@ -164,6 +168,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Download transcript function
+  const handleDownloadTranscript = () => {
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const fileName = `${meeting?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-transcript.txt`;
+    saveAs(blob, fileName);
+    toast.success('Transcript downloaded');
+  };
   // Generate Executive HTML lazily when tab is opened or content changes
   useEffect(() => {
     if (activeNotesStyleTab === 'style4') {
@@ -295,48 +307,63 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
       }
  
-         // Fallback: Fetch processed transcript with explicit user validation
-         const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
-           p_meeting_id: currentMeetingId
-         });
-         
-         // Validate we're still showing the same meeting (prevent race conditions)
-         if (meeting?.id !== currentMeetingId) {
-           console.warn('⚠️ Meeting ID changed during fetch, discarding results');
-           return;
-         }
-         
-         if (transcriptError) {
-           console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
-         } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-           console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
-           
-           // Import normaliser
-           const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
-           
-           // Combine and normalise each segment first to avoid concatenation issues
-           const allSegments = transcriptData
-             .map(segment => segment.transcript)
-             .join(' '); // This will join multiple JSON arrays if present
-           
-           console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
-           
-           // Normalise the combined transcript
-           const normalised = normaliseTranscript(allSegments);
-           console.log(`📝 Transcript normalised using ${normalised.used} approach`);
-           console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
-           
-           // Final validation before setting state
-           if (meeting?.id === currentMeetingId) {
-             // Use HTML for display
-             setTranscript(normalised.html);
-           } else {
-             console.warn('⚠️ Meeting changed during transcript processing, discarding results');
-           }
-         } else {
-           console.log('📝 No transcript data found for meeting:', currentMeetingId);
-           setTranscript('');
-         }
+          // Fallback: Fetch processed transcript with explicit user validation
+          const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+            p_meeting_id: currentMeetingId
+          });
+          
+          // Validate we're still showing the same meeting (prevent race conditions)
+          if (meeting?.id !== currentMeetingId) {
+            console.warn('⚠️ Meeting ID changed during fetch, discarding results');
+            return;
+          }
+          
+          if (transcriptError) {
+            console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
+          } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+            console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
+            
+            // Calculate size early to detect large transcripts
+            const rawSize = JSON.stringify(transcriptData).length;
+            console.log('📊 Transcript size:', (rawSize / 1024).toFixed(2), 'KB');
+            setTranscriptSize(rawSize);
+            
+            // If transcript is very large (>30KB), set flag for pagination
+            if (rawSize > 30000) {
+              console.warn('⚠️ Large transcript detected, will use pagination');
+              setIsLargeTranscript(true);
+            } else {
+              setIsLargeTranscript(false);
+            }
+            
+            // Import normaliser
+            const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+            
+            // Combine and normalise each segment first to avoid concatenation issues
+            const allSegments = transcriptData
+              .map(segment => segment.transcript)
+              .join(' '); // This will join multiple JSON arrays if present
+            
+            console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
+            
+            // Normalise the combined transcript
+            const normalised = normaliseTranscript(allSegments);
+            console.log(`📝 Transcript normalised using ${normalised.used} approach`);
+            console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
+            
+            // Final validation before setting state
+            if (meeting?.id === currentMeetingId) {
+              // Use plain text for large transcripts to avoid rendering overhead
+              setTranscript(isLargeTranscript || rawSize > 30000 ? normalised.plain : normalised.html);
+            } else {
+              console.warn('⚠️ Meeting changed during transcript processing, discarding results');
+            }
+          } else {
+            console.log('📝 No transcript data found for meeting:', currentMeetingId);
+            setTranscript('');
+            setTranscriptSize(0);
+            setIsLargeTranscript(false);
+          }
         
      } catch (error) {
        console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
@@ -3468,15 +3495,37 @@ ${transcript}`;
               </TabsContent>
                
                <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
-                <EnhancedTranscriptionPanel
-                  meetingId={meeting?.id || ''}
-                  transcript={transcript || ''}
-                  onTranscriptChange={(newTranscript) => {
-                    setTranscript(newTranscript);
-                    saveTranscriptToDatabase(newTranscript);
-                  }}
-                  meetingContext={meeting}
-                />
+                {isLargeTranscript ? (
+                  <div className="flex flex-col h-full p-6">
+                    <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="font-semibold text-amber-900 mb-1">Large Transcript Detected</h4>
+                          <p className="text-sm text-amber-800">
+                            This transcript is large ({(transcriptSize / 1024).toFixed(1)}KB) and has been paginated for better performance. 
+                            You can navigate through pages below or download the full transcript.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <PaginatedTranscriptViewer
+                      transcript={transcript}
+                      pageSize={5000}
+                      onDownload={handleDownloadTranscript}
+                    />
+                  </div>
+                ) : (
+                  <EnhancedTranscriptionPanel
+                    meetingId={meeting?.id || ''}
+                    transcript={transcript || ''}
+                    onTranscriptChange={(newTranscript) => {
+                      setTranscript(newTranscript);
+                      saveTranscriptToDatabase(newTranscript);
+                    }}
+                    meetingContext={meeting}
+                  />
+                )}
                 </TabsContent>
               </Tabs>
            </div>
