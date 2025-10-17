@@ -2226,10 +2226,10 @@ ${transcript}`;
     // Reset state immediately to prevent sticking
     setIsGeneratingStyle3(true);
     
-    if (!meeting?.id || !transcript) {
-      console.error('❌ Missing required data for Standard:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+    if (!meeting?.id) {
+      console.error('❌ Missing meeting ID for Standard regeneration');
       setIsGeneratingStyle3(false);
-      toast.error('Missing meeting data or transcript');
+      toast.error('Missing meeting data');
       return;
     }
     try {
