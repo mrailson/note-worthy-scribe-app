@@ -610,28 +610,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 };
                 
                 let formattedDateTime = '';
-                let dt: Date | null = null;
                 
-                // Try to parse date
+                // Parse date
                 if (dateStr) {
-                  const parsed = new Date(dateStr);
-                  if (!isNaN(parsed.getTime())) dt = parsed;
-                }
-                
-                // If start_time looks like ISO/date string, prefer that
-                if (!dt && startStr && !/^(\d{1,2}:\d{2})$/.test(startStr)) {
-                  const parsed = new Date(startStr);
-                  if (!isNaN(parsed.getTime())) dt = parsed;
-                }
-                
-                if (dt) {
-                  const dayName = dt.toLocaleDateString('en-GB', { weekday: 'long' });
-                  const monthName = dt.toLocaleDateString('en-GB', { month: 'long' });
-                  const day = dt.getDate();
-                  const year = dt.getFullYear();
-                  const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-                  formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year} at ${time}`;
-                } else if (dateStr) {
                   const d = new Date(dateStr);
                   if (!isNaN(d.getTime())) {
                     const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -639,10 +620,24 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                     const day = d.getDate();
                     const year = d.getFullYear();
                     formattedDateTime = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
-                    
-                    // If start_time provided in HH:mm, append it
-                    if (startStr && /^(\d{1,2}:\d{2})$/.test(startStr)) {
-                      formattedDateTime += ` at ${startStr}`;
+                  }
+                }
+                
+                // Parse time - handle different formats without timezone conversion
+                if (startStr) {
+                  // Check if it's just a time string (HH:mm format)
+                  if (/^\d{1,2}:\d{2}$/.test(startStr)) {
+                    formattedDateTime += ` at ${startStr}`;
+                  } 
+                  // If it's an ISO datetime string, extract time without timezone conversion
+                  else if (startStr.includes('T')) {
+                    // Extract time portion from ISO string (e.g., "2025-10-15T15:00:00Z" -> "15:00")
+                    const timePart = startStr.split('T')[1];
+                    if (timePart) {
+                      const timeMatch = timePart.match(/^(\d{2}):(\d{2})/);
+                      if (timeMatch) {
+                        formattedDateTime += ` at ${timeMatch[1]}:${timeMatch[2]}`;
+                      }
                     }
                   }
                 }
@@ -655,52 +650,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               })()}
             </h3>
             {!isIPhone && (
-              <>
-                <Badge variant="outline" className="text-sm">
-                  ({stats.wordCount.toLocaleString('en-GB')} words)
-                </Badge>
-                {(() => {
-                  // Calculate meeting duration
-                  let durationText = '';
-                  
-                  if (meetingContext?.duration_minutes) {
-                    const totalMinutes = meetingContext.duration_minutes;
-                    const hours = Math.floor(totalMinutes / 60);
-                    const minutes = totalMinutes % 60;
-                    
-                    if (hours > 0) {
-                      durationText = `${hours} ${hours === 1 ? 'hour' : 'hours'}${minutes > 0 ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : ''}`;
-                    } else {
-                      durationText = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
-                    }
-                  } else if (meetingContext?.start_time && meetingContext?.end_time) {
-                    const start = new Date(meetingContext.start_time);
-                    const end = new Date(meetingContext.end_time);
-                    
-                    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-                      const diffMs = end.getTime() - start.getTime();
-                      const totalMinutes = Math.floor(diffMs / 60000);
-                      const hours = Math.floor(totalMinutes / 60);
-                      const minutes = totalMinutes % 60;
-                      
-                      if (hours > 0) {
-                        durationText = `${hours} ${hours === 1 ? 'hour' : 'hours'}${minutes > 0 ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : ''}`;
-                      } else {
-                        durationText = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
-                      }
-                    }
-                  }
-                  
-                  if (durationText) {
-                    return (
-                      <Badge variant="outline" className="text-sm">
-                        {durationText}
-                      </Badge>
-                    );
-                  }
-                  return null;
-                })()}
-              </>
+              <Badge variant="outline" className="text-sm">
+                ({stats.wordCount.toLocaleString('en-GB')} words)
+              </Badge>
             )}
           </div>
           
