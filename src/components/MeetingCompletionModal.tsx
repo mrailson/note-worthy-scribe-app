@@ -105,14 +105,14 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
 
       // Fetch attendee templates for user's practices
       const { data: templates } = await supabase
-        .from('meeting_attendee_templates')
+        .from('attendee_templates')
         .select(`
           *,
-          template_attendees (
+          attendee_template_members (
             attendees (*)
           )
         `)
-        .in('practice_id', practiceIds);
+        .or(`practice_id.in.(${practiceIds.join(',')})`);
 
       if (templates) {
         const formattedTemplates = templates.map(template => ({
@@ -120,7 +120,7 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
           template_name: template.template_name,
           description: template.description,
           is_default: template.is_default,
-          attendees: (template.template_attendees?.map(ta => ta.attendees) || []) as Attendee[]
+          attendees: (template.attendee_template_members?.map((tm: any) => tm.attendees) || []) as Attendee[]
         }));
         setAttendeeTemplates(formattedTemplates);
       }
@@ -171,12 +171,12 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
 
       // Create the template
       const { data: template, error: templateError } = await supabase
-        .from('meeting_attendee_templates')
+        .from('attendee_templates')
         .insert({
+          user_id: user?.id,
           practice_id: practiceId,
           template_name: templateName,
           description: `Template created from meeting completion`,
-          created_by: user?.id,
           is_default: false
         })
         .select()
@@ -185,14 +185,14 @@ export const MeetingCompletionModal: React.FC<MeetingCompletionModalProps> = ({
       if (templateError) throw templateError;
 
       // Link attendees to template
-      const templateAttendees = selectedAttendees.map(attendee => ({
+      const templateMembers = selectedAttendees.map(attendee => ({
         template_id: template.id,
         attendee_id: attendee.id
       }));
 
       const { error: linkError } = await supabase
-        .from('template_attendees')
-        .insert(templateAttendees);
+        .from('attendee_template_members')
+        .insert(templateMembers);
 
       if (linkError) throw linkError;
 

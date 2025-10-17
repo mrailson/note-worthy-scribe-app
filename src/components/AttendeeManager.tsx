@@ -131,14 +131,14 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
     try {
       const { data, error } = await supabase
-        .from('meeting_attendee_templates')
+        .from('attendee_templates')
         .select(`
           *,
-          template_attendees (
+          attendee_template_members (
             attendees (*)
           )
         `)
-        .in('practice_id', userPracticeIds)
+        .or(`practice_id.in.(${userPracticeIds.join(',')}),user_id.eq.${user.id}`)
         .order('template_name');
 
       if (error) throw error;
@@ -148,7 +148,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           template_name: template.template_name,
           description: template.description,
           is_default: template.is_default,
-          attendees: (template.template_attendees?.map(ta => ta.attendees) || []) as Attendee[]
+          attendees: (template.attendee_template_members?.map((tm: any) => tm.attendees) || []) as Attendee[]
         }));
         setTemplates(formattedTemplates);
       }
@@ -302,12 +302,12 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
     try {
       const { data: template, error: templateError } = await supabase
-        .from('meeting_attendee_templates')
+        .from('attendee_templates')
         .insert({
+          user_id: user?.id,
           practice_id: userPracticeIds[0],
           template_name: templateFormData.name,
-          description: templateFormData.description,
-          created_by: user?.id,
+          description: templateFormData.description || null,
           is_default: false
         })
         .select()
@@ -315,14 +315,14 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
       if (templateError) throw templateError;
 
-      const templateAttendees = templateFormData.selectedAttendeeIds.map(attendeeId => ({
+      const templateMembers = templateFormData.selectedAttendeeIds.map(attendeeId => ({
         template_id: template.id,
         attendee_id: attendeeId
       }));
 
       const { error: linkError } = await supabase
-        .from('template_attendees')
-        .insert(templateAttendees);
+        .from('attendee_template_members')
+        .insert(templateMembers);
 
       if (linkError) throw linkError;
 
@@ -351,7 +351,7 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
   const deleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
-        .from('meeting_attendee_templates')
+        .from('attendee_templates')
         .delete()
         .eq('id', templateId);
 
@@ -727,30 +727,48 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
                 {templates.map(template => (
                   <Card key={template.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="font-semibold">{template.template_name}</div>
-                          {template.description && (
-                            <div className="text-sm text-muted-foreground mt-1">
-                              {template.description}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="font-semibold">{template.template_name}</div>
+                            {template.description && (
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {template.description}
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {template.attendees.map((attendee: Attendee) => (
+                                <Badge key={attendee.id} variant="secondary" className="text-xs">
+                                  {attendee.name}
+                                </Badge>
+                              ))}
                             </div>
-                          )}
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {template.attendees.map((attendee: Attendee) => (
-                              <Badge key={attendee.id} variant="secondary" className="text-xs">
-                                {attendee.name}
-                              </Badge>
-                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            {onAttendeesChange && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  onAttendeesChange(template.attendees);
+                                  toast({
+                                    title: "Template Applied",
+                                    description: `Applied ${template.attendees.length} attendees from "${template.template_name}"`
+                                  });
+                                }}
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Apply
+                              </Button>
+                            )}
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => deleteTemplate(template.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => deleteTemplate(template.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                 ))}

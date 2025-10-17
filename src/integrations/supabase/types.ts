@@ -136,6 +136,83 @@ export type Database = {
         }
         Relationships: []
       }
+      attendee_template_members: {
+        Row: {
+          attendee_id: string
+          created_at: string | null
+          id: string
+          template_id: string
+        }
+        Insert: {
+          attendee_id: string
+          created_at?: string | null
+          id?: string
+          template_id: string
+        }
+        Update: {
+          attendee_id?: string
+          created_at?: string | null
+          id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendee_template_members_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendee_template_members_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "attendee_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendee_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          practice_id: string | null
+          template_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          practice_id?: string | null
+          template_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          practice_id?: string | null
+          template_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendee_templates_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendees: {
         Row: {
           created_at: string
