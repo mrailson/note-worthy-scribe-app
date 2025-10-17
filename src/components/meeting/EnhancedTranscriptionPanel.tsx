@@ -181,7 +181,23 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   // Render highlighted transcript
   const renderHighlightedTranscript = () => {
+    // Check if transcript contains HTML tags
+    const containsHTML = /<\/?[a-z][\s\S]*>/i.test(transcript);
+    
     if (!showPII || piiMatches.length === 0) {
+      if (containsHTML) {
+        // Strip HTML tags and replace with proper paragraph spacing
+        const cleanedText = transcript
+          .replace(/<\/p>\s*<p>/gi, '\n\n')  // Convert </p><p> to double newline
+          .replace(/<p>/gi, '')               // Remove opening <p> tags
+          .replace(/<\/p>/gi, '\n\n')        // Convert closing </p> to double newline
+          .replace(/<br\s*\/?>/gi, '\n')     // Convert <br> to newline
+          .replace(/<[^>]+>/g, '')           // Remove any other HTML tags
+          .replace(/\n{3,}/g, '\n\n')        // Replace multiple newlines with double newline
+          .trim();
+        
+        return <p className="whitespace-pre-wrap leading-relaxed">{cleanedText}</p>;
+      }
       return <p className="whitespace-pre-wrap leading-relaxed">{transcript}</p>;
     }
 
