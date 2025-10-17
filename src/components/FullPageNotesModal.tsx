@@ -2136,12 +2136,15 @@ ${transcript}`;
   const generateNotesStyle3 = async () => {
     console.log('📋 Starting Minutes - Standard regeneration...');
     
+    // Reset state immediately to prevent sticking
+    setIsGeneratingStyle3(true);
+    
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Standard:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+      setIsGeneratingStyle3(false);
+      toast.error('Missing meeting data or transcript');
       return;
     }
-
-    setIsGeneratingStyle3(true);
     try {
       console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
@@ -2247,12 +2250,15 @@ ${transcript}`;
   const generateNotesStyle4 = async () => {
     console.log('💼 Starting Minutes - Executive regeneration...');
     
+    // Reset state immediately to prevent sticking
+    setIsGeneratingStyle4(true);
+    
     if (!meeting?.id || !transcript) {
       console.error('❌ Missing required data for Executive:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+      setIsGeneratingStyle4(false);
+      toast.error('Missing meeting data or transcript');
       return;
     }
-
-    setIsGeneratingStyle4(true);
     try {
       // Round time to nearest 15 minutes
       const roundToNearest15Minutes = (date: Date) => {
@@ -2416,12 +2422,15 @@ ${transcript}`;
   const generateNotesStyle5 = async () => {
     console.log('🎭 Starting limerick generation (edge function)...');
 
+    // Reset state immediately to prevent sticking
+    setIsGeneratingStyle5(true);
+
     if (!meeting?.id) {
       console.error('❌ Missing meeting id');
+      setIsGeneratingStyle5(false);
+      toast.error('Missing meeting ID');
       return;
     }
-
-    setIsGeneratingStyle5(true);
     try {
       // Invoke our dedicated limerick generator (saves to meetings.notes_style_5)
       const { data, error } = await supabase.functions.invoke('generate-limerick-notes', {
