@@ -60,7 +60,9 @@ import {
   AlignJustify,
   Mail,
   MoreVertical,
-  Eraser
+  Eraser,
+  Minus,
+  Plus
 } from "lucide-react";
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
@@ -128,6 +130,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [fontSizeStyle1, setFontSizeStyle1] = useState(15); // Font size for Minutes - Standard
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [isLoadingBackupTranscript, setIsLoadingBackupTranscript] = useState(false);
@@ -2907,6 +2910,36 @@ ${transcript}`;
                       <div className="flex items-center justify-between pb-4 flex-shrink-0">
                         <h3 className="text-lg font-semibold">Meeting Notes</h3>
                         <div className="flex items-center gap-2">
+                          {/* Font Size Controls - only show for Minutes - Standard */}
+                          {activeNotesStyleTab === 'style1' && (
+                            <div className="flex items-center gap-1 border rounded-md p-1">
+                              <Type className="h-4 w-4 text-muted-foreground mr-1" />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
+                                disabled={fontSizeStyle1 <= 12}
+                                title="Decrease font size"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+                                {fontSizeStyle1}px
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
+                                disabled={fontSizeStyle1 >= 24}
+                                title="Increase font size"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          
                           {isEditing && (
                             <TooltipProvider>
                               <Tooltip>
@@ -3110,29 +3143,32 @@ ${transcript}`;
                                   </Button>
                                 </div>
                                 ) : (
-                                  <div className="space-y-4 relative min-h-[500px]">
-                                    {/* Animated loading overlay */}
-                                    {isGeneratingStyle3 && (
-                                      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                                        <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                          <div className="relative">
-                                            <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                          </div>
-                                          <div className="text-center space-y-2">
-                                            <p className="text-lg font-semibold">Regenerating Notes</p>
-                                            <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                   <div className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}>
-                                     <div 
-                                       dangerouslySetInnerHTML={{ 
-                                         __html: renderMinutesMarkdown(notesStyle3)
-                                       }}
-                                     />
-                                   </div>
+                                   <div className="space-y-4 relative min-h-[500px]">
+                                     {/* Animated loading overlay */}
+                                     {isGeneratingStyle3 && (
+                                       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                           <div className="relative">
+                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                           </div>
+                                           <div className="text-center space-y-2">
+                                             <p className="text-lg font-semibold">Regenerating Notes</p>
+                                             <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                           </div>
+                                         </div>
+                                       </div>
+                                     )}
+                                    <div 
+                                      className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
+                                      style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                    >
+                                      <div 
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: renderMinutesMarkdown(notesStyle3)
+                                        }}
+                                      />
+                                    </div>
                                    <InlineWordCorrector
                                      content={notesStyle3}
                                      allTabsContent={{
