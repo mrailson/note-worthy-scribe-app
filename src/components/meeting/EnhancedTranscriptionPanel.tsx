@@ -199,27 +199,44 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     // Clean HTML tags from transcript first
     const cleanedTranscript = cleanHTMLFromTranscript(transcript);
     
+    // Split cleaned transcript into paragraphs
+    const paragraphs = cleanedTranscript.split('\n\n').filter(p => p.trim());
+    
     if (!showPII || piiMatches.length === 0) {
-      return <p className="whitespace-pre-wrap leading-relaxed">{cleanedTranscript}</p>;
+      return (
+        <div className="space-y-4">
+          {paragraphs.map((para, idx) => (
+            <p key={idx} className="leading-relaxed">
+              {para}
+            </p>
+          ))}
+        </div>
+      );
     }
 
-    const segments = highlightPII(cleanedTranscript, piiMatches);
-    
+    // With PII highlighting
     return (
-      <div className="leading-relaxed whitespace-pre-wrap">
-        {segments.map((segment, idx) => {
-          if (segment.isPII && segment.match) {
-            return (
-              <mark
-                key={idx}
-                className={`${getPIIColor(segment.match.type)} border-b-2 px-1 rounded cursor-pointer transition-colors hover:opacity-75`}
-                title={`${segment.match.type.toUpperCase()} (${segment.match.confidence})`}
-              >
-                {segment.text}
-              </mark>
-            );
-          }
-          return <span key={idx}>{segment.text}</span>;
+      <div className="space-y-4">
+        {paragraphs.map((para, paraIdx) => {
+          const segments = highlightPII(para, piiMatches);
+          return (
+            <p key={paraIdx} className="leading-relaxed">
+              {segments.map((segment, segIdx) => {
+                if (segment.isPII && segment.match) {
+                  return (
+                    <mark
+                      key={segIdx}
+                      className={`${getPIIColor(segment.match.type)} border-b-2 px-1 rounded cursor-pointer transition-colors hover:opacity-75`}
+                      title={`${segment.match.type.toUpperCase()} (${segment.match.confidence})`}
+                    >
+                      {segment.text}
+                    </mark>
+                  );
+                }
+                return <span key={segIdx}>{segment.text}</span>;
+              })}
+            </p>
+          );
         })}
       </div>
     );
@@ -287,16 +304,19 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Switch id="timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
-            <Label htmlFor="timestamps" className={cn(
-              "cursor-pointer flex items-center gap-2",
-              isIPhone && "text-xs"
-            )}>
-              <Clock className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
-              {isIPhone ? "Times" : "Timestamps"}
-            </Label>
-          </div>
+          {/* Timestamp toggle hidden - chunks don't have timestamp data */}
+          {false && (
+            <div className="flex items-center gap-2">
+              <Switch id="timestamps" checked={showTimestamps} onCheckedChange={setShowTimestamps} />
+              <Label htmlFor="timestamps" className={cn(
+                "cursor-pointer flex items-center gap-2",
+                isIPhone && "text-xs"
+              )}>
+                <Clock className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-muted-foreground")} />
+                {isIPhone ? "Times" : "Timestamps"}
+              </Label>
+            </div>
+          )}
           
           <div className="flex items-center gap-2">
             <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
