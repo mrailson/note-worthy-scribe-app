@@ -655,9 +655,52 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               })()}
             </h3>
             {!isIPhone && (
-              <Badge variant="outline" className="text-sm">
-                {stats.wordCount.toLocaleString('en-GB')} words
-              </Badge>
+              <>
+                <Badge variant="outline" className="text-sm">
+                  ({stats.wordCount.toLocaleString('en-GB')} words)
+                </Badge>
+                {(() => {
+                  // Calculate meeting duration
+                  let durationText = '';
+                  
+                  if (meetingContext?.duration_minutes) {
+                    const totalMinutes = meetingContext.duration_minutes;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    
+                    if (hours > 0) {
+                      durationText = `${hours} ${hours === 1 ? 'hour' : 'hours'}${minutes > 0 ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : ''}`;
+                    } else {
+                      durationText = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+                    }
+                  } else if (meetingContext?.start_time && meetingContext?.end_time) {
+                    const start = new Date(meetingContext.start_time);
+                    const end = new Date(meetingContext.end_time);
+                    
+                    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                      const diffMs = end.getTime() - start.getTime();
+                      const totalMinutes = Math.floor(diffMs / 60000);
+                      const hours = Math.floor(totalMinutes / 60);
+                      const minutes = totalMinutes % 60;
+                      
+                      if (hours > 0) {
+                        durationText = `${hours} ${hours === 1 ? 'hour' : 'hours'}${minutes > 0 ? ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : ''}`;
+                      } else {
+                        durationText = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+                      }
+                    }
+                  }
+                  
+                  if (durationText) {
+                    return (
+                      <Badge variant="outline" className="text-sm">
+                        {durationText}
+                      </Badge>
+                    );
+                  }
+                  return null;
+                })()}
+              </>
             )}
           </div>
           
