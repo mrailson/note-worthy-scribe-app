@@ -444,7 +444,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         new Paragraph({
           children: [
             new TextRun({
-              text: '─'.repeat(80),
+              text: '─'.repeat(40),
               size: 24,
               color: '999999',
             })
