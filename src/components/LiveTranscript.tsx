@@ -362,31 +362,15 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
     stableTimer.current = window.setTimeout(() => {
       console.log("🔄 Debounce timer fired - processing queued chunk");
       const cleanedChunk = lightCleanChunk(pendingRef.current);
-      const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
-        if (dedupedChunk) {
-          console.log("📝 Debounce processed chunk into cleaned transcript");
-          setCleanedTranscript(prev => {
-            const chunk: LiveChunk = {
-              text: dedupedChunk,
-              isFinal: true,
-              source: 'debounced'
-            };
-            const merged = mergeLive(prev, chunk);
-            
-            // Track rejection
-            if (merged.rejectionReason && merged.addedChars === 0) {
-              setRejectedChunks(prevRejected => [...prevRejected, {
-                text: dedupedChunk,
-                reason: merged.rejectionReason!,
-                timestamp: new Date()
-              }]);
-            }
-            
-            return merged.text;
-          });
-        } else {
-          console.log("🔄 Debounce chunk was empty after deduplication");
-        }
+      if (cleanedChunk) {
+        console.log("📝 Debounce processed chunk into cleaned transcript");
+        setCleanedTranscript(prev => {
+          const appended = (prev ? prev + ' ' : '') + cleanedChunk;
+          return appended;
+        });
+      } else {
+        console.log("🔄 Debounce chunk was empty after cleaning");
+      }
       pendingRef.current = "";
     }, FLUSH_MS);
   };
@@ -501,33 +485,15 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
           console.log("🔗 Accumulating transcript chunk:", textForDisplay?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
           setLiveTranscriptText(prev => {
-            const chunk: LiveChunk = {
-              text: textForDisplay,
-              isFinal: r.is_final,
-              seq: r.seq,
-              source: r.source || 'unknown'
-            };
-            const merged = mergeLive(prev, chunk);
-            
-            // Track rejection if chunk was rejected
-            if (merged.rejectionReason && merged.addedChars === 0) {
-              setRejectedChunks(prevRejected => [...prevRejected, {
-                text: textForDisplay,
-                reason: merged.rejectionReason!,
-                timestamp: new Date()
-              }]);
-              console.warn(`⚠️ Chunk rejected: ${merged.rejectionReason}`);
-            }
-            
-            console.log("📈 Raw transcript updated:", prev.length, "->", merged.text.length, "chars");
-            return merged.text;
+            const appended = (prev ? prev + ' ' : '') + textForDisplay;
+            console.log("📈 Raw transcript updated:", prev.length, "->", appended.length, "chars");
+            return appended;
           });
           
           setTotalChunksProcessed(prev => prev + 1);
 
-          // Apply lightweight cleaning for real-time processing (use parsed text)
           const cleanedChunk = lightCleanChunk(textForDisplay);
-          const dedupedChunk = removeDuplicateSentences(cleanedChunk, cleanedTranscript);
+          const dedupedChunk = cleanedChunk; // no real-time deduplication
 
           // Enhanced final chunk handling with better deduplication (Phase 1 fix)
           if (typeof r.is_final === "boolean") {
@@ -535,36 +501,9 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
           if (r.is_final && dedupedChunk) {
               console.log("🔥 Processing FINAL chunk immediately into cleaned transcript");
               setCleanedTranscript(prev => {
-                const chunk: LiveChunk = {
-                  text: dedupedChunk,
-                  isFinal: true,
-                  seq: r.seq,
-                  source: r.source || 'unknown'
-                };
-                const merged = mergeLive(prev, chunk);
-                
-                // Track rejection if chunk was rejected
-                if (merged.rejectionReason && merged.addedChars === 0) {
-              setRejectedChunks(prevRejected => [...prevRejected, {
-                text: dedupedChunk,
-                reason: merged.rejectionReason!,
-                timestamp: new Date()
-              }]);
-              
-              // Notify parent component
-              if (onChunkRejected) {
-                onChunkRejected(dedupedChunk, merged.rejectionReason!, r.chunk_number);
-              }
-              
-              toast({
-                title: "Chunk Rejected",
-                description: `A transcript chunk was filtered out: ${merged.rejectionReason}`,
-                variant: "destructive"
-              });
-                }
-                
-                console.log("📝 Cleaned transcript updated, length:", merged.text.length);
-                return merged.text;
+                const appended = (prev ? prev + ' ' : '') + dedupedChunk;
+                console.log("📝 Cleaned transcript updated, length:", appended.length);
+                return appended;
               });
             } else if (dedupedChunk) {
               console.log("⚡ Queuing non-final chunk for debounce processing");
@@ -683,14 +622,9 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       const processedTranscript = filterSystemMessages(transcript);
     console.log("🔗 Accumulating transcript from props:", processedTranscript?.substring(0, 50) + "...", 'current_meeting:', sessionStorage.getItem('currentMeetingId'));
     setLiveTranscriptText(prev => {
-      const chunk: LiveChunk = {
-        text: processedTranscript,
-        isFinal: true,
-        source: 'props'
-      };
-      const merged = mergeLive(prev, chunk);
-      console.log("📈 Props transcript updated:", prev.length, "->", merged.text.length, "chars");
-      return merged.text;
+      const appended = (prev ? prev + ' ' : '') + processedTranscript;
+      console.log("📈 Props transcript updated:", prev.length, "->", appended.length, "chars");
+      return appended;
     });
     }
   }, [transcript]);
@@ -703,26 +637,17 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
     const processedTranscript = filterSystemMessages(transcript);
     console.log("🔗 Accumulating client prop transcript:", processedTranscript?.substring(0, 50) + "...", 'is_final:', isFinal);
     setLiveTranscriptText(prev => {
-      const chunk: LiveChunk = {
-        text: processedTranscript,
-        isFinal: isFinal,
-        source: 'client-props'
-      };
-      const merged = mergeLive(prev, chunk);
-      console.log("📈 Client props transcript updated:", prev.length, "->", merged.text.length, "chars");
-      return merged.text;
+      const appended = (prev ? prev + ' ' : '') + processedTranscript;
+      console.log("📈 Client props transcript updated:", prev.length, "->", appended.length, "chars");
+      return appended;
     });
 
     // Handle finality from client props
     if (typeof isFinal === "boolean") {
       if (isFinal) {
         setCleanedTranscript(prev => {
-          const chunk: LiveChunk = {
-            text: processedTranscript,
-            isFinal: true,
-            source: 'client-final'
-          };
-          return mergeLive(prev, chunk).text;
+          const appended = (prev ? prev + ' ' : '') + processedTranscript;
+          return appended;
         });
       } else {
         queueFlushChunk(processedTranscript);
