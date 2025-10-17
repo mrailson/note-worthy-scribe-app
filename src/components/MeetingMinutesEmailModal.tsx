@@ -94,7 +94,7 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl z-[150]" style={{ zIndex: 150 }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
