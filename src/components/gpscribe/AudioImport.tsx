@@ -208,6 +208,7 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
       setProgressLabel("Complete");
       
       const transcript = data.text;
+      setTranscriptionResult(transcript);
       // Transcript ready; awaiting user action to create meeting via button
       // onTranscriptReady is intentionally not auto-called to avoid premature imports
       showToast.success(`Transcription completed! (${Math.round(data.duration || 0)}s audio)`, { section: 'ai4gp' });

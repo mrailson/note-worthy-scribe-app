@@ -38,7 +38,6 @@ export const useMeetingImporter = () => {
         meeting_format: data.format || 'imported',
         status: 'completed',
         notes_generation_status: 'pending',
-        word_count: data.transcript.split(/\s+/).filter(word => word.trim()).length,
       };
 
       setProgress(30);
