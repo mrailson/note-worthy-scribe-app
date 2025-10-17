@@ -132,17 +132,16 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const handleCleanTranscript = () => {
     let cleanedText = transcript;
     
-    // First remove swear words
+    // Remove only explicitly offensive swear words (conservative list)
     const swearWords = [
-      'shit', 'bollocks', 'wanker', 'fuck', 'fucker', 'fucking', 
-      'bastard', 'damn', 'crap', 'bloody', 'arse', 'arsehole',
-      'piss', 'pissed', 'twat', 'dick', 'dickhead', 'cock',
-      'bugger', 'git', 'sod', 'tosser', 'prick', 'hell'
+      'shit', 'shite', 'bollocks', 'wanker', 'fuck', 'fucker', 'fucking', 
+      'bastard', 'arsehole', 'twat', 'dickhead', 'tosser', 'prick'
     ];
     
     let swearCount = 0;
     swearWords.forEach(word => {
-      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      // Use strict word boundaries to avoid false positives
+      const regex = new RegExp(`\\b${word}s?\\b`, 'gi');
       const matches = cleanedText.match(regex);
       if (matches) {
         swearCount += matches.length;
