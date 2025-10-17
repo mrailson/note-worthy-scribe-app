@@ -67,10 +67,17 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (showPopup && popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setShowPopup(false);
-        window.getSelection()?.removeAllRanges();
+      if (!showPopup || !popupRef.current) return;
+      
+      const target = e.target as Node;
+      // Don't close if clicking inside the popup or any of its child elements
+      if (popupRef.current.contains(target)) {
+        e.stopPropagation();
+        return;
       }
+      
+      setShowPopup(false);
+      window.getSelection()?.removeAllRanges();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
