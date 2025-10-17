@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { removeFillerWords, countFillerWords, type FillerWordStats } from '@/utils/fillerWordCleaner';
@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { TranscriptContextDialog } from '@/components/meeting/TranscriptContextDialog';
 import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
 import { UploadedFile } from '@/types/ai4gp';
+import { Document, Paragraph, TextRun, Packer } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface TranscriptionChunk {
   id: string;
@@ -258,6 +260,46 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     setTranscriptHistory(prev => prev.slice(0, -1));
     onTranscriptChange(lastVersion);
     toast.success('Changes undone');
+  };
+
+  const handleDownloadWord = async () => {
+    if (!transcript) {
+      toast.error('No transcript to download');
+      return;
+    }
+
+    try {
+      // Split transcript into paragraphs
+      const paragraphs = transcript.split('\n').filter(line => line.trim());
+
+      // Create document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: paragraphs.map(text => 
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: text,
+                  size: 24, // 12pt font
+                })
+              ],
+              spacing: {
+                after: 200, // Add spacing after each paragraph
+              }
+            })
+          )
+        }]
+      });
+
+      // Generate and download
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `transcript-${new Date().toISOString().split('T')[0]}.docx`);
+      toast.success('Transcript downloaded');
+    } catch (error) {
+      console.error('Error downloading transcript:', error);
+      toast.error('Failed to download transcript');
+    }
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -620,6 +662,16 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Edit
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownloadWord}
+                disabled={!transcript || isEditing}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Word
               </Button>
               
               {transcriptHistory.length > 0 && (
