@@ -1,6 +1,6 @@
 export interface DemoMeeting {
   id: string;
-  type: 'LMC' | 'PCN' | 'Partnership' | 'ICB' | 'Neighbourhood' | 'Regional' | 'Trust' | 'MDT';
+  type: 'LMC' | 'PCN' | 'Partnership' | 'ICB' | 'Neighbourhood' | 'Regional' | 'Trust' | 'MDT' | 'Consultation';
   title: string;
   description: string;
   duration: string;
@@ -755,6 +755,346 @@ Linda Cooper: What about Mrs Wilson's needs? Should we be doing a carer's assess
 Rebecca Singh: Definitely. She may be entitled to carer support services, and we need to ensure her own health is being looked after.
 
 Dr Elizabeth Palmer: Excellent points. This is exactly why the MDT approach works - we're considering the whole situation, not just the medical issues. Let's reconvene this case at next week's MDT to review progress. Thank you, everyone, for your input today.`
+  },
+  {
+    id: 'gp-diabetes-review',
+    type: 'Consultation',
+    title: 'Type 2 Diabetes Annual Review',
+    description: 'Annual diabetes check with medication review and lifestyle discussion',
+    duration: '15:00',
+    wordCount: 892,
+    icon: '🩺',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Sarah Johnson', title: 'GP', organization: 'Riverside Medical Centre' },
+      { name: 'Mr David Thompson', title: 'Patient', organization: '' }
+    ],
+    agenda: 'Annual diabetes review, HbA1c results, medication review, foot check, retinal screening status',
+    transcript: `Dr Sarah Johnson: Good morning, Mr Thompson. Come in and take a seat. How have you been since I last saw you?
+
+Mr David Thompson: Morning, Doctor. Not too bad overall, though I've been feeling a bit more tired lately.
+
+Dr Sarah Johnson: I see. Let's have a look at your recent blood tests. Your HbA1c has come back at 64 millimoles per mole, which is slightly higher than your last reading of 58 six months ago. How have you been getting on with your diabetes management?
+
+Mr David Thompson: I try my best with the diet, but it's been difficult. My wife had a fall a few months ago, and I've been doing more of the cooking. I'm not as good at the healthy stuff as she is.
+
+Dr Sarah Johnson: I'm sorry to hear about your wife's fall. Is she recovering well?
+
+Mr David Thompson: She's getting there, thank you. Still using a walking stick, but much better than she was.
+
+Dr Sarah Johnson: That's good to hear. The stress of being a carer can definitely affect diabetes control. Are you still taking your metformin regularly? Two tablets twice a day?
+
+Mr David Thompson: Yes, I take them with breakfast and dinner. I don't miss them.
+
+Dr Sarah Johnson: That's excellent. And the blood pressure medication, the ramipril?
+
+Mr David Thompson: Yes, that too. One tablet in the morning.
+
+Dr Sarah Johnson: Good. Let me check your blood pressure today. Just relax your arm for me. How's your vision been? Any blurriness or changes?
+
+Mr David Thompson: No, my eyes have been fine. I had that eye test at the hospital about four months ago, and they said it looked okay.
+
+Dr Sarah Johnson: Yes, I can see that in your records. Your retinal screening was clear, which is very good news. Now, your blood pressure today is 142 over 86. That's a little higher than we'd like. Have you been checking it at home?
+
+Mr David Thompson: I haven't, to be honest. I used to, but the machine broke and I haven't replaced it.
+
+Dr Sarah Johnson: I'd recommend getting a new one. Home monitoring is really valuable for managing both your diabetes and blood pressure. The pharmacy can advise you on good machines.
+
+Mr David Thompson: I'll do that.
+
+Dr Sarah Johnson: Excellent. Now, let me check your feet. Diabetes can affect the circulation and sensation in your feet, so it's important we check regularly. Can you take off your shoes and socks for me?
+
+Mr David Thompson: Of course.
+
+Dr Sarah Johnson: Your pulses are good, and the sensation seems fine. I can't see any areas of concern. Do you check your own feet regularly?
+
+Mr David Thompson: Not really. Should I be?
+
+Dr Sarah Johnson: Yes, ideally daily. Just look for any cuts, blisters, or changes in colour. If you notice anything, book an appointment with the practice nurse. Are you managing to do any exercise?
+
+Mr David Thompson: I try to walk most days, maybe twenty to thirty minutes. Less than I used to, though, with everything going on at home.
+
+Dr Sarah Johnson: I understand. Even those daily walks are beneficial. They help with blood sugar control and blood pressure. Given that your HbA1c has risen a bit, I think we should consider adjusting your medication. Your current dose of metformin is at the maximum, so I'd like to add in another medication called gliclazide. It helps the body produce more insulin.
+
+Mr David Thompson: Is that safe? I don't want too many tablets.
+
+Dr Sarah Johnson: It's a very commonly used medication for type 2 diabetes. We'll start on a low dose and monitor your response. The important thing is to keep your blood sugar controlled to prevent complications. The tiredness you mentioned could well be related to the higher blood sugar levels.
+
+Mr David Thompson: Alright, if you think it will help.
+
+Dr Sarah Johnson: I do. I'll prescribe it for you today. Take one tablet with breakfast to start. We'll recheck your HbA1c in three months to see how you're responding. If you experience any dizziness or shakiness, which would be signs of low blood sugar, have something sugary immediately and contact us.
+
+Mr David Thompson: Okay, I'll watch out for that.
+
+Dr Sarah Johnson: Good. I'm also going to increase your ramipril slightly to help bring your blood pressure down. From 5 milligrams to 10 milligrams once daily. And please do try to get that home blood pressure monitor.
+
+Mr David Thompson: Will do.
+
+Dr Sarah Johnson: Is there anything else you wanted to discuss today? Any other symptoms or concerns?
+
+Mr David Thompson: No, I think that covers everything. Thank you, Doctor.
+
+Dr Sarah Johnson: You're welcome. I know it's been a challenging time with your wife's health, but you're doing well managing your own conditions. Make an appointment for three months to review the new medication and repeat your blood tests. If you have any problems before then, don't hesitate to contact us.
+
+Mr David Thompson: I will. Thank you very much.`
+  },
+  {
+    id: 'gp-chest-infection-telephone',
+    type: 'Consultation',
+    title: 'Chest Infection - Telephone Consultation',
+    description: 'Telephone consultation for suspected lower respiratory tract infection',
+    duration: '08:00',
+    wordCount: 625,
+    icon: '📞',
+    format: 'telephone',
+    attendees: [
+      { name: 'Dr Michael Chen', title: 'GP', organization: 'Meadow View Surgery' },
+      { name: 'Mrs Patricia Williams', title: 'Patient', organization: '' }
+    ],
+    agenda: 'Assessment of respiratory symptoms, chest infection evaluation, antibiotic prescription discussion',
+    transcript: `Dr Michael Chen: Hello, Mrs Williams. This is Dr Chen calling. I understand you've been having some chest problems?
+
+Mrs Patricia Williams: Yes, Doctor. I've had this cough for about five days now, and it's getting worse. I'm bringing up green phlegm, and my chest feels tight.
+
+Dr Michael Chen: I see. Tell me a bit more about the cough. Is it worse at any particular time of day?
+
+Mrs Patricia Williams: It's there all the time, but worse in the mornings and at night. It's keeping me awake.
+
+Dr Michael Chen: Have you had any fever or high temperature?
+
+Mrs Patricia Williams: I felt hot and sweaty yesterday evening. I didn't take my temperature, but I definitely had the shivers.
+
+Dr Michael Chen: Okay. Any shortness of breath or difficulty breathing?
+
+Mrs Patricia Williams: I'm a bit more breathless than usual, especially when I try to do things around the house. I get quite wheezy.
+
+Dr Michael Chen: And any chest pain when you breathe or cough?
+
+Mrs Patricia Williams: A little bit. It's more of an ache across my chest.
+
+Dr Michael Chen: Right. Have you felt generally unwell? Any muscle aches or feeling particularly tired?
+
+Mrs Patricia Williams: Yes, I've been exhausted. Just getting up to make a cup of tea wears me out.
+
+Dr Michael Chen: I'm looking at your records. You have asthma, don't you? Are you using your inhalers more than usual?
+
+Mrs Patricia Williams: Yes, I'm using the blue one much more frequently. Maybe every three or four hours.
+
+Dr Michael Chen: And the brown preventer inhaler, are you using that regularly?
+
+Mrs Patricia Williams: I am now. I wasn't using it much before this started, but I've been using it twice a day since the cough got bad.
+
+Dr Michael Chen: That's good that you've restarted it. How's your breathing right now as we're talking?
+
+Mrs Patricia Williams: I'm okay sitting still, but I do feel quite wheezy and short of breath.
+
+Dr Michael Chen: Based on what you're telling me, it sounds like you have a chest infection, probably a lower respiratory tract infection that's also making your asthma worse. The green phlegm, fever, and increased breathlessness are all signs of this.
+
+Mrs Patricia Williams: Do I need antibiotics?
+
+Dr Michael Chen: Yes, I think you do in this case. Given your asthma and the severity of your symptoms, I'm going to prescribe you a course of antibiotics. I'll prescribe amoxicillin, which is a penicillin. You're not allergic to penicillin, are you?
+
+Mrs Patricia Williams: No, I've had it before and been fine.
+
+Dr Michael Chen: Good. Take one capsule three times a day for seven days. Make sure you complete the full course even if you start feeling better. I'm also going to prescribe you some prednisolone tablets, which are steroids, to help with the asthma flare-up.
+
+Mrs Patricia Williams: Alright.
+
+Dr Michael Chen: Take six tablets once daily for five days with food. Continue using your blue inhaler as needed, but if you're needing it more than every four hours, contact us urgently. Keep using your brown preventer twice daily. Make sure you're drinking plenty of fluids and getting rest.
+
+Mrs Patricia Williams: Should I come in to be examined?
+
+Dr Michael Chen: Not at this stage. Let's see how you respond to the antibiotics over the next forty-eight hours. If you're not improving, or if you get worse - particularly if you become more breathless, develop chest pain, or feel confused - you need to contact us immediately or go to A&E if it's out of hours.
+
+Mrs Patricia Williams: Okay, I understand.
+
+Dr Michael Chen: I'll send the prescriptions to your usual pharmacy. They should be ready in about an hour. Is there anything else I can help with today?
+
+Mrs Patricia Williams: No, that's everything. Thank you, Doctor.
+
+Dr Michael Chen: You're welcome. Take care, and don't hesitate to contact us if you're concerned. Goodbye.`
+  },
+  {
+    id: 'gp-mental-health-consultation',
+    type: 'Consultation',
+    title: 'Depression and Anxiety Review',
+    description: 'Mental health consultation for moderate depression with anxiety symptoms',
+    duration: '20:00',
+    wordCount: 1156,
+    icon: '🧠',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Emma Roberts', title: 'GP', organization: 'Park Lane Practice' },
+      { name: 'Miss Jennifer Clarke', title: 'Patient', organization: '' }
+    ],
+    agenda: 'Mental health assessment, PHQ-9 and GAD-7 scores, treatment options, safety netting',
+    transcript: `Dr Emma Roberts: Hello, Jennifer. Come in and have a seat. I can see from your appointment request that you've been struggling with your mood. Tell me what's been going on.
+
+Miss Jennifer Clarke: I don't really know where to start. I just feel like I can't cope anymore. Everything feels overwhelming.
+
+Dr Emma Roberts: That sounds really difficult. How long have you been feeling this way?
+
+Miss Jennifer Clarke: It's been building up for months, but it's got much worse in the last six weeks or so. I thought I could manage it, but I can't anymore.
+
+Dr Emma Roberts: I'm glad you've come to talk about it. Can you describe how you've been feeling? What are the main things you're struggling with?
+
+Miss Jennifer Clarke: I just feel so low all the time. I wake up in the morning and immediately feel this sense of dread about the day ahead. I used to enjoy my work, but now I'm dragging myself there every day.
+
+Dr Emma Roberts: Are you managing to go to work every day?
+
+Miss Jennifer Clarke: I've called in sick a few times recently. I just couldn't face it. I feel guilty about that, which makes everything worse.
+
+Dr Emma Roberts: How's your sleep been?
+
+Miss Jennifer Clarke: Terrible. I either can't get to sleep because my mind won't switch off, or I wake up at four or five in the morning and can't get back to sleep. Then I'm exhausted all day.
+
+Dr Emma Roberts: And your appetite? Have you noticed any changes?
+
+Miss Jennifer Clarke: I'm not eating properly. I just don't feel hungry, and when I do eat, nothing tastes right. I've lost about half a stone in the last month.
+
+Dr Emma Roberts: What about things you normally enjoy? Are you still able to take pleasure in your hobbies or seeing friends?
+
+Miss Jennifer Clarke: No, I've stopped doing most things. I used to go to a book club and play netball, but I've stopped both. I just want to be on my own. Even seeing friends feels like too much effort.
+
+Dr Emma Roberts: That must be very isolating. You mentioned your mind won't switch off. What sort of thoughts are going through your head?
+
+Miss Jennifer Clarke: I worry about everything. Constantly. At work, I worry I'm going to make mistakes. At home, I worry about money, about my health, about what people think of me. It's exhausting.
+
+Dr Emma Roberts: Do you find yourself worrying about things even when you know there's nothing you can do about them?
+
+Miss Jennifer Clarke: All the time. I know it's irrational, but I can't stop it.
+
+Dr Emma Roberts: Have you experienced any physical symptoms? Palpitations, feeling shaky, or difficulty breathing?
+
+Miss Jennifer Clarke: Yes, actually. I get this tight feeling in my chest, and sometimes I feel like I can't breathe properly. It's quite scary.
+
+Dr Emma Roberts: Those sound like panic symptoms. How often does that happen?
+
+Miss Jennifer Clarke: Maybe two or three times a week. Usually when I'm stressed about something.
+
+Dr Emma Roberts: I'm going to ask you some questions that we use to assess depression and anxiety. They might seem quite direct, but they help us understand how severe things are. Is that okay?
+
+Miss Jennifer Clarke: Yes, that's fine.
+
+Dr Emma Roberts: Over the last two weeks, have you had thoughts that you'd be better off dead, or of hurting yourself in some way?
+
+Miss Jennifer Clarke: I've thought that people might be better off without me, but I haven't thought about actually hurting myself. I wouldn't do that.
+
+Dr Emma Roberts: Thank you for being honest with me. That's an important distinction. Do you have support at home? Family or friends you can talk to?
+
+Miss Jennifer Clarke: I live with my sister, but I haven't really talked to her about this. I don't want to burden her.
+
+Dr Emma Roberts: Sometimes sharing with people close to us can be really helpful. But I understand it's not always easy. Based on what you've told me, you're experiencing moderate depression along with significant anxiety symptoms. The good news is that these are treatable conditions.
+
+Miss Jennifer Clarke: What can be done?
+
+Dr Emma Roberts: We have several options. The first line treatment combines talking therapy with medication if needed. I'd like to refer you to our Improving Access to Psychological Therapies service, or IAPT. They offer cognitive behavioural therapy, which is very effective for depression and anxiety.
+
+Miss Jennifer Clarke: How long would I have to wait?
+
+Dr Emma Roberts: Usually about four to six weeks for an initial assessment, then they'll develop a treatment plan with you. In the meantime, I'd also like to discuss starting you on an antidepressant medication.
+
+Miss Jennifer Clarke: I'm not sure about taking tablets. Won't they change my personality?
+
+Dr Emma Roberts: That's a common worry, but antidepressants don't change who you are. They help to rebalance the brain chemicals that affect mood. The medication I'd recommend is sertraline. It's an SSRI, which is the first choice for depression and anxiety.
+
+Miss Jennifer Clarke: Are there side effects?
+
+Dr Emma Roberts: Some people experience mild side effects in the first couple of weeks, like nausea or headaches, but these usually settle. The important thing is that it can take four to six weeks to feel the full benefit, so we need to give it time to work.
+
+Miss Jennifer Clarke: Alright. I'll try it. I need to do something because I can't go on like this.
+
+Dr Emma Roberts: I'll start you on 50 milligrams once daily. Take it in the morning with food. I'll see you again in two weeks to check how you're getting on. If you experience any worsening of your mood or any thoughts of self-harm, I need you to contact us immediately. Can you promise me you'll do that?
+
+Miss Jennifer Clarke: Yes, I will.
+
+Dr Emma Roberts: Good. I'm also going to give you some information about self-help resources and crisis support numbers. In the meantime, try to maintain a routine, even if you don't feel like it. Get up at a regular time, eat regular meals, and try to do a little bit of exercise, even if it's just a short walk.
+
+Miss Jennifer Clarke: I'll try.
+
+Dr Emma Roberts: And please do consider talking to your sister. Having support around you is really important. I'll get that IAPT referral sent today, and they'll contact you to arrange an appointment. Any questions?
+
+Miss Jennifer Clarke: No, I don't think so. Thank you for listening.
+
+Dr Emma Roberts: You're very welcome. You've done the right thing coming in today. We'll work together to help you feel better. See you in two weeks.`
+  },
+  {
+    id: 'gp-hypertension-review',
+    type: 'Consultation',
+    title: 'Hypertension Medication Review',
+    description: 'Blood pressure review with medication adjustment and lifestyle advice',
+    duration: '12:00',
+    wordCount: 738,
+    icon: '💊',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Priya Sharma', title: 'GP', organization: 'Oakwood Surgery' },
+      { name: 'Mr Robert Harrison', title: 'Patient', organization: '' }
+    ],
+    agenda: 'Blood pressure review, home monitoring results, medication adjustment, cardiovascular risk assessment',
+    transcript: `Dr Priya Sharma: Good afternoon, Mr Harrison. Come and take a seat. You're here for your blood pressure review?
+
+Mr Robert Harrison: Yes, that's right. I've been doing the home monitoring like you asked.
+
+Dr Priya Sharma: Excellent. Have you brought your readings with you?
+
+Mr Robert Harrison: Yes, I've been keeping a record. Here you go.
+
+Dr Priya Sharma: Thank you. Let me have a look. I can see you've been checking it twice daily, morning and evening. That's very good. The readings are averaging around 152 over 94, which is still higher than we'd like, even though you've been on the amlodipine for three months now.
+
+Mr Robert Harrison: I was hoping they'd be better. I've been taking the tablets every day without fail.
+
+Dr Priya Sharma: I know, and that's really important. Sometimes we need to adjust the dose or add in another medication to get the blood pressure to target. Let me check your blood pressure here today as well.
+
+Mr Robert Harrison: Of course.
+
+Dr Priya Sharma: Just relax your arm. Try not to talk while I'm taking it. Today's reading is 148 over 90, which is consistent with your home readings. Now, how have you been feeling on the amlodipine? Any side effects?
+
+Mr Robert Harrison: I've noticed my ankles swell a bit, especially by the evening. Is that normal?
+
+Dr Priya Sharma: Yes, ankle swelling is a common side effect of amlodipine. For most people, it's manageable, but we can address that. How's everything else? Any dizziness or headaches?
+
+Mr Robert Harrison: No, nothing like that. Just the ankle swelling really.
+
+Dr Priya Sharma: Good. Now, I'm looking at your records, and I can see you also have slightly raised cholesterol. Have you had any chest pain or shortness of breath?
+
+Mr Robert Harrison: No, I feel fine generally. I'm still playing golf once a week.
+
+Dr Priya Sharma: That's good. The golf will definitely help with your blood pressure. How about your diet? Have you been able to reduce your salt intake as we discussed?
+
+Mr Robert Harrison: I've been trying. My wife's been very strict with me about it. We don't add salt to cooking anymore, and I'm avoiding processed foods where I can.
+
+Mr Robert Harrison: Good, I'm eating more fruit, and we have porridge most mornings now.
+
+Dr Priya Sharma: That's excellent. Those lifestyle changes are really important. They work alongside the medication. What about alcohol? Are you keeping within the recommended limits?
+
+Mr Robert Harrison: Mostly. I have a couple of pints at the weekend, but I've cut down from what I used to drink.
+
+Dr Priya Sharma: That's good progress. Now, given that your blood pressure is still above target despite the lifestyle changes and amlodipine, I think we need to adjust your treatment. I have a couple of options. We could increase the dose of amlodipine, but that might make the ankle swelling worse.
+
+Mr Robert Harrison: I'd rather avoid that if possible.
+
+Dr Priya Sharma: I thought you might say that. The alternative is to add in a second medication from a different class. I'd recommend adding ramipril, which is an ACE inhibitor. It works differently to the amlodipine and is very effective at lowering blood pressure. It also has benefits for protecting your heart and kidneys.
+
+Mr Robert Harrison: Would I be taking both medications?
+
+Dr Priya Sharma: Yes, you'd continue the amlodipine and add the ramipril. We'd start with a low dose, 2.5 milligrams once daily, and we can adjust it if needed. The combination of the two medications is very effective.
+
+Mr Robert Harrison: Are there side effects with this one?
+
+Dr Priya Sharma: Some people develop a dry cough with ACE inhibitors, but not everyone. If that happens, we can switch you to a similar medication that doesn't cause the cough. I'll also need to check your kidney function and potassium levels with a blood test in about two weeks after starting it.
+
+Mr Robert Harrison: Alright, that sounds reasonable.
+
+Dr Priya Sharma: Good. I'll write you a prescription for the ramipril today. Continue taking the amlodipine as you have been. Keep doing your home blood pressure monitoring and bring the readings when you come back. I'd like to see you again in about six weeks to review how you're getting on.
+
+Mr Robert Harrison: Six weeks. I'll make an appointment.
+
+Dr Priya Sharma: Perfect. If you do develop that persistent cough, or if you feel unwell in any way, don't wait for the appointment. Contact us and we can see you sooner. And keep up with the lifestyle changes. They're really making a difference.
+
+Mr Robert Harrison: I will. Thank you, Doctor.
+
+Dr Priya Sharma: You're welcome. Keep up the good work with the monitoring and lifestyle changes. I'll see you in six weeks.`
   }
 ];
 

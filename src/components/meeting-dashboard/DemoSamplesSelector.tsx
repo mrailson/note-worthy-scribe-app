@@ -40,6 +40,8 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
         return 'bg-red-500/10 text-red-700 border-red-300';
       case 'MDT':
         return 'bg-pink-500/10 text-pink-700 border-pink-300';
+      case 'Consultation':
+        return 'bg-cyan-500/10 text-cyan-700 border-cyan-300';
       default:
         return 'bg-muted text-muted-foreground';
     }
