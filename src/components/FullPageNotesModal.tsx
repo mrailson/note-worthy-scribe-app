@@ -129,6 +129,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
+  // Lazy-render cache for Executive tab
+  const [execHtml, setExecHtml] = useState<string>("");
+  const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes - Standard (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
@@ -157,8 +160,32 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   }
   const [undoStack, setUndoStack] = useState<UndoState[]>([]);
   
-   // Search functionality for transcript
+  // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
+  // Generate Executive HTML lazily when tab is opened or content changes
+  useEffect(() => {
+    if (activeNotesStyleTab === 'style4') {
+      if (!notesStyle4) {
+        setExecHtml("");
+        setIsRenderingExec(false);
+        return;
+      }
+      setIsRenderingExec(true);
+      // Defer heavy markdown rendering to next tick to keep UI responsive
+      const id = setTimeout(() => {
+        try {
+          const html = renderNHSMarkdown(notesStyle4, { enableNHSStyling: true });
+          setExecHtml(html);
+        } catch (e) {
+          console.error('Error rendering Executive notes markdown:', e);
+          setExecHtml(notesStyle4);
+        } finally {
+          setIsRenderingExec(false);
+        }
+      }, 0);
+      return () => clearTimeout(id);
+    }
+  }, [activeNotesStyleTab, notesStyle4]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3341,7 +3368,7 @@ ${transcript}`;
                                        </style>
                                        <div 
                                          dangerouslySetInnerHTML={{ 
-                                           __html: renderNHSMarkdown(notesStyle4, { enableNHSStyling: true })
+                                           __html: activeNotesStyleTab === 'style4' ? (execHtml || '') : ''
                                          }}
                                        />
                                      </div>
