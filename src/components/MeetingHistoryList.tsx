@@ -315,6 +315,68 @@ export const MeetingHistoryList = ({
 
     fetchAttendeesForVisibleMeetings();
   }, [meetings, user?.id, user?.email]);
+
+  // Real-time subscription for automatic refresh when meetings are updated
+  useEffect(() => {
+    if (!onRefresh || !user?.id) return;
+
+    console.log('🔄 Setting up real-time subscription for meeting updates');
+
+    // Create a channel for real-time updates
+    const channel = supabase
+      .channel('meeting-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 Meeting updated via realtime:', payload);
+          // Trigger refresh after a short delay to allow database to settle
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_notes_multi'
+        },
+        (payload) => {
+          console.log('🔔 Meeting notes updated via realtime:', payload);
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_overviews'
+        },
+        (payload) => {
+          console.log('🔔 Meeting overview updated via realtime:', payload);
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('🔌 Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [onRefresh, user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");

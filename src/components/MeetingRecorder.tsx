@@ -5266,6 +5266,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             onViewSummary={handleViewSummary}
             onViewTranscript={handleViewTranscript}
             onDelete={handleDeleteMeeting}
+            onRefresh={loadMeetingHistory}
             loading={loadingHistory}
             isSelectMode={isSelectMode}
             selectedMeetings={selectedMeetings}
@@ -5277,7 +5278,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               }
             }}
             onMeetingUpdate={(meetingId, updatedTitle) => {
-              setMeetings(prev => prev.map(meeting => 
+              setMeetings(prev => prev.map(meeting =>
                 meeting.id === meetingId 
                   ? { ...meeting, title: updatedTitle }
                   : meeting
