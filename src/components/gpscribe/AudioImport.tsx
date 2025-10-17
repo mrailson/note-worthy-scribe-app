@@ -39,10 +39,25 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file type
-    const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a'];
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a)$/i)) {
+    // Check file type - accept standard MIME types and common variations
+    const allowedTypes = [
+      'audio/mpeg',      // MP3
+      'audio/mp3',       // MP3 (non-standard but used)
+      'audio/wav',       // WAV
+      'audio/wave',      // WAV alternative
+      'audio/x-wav',     // WAV alternative
+      'audio/m4a',       // M4A (non-standard)
+      'audio/x-m4a',     // M4A standard
+      'audio/mp4',       // M4A/MP4 audio
+      ''                 // Empty type - fallback to filename check
+    ];
+    
+    const hasValidType = allowedTypes.includes(file.type);
+    const hasValidExtension = /\.(mp3|wav|m4a)$/i.test(file.name);
+    
+    if (!hasValidType && !hasValidExtension) {
       showToast.error("Please upload an audio file (MP3, WAV, or M4A)", { section: 'ai4gp' });
+      console.log('File rejected:', { type: file.type, name: file.name });
       return;
     }
 
