@@ -899,8 +899,8 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-              style={{ fontSize: `${fontSize}px` }}
+              className="flex-1 w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap font-sans leading-relaxed"
+              style={{ fontSize: `${fontSize}px`, lineHeight: '1.8' }}
               autoFocus
             />
           </div>
