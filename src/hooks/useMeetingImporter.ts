@@ -35,9 +35,6 @@ export const useMeetingImporter = () => {
         user_id: user.id,
         title: data.isDemo ? `🎭 ${data.title}` : data.title,
         start_time: new Date().toISOString(),
-        meeting_format: data.format || 'imported',
-        status: 'completed',
-        notes_generation_status: 'queued',
       };
 
       setProgress(30);
