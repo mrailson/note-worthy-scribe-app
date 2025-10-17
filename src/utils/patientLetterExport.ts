@@ -407,7 +407,11 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
   }
   
   // Referral Information
-  if (data.referral) {
+  const hasReferral = data.referral && 
+                     !data.referral.toLowerCase().includes('no referral') && 
+                     !data.referral.toLowerCase().includes('not indicated');
+  
+  if (hasReferral) {
     sections.push(new Paragraph({
       children: [new TextRun({
         text: 'Specialist Referral',
@@ -427,7 +431,7 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
       spacing: { after: 200 }
     }));
     
-    sections.push(...parsePatientText(data.referral));
+    sections.push(...parsePatientText(data.referral!));
     
     sections.push(new Paragraph({
       children: [new TextRun({

@@ -198,7 +198,7 @@ export const PatientLetterPreview: React.FC<PatientLetterPreviewProps> = ({
       )}
       
       {/* Referral Information */}
-      {referral && (
+      {referral && !referral.toLowerCase().includes('no referral') && !referral.toLowerCase().includes('not indicated') && (
         <div className="mb-10">
           <h2 className="text-2xl font-bold text-blue-800 dark:text-blue-400 mb-4 border-b-2 border-blue-200 dark:border-blue-800 pb-2">
             Specialist Referral
