@@ -68,6 +68,11 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   // Context Dialog State
   const [showContextDialog, setShowContextDialog] = useState(false);
   
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [transcriptHistory, setTranscriptHistory] = useState<string[]>([]);
+  
   // Fetch chunks
   useEffect(() => {
     if (!meetingId) return;
@@ -223,6 +228,36 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     }
     
     toast.success('Context added to transcript');
+  };
+
+  const handleStartEdit = () => {
+    setEditValue(transcript);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    // Save current transcript to history before changing
+    setTranscriptHistory(prev => [...prev, transcript]);
+    onTranscriptChange(editValue);
+    setIsEditing(false);
+    toast.success('Transcript updated');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditValue('');
+  };
+
+  const handleUndo = () => {
+    if (transcriptHistory.length === 0) {
+      toast.error('No changes to undo');
+      return;
+    }
+    
+    const lastVersion = transcriptHistory[transcriptHistory.length - 1];
+    setTranscriptHistory(prev => prev.slice(0, -1));
+    onTranscriptChange(lastVersion);
+    toast.success('Changes undone');
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -564,17 +599,41 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           )}
 
           {!isIPhone && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(transcript);
-                toast.success('Transcript copied');
-              }}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(transcript);
+                  toast.success('Transcript copied');
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleStartEdit}
+                disabled={!transcript || isEditing}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              
+              {transcriptHistory.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUndo}
+                  disabled={isEditing}
+                >
+                  <Type className="h-4 w-4 mr-2" />
+                  Undo
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -814,24 +873,57 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       {/* Main Transcript Display - Mobile-Optimized */}
       <Card className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className={cn(
-          "flex-1 p-4",
-          isMobile && "p-3",
-          isIPhone && "px-2 py-3"
-        )}>
-          <div className={cn(
-            "space-y-4 text-foreground",
-            isIPhone && "text-sm space-y-3 leading-relaxed"
-          )}>
-            {!transcript ? (
-              <div className="flex items-center justify-center h-32 text-muted-foreground">
-                No transcript available for this meeting.
+        {isEditing ? (
+          <div className="flex-1 flex flex-col p-4 gap-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold">Editing Transcript</h4>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSaveEdit}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
               </div>
-            ) : (
-              renderHighlightedTranscript()
-            )}
+            </div>
+            <textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 w-full p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{ fontSize: `${fontSize}px` }}
+              autoFocus
+            />
           </div>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className={cn(
+            "flex-1 p-4",
+            isMobile && "p-3",
+            isIPhone && "px-2 py-3"
+          )}>
+            <div className={cn(
+              "space-y-4 text-foreground",
+              isIPhone && "text-sm space-y-3 leading-relaxed"
+            )}>
+              {!transcript ? (
+                <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  No transcript available for this meeting.
+                </div>
+              ) : (
+                renderHighlightedTranscript()
+              )}
+            </div>
+          </ScrollArea>
+        )}
       </Card>
 
       {/* Add Context Dialog */}
