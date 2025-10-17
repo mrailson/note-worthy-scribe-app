@@ -3463,12 +3463,15 @@ export type Database = {
           cleaning_status: string | null
           confidence: number | null
           created_at: string
+          end_time: number | null
           id: string
           is_final: boolean | null
           meeting_id: string
           merge_rejection_reason: string | null
+          segments_json: Json | null
           seq: number | null
           session_id: string
+          start_time: number | null
           transcriber_type: string | null
           transcription_text: string
           user_id: string
@@ -3484,12 +3487,15 @@ export type Database = {
           cleaning_status?: string | null
           confidence?: number | null
           created_at?: string
+          end_time?: number | null
           id?: string
           is_final?: boolean | null
           meeting_id: string
           merge_rejection_reason?: string | null
+          segments_json?: Json | null
           seq?: number | null
           session_id: string
+          start_time?: number | null
           transcriber_type?: string | null
           transcription_text: string
           user_id: string
@@ -3505,12 +3511,15 @@ export type Database = {
           cleaning_status?: string | null
           confidence?: number | null
           created_at?: string
+          end_time?: number | null
           id?: string
           is_final?: boolean | null
           meeting_id?: string
           merge_rejection_reason?: string | null
+          segments_json?: Json | null
           seq?: number | null
           session_id?: string
+          start_time?: number | null
           transcriber_type?: string | null
           transcription_text?: string
           user_id?: string
