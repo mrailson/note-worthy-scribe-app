@@ -12,7 +12,8 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   const { enableNHSStyling = true, isUserMessage = false } = options;
   
   // Debug: Log the original content to see what we're processing
-  console.log('🔍 MARKDOWN INPUT:', content);
+  // console.debug disabled to prevent performance issues with large content
+  // console.log('🔍 MARKDOWN INPUT:', content);
   
   // Preprocess numbered lists that are run together
   let preprocessedContent = content
@@ -88,7 +89,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Meeting notes sections (Outcome, Background, Key Points, etc.)
     .replace(/^(Outcome|Background|Key Points?|Conclusion|Decision|Action Items?|Next Steps?):\s*(.+)$/gm, (match, label, content) => {
       const textColor = isUserMessage ? 'text-white' : 'text-primary';
-      console.log('🔍 FOUND SECTION LABEL:', label);
+      // Debug disabled: console.log('🔍 FOUND SECTION LABEL:', label);
       return `<div class="mb-4"><h4 class="text-base font-semibold ${textColor} mb-2">${label}:</h4><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${content}</p></div>`;
     })
     
@@ -104,7 +105,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
         5: `text-sm font-semibold ${textColor} mb-2 mt-2`,
         6: `text-xs font-semibold ${textColor} mb-1 mt-1`
       };
-      console.log(`🔍 FOUND H${level}:`, match.trim(), '→', content.trim());
+      // Debug disabled: console.log(`🔍 FOUND H${level}:`, match.trim(), '→', content.trim());
       return `<h${level} class="${classMap[level]}">${content.trim()}</h${level}>`;
     })
     
@@ -114,7 +115,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
       // Only treat as heading if it's relatively short (not a full sentence)
       if (heading.length < 100 && !heading.match(/^(Outcome|Background|Key Points?|Note|Caution|Warning|Important):/)) {
         const textColor = isUserMessage ? 'text-white' : 'text-primary';
-        console.log('🔍 FOUND STANDALONE HEADING:', heading.trim());
+        // Debug disabled: console.log('🔍 FOUND STANDALONE HEADING:', heading.trim());
         return `<h3 class="text-lg font-semibold ${textColor} mb-3 mt-4">${heading.trim()}</h3>`;
       }
       return match;
@@ -144,17 +145,17 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     
     // Process markdown tables - improved regex to handle different formats
     .replace(/\|(.+?)\|\s*\n\s*\|[\s\-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
-      console.log('🔍 TABLE MATCH FOUND:', match);
-      
-      const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
-      console.log('🔍 TABLE HEADERS:', headers);
+       // Debug disabled: console.log('🔍 TABLE MATCH FOUND:', match);
+       
+       const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+      // Debug disabled: console.log('🔍 TABLE HEADERS:', headers);
       
       const rows = bodyRows.trim().split('\n').map(row => {
         const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
         return cells;
       }).filter(row => row.length > 0);
       
-      console.log('🔍 TABLE ROWS:', rows);
+      // Debug disabled: console.log('🔍 TABLE ROWS:', rows);
       
       const headerHtml = headers.map(header => 
         `<th class="border border-border px-3 py-2 bg-muted font-semibold text-left ${isUserMessage ? 'text-white border-white/20 bg-white/10' : ''}">${header}</th>`
@@ -173,7 +174,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
         </table>
       </div>`;
       
-      console.log('🔍 TABLE HTML:', tableHtml);
+      // Debug disabled: console.log('🔍 TABLE HTML:', tableHtml);
       return tableHtml;
     })
     
@@ -246,8 +247,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   }
 
   
-  // Debug: Log the final HTML output
-  console.log('🔍 MARKDOWN OUTPUT:', html);
+  // Debug disabled: console.log('🔍 MARKDOWN OUTPUT:', html);
   
   // Sanitize the HTML
   return DOMPurify.sanitize(html, {

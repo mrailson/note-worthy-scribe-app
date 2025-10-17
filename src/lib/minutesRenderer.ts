@@ -7,7 +7,8 @@ import DOMPurify from 'dompurify';
 export function renderMinutesMarkdown(content: string): string {
   if (!content) return '';
 
-  console.log('🔍 MINUTES RENDERER INPUT:', content.substring(0, 200));
+  // console.debug disabled to prevent performance issues
+  // console.log('🔍 MINUTES RENDERER INPUT:', content.substring(0, 200));
 
   // Preprocess content to normalize spacing and remove transcript section
   let preprocessedContent = content

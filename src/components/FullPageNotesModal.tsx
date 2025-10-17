@@ -132,6 +132,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Lazy-render cache for Executive tab
   const [execHtml, setExecHtml] = useState<string>("");
   const [isRenderingExec, setIsRenderingExec] = useState(false);
+  const [minutesHtml, setMinutesHtml] = useState<string>("");
+  const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes - Standard (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
