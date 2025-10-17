@@ -4917,7 +4917,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         </TabsContent>
 
 
-        <TabsContent value="transcript" className="space-y-4 mt-6">
+        <TabsContent value="transcript" className="space-y-2 mt-6">
           {/* Real-time Transcript Card - Always visible */}
           <RealtimeTranscriptCard
             transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
