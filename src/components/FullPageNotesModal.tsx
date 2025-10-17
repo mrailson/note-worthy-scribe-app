@@ -1,3 +1,4 @@
+import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
@@ -3245,11 +3246,11 @@ ${transcript}`;
                       
                        <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style1" ? (
-                           <Textarea
-                             value={editingContent}
-                             onChange={(e) => setEditingContent(e.target.value)}
-                             className="h-full w-full font-mono text-sm resize-none"
+                           <RichTextEditor
+                             content={editingContent}
+                             onChange={setEditingContent}
                              placeholder="Meeting notes will appear here..."
+                             className="h-full"
                            />
                          ) : (
                             <div className="space-y-4">
@@ -3335,11 +3336,11 @@ ${transcript}`;
                       
                        <TabsContent value="style2" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style2" ? (
-                           <Textarea
-                             value={editingContent}
-                             onChange={(e) => setEditingContent(e.target.value)}
-                             className="h-full w-full font-mono text-sm resize-none"
+                           <RichTextEditor
+                             content={editingContent}
+                             onChange={setEditingContent}
                              placeholder="Meeting notes will appear here..."
+                             className="h-full"
                            />
                            ) : (
                              <div className="relative min-h-[500px]">
@@ -3372,11 +3373,11 @@ ${transcript}`;
                       
                        <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style4" ? (
-                           <Textarea
-                             value={editingContent}
-                             onChange={(e) => setEditingContent(e.target.value)}
-                             className="h-full w-full font-mono text-sm resize-none"
+                           <RichTextEditor
+                             content={editingContent}
+                             onChange={setEditingContent}
                              placeholder="Meeting notes will appear here..."
+                             className="h-full"
                            />
                           ) : (
                             <div className="space-y-4">
@@ -3461,11 +3462,11 @@ ${transcript}`;
                       
                        <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
                          {isEditing && editingTab === "notes-style5" ? (
-                           <Textarea
-                             value={editingContent}
-                             onChange={(e) => setEditingContent(e.target.value)}
-                             className="h-full w-full font-mono text-sm resize-none"
+                           <RichTextEditor
+                             content={editingContent}
+                             onChange={setEditingContent}
                              placeholder="Meeting notes will appear here..."
+                             className="h-full"
                            />
                          ) : (
                            <div className="space-y-4">
