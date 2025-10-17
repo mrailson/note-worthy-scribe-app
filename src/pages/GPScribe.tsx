@@ -87,6 +87,7 @@ const Index = () => {
     title: "",
     content: ""
   });
+  const [pendingTabSwitch, setPendingTabSwitch] = useState(false);
 
   // Translation Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -233,8 +234,18 @@ const Index = () => {
       documents.setReferralLetter(example.referralLetter);
     }
     toast.success(`Loaded example: ${example.title}`);
-    setActiveTab("summary");
+    
+    // Set flag to trigger tab switch after transcript is confirmed set
+    setPendingTabSwitch(true);
   };
+
+  // Monitor transcript and switch to summary tab once it's confirmed loaded
+  useEffect(() => {
+    if (pendingTabSwitch && recording.transcript.trim()) {
+      setActiveTab("summary");
+      setPendingTabSwitch(false);
+    }
+  }, [pendingTabSwitch, recording.transcript]);
 
   // Helper functions to create formatted versions from existing summary
   const createGpShorthand = (summary: string) => {
