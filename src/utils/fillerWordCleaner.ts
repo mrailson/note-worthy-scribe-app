@@ -67,11 +67,15 @@ export function removeFillerWords(text: string, options: {
     }
   }
 
-  // Clean up excessive whitespace
+  // Clean up excessive whitespace while preserving paragraph breaks (double newlines)
   cleaned = cleaned
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([.,!?;:])/g, '$1')
-    .trim();
+    .split('\n\n')  // Split on paragraph breaks
+    .map(para => para
+      .replace(/\s+/g, ' ')  // Clean whitespace within each paragraph
+      .replace(/\s+([.,!?;:])/g, '$1')
+      .trim()
+    )
+    .join('\n\n');  // Rejoin with paragraph breaks preserved
 
   return { cleaned, stats };
 }

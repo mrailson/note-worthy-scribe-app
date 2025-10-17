@@ -147,6 +147,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   // Quick Actions
   const handleCleanTranscript = () => {
+    // Save current transcript to history before cleaning
+    setTranscriptHistory(prev => [...prev, transcript]);
+    
     let cleanedText = transcript;
     
     // Remove filler words only (no redaction)
