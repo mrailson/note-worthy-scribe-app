@@ -79,7 +79,6 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
       const target = e.target as Node;
       // Don't close if clicking inside the popup or any of its child elements
       if (popupRef.current.contains(target)) {
-        e.stopPropagation();
         return;
       }
       
