@@ -5025,14 +5025,27 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
         {/* Meeting History Tab */}
         <TabsContent value="history" className="space-y-4 mt-6">
-          <div className="flex items-center gap-3 mb-4">
-            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                View, edit, and manage your saved meetings
-              </p>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  View, edit, and manage your saved meetings
+                </p>
+              </div>
             </div>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => setImportDialogOpen(true)}
+              className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
+              <span className="hidden sm:inline lg:hidden">Demo Import</span>
+              <span className="sm:hidden">Import</span>
+            </Button>
           </div>
 
           {/* Stats Cards */}
@@ -5087,15 +5100,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 />
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => setImportDialogOpen(true)}
-                  className="whitespace-nowrap"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Meeting
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
