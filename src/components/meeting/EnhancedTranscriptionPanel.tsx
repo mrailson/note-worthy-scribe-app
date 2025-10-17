@@ -269,12 +269,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     }
 
     try {
-      // Clean the transcript by removing HTML tags and splitting properly
-      const cleanedTranscript = transcript
-        .replace(/<[^>]*>/g, '') // Remove HTML tags
-        .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-        .split(/\n+/) // Split on line breaks
-        .filter(line => line.trim().length > 0); // Remove empty lines
+      // Clean and split transcript preserving paragraphs
+      const cleanedText = cleanHTMLFromTranscript(transcript);
+      const paragraphs = splitIntoParagraphs(cleanedText);
 
       // Create header sections with meeting metadata
       const headerSections = [];
@@ -298,51 +295,64 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       // Meeting Date and Start Time
       if (meetingContext?.date || meetingContext?.start_time) {
-        let dateTimeText = '';
-        
-        if (meetingContext?.date) {
-          const meetingDate = new Date(meetingContext.date);
-          
-          // Get day with ordinal suffix
-          const day = meetingDate.getDate();
-          const ordinal = (day: number) => {
-            if (day > 3 && day < 21) return 'th';
-            switch (day % 10) {
-              case 1: return 'st';
-              case 2: return 'nd';
-              case 3: return 'rd';
-              default: return 'th';
-            }
-          };
-          
-          const dayName = meetingDate.toLocaleDateString('en-GB', { weekday: 'long' });
-          const monthName = meetingDate.toLocaleDateString('en-GB', { month: 'long' });
-          const year = meetingDate.getFullYear();
-          
-          dateTimeText = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
-          
-          // Add time if start_time exists
-          if (meetingContext?.start_time) {
-            dateTimeText += ` at ${meetingContext.start_time}`;
-          }
-        } else if (meetingContext?.start_time) {
-          dateTimeText = `at ${meetingContext.start_time}`;
+        // Build a single Date object if possible
+        let dt: Date | null = null;
+        const dateStr = meetingContext?.date as string | undefined;
+        const startStr = meetingContext?.start_time as string | undefined;
+
+        // If date contains time or is ISO, parse directly
+        if (dateStr) {
+          const parsed = new Date(dateStr);
+          if (!isNaN(parsed.getTime())) dt = parsed;
         }
+
+        // If start_time looks like ISO/date string, prefer that
+        if (!dt && startStr && !/^(\d{1,2}:\d{2})$/.test(startStr)) {
+          const parsed = new Date(startStr);
+          if (!isNaN(parsed.getTime())) dt = parsed;
+        }
+
+        // Format British date with ordinal
+        const ordinal = (n: number) => {
+          if (n > 3 && n < 21) return 'th';
+          switch (n % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+        };
+
+        let formattedDate = '';
+        let formattedTime = '';
+
+        if (dt) {
+          const dayName = dt.toLocaleDateString('en-GB', { weekday: 'long' });
+          const monthName = dt.toLocaleDateString('en-GB', { month: 'long' });
+          const day = dt.getDate();
+          const year = dt.getFullYear();
+          formattedDate = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+          formattedTime = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (dateStr) {
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) {
+            const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+            const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
+            const day = d.getDate();
+            const year = d.getFullYear();
+            formattedDate = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+          }
+        }
+
+        // If start_time provided in HH:mm, use that
+        if (startStr && /^(\d{1,2}:\d{2})$/.test(startStr)) {
+          formattedTime = startStr;
+        }
+
+        const dateTimeText = formattedDate
+          ? `${formattedDate}${formattedTime ? ` at ${formattedTime}` : ''}`
+          : (formattedTime ? `at ${formattedTime}` : '');
 
         headerSections.push(
           new Paragraph({
             children: [
-              new TextRun({
-                text: 'Meeting Date: ',
-                bold: true,
-                size: 24,
-                font: 'Calibri',
-              }),
-              new TextRun({
-                text: dateTimeText,
-                size: 24,
-                font: 'Calibri',
-              })
+              new TextRun({ text: 'Meeting Date: ', bold: true, size: 24, font: 'Calibri' }),
+              new TextRun({ text: dateTimeText, size: 24, font: 'Calibri' })
             ],
             spacing: { after: 200 }
           })
@@ -439,7 +449,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           properties: {},
           children: [
             ...headerSections,
-            ...cleanedTranscript.map(text => 
+            ...paragraphs.map(text => 
               new Paragraph({
                 children: [
                   new TextRun({
