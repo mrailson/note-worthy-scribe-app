@@ -129,16 +129,18 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   }, [transcript, meetingContext]);
 
   // Quick Actions
-  const handleRemoveFillerWords = () => {
-    const { cleaned, stats } = removeFillerWords(transcript);
-    onTranscriptChange(cleaned);
-    toast.success(`Removed ${stats.totalRemoved} filler words`);
-  };
-
-  const handleCleanMedicalTerms = () => {
-    const result = cleanTranscript(transcript, NHS_DEFAULT_RULES);
-    onTranscriptChange(result.cleaned);
-    toast.success(`Applied ${result.appliedRuleIds.length} NHS term corrections`);
+  const handleCleanTranscript = () => {
+    // First remove filler words
+    const { cleaned: fillerCleaned, stats: fillerStats } = removeFillerWords(transcript);
+    
+    // Then clean medical terms
+    const nhsResult = cleanTranscript(fillerCleaned, NHS_DEFAULT_RULES);
+    
+    // Apply the final cleaned transcript
+    onTranscriptChange(nhsResult.cleaned);
+    
+    const totalChanges = fillerStats.totalRemoved + nhsResult.appliedRuleIds.length;
+    toast.success(`Cleaned transcript: ${fillerStats.totalRemoved} filler words + ${nhsResult.appliedRuleIds.length} NHS terms`);
   };
 
   const handleMaskAllPII = () => {
@@ -432,12 +434,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           <Button
             variant="outline"
             size={isIPhone ? "sm" : "sm"}
-            onClick={handleRemoveFillerWords}
-            disabled={!transcript || stats.fillerWordCount === 0}
+            onClick={handleCleanTranscript}
+            disabled={!transcript}
             className={cn(isIPhone && "w-full justify-start")}
           >
-            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
-            Remove Filler Words
+            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2 text-nhs-blue")} />
+            Clean Transcript
             {stats.fillerWordCount > 0 && (
               <Badge variant="secondary" className={cn(
                 isIPhone ? "ml-auto text-xs" : "ml-2"
@@ -445,17 +447,6 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 {stats.fillerWordCount}
               </Badge>
             )}
-          </Button>
-
-          <Button
-            variant="outline"
-            size={isIPhone ? "sm" : "sm"}
-            onClick={handleCleanMedicalTerms}
-            disabled={!transcript}
-            className={cn(isIPhone && "w-full justify-start")}
-          >
-            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2 text-nhs-blue")} />
-            Clean NHS Terms
           </Button>
 
           {showPII && piiMatches.length > 0 && (
