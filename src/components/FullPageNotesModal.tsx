@@ -3182,44 +3182,11 @@ ${transcript}`;
                         }
                       }} className="h-full flex flex-col">
                         <div className="flex items-center gap-2 mb-4">
-                          <TabsList className="flex-1">
+                          <TabsList>
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
                             </TabsTrigger>
                           </TabsList>
-                          
-                          {/* Alternative Formats Dropdown */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="gap-2 text-xs sm:text-sm">
-                                <Sparkles className="h-4 w-4" />
-                                Alternative Formats
-                                <ChevronDownIcon className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                              <DropdownMenuGroup>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
-                                  <Sparkles className="mr-2 h-4 w-4" />
-                                  <span>Executive Summary</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  <span>Limerick Style</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
-                                  <Stethoscope className="mr-2 h-4 w-4" />
-                                  <span>Patient Consultation</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                      {/* Meeting Notes header and controls moved below sub-tabs */}
-                      <div className="flex items-center justify-between pb-4 flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold">Meeting Notes</h3>
                           
                           {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
@@ -3250,29 +3217,6 @@ ${transcript}`;
                               </Button>
                             </div>
                           )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {isEditing && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={handleUndo}
-                                    variant="outline"
-                                    size="icon"
-                                    disabled={notesVersions.length === 0}
-                                    title={`Undo (${notesVersions.length} versions available)`}
-                                  >
-                                    <Undo2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Undo ({notesVersions.length} versions available)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
 
                           <TooltipProvider>
                             <Tooltip>
@@ -3290,7 +3234,6 @@ ${transcript}`;
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-
 
                           {/* Action buttons for each tab when content exists */}
                           {(() => {
@@ -3351,8 +3294,7 @@ ${transcript}`;
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end" 
-                                    className="w-48 bg-popover border shadow-md" 
-                                    style={{ zIndex: 180 }}
+                                    className="w-48 bg-popover border shadow-md z-[200]"
                                     sideOffset={5}
                                   >
                                     {!isEditing && content && (
@@ -3421,6 +3363,62 @@ ${transcript}`;
                               </>
                             ) : null;
                           })()}
+                          
+                          {/* Alternative Formats Dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-2 text-xs sm:text-sm">
+                                <Sparkles className="h-4 w-4" />
+                                Alternative Formats
+                                <ChevronDownIcon className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md z-[200]">
+                              <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
+                                  <Sparkles className="mr-2 h-4 w-4" />
+                                  <span>Executive Summary</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  <span>Limerick Style</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
+                                  <Stethoscope className="mr-2 h-4 w-4" />
+                                  <span>Patient Consultation</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                      {/* Meeting Notes header and undo button */}
+                      <div className="flex items-center justify-between pb-4 flex-shrink-0">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {isEditing && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    onClick={handleUndo}
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={notesVersions.length === 0}
+                                    title={`Undo (${notesVersions.length} versions available)`}
+                                  >
+                                    <Undo2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Undo ({notesVersions.length} versions available)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                       </div>
                       
