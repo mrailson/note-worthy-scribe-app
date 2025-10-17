@@ -6,7 +6,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Crown, Star, User, Check } from 'lucide-react';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { Crown, Star, User, Check, Mail, Briefcase, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,6 +21,9 @@ interface AttendeeRoleBadgeProps {
     name: string;
     title?: string;
     email?: string;
+    organization?: string;
+    organization_type?: string;
+    role?: string;
   };
   meetingId: string;
   meetingRole: 'chair' | 'key_participant' | 'attendee';
@@ -74,71 +82,140 @@ export const AttendeeRoleBadge: React.FC<AttendeeRoleBadgeProps> = ({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Badge
-          variant={getBadgeVariant()}
-          className="text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1"
-          onClick={(e) => {
-            console.log('Badge clicked:', attendee.name);
-            e.stopPropagation();
-          }}
+    <HoverCard>
+      <DropdownMenu>
+        <HoverCardTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Badge
+              variant={getBadgeVariant()}
+              className="text-xs cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1"
+              onClick={(e) => {
+                console.log('Badge clicked:', attendee.name);
+                e.stopPropagation();
+              }}
+            >
+              {getRoleIcon()}
+              {attendee.title && `${attendee.title} `}
+              {attendee.name}
+              {isCurrentUser && ' (You)'}
+            </Badge>
+          </DropdownMenuTrigger>
+        </HoverCardTrigger>
+        
+        <HoverCardContent 
+          className="w-80 bg-background border shadow-lg z-[100]" 
+          side="top"
+          align="start"
+          onClick={(e) => e.stopPropagation()}
         >
-          {getRoleIcon()}
-          {attendee.title && `${attendee.title} `}
-          {attendee.name}
-          {isCurrentUser && ' (You)'}
-        </Badge>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        className="w-56" 
-        align="start" 
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-          Set role for {attendee.name}
-        </div>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'chair' });
-            updateRole('chair');
-          }}
-          disabled={updating}
-          className="cursor-pointer"
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-semibold text-sm mb-1">
+                {attendee.title && `${attendee.title} `}
+                {attendee.name}
+                {isCurrentUser && (
+                  <Badge variant="secondary" className="ml-2 text-xs">You</Badge>
+                )}
+              </h4>
+              {meetingRole !== 'attendee' && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  {getRoleIcon()}
+                  <span className="capitalize">
+                    {meetingRole === 'key_participant' ? 'Key Participant' : meetingRole}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {attendee.role && (
+              <div className="flex items-start gap-2 text-xs">
+                <Briefcase className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-muted-foreground">Job Role</p>
+                  <p className="text-foreground">{attendee.role}</p>
+                </div>
+              </div>
+            )}
+            
+            {attendee.organization && (
+              <div className="flex items-start gap-2 text-xs">
+                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-muted-foreground">Organisation</p>
+                  <p className="text-foreground">
+                    {attendee.organization}
+                    {attendee.organization_type && (
+                      <span className="text-muted-foreground ml-1">
+                        ({attendee.organization_type})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {attendee.email && (
+              <div className="flex items-start gap-2 text-xs">
+                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-muted-foreground">Email</p>
+                  <p className="text-foreground break-all">{attendee.email}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </HoverCardContent>
+        
+        <DropdownMenuContent 
+          className="w-56 bg-background z-[100]" 
+          align="start" 
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          <Crown className="h-4 w-4 mr-2" />
-          Chair
-          {meetingRole === 'chair' && <Check className="h-4 w-4 ml-auto" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'key_participant' });
-            updateRole('key_participant');
-          }}
-          disabled={updating}
-          className="cursor-pointer"
-        >
-          <Star className="h-4 w-4 mr-2" />
-          Key Participant
-          {meetingRole === 'key_participant' && <Check className="h-4 w-4 ml-auto" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'attendee' });
-            updateRole('attendee');
-          }}
-          disabled={updating}
-          className="cursor-pointer"
-        >
-          <User className="h-4 w-4 mr-2" />
-          Attendee
-          {meetingRole === 'attendee' && <Check className="h-4 w-4 ml-auto" />}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+            Set role for {attendee.name}
+          </div>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'chair' });
+              updateRole('chair');
+            }}
+            disabled={updating}
+            className="cursor-pointer"
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Chair
+            {meetingRole === 'chair' && <Check className="h-4 w-4 ml-auto" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'key_participant' });
+              updateRole('key_participant');
+            }}
+            disabled={updating}
+            className="cursor-pointer"
+          >
+            <Star className="h-4 w-4 mr-2" />
+            Key Participant
+            {meetingRole === 'key_participant' && <Check className="h-4 w-4 ml-auto" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('➡️ Role option clicked', { attendee: attendee.name, newRole: 'attendee' });
+              updateRole('attendee');
+            }}
+            disabled={updating}
+            className="cursor-pointer"
+          >
+            <User className="h-4 w-4 mr-2" />
+            Attendee
+            {meetingRole === 'attendee' && <Check className="h-4 w-4 ml-auto" />}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </HoverCard>
   );
 };
