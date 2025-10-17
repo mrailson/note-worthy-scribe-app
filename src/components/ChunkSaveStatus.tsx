@@ -212,8 +212,8 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
         </CardHeader>
         
         <CollapsibleContent>
-          <CardContent>
-            <ScrollArea className="h-40 sm:h-48">
+          <CardContent className="pb-3 pt-2">
+            <ScrollArea className="h-64 sm:h-80">
               <div className="space-y-2">
                 {chunks.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
