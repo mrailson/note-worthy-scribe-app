@@ -271,7 +271,16 @@ PATIENT_COPY: [Patient-friendly explanation in plain English]
 REFERRAL: [Referral guidance if needed, or "Not indicated"]
 REVIEW: [Follow-up recommendations and safety-netting]
 
-Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referral, review
+CLINICAL_ACTIONS: Extract structured clinical actions as:
+{
+  "medications": [list of prescriptions with doses],
+  "investigations": [labs, imaging ordered],
+  "followUp": [when to return, what to monitor],
+  "redFlags": [warning signs to watch for],
+  "other": [any other actions]
+}
+
+Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referral, review, clinicalActions
 `;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -346,6 +355,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
       patientCopy: generatedContent.patientCopy,
       referral: generatedContent.referral,
       review: generatedContent.review,
+      clinicalActions: generatedContent.clinicalActions || {},
       classifier: {
         label: classifier.label,
         score: classifier.score

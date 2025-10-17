@@ -2,7 +2,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
-import { SoapNotesDisplay } from "@/components/meeting/SoapNotesDisplay";
+import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -136,7 +136,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   
   // SOAP notes state
-  const [soapNotes, setSoapNotes] = useState<{S: string, O: string, A: string, P: string, generated_at?: string, consultation_type?: string} | null>(null);
+  const [soapNotes, setSoapNotes] = useState<{
+    shorthand?: {S: string, O: string, A: string, P: string},
+    standard?: {S: string, O: string, A: string, P: string},
+    generated_at?: string,
+    consultation_type?: string,
+    summary_line?: string,
+    patient_copy?: string,
+    referral?: string,
+    review?: string,
+    clinical_actions?: any
+  } | null>(null);
   const [isGeneratingSoap, setIsGeneratingSoap] = useState(false);
   const [soapNotesGenerated, setSoapNotesGenerated] = useState(false);
   // Lazy-render cache for Executive tab
@@ -2642,16 +2652,15 @@ ${transcript}`;
 
       if (data) {
         const soapData = {
-          S: data.shorthand?.S || data.standard?.S || '',
-          O: data.shorthand?.O || data.standard?.O || '',
-          A: data.shorthand?.A || data.standard?.A || '',
-          P: data.shorthand?.P || data.standard?.P || '',
+          shorthand: data.shorthand || { S: '', O: '', A: '', P: '' },
+          standard: data.standard || { S: '', O: '', A: '', P: '' },
           generated_at: new Date().toISOString(),
           consultation_type: data.classifier?.label || 'General Consultation',
           summary_line: data.summaryLine || '',
           patient_copy: data.patientCopy || '',
           referral: data.referral || '',
-          review: data.review || ''
+          review: data.review || '',
+          clinical_actions: data.clinicalActions || {}
         };
 
         setSoapNotes(soapData);
@@ -3754,17 +3763,23 @@ ${transcript}`;
                                  )}
                                </div>
                              </div>
-                           ) : (
-                             <div className="flex-1 overflow-auto">
-                               <SoapNotesDisplay
-                                 soapNotes={soapNotes}
-                                 consultationType={soapNotes?.consultation_type}
-                                 onExport={() => {
-                                   toast.info('Export feature coming soon');
-                                 }}
-                               />
-                             </div>
-                           )}
+                            ) : (
+                              <div className="flex-1 overflow-auto">
+                                <EnhancedSoapNotesDisplay
+                                  shorthand={soapNotes?.shorthand}
+                                  standard={soapNotes?.standard}
+                                  summaryLine={soapNotes?.summary_line}
+                                  patientCopy={soapNotes?.patient_copy}
+                                  referral={soapNotes?.referral}
+                                  review={soapNotes?.review}
+                                  clinicalActions={soapNotes?.clinical_actions}
+                                  consultationType={soapNotes?.consultation_type}
+                                  onExport={() => {
+                                    toast.info('Export feature coming soon');
+                                  }}
+                                />
+                              </div>
+                            )}
                          </div>
                        </TabsContent>
                     </Tabs>
