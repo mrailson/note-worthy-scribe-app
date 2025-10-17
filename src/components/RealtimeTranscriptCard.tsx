@@ -154,10 +154,7 @@ export const RealtimeTranscriptCard = ({
   };
 
   return (
-    <Card className={cn("relative transition-all duration-300", className, {
-      "h-[131rem]": isExpanded,
-      "h-[32rem]": !isExpanded
-    })}>
+    <Card className={cn("relative transition-all duration-300", className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
