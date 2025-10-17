@@ -9,11 +9,21 @@ import {
 } from 'docx';
 import { format } from 'date-fns';
 
+interface ClinicalAction {
+  medications?: string[];
+  investigations?: string[];
+  followUp?: string[];
+  other?: string[];
+}
+
 interface PatientLetterData {
   patientCopy: string;
   summaryLine?: string;
   consultationType?: string;
   consultationDate?: Date;
+  clinicalActions?: ClinicalAction;
+  review?: string;
+  referral?: string;
 }
 
 function parsePatientText(text: string): Paragraph[] {
@@ -142,48 +152,17 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
   
   sections.push(new Paragraph({
     children: [new TextRun({
-      text: 'Thank you for attending your consultation. This letter provides a summary of our discussion and the care plan we have agreed upon together.',
+      text: 'Thank you for attending your consultation. This letter provides a detailed summary of our discussion, the care plan we have agreed upon together, and important information about your ongoing care.',
       size: 24
     })],
     spacing: { after: 300 },
     alignment: AlignmentType.JUSTIFIED
   }));
   
-  // Quick summary in a highlighted box (if available)
-  if (data.summaryLine) {
-    sections.push(new Paragraph({
-      children: [new TextRun({
-        text: 'Quick Overview',
-        bold: true,
-        size: 26,
-        color: '1e40af'
-      })],
-      spacing: { before: 300, after: 150 }
-    }));
-    
-    sections.push(new Paragraph({
-      children: [new TextRun({
-        text: data.summaryLine,
-        size: 24
-      })],
-      spacing: { after: 300 },
-      border: {
-        top: { style: BorderStyle.SINGLE, size: 6, color: 'bfdbfe' },
-        bottom: { style: BorderStyle.SINGLE, size: 6, color: 'bfdbfe' },
-        left: { style: BorderStyle.SINGLE, size: 6, color: 'bfdbfe' },
-        right: { style: BorderStyle.SINGLE, size: 6, color: 'bfdbfe' }
-      },
-      shading: {
-        fill: 'eff6ff'
-      },
-      alignment: AlignmentType.JUSTIFIED
-    }));
-  }
-  
-  // Detailed patient-friendly explanation
+  // What We Discussed
   sections.push(new Paragraph({
     children: [new TextRun({
-      text: 'Detailed Summary',
+      text: 'What We Discussed Today',
       bold: true,
       size: 28,
       color: '1e40af'
@@ -194,6 +173,356 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
   
   // Parse and format the patient copy text
   sections.push(...parsePatientText(data.patientCopy));
+  
+  // Medications Section
+  if (data.clinicalActions?.medications && data.clinicalActions.medications.length > 0) {
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Your Medications',
+        bold: true,
+        size: 28,
+        color: '1e40af'
+      })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 500, after: 250 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'We have made the following changes to your medications:',
+        size: 24,
+        bold: true
+      })],
+      spacing: { after: 200 }
+    }));
+    
+    data.clinicalActions.medications.forEach(med => {
+      sections.push(new Paragraph({
+        children: [
+          new TextRun({ text: '• ', size: 24, color: '2563eb', bold: true }),
+          new TextRun({ text: med, size: 24 })
+        ],
+        spacing: { after: 150 },
+        indent: { left: 360 },
+        alignment: AlignmentType.JUSTIFIED
+      }));
+    });
+    
+    sections.push(new Paragraph({
+      text: '',
+      spacing: { after: 200 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Why these changes? ',
+        size: 24,
+        bold: true,
+        color: '1e40af'
+      })],
+      spacing: { after: 150 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'These medication changes have been made to help improve your health based on our discussion today. Each medication has been carefully chosen to address your specific needs. Please take them exactly as prescribed and contact us if you experience any unexpected side effects.',
+        size: 24
+      })],
+      spacing: { after: 200 },
+      alignment: AlignmentType.JUSTIFIED
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: '💊 Important: ',
+        size: 24,
+        bold: true
+      }), new TextRun({
+        text: 'If you have any questions about your medications, please speak to your pharmacist or contact the surgery. Never stop taking prescribed medications without consulting your doctor first.',
+        size: 24,
+        italics: true
+      })],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED,
+      border: {
+        left: { style: BorderStyle.SINGLE, size: 15, color: 'fbbf24' }
+      },
+      shading: {
+        fill: 'fef3c7'
+      }
+    }));
+  }
+  
+  // Tests and Investigations
+  if (data.clinicalActions?.investigations && data.clinicalActions.investigations.length > 0) {
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Tests and Investigations',
+        bold: true,
+        size: 28,
+        color: '1e40af'
+      })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 500, after: 250 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'We have arranged the following tests to help monitor your condition:',
+        size: 24
+      })],
+      spacing: { after: 200 }
+    }));
+    
+    data.clinicalActions.investigations.forEach(inv => {
+      sections.push(new Paragraph({
+        children: [
+          new TextRun({ text: '🔬 ', size: 24 }),
+          new TextRun({ text: inv, size: 24, bold: true })
+        ],
+        spacing: { after: 150 },
+        indent: { left: 360 }
+      }));
+    });
+    
+    sections.push(new Paragraph({
+      text: '',
+      spacing: { after: 200 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'You will be contacted with the results once they are available. If any action is needed, we will discuss this with you.',
+        size: 24
+      })],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }));
+  }
+  
+  // Follow-up Appointments
+  if (data.clinicalActions?.followUp && data.clinicalActions.followUp.length > 0) {
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Your Follow-Up Plan',
+        bold: true,
+        size: 28,
+        color: '1e40af'
+      })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 500, after: 250 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'To ensure your ongoing care, we have arranged the following:',
+        size: 24
+      })],
+      spacing: { after: 200 }
+    }));
+    
+    data.clinicalActions.followUp.forEach(fu => {
+      sections.push(new Paragraph({
+        children: [
+          new TextRun({ text: '📅 ', size: 24 }),
+          new TextRun({ text: fu, size: 24 })
+        ],
+        spacing: { after: 150 },
+        indent: { left: 360 },
+        alignment: AlignmentType.JUSTIFIED
+      }));
+    });
+    
+    sections.push(new Paragraph({
+      text: '',
+      spacing: { after: 200 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Please mark these dates in your calendar. If you need to change any appointments, please contact the surgery as soon as possible.',
+        size: 24,
+        italics: true
+      })],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }));
+  }
+  
+  // Safety Netting
+  if (data.review) {
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'When to Seek Further Help',
+        bold: true,
+        size: 28,
+        color: 'dc2626'
+      })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 500, after: 250 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: '🚨 Important Safety Information',
+        size: 26,
+        bold: true,
+        color: 'dc2626'
+      })],
+      spacing: { after: 200 }
+    }));
+    
+    sections.push(...parsePatientText(data.review));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'If you experience any of the above symptoms or are concerned about your condition worsening, please:',
+        size: 24,
+        bold: true
+      })],
+      spacing: { before: 200, after: 150 }
+    }));
+    
+    const urgentActions = [
+      'Contact the surgery during working hours (Monday-Friday, 08:00-18:30)',
+      'Call NHS 111 for urgent advice outside of surgery hours',
+      'Call 999 or go to A&E if you have a medical emergency'
+    ];
+    
+    urgentActions.forEach(action => {
+      sections.push(new Paragraph({
+        children: [
+          new TextRun({ text: '⚠️ ', size: 24 }),
+          new TextRun({ text: action, size: 24 })
+        ],
+        spacing: { after: 150 },
+        indent: { left: 360 }
+      }));
+    });
+    
+    sections.push(new Paragraph({
+      text: '',
+      spacing: { after: 300 }
+    }));
+  }
+  
+  // Referral Information
+  if (data.referral) {
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Specialist Referral',
+        bold: true,
+        size: 28,
+        color: '1e40af'
+      })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 500, after: 250 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'We have referred you to a specialist for further assessment and treatment. Here are the details:',
+        size: 24
+      })],
+      spacing: { after: 200 }
+    }));
+    
+    sections.push(...parsePatientText(data.referral));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: 'You should receive an appointment letter within the next few weeks. If you do not hear anything within 4 weeks, please contact the surgery.',
+        size: 24,
+        italics: true
+      })],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }));
+  }
+  
+  // Useful Resources
+  sections.push(new Paragraph({
+    children: [new TextRun({
+      text: 'Helpful Information and Resources',
+      bold: true,
+      size: 28,
+      color: '1e40af'
+    })],
+    heading: HeadingLevel.HEADING_1,
+    spacing: { before: 500, after: 250 }
+  }));
+  
+  sections.push(new Paragraph({
+    children: [new TextRun({
+      text: 'The following websites provide reliable, NHS-approved information about your condition:',
+      size: 24
+    })],
+    spacing: { after: 200 }
+  }));
+  
+  const resources = [
+    {
+      name: 'NHS Website',
+      url: 'www.nhs.uk',
+      description: 'Comprehensive health information and advice'
+    },
+    {
+      name: 'Patient.info',
+      url: 'www.patient.info',
+      description: 'Detailed leaflets about conditions and treatments'
+    },
+    {
+      name: 'British Heart Foundation',
+      url: 'www.bhf.org.uk',
+      description: 'If you have heart or circulation concerns'
+    },
+    {
+      name: 'Diabetes UK',
+      url: 'www.diabetes.org.uk',
+      description: 'Support and information for diabetes management'
+    },
+    {
+      name: 'NHS 111 Online',
+      url: 'www.111.nhs.uk',
+      description: 'Get urgent medical advice online'
+    }
+  ];
+  
+  resources.forEach(resource => {
+    sections.push(new Paragraph({
+      children: [
+        new TextRun({ text: '🌐 ', size: 24 }),
+        new TextRun({ text: `${resource.name}: `, size: 24, bold: true, color: '2563eb' }),
+        new TextRun({ text: resource.url, size: 22, italics: true, color: '4b5563' })
+      ],
+      spacing: { after: 100 },
+      indent: { left: 360 }
+    }));
+    
+    sections.push(new Paragraph({
+      children: [new TextRun({
+        text: resource.description,
+        size: 22,
+        color: '6b7280'
+      })],
+      spacing: { after: 200 },
+      indent: { left: 720 }
+    }));
+  });
+  
+  sections.push(new Paragraph({
+    children: [new TextRun({
+      text: '💡 Tip: ',
+      size: 24,
+      bold: true
+    }), new TextRun({
+      text: 'Always check that health websites are NHS-approved or from reputable medical organisations. Be cautious of unofficial sources.',
+      size: 24,
+      italics: true
+    })],
+    spacing: { before: 200, after: 300 },
+    alignment: AlignmentType.JUSTIFIED
+  }));
   
   // Closing section
   sections.push(new Paragraph({
@@ -213,10 +542,13 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
   }));
   
   const reminders = [
-    'Please take your medications as prescribed and discuss any concerns with your pharmacist or GP.',
-    'If your symptoms worsen or you develop new concerns, please contact the surgery or seek appropriate medical attention.',
-    'Keep this letter for your records and bring it to future appointments.',
-    'If you have any questions about this letter, please do not hesitate to contact the practice.'
+    'Keep this letter for your personal records and bring it to future appointments.',
+    'Make sure you understand your care plan - if anything is unclear, please contact the surgery.',
+    'Attend all scheduled follow-up appointments and tests.',
+    'Take your medications exactly as prescribed.',
+    'Monitor your symptoms and seek help if they worsen.',
+    'Use the NHS resources provided to learn more about your condition.',
+    'If you have any questions or concerns, we are here to help - please do not hesitate to contact us.'
   ];
   
   reminders.forEach(reminder => {
@@ -226,6 +558,7 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
         new TextRun({ text: reminder, size: 22 })
       ],
       spacing: { after: 150 },
+      indent: { left: 360 },
       alignment: AlignmentType.JUSTIFIED
     }));
   });

@@ -187,7 +187,10 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       await exportPatientLetterToWord({
         patientCopy,
         summaryLine,
-        consultationType
+        consultationType,
+        clinicalActions,
+        review,
+        referral
       });
       
       toast.success('Patient letter downloaded successfully');
