@@ -298,18 +298,36 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       // Meeting Date and Start Time
       if (meetingContext?.date || meetingContext?.start_time) {
-        const dateText = meetingContext?.date 
-          ? new Date(meetingContext.date).toLocaleDateString('en-GB', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })
-          : '';
+        let dateTimeText = '';
         
-        const timeText = meetingContext?.start_time 
-          ? ` at ${meetingContext.start_time}`
-          : '';
+        if (meetingContext?.date) {
+          const meetingDate = new Date(meetingContext.date);
+          
+          // Get day with ordinal suffix
+          const day = meetingDate.getDate();
+          const ordinal = (day: number) => {
+            if (day > 3 && day < 21) return 'th';
+            switch (day % 10) {
+              case 1: return 'st';
+              case 2: return 'nd';
+              case 3: return 'rd';
+              default: return 'th';
+            }
+          };
+          
+          const dayName = meetingDate.toLocaleDateString('en-GB', { weekday: 'long' });
+          const monthName = meetingDate.toLocaleDateString('en-GB', { month: 'long' });
+          const year = meetingDate.getFullYear();
+          
+          dateTimeText = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+          
+          // Add time if start_time exists
+          if (meetingContext?.start_time) {
+            dateTimeText += ` at ${meetingContext.start_time}`;
+          }
+        } else if (meetingContext?.start_time) {
+          dateTimeText = `at ${meetingContext.start_time}`;
+        }
 
         headerSections.push(
           new Paragraph({
@@ -321,7 +339,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 font: 'Calibri',
               }),
               new TextRun({
-                text: dateText + timeText,
+                text: dateTimeText,
                 size: 24,
                 font: 'Calibri',
               })
