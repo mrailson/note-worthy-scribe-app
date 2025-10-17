@@ -51,7 +51,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   // UI State
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
-  const [showPII, setShowPII] = useState(true);
+  const [showPII, setShowPII] = useState(false); // Disabled by default - user must explicitly enable
   const [showContext, setShowContext] = useState(!isMobile); // Collapsed by default on mobile
   const [showStats, setShowStats] = useState(!isMobile); // Collapsed by default on mobile
   const [showPIIPanel, setShowPIIPanel] = useState(!isMobile); // Collapsible on mobile
