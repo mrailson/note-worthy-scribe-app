@@ -1667,16 +1667,32 @@ export const MeetingRecorder = ({
     const isChunkInTranscript = (chunkText: string): boolean => {
       if (!chunkText || !transcript) return false;
       
-      const chunkWords = chunkText.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-      if (chunkWords.length === 0) return false;
+      const normalise = (s: string) => s
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
       
-      const transcriptLower = transcript.toLowerCase();
-      const matchedWords = chunkWords.filter(word => transcriptLower.includes(word));
-      
-      const matchPercentage = (matchedWords.length / chunkWords.length) * 100;
-      return matchPercentage >= 80;
-    };
+      const tNorm = normalise(transcript);
+      const words = chunkText.trim().split(/\s+/);
+      const coreText = words.length > 1 ? words.slice(0, -1).join(' ') : words.join(' ');
+      const cNorm = normalise(coreText);
+      if (!cNorm) return false;
 
+      if (tNorm.includes(cNorm)) return true;
+      
+      if (words.length >= 5) {
+        for (let i = 0; i <= words.length - 5; i++) {
+          const gram = normalise(words.slice(i, i + 5).join(' '));
+          if (gram && tNorm.includes(gram)) return true;
+        }
+      }
+
+      const cTokens = cNorm.split(' ').filter(w => w.length >= 3);
+      if (cTokens.length === 0) return false;
+      const matched = cTokens.filter(w => tNorm.includes(w)).length;
+      return (matched / cTokens.length) >= 0.7;
+    };
     // Find chunks that are not merged
     const unmergedChunks = chunkSaveStatuses.filter(chunk => 
       chunk.text && 

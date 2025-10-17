@@ -94,20 +94,42 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
   
   const successRate = chunks.length > 0 ? Math.round((savedChunks / chunks.length) * 100) : 0;
   
-  // Check if at least 80% of chunk text appears in main transcript
+  // Robustly check if a chunk appears in the main transcript
   const isChunkInTranscript = (chunkText: string): boolean => {
     if (!chunkText || !mainTranscript) return false;
-    
-    const chunkWords = chunkText.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-    if (chunkWords.length === 0) return false;
-    
-    const transcriptLower = mainTranscript.toLowerCase();
-    const matchedWords = chunkWords.filter(word => transcriptLower.includes(word));
-    
-    const matchPercentage = (matchedWords.length / chunkWords.length) * 100;
-    return matchPercentage >= 80;
+
+    const normalise = (s: string) => s
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ') // remove punctuation
+      .replace(/\s+/g, ' ') // collapse spaces
+      .trim();
+
+    const tNorm = normalise(mainTranscript);
+
+    // Remove the last word (often tentative) before matching
+    const words = chunkText.trim().split(/\s+/);
+    const coreText = words.length > 1 ? words.slice(0, -1).join(' ') : words.join(' ');
+    const cNorm = normalise(coreText);
+
+    if (!cNorm) return false;
+
+    // 1) Direct substring match on normalised text
+    if (tNorm.includes(cNorm)) return true;
+
+    // 2) Any 5-word n-gram from the chunk present in transcript
+    if (words.length >= 5) {
+      for (let i = 0; i <= words.length - 5; i++) {
+        const gram = normalise(words.slice(i, i + 5).join(' '));
+        if (gram && tNorm.includes(gram)) return true;
+      }
+    }
+
+    // 3) Fallback: significant-word overlap (>=70%), ignoring very short words
+    const cTokens = cNorm.split(' ').filter(w => w.length >= 3);
+    if (cTokens.length === 0) return false;
+    const matched = cTokens.filter(w => tNorm.includes(w)).length;
+    return (matched / cTokens.length) >= 0.7;
   };
-  
   // Calculate chunks that were merged into main transcript
   const chunksMergedToTranscript = chunks.filter(chunk => 
     chunk.text && chunk.text.trim().length > 0 && isChunkInTranscript(chunk.text)
