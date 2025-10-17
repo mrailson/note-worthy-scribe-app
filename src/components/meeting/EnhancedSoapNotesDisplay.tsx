@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
 import { formatSoapNote } from '@/utils/emrFormatters';
+import { PatientLetterPreview } from './PatientLetterPreview';
 
 type ViewMode = 'quick' | 'standard' | 'detailed' | 'comparison';
 type EmrFormat = 'emis' | 'systmone';
@@ -492,10 +493,10 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
                     <span className="text-xl">💌</span>
-                    Patient Letter
+                    Patient Letter Preview
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Plain language summary for the patient - Download as a beautifully formatted letter
+                    This shows how your patient letter will look when downloaded
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -504,6 +505,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                     size="sm"
                     onClick={handleCopyPatientCopy}
                     className="h-8 w-8 p-0"
+                    title="Copy text"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -520,11 +522,20 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
               </div>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {patientCopy || 'No patient summary available'}
-                </div>
-              </div>
+              {patientCopy ? (
+                <PatientLetterPreview
+                  patientCopy={patientCopy}
+                  summaryLine={summaryLine}
+                  consultationType={consultationType}
+                  clinicalActions={clinicalActions}
+                  review={review}
+                  referral={referral}
+                />
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No patient letter available
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
