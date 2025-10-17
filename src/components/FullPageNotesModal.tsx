@@ -3150,7 +3150,7 @@ ${transcript}`;
               }
               setActiveTab(value);
             }} className="h-full flex flex-col">
-              <div className="px-6 pt-4 flex-shrink-0">
+              <div className="px-3 pt-4 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <TabsList className="grid grid-cols-2 flex-1">
                     <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
@@ -3162,7 +3162,7 @@ ${transcript}`;
               <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   {/* Sub-tabs for different meeting notes styles - positioned directly under main tab header */}
-                  <div className="flex-1 overflow-hidden px-6 pt-4">
+                  <div className="flex-1 overflow-hidden px-3 pt-4">
                        <Tabs value={activeNotesStyleTab} onValueChange={(value) => {
                         setActiveNotesStyleTab(value);
                         // Load transcript when switching to Patient Consultation (style6)
