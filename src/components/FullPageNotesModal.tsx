@@ -3164,8 +3164,22 @@ ${transcript}`;
                                      )}
                                     <div 
                                       className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
-                                      style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                      style={{ 
+                                        fontSize: `${fontSizeStyle1}px`, 
+                                        lineHeight: `${fontSizeStyle1 * 1.6}px`,
+                                        ['--base-font-size' as string]: `${fontSizeStyle1}px`
+                                      }}
                                     >
+                                      <style>
+                                        {`
+                                          .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
+                                          .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
+                                          .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
+                                          .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
+                                          .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                          .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
+                                        `}
+                                      </style>
                                       <div 
                                         dangerouslySetInnerHTML={{ 
                                           __html: renderMinutesMarkdown(notesStyle3)
