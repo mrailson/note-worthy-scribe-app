@@ -1218,53 +1218,12 @@ export const MeetingRecorder = ({
             }
           }
 
-          // Update the main transcript using smart merge to eliminate duplicates
+          // Update the main transcript with simple append (NO deduplication during recording)
           setTranscript(prev => {
-            console.log(`🔄 Attempting to merge chunk ${chunkId}:`, {
-              prevTranscriptLength: prev.length,
-              prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 100)),
-              newChunkLength: transcriptionText.length,
-              newChunkStart: transcriptionText.substring(0, 100),
-              confidence: Math.round(confidence * 100)
-            });
-            
-            // Use mergeLive to detect and remove overlapping text sections
-            const mergeResult = mergeLive(prev, { text: transcriptionText, isFinal: true });
-            const addedLength = mergeResult.addedChars;
-            
-            // Track merge success/failure and update chunk status with reason
-            let rejectionReason = mergeResult.rejectionReason;
-            if (addedLength > 0) {
-              console.log(`✅ Chunk ${chunkId} merged to transcript (+${addedLength} chars)`);
-            } else if (transcriptionText.length > 10) {
-              if (!rejectionReason) {
-                rejectionReason = `Duplicate content detected (0 chars added from ${transcriptionText.length} char chunk)`;
-              }
-              console.error(`❌ Chunk ${chunkId} was NOT merged to transcript!`, {
-                chunkNumber: currentChunkNumber,
-                chunkLength: transcriptionText.length,
-                chunkPreview: transcriptionText.substring(0, 100),
-                prevTranscriptEnd: prev.substring(Math.max(0, prev.length - 200)),
-                reason: rejectionReason
-              });
-            } else if (transcriptionText.length <= 10) {
-              if (!rejectionReason) {
-                rejectionReason = `Chunk too short (${transcriptionText.length} chars)`;
-              }
-            }
-            
-            // Update chunk status with rejection reason if not merged
-            if (rejectionReason) {
-              setChunkSaveStatuses(prevStatuses => prevStatuses.map(chunk => 
-                chunk.id === uniqueChunkId 
-                  ? { ...chunk, mergeRejectionReason: rejectionReason }
-                  : chunk
-              ));
-            }
-            
-            console.log(`📝 Transcript updated: ${mergeResult.text.length} chars (added ${addedLength}), chunk ${chunkId}`);
-            onTranscriptUpdate(mergeResult.text);
-            return mergeResult.text;
+            const newTranscript = prev.trim() + (prev.trim() ? ' ' : '') + transcriptionText.trim();
+            console.log(`✅ Chunk ${chunkId} appended to transcript (+${transcriptionText.length} chars)`);
+            onTranscriptUpdate(newTranscript);
+            return newTranscript;
           });
 
           // Assembly AI backup transcription is handled by real-time client
@@ -3422,55 +3381,84 @@ export const MeetingRecorder = ({
         if (!error && data && data.length > 0) {
           console.log(`📦 Rebuilding from ${data.length} chunks...`);
           
-          // Collect all segments from chunks
-          let allSegments: Segment[] = [];
+          // Simple concatenation with timestamp extraction (NO deduplication during merge)
+          interface SegmentWithTimestamp {
+            start: number;
+            end: number;
+            text: string;
+            chunkNumber: number;
+          }
+          
+          const segmentsWithTimestamps: SegmentWithTimestamp[] = [];
           
           for (const chunk of data) {
             try {
-              // Try to parse as JSON segments
+              // Try to parse as JSON segments (contains timestamps)
               const parsed = JSON.parse(chunk.transcription_text);
               if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
-                allSegments = mergeByTimestamps(allSegments, parsed);
-                console.log(`✅ Parsed ${parsed.length} segments from chunk ${chunk.chunk_number}`);
+                // Store segments with timestamps and chunk reference
+                parsed.forEach((seg: any) => {
+                  segmentsWithTimestamps.push({
+                    start: seg.start || 0,
+                    end: seg.end || 0,
+                    text: seg.text || '',
+                    chunkNumber: chunk.chunk_number
+                  });
+                });
+                console.log(`✅ Added ${parsed.length} segments from chunk ${chunk.chunk_number}`);
               } else {
-                // Not segment JSON, treat as plain text (legacy)
-                console.log(`📝 Legacy plain text in chunk ${chunk.chunk_number}`);
-                finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true }).text;
-                lastChunkText = chunk.transcription_text;
+                // Plain text without timestamps - estimate based on position
+                const estimatedStart = segmentsWithTimestamps.length > 0 
+                  ? segmentsWithTimestamps[segmentsWithTimestamps.length - 1].end 
+                  : 0;
+                segmentsWithTimestamps.push({
+                  start: estimatedStart,
+                  end: estimatedStart + 10, // Estimate 10 seconds
+                  text: chunk.transcription_text,
+                  chunkNumber: chunk.chunk_number
+                });
               }
             } catch {
-              // Parse failed, treat as plain text (legacy)
-              console.log(`📝 Plain text chunk ${chunk.chunk_number}`);
-              finalTranscript = mergeLive(finalTranscript, { text: chunk.transcription_text, isFinal: true }).text;
-              lastChunkText = chunk.transcription_text;
+              // Plain text fallback
+              const estimatedStart = segmentsWithTimestamps.length > 0 
+                ? segmentsWithTimestamps[segmentsWithTimestamps.length - 1].end 
+                : 0;
+              segmentsWithTimestamps.push({
+                start: estimatedStart,
+                end: estimatedStart + 10,
+                text: chunk.transcription_text,
+                chunkNumber: chunk.chunk_number
+              });
             }
           }
           
-          // If we collected segments, convert to plain text
-          if (allSegments.length > 0) {
-            finalTranscript = segmentsToPlainText(allSegments);
-            // Extract last segment text for integrity check
-            if (allSegments.length > 0) {
-              lastChunkText = allSegments[allSegments.length - 1].text;
-            }
-            console.log(`✅ Reconstructed: ${finalTranscript.length} chars from ${allSegments.length} segments`);
+          // Simple concatenation - NO DEDUPLICATION yet
+          finalTranscript = segmentsWithTimestamps.map(seg => seg.text).join(' ');
+          
+          // Extract last chunk text for integrity check
+          if (segmentsWithTimestamps.length > 0) {
+            lastChunkText = segmentsWithTimestamps[segmentsWithTimestamps.length - 1].text;
           }
           
-          // INTEGRITY CHECK: Verify last chunk is present in final transcript
-          if (lastChunkText && lastChunkText.trim()) {
-            const lastWords = lastChunkText.trim().split(/\s+/).slice(-20).join(' ').toLowerCase();
-            const transcriptTail = finalTranscript.slice(-500).toLowerCase();
+          console.log(`✅ Simple merge: ${finalTranscript.length} chars from ${data.length} chunks (${segmentsWithTimestamps.length} segments)`);
+          
+          // Store segments for later use (timeline, etc.)
+          (window as any).__meetingSegments = segmentsWithTimestamps;
+          
+          // Perform single-pass deduplication on complete transcript
+          if (finalTranscript.length > 0) {
+            const beforeLength = finalTranscript.length;
+            const { deduplicateFullTranscript } = await import('@/utils/transcriptDeduplication');
+            finalTranscript = deduplicateFullTranscript(finalTranscript);
+            const afterLength = finalTranscript.length;
+            console.log(`🧹 Deduplication: ${beforeLength} → ${afterLength} chars (removed ${beforeLength - afterLength} duplicate chars)`);
             
-            if (!transcriptTail.includes(lastWords.slice(0, 50))) {
-              console.warn('⚠️ Integrity check failed - appending missing tail');
-              finalTranscript = finalTranscript + ' ' + lastChunkText.trim();
-              showToast.info('Final content appended to ensure completeness', { section: 'meeting_manager' });
-            } else {
-              console.log('✅ Integrity check passed - last chunk present in transcript');
+            if (beforeLength !== afterLength) {
+              showToast.info(`Cleaned ${beforeLength - afterLength} duplicate characters from transcript`, { section: 'meeting_manager' });
             }
           }
           
-          console.log(`✅ Final rebuild: ${finalTranscript.length} chars from ${data.length} chunks`);
+          console.log(`✅ Final transcript ready: ${finalTranscript.length} chars from ${data.length} chunks`);
         } else if (error) {
           console.error('❌ Chunk query error:', error);
           // Fallback to state transcript

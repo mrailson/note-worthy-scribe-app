@@ -33,6 +33,8 @@ interface TranscriptionChunk {
   confidence: number;
   created_at: string;
   word_count: number;
+  start_time?: number;
+  end_time?: number;
 }
 
 interface EnhancedTranscriptionPanelProps {
@@ -79,7 +81,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   // Format state
   const [isFormatting, setIsFormatting] = useState(false);
   
-  // Fetch chunks
+  // Fetch chunks with timestamp extraction
   useEffect(() => {
     if (!meetingId) return;
     
@@ -93,7 +95,25 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           .order('chunk_number', { ascending: true });
         
         if (error) throw error;
-        setChunks(data || []);
+        
+        // Extract timestamps from JSON if available
+        const chunksWithTimestamps = (data || []).map(chunk => {
+          try {
+            const parsed = JSON.parse(chunk.transcription_text);
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].start !== undefined) {
+              return {
+                ...chunk,
+                start_time: parsed[0].start,
+                end_time: parsed[parsed.length - 1].end
+              };
+            }
+          } catch {
+            // Not JSON, keep as is
+          }
+          return chunk;
+        });
+        
+        setChunks(chunksWithTimestamps);
       } catch (error) {
         console.error('Error fetching chunks:', error);
         toast.error('Failed to load transcription chunks');
