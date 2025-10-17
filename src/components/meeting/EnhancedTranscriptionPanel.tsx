@@ -269,8 +269,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     }
 
     try {
-      // Split transcript into paragraphs
-      const paragraphs = transcript.split('\n').filter(line => line.trim());
+      // Clean the transcript by removing HTML tags and splitting properly
+      const cleanedTranscript = transcript
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+        .split(/\n+/) // Split on line breaks
+        .filter(line => line.trim().length > 0); // Remove empty lines
 
       // Create header sections with meeting metadata
       const headerSections = [];
@@ -292,8 +296,21 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         );
       }
 
-      // Meeting Date
-      if (meetingContext?.date) {
+      // Meeting Date and Start Time
+      if (meetingContext?.date || meetingContext?.start_time) {
+        const dateText = meetingContext?.date 
+          ? new Date(meetingContext.date).toLocaleDateString('en-GB', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          : '';
+        
+        const timeText = meetingContext?.start_time 
+          ? ` at ${meetingContext.start_time}`
+          : '';
+
         headerSections.push(
           new Paragraph({
             children: [
@@ -304,12 +321,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 font: 'Calibri',
               }),
               new TextRun({
-                text: new Date(meetingContext.date).toLocaleDateString('en-GB', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }),
+                text: dateText + timeText,
                 size: 24,
                 font: 'Calibri',
               })
@@ -409,19 +421,20 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           properties: {},
           children: [
             ...headerSections,
-            ...paragraphs.map(text => 
+            ...cleanedTranscript.map(text => 
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: text,
+                    text: text.trim(),
                     size: 24, // 12pt font
                     font: 'Calibri',
                   })
                 ],
                 spacing: {
-                  after: 240, // 12pt spacing between paragraphs
-                  line: 360, // 1.5 line spacing
+                  after: 280, // Good spacing between paragraphs
+                  line: 360, // 1.5 line spacing within paragraphs
                 },
+                alignment: 'left',
               })
             )
           ]
