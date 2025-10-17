@@ -1719,209 +1719,214 @@ const MeetingHistory = () => {
          </div>
 
          {/* Selection Controls and Actions Row */}
-         {meetings.length > 0 && (
-           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
-             <div className="flex items-center gap-3 flex-wrap">
-               <Button
-                 variant="outline"
-                 size="default"
-                 onClick={() => {
-                   setIsSelectMode(!isSelectMode);
-                   setSelectedMeetings([]);
-                 }}
-                 className="touch-manipulation min-h-[44px] font-inter"
-               >
-                 {isSelectMode ? (
+         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
+           <div className="flex items-center gap-3 flex-wrap">
+             {meetings.length > 0 && (
+               <>
+                 <Button
+                   variant="outline"
+                   size="default"
+                   onClick={() => {
+                     setIsSelectMode(!isSelectMode);
+                     setSelectedMeetings([]);
+                   }}
+                   className="touch-manipulation min-h-[44px] font-inter"
+                 >
+                   {isSelectMode ? (
+                     <>
+                       <Square className="h-4 w-4 mr-2" />
+                       Cancel Selection
+                     </>
+                   ) : (
+                     <>
+                       <CheckSquare className="h-4 w-4 mr-2" />
+                       Select Multiple
+                     </>
+                   )}
+                 </Button>
+                 
+                 {isSelectMode && (
                    <>
-                     <Square className="h-4 w-4 mr-2" />
-                     Cancel Selection
-                   </>
-                 ) : (
-                   <>
-                     <CheckSquare className="h-4 w-4 mr-2" />
-                     Select Multiple
+                     <Button
+                       variant="outline"
+                       size="default"
+                       onClick={handleSelectAll}
+                       className="touch-manipulation min-h-[44px] font-inter"
+                     >
+                       {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                     </Button>
+                     
+                     {selectedMeetings.length > 0 && (
+                       <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-inter font-medium">
+                         {selectedMeetings.length} selected
+                       </span>
+                     )}
                    </>
                  )}
-               </Button>
-               
-               {isSelectMode && (
-                 <>
-                   <Button
-                     variant="outline"
-                     size="default"
-                     onClick={handleSelectAll}
-                     className="touch-manipulation min-h-[44px] font-inter"
-                   >
-                     {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
-                   </Button>
-                   
-                   {selectedMeetings.length > 0 && (
-                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-inter font-medium">
-                       {selectedMeetings.length} selected
-                     </span>
-                   )}
-                 </>
-               )}
-             </div>
+               </>
+             )}
+           </div>
 
-             <div className="flex gap-2 flex-wrap">
-               {/* Import Meeting Button */}
-               <Button
-                 variant="default"
-                 size="default"
-                 onClick={() => setImportDialogOpen(true)}
-                 className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
-               >
-                 <Upload className="h-4 w-4" />
-                 <span className="hidden sm:inline">Import Meeting</span>
-                 <span className="sm:hidden">Import</span>
-               </Button>
-               
-               {/* Refresh Button */}
-               <Button
-                 variant="outline"
-                 size="default"
-                 onClick={async () => {
-                   console.log('🔄 Manual refresh requested');
-                   fetchMeetings(currentPage);
-                   toast.success('Refreshing meeting list...');
-                   
-                   // Generate missing overviews after refreshing
-                   setTimeout(async () => {
-                     try {
-                       const meetingsNeedingOverviews = meetings.filter(meeting => 
-                         meeting.status === 'completed' && 
-                         (!meeting.overview || meeting.overview.trim() === '')
-                       );
+           <div className="flex gap-2 flex-wrap">
+             {/* Import Meeting Button */}
+             <Button
+               variant="default"
+               size="default"
+               onClick={() => setImportDialogOpen(true)}
+               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+             >
+               <Upload className="h-4 w-4" />
+               <span className="hidden sm:inline">Import Meeting</span>
+               <span className="sm:hidden">Import</span>
+             </Button>
+             
+             {/* Refresh Button */}
+             <Button
+               variant="outline"
+               size="default"
+               onClick={async () => {
+                 console.log('🔄 Manual refresh requested');
+                 fetchMeetings(currentPage);
+                 toast.success('Refreshing meeting list...');
+                 
+                 // Generate missing overviews after refreshing
+                 setTimeout(async () => {
+                   try {
+                     const meetingsNeedingOverviews = meetings.filter(meeting => 
+                       meeting.status === 'completed' && 
+                       (!meeting.overview || meeting.overview.trim() === '')
+                     );
+                     
+                     if (meetingsNeedingOverviews.length > 0) {
+                       console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
+                       toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
                        
-                       if (meetingsNeedingOverviews.length > 0) {
-                         console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
-                         toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
-                         
-                         let successCount = 0;
-                         for (const meeting of meetingsNeedingOverviews) {
-                           try {
-                             const { data: summaryData } = await supabase
-                               .from('meeting_summaries')
-                               .select('summary')
-                               .eq('meeting_id', meeting.id)
-                               .single();
-                               
-                             if (summaryData?.summary) {
-                               const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
-                                 body: {
-                                   meetingTitle: meeting.title,
-                                   meetingNotes: summaryData.summary
-                                 }
-                               });
-                               
-                               if (!error && data?.overview) {
-                                 await supabase
-                                   .from('meetings')
-                                   .update({ overview: data.overview })
-                                   .eq('id', meeting.id);
-                                   
-                                 await supabase
-                                   .from('meeting_overviews')
-                                   .upsert({
-                                     meeting_id: meeting.id,
-                                     overview: data.overview
-                                   });
-                                   
-                                 successCount++;
+                       let successCount = 0;
+                       for (const meeting of meetingsNeedingOverviews) {
+                         try {
+                           const { data: summaryData } = await supabase
+                             .from('meeting_summaries')
+                             .select('summary')
+                             .eq('meeting_id', meeting.id)
+                             .single();
+                             
+                           if (summaryData?.summary) {
+                             const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+                               body: {
+                                 meetingTitle: meeting.title,
+                                 meetingNotes: summaryData.summary
                                }
+                             });
+                             
+                             if (!error && data?.overview) {
+                               await supabase
+                                 .from('meetings')
+                                 .update({ overview: data.overview })
+                                 .eq('id', meeting.id);
+                                 
+                               await supabase
+                                 .from('meeting_overviews')
+                                 .upsert({
+                                   meeting_id: meeting.id,
+                                   overview: data.overview
+                                 });
+                                 
+                               successCount++;
                              }
-                           } catch (overviewError) {
-                             console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
                            }
-                         }
-                         
-                         if (successCount > 0) {
-                           toast.success(`Generated ${successCount} new overviews`);
-                           fetchMeetings(currentPage);
+                         } catch (overviewError) {
+                           console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
                          }
                        }
-                     } catch (error) {
-                       console.error('Error generating overviews:', error);
+                       
+                       if (successCount > 0) {
+                         toast.success(`Generated ${successCount} new overviews`);
+                         fetchMeetings(currentPage);
+                       }
                      }
-                   }, 1000);
-                 }}
-                 className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
-               >
-                 <RefreshCw className="h-4 w-4" />
-                 <span className="hidden sm:inline">Refresh Page</span>
-                 <span className="sm:hidden">Refresh</span>
-               </Button>
-               {isSelectMode && selectedMeetings.length >= 2 && (
-                 <AlertDialog>
-                   <AlertDialogTrigger asChild>
-                     <Button 
-                       variant="default" 
-                       size="default"
-                       className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
-                     >
-                       <FileText className="h-4 w-4 mr-2" />
-                       Merge ({selectedMeetings.length})
-                     </Button>
-                   </AlertDialogTrigger>
-                   <AlertDialogContent className="mx-4 max-w-md font-inter">
-                     <AlertDialogHeader>
-                       <AlertDialogTitle className="font-playfair">Merge Selected Meetings</AlertDialogTitle>
-                       <AlertDialogDescription>
-                         This will combine {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be merged chronologically. Secondary meetings will be deleted after merging.
-                         <br /><br />
-                         New meeting notes will be generated automatically.
-                       </AlertDialogDescription>
-                     </AlertDialogHeader>
-                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                       <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                         Cancel
-                       </AlertDialogCancel>
-                       <AlertDialogAction 
-                         onClick={handleMergeMeetings}
-                         className="touch-manipulation min-h-[44px]"
-                       >
-                         Merge Meetings
-                       </AlertDialogAction>
-                     </AlertDialogFooter>
-                   </AlertDialogContent>
-                 </AlertDialog>
-               )}
+                   } catch (error) {
+                     console.error('Error generating overviews:', error);
+                   }
+                 }, 1000);
+               }}
+               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+             >
+               <RefreshCw className="h-4 w-4" />
+               <span className="hidden sm:inline">Refresh Page</span>
+               <span className="sm:hidden">Refresh</span>
+             </Button>
 
-               {isSelectMode && selectedMeetings.length > 0 && (
-                 <AlertDialog>
-                   <AlertDialogTrigger asChild>
-                     <Button 
-                       variant="destructive" 
-                       size="default"
-                       className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+             {meetings.length > 0 && isSelectMode && selectedMeetings.length >= 2 && (
+               <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                   <Button 
+                     variant="default" 
+                     size="default"
+                     className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                   >
+                     <FileText className="h-4 w-4 mr-2" />
+                     Merge ({selectedMeetings.length})
+                   </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent className="mx-4 max-w-md font-inter">
+                   <AlertDialogHeader>
+                     <AlertDialogTitle className="font-playfair">Merge Selected Meetings</AlertDialogTitle>
+                     <AlertDialogDescription>
+                       This will combine {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be merged chronologically. Secondary meetings will be deleted after merging.
+                       <br /><br />
+                       New meeting notes will be generated automatically.
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
+                   <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                     <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                       Cancel
+                     </AlertDialogCancel>
+                     <AlertDialogAction 
+                       onClick={handleMergeMeetings}
+                       className="touch-manipulation min-h-[44px]"
                      >
-                       <Trash2 className="h-4 w-4 mr-2" />
-                       Delete ({selectedMeetings.length})
-                     </Button>
-                   </AlertDialogTrigger>
-                   <AlertDialogContent className="mx-4 max-w-md font-inter">
-                     <AlertDialogHeader>
-                       <AlertDialogTitle className="font-playfair">Delete Selected Meetings</AlertDialogTitle>
-                       <AlertDialogDescription>
-                         This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
-                       </AlertDialogDescription>
-                     </AlertDialogHeader>
-                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                       <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                         Cancel
-                       </AlertDialogCancel>
-                       <AlertDialogAction 
-                         onClick={handleDeleteSelected}
-                         className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                       >
-                         Delete Selected
-                       </AlertDialogAction>
-                     </AlertDialogFooter>
-                   </AlertDialogContent>
-                 </AlertDialog>
-               )}
+                       Merge Meetings
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
+             )}
 
+             {meetings.length > 0 && isSelectMode && selectedMeetings.length > 0 && (
+               <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                   <Button 
+                     variant="destructive" 
+                     size="default"
+                     className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                   >
+                     <Trash2 className="h-4 w-4 mr-2" />
+                     Delete ({selectedMeetings.length})
+                   </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent className="mx-4 max-w-md font-inter">
+                   <AlertDialogHeader>
+                     <AlertDialogTitle className="font-playfair">Delete Selected Meetings</AlertDialogTitle>
+                     <AlertDialogDescription>
+                       This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
+                   <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                     <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                       Cancel
+                     </AlertDialogCancel>
+                     <AlertDialogAction 
+                       onClick={handleDeleteSelected}
+                       className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                     >
+                       Delete Selected
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
+             )}
+
+             {meetings.length > 0 && (
                <AlertDialog>
                  <AlertDialogTrigger asChild>
                    <Button 
@@ -1965,9 +1970,9 @@ const MeetingHistory = () => {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-          </div>
-        )}
+             )}
+           </div>
+         </div>
 
 
         {/* Meeting Detail View or Meetings List */}
