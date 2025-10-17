@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -212,7 +213,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
   if (!showPopup || !isActive) return null;
 
-  return (
+  const popupContent = (
     <div
       ref={popupRef}
       className="fixed z-[9999] bg-popover rounded-lg shadow-2xl border-2 border-primary p-4 animate-in fade-in duration-200"
@@ -338,4 +339,6 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(popupContent, document.body);
 };
