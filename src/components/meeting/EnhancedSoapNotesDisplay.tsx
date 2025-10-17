@@ -9,6 +9,7 @@ import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
 import { EmrFormatSelector, EmrFormat } from './EmrFormatSelector';
 import { formatSoapNote } from '@/utils/emrFormatters';
+import { ConsultationExportButton } from './ConsultationExportButton';
 
 interface SoapNote {
   S: string;
@@ -343,6 +344,16 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
               <Copy className="h-4 w-4" />
               Copy All
             </Button>
+            <ConsultationExportButton
+              shorthand={shorthand}
+              standard={standard}
+              summaryLine={summaryLine}
+              patientCopy={patientCopy}
+              referral={referral}
+              review={review}
+              clinicalActions={clinicalActions}
+              consultationType={consultationType}
+            />
             {onExport && (
               <Button
                 variant="outline"
