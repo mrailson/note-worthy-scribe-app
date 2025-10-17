@@ -55,6 +55,31 @@ const getStatusColor = (status: string) => {
   }
 };
 
+/**
+ * Splits chunk text and highlights last word as tentative/guessed
+ */
+const renderChunkTextWithLastWordHighlight = (text: string) => {
+  if (!text || text.trim().length === 0) return <span>"{text}"</span>;
+  
+  const trimmed = text.trim();
+  const words = trimmed.split(/\s+/);
+  
+  if (words.length === 0) return <span>"{text}"</span>;
+  if (words.length === 1) {
+    return <span className="opacity-30 italic">"{trimmed}"</span>;
+  }
+  
+  const lastWord = words[words.length - 1];
+  const beforeLastWord = words.slice(0, -1).join(' ');
+  
+  return (
+    <span>
+      "{beforeLastWord}{' '}
+      <span className="opacity-30 italic" title="Last word may be preliminary">{lastWord}</span>"
+    </span>
+  );
+};
+
 export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ 
   chunks, 
   isRecording, 
@@ -220,7 +245,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                               )}
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
-                              "{chunk.text}"
+                              {renderChunkTextWithLastWordHighlight(chunk.text)}
                             </div>
                             {chunk.mergeRejectionReason && (
                               <div className="text-xs text-destructive font-semibold mt-1 p-1 bg-destructive/10 rounded">
