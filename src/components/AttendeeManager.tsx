@@ -200,13 +200,14 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           description: "Attendee updated successfully"
         });
       } else {
-        // Only set user_id if the attendee email matches the logged-in user's email
-        const isCurrentUser = formData.email?.toLowerCase() === user?.email?.toLowerCase();
+        if (!user?.id) {
+          throw new Error("User ID is required");
+        }
         
         const { error } = await supabase
           .from('attendees')
           .insert({
-            user_id: isCurrentUser ? user?.id : null,
+            user_id: user.id,
             practice_id: userPracticeIds[0],
             name: formData.name,
             email: formData.email || null,
