@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
+import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { detectDevice } from "@/utils/DeviceDetection";
@@ -17,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
+import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
   AlertDialog,
@@ -201,6 +202,9 @@ const MeetingHistory = () => {
   
   // Mic test service visibility state
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
+  
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
@@ -1700,7 +1704,7 @@ const MeetingHistory = () => {
           </Card>
         </div>
 
-        {/* Search Bar with Manual Refresh */}
+        {/* Search Bar with Manual Refresh and Import */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1">
             <MeetingSearchBar 
@@ -1714,82 +1718,95 @@ const MeetingHistory = () => {
             />
           </div>
           
-          {/* Manual Refresh Button - Enhanced with overview generation */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              console.log('🔄 Manual refresh requested');
-              fetchMeetings(currentPage);
-              toast.success('Refreshing meeting list...');
-              
-              // Generate missing overviews after refreshing
-              setTimeout(async () => {
-                try {
-                  const meetingsNeedingOverviews = meetings.filter(meeting => 
-                    meeting.status === 'completed' && 
-                    (!meeting.overview || meeting.overview.trim() === '')
-                  );
-                  
-                  if (meetingsNeedingOverviews.length > 0) {
-                    console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
-                    toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+          <div className="flex gap-2">
+            {/* Import Meeting Button */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import Meeting</span>
+            </Button>
+            
+            {/* Manual Refresh Button - Enhanced with overview generation */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                console.log('🔄 Manual refresh requested');
+                fetchMeetings(currentPage);
+                toast.success('Refreshing meeting list...');
+                
+                // Generate missing overviews after refreshing
+                setTimeout(async () => {
+                  try {
+                    const meetingsNeedingOverviews = meetings.filter(meeting => 
+                      meeting.status === 'completed' && 
+                      (!meeting.overview || meeting.overview.trim() === '')
+                    );
                     
-                    let successCount = 0;
-                    for (const meeting of meetingsNeedingOverviews) {
-                      try {
-                        // Check if meeting has notes to generate overview from
-                        const { data: summaryData } = await supabase
-                          .from('meeting_summaries')
-                          .select('summary')
-                          .eq('meeting_id', meeting.id)
-                          .single();
-                          
-                        if (summaryData?.summary) {
-                          const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
-                            body: {
-                              meetingTitle: meeting.title,
-                              meetingNotes: summaryData.summary
+                    if (meetingsNeedingOverviews.length > 0) {
+                      console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
+                      toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+                      
+                      let successCount = 0;
+                      for (const meeting of meetingsNeedingOverviews) {
+                        try {
+                          // Check if meeting has notes to generate overview from
+                          const { data: summaryData } = await supabase
+                            .from('meeting_summaries')
+                            .select('summary')
+                            .eq('meeting_id', meeting.id)
+                            .single();
+                            
+                          if (summaryData?.summary) {
+                            const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+                              body: {
+                                meetingTitle: meeting.title,
+                                meetingNotes: summaryData.summary
+                              }
+                            });
+                            
+                            if (!error && data?.overview) {
+                              // Save to both locations for consistency
+                              await supabase
+                                .from('meetings')
+                                .update({ overview: data.overview })
+                                .eq('id', meeting.id);
+                                
+                              await supabase
+                                .from('meeting_overviews')
+                                .upsert({
+                                  meeting_id: meeting.id,
+                                  overview: data.overview
+                                });
+                                
+                              successCount++;
                             }
-                          });
-                          
-                          if (!error && data?.overview) {
-                            // Save to both locations for consistency
-                            await supabase
-                              .from('meetings')
-                              .update({ overview: data.overview })
-                              .eq('id', meeting.id);
-                              
-                            await supabase
-                              .from('meeting_overviews')
-                              .upsert({
-                                meeting_id: meeting.id,
-                                overview: data.overview
-                              });
-                              
-                            successCount++;
                           }
+                        } catch (overviewError) {
+                          console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
                         }
-                      } catch (overviewError) {
-                        console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
+                      }
+                      
+                      if (successCount > 0) {
+                        toast.success(`Generated ${successCount} new overviews`);
+                        fetchMeetings(currentPage); // Refresh to show new overviews
                       }
                     }
-                    
-                    if (successCount > 0) {
-                      toast.success(`Generated ${successCount} new overviews`);
-                      fetchMeetings(currentPage); // Refresh to show new overviews
-                    }
+                  } catch (error) {
+                    console.error('Error generating overviews:', error);
                   }
-                } catch (error) {
-                  console.error('Error generating overviews:', error);
-                }
-              }, 1000); // Wait 1 second for the initial refresh to complete
-            }}
-            className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="sm:hidden">Refresh</span>
-          </Button>
+                }, 1000); // Wait 1 second for the initial refresh to complete
+              }}
+              className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="sm:hidden">Refresh</span>
+            </Button>
+          </div>
         </div>
 
         {/* Multi-select and Delete Controls */}
@@ -2528,6 +2545,36 @@ const MeetingHistory = () => {
           notes={modalNotes}
           onNotesChange={setModalNotes}
         />
+        
+        {/* Import Meeting Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-primary" />
+                Import Meeting Content
+              </DialogTitle>
+              <DialogDescription>
+                Load demo meetings, import transcripts from documents, or upload audio files for automatic transcription
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <MeetingImporter
+                onMeetingCreated={(meetingId) => {
+                  setImportDialogOpen(false);
+                  toast.success('Meeting imported successfully!');
+                  fetchMeetings(currentPage);
+                  
+                  // Optionally open the newly created meeting
+                  setTimeout(() => {
+                    handleViewMeetingSummary(meetingId);
+                  }, 1000);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>
