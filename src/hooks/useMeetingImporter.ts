@@ -101,8 +101,7 @@ export const useMeetingImporter = () => {
         .from('meeting_transcripts')
         .insert({
           meeting_id: meeting.id,
-          content: data.transcript,
-          is_final: true
+          content: data.transcript
         });
 
       if (transcriptError) throw transcriptError;
