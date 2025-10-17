@@ -1670,14 +1670,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       
       // 5. Show success toast with undo button
       if (updatedTabs.length > 0) {
-        toast.success(
-          `Replaced "${correction.original}" with "${correction.replacement}" in ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`,
-          {
-            duration: 8000,
-            action: {
-              label: 'Undo',
-              onClick: () => handleUndoInlineCorrection()
-            }
+        const isDeletion = correction.replacement === '';
+        const message = isDeletion
+          ? `Deleted "${correction.original}" from ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`
+          : `Replaced "${correction.original}" with "${correction.replacement}" in ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`;
+        
+        toast.success(message, {
+          duration: 8000,
+          action: {
+            label: 'Undo',
+            onClick: () => handleUndoInlineCorrection()
+          }
           }
         );
       } else {
