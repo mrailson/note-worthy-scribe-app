@@ -35,7 +35,6 @@ export const useMeetingImporter = () => {
         user_id: user.id,
         title: data.isDemo ? `🎭 ${data.title}` : data.title,
         transcript: '', // Will be stored in meeting_transcripts table
-        duration: '0:00',
         word_count: data.transcript.split(/\s+/).filter(word => word.trim()).length,
         speaker_count: data.attendees.length || 1,
         start_time: new Date().toISOString(),
