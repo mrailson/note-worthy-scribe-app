@@ -10,6 +10,8 @@ interface MeetingImportData {
   agenda?: string;
   format?: string;
   source: 'text_import' | 'audio_import' | 'file_import';
+  isDemo?: boolean;
+  demoType?: string;
 }
 
 export const useMeetingImporter = () => {
@@ -31,11 +33,11 @@ export const useMeetingImporter = () => {
       // Step 1: Create meeting record
       const meetingData = {
         user_id: user.id,
-        title: data.title,
+        title: data.isDemo ? `🎭 ${data.title}` : data.title,
         transcript: '', // Will be stored in meeting_transcripts table
         duration: '0:00',
         word_count: data.transcript.split(/\s+/).filter(word => word.trim()).length,
-        speaker_count: 1,
+        speaker_count: data.attendees.length || 1,
         start_time: new Date().toISOString(),
         meeting_format: data.format || 'imported',
         participants: data.attendees.map(a => a.name),
@@ -45,14 +47,17 @@ export const useMeetingImporter = () => {
         import_metadata: {
           imported_at: new Date().toISOString(),
           original_length: data.transcript.length,
-          attendees_count: data.attendees.length
+          attendees_count: data.attendees.length,
+          is_demo: data.isDemo || false,
+          demo_type: data.demoType
         },
         meeting_configuration: {
           title: data.title,
           attendees: data.attendees,
           agenda: data.agenda,
           format: data.format,
-          import_source: data.source
+          import_source: data.source,
+          is_demo: data.isDemo || false
         },
         notes_generation_status: 'pending'
       };

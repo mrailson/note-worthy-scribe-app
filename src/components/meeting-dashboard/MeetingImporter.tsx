@@ -5,10 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { AudioImport } from '@/components/gpscribe/AudioImport';
 import { useMeetingImporter } from '@/hooks/useMeetingImporter';
+import { FileImporter } from '@/utils/FileImporter';
+import { DemoSamplesSelector } from './DemoSamplesSelector';
+import { DemoMeeting } from '@/data/demoMeetings';
 
 interface MeetingImporterProps {
   onMeetingCreated?: (meetingId: string) => void;
@@ -42,30 +45,43 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('text/') && !file.name.endsWith('.txt')) {
-      toast.error('Please upload a text file (.txt)');
-      return;
-    }
-
+    // Check file size (1MB limit)
     if (file.size > 1024 * 1024) {
       toast.error('File too large. Maximum size is 1MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      if (text) {
-        setImportText(text);
-        toast.success(`Loaded text from ${file.name}`);
+    try {
+      toast.info('Processing file...');
+      
+      // Use FileImporter for Word/PDF files, or direct read for text
+      if (file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.name.endsWith('.pdf')) {
+        const result = await FileImporter.importTranscriptFile(file);
+        setImportText(result.content);
+        toast.success(`Loaded ${result.wordCount} words from ${file.name}`);
+      } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          if (text) {
+            setImportText(text);
+            toast.success(`Loaded text from ${file.name}`);
+          }
+        };
+        reader.onerror = () => toast.error('Failed to read file');
+        reader.readAsText(file);
+      } else {
+        toast.error('Unsupported file type. Please upload .txt, .doc, .docx, or .pdf files');
       }
-    };
-    reader.onerror = () => toast.error('Failed to read file');
-    reader.readAsText(file);
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error('Failed to process file');
+    }
+    
     event.target.value = '';
   };
 
@@ -115,6 +131,28 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     }
   };
 
+  const handleDemoSelect = async (demo: DemoMeeting) => {
+    const meetingData = {
+      transcript: demo.transcript,
+      title: demo.title,
+      attendees: demo.attendees,
+      agenda: demo.agenda,
+      format: demo.format,
+      source: 'text_import' as const,
+      isDemo: true,
+      demoType: demo.type
+    };
+
+    try {
+      const meetingId = await importMeeting(meetingData);
+      toast.success(`Demo meeting "${demo.title}" loaded successfully!`);
+      onMeetingCreated?.(meetingId);
+    } catch (error) {
+      console.error('Demo import failed:', error);
+      toast.error('Failed to load demo meeting');
+    }
+  };
+
   const wordCount = importText.trim().split(/\s+/).filter(word => word.length > 0).length;
 
   return (
@@ -141,8 +179,12 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
           </div>
         )}
 
-        <Tabs defaultValue="text" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="demo" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="demo" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Demo Samples
+            </TabsTrigger>
             <TabsTrigger value="text" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Import Text
@@ -152,6 +194,13 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
               Import Audio
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="demo" className="space-y-4 mt-4">
+            <DemoSamplesSelector 
+              onSelectDemo={handleDemoSelect}
+              disabled={isImporting}
+            />
+          </TabsContent>
 
           <TabsContent value="text" className="space-y-4 mt-4">
             <div className="flex flex-wrap gap-2">
@@ -168,7 +217,7 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
               <div className="relative">
                 <input
                   type="file"
-                  accept=".txt,text/plain"
+                  accept=".txt,.doc,.docx,.pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
                   onChange={handleFileUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   disabled={isImporting}
@@ -179,8 +228,12 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
                   disabled={isImporting}
                 >
                   <Upload className="h-4 w-4 mr-1" />
-                  Upload Text File
+                  Upload Document
                 </Button>
+              </div>
+              
+              <div className="text-xs text-muted-foreground">
+                Supported: TXT, DOC, DOCX, PDF
               </div>
 
               {importText && (
