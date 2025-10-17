@@ -239,6 +239,8 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto'
       }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       role="dialog"
       aria-label="Word correction popup"
     >
