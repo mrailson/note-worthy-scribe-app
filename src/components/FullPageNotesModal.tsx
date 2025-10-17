@@ -452,20 +452,37 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          return;
        }
 
-       if (meetingData) {
-         if (meetingData.notes_style_2) {
-           setNotesStyle2(meetingData.notes_style_2);
-         }
-         if (meetingData.notes_style_3) {
-           setNotesStyle3(meetingData.notes_style_3);
-         }
-         if (meetingData.notes_style_4) {
-           setNotesStyle4(meetingData.notes_style_4);
-         }
-         if (meetingData.notes_style_5) {
-           setNotesStyle5(meetingData.notes_style_5);
-         }
-       }
+        if (meetingData) {
+          if (meetingData.notes_style_2) {
+            setNotesStyle2(meetingData.notes_style_2);
+          }
+          if (meetingData.notes_style_3) {
+            setNotesStyle3(meetingData.notes_style_3);
+          }
+          if (meetingData.notes_style_4) {
+            setNotesStyle4(meetingData.notes_style_4);
+          }
+          if (meetingData.notes_style_5) {
+            setNotesStyle5(meetingData.notes_style_5);
+          }
+        }
+
+        // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
+        if (!meetingData?.notes_style_3) {
+          const { data: summaryRow, error: summaryErr } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', currentMeetingId)
+            .order('updated_at', { ascending: false })
+            .maybeSingle();
+
+          if (!summaryErr && summaryRow?.summary) {
+            setNotesStyle3(summaryRow.summary);
+            // Persist for next time to keep UI consistent
+            void saveNoteStyleToDatabase(3, summaryRow.summary);
+            console.log('✅ Loaded Standard notes from meeting_summaries fallback');
+          }
+        }
 
        // Load executive and limerick notes from multi-type notes table (takes priority)
        if (multiNotesData && multiNotesData.length > 0) {
