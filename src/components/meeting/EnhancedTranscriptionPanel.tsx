@@ -272,29 +272,169 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       // Split transcript into paragraphs
       const paragraphs = transcript.split('\n').filter(line => line.trim());
 
-      // Create document
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: paragraphs.map(text => 
+      // Create header sections with meeting metadata
+      const headerSections = [];
+      
+      // Meeting Title
+      if (meetingContext?.title) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: meetingContext.title,
+                bold: true,
+                size: 32, // 16pt
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+      }
+
+      // Meeting Date
+      if (meetingContext?.date) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Meeting Date: ',
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              }),
+              new TextRun({
+                text: new Date(meetingContext.date).toLocaleDateString('en-GB', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }),
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      // Meeting Type
+      if (meetingContext?.meeting_type) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Meeting Type: ',
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              }),
+              new TextRun({
+                text: meetingContext.meeting_type === 'face-to-face' ? 'Face to Face' : 'MS Teams',
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      // Attendees
+      if (meetingContext?.attendees && meetingContext.attendees.length > 0) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Attendees:',
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 100 }
+          })
+        );
+
+        meetingContext.attendees.forEach((attendee: string) => {
+          headerSections.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: text,
-                  size: 24, // 12pt font
+                  text: `• ${attendee}`,
+                  size: 24,
+                  font: 'Calibri',
                 })
               ],
-              spacing: {
-                after: 200, // Add spacing after each paragraph
-              }
+              spacing: { after: 100 },
+              indent: { left: 720 } // Indent bullet points
             })
-          )
+          );
+        });
+      }
+
+      // Add separator line
+      headerSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: '─'.repeat(80),
+              size: 24,
+              color: '999999',
+            })
+          ],
+          spacing: { before: 200, after: 400 }
+        })
+      );
+
+      // Transcript heading
+      headerSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'Transcript',
+              bold: true,
+              size: 28,
+              font: 'Calibri',
+            })
+          ],
+          spacing: { after: 300 }
+        })
+      );
+
+      // Create document with proper formatting
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            ...headerSections,
+            ...paragraphs.map(text => 
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: text,
+                    size: 24, // 12pt font
+                    font: 'Calibri',
+                  })
+                ],
+                spacing: {
+                  after: 240, // 12pt spacing between paragraphs
+                  line: 360, // 1.5 line spacing
+                },
+              })
+            )
+          ]
         }]
       });
 
       // Generate and download
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `transcript-${new Date().toISOString().split('T')[0]}.docx`);
+      const fileName = meetingContext?.title 
+        ? `${meetingContext.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-transcript.docx`
+        : `transcript-${new Date().toISOString().split('T')[0]}.docx`;
+      
+      saveAs(blob, fileName);
       toast.success('Transcript downloaded');
     } catch (error) {
       console.error('Error downloading transcript:', error);
