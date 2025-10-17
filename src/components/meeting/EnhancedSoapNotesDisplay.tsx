@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Download, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, FileText, ChevronDown, ChevronUp, FileDown, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { ViewModeSelector, ViewMode } from './ViewModeSelector';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
-import { EmrFormatSelector, EmrFormat } from './EmrFormatSelector';
 import { formatSoapNote } from '@/utils/emrFormatters';
 import { ConsultationExportButton } from './ConsultationExportButton';
+
+type ViewMode = 'quick' | 'standard' | 'detailed' | 'comparison';
+type EmrFormat = 'emis' | 'systmone';
 
 interface SoapNote {
   S: string;
@@ -323,56 +325,127 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   return (
     <div className="space-y-4">
       {/* Header with actions */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold">Patient Consultation Notes</h3>
-            {consultationType && (
-              <p className="text-sm text-muted-foreground">
-                Consultation Type: {consultationType}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <ViewModeSelector currentMode={viewMode} onModeChange={setViewMode} />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyAll}
-              className="gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy All
-            </Button>
-            <ConsultationExportButton
-              shorthand={shorthand}
-              standard={standard}
-              summaryLine={summaryLine}
-              patientCopy={patientCopy}
-              referral={referral}
-              review={review}
-              clinicalActions={clinicalActions}
-              consultationType={consultationType}
-            />
-            {onExport && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onExport}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            )}
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Patient Consultation Notes</h3>
+          {consultationType && (
+            <p className="text-sm text-muted-foreground">
+              Consultation Type: {consultationType}
+            </p>
+          )}
         </div>
         
-        {/* EMR Format Selector */}
-        <EmrFormatSelector 
-          selectedFormat={emrFormat} 
-          onFormatChange={handleEmrFormatChange}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Tabs */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground">View:</span>
+            <div className="flex gap-1">
+              <Button
+                variant={viewMode === 'quick' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('quick')}
+                className="h-7 px-3 text-xs"
+              >
+                Quick
+              </Button>
+              <Button
+                variant={viewMode === 'standard' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('standard')}
+                className="h-7 px-3 text-xs"
+              >
+                Standard
+              </Button>
+              <Button
+                variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('detailed')}
+                className="h-7 px-3 text-xs"
+              >
+                Detailed
+              </Button>
+              <Button
+                variant={viewMode === 'comparison' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('comparison')}
+                className="h-7 px-3 text-xs"
+              >
+                Compare
+              </Button>
+            </div>
+          </div>
+
+          {/* EMR Format Selector - Compact */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground">Format:</span>
+            <div className="flex gap-1">
+              <Button
+                variant={emrFormat === 'emis' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleEmrFormatChange('emis')}
+                className="h-7 px-3 text-xs"
+              >
+                EMIS
+              </Button>
+              <Button
+                variant={emrFormat === 'systmone' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleEmrFormatChange('systmone')}
+                className="h-7 px-3 text-xs"
+              >
+                SystmOne
+              </Button>
+            </div>
+          </div>
+
+          {/* Actions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <MoreVertical className="h-4 w-4" />
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleCopyAll}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy All
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={async () => {
+                  const btn = document.querySelector('[data-export-word]') as HTMLButtonElement;
+                  btn?.click();
+                }}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Export to Word
+              </DropdownMenuItem>
+              {onExport && (
+                <DropdownMenuItem onClick={onExport}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export (Other)
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Hidden Word Export Button */}
+          <div className="hidden">
+            <div data-export-word>
+              <ConsultationExportButton
+                shorthand={shorthand}
+                standard={standard}
+                summaryLine={summaryLine}
+                patientCopy={patientCopy}
+                referral={referral}
+                review={review}
+                clinicalActions={clinicalActions}
+                consultationType={consultationType}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content with Tabs */}
