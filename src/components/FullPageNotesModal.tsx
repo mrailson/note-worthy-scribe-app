@@ -133,6 +133,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes - Standard (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [transcriptLoaded, setTranscriptLoaded] = useState(false); // Track if transcript has been loaded
   const [isLoadingBackupTranscript, setIsLoadingBackupTranscript] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true); // Transcript card expanded by default
   const [isFormattingParagraphs, setIsFormattingParagraphs] = useState(false);
@@ -188,7 +189,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
    useEffect(() => {
      console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'meeting?.title:', meeting?.title);
      
-      // Enhanced validation before data fetching
+      // Enhanced validation - only validate meeting, don't auto-fetch transcript
       if (isOpen && meeting?.id) {
         // Validate meeting ID format
         if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
@@ -205,26 +206,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
         
         console.log('✅ Meeting validation passed for:', meeting.title, 'ID:', meeting.id);
+        console.log('📝 Transcript will be loaded on-demand when transcript tab is opened');
         
-        if (isResourceOperationSafe()) {
-          console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
-          fetchTranscriptData();
-        } else {
-          console.log('⚠️ Deferring transcript fetch - recording in progress');
-          
-          // Set up a check for when recording stops
-          const checkRecordingComplete = setInterval(() => {
-            if (isResourceOperationSafe()) {
-              console.log('✅ Recording stopped, fetching deferred data for meeting:', meeting.id);
-              fetchTranscriptData();
-              clearInterval(checkRecordingComplete);
-            }
-          }, 1000);
-          
-          return () => clearInterval(checkRecordingComplete);
-        }
+        // Reset transcript loaded state when modal opens with new meeting
+        setTranscriptLoaded(false);
+        setTranscript('');
+        
+        // Don't auto-fetch transcript - it will be loaded when user clicks transcript tab
+        // This prevents UI freeze on modal open for large transcripts
       }
-   }, [isOpen, meeting?.id, meeting?.title, user?.id, isResourceOperationSafe]);
+   }, [isOpen, meeting?.id, meeting?.title, user?.id]);
 
    const fetchTranscriptData = async () => {
      if (!meeting?.id) {
@@ -320,12 +311,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         
      } catch (error) {
        console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
-     } finally {
-       // Only update loading state if we're still on the same meeting
-       if (meeting?.id === currentMeetingId) {
-         setIsLoadingTranscript(false);
-       }
-     }
+      } finally {
+        // Only update loading state if we're still on the same meeting
+        if (meeting?.id === currentMeetingId) {
+          setIsLoadingTranscript(false);
+          setTranscriptLoaded(true); // Mark transcript as loaded
+        }
+      }
    };
 
    const loadExistingNoteStyles = async () => {
@@ -2859,6 +2851,16 @@ ${transcript}`;
           {/* Tabs Content */}
           <div className="flex-1 overflow-hidden">
             <Tabs defaultValue="notes" value={activeTab} onValueChange={(value) => {
+              // Lazy load transcript when user switches to transcript tab
+              if (value === 'transcript' && !transcriptLoaded && !isLoadingTranscript) {
+                console.log('🔄 Lazy loading transcript on tab switch...');
+                if (isResourceOperationSafe()) {
+                  fetchTranscriptData();
+                } else {
+                  toast.error("Cannot load transcript while recording is active.");
+                }
+              }
+              
               // If we're editing, save current changes before switching tabs
               if (isEditing && editingTab !== value && !editingTab.startsWith(`${value}-`)) {
                 // Save current version before switching tabs
