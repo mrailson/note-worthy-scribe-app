@@ -200,6 +200,28 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return () => clearTimeout(id);
     }
   }, [activeNotesStyleTab, notesStyle4]);
+  // Generate Minutes (Standard) HTML lazily when tab is opened or content changes
+  useEffect(() => {
+    if (activeNotesStyleTab !== 'style1') return;
+    if (!notesStyle3?.trim()) {
+      setMinutesHtml("");
+      setIsRenderingMinutes(false);
+      return;
+    }
+    setIsRenderingMinutes(true);
+    const id = setTimeout(() => {
+      try {
+        const html = renderMinutesMarkdown(notesStyle3);
+        setMinutesHtml(html);
+      } catch (e) {
+        console.error('Error rendering Standard minutes:', e);
+        setMinutesHtml(notesStyle3);
+      } finally {
+        setIsRenderingMinutes(false);
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [activeNotesStyleTab, notesStyle3]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3271,7 +3293,7 @@ ${transcript}`;
                                       </style>
                                       <div 
                                         dangerouslySetInnerHTML={{ 
-                                          __html: renderMinutesMarkdown(notesStyle3)
+                                          __html: activeNotesStyleTab === 'style1' ? (minutesHtml || '') : ''
                                         }}
                                       />
                                     </div>
