@@ -461,6 +461,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             onClick={handleCleanTranscript}
             disabled={!transcript}
             className={cn(isIPhone && "w-full justify-start")}
+            title="Removes profanity, filler words, and cleans NHS medical terms"
           >
             <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2 text-nhs-blue")} />
             Clean Transcript
