@@ -35,36 +35,71 @@ interface EnhancedSoapNotesDisplayProps {
   onEmailPatientCopy?: () => void;
 }
 
-const soapSections = [
-  {
-    key: 'S' as const,
-    title: 'S – Subjective',
-    icon: '💬',
-    description: 'Patient\'s perspective and symptoms',
-    color: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
-  },
-  {
-    key: 'O' as const,
-    title: 'O – Objective',
-    icon: '🩺',
-    description: 'Clinical findings and observations',
-    color: 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
-  },
-  {
-    key: 'A' as const,
-    title: 'A – Assessment',
-    icon: '🔎',
-    description: 'Clinical impression and diagnosis',
-    color: 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20'
-  },
-  {
-    key: 'P' as const,
-    title: 'P – Plan',
-    icon: '✅',
-    description: 'Treatment and follow-up',
-    color: 'border-l-violet-500 bg-violet-50/50 dark:bg-violet-950/20'
+const getSoapSections = (emrFormat: EmrFormat) => {
+  if (emrFormat === 'emis') {
+    return [
+      {
+        key: 'S' as const,
+        title: 'History',
+        icon: '💬',
+        description: 'Patient\'s presenting complaint and history',
+        color: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+      },
+      {
+        key: 'O' as const,
+        title: 'Examination',
+        icon: '🩺',
+        description: 'Clinical findings and observations',
+        color: 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
+      },
+      {
+        key: 'A' as const,
+        title: 'Comment',
+        icon: '🔎',
+        description: 'Clinical impression and diagnosis',
+        color: 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20'
+      },
+      {
+        key: 'P' as const,
+        title: 'Plan',
+        icon: '✅',
+        description: 'Treatment and follow-up',
+        color: 'border-l-violet-500 bg-violet-50/50 dark:bg-violet-950/20'
+      }
+    ];
+  } else {
+    return [
+      {
+        key: 'S' as const,
+        title: 'S – Subjective',
+        icon: '💬',
+        description: 'Patient\'s perspective and symptoms',
+        color: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+      },
+      {
+        key: 'O' as const,
+        title: 'O – Objective',
+        icon: '🩺',
+        description: 'Clinical findings and observations',
+        color: 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
+      },
+      {
+        key: 'A' as const,
+        title: 'A – Assessment',
+        icon: '🔎',
+        description: 'Clinical impression and diagnosis',
+        color: 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20'
+      },
+      {
+        key: 'P' as const,
+        title: 'P – Plan',
+        icon: '✅',
+        description: 'Treatment and follow-up',
+        color: 'border-l-violet-500 bg-violet-50/50 dark:bg-violet-950/20'
+      }
+    ];
   }
-];
+};
 
 export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> = ({
   shorthand,
@@ -206,6 +241,8 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   if (!soapNotes && !summaryLine) {
     return null;
   }
+
+  const soapSections = getSoapSections(emrFormat);
 
   const renderSoapCard = (section: typeof soapSections[0], content: string, isCompact: boolean = false) => {
     const isExpanded = expandedSections.has(section.key);

@@ -21,9 +21,9 @@ export const formatForEMIS = (
   // If copying a single section
   if (section) {
     const sectionHeaders = {
-      S: 'SUBJECTIVE',
-      O: 'OBJECTIVE',
-      A: 'ASSESSMENT',
+      S: 'HISTORY',
+      O: 'EXAMINATION',
+      A: 'COMMENT',
       P: 'PLAN'
     };
     return `${sectionHeaders[section]}\n${soapNote[section]}`;
@@ -33,13 +33,13 @@ export const formatForEMIS = (
   const consultationLabel = consultationType ? ` - ${consultationType}` : '';
   return `Consultation${consultationLabel} - ${timestamp}
 
-SUBJECTIVE
+HISTORY
 ${soapNote.S}
 
-OBJECTIVE
+EXAMINATION
 ${soapNote.O}
 
-ASSESSMENT
+COMMENT
 ${soapNote.A}
 
 PLAN
