@@ -260,7 +260,7 @@ export const RealtimeTranscriptCard = ({
           ref={scrollAreaRef}
           className={cn("rounded-md border bg-background/50 p-3", {
             "h-[calc(100vh-20rem)]": isExpanded,
-            "h-[18rem]": !isExpanded
+            "h-[22.5rem]": !isExpanded
           })}
           onScrollCapture={handleScroll}
         >
