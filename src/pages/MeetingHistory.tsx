@@ -1703,7 +1703,7 @@ const MeetingHistory = () => {
            </Card>
          </div>
 
-         {/* Search Bar and Actions Row */}
+         {/* Search Bar */}
          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
            <div className="flex-1">
              <MeetingSearchBar 
@@ -1716,96 +1716,9 @@ const MeetingHistory = () => {
                advancedFilters={advancedFilters}
              />
            </div>
-           
-           <div className="flex gap-2">
-             <Button
-               variant="default"
-               size="default"
-               onClick={() => setImportDialogOpen(true)}
-               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
-             >
-               <Upload className="h-4 w-4" />
-               <span className="hidden sm:inline">Import Meeting</span>
-               <span className="sm:hidden">Import</span>
-             </Button>
-             
-             <Button
-               variant="outline"
-               size="default"
-               onClick={async () => {
-                 console.log('🔄 Manual refresh requested');
-                 fetchMeetings(currentPage);
-                 toast.success('Refreshing meeting list...');
-                 
-                 // Generate missing overviews after refreshing
-                 setTimeout(async () => {
-                   try {
-                     const meetingsNeedingOverviews = meetings.filter(meeting => 
-                       meeting.status === 'completed' && 
-                       (!meeting.overview || meeting.overview.trim() === '')
-                     );
-                     
-                     if (meetingsNeedingOverviews.length > 0) {
-                       console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
-                       toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
-                       
-                       let successCount = 0;
-                       for (const meeting of meetingsNeedingOverviews) {
-                         try {
-                           const { data: summaryData } = await supabase
-                             .from('meeting_summaries')
-                             .select('summary')
-                             .eq('meeting_id', meeting.id)
-                             .single();
-                             
-                           if (summaryData?.summary) {
-                             const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
-                               body: {
-                                 meetingTitle: meeting.title,
-                                 meetingNotes: summaryData.summary
-                               }
-                             });
-                             
-                             if (!error && data?.overview) {
-                               await supabase
-                                 .from('meetings')
-                                 .update({ overview: data.overview })
-                                 .eq('id', meeting.id);
-                                 
-                               await supabase
-                                 .from('meeting_overviews')
-                                 .upsert({
-                                   meeting_id: meeting.id,
-                                   overview: data.overview
-                                 });
-                                 
-                               successCount++;
-                             }
-                           }
-                         } catch (overviewError) {
-                           console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
-                         }
-                       }
-                       
-                       if (successCount > 0) {
-                         toast.success(`Generated ${successCount} new overviews`);
-                         fetchMeetings(currentPage);
-                       }
-                     }
-                   } catch (error) {
-                     console.error('Error generating overviews:', error);
-                   }
-                 }, 1000);
-               }}
-               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
-             >
-               <RefreshCw className="h-4 w-4" />
-               <span className="hidden sm:inline">Refresh</span>
-             </Button>
-           </div>
          </div>
 
-         {/* Selection Controls Row */}
+         {/* Selection Controls and Actions Row */}
          {meetings.length > 0 && (
            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
              <div className="flex items-center gap-3 flex-wrap">
@@ -1852,6 +1765,93 @@ const MeetingHistory = () => {
              </div>
 
              <div className="flex gap-2 flex-wrap">
+               {/* Import Meeting Button */}
+               <Button
+                 variant="default"
+                 size="default"
+                 onClick={() => setImportDialogOpen(true)}
+                 className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+               >
+                 <Upload className="h-4 w-4" />
+                 <span className="hidden sm:inline">Import Meeting</span>
+                 <span className="sm:hidden">Import</span>
+               </Button>
+               
+               {/* Refresh Button */}
+               <Button
+                 variant="outline"
+                 size="default"
+                 onClick={async () => {
+                   console.log('🔄 Manual refresh requested');
+                   fetchMeetings(currentPage);
+                   toast.success('Refreshing meeting list...');
+                   
+                   // Generate missing overviews after refreshing
+                   setTimeout(async () => {
+                     try {
+                       const meetingsNeedingOverviews = meetings.filter(meeting => 
+                         meeting.status === 'completed' && 
+                         (!meeting.overview || meeting.overview.trim() === '')
+                       );
+                       
+                       if (meetingsNeedingOverviews.length > 0) {
+                         console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
+                         toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+                         
+                         let successCount = 0;
+                         for (const meeting of meetingsNeedingOverviews) {
+                           try {
+                             const { data: summaryData } = await supabase
+                               .from('meeting_summaries')
+                               .select('summary')
+                               .eq('meeting_id', meeting.id)
+                               .single();
+                               
+                             if (summaryData?.summary) {
+                               const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+                                 body: {
+                                   meetingTitle: meeting.title,
+                                   meetingNotes: summaryData.summary
+                                 }
+                               });
+                               
+                               if (!error && data?.overview) {
+                                 await supabase
+                                   .from('meetings')
+                                   .update({ overview: data.overview })
+                                   .eq('id', meeting.id);
+                                   
+                                 await supabase
+                                   .from('meeting_overviews')
+                                   .upsert({
+                                     meeting_id: meeting.id,
+                                     overview: data.overview
+                                   });
+                                   
+                                 successCount++;
+                               }
+                             }
+                           } catch (overviewError) {
+                             console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
+                           }
+                         }
+                         
+                         if (successCount > 0) {
+                           toast.success(`Generated ${successCount} new overviews`);
+                           fetchMeetings(currentPage);
+                         }
+                       }
+                     } catch (error) {
+                       console.error('Error generating overviews:', error);
+                     }
+                   }, 1000);
+                 }}
+                 className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+               >
+                 <RefreshCw className="h-4 w-4" />
+                 <span className="hidden sm:inline">Refresh Page</span>
+                 <span className="sm:hidden">Refresh</span>
+               </Button>
                {isSelectMode && selectedMeetings.length >= 2 && (
                  <AlertDialog>
                    <AlertDialogTrigger asChild>
