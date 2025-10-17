@@ -142,6 +142,13 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     toast.success('Summary line copied to clipboard');
   };
 
+  const handleCopyPatientCopy = () => {
+    if (!patientCopy) return;
+    
+    navigator.clipboard.writeText(patientCopy);
+    toast.success('Patient copy copied to clipboard');
+  };
+
   if (!soapNotes && !summaryLine) {
     return null;
   }
@@ -376,10 +383,22 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         <TabsContent value="patient" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Patient-Friendly Summary</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Plain language explanation for the patient
-              </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-base">Patient-Friendly Summary</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Plain language explanation for the patient
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyPatientCopy}
+                  className="h-8 w-8 p-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm whitespace-pre-wrap leading-relaxed">
