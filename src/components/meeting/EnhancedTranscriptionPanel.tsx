@@ -858,82 +858,74 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         </div>
       </div>
 
-      {/* Statistics Panel - Collapsible and Mobile-Optimized */}
-      <Collapsible open={showStats} onOpenChange={setShowStats}>
-        <Card>
-          <CollapsibleTrigger className={cn(
-            "w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors",
-            isMobile && "p-3"
-          )}>
+      {/* Statistics Panel - Hidden when collapsed to save space */}
+      {showStats && (
+        <Card className={cn(
+          "p-4 bg-muted/50",
+          isMobile && "p-3"
+        )}>
+          <div className="mb-3 flex items-center gap-2">
+            <BarChart3 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
             <span className={cn(
-              "font-semibold flex items-center gap-2",
+              "font-semibold",
               isIPhone && "text-sm"
             )}>
-              <BarChart3 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
               Statistics
             </span>
-            {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className={cn(
-              "p-4 bg-muted/50",
-              isMobile && "p-3"
-            )}>
-              <div className={cn(
-                "grid gap-4",
-                isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
-              )}>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
-                  <p className={cn(
-                    "font-semibold",
-                    isIPhone ? "text-lg" : "text-2xl"
-                  )}>{stats.totalChunks}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Avg Conf</p>
-                  <p className={cn(
-                    "font-semibold",
-                    isIPhone ? "text-lg" : "text-2xl"
-                  )}>{stats.avgConfidence}%</p>
-                </div>
-                {!isIPhone && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Low Conf</p>
-                    <p className={cn(
-                      "font-semibold text-amber-600",
-                      isMobile ? "text-lg" : "text-2xl"
-                    )}>{stats.lowConfidenceCount}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Fillers</p>
-                  <p className={cn(
-                    "font-semibold",
-                    isIPhone ? "text-lg" : "text-2xl"
-                  )}>{stats.fillerWordCount}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">PII</p>
-                  <p className={cn(
-                    "font-semibold text-red-600",
-                    isIPhone ? "text-lg" : "text-2xl"
-                  )}>{stats.piiCount}</p>
-                </div>
-                {!isIPhone && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Words</p>
-                    <p className={cn(
-                      "font-semibold",
-                      isMobile ? "text-lg" : "text-2xl"
-                    )}>{stats.wordCount.toLocaleString('en-GB')}</p>
-                  </div>
-                )}
-              </div>
+          </div>
+          <div className={cn(
+            "grid gap-4",
+            isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
+          )}>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
+              <p className={cn(
+                "font-semibold",
+                isIPhone ? "text-lg" : "text-2xl"
+              )}>{stats.totalChunks}</p>
             </div>
-          </CollapsibleContent>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Avg Conf</p>
+              <p className={cn(
+                "font-semibold",
+                isIPhone ? "text-lg" : "text-2xl"
+              )}>{stats.avgConfidence}%</p>
+            </div>
+            {!isIPhone && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Low Conf</p>
+                <p className={cn(
+                  "font-semibold text-amber-600",
+                  isMobile ? "text-lg" : "text-2xl"
+                )}>{stats.lowConfidenceCount}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Fillers</p>
+              <p className={cn(
+                "font-semibold",
+                isIPhone ? "text-lg" : "text-2xl"
+              )}>{stats.fillerWordCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">PII</p>
+              <p className={cn(
+                "font-semibold text-red-600",
+                isIPhone ? "text-lg" : "text-2xl"
+              )}>{stats.piiCount}</p>
+            </div>
+            {!isIPhone && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Words</p>
+                <p className={cn(
+                  "font-semibold",
+                  isMobile ? "text-lg" : "text-2xl"
+                )}>{stats.wordCount.toLocaleString('en-GB')}</p>
+              </div>
+            )}
+          </div>
         </Card>
-      </Collapsible>
+      )}
 
       {/* Context Section - Mobile-Optimized */}
       {contextData && (contextData.agenda || contextData.attendees.length > 0) && (
