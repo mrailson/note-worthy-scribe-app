@@ -1655,13 +1655,26 @@ const MeetingHistory = () => {
       
        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-6 max-w-6xl">
          {/* Header Section */}
-         <div className="space-y-2">
-           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-playfair font-bold text-foreground">
-             Meeting History
-           </h1>
-           <p className="text-base sm:text-lg font-inter text-muted-foreground">
-             View, edit, and manage your saved consultations
-           </p>
+         <div className="flex items-start justify-between gap-4">
+           <div className="space-y-2">
+             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-playfair font-bold text-foreground">
+               Meeting History
+             </h1>
+             <p className="text-base sm:text-lg font-inter text-muted-foreground">
+               View, edit, and manage your saved consultations
+             </p>
+           </div>
+           
+           <Button
+             variant="default"
+             size="default"
+             onClick={() => setImportDialogOpen(true)}
+             className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+           >
+             <Upload className="h-4 w-4" />
+             <span className="hidden sm:inline">Import Meeting</span>
+             <span className="sm:hidden">Import</span>
+           </Button>
          </div>
 
          {/* Stats Cards */}
@@ -1768,18 +1781,6 @@ const MeetingHistory = () => {
            </div>
 
            <div className="flex gap-2 flex-wrap">
-             {/* Import Meeting Button */}
-             <Button
-               variant="default"
-               size="default"
-               onClick={() => setImportDialogOpen(true)}
-               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
-             >
-               <Upload className="h-4 w-4" />
-               <span className="hidden sm:inline">Import Meeting</span>
-               <span className="sm:hidden">Import</span>
-             </Button>
-             
              {/* Refresh Button */}
              <Button
                variant="outline"
