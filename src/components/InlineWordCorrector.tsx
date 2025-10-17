@@ -90,7 +90,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     };
   }, [isActive, showPopup]);
 
-  // Calculate popup position
+  // Calculate popup position with improved viewport containment
   useEffect(() => {
     if (showPopup && selectionRect && popupRef.current) {
       const popupHeight = popupRef.current.offsetHeight;
@@ -99,20 +99,33 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
       const viewportWidth = window.innerWidth;
       const scrollY = window.scrollY;
       const scrollX = window.scrollX;
+      
+      const PADDING = 16; // Padding from viewport edges
 
+      // Start with popup above selection, centered
       let top = selectionRect.top + scrollY - popupHeight - 8;
       let left = selectionRect.left + scrollX + (selectionRect.width / 2) - (popupWidth / 2);
 
       // If popup would go above viewport, show below selection
-      if (top < scrollY) {
+      if (top < scrollY + PADDING) {
         top = selectionRect.bottom + scrollY + 8;
+        
+        // If still going off bottom of viewport, position at bottom with padding
+        if (top + popupHeight > scrollY + viewportHeight - PADDING) {
+          top = scrollY + viewportHeight - popupHeight - PADDING;
+        }
+      }
+      
+      // Ensure popup doesn't go off bottom even when positioned above
+      if (top + popupHeight > scrollY + viewportHeight - PADDING) {
+        top = scrollY + viewportHeight - popupHeight - PADDING;
       }
 
-      // Adjust horizontal position if near edge
-      if (left < scrollX + 10) {
-        left = scrollX + 10;
-      } else if (left + popupWidth > scrollX + viewportWidth - 10) {
-        left = scrollX + viewportWidth - popupWidth - 10;
+      // Adjust horizontal position to stay within viewport
+      if (left < scrollX + PADDING) {
+        left = scrollX + PADDING;
+      } else if (left + popupWidth > scrollX + viewportWidth - PADDING) {
+        left = scrollX + viewportWidth - popupWidth - PADDING;
       }
 
       setPopupPosition({ top, left });
@@ -202,12 +215,14 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 bg-white rounded-lg shadow-2xl border-2 border-nhs-blue p-4 animate-in fade-in duration-200"
+      className="fixed z-[9999] bg-popover rounded-lg shadow-2xl border-2 border-primary p-4 animate-in fade-in duration-200"
       style={{
         top: `${popupPosition.top}px`,
         left: `${popupPosition.left}px`,
         maxWidth: '320px',
-        minWidth: '280px'
+        minWidth: '280px',
+        maxHeight: 'calc(100vh - 32px)',
+        overflowY: 'auto'
       }}
       role="dialog"
       aria-label="Word correction popup"
