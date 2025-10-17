@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 
@@ -188,7 +188,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   const handleApplyCorrection = () => {
     const trimmedReplacement = replacement.trim();
     
-    if (!trimmedReplacement || selectedText === trimmedReplacement) {
+    if (selectedText === trimmedReplacement) {
       return;
     }
 
@@ -197,6 +197,20 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
       replacement: trimmedReplacement,
       applyToAll,
       saveForFuture
+    });
+
+    setShowPopup(false);
+    setSelectedText('');
+    setReplacement('');
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const handleDelete = () => {
+    onApplyCorrection({
+      original: selectedText,
+      replacement: '',
+      applyToAll,
+      saveForFuture: false // Don't save deletions for future
     });
 
     setShowPopup(false);
@@ -327,6 +341,15 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
           }}
         >
           Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="text-xs gap-1"
+          onClick={handleDelete}
+        >
+          <Trash2 className="h-3 w-3" />
+          Delete
         </Button>
         <Button
           size="sm"
