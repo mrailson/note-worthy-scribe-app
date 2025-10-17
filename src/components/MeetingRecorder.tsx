@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -43,6 +43,7 @@ import { RealtimeTranscriptCard } from "@/components/RealtimeTranscriptCard";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
+import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -240,6 +241,9 @@ export const MeetingRecorder = ({
   
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -5082,25 +5086,36 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   className="pl-10"
                 />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadMeetingHistory}
-                className="whitespace-nowrap"
-                disabled={loadingHistory}
-              >
-                {loadingHistory ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Refreshing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Check Latest
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setImportDialogOpen(true)}
+                  className="whitespace-nowrap"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Meeting
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMeetingHistory}
+                  className="whitespace-nowrap"
+                  disabled={loadingHistory}
+                >
+                  {loadingHistory ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Check Latest
+                    </>
+                  )}
+                </Button>
+              </div>
               {filteredMeetings.length > 0 && (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
@@ -5358,6 +5373,36 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           connectionStatus
         }}
       />
+      
+      {/* Import Meeting Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Import Meeting Content
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <MeetingImporter
+              onMeetingCreated={(meetingId) => {
+                setImportDialogOpen(false);
+                toast.success('Meeting imported successfully!');
+                loadMeetingHistory();
+                
+                // Optionally open the newly created meeting
+                setTimeout(() => {
+                  const meeting = meetings.find(m => m.id === meetingId);
+                  if (meeting) {
+                    handleViewMeetingSummary(meeting);
+                  }
+                }, 1000);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
