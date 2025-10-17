@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Users, FileText, Play, Sparkles } from 'lucide-react';
+import { Clock, Users, FileText, Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
 
 interface DemoSamplesSelectorProps {
@@ -14,6 +14,14 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   onSelectDemo,
   disabled = false
 }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 4;
+  const totalPages = Math.ceil(demoMeetings.length / itemsPerPage);
+  
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentMeetings = demoMeetings.slice(startIndex, endIndex);
+
   const getMeetingTypeColor = (type: DemoMeeting['type']) => {
     switch (type) {
       case 'LMC':
@@ -24,6 +32,14 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
         return 'bg-purple-500/10 text-purple-700 border-purple-300';
       case 'ICB':
         return 'bg-orange-500/10 text-orange-700 border-orange-300';
+      case 'Neighbourhood':
+        return 'bg-teal-500/10 text-teal-700 border-teal-300';
+      case 'Regional':
+        return 'bg-indigo-500/10 text-indigo-700 border-indigo-300';
+      case 'Trust':
+        return 'bg-red-500/10 text-red-700 border-red-300';
+      case 'MDT':
+        return 'bg-pink-500/10 text-pink-700 border-pink-300';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -42,7 +58,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {demoMeetings.map((demo) => (
+        {currentMeetings.map((demo) => (
           <Card key={demo.id} className="relative overflow-hidden hover:shadow-md transition-shadow">
             <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/5 to-transparent" />
             
@@ -99,6 +115,30 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
           </Card>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+            disabled={currentPage === 0 || disabled}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+            disabled={currentPage === totalPages - 1 || disabled}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
         <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />

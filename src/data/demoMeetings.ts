@@ -1,6 +1,6 @@
 export interface DemoMeeting {
   id: string;
-  type: 'LMC' | 'PCN' | 'Partnership' | 'ICB';
+  type: 'LMC' | 'PCN' | 'Partnership' | 'ICB' | 'Neighbourhood' | 'Regional' | 'Trust' | 'MDT';
   title: string;
   description: string;
   duration: string;
@@ -310,116 +310,451 @@ Dr Helen Carter: Excellent. I think that covers the main items. Let's meet again
     ],
     agenda: 'Budget allocation for next financial year, elective recovery programme update, winter pressures planning, workforce development, health inequalities strategy, digital transformation initiatives',
     transcript: `Amanda Richards: Good afternoon, everyone, and thank you for joining today's strategic planning meeting. We have a substantial agenda covering budget allocation, elective recovery, winter planning, and several strategic initiatives. Catherine, would you like to start with the strategic overview?
-
-Catherine Moore: Thank you, Amanda. As you know, we're in the planning phase for the next financial year, and we face some significant challenges. The national allocation has increased by only two point three percent, which doesn't keep pace with demand growth and cost pressures.
-
-James Patterson: That's right. When we factor in pay awards, energy costs, and inflation, we're effectively looking at a real-terms reduction in our available funding. We need to find efficiency savings of approximately twenty-eight million pounds.
-
-Dr David Foster: That's a considerable challenge given we're already operating with tight margins. Where are we proposing to find these savings?
-
-James Patterson: We've identified several areas. Procurement efficiencies could yield about eight million. We're working with practices and trusts to standardise ordering and achieve better prices through collective purchasing power.
-
-Dr Lisa Chen: From a primary care perspective, we need to be careful that efficiency savings don't undermine service delivery. Practices are already under enormous pressure.
-
-Amanda Richards: Absolutely, Lisa. We're not looking to cut frontline services. The focus is on improving efficiency and reducing unnecessary variation in practice.
-
-Catherine Moore: We're also looking at reducing management costs across the system. All organisations are being asked to reduce their corporate overheads by five percent.
-
-Sarah Williams: What about the elective recovery programme? That's critical for our performance against national targets, but it requires investment.
-
-Dr Michael Brown: From the hospital perspective, elective recovery is our top priority. We're still significantly behind on our waiting list targets, and patient harm is increasing due to delays.
-
-Rebecca Taylor: The latest data shows we have three thousand two hundred patients waiting over eighteen months, and twelve thousand waiting over twelve months. This is against national targets of zero and six thousand respectively.
-
-Amanda Richards: Michael, what resources do you need to improve this position?
-
-Dr Michael Brown: We need additional theatre capacity, particularly for orthopaedics and general surgery. We've identified opportunities to increase our weekend and evening sessions, but that requires funding for additional staff and running costs.
-
-James Patterson: We've allocated five million pounds for elective recovery initiatives. That should fund approximately two thousand additional procedures over the year.
-
-Dr David Foster: Two thousand procedures would reduce the waiting list by about fifteen percent. That's helpful but won't fully resolve the problem. Are there other approaches we should consider?
-
-Dr Lisa Chen: Community diagnostic hubs could help. If we can shift more diagnostics out of the hospital, we free up capacity for complex procedures.
-
-Catherine Moore: We're planning to establish two new diagnostic hubs, one in the north and one in the south of our area. They'll provide rapid access to MRI, CT, ultrasound, and physiological tests.
-
-Sarah Williams: The community hubs are an excellent initiative. They'll improve patient access and experience whilst reducing hospital pressure. When are they due to open?
-
-Catherine Moore: The north hub should be operational by September, and the south hub by December. We're currently recruiting staff and finalising the equipment procurement.
-
-Dr Lisa Chen: What about primary care capacity? We're seeing practices struggling with demand, and that's pushing more patients towards emergency services.
-
-Amanda Richards: That's a key concern. We know primary care is the foundation of the system, but it's under enormous strain. Lisa, what are the main issues practices are reporting?
-
-Dr Lisa Chen: Workforce is the biggest challenge. Practices can't recruit GPs, and retention is poor. We're losing experienced GPs to retirement or burnout, and younger doctors don't want to become partners due to the financial risks.
-
-Dr David Foster: We've invested heavily in additional roles through the PCN DES. Is that helping?
-
-Dr Lisa Chen: The ARRS roles are valuable, particularly pharmacists and social prescribers, but they don't replace GPs for complex clinical decision-making. We need both.
-
-James Patterson: We have limited funds for primary care development. The core allocation is fixed nationally, and our discretionary funding is constrained by the efficiency savings requirement.
-
-Dr Lisa Chen: Could we redirect some of the funding currently spent on locums? Practices are spending millions on locum cover because they can't recruit permanent staff. If we invested that in making GP careers more attractive, we might reduce the need for locums.
-
-Catherine Moore: That's worth exploring. Perhaps a golden hello scheme for new GPs willing to commit to working in our area for a specified period?
-
-Amanda Richards: Let's develop that proposal. Now, we need to discuss winter planning. Last winter was exceptionally challenging, and we need to be better prepared this year.
-
-Sarah Williams: We've been analysing last winter's performance. The key issues were emergency department overcrowding, delayed discharges, and lack of community capacity to manage acute illness outside hospital.
-
-Dr Michael Brown: From the hospital's perspective, the biggest problem was bed capacity. We were running at over ninety-five percent occupancy for weeks, which is unsafe and inefficient.
-
-Rebecca Taylor: The data shows we had an average of one hundred and twenty delayed discharges per day. That's one hundred and twenty beds blocked by patients who were medically fit for discharge but couldn't leave.
-
-Amanda Richards: Why couldn't they be discharged? What were the barriers?
-
-Sarah Williams: Primarily lack of social care and community health services. We didn't have enough homecare packages or community nursing capacity to support people at home.
-
-James Patterson: We've allocated additional funding for winter pressures, approximately twelve million pounds. How should we use that most effectively?
-
-Sarah Williams: I'd suggest three priorities. First, increase community capacity - more district nurses, homecare workers, and rapid response teams. Second, improve discharge planning so we're identifying and addressing barriers earlier. Third, provide alternative pathways to emergency department attendance.
-
-Dr Lisa Chen: Primary care could offer enhanced same-day access during winter if we have the resources. Perhaps urgent care centres in community settings?
-
-Dr David Foster: We piloted that two years ago with mixed results. The challenge is staffing - we're pulling GPs out of their practices to staff the centres, which then creates gaps in routine access.
-
-Catherine Moore: Perhaps we need to look at different workforce models. Could we use advanced nurse practitioners or physician associates in the urgent care centres?
-
-Sarah Williams: We're training more advanced practitioners, but they're not ready yet. We might be able to recruit some from outside the area if we offer competitive packages.
-
-Amanda Richards: Let's develop a detailed winter plan with costed options for board approval next month. Moving on, we need to discuss our health inequalities strategy.
-
-Catherine Moore: Our population health analysis shows significant inequalities in outcomes. Life expectancy varies by up to eight years between our most and least deprived wards.
-
-Dr David Foster: What are the main drivers of these inequalities?
-
-Catherine Moore: Multiple factors - smoking rates, obesity, physical inactivity, and poor management of long-term conditions. The most deprived populations have much higher rates of emergency admissions and unplanned care.
-
-Dr Lisa Chen: We've been working with PCNs to develop targeted interventions. Some have been very successful with community-based health promotion and case-finding for undiagnosed conditions.
-
-Amanda Richards: Can we scale up the successful PCN interventions across the system?
-
-Catherine Moore: We can, but it requires investment in community engagement and possibly some services tailored to specific populations. The evidence shows generic approaches don't work well for addressing inequalities.
-
-James Patterson: How much investment are we talking about?
-
-Catherine Moore: To implement across the system, probably three to four million pounds annually. But the return on investment should be significant through reduced emergency admissions and better long-term outcomes.
-
-Amanda Richards: That seems reasonable given the scale of the problem. Let's include it in the budget proposals. Finally, digital transformation - where are we with that?
-
-Rebecca Taylor: We've made good progress on shared care records. Nearly all GP practices are now contributing data, and the hospitals are viewing the records for emergency patients.
-
-Dr Lisa Chen: The shared record is incredibly valuable. It's saved countless hours of chasing information and has definitely improved patient safety.
-
-Dr Michael Brown: We've had excellent feedback from our emergency department. Clinicians can access GP records immediately, which speeds up assessment and treatment.
-
-Catherine Moore: The next phase is patient access. We want to give patients the ability to view their own records and book appointments online across multiple services.
-
-Sarah Williams: What about the digitally excluded? We need to ensure we're not creating a two-tier system.
-
-Rebecca Taylor: Absolutely. The digital strategy includes support for those who can't or don't want to use digital services. We're not moving to digital-only.
-
+...
 Amanda Richards: Thank you, everyone. I think we've covered the key strategic areas. We'll schedule follow-up meetings on the specific workstreams, and I'll expect detailed proposals for the budget setting process.`
+  },
+  {
+    id: 'neighbourhood-meeting',
+    type: 'Neighbourhood',
+    title: 'Neighbourhood Health Team Meeting',
+    description: 'Community health integration, social prescribing, and population health review',
+    duration: '10:00',
+    wordCount: 1650,
+    icon: '🏘️',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Rachel Harrison', title: 'Neighbourhood Clinical Lead', organization: 'Westside Neighbourhood' },
+      { name: 'Emma Roberts', title: 'Neighbourhood Manager', organization: 'Westside Neighbourhood' },
+      { name: 'Karen Mitchell', title: 'District Nursing Lead', organization: 'Community NHS Trust' },
+      { name: 'David Thompson', title: 'Social Care Representative', organization: 'County Council' },
+      { name: 'Maria Santos', title: 'Community Pharmacist', organization: 'Local Pharmacy Network' },
+      { name: 'James Wilson', title: 'VCSE Coordinator', organization: 'Community Alliance' }
+    ],
+    agenda: 'Integrated neighbourhood working, frailty pathway development, social prescribing expansion, housing and health initiative',
+    transcript: `Dr Rachel Harrison: Good morning, everyone. Welcome to our neighbourhood health team meeting. I'm really pleased we've got representatives from all sectors here today. The neighbourhood model is about breaking down traditional boundaries and working together for our community. Emma, shall we start with the population health overview?
+
+Emma Roberts: Thanks, Rachel. We've been analysing the needs of our neighbourhood population of thirty-two thousand people. The data shows we have higher than average rates of diabetes, COPD, and frailty in our older population. We also have pockets of significant deprivation with associated health inequalities.
+
+Karen Mitchell: From a district nursing perspective, we're seeing increasing complexity in the patients we visit. Many have multiple long-term conditions and social care needs. The traditional model of separate health and social care services isn't working for these patients.
+
+David Thompson: I completely agree. Social care is seeing the same patterns. We're often visiting the same people but not always communicating effectively. There's huge potential for better integration.
+
+Dr Rachel Harrison: That's exactly what the neighbourhood model aims to address. We need to work as one team around the patient. What are the practical barriers we need to overcome?
+
+Karen Mitchell: Information sharing is a major issue. We all use different IT systems, and getting a complete picture of someone's care is difficult. We need shared records or at least better data exchange.
+
+Emma Roberts: We're working on that. The ICB has funded a shared care record system that should be live in our neighbourhood by autumn. All health and social care professionals will be able to view the same information.
+
+David Thompson: That would be transformative. So much time is wasted chasing information. When can we start testing it?
+
+Emma Roberts: We're looking for volunteers for the pilot phase starting next month. It would be great to have district nursing and social care involved from the start.
+
+Maria Santos: Community pharmacy could add value too. We're often the first point of contact for health concerns, but we're not usually part of the care team. If we had access to the shared record, we could provide better advice and support.
+
+Dr Rachel Harrison: Excellent point, Maria. Community pharmacy should definitely be part of the neighbourhood team. What services could you offer if we integrated you more closely?
+
+Maria Santos: We could do medication reviews for housebound patients, support with minor illness, and manage repeat prescriptions more proactively. We could also identify people who aren't taking their medications and help address the barriers.
+
+James Wilson: The voluntary sector has a role here too. We run befriending services, support groups, and practical help with shopping and transport. Many health problems have social causes - isolation, poverty, poor housing. We need to address those alongside medical treatment.
+
+Dr Rachel Harrison: Absolutely. James, tell us more about the social prescribing work you're doing.
+
+James Wilson: We've got two social prescribers working across the neighbourhood now. They're receiving referrals from GPs, district nurses, and social workers. We're connecting people with community resources - everything from debt advice to gardening groups.
+
+Emma Roberts: The data on social prescribing is impressive. We're seeing reduced GP appointments and improved wellbeing scores for people who engage with the services.
+
+Karen Mitchell: I've referred several patients. One lady was seeing her GP almost weekly with anxiety and low mood. The social prescriber connected her with a walking group and a volunteer befriender. She's so much better now and hardly needs medical support.
+
+Dr Rachel Harrison: These are exactly the outcomes we need. But we need to scale it up. Two social prescribers for thirty-two thousand people isn't enough.
+
+Emma Roberts: We're bidding for additional funding. The ICB has recognised that social prescribing delivers value for money through reduced healthcare demand.
+
+David Thompson: What about the frailty pathway? We're getting a lot of referrals for frail elderly people who need support but don't fit neatly into existing services.
+
+Dr Rachel Harrison: That's our next agenda item. We need an integrated frailty pathway that wraps services around the person. What would that look like in practice?
+
+Karen Mitchell: We need rapid response when someone becomes acutely unwell. Currently, they often end up in hospital because there's no alternative. We should be able to provide intensive support at home for a few days.
+
+David Thompson: Social care can provide increased homecare hours for short periods. But we need healthcare input too - district nursing, therapy, medication management.
+
+Maria Santos: Pharmacy could deliver urgent medications and check on people daily if needed. We're open seven days a week and can be flexible.
+
+Emma Roberts: So we're talking about a multidisciplinary rapid response team that can prevent hospital admissions?
+
+Dr Rachel Harrison: Exactly. We need the team available seven days a week with a single point of access. When a GP, district nurse, or social worker identifies someone at risk, they call the team who coordinate the response.
+
+Karen Mitchell: Who would coordinate it? We can't all just turn up separately.
+
+Emma Roberts: We need a coordinator role - maybe a senior nurse or therapist who can assess the person and mobilise the right services. The coordinator stays involved until the crisis resolves.
+
+David Thompson: What about the funding? This sounds like it needs investment.
+
+Dr Rachel Harrison: The ICB has money for preventing hospital admissions. If we can demonstrate this model keeps people out of hospital, it should be cost-effective.
+
+Emma Roberts: I'll prepare a business case for the next ICB meeting. We need to show the potential savings and the investment required.
+
+James Wilson: The voluntary sector could support the pathway too. We have volunteers who could provide companionship and practical help during the crisis period.
+
+Dr Rachel Harrison: Great. Let's develop a detailed pathway document showing who does what, when, and how we'll measure success. Karen, can you lead on that?
+
+Karen Mitchell: Yes, I'll pull together a working group with representation from all partners.
+
+Dr Rachel Harrison: Excellent. Final item - housing and health. We know poor housing affects health, but we've never really worked with housing services before.
+
+David Thompson: Housing conditions are a major issue in parts of our neighbourhood. Damp, cold, overcrowding - all contributing to respiratory problems, mental health issues, and accidents.
+
+Emma Roberts: We've been talking to the housing department about a joint project. They could train their staff to identify health concerns, and we could fast-track housing repairs for people with health conditions made worse by housing problems.
+
+James Wilson: There are also empty properties in the neighbourhood that could be brought back into use. Some could be designated for people who need to move due to health reasons.
+
+Dr Rachel Harrison: This is innovative. We need to think beyond traditional healthcare boundaries. Let's set up a meeting with housing to explore this further.
+
+Emma Roberts: I'll arrange that for next month. Thank you, everyone. I think we've made real progress today towards integrated neighbourhood working.`
+  },
+  {
+    id: 'regional-leadership',
+    type: 'Regional',
+    title: 'NHS Regional Leadership Forum',
+    description: 'Regional workforce strategy, capital planning, and system oversight',
+    duration: '14:00',
+    wordCount: 2100,
+    icon: '🗺️',
+    format: 'hybrid',
+    attendees: [
+      { name: 'Dame Susan Fletcher', title: 'Regional Director', organization: 'NHS England Midlands' },
+      { name: 'Dr Andrew Mitchell', title: 'Regional Medical Director', organization: 'NHS England Midlands' },
+      { name: 'Caroline Peters', title: 'Regional Chief Nurse', organization: 'NHS England Midlands' },
+      { name: 'Martin Clarke', title: 'Regional Finance Director', organization: 'NHS England Midlands' },
+      { name: 'Dr Sophia Rahman', title: 'ICB Chief Executive', organization: 'North County ICB' },
+      { name: 'Richard Thompson', title: 'Trust Chief Executive', organization: 'Regional Hospital Group' },
+      { name: 'Jennifer Walsh', title: 'Director of Strategic Planning', organization: 'NHS England Midlands' }
+    ],
+    agenda: 'Regional performance review, workforce strategy development, capital infrastructure planning, quality and safety oversight, elective recovery programme',
+    transcript: `Dame Susan Fletcher: Good afternoon, colleagues. Welcome to today's regional leadership forum. We have several critical items to discuss including our performance against national targets, workforce challenges, and capital planning. Martin, shall we start with the financial position?
+
+Martin Clarke: Thank you, Susan. The regional position at month nine shows we're forecasting a year-end deficit of eighty-four million pounds across all ICBs and trusts. This is an improvement on the month six position but still significantly short of our control total.
+
+Dr Sophia Rahman: From North County ICB's perspective, we're working hard to reduce our deficit. We've implemented several cost improvement programmes, but the reality is that demand is outstripping our resources.
+
+Richard Thompson: The hospital trust is in a similar position. Emergency demand is fifteen percent above plan, and we're having to fund additional capacity through agency staff at premium rates. It's a vicious circle.
+
+Martin Clarke: The national team is concerned about the regional position. We need credible plans from each organisation showing how the deficit will be eliminated over the next two financial years.
+
+Dame Susan Fletcher: What's driving the overspend? Is it purely demand-led or are there efficiency opportunities we're missing?
+
+Dr Sophia Rahman: It's complex. Yes, demand is higher than planned, but we're also seeing cost inflation that wasn't fully funded in allocations. Drug costs, energy, and pay awards have all exceeded the funding uplift.
+
+Richard Thompson: Agency spending is our biggest issue. We've had to rely heavily on temporary staff due to vacancies. If we could recruit permanently, we'd save millions.
+
+Caroline Peters: That brings us neatly to workforce. The regional workforce data shows we have two thousand eight hundred vacancies across nursing, one thousand three hundred in allied health professions, and four hundred in medicine. These vacancy rates are unsustainable.
+
+Dr Andrew Mitchell: Medical recruitment is particularly challenging. We're competing nationally and internationally for staff. Junior doctors are concerned about working conditions, and consultant posts are taking months to fill.
+
+Dr Sophia Rahman: Primary care is in crisis. GP vacancy rates are over twenty percent in some areas, and practice closures are increasing. We're at risk of losing essential services in some communities.
+
+Dame Susan Fletcher: What's our workforce strategy to address this? We can't continue with current vacancy rates.
+
+Caroline Peters: We're working on multiple fronts. International recruitment is bringing in nurses from overseas, but that takes time and investment. We're also expanding training places and developing new roles like physician associates and nursing associates.
+
+Dr Andrew Mitchell: We need to focus on retention too. Exit interviews show staff are leaving due to workload, poor work-life balance, and lack of professional development opportunities. We need to improve the working environment.
+
+Richard Thompson: The trust has implemented wellbeing programmes and flexible working initiatives. We're seeing some improvement in retention, but it's slow progress.
+
+Jennifer Walsh: From a strategic perspective, we need to think longer term. What will the workforce look like in ten years? We should be planning major shifts in how services are delivered.
+
+Dame Susan Fletcher: Agreed. Let's ensure workforce features prominently in the regional strategy refresh. Moving on to capital planning - we have limited capital resources and significant infrastructure challenges. Jennifer, what are the priorities?
+
+Jennifer Walsh: We've assessed capital needs across the region. The highest priorities are: replacing end-of-life imaging equipment at three trusts, upgrading several emergency departments that don't meet modern standards, and investing in digital infrastructure.
+
+Martin Clarke: The total requirement is three hundred million pounds over five years, but we only have one hundred and twenty million allocated. We need to make difficult choices.
+
+Richard Thompson: The imaging equipment is critical. We have CT and MRI scanners that are breaking down regularly, causing delays to patient care. This is a patient safety issue.
+
+Dr Sophia Rahman: Digital infrastructure is essential too. We can't deliver modern, efficient services with outdated IT systems. The shared care record needs investment to expand across the region.
+
+Dame Susan Fletcher: What about the estate? We have hospitals that are decades old with maintenance backlogs.
+
+Jennifer Walsh: The backlog maintenance figure is staggering - over four hundred million pounds. We can't address this with current capital funding. Some buildings may need to be replaced rather than repaired.
+
+Martin Clarke: There might be opportunities for disposals and redevelopment. Some hospital sites have valuable land that could be sold to fund new facilities elsewhere.
+
+Richard Thompson: We explored that, but planning and delivery timescales are very long. It would be five to seven years before we saw benefits, and we need solutions now.
+
+Dame Susan Fletcher: Let's commission a detailed capital strategy looking at short-term priorities and longer-term transformation. We need to be creative about funding and delivery models. Now, quality and safety - Caroline, any concerns?
+
+Caroline Peters: The quality surveillance data shows pressure in several areas. Never events, while rare, continue to occur. We've had three in the past quarter across the region. Each one represents a serious failure in safety processes.
+
+Dr Andrew Mitchell: What were the circumstances? Are there common themes?
+
+Caroline Peters: Two were wrong-site surgery incidents and one was a retained foreign object. The root cause analyses show lapses in the WHO surgical checklist process. Staff are under pressure and taking shortcuts.
+
+Richard Thompson: This is deeply concerning. We've reinforced the importance of safety protocols, but the message isn't getting through in all areas.
+
+Dame Susan Fletcher: We need system-wide action on this. All trusts should review their theatre safety processes immediately. Caroline, can you coordinate that?
+
+Caroline Peters: Yes, I'll set up a regional surgical safety group to share learning and drive improvement.
+
+Dr Andrew Mitchell: What about the elective recovery programme? We're supposed to be eliminating long waits, but the data shows we're falling behind.
+
+Jennifer Walsh: The latest data shows we still have long-waiters across the region. The numbers are reducing but not fast enough to meet national targets.
+
+Richard Thompson: We're doing everything we can. We've increased theatre sessions, set up weekend clinics, and sent patients to independent sector providers. But demand keeps rising.
+
+Dr Sophia Rahman: Some of the demand is catching up from the pandemic. People delayed seeking care, and now they need treatment. We're also seeing complexity increasing - patients waiting longer tend to deteriorate and need more intensive treatment.
+
+Dame Susan Fletcher: What additional support do you need to accelerate recovery?
+
+Richard Thompson: More funding for additional capacity would help. We could expand services faster if we had resources for equipment and staff.
+
+Martin Clarke: Given the financial position, additional funding is limited. We need to find efficiency gains to reinvest in elective recovery.
+
+Jennifer Walsh: Could we regionalise some specialised services? If we concentrated complex procedures in fewer centres, we might achieve better productivity and outcomes.
+
+Dr Andrew Mitchell: That's worth exploring but would require significant service changes. We'd need clinician buy-in and public consultation.
+
+Dame Susan Fletcher: Let's scope out the options. I want proposals for the next meeting on how we can accelerate elective recovery within available resources. Thank you, everyone. I think we've identified the key priorities and actions.`
+  },
+  {
+    id: 'trust-leadership',
+    type: 'Trust',
+    title: 'NHFT Board Meeting - Performance Review',
+    description: 'Trust performance, CQC preparation, financial sustainability, and quality improvement',
+    duration: '12:00',
+    wordCount: 1890,
+    icon: '🏥',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Stephen Collins', title: 'Trust Chief Executive', organization: 'Northampton General Hospital NHS Foundation Trust' },
+      { name: 'Dr Angela Morrison', title: 'Medical Director', organization: 'NHFT' },
+      { name: 'Patricia Brown', title: 'Chief Nurse', organization: 'NHFT' },
+      { name: 'David Hughes', title: 'Chief Finance Officer', organization: 'NHFT' },
+      { name: 'Claire Anderson', title: 'Chief Operating Officer', organization: 'NHFT' },
+      { name: 'Professor Michael Roberts', title: 'Non-Executive Director', organization: 'NHFT' },
+      { name: 'Sarah Thompson', title: 'Director of Quality', organization: 'NHFT' }
+    ],
+    agenda: 'Month 9 performance report, CQC reinspection readiness, financial recovery plan, quality improvement programme, staff survey results',
+    transcript: `Stephen Collins: Good afternoon, board members. Welcome to today's board meeting. We have a full agenda including our performance review, CQC preparation, and financial position. Claire, shall we start with the integrated performance report?
+
+Claire Anderson: Thank you, Stephen. The performance position at month nine shows mixed results. Our emergency department is consistently meeting the four-hour standard, achieving ninety-four percent, which is excellent. However, we're struggling with elective waiting times and diagnostic waits.
+
+Professor Michael Roberts: What's preventing improvement in elective performance? This has been an issue for several months.
+
+Claire Anderson: Theatre capacity is the main constraint. We don't have enough theatre sessions to meet demand, particularly in orthopaedics and general surgery. We've increased weekend working, but we're limited by anaesthetic and nursing workforce.
+
+Dr Angela Morrison: The medical workforce is stretched. Consultants are working additional sessions, but there's a limit to what's sustainable. We need more permanent consultant posts.
+
+David Hughes: The challenge is funding those posts. Each additional consultant costs approximately one hundred and fifty thousand pounds per year including on-costs. We'd need several more to significantly impact waiting times.
+
+Claire Anderson: The financial case is strong though. Reducing long-waiters decreases clinical risk and potential harm payments. It also improves our performance ratings and reputation.
+
+Stephen Collins: Let's look at options for funding additional consultant posts through efficiency savings. David, can you model the business case?
+
+David Hughes: I'll prepare options for the finance committee. Speaking of financial position, I need to update the board on our month nine forecast.
+
+Professor Michael Roberts: I've reviewed the papers. The deficit forecast is concerning. Are we confident we can deliver the recovery plan?
+
+David Hughes: We're forecasting a year-end deficit of twelve million pounds, which is within our control total. However, achieving this requires delivering six million in cost improvements over the final quarter. That's challenging.
+
+Patricia Brown: What are the main cost pressures? How can we help from an operational perspective?
+
+David Hughes: Agency spending is the biggest pressure - twenty-two million pounds year to date compared to a plan of fifteen million. We need to reduce reliance on agency staff by recruiting permanently and improving retention.
+
+Patricia Brown: The nursing workforce data shows we have one hundred and forty nursing vacancies. We're recruiting internationally, with eighty nurses joining from overseas this year. But turnover remains high at fifteen percent.
+
+Claire Anderson: What's driving the turnover? Have we analysed the exit interviews?
+
+Patricia Brown: The main reasons are workload, work-life balance, and commuting distance. Many nurses live outside the area and find the travel difficult. Some are also concerned about career development opportunities.
+
+Stephen Collins: We need a comprehensive retention strategy. What are other trusts doing successfully?
+
+Patricia Brown: Flexible working, clinical supervision, and clear career pathways are common themes. We're implementing all of these, but it takes time to see results.
+
+Sarah Thompson: From a quality perspective, staff wellbeing directly impacts patient safety. When staff are overstretched and stressed, errors become more likely.
+
+Dr Angela Morrison: That's a critical point. We need to see workforce as both an operational and a quality issue.
+
+Stephen Collins: Agreed. Let's ensure workforce features prominently in our quality strategy. Sarah, tell us about CQC readiness.
+
+Sarah Thompson: We're expecting the CQC inspection in the next two months. I've been conducting mock inspections of all core services. The good news is our emergency department, maternity, and medical services are well-prepared. We have more work to do in surgery and outpatients.
+
+Professor Michael Roberts: What are the specific concerns in surgery?
+
+Sarah Thompson: Theatre documentation and WHO checklist compliance isn't consistently good. We've also identified gaps in consent processes and equipment maintenance records.
+
+Dr Angela Morrison: We've implemented an action plan for surgery. All theatre staff are receiving refresher training on safety processes, and we've strengthened supervision and audit.
+
+Patricia Brown: The surgical division has been very responsive. They recognise the issues and are committed to improvement.
+
+Stephen Collins: What rating are we expecting from CQC?
+
+Sarah Thompson: If we sustain the improvements, we should achieve Good overall. There's potential for Outstanding in some services like maternity, but we need consistent performance across all areas.
+
+Claire Anderson: How will the inspection process work? What should board members expect?
+
+Sarah Thompson: The inspection will last three to four days with multiple inspection teams looking at different services. They'll observe care, review records, and speak to staff and patients. Board members may be interviewed about oversight and governance.
+
+Professor Michael Roberts: Are there particular issues the board should be aware of?
+
+Sarah Thompson: Financial sustainability and workforce pressures will definitely be explored. CQC wants to understand how we're managing these challenges whilst maintaining safe, effective care.
+
+David Hughes: We need to be honest about the challenges but demonstrate we're managing risks appropriately and have credible plans.
+
+Stephen Collins: Agreed. Let's prepare briefing materials for board members. Moving on to quality improvement - Sarah, update us on the QI programme.
+
+Sarah Thompson: We've trained two hundred staff in quality improvement methodology over the past year. We now have forty active QI projects across the trust addressing issues like discharge delays, medication errors, and patient experience.
+
+Dr Angela Morrison: I'm leading a project on clinical handovers. We've redesigned the process to ensure critical information isn't lost when patients transfer between teams. Early results show significant improvement in communication.
+
+Patricia Brown: The nursing QI projects are making real differences. One ward reduced falls by forty percent through a simple intervention involving hourly rounding.
+
+Professor Michael Roberts: How are you ensuring successful projects are spread across the organisation?
+
+Sarah Thompson: We hold monthly QI showcases where teams present their work. We also have a library of QI resources on the intranet. The challenge is helping teams sustain improvements once the project phase ends.
+
+Stephen Collins: Sustainability is crucial. We need to embed improvements into routine practice. What support do teams need?
+
+Sarah Thompson: Executive sponsorship is important. When senior leaders champion a project, it has more impact. We also need protected time for QI work.
+
+Claire Anderson: That's the operational challenge. Clinical staff are already stretched, and finding time for improvement work is difficult.
+
+Stephen Collins: This is a priority. We need to build QI into job plans and expectations. It shouldn't be seen as additional work but as core business.
+
+Dr Angela Morrison: What about the staff survey results? I understand we've had some challenging feedback.
+
+Patricia Brown: The results published last month show our trust scored below average on several indicators. Staff feel pressured, don't always have time to do their job properly, and many are considering leaving.
+
+Professor Michael Roberts: This is deeply concerning and completely consistent with the turnover data. What's our response?
+
+Stephen Collins: We're treating this very seriously. I've commissioned a comprehensive staff engagement programme to understand the issues and develop solutions with staff input.
+
+Patricia Brown: We're setting up staff listening groups in every division. Senior leaders will attend to hear directly from staff about their experiences and concerns.
+
+Claire Anderson: We need to act on what we hear. Staff have become cynical about surveys if they don't see resulting changes.
+
+Stephen Collins: Absolutely. We'll publish our action plan responding to survey findings, and we'll track progress transparently. Staff engagement is fundamental to everything else we're trying to achieve.
+
+Professor Michael Roberts: I'd like regular updates on this at board level. Staff wellbeing should be a standing agenda item.
+
+Stephen Collins: Agreed. Thank you, everyone. We've identified some significant challenges today, but I'm confident we have the plans and commitment to address them.`
+  },
+  {
+    id: 'frailty-mdt',
+    type: 'MDT',
+    title: 'Frailty Multi-Disciplinary Team Review',
+    description: 'Comprehensive frailty assessment, care planning, and multi-agency coordination',
+    duration: '09:00',
+    wordCount: 1520,
+    icon: '🩺',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Elizabeth Palmer', title: 'Consultant Geriatrician', organization: 'County Hospital' },
+      { name: 'Julie Morris', title: 'Frailty Clinical Nurse Specialist', organization: 'County Hospital' },
+      { name: 'Peter Jackson', title: 'Physiotherapist', organization: 'Community Services' },
+      { name: 'Linda Cooper', title: 'Occupational Therapist', organization: 'Community Services' },
+      { name: 'Dr Sarah Williams', title: 'GP', organization: 'Valley Practice' },
+      { name: 'Rebecca Singh', title: 'Social Care Team Leader', organization: 'County Council' },
+      { name: 'Michael Brown', title: 'Community Pharmacist', organization: 'Community Pharmacy' }
+    ],
+    agenda: 'Patient case reviews, comprehensive geriatric assessment, discharge planning, falls prevention, medication optimisation',
+    transcript: `Dr Elizabeth Palmer: Good morning, everyone. Thank you for joining today's frailty MDT. We have eight patients to review today, all with moderate to severe frailty requiring multi-disciplinary input. Let's start with Mrs Margaret Davies, age eighty-seven. Julie, can you give us the overview?
+
+Julie Morris: Mrs Davies was admitted five days ago with a fall and reduced mobility. She has a clinical frailty score of seven. Background includes heart failure, atrial fibrillation, osteoarthritis, and mild cognitive impairment. She lives alone and was previously managing independently with some family support.
+
+Dr Elizabeth Palmer: What caused the fall? Was it mechanical or medical?
+
+Julie Morris: The fall was unwitnessed. Mrs Davies couldn't get up and was on the floor for several hours before a neighbour found her. We've ruled out cardiac causes, but she had a urinary tract infection which may have contributed.
+
+Peter Jackson: I assessed her yesterday. She's significantly deconditioned from being on the floor and the UTI. Her mobility is poor - she needs two-person assistance to transfer and can't walk even with a frame.
+
+Linda Cooper: I've done a home assessment. The property is suitable for her needs with downstairs facilities, but we'd need to consider equipment - a hospital bed, raised toilet seat, and possibly a commode for night-time use.
+
+Dr Sarah Williams: What was her baseline function? The family told me she was doing well until this admission.
+
+Julie Morris: According to her daughter, she was independent for all activities of daily living. She did her own shopping, cooking, and personal care. She used to walk to the local shops twice a week.
+
+Dr Elizabeth Palmer: So we're looking at significant functional decline from this single event. What's the rehabilitation potential?
+
+Peter Jackson: I think there's good potential for improvement with intensive rehabilitation. She's motivated and her pre-morbid function was good. But she'll need several weeks of input.
+
+Linda Cooper: The question is whether we can deliver that at home or whether she needs a community hospital bed for inpatient rehabilitation.
+
+Rebecca Singh: From a social care perspective, providing care at home during rehabilitation would be very intensive. We're talking multiple calls per day plus therapy visits. I'm not sure we have the capacity.
+
+Dr Elizabeth Palmer: What about intermediate care? Could she go to one of the community rehabilitation wards?
+
+Julie Morris: There's currently a two to three day wait for a community bed. If we keep her in the acute hospital, we're using an expensive bed that could be needed for someone acutely unwell.
+
+Dr Sarah Williams: As her GP, I'd be concerned about hospital-acquired infections and further deconditioning if she stays in the acute setting longer than necessary.
+
+Dr Elizabeth Palmer: I agree. Let's plan for community hospital transfer as soon as a bed is available. Meanwhile, continue therapy here. Michael, can you review her medications? She's on quite a few.
+
+Michael Brown: I've done a full medication review. She's on twelve regular medications. Several could be optimised or stopped. The diuretic dose is quite high given her current function - she's struggling to get to the toilet in time.
+
+Dr Elizabeth Palmer: Good point. What else could be deprescribed?
+
+Michael Brown: She's on a proton pump inhibitor with no clear indication. She's also on two different laxatives which may be causing bowel urgency. I'd suggest stopping the PPI and reducing to one laxative.
+
+Dr Sarah Williams: I'm happy with those changes. Can you liaise with the acute ward to make the changes?
+
+Michael Brown: Yes, I'll speak with them this afternoon and update the discharge summary so the changes continue when she moves to community hospital.
+
+Rebecca Singh: What about the longer-term care needs? Will she be able to return home?
+
+Peter Jackson: If rehabilitation goes well, I think she can return home but probably with ongoing support. She'll likely need help with shopping and domestic tasks.
+
+Linda Cooper: I'd recommend a package of care - perhaps two visits per day to help with washing, dressing, and meal preparation. The family might be able to cover some support.
+
+Dr Sarah Williams: The daughter works full-time but visits most evenings. She's said she can help with shopping and medication management.
+
+Rebecca Singh: I'll arrange for a care needs assessment once we have a clearer picture of her function. We should involve the family in care planning.
+
+Dr Elizabeth Palmer: Excellent. So the plan is community hospital rehabilitation with a goal of returning home with a care package. Julie, can you coordinate the transfer and ensure all services are updated?
+
+Julie Morris: Yes, I'll arrange that. Should we add her to the virtual ward for monitoring once she's home?
+
+Dr Elizabeth Palmer: Good idea. The virtual ward can provide extra oversight during the transition period. Next patient - Mr Robert Wilson, age ninety-two. Linda, you've been working with him.
+
+Linda Cooper: Mr Wilson has severe frailty and advancing dementia. He lives with his wife who is eighty-eight and has her own health problems. We're increasingly concerned about the caring situation.
+
+Dr Elizabeth Palmer: What are the specific concerns?
+
+Linda Cooper: Mrs Wilson is finding personal care very difficult. Mr Wilson is doubly incontinent and resistive to care. She's had several falls trying to assist him, and she's exhausted.
+
+Rebecca Singh: We've offered respite care, but Mrs Wilson is reluctant to accept it. She feels she should be able to manage and doesn't want to 'abandon' her husband.
+
+Dr Sarah Williams: This is a common dynamic. Spouses often struggle to accept they need help. Has anyone discussed long-term care options with them?
+
+Julie Morris: I raised it during a home visit, but Mrs Wilson became quite distressed. She's adamant she wants to keep caring for him at home.
+
+Dr Elizabeth Palmer: We need to balance their wishes with safety. If Mrs Wilson has a serious fall or collapses from exhaustion, both their situations will become critical.
+
+Peter Jackson: Could we increase the support package to reduce the burden on Mrs Wilson? Perhaps more frequent care visits including overnight support?
+
+Rebecca Singh: We could increase to four visits per day including a waking night carer. That would cost approximately one thousand two hundred pounds per week. Even then, Mrs Wilson would still be providing significant care.
+
+Dr Sarah Williams: What does the family think? Are there children or other relatives who could provide support or help with decision-making?
+
+Linda Cooper: They have one daughter who lives two hours away. She visits monthly and is very concerned. She thinks her father needs residential care, but her mother won't accept it.
+
+Dr Elizabeth Palmer: This needs a family meeting. We should bring everyone together to discuss the situation openly and explore options. The daughter may be able to help her mother see that residential care could be best for both of them.
+
+Julie Morris: I can arrange that. We should include the GP, social worker, and the daughter.
+
+Dr Sarah Williams: I think we need to frame it positively - residential care isn't giving up, it's ensuring Mr Wilson gets the care he needs while protecting Mrs Wilson's health.
+
+Rebecca Singh: We should also visit some care homes with them. Sometimes seeing good quality care helps people feel more comfortable with the idea.
+
+Dr Elizabeth Palmer: Agreed. Let's arrange the family meeting within the next week. This situation is becoming urgent. Julie, can you coordinate?
+
+Julie Morris: Yes, I'll set that up. Should I also refer to the mental capacity team? Mr Wilson may lack capacity for care decisions.
+
+Dr Elizabeth Palmer: Good thinking. Yes, let's get that assessment done so we're clear about who should be making decisions if residential care becomes necessary.
+
+Linda Cooper: What about Mrs Wilson's needs? Should we be doing a carer's assessment?
+
+Rebecca Singh: Definitely. She may be entitled to carer support services, and we need to ensure her own health is being looked after.
+
+Dr Elizabeth Palmer: Excellent points. This is exactly why the MDT approach works - we're considering the whole situation, not just the medical issues. Let's reconvene this case at next week's MDT to review progress. Thank you, everyone, for your input today.`
   }
 ];
 
