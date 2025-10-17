@@ -4,11 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Users, FileText, Play, Sparkles } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
 
 interface DemoSamplesSelectorProps {
   onSelectDemo: (demo: DemoMeeting) => void;
@@ -90,59 +85,15 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
                   <strong>Topics:</strong> {demo.agenda}
                 </p>
 
-                <div className="flex gap-2">
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        disabled={disabled}
-                      >
-                        Preview
-                      </Button>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80" side="top">
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold">Meeting Details</h4>
-                        <div className="text-xs space-y-1.5">
-                          <div>
-                            <span className="font-medium">Format:</span> {demo.format}
-                          </div>
-                          <div>
-                            <span className="font-medium">Attendees:</span>
-                            <ul className="mt-1 space-y-0.5 ml-2">
-                              {demo.attendees.slice(0, 3).map((attendee, i) => (
-                                <li key={i} className="text-muted-foreground">
-                                  • {attendee.name} - {attendee.title}
-                                </li>
-                              ))}
-                              {demo.attendees.length > 3 && (
-                                <li className="text-muted-foreground">
-                                  • ... and {demo.attendees.length - 3} more
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                          <div>
-                            <span className="font-medium">Agenda:</span>
-                            <p className="text-muted-foreground mt-0.5">{demo.agenda}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-
-                  <Button
-                    size="sm"
-                    onClick={() => onSelectDemo(demo)}
-                    disabled={disabled}
-                    className="flex-1"
-                  >
-                    <Play className="h-3.5 w-3.5 mr-1.5" />
-                    Load Sample
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  onClick={() => onSelectDemo(demo)}
+                  disabled={disabled}
+                  className="w-full"
+                >
+                  <Play className="h-3.5 w-3.5 mr-1.5" />
+                  Create Meeting
+                </Button>
               </div>
             </CardContent>
           </Card>
