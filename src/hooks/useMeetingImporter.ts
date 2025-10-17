@@ -154,6 +154,29 @@ export const useMeetingImporter = () => {
         console.warn('Meeting overview generation may not have started:', overviewError);
       }
 
+      // Step 6: Trigger executive and limerick note generation
+      try {
+        await supabase.functions.invoke('generate-multi-type-notes', {
+          body: { 
+            meetingId: meeting.id,
+            noteType: 'executive'
+          }
+        });
+      } catch (executiveError) {
+        console.warn('Executive notes generation may not have started:', executiveError);
+      }
+
+      try {
+        await supabase.functions.invoke('generate-multi-type-notes', {
+          body: { 
+            meetingId: meeting.id,
+            noteType: 'limerick'
+          }
+        });
+      } catch (limerickError) {
+        console.warn('Limerick notes generation may not have started:', limerickError);
+      }
+
       setProgress(100);
       setCurrentStep('Complete!');
 
