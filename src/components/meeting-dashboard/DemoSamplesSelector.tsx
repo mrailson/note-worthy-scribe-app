@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Users, FileText, Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
 
 interface DemoSamplesSelectorProps {
@@ -83,7 +83,10 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-3 text-sm">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
+                  <div className="relative h-3.5 w-3.5">
+                    <FileText className="h-3.5 w-3.5 text-blue-500 absolute" />
+                    <FileText className="h-3.5 w-3.5 text-green-500 absolute opacity-40" style={{ filter: 'blur(0.5px)' }} />
+                  </div>
                   <span>{demo.duration}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
