@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { removeFillerWords, countFillerWords, type FillerWordStats } from '@/utils/fillerWordCleaner';
@@ -56,6 +56,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [showContext, setShowContext] = useState(!isMobile); // Collapsed by default on mobile
   const [showStats, setShowStats] = useState(false); // Collapsed by default
   const [showPIIPanel, setShowPIIPanel] = useState(!isMobile); // Collapsible on mobile
+  const [fontSize, setFontSize] = useState(15); // Default font size in pixels
   
   // PII State
   const [piiMatches, setPiiMatches] = useState<PIIMatch[]>([]);
@@ -224,9 +225,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     // Split cleaned transcript into paragraphs
     const paragraphs = cleanedTranscript.split('\n\n').filter(p => p.trim());
     
+    // Calculate line height based on font size (1.6x ratio for readability)
+    const lineHeight = `${fontSize * 1.6}px`;
+    
     if (!showPII || piiMatches.length === 0) {
       return (
-        <div className="space-y-4 text-[15px] md:text-base leading-7 md:leading-8">
+        <div className="space-y-4" style={{ fontSize: `${fontSize}px`, lineHeight }}>
           {paragraphs.map((para, idx) => (
             <p key={idx} className="">
               {para}
@@ -238,7 +242,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
     // With PII highlighting
     return (
-      <div className="space-y-4 text-[15px] md:text-base leading-7 md:leading-8">
+      <div className="space-y-4" style={{ fontSize: `${fontSize}px`, lineHeight }}>
         {paragraphs.map((para, paraIdx) => {
           const segments = highlightPII(para, piiMatches);
           return (
@@ -301,14 +305,41 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             )}
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowStats(!showStats)}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            {showStats ? 'Hide' : 'Show'} Stats
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Font Size Controls */}
+            <div className="flex items-center gap-1 border rounded-md p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setFontSize(prev => Math.max(12, prev - 1))}
+                disabled={fontSize <= 12}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="text-xs text-muted-foreground px-2 min-w-[2.5rem] text-center">
+                {fontSize}px
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
+                disabled={fontSize >= 24}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {showStats ? 'Hide' : 'Show'} Stats
+            </Button>
+          </div>
         </div>
 
         {/* Toggle Controls - Collapsible */}
