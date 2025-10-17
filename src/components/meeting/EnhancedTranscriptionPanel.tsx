@@ -76,6 +76,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [editValue, setEditValue] = useState('');
   const [transcriptHistory, setTranscriptHistory] = useState<string[]>([]);
   
+  // Format state
+  const [isFormatting, setIsFormatting] = useState(false);
+  
   // Fetch chunks
   useEffect(() => {
     if (!meetingId) return;
@@ -243,6 +246,42 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     setTranscriptHistory(prev => prev.slice(0, -1));
     onTranscriptChange(lastVersion);
     toast.success('Changes undone');
+  };
+
+  const handleFormatTranscript = async () => {
+    if (!transcript) {
+      toast.error('No transcript to format');
+      return;
+    }
+
+    setIsFormatting(true);
+    try {
+      console.log('🎨 Formatting transcript into paragraphs...');
+      
+      const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
+        body: { transcript }
+      });
+
+      if (error) {
+        console.error('Format transcript error:', error);
+        toast.error('Failed to format transcript');
+        return;
+      }
+
+      if (data?.formattedTranscript) {
+        // Save current transcript to history before changing
+        setTranscriptHistory(prev => [...prev, transcript]);
+        onTranscriptChange(data.formattedTranscript);
+        toast.success('Transcript formatted with proper paragraphs');
+      } else {
+        toast.error('No formatted transcript returned');
+      }
+    } catch (error) {
+      console.error('Error formatting transcript:', error);
+      toast.error('Failed to format transcript');
+    } finally {
+      setIsFormatting(false);
+    }
   };
 
   const handleDownloadWord = async () => {
@@ -526,7 +565,16 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     const cleanedTranscript = cleanHTMLFromTranscript(transcript);
     
     // Split cleaned transcript into paragraphs
-    const paragraphs = cleanedTranscript.split('\n\n').filter(p => p.trim());
+    // First try double newlines, then fall back to single newlines after sentence-ending punctuation
+    let paragraphs = cleanedTranscript.split('\n\n').filter(p => p.trim());
+    
+    // If we only got one paragraph, try splitting on single newlines after punctuation
+    if (paragraphs.length === 1 && cleanedTranscript.length > 500) {
+      // Split on single newline that follows sentence-ending punctuation
+      paragraphs = cleanedTranscript
+        .split(/(?<=[.!?])\s*\n+(?=[A-Z])/g)
+        .filter(p => p.trim());
+    }
     
     // Calculate line height based on font size (1.6x ratio for readability)
     const lineHeight = `${fontSize * 1.6}px`;
@@ -867,6 +915,14 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                     {stats.fillerWordCount}
                   </Badge>
                 )}
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={handleFormatTranscript}
+                disabled={!transcript || isFormatting}
+              >
+                <FileText className="h-4 w-4 mr-2 text-primary" />
+                {isFormatting ? 'Formatting...' : 'Format Paragraphs'}
               </DropdownMenuItem>
               
               <DropdownMenuSeparator />
