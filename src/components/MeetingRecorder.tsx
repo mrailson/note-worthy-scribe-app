@@ -5111,7 +5111,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   ) : (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Check Latest
+                      Refresh Page
                     </>
                   )}
                 </Button>
