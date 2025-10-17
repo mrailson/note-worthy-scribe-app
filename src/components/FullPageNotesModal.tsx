@@ -3177,7 +3177,7 @@ ${transcript}`;
                                 <ChevronDownIcon className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 bg-background z-50">
+                            <DropdownMenuContent align="end" className="w-56">
                               <DropdownMenuGroup>
                                 <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
                                   <Sparkles className="mr-2 h-4 w-4" />
