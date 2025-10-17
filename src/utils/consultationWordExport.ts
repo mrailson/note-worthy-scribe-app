@@ -8,19 +8,13 @@ import {
   Packer
 } from 'docx';
 import { format } from 'date-fns';
+import { Medication, ClinicalAction } from '@/components/meeting/ClinicalActionsPanel';
 
 interface SoapNote {
   S: string;
   O: string;
   A: string;
   P: string;
-}
-
-interface ClinicalAction {
-  medications?: string[];
-  investigations?: string[];
-  followUp?: string[];
-  other?: string[];
 }
 
 interface ConsultationData {
@@ -110,8 +104,15 @@ function createClinicalActionsParagraphs(actions: ClinicalAction): Paragraph[] {
       spacing: { before: 200, after: 100 }
     }));
     actions.medications.forEach(med => {
+      // Handle both string and object formats
+      const medText = typeof med === 'string' 
+        ? med 
+        : med.name 
+          ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
+          : JSON.stringify(med);
+      
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ text: `• ${med}` })],
+        children: [new TextRun({ text: `• ${medText}` })],
         spacing: { after: 100 }
       }));
     });

@@ -1,12 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-
-interface ClinicalAction {
-  medications?: string[];
-  investigations?: string[];
-  followUp?: string[];
-  other?: string[];
-}
+import { Medication, ClinicalAction } from './ClinicalActionsPanel';
 
 interface PatientLetterPreviewProps {
   patientCopy: string;
@@ -85,12 +79,21 @@ export const PatientLetterPreview: React.FC<PatientLetterPreviewProps> = ({
             We have made the following changes to your medications:
           </p>
           <ul className="space-y-2 ml-6 mb-4">
-            {clinicalActions.medications.map((med, idx) => (
-              <li key={idx} className="text-base leading-relaxed flex items-start gap-2">
-                <span className="text-blue-600 dark:text-blue-400 font-bold">•</span>
-                <span className="flex-1">{med}</span>
-              </li>
-            ))}
+            {clinicalActions.medications.map((med, idx) => {
+              // Handle both string and object formats
+              const medText = typeof med === 'string' 
+                ? med 
+                : med.name 
+                  ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
+                  : JSON.stringify(med);
+              
+              return (
+                <li key={idx} className="text-base leading-relaxed flex items-start gap-2">
+                  <span className="text-blue-600 dark:text-blue-400 font-bold">•</span>
+                  <span className="flex-1">{medText}</span>
+                </li>
+              );
+            })}
           </ul>
           
           <p className="text-base font-semibold text-blue-800 dark:text-blue-400 mb-2">

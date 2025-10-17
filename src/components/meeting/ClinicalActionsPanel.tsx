@@ -3,8 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Pill, Microscope, Calendar, ClipboardList } from 'lucide-react';
 
+export interface Medication {
+  name?: string;
+  dose?: string;
+  instructions?: string;
+}
+
 export interface ClinicalAction {
-  medications?: string[];
+  medications?: (string | Medication)[];
   investigations?: string[];
   followUp?: string[];
   other?: string[];
@@ -39,12 +45,21 @@ export const ClinicalActionsPanel: React.FC<ClinicalActionsPanelProps> = ({ acti
               <h4 className="text-sm font-semibold">Prescriptions</h4>
             </div>
             <ul className="space-y-1 ml-6">
-              {actions.medications.map((med, idx) => (
-                <li key={idx} className="text-sm flex items-start gap-2">
-                  <span className="text-muted-foreground">•</span>
-                  <span>{med}</span>
-                </li>
-              ))}
+              {actions.medications.map((med, idx) => {
+                // Handle both string and object formats
+                const medText = typeof med === 'string' 
+                  ? med 
+                  : med.name 
+                    ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
+                    : JSON.stringify(med);
+                
+                return (
+                  <li key={idx} className="text-sm flex items-start gap-2">
+                    <span className="text-muted-foreground">•</span>
+                    <span>{medText}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

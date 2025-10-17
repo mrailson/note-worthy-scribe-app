@@ -8,13 +8,7 @@ import {
   Packer
 } from 'docx';
 import { format } from 'date-fns';
-
-interface ClinicalAction {
-  medications?: string[];
-  investigations?: string[];
-  followUp?: string[];
-  other?: string[];
-}
+import { Medication, ClinicalAction } from '@/components/meeting/ClinicalActionsPanel';
 
 interface PatientLetterData {
   patientCopy: string;
@@ -197,10 +191,17 @@ export async function exportPatientLetterToWord(data: PatientLetterData): Promis
     }));
     
     data.clinicalActions.medications.forEach(med => {
+      // Handle both string and object formats
+      const medText = typeof med === 'string' 
+        ? med 
+        : med.name 
+          ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
+          : JSON.stringify(med);
+      
       sections.push(new Paragraph({
         children: [
           new TextRun({ text: '• ', size: 24, color: '2563eb', bold: true }),
-          new TextRun({ text: med, size: 24 })
+          new TextRun({ text: medText, size: 24 })
         ],
         spacing: { after: 150 },
         indent: { left: 360 },
