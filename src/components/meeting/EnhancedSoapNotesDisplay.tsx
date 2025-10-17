@@ -427,25 +427,11 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         <TabsContent value="review" className="space-y-4 mt-4">
           {/* Clinical Actions & Safety Netting */}
           {(clinicalActions || review) && (
-            <div className="grid gap-4 md:grid-cols-2 mb-4">
+            <div className="grid gap-4 md:grid-cols-2">
               {clinicalActions && <ClinicalActionsPanel actions={clinicalActions} />}
               {review && <SafetyNettingPanel safetyAdvice={[review]} />}
             </div>
           )}
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Clinical Review & Learning Points</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Follow-up recommendations and reflection
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                {review || 'No review notes available'}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
