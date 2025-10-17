@@ -37,7 +37,7 @@ export const useMeetingImporter = () => {
         start_time: new Date().toISOString(),
         meeting_format: data.format || 'imported',
         status: 'completed',
-        notes_generation_status: 'pending',
+        notes_generation_status: 'queued',
       };
 
       setProgress(30);
