@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { removeFillerWords, countFillerWords, type FillerWordStats } from '@/utils/fillerWordCleaner';
@@ -18,6 +18,9 @@ import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { toast } from 'sonner';
 import { useIsIPhone, useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { TranscriptContextDialog } from '@/components/meeting/TranscriptContextDialog';
+import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
+import { UploadedFile } from '@/types/ai4gp';
 
 interface TranscriptionChunk {
   id: string;
@@ -61,6 +64,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   // PII State
   const [piiMatches, setPiiMatches] = useState<PIIMatch[]>([]);
   const [selectedPII, setSelectedPII] = useState<Set<number>>(new Set());
+  
+  // Context Dialog State
+  const [showContextDialog, setShowContextDialog] = useState(false);
   
   // Fetch chunks
   useEffect(() => {
@@ -186,6 +192,37 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     onTranscriptChange(maskedText);
     setSelectedPII(new Set());
     toast.success(`Masked ${selectedMatches.length} selected PII instances`);
+  };
+
+  const handleAddContext = (
+    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>,
+    files: UploadedFile[],
+    customLabel?: string
+  ) => {
+    // Clean the content from file processors
+    const cleanedFiles = files.map(file => ({
+      ...file,
+      content: extractCleanContent(file.content || '')
+    }));
+
+    // Check if this is an "additional-transcript" type
+    if (contextTypes.includes('additional-transcript')) {
+      // Extract just the content and append it directly
+      const additionalContent = cleanedFiles.map(file => file.content || '').join('\n\n');
+      const updatedTranscript = transcript + '\n\n' + additionalContent;
+      onTranscriptChange(updatedTranscript);
+    } else {
+      // Regular context formatting
+      const formattedContext = formatTranscriptContext(
+        contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>, 
+        cleanedFiles, 
+        customLabel
+      );
+      const updatedTranscript = formattedContext + transcript;
+      onTranscriptChange(updatedTranscript);
+    }
+    
+    toast.success('Context added to transcript');
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -420,6 +457,20 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </CollapsibleContent>
           </Card>
         </Collapsible>
+
+        {/* Add Context Button */}
+        <Button 
+          variant="outline" 
+          size={isIPhone ? "sm" : "default"}
+          className={cn(
+            "gap-2 justify-start",
+            isIPhone && "text-xs"
+          )}
+          onClick={() => setShowContextDialog(true)}
+        >
+          <FilePlus2 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-primary")} />
+          {isIPhone ? "Add Context" : "Add Meeting Context"}
+        </Button>
 
         {/* Quick Action Buttons - Responsive */}
         <div className={cn(
@@ -780,6 +831,13 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </div>
         </ScrollArea>
       </Card>
+
+      {/* Add Context Dialog */}
+      <TranscriptContextDialog
+        open={showContextDialog}
+        onOpenChange={setShowContextDialog}
+        onAddContext={handleAddContext}
+      />
     </div>
   );
 };
