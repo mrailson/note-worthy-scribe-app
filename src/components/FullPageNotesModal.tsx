@@ -2631,22 +2631,27 @@ ${transcript}`;
       // Call the generate-consultation-notes edge function
       const { data, error } = await supabase.functions.invoke('generate-consultation-notes', {
         body: {
+          consultationId: meeting.id,
           transcript: transcriptText,
-          meetingId: meeting.id,
+          consultationType: "face_to_face",
           redactIdentifiers: true
         }
       });
 
       if (error) throw error;
 
-      if (data?.soapNotes) {
+      if (data) {
         const soapData = {
-          S: data.soapNotes.subjective || '',
-          O: data.soapNotes.objective || '',
-          A: data.soapNotes.assessment || '',
-          P: data.soapNotes.plan || '',
+          S: data.shorthand?.S || data.standard?.S || '',
+          O: data.shorthand?.O || data.standard?.O || '',
+          A: data.shorthand?.A || data.standard?.A || '',
+          P: data.shorthand?.P || data.standard?.P || '',
           generated_at: new Date().toISOString(),
-          consultation_type: data.consultationType || 'General Consultation'
+          consultation_type: data.classifier?.label || 'General Consultation',
+          summary_line: data.summaryLine || '',
+          patient_copy: data.patientCopy || '',
+          referral: data.referral || '',
+          review: data.review || ''
         };
 
         setSoapNotes(soapData);

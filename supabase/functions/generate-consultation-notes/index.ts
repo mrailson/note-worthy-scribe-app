@@ -131,7 +131,11 @@ serve(async (req) => {
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
+      console.error('❌ OPENAI_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabase = createClient(
@@ -140,11 +144,32 @@ serve(async (req) => {
     );
 
     const requestData = await req.json();
-    console.log('📥 Request data:', { 
+    console.log('📥 Request received:', { 
       consultationId: requestData.consultationId,
-      transcriptLength: typeof requestData.transcript === 'string' ? requestData.transcript.length : requestData.transcript?.length,
+      hasTranscript: !!requestData.transcript,
+      transcriptType: typeof requestData.transcript,
+      transcriptLength: typeof requestData.transcript === 'string' 
+        ? requestData.transcript.length 
+        : requestData.transcript?.length,
       consultationType: requestData.consultationType 
     });
+
+    // Validate required fields
+    if (!requestData.consultationId) {
+      console.error('❌ Missing consultationId');
+      return new Response(
+        JSON.stringify({ error: 'consultationId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!requestData.consultationType) {
+      console.error('❌ Missing consultationType');
+      return new Response(
+        JSON.stringify({ error: 'consultationType is required (face_to_face or telephone)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Handle both string and array transcript formats
     let transcript: TranscriptEntry[];
@@ -180,12 +205,33 @@ serve(async (req) => {
         .map(entry => `${entry.speaker}: ${entry.text}`)
         .join('\n');
     } else {
-      throw new Error('Invalid transcript format - must be string or array');
+      console.error('❌ Invalid transcript format:', typeof requestData.transcript);
+      return new Response(
+        JSON.stringify({ error: 'Invalid transcript format - must be string or array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!transcript || transcript.length === 0) {
-      throw new Error('No transcript provided');
+      console.error('❌ Empty transcript after parsing');
+      return new Response(
+        JSON.stringify({ error: 'No valid transcript content provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    if (!transcriptText || transcriptText.trim().length < 10) {
+      console.error('❌ Transcript too short:', transcriptText?.length);
+      return new Response(
+        JSON.stringify({ error: 'Transcript is too short to generate meaningful notes' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Transcript validated:', { 
+      entryCount: transcript.length, 
+      textLength: transcriptText.length 
+    });
 
     // Step 1: Classify consultation
     console.log('🔍 Classifying consultation...');
