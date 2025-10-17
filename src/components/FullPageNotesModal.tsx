@@ -3803,78 +3803,206 @@ ${transcript}`;
                                       day: 'numeric' 
                                     });
                                     
-                                    // Format medications if available
+                                    const currentDateTime = new Date().toLocaleDateString('en-GB', {
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    });
+                                    
+                                    // Format medications section
                                     let medicationsHtml = '';
                                     if (soapNotes.clinical_actions?.medications && soapNotes.clinical_actions.medications.length > 0) {
                                       medicationsHtml = `
-                                        <div style="margin-bottom: 30px;">
-                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
                                             Your Medications
                                           </h2>
                                           <p style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">
                                             We have made the following changes to your medications:
                                           </p>
-                                          <ul style="margin-left: 24px; margin-bottom: 15px;">
+                                          <ul style="list-style: none; padding-left: 0; margin-bottom: 16px;">
                                             ${soapNotes.clinical_actions.medications.map(med => {
                                               const medText = typeof med === 'string' 
                                                 ? med 
                                                 : med.name 
                                                   ? `${med.name}${med.dose ? ` ${med.dose}` : ''}${med.instructions ? ` - ${med.instructions}` : ''}`
                                                   : JSON.stringify(med);
-                                              return `<li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px;">
-                                                <span style="color: #2563eb; font-weight: bold;">•</span> ${medText}
+                                              return `<li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                                <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                                <span style="flex: 1;">${medText}</span>
                                               </li>`;
                                             }).join('')}
+                                          </ul>
+                                          <p style="font-size: 16px; font-weight: 600; color: #1e40af; margin-bottom: 8px;">
+                                            Why these changes?
+                                          </p>
+                                          <p style="font-size: 16px; line-height: 1.8; text-align: justify; margin-bottom: 16px;">
+                                            These medication changes have been made to help improve your health based on our discussion today. 
+                                            Each medication has been carefully chosen to address your specific needs. Please take them exactly 
+                                            as prescribed and contact us if you experience any unexpected side effects.
+                                          </p>
+                                          <div style="background-color: #fef3c7; border-left: 4px solid #fbbf24; padding: 16px; border-radius: 4px;">
+                                            <p style="font-size: 16px; margin: 0;">
+                                              <span style="font-weight: bold;">💊 Important: </span>
+                                              <span style="font-style: italic;">
+                                                If you have any questions about your medications, please speak to your pharmacist or contact 
+                                                the surgery. Never stop taking prescribed medications without consulting your doctor first.
+                                              </span>
+                                            </p>
+                                          </div>
+                                        </div>
+                                      `;
+                                    }
+                                    
+                                    // Format investigations section
+                                    let investigationsHtml = '';
+                                    if (soapNotes.clinical_actions?.investigations && soapNotes.clinical_actions.investigations.length > 0) {
+                                      investigationsHtml = `
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
+                                            Tests and Investigations
+                                          </h2>
+                                          <p style="font-size: 16px; margin-bottom: 12px;">
+                                            We have arranged the following tests to help monitor your condition:
+                                          </p>
+                                          <ul style="list-style: none; padding-left: 0; margin-bottom: 16px;">
+                                            ${soapNotes.clinical_actions.investigations.map(inv => 
+                                              `<li style="font-size: 16px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                                <span style="margin-right: 8px;">🔬</span>
+                                                <span>${inv}</span>
+                                              </li>`
+                                            ).join('')}
+                                          </ul>
+                                          <p style="font-size: 16px; line-height: 1.8; text-align: justify;">
+                                            You will be contacted with the results once they are available. If any action is needed, 
+                                            we will discuss this with you.
+                                          </p>
+                                        </div>
+                                      `;
+                                    }
+                                    
+                                    // Format follow-up section
+                                    let followUpHtml = '';
+                                    if (soapNotes.clinical_actions?.followUp && soapNotes.clinical_actions.followUp.length > 0) {
+                                      followUpHtml = `
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
+                                            Your Follow-Up Plan
+                                          </h2>
+                                          <p style="font-size: 16px; margin-bottom: 12px;">
+                                            To ensure your ongoing care, we have arranged the following:
+                                          </p>
+                                          <ul style="list-style: none; padding-left: 0; margin-bottom: 16px;">
+                                            ${soapNotes.clinical_actions.followUp.map(fu => 
+                                              `<li style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                                <span style="margin-right: 8px;">📅</span>
+                                                <span style="flex: 1;">${fu}</span>
+                                              </li>`
+                                            ).join('')}
+                                          </ul>
+                                          <p style="font-size: 16px; font-style: italic; color: #6b7280; line-height: 1.8; text-align: justify;">
+                                            Please mark these dates in your calendar. If you need to change any appointments, 
+                                            please contact the surgery as soon as possible.
+                                          </p>
+                                        </div>
+                                      `;
+                                    }
+                                    
+                                    // Format safety netting section
+                                    let safetyNettingHtml = '';
+                                    if (soapNotes.review) {
+                                      safetyNettingHtml = `
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #dc2626; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #fecaca; padding-bottom: 8px;">
+                                            When to Seek Further Help
+                                          </h2>
+                                          <p style="font-size: 20px; font-weight: bold; color: #dc2626; margin-bottom: 12px;">
+                                            🚨 Important Safety Information
+                                          </p>
+                                          <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; text-align: justify; margin-bottom: 16px;">
+                                            ${soapNotes.review}
+                                          </p>
+                                          <p style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+                                            If you experience any of the above symptoms or are concerned about your condition worsening, please:
+                                          </p>
+                                          <ul style="list-style: none; padding-left: 0; margin-bottom: 16px;">
+                                            <li style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="margin-right: 8px;">⚠️</span>
+                                              <span>Contact the surgery during working hours (Monday-Friday, 08:00-18:30)</span>
+                                            </li>
+                                            <li style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="margin-right: 8px;">⚠️</span>
+                                              <span>Call NHS 111 for urgent advice outside of surgery hours</span>
+                                            </li>
+                                            <li style="font-size: 16px; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="margin-right: 8px;">⚠️</span>
+                                              <span>Call 999 or go to A&E if you have a medical emergency</span>
+                                            </li>
                                           </ul>
                                         </div>
                                       `;
                                     }
                                     
-                                    // Format review if available
-                                    let reviewHtml = '';
-                                    if (soapNotes.review) {
-                                      reviewHtml = `
-                                        <div style="margin-bottom: 30px;">
-                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
-                                            Follow-up Plan
+                                    // Format referral section
+                                    let referralHtml = '';
+                                    if (soapNotes.referral && !soapNotes.referral.toLowerCase().includes('no referral') && !soapNotes.referral.toLowerCase().includes('not indicated')) {
+                                      referralHtml = `
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
+                                            Specialist Referral
                                           </h2>
-                                          <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap;">
-                                            ${soapNotes.review}
+                                          <p style="font-size: 16px; margin-bottom: 12px;">
+                                            We have referred you to a specialist for further assessment and treatment. Here are the details:
+                                          </p>
+                                          <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; text-align: justify; margin-bottom: 16px;">
+                                            ${soapNotes.referral}
+                                          </p>
+                                          <p style="font-size: 16px; font-style: italic; color: #6b7280; line-height: 1.8; text-align: justify;">
+                                            You should receive an appointment letter within the next few weeks. If you do not hear anything 
+                                            within 4 weeks, please contact the surgery.
                                           </p>
                                         </div>
                                       `;
                                     }
                                     
                                     const emailBody = `
-                                      <div style="max-width: 800px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background-color: #ffffff; padding: 40px;">
-                                        <div style="border-top: 4px solid #2563eb; margin-bottom: 30px;"></div>
+                                      <div style="max-width: 800px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; background-color: #ffffff; padding: 48px 32px;">
+                                        <!-- Header with decorative line -->
+                                        <div style="border-top: 4px solid #2563eb; margin-bottom: 32px;"></div>
                                         
-                                        <h1 style="color: #1e40af; font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 15px;">
+                                        <!-- Letter heading -->
+                                        <h1 style="color: #1e40af; font-size: 36px; font-weight: bold; text-align: center; margin-bottom: 16px;">
                                           Your Consultation Summary
                                         </h1>
                                         
+                                        <!-- Date and consultation type -->
                                         <p style="text-align: center; color: #6b7280; font-style: italic; margin-bottom: 8px;">
                                           ${formattedDate}
                                         </p>
                                         
                                         ${soapNotes.consultation_type ? `
-                                          <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+                                          <p style="text-align: center; color: #6b7280; margin-bottom: 32px;">
                                             Consultation Type: ${soapNotes.consultation_type}
                                           </p>
                                         ` : ''}
                                         
-                                        <p style="text-align: center; color: #9ca3af; margin: 20px 0;">• • •</p>
+                                        <!-- Decorative separator -->
+                                        <p style="text-align: center; color: #9ca3af; margin: 24px 0;">• • •</p>
                                         
-                                        <div style="margin-bottom: 30px;">
-                                          <p style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">Dear Patient,</p>
+                                        <!-- Greeting -->
+                                        <div style="margin-bottom: 32px;">
+                                          <p style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Dear Patient,</p>
                                           <p style="font-size: 16px; line-height: 1.8; text-align: justify;">
                                             Thank you for attending your consultation. This letter provides a detailed summary of our discussion, 
                                             the care plan we have agreed upon together, and important information about your ongoing care.
                                           </p>
                                         </div>
                                         
-                                        <div style="margin-bottom: 30px;">
-                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
+                                        <!-- What We Discussed -->
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
                                             What We Discussed Today
                                           </h2>
                                           <p style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; text-align: justify;">
@@ -3882,19 +4010,134 @@ ${transcript}`;
                                           </p>
                                         </div>
                                         
+                                        <!-- Medications Section -->
                                         ${medicationsHtml}
-                                        ${reviewHtml}
                                         
-                                        <div style="background-color: #fef3c7; border-left: 4px solid #fbbf24; padding: 15px; border-radius: 4px; margin-bottom: 30px;">
-                                          <p style="font-size: 14px; line-height: 1.6; margin: 0;">
-                                            <strong>Important:</strong> If you have any concerns or questions about this information, please do not hesitate 
-                                            to contact the surgery. If you experience any unexpected symptoms or side effects, please seek medical advice promptly.
+                                        <!-- Tests and Investigations -->
+                                        ${investigationsHtml}
+                                        
+                                        <!-- Follow-up Appointments -->
+                                        ${followUpHtml}
+                                        
+                                        <!-- Safety Netting -->
+                                        ${safetyNettingHtml}
+                                        
+                                        <!-- Referral Information -->
+                                        ${referralHtml}
+                                        
+                                        <!-- Useful Resources -->
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px;">
+                                            Helpful Information and Resources
+                                          </h2>
+                                          <p style="font-size: 16px; margin-bottom: 16px;">
+                                            The following websites provide reliable, NHS-approved information about your condition:
+                                          </p>
+                                          
+                                          <div style="margin-left: 24px; margin-bottom: 16px;">
+                                            <div style="margin-bottom: 16px;">
+                                              <p style="font-size: 16px; margin-bottom: 4px;">
+                                                <span>🌐 </span>
+                                                <span style="font-weight: bold; color: #2563eb;">NHS Website: </span>
+                                                <span style="font-style: italic; color: #6b7280;">www.nhs.uk</span>
+                                              </p>
+                                              <p style="font-size: 14px; color: #6b7280; margin-left: 32px;">
+                                                Comprehensive health information and advice
+                                              </p>
+                                            </div>
+                                            
+                                            <div style="margin-bottom: 16px;">
+                                              <p style="font-size: 16px; margin-bottom: 4px;">
+                                                <span>🌐 </span>
+                                                <span style="font-weight: bold; color: #2563eb;">Patient.info: </span>
+                                                <span style="font-style: italic; color: #6b7280;">www.patient.info</span>
+                                              </p>
+                                              <p style="font-size: 14px; color: #6b7280; margin-left: 32px;">
+                                                Detailed leaflets about conditions and treatments
+                                              </p>
+                                            </div>
+                                            
+                                            <div style="margin-bottom: 16px;">
+                                              <p style="font-size: 16px; margin-bottom: 4px;">
+                                                <span>🌐 </span>
+                                                <span style="font-weight: bold; color: #2563eb;">NHS 111 Online: </span>
+                                                <span style="font-style: italic; color: #6b7280;">www.111.nhs.uk</span>
+                                              </p>
+                                              <p style="font-size: 14px; color: #6b7280; margin-left: 32px;">
+                                                Get urgent medical advice online
+                                              </p>
+                                            </div>
+                                          </div>
+                                          
+                                          <p style="font-size: 16px;">
+                                            <span style="font-weight: bold;">💡 Tip: </span>
+                                            <span style="font-style: italic;">
+                                              Always check that health websites are NHS-approved or from reputable medical organisations. 
+                                              Be cautious of unofficial sources.
+                                            </span>
                                           </p>
                                         </div>
                                         
-                                        <div style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                                          <p style="margin: 5px 0;">This letter is a summary of your consultation.</p>
-                                          <p style="margin: 5px 0;">Please keep it for your records.</p>
+                                        <!-- Decorative separator -->
+                                        <p style="text-align: center; color: #9ca3af; margin: 32px 0;">• • •</p>
+                                        
+                                        <!-- Important Reminders -->
+                                        <div style="margin-bottom: 40px;">
+                                          <h2 style="color: #1e40af; font-size: 20px; font-weight: bold; margin-bottom: 16px;">
+                                            Important Reminders
+                                          </h2>
+                                          <ul style="list-style: none; padding-left: 0;">
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Keep this letter for your personal records and bring it to future appointments.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Make sure you understand your care plan - if anything is unclear, please contact the surgery.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Attend all scheduled follow-up appointments and tests.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Take your medications exactly as prescribed.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Monitor your symptoms and seek help if they worsen.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">Use the NHS resources provided to learn more about your condition.</span>
+                                            </li>
+                                            <li style="font-size: 16px; line-height: 1.8; margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                              <span style="color: #2563eb; font-weight: bold; margin-right: 8px;">•</span>
+                                              <span style="flex: 1;">If you have any questions or concerns, we are here to help - please do not hesitate to contact us.</span>
+                                            </li>
+                                          </ul>
+                                        </div>
+                                        
+                                        <!-- Closing -->
+                                        <div style="margin-bottom: 32px;">
+                                          <p style="font-size: 16px; font-style: italic; margin-bottom: 8px;">
+                                            With best wishes for your continued health,
+                                          </p>
+                                          <p style="font-size: 16px; font-weight: bold;">
+                                            Your GP Practice Team
+                                          </p>
+                                        </div>
+                                        
+                                        <!-- Footer with decorative line -->
+                                        <div style="border-bottom: 4px solid #2563eb; margin-top: 32px; margin-bottom: 24px;"></div>
+                                        
+                                        <div style="text-align: center;">
+                                          <p style="font-size: 14px; font-style: italic; color: #9ca3af; margin-bottom: 4px;">
+                                            This letter is for your personal records
+                                          </p>
+                                          <p style="font-size: 14px; font-style: italic; color: #9ca3af;">
+                                            Generated: ${currentDateTime}
+                                          </p>
                                         </div>
                                       </div>
                                     `;
