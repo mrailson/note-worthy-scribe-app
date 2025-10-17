@@ -606,6 +606,14 @@ export const AudioImport = ({ onTranscriptReady, disabled = false }: AudioImport
                 </span>
               </div>
               <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => onTranscriptReady(transcriptionResult)}
+                  disabled={disabled}
+                  variant="default"
+                >
+                  <FileAudio className="h-4 w-4 mr-1" />
+                  Create Meeting
+                </Button>
                 <div className="flex gap-1 border rounded-md">
                   <Button
                     size="sm"
