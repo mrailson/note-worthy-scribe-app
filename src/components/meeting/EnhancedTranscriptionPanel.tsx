@@ -8,8 +8,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download, MoreVertical
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { removeFillerWords, countFillerWords, type FillerWordStats } from '@/utils/fillerWordCleaner';
 import { detectPII, highlightPII, maskPII, removePII, type PIIMatch } from '@/utils/piiDetector';
@@ -747,24 +748,76 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             {isIPhone ? "Add Context" : "Add Meeting Context"}
           </Button>
 
-          <Button
-            variant="outline"
-            size={isIPhone ? "sm" : "sm"}
-            onClick={handleCleanTranscript}
-            disabled={!transcript}
-            className={cn(isIPhone && "w-full justify-start")}
-            title="Removes profanity, filler words, and cleans NHS medical terms"
-          >
-            <Sparkles className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2 text-nhs-blue")} />
-            Clean Transcript
-            {stats.fillerWordCount > 0 && (
-              <Badge variant="secondary" className={cn(
-                isIPhone ? "ml-auto text-xs" : "ml-2"
-              )}>
-                {stats.fillerWordCount}
-              </Badge>
-            )}
-          </Button>
+          {/* Transcript Actions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size={isIPhone ? "sm" : "sm"}
+                disabled={!transcript}
+                className={cn(isIPhone && "w-full justify-start")}
+              >
+                <MoreVertical className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "mr-2")} />
+                Transcript Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 bg-background">
+              <DropdownMenuItem 
+                onClick={handleCleanTranscript}
+                disabled={!transcript}
+              >
+                <Sparkles className="h-4 w-4 mr-2 text-nhs-blue" />
+                Clean Transcript
+                {stats.fillerWordCount > 0 && (
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    {stats.fillerWordCount}
+                  </Badge>
+                )}
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={() => {
+                  navigator.clipboard.writeText(transcript);
+                  toast.success('Transcript copied');
+                }}
+                disabled={!transcript}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={handleStartEdit}
+                disabled={!transcript || isEditing}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={handleDownloadWord}
+                disabled={!transcript || isEditing}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Word
+              </DropdownMenuItem>
+              
+              {transcriptHistory.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleUndo}
+                    disabled={isEditing}
+                  >
+                    <Type className="h-4 w-4 mr-2" />
+                    Undo Changes
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {showPII && piiMatches.length > 0 && (
             <>
@@ -798,54 +851,6 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                   )}
                 >
                   Mask Selected ({selectedPII.size})
-                </Button>
-              )}
-            </>
-          )}
-
-          {!isIPhone && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(transcript);
-                  toast.success('Transcript copied');
-                }}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleStartEdit}
-                disabled={!transcript || isEditing}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDownloadWord}
-                disabled={!transcript || isEditing}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download Word
-              </Button>
-              
-              {transcriptHistory.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUndo}
-                  disabled={isEditing}
-                >
-                  <Type className="h-4 w-4 mr-2" />
-                  Undo
                 </Button>
               )}
             </>
