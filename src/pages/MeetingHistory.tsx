@@ -1669,10 +1669,11 @@ const MeetingHistory = () => {
              variant="default"
              size="default"
              onClick={() => setImportDialogOpen(true)}
-             className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+             className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
            >
              <Upload className="h-4 w-4" />
-             <span className="hidden sm:inline">Import Meeting</span>
+             <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
+             <span className="hidden sm:inline lg:hidden">Demo Import</span>
              <span className="sm:hidden">Import</span>
            </Button>
          </div>
