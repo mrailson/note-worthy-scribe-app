@@ -1653,301 +1653,295 @@ const MeetingHistory = () => {
     <div className="min-h-screen bg-gradient-background">
       <Header />
       
-       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
+       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-6 max-w-6xl">
          {/* Header Section */}
-         <div className="flex items-center gap-3">
-           <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-           <div>
-             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              View, edit, and manage your saved meetings
-            </p>
-          </div>
-        </div>
+         <div className="space-y-2">
+           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-playfair font-bold text-foreground">
+             Meeting History
+           </h1>
+           <p className="text-base sm:text-lg font-inter text-muted-foreground">
+             View, edit, and manage your saved consultations
+           </p>
+         </div>
 
-        {/* Stats Cards - Hidden on mobile, collapsible on larger screens */}
-        <div className="hidden sm:grid sm:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{meetings.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {meetings.filter(m => 
-                  new Date(m.created_at).getMonth() === new Date().getMonth()
-                ).length}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">With Summaries</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {meetings.filter(m => m.summary_exists).length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+         {/* Stats Cards */}
+         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
+             <CardContent className="p-6">
+               <div className="flex items-center justify-between mb-3">
+                 <p className="text-sm font-inter font-medium text-muted-foreground">Total Meetings</p>
+                 <FileText className="h-5 w-5 text-primary" />
+               </div>
+               <p className="text-4xl font-playfair font-bold text-foreground">{meetings.length}</p>
+             </CardContent>
+           </Card>
+           
+           <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20 shadow-sm hover:shadow-md transition-all duration-300">
+             <CardContent className="p-6">
+               <div className="flex items-center justify-between mb-3">
+                 <p className="text-sm font-inter font-medium text-muted-foreground">This Month</p>
+                 <Clock className="h-5 w-5 text-accent" />
+               </div>
+               <p className="text-4xl font-playfair font-bold text-foreground">
+                 {meetings.filter(m => 
+                   new Date(m.created_at).getMonth() === new Date().getMonth()
+                 ).length}
+               </p>
+             </CardContent>
+           </Card>
+           
+           <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20 shadow-sm hover:shadow-md transition-all duration-300">
+             <CardContent className="p-6">
+               <div className="flex items-center justify-between mb-3">
+                 <p className="text-sm font-inter font-medium text-muted-foreground">With Summaries</p>
+                 <FileText className="h-5 w-5 text-success" />
+               </div>
+               <p className="text-4xl font-playfair font-bold text-foreground">
+                 {meetings.filter(m => m.summary_exists).length}
+               </p>
+             </CardContent>
+           </Card>
+         </div>
 
-        {/* Search Bar with Manual Refresh and Import */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex-1">
-            <MeetingSearchBar 
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              resultsCount={filteredMeetings.length}
-              filterType={filterType}
-              onFilterChange={setFilterType}
-              onAdvancedFiltersChange={setAdvancedFilters}
-              advancedFilters={advancedFilters}
-            />
-          </div>
-          
-          <div className="flex gap-2">
-            {/* Import Meeting Button */}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setImportDialogOpen(true)}
-              className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              <span>Import Meeting</span>
-            </Button>
-            
-            {/* Manual Refresh Button - Enhanced with overview generation */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                console.log('🔄 Manual refresh requested');
-                fetchMeetings(currentPage);
-                toast.success('Refreshing meeting list...');
-                
-                // Generate missing overviews after refreshing
-                setTimeout(async () => {
-                  try {
-                    const meetingsNeedingOverviews = meetings.filter(meeting => 
-                      meeting.status === 'completed' && 
-                      (!meeting.overview || meeting.overview.trim() === '')
-                    );
-                    
-                    if (meetingsNeedingOverviews.length > 0) {
-                      console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
-                      toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
-                      
-                      let successCount = 0;
-                      for (const meeting of meetingsNeedingOverviews) {
-                        try {
-                          // Check if meeting has notes to generate overview from
-                          const { data: summaryData } = await supabase
-                            .from('meeting_summaries')
-                            .select('summary')
-                            .eq('meeting_id', meeting.id)
-                            .single();
-                            
-                          if (summaryData?.summary) {
-                            const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
-                              body: {
-                                meetingTitle: meeting.title,
-                                meetingNotes: summaryData.summary
-                              }
-                            });
-                            
-                            if (!error && data?.overview) {
-                              // Save to both locations for consistency
-                              await supabase
-                                .from('meetings')
-                                .update({ overview: data.overview })
-                                .eq('id', meeting.id);
-                                
-                              await supabase
-                                .from('meeting_overviews')
-                                .upsert({
-                                  meeting_id: meeting.id,
-                                  overview: data.overview
-                                });
-                                
-                              successCount++;
-                            }
-                          }
-                        } catch (overviewError) {
-                          console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
-                        }
-                      }
-                      
-                      if (successCount > 0) {
-                        toast.success(`Generated ${successCount} new overviews`);
-                        fetchMeetings(currentPage); // Refresh to show new overviews
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error generating overviews:', error);
-                  }
-                }, 1000); // Wait 1 second for the initial refresh to complete
-              }}
-              className="touch-manipulation min-h-[44px] sm:min-h-[36px] flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="sm:hidden">Refresh</span>
-            </Button>
-          </div>
-        </div>
+         {/* Search Bar and Actions Row */}
+         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+           <div className="flex-1">
+             <MeetingSearchBar 
+               searchQuery={searchQuery}
+               onSearchChange={setSearchQuery}
+               resultsCount={filteredMeetings.length}
+               filterType={filterType}
+               onFilterChange={setFilterType}
+               onAdvancedFiltersChange={setAdvancedFilters}
+               advancedFilters={advancedFilters}
+             />
+           </div>
+           
+           <div className="flex gap-2">
+             <Button
+               variant="default"
+               size="default"
+               onClick={() => setImportDialogOpen(true)}
+               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+             >
+               <Upload className="h-4 w-4" />
+               <span className="hidden sm:inline">Import Meeting</span>
+               <span className="sm:hidden">Import</span>
+             </Button>
+             
+             <Button
+               variant="outline"
+               size="default"
+               onClick={async () => {
+                 console.log('🔄 Manual refresh requested');
+                 fetchMeetings(currentPage);
+                 toast.success('Refreshing meeting list...');
+                 
+                 // Generate missing overviews after refreshing
+                 setTimeout(async () => {
+                   try {
+                     const meetingsNeedingOverviews = meetings.filter(meeting => 
+                       meeting.status === 'completed' && 
+                       (!meeting.overview || meeting.overview.trim() === '')
+                     );
+                     
+                     if (meetingsNeedingOverviews.length > 0) {
+                       console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
+                       toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+                       
+                       let successCount = 0;
+                       for (const meeting of meetingsNeedingOverviews) {
+                         try {
+                           const { data: summaryData } = await supabase
+                             .from('meeting_summaries')
+                             .select('summary')
+                             .eq('meeting_id', meeting.id)
+                             .single();
+                             
+                           if (summaryData?.summary) {
+                             const { data, error } = await supabase.functions.invoke('generate-meeting-overview', {
+                               body: {
+                                 meetingTitle: meeting.title,
+                                 meetingNotes: summaryData.summary
+                               }
+                             });
+                             
+                             if (!error && data?.overview) {
+                               await supabase
+                                 .from('meetings')
+                                 .update({ overview: data.overview })
+                                 .eq('id', meeting.id);
+                                 
+                               await supabase
+                                 .from('meeting_overviews')
+                                 .upsert({
+                                   meeting_id: meeting.id,
+                                   overview: data.overview
+                                 });
+                                 
+                               successCount++;
+                             }
+                           }
+                         } catch (overviewError) {
+                           console.warn(`Failed to generate overview for meeting ${meeting.id}:`, overviewError);
+                         }
+                       }
+                       
+                       if (successCount > 0) {
+                         toast.success(`Generated ${successCount} new overviews`);
+                         fetchMeetings(currentPage);
+                       }
+                     }
+                   } catch (error) {
+                     console.error('Error generating overviews:', error);
+                   }
+                 }, 1000);
+               }}
+               className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all"
+             >
+               <RefreshCw className="h-4 w-4" />
+               <span className="hidden sm:inline">Refresh</span>
+             </Button>
+           </div>
+         </div>
 
-        {/* Multi-select and Delete Controls */}
-        {meetings.length > 0 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Multi-select controls */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsSelectMode(!isSelectMode);
-                  setSelectedMeetings([]);
-                }}
-                className="touch-manipulation min-h-[44px]"
-              >
-                {isSelectMode ? (
-                  <>
-                    <Square className="h-4 w-4 mr-2" />
-                    Cancel Selection
-                  </>
-                ) : (
-                  <>
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Select Multiple
-                  </>
-                )}
-              </Button>
-              
-              {isSelectMode && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                  >
-                    {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
-                  </Button>
-                  
-                  {selectedMeetings.length > 0 && (
-                    <span className="text-sm text-muted-foreground">
-                      {selectedMeetings.length} selected
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+         {/* Selection Controls Row */}
+         {meetings.length > 0 && (
+           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
+             <div className="flex items-center gap-3 flex-wrap">
+               <Button
+                 variant="outline"
+                 size="default"
+                 onClick={() => {
+                   setIsSelectMode(!isSelectMode);
+                   setSelectedMeetings([]);
+                 }}
+                 className="touch-manipulation min-h-[44px] font-inter"
+               >
+                 {isSelectMode ? (
+                   <>
+                     <Square className="h-4 w-4 mr-2" />
+                     Cancel Selection
+                   </>
+                 ) : (
+                   <>
+                     <CheckSquare className="h-4 w-4 mr-2" />
+                     Select Multiple
+                   </>
+                 )}
+               </Button>
+               
+               {isSelectMode && (
+                 <>
+                   <Button
+                     variant="outline"
+                     size="default"
+                     onClick={handleSelectAll}
+                     className="touch-manipulation min-h-[44px] font-inter"
+                   >
+                     {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                   </Button>
+                   
+                   {selectedMeetings.length > 0 && (
+                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-inter font-medium">
+                       {selectedMeetings.length} selected
+                     </span>
+                   )}
+                 </>
+               )}
+             </div>
 
-            {/* Merge and Delete actions */}
-            <div className="flex gap-2">
-              {isSelectMode && selectedMeetings.length >= 2 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Merge Selected ({selectedMeetings.length})
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="mx-4 max-w-md">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Merge Selected Meetings</AlertDialogTitle>
-                      <AlertDialogDescription className="text-sm">
-                        This will combine {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be merged chronologically. Secondary meetings will be deleted after merging.
-                        <br /><br />
-                        New meeting notes will be generated automatically.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleMergeMeetings}
-                        className="touch-manipulation min-h-[44px]"
-                      >
-                        Merge Meetings
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+             <div className="flex gap-2 flex-wrap">
+               {isSelectMode && selectedMeetings.length >= 2 && (
+                 <AlertDialog>
+                   <AlertDialogTrigger asChild>
+                     <Button 
+                       variant="default" 
+                       size="default"
+                       className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                     >
+                       <FileText className="h-4 w-4 mr-2" />
+                       Merge ({selectedMeetings.length})
+                     </Button>
+                   </AlertDialogTrigger>
+                   <AlertDialogContent className="mx-4 max-w-md font-inter">
+                     <AlertDialogHeader>
+                       <AlertDialogTitle className="font-playfair">Merge Selected Meetings</AlertDialogTitle>
+                       <AlertDialogDescription>
+                         This will combine {selectedMeetings.length} meetings into one. The earliest meeting will become the primary meeting, and all transcripts will be merged chronologically. Secondary meetings will be deleted after merging.
+                         <br /><br />
+                         New meeting notes will be generated automatically.
+                       </AlertDialogDescription>
+                     </AlertDialogHeader>
+                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                       <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                         Cancel
+                       </AlertDialogCancel>
+                       <AlertDialogAction 
+                         onClick={handleMergeMeetings}
+                         className="touch-manipulation min-h-[44px]"
+                       >
+                         Merge Meetings
+                       </AlertDialogAction>
+                     </AlertDialogFooter>
+                   </AlertDialogContent>
+                 </AlertDialog>
+               )}
 
-              {isSelectMode && selectedMeetings.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Selected ({selectedMeetings.length})
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="mx-4 max-w-md">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
-                      <AlertDialogDescription className="text-sm">
-                        This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDeleteSelected}
-                        className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                      >
-                        Delete Selected
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+               {isSelectMode && selectedMeetings.length > 0 && (
+                 <AlertDialog>
+                   <AlertDialogTrigger asChild>
+                     <Button 
+                       variant="destructive" 
+                       size="default"
+                       className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                     >
+                       <Trash2 className="h-4 w-4 mr-2" />
+                       Delete ({selectedMeetings.length})
+                     </Button>
+                   </AlertDialogTrigger>
+                   <AlertDialogContent className="mx-4 max-w-md font-inter">
+                     <AlertDialogHeader>
+                       <AlertDialogTitle className="font-playfair">Delete Selected Meetings</AlertDialogTitle>
+                       <AlertDialogDescription>
+                         This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                       </AlertDialogDescription>
+                     </AlertDialogHeader>
+                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                       <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                         Cancel
+                       </AlertDialogCancel>
+                       <AlertDialogAction 
+                         onClick={handleDeleteSelected}
+                         className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                       >
+                         Delete Selected
+                       </AlertDialogAction>
+                     </AlertDialogFooter>
+                   </AlertDialogContent>
+                 </AlertDialog>
+               )}
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete All
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="mx-4 max-w-md">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                    <AlertDialogDescription className="text-sm">
-                      This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
-                      <br /><br />
-                      To confirm, please type <strong>delete</strong> in the field below:
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
+               <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                   <Button 
+                     variant="destructive" 
+                     size="default"
+                     className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                   >
+                     <Trash2 className="h-4 w-4 mr-2" />
+                     Delete All
+                   </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent className="mx-4 max-w-md font-inter">
+                   <AlertDialogHeader>
+                     <AlertDialogTitle className="font-playfair">Delete All Meetings</AlertDialogTitle>
+                     <AlertDialogDescription>
+                       This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                       <br /><br />
+                       To confirm, please type <strong>delete</strong> in the field below:
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
                   <Input
                     placeholder="Type 'delete' to confirm"
                     value={deleteConfirmation}

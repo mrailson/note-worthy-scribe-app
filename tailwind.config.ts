@@ -137,6 +137,8 @@ export default {
 			fontFamily: {
 				'nhs': ['Fira Sans', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
 				'limerick': ['EB Garamond', 'Georgia', 'serif'],
+				'playfair': ['Playfair Display', 'serif'],
+				'inter': ['Inter', 'sans-serif'],
 			}
 		}
 	},
