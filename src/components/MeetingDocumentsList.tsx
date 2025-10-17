@@ -14,6 +14,17 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MeetingDocument {
   id?: string;
@@ -42,6 +53,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
   const [documents, setDocuments] = useState<MeetingDocument[]>(initialDocuments || []);
   const [loading, setLoading] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<MeetingDocument | null>(null);
 
   // Fetch documents if not provided
   useEffect(() => {
@@ -170,10 +182,6 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
       return;
     }
 
-    if (!confirm(`Are you sure you want to remove "${document.file_name}"?`)) {
-      return;
-    }
-
     setRemoving(document.id);
     try {
       // Delete from storage first (if file_path is available)
@@ -200,6 +208,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
       setDocuments(prev => prev.filter(doc => doc.id !== document.id));
       
       toast.success('Document removed successfully');
+      setDocumentToDelete(null);
       onDocumentRemoved?.();
     } catch (error) {
       console.error('Error removing document:', error);
@@ -276,20 +285,42 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   <Download className="h-3 w-3" />
                 </Button>
                 {document.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemove(document)}
-                    disabled={removing === document.id}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    title="Remove file"
-                  >
-                    {removing === document.id ? (
-                      <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
-                    ) : (
-                      <Trash2 className="h-3 w-3" />
-                    )}
-                  </Button>
+                  <AlertDialog open={documentToDelete?.id === document.id} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDocumentToDelete(document)}
+                        disabled={removing === document.id}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        title="Remove file"
+                      >
+                        {removing === document.id ? (
+                          <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{document.file_name}"? 
+                          This action cannot be undone and will permanently remove this document from the meeting.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleRemove(document)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>
