@@ -357,14 +357,6 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         />
       </div>
 
-      {/* Clinical Actions & Safety Netting - always visible */}
-      {(clinicalActions || review) && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {clinicalActions && <ClinicalActionsPanel actions={clinicalActions} />}
-          {review && <SafetyNettingPanel safetyAdvice={[review]} />}
-        </div>
-      )}
-
       {/* Main Content with Tabs */}
       <Tabs defaultValue="clinical" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -414,6 +406,14 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         </TabsContent>
 
         <TabsContent value="review" className="space-y-4 mt-4">
+          {/* Clinical Actions & Safety Netting */}
+          {(clinicalActions || review) && (
+            <div className="grid gap-4 md:grid-cols-2 mb-4">
+              {clinicalActions && <ClinicalActionsPanel actions={clinicalActions} />}
+              {review && <SafetyNettingPanel safetyAdvice={[review]} />}
+            </div>
+          )}
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Clinical Review & Learning Points</CardTitle>
