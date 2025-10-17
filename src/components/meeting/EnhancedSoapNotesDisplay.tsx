@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { ViewModeSelector, ViewMode } from './ViewModeSelector';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
+import { EmrFormatSelector, EmrFormat } from './EmrFormatSelector';
+import { formatSoapNote } from '@/utils/emrFormatters';
 
 interface SoapNote {
   S: string;
@@ -75,6 +77,21 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [emrFormat, setEmrFormat] = useState<EmrFormat>('emis');
+
+  // Load EMR format preference from localStorage
+  useEffect(() => {
+    const savedFormat = localStorage.getItem('emrFormat') as EmrFormat;
+    if (savedFormat === 'emis' || savedFormat === 'systmone') {
+      setEmrFormat(savedFormat);
+    }
+  }, []);
+
+  // Save EMR format preference to localStorage
+  const handleEmrFormatChange = (format: EmrFormat) => {
+    setEmrFormat(format);
+    localStorage.setItem('emrFormat', format);
+  };
 
   const soapNotes = viewMode === 'quick' ? shorthand : standard;
 
@@ -93,9 +110,11 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   const handleCopySection = (section: keyof SoapNote) => {
     if (!soapNotes) return;
     
-    const text = `${section}: ${soapNotes[section]}`;
-    navigator.clipboard.writeText(text);
-    toast.success(`${section} section copied to clipboard`);
+    const formattedText = formatSoapNote(emrFormat, soapNotes, section, consultationType);
+    navigator.clipboard.writeText(formattedText);
+    
+    const systemName = emrFormat === 'emis' ? 'EMIS Web' : 'SystmOne';
+    toast.success(`${section} section copied for ${systemName}`);
     
     if (onCopySection) {
       onCopySection(section);
@@ -105,9 +124,11 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   const handleCopyAll = () => {
     if (!soapNotes) return;
     
-    const fullSoap = `S: ${soapNotes.S}\n\nO: ${soapNotes.O}\n\nA: ${soapNotes.A}\n\nP: ${soapNotes.P}`;
-    navigator.clipboard.writeText(fullSoap);
-    toast.success('Complete SOAP notes copied to clipboard');
+    const formattedText = formatSoapNote(emrFormat, soapNotes, undefined, consultationType);
+    navigator.clipboard.writeText(formattedText);
+    
+    const systemName = emrFormat === 'emis' ? 'EMIS Web' : 'SystmOne';
+    toast.success(`Complete SOAP notes copied for ${systemName}`);
     
     if (onCopyAll) {
       onCopyAll();
@@ -247,38 +268,46 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
   return (
     <div className="space-y-4">
       {/* Header with actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Patient Consultation Notes</h3>
-          {consultationType && (
-            <p className="text-sm text-muted-foreground">
-              Consultation Type: {consultationType}
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ViewModeSelector currentMode={viewMode} onModeChange={setViewMode} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyAll}
-            className="gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Copy All
-          </Button>
-          {onExport && (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold">Patient Consultation Notes</h3>
+            {consultationType && (
+              <p className="text-sm text-muted-foreground">
+                Consultation Type: {consultationType}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <ViewModeSelector currentMode={viewMode} onModeChange={setViewMode} />
             <Button
               variant="outline"
               size="sm"
-              onClick={onExport}
+              onClick={handleCopyAll}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <Copy className="h-4 w-4" />
+              Copy All
             </Button>
-          )}
+            {onExport && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExport}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            )}
+          </div>
         </div>
+        
+        {/* EMR Format Selector */}
+        <EmrFormatSelector 
+          selectedFormat={emrFormat} 
+          onFormatChange={handleEmrFormatChange}
+        />
       </div>
 
       {/* Clinical Actions & Safety Netting - always visible */}
