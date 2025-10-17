@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
 import { formatSoapNote } from '@/utils/emrFormatters';
-import { ConsultationExportButton } from './ConsultationExportButton';
 
 type ViewMode = 'quick' | 'standard' | 'detailed' | 'comparison';
 type EmrFormat = 'emis' | 'systmone';
@@ -172,6 +171,29 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     } catch (error) {
       console.error('Export failed:', error);
       toast.error('Failed to export consultation document');
+    }
+  };
+
+  const handleExportPatientLetter = async () => {
+    if (!patientCopy) {
+      toast.error('No patient information available to export');
+      return;
+    }
+    
+    try {
+      toast.info('Creating your patient letter...');
+      const { exportPatientLetterToWord } = await import('@/utils/patientLetterExport');
+      
+      await exportPatientLetterToWord({
+        patientCopy,
+        summaryLine,
+        consultationType
+      });
+      
+      toast.success('Patient letter downloaded successfully');
+    } catch (error) {
+      console.error('Patient letter export failed:', error);
+      toast.error('Failed to create patient letter');
     }
   };
 
@@ -461,28 +483,44 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         </TabsContent>
 
         <TabsContent value="patient" className="space-y-4 mt-4">
-          <Card>
+          <Card className="border-l-4 border-l-blue-500">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-base">Patient-Friendly Summary</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="text-xl">💌</span>
+                    Patient Letter
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Plain language explanation for the patient
+                    Plain language summary for the patient - Download as a beautifully formatted letter
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyPatientCopy}
-                  className="h-8 w-8 p-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyPatientCopy}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleExportPatientLetter}
+                    className="gap-2"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Download Letter
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                {patientCopy || 'No patient summary available'}
+              <div className="prose prose-sm max-w-none">
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {patientCopy || 'No patient summary available'}
+                </div>
               </div>
             </CardContent>
           </Card>
