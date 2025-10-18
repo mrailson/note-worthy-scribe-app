@@ -66,7 +66,7 @@ const FeedbackResults = () => {
               Feedback Results
             </h1>
             <p className="text-muted-foreground mt-2">
-              Aggregate feedback from practice managers across the region
+              Aggregate feedback from practice managers across Northants
             </p>
           </div>
           <Button onClick={() => refetch()} variant="outline" size="sm">
