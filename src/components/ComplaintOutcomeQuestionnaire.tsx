@@ -92,6 +92,14 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Callback option now available for waits over 3 minutes. Recruited additional receptionist.",
         additional_context: "Patient welcomed to discuss any concerns directly with practice manager. Triage questions help us prioritise urgent medical needs safely."
       };
+    } else if (refNumber === 'COMP250002') {
+      // Repeated appointment cancellations - James Williams
+      return {
+        key_findings: "Four appointments cancelled - two GP sickness, one building emergency, one admin error. Patient contact details outdated so didn't receive messages.",
+        actions_taken: "Personal apology and priority rebooking arranged. Contact details updated. £25 travel costs reimbursed.",
+        improvements_made: "Quarterly contact checks for all patients. Phone call backup for cancellations. 72-hour notice policy unless emergency.",
+        additional_context: "Patient given dedicated coordinator contact. Better locum arrangements to reduce cancellations."
+      };
     } else if (refNumber === 'COMP250003') {
       // Prescriptions - Wrong inhaler issued to Anita Patel
       return {
