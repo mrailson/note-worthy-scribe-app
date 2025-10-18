@@ -59,6 +59,7 @@ import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 import CSOReport from "./pages/CSOReport";
 import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
+import FeedbackResults from "./pages/FeedbackResults";
 
 
 const App = () => {
@@ -145,6 +146,7 @@ const App = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
             <Route path="/feedback" element={<PracticeManagerFeedback />} />
+            <Route path="/feedback/results" element={<FeedbackResults />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ const getUsefulnessColor = (value: number): string => {
 };
 
 export default function PracticeManagerFeedback() {
+  const navigate = useNavigate();
   const [practices, setPractices] = useState<Array<{ id: string; name: string; practice_code: string }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -206,9 +208,14 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
           <p className="text-muted-foreground">
             Your feedback has been successfully submitted. We appreciate you taking the time to help us improve our services.
           </p>
-          <Button onClick={() => setIsSuccess(false)} className="w-full">
-            Submit Another Response
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button onClick={() => navigate("/feedback/results")} variant="outline" className="w-full">
+              View All Results
+            </Button>
+            <Button onClick={() => setIsSuccess(false)} className="w-full">
+              Submit Another Response
+            </Button>
+          </div>
         </div>
       </div>
     );
