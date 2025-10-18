@@ -180,6 +180,14 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Enhanced incident logging system. Staff training on de-escalation. Clear acceptable behaviour policy communicated to all patients.",
         additional_context: "Multiple attempts made to engage constructively. Patient offered mediation. Legal advice sought regarding ongoing harassment of staff."
       };
+    } else if (refNumber === 'COMP250016') {
+      // Failure to Act on Safeguarding Concerns - Joshua Turner
+      return {
+        key_findings: "Dr Hughes did not follow safeguarding procedures. Failed to speak to child privately or document concerns properly. This was a serious safeguarding failure.",
+        actions_taken: "Full apology to family. Dr Hughes completed mandatory safeguarding training. Case reviewed by safeguarding lead. Social services now involved.",
+        improvements_made: "Enhanced safeguarding protocols implemented. All unexplained injuries flagged automatically. Monthly safeguarding audits. Direct safeguarding hotline for staff.",
+        additional_context: "Practice safeguarding lead now reviews all concerning presentations. Staff training delivered to all clinicians. Patient now has named safeguarding contact."
+      };
     }
     
     // No demo response available - return empty strings for non-demo complaints
