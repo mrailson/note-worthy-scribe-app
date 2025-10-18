@@ -3,13 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope, Building2, Filter } from 'lucide-react';
+import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope, Building2 } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -132,29 +126,29 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
           
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Organisation:</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Building2 className="h-4 w-4" />
-                  {selectedOrgType}
-                  <Filter className="h-3 w-3 ml-1 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => handleOrgTypeChange('All')}>
-                  All Organisations
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOrgTypeChange('GP Practice')}>
-                  GP Practice
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOrgTypeChange('LMC')}>
-                  LMC
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOrgTypeChange('ICB')}>
-                  ICB
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ToggleGroup 
+              type="single" 
+              value={selectedOrgType} 
+              onValueChange={(value) => value && handleOrgTypeChange(value)}
+              className="gap-1"
+            >
+              <ToggleGroupItem value="All" aria-label="Show all organisations" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                All
+              </ToggleGroupItem>
+              <ToggleGroupItem value="GP Practice" aria-label="Show GP Practice meetings" className="gap-2">
+                <Stethoscope className="h-4 w-4" />
+                GP
+              </ToggleGroupItem>
+              <ToggleGroupItem value="LMC" aria-label="Show LMC meetings" className="gap-2">
+                <Users className="h-4 w-4" />
+                LMC
+              </ToggleGroupItem>
+              <ToggleGroupItem value="ICB" aria-label="Show ICB meetings" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                ICB
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
         
